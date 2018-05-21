@@ -47,6 +47,11 @@ class GetChecklistURLs:
         return url_params
 
     def get_key_with_urls(self):
+        """
+        Get all the URLs necessary for sets in the gathererSets
+        file and dictionary them.
+        :return: Dictionary (Set, URLs)
+        """
         sets_to_download = gathererSets.get_gatherer_sets()
         main_url = "http://gatherer.wizards.com/Pages/Search/Default.aspx?{}"
 
