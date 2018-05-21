@@ -1,4 +1,3 @@
-
 def get_gatherer_sets():
     gatherer_sets = [
         'Kaladesh',
