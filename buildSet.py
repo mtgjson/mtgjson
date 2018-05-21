@@ -1,0 +1,65 @@
+import urllib.parse
+import urllib.request
+
+import gathererSets
+
+
+def get_page_count_for_set(html_data):
+    """
+    Function will check the data downloaded from the initial
+    page for how many pages exist in the checklist.
+    :param html_data:
+    :return: How many pages exist (pages are 0 indexed)
+    """
+    try:
+        total_pages = html_data                         \
+            .decode()                                   \
+            .replace(' ', '')                           \
+            .split('<divclass="pagingcontrols">')[2]    \
+            .split("\n")[0]                             \
+            .split("page=")[-1]                         \
+            .split("&")[0]
+    except IndexError:
+        total_pages = 0
+
+    return int(total_pages)+1
+
+
+def get_url_params(card_set, page_number=0):
+    """
+    Gets what the URL should contain to
+    properly get the cards in the set.
+    :param card_set: Set name
+    :param page_number: What page to get (Default 0)
+    :return: Encoded parameters
+    """
+    url_params = urllib.parse.urlencode({
+        'output': 'checklist',
+        'sort': 'cn+',
+        'action': 'advanced',
+        'special': 'true',
+        'set': '["{0}"]'.format(card_set),
+        'page': page_number
+    })
+
+    return url_params
+
+
+def main():
+    sets_to_download = gathererSets.get_gatherer_sets()
+    main_url = "http://gatherer.wizards.com/Pages/Search/Default.aspx?{}"
+
+    for card_set in sets_to_download:
+        urls_to_download = []
+        url_for_info = main_url.format(get_url_params(card_set, 0))
+
+        with urllib.request.urlopen(url_for_info) as response:
+            html = response.read()
+            for i in range(0, get_page_count_for_set(html)):
+                urls_to_download.append(main_url.format(get_url_params(card_set, i)))
+
+        print("{0}: {1}".format(card_set, urls_to_download))
+
+
+if __name__ == "__main__":
+    main()
