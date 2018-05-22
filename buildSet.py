@@ -2,6 +2,7 @@ import gathererSets
 
 import urllib.parse
 import urllib.request
+from bs4 import BeautifulSoup
 
 
 class GetChecklistURLs:
@@ -10,17 +11,16 @@ class GetChecklistURLs:
         """
         Function will check the data downloaded from the initial
         page for how many pages exist in the checklist.
-        :param html_data:
+        :param html_data: Binary data
         :return: How many pages exist (pages are 0 indexed)
         """
         try:
-            total_pages = html_data                         \
-                .decode()                                   \
-                .replace(' ', '')                           \
-                .split('<divclass="pagingcontrols">')[2]    \
-                .split("\n")[0]                             \
-                .split("page=")[-1]                         \
-                .split("&")[0]
+            # Get the last instance of pagingcontrols and get the page
+            # number from the URL it contains
+            soup = BeautifulSoup(html_data.decode(), 'html.parser')
+            soup = soup.select('div[class^=pagingcontrols]')[-1]
+            soup = soup.select('a')[-1]
+            total_pages = str(soup).split('page=')[1].split('&')[0]
         except IndexError:
             total_pages = 0
 

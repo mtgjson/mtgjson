@@ -9,5 +9,7 @@ def get_gatherer_sets():
         'Rivals of Ixalan',
         'Dominaria'
     ]
-
+    """
+        
+    """
     return gatherer_sets
