@@ -154,7 +154,7 @@ class DownloadsCardsByMIDList:
 
                     for symbol in mana_row:
                         symbol_value = symbol['alt']
-                        symbol_mapped = sharedInfo.get_map_of_symbols(symbol_value)
+                        symbol_mapped = sharedInfo.get_symbol_short_name(symbol_value)
                         card_cost += '{{{0}}}'.format(symbol_mapped)
                         if not symbol_value.isdigit() and symbol_value != 'X':
                             card_color_identity.append(symbol_mapped)
@@ -221,7 +221,7 @@ class DownloadsCardsByMIDList:
                         images = div.findAll('img')
                         for symbol in images:
                             symbol_value = symbol['alt']
-                            symbol_mapped = sharedInfo.get_map_of_symbols(symbol_value)
+                            symbol_mapped = sharedInfo.get_symbol_short_name(symbol_value)
                             symbol.replace_with('{{{0}}}'.format(symbol_mapped))
                             if not symbol_mapped.isdigit() and symbol_mapped != 'X':
                                 card_info['colorIdentity'] += symbol_mapped

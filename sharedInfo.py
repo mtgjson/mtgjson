@@ -1,17 +1,15 @@
 def get_gatherer_sets():
     gatherer_sets = [
-        #'Kaladesh',
-        'Dominaria'
-
-    ]
-    '''
+        'Kaladesh',
+        'Dominaria',
         'Aether Revolt',
         'Amonkhet',
         'Welcome Deck 2017',
         'Hour of Devastation',
         'Ixalan',
         'Rivals of Ixalan',
-    '''
+    ]
+
     return gatherer_sets
 
 
@@ -56,7 +54,7 @@ def get_types():
     return types
 
 
-def get_map_of_symbols(key_to_find):
+def get_symbol_short_name(key_to_find):
 
     symbol_map = {
         'White': 'W',
@@ -69,40 +67,15 @@ def get_map_of_symbols(key_to_find):
         'Energy': 'E',
         'Variable Colorless': 'X',
 
-        """
-        'Zero': '0',
-        'One': '1',
-        'Two': '2',
-        'Three': '3',
-        'Four': '4',
-        'Five': '5',
-        'Six': '6',
-        'Seven': '7',
-        'Eight': '8',
-        'Nine': '9',
-        'Ten': '10',
-        'Eleven': '11',
-        'Twelve': '12',
-        'Thirteen': '13',
-        'Fourteen': '14',
-        'Fifteen': '15',
-        'Sixteen': '16',
-        'Seventeen': '17',
-        'Eighteen': '18',
-        'Nineteen': '19',
-        'Twenty': '20',
-        'Onehundred': '100',
-        'Hundred': '100',
-        """
-
         'Tap': 'T',
         'Untap': 'Q'
     }
 
+    # Returns the key if not found
     return symbol_map.get(key_to_find, key_to_find)
 
 
-    '''
+"""
     x : [],
     y : [],
     z : [],
@@ -136,4 +109,4 @@ def get_map_of_symbols(key_to_find):
     hg : ['halfgreen', 'halfg', 'greenhalf', 'ghalf', 'gh', 'greenh']
     chaosdice : ['chaos', 'c'],
     };
-    '''
+"""
