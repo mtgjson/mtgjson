@@ -27,7 +27,14 @@ class GetChecklistURLs:
             # number from the URL it contains
             soup = BeautifulSoup(html_data.decode(), 'html.parser')
             soup = soup.select('div[class^=pagingcontrols]')[-1]
-            soup = soup.select('a')[-1]
+            soup = soup.findAll('a')
+
+            # If it sees "1,2,3>" will take the "3" instead of ">"
+            if '&gt;' in str(soup[-1]):
+                soup = soup[-2]
+            else:
+                soup = soup[-1]
+
             total_pages = str(soup).split('page=')[1].split('&')[0]
         except IndexError:
             total_pages = 0
@@ -137,7 +144,16 @@ class DownloadsCardsByMIDList:
                 except AttributeError:
                     pass
 
-                """ Get Card CMC, Colors, and Color Identity (start) """
+                """ Get Card CMC """
+                try:
+                    cmc_row = soup.find(id=div_name.format('cmcRow'))
+                    cmc_row = cmc_row.findAll('div')[-1]
+                    card_cmc = str(cmc_row.contents)[6:].lstrip()[:-2]
+                    card_info['cmc'] = card_cmc
+                except AttributeError:
+                    pass
+
+                """ Get Card Colors and Color Identity (start) """
                 try:
                     mana_row = soup.find(id=div_name.format('manaRow'))
                     mana_row = mana_row.findAll('div')[-1]
@@ -162,7 +178,6 @@ class DownloadsCardsByMIDList:
                     card_info['cmc'] = card_cmc
                     card_info['colors'] = card_colors
                 except AttributeError:
-                    card_info['cmc'] = 0
                     pass
 
                 """ Get Card Type(s) """
@@ -218,19 +233,24 @@ class DownloadsCardsByMIDList:
                 except AttributeError:
                     pass
 
-                """ Get Card P/T (If Applicable) """
+                """ Get Card P/T OR Loyalty """
                 try:
                     pt_row = soup.find(id=div_name.format('ptRow'))
                     pt_row = pt_row.findAll('div')[-1]
                     pt_row = str(pt_row.contents)[6:].lstrip()[:-2]
                     pt_row = pt_row.split('/')
 
-                    card_power = pt_row[0].strip()
-                    card_toughness = pt_row[1].strip()
-                    card_info['power'] = card_power
-                    card_info['toughness'] = card_toughness
+                    if len(pt_row) == 2:
+                        card_power = pt_row[0].strip()
+                        card_toughness = pt_row[1].strip()
+                        card_info['power'] = card_power
+                        card_info['toughness'] = card_toughness
+                    else:
+                        card_loyalty = pt_row[0]
+                        card_info['loyalty'] = card_loyalty
                 except (AttributeError, IndexError):
                     pass
+
 
                 """ Get Card Rarity """
                 try:
@@ -284,7 +304,7 @@ class StartToFinishForSet:
         print("S2F:{}".format(urls_for_set))
 
         m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
-        print("S2F:{}".format(m_ids_for_set))
+        print("S2F:{0} with {1} ids".format(m_ids_for_set, len(m_ids_for_set)))
 
         cards_holder = DownloadsCardsByMIDList().start(set_name, m_ids_for_set)
         print("S2F:{}".format(cards_holder))
