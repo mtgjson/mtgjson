@@ -8,7 +8,7 @@ from multiprocessing import Pool
 
 
 class GetChecklistURLs:
-    set_to_download = ""
+    set_to_download = ''
 
     def start(self, magic_set):
         self.set_to_download = magic_set
@@ -39,6 +39,7 @@ class GetChecklistURLs:
         except IndexError:
             total_pages = 0
 
+        return 1
         return int(total_pages)+1
 
     @staticmethod
@@ -78,7 +79,7 @@ class GetChecklistURLs:
 class GenerateMIDsBySet:
     # Class Variable
     all_set_multiverse_ids = []
-    set_name = ""
+    set_name = ''
 
     def start(self, set_name, set_urls):
         self.set_name = set_name
@@ -102,13 +103,13 @@ class GenerateMIDsBySet:
         return self.all_set_multiverse_ids
 
     def clear(self):
-        self.set_name = ""
+        self.set_name = ''
         self.all_set_multiverse_ids = []
 
 
 class DownloadsCardsByMIDList:
     # Class Variables
-    set_name = ""
+    set_name = ''
     multiverse_ids = []
     cards_in_set = {}
 
@@ -133,7 +134,7 @@ class DownloadsCardsByMIDList:
                 soup = BeautifulSoup(html.decode(), 'html.parser')
 
                 """ Get Card Multiverse ID """
-                card_info['multiverseid'] = card_m_id
+                card_info['multiverseid'] = int(card_m_id)
 
                 """ Get Card Name """
                 try:
@@ -153,30 +154,28 @@ class DownloadsCardsByMIDList:
                 except AttributeError:
                     pass
 
-                """ Get Card Colors and Color Identity (start) """
+                """ Get Card Colors, Cost, and Color Identity (start) """
                 try:
                     mana_row = soup.find(id=div_name.format('manaRow'))
                     mana_row = mana_row.findAll('div')[-1]
                     mana_row = mana_row.findAll('img')
 
-                    card_cmc = 0
-                    card_color_identity = []
                     card_colors = []
+                    card_cost = ""
+                    card_color_identity = []
 
                     for symbol in mana_row:
                         symbol_value = symbol['alt']
-                        if symbol_value.isdigit():
-                            card_cmc += int(symbol_value)
-                        elif symbol_value != 'X':
-                            card_cmc += 1
+                        card_cost += "{{{0}}}".format(symbol_value)
+                        if not symbol_value.isdigit() and symbol_value != 'X':
+                            # TODO: Make a mapping as these aren't true :)
                             card_color_identity.append(symbol_value)
                             card_colors.append(symbol_value[0])
 
                     # Remove duplicates
                     card_colors = list(set(card_colors))
-
-                    card_info['cmc'] = card_cmc
                     card_info['colors'] = card_colors
+                    card_info['cost'] = card_cost
                 except AttributeError:
                     pass
 
@@ -222,7 +221,7 @@ class DownloadsCardsByMIDList:
                 try:
                     text_row = soup.find(id=div_name.format('textRow'))
                     text_row = text_row.findAll('div')[-1]
-                    text_row = str(text_row)[52:-6] # Cannot use .contents as it messes with images
+                    text_row = str(text_row)[52:-6]  # Cannot use .contents as it messes with images
 
                     text_soup = BeautifulSoup(text_row, 'html.parser')
                     for symbol in text_soup.findAll('img'):
