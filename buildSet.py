@@ -16,20 +16,14 @@ class GetChecklistURLs:
 
     @staticmethod
     def get_page_count_for_set(html_data):
-        """
-        Function will check the data downloaded from the initial
-        page for how many pages exist in the checklist.
-        :param html_data: Binary data
-        :return: How many pages exist (pages are 0 indexed)
-        """
         try:
-            # Get the last instance of pagingcontrols and get the page
+            # Get the last instance of 'pagingcontrols' and get the page
             # number from the URL it contains
             soup = BeautifulSoup(html_data.decode(), 'html.parser')
             soup = soup.select('div[class^=pagingcontrols]')[-1]
             soup = soup.findAll('a')
 
-            # If it sees "1,2,3>" will take the "3" instead of ">"
+            # If it sees '1,2,3>' will take the '3' instead of '>'
             if '&gt;' in str(soup[-1]):
                 soup = soup[-2]
             else:
@@ -39,18 +33,10 @@ class GetChecklistURLs:
         except IndexError:
             total_pages = 0
 
-        return 1
         return int(total_pages)+1
 
     @staticmethod
     def get_url_params(card_set, page_number=0):
-        """
-        Gets what the URL should contain to
-        properly get the cards in the set.
-        :param card_set: Set name
-        :param page_number: What page to get (Default 0)
-        :return: Encoded parameters
-        """
         url_params = urllib.parse.urlencode({
             'output': 'checklist',
             'sort': 'cn+',
@@ -140,7 +126,7 @@ class DownloadsCardsByMIDList:
                 try:
                     name_row = soup.find(id=div_name.format('nameRow'))
                     name_row = name_row.findAll('div')[-1]
-                    card_name = str(name_row.contents)[6:].lstrip()[:-2]
+                    card_name = name_row.get_text(strip=True)
                     card_info['name'] = card_name
                 except AttributeError:
                     pass
@@ -149,34 +135,41 @@ class DownloadsCardsByMIDList:
                 try:
                     cmc_row = soup.find(id=div_name.format('cmcRow'))
                     cmc_row = cmc_row.findAll('div')[-1]
-                    card_cmc = str(cmc_row.contents)[6:].lstrip()[:-2]
+                    card_cmc = cmc_row.get_text(strip=True)
                     card_info['cmc'] = card_cmc
                 except AttributeError:
+                    card_info['cmc'] = 0
                     pass
 
                 """ Get Card Colors, Cost, and Color Identity (start) """
-                card_color_identity = []
+
                 try:
                     mana_row = soup.find(id=div_name.format('manaRow'))
                     mana_row = mana_row.findAll('div')[-1]
                     mana_row = mana_row.findAll('img')
 
                     card_colors = []
-                    card_cost = ""
+                    card_cost = ''
+                    card_color_identity = []
 
                     for symbol in mana_row:
                         symbol_value = symbol['alt']
-                        card_cost += "{{{0}}}".format(symbol_value)
+                        symbol_mapped = sharedInfo.get_map_of_symbols(symbol_value)
+                        card_cost += '{{{0}}}'.format(symbol_mapped)
                         if not symbol_value.isdigit() and symbol_value != 'X':
-                            # TODO: Make a mapping as these aren't true :)
-                            card_color_identity.append(symbol_value)
-                            card_colors.append(symbol_value[0])
+                            card_color_identity.append(symbol_mapped)
+                            card_colors.append(symbol_mapped)
 
                     # Remove duplicates
                     card_colors = list(set(card_colors))
+
                     card_info['colors'] = card_colors
                     card_info['cost'] = card_cost
+                    card_info['colorIdentity'] = card_color_identity
                 except AttributeError:
+                    card_info['colors'] = []
+                    card_info['cost'] = ''
+                    card_info['colorIdentity'] = []
                     pass
 
                 """ Get Card Type(s) """
@@ -217,7 +210,7 @@ class DownloadsCardsByMIDList:
                 except AttributeError:
                     pass
 
-                """ Get Card Text """
+                """ Get Card Text and Color Identity (remaining) """
                 try:
                     text_row = soup.find(id=div_name.format('textRow'))
                     text_row = text_row.select('div[class^=cardtextbox]')
@@ -225,25 +218,19 @@ class DownloadsCardsByMIDList:
                     card_text = ''
                     for div in text_row:
                         # Start by replacing all images with alternative text
-                        # TODO: Add color identity information here
                         images = div.findAll('img')
                         for symbol in images:
                             symbol_value = symbol['alt']
-                            symbol.replace_with('{{{0}}}'.format(symbol_value))
+                            symbol_mapped = sharedInfo.get_map_of_symbols(symbol_value)
+                            symbol.replace_with('{{{0}}}'.format(symbol_mapped))
+                            if not symbol_mapped.isdigit() and symbol_mapped != 'X':
+                                card_info['colorIdentity'] += symbol_mapped
 
-                        for paragraph in div.contents:
-                            paragraph = str(paragraph).strip()
+                        # Next, just add the card text, line by line
+                        card_text += div.get_text() + '\n'
 
-                            if paragraph.startswith('{'):
-                                if card_text.endswith('}'):
-                                    card_text += paragraph
-                                else:
-                                    card_text = '{0} {1} '.format(card_text[:-1], paragraph)
-                            else:
-                                card_text += paragraph + '\n'
-
-                    card_info['text'] = card_text[:-1]  # Remove last "\n"
-                    card_info['colorIdentity'] = list(set(card_color_identity))
+                    card_info['text'] = card_text[:-1]  # Remove last '\n'
+                    card_info['colorIdentity'] = list(set(card_info['colorIdentity']))
                 except AttributeError:
                     pass
 
@@ -251,7 +238,7 @@ class DownloadsCardsByMIDList:
                 try:
                     pt_row = soup.find(id=div_name.format('ptRow'))
                     pt_row = pt_row.findAll('div')[-1]
-                    pt_row = str(pt_row.contents)[6:].lstrip()[:-2]
+                    pt_row = pt_row.get_text(strip=True)
                     pt_row = pt_row.split('/')
 
                     if len(pt_row) == 2:
@@ -270,7 +257,7 @@ class DownloadsCardsByMIDList:
                     rarity_row = soup.find(id=div_name.format('rarityRow'))
                     rarity_row = rarity_row.findAll('div')[-1]
                     rarity_row = rarity_row.find('span').contents
-                    card_rarity = str(rarity_row)[2:].lstrip()[:-2]
+                    card_rarity = rarity_row.get_text(strip=True)
                     card_info['rarity'] = card_rarity
                 except AttributeError:
                     pass
@@ -279,7 +266,7 @@ class DownloadsCardsByMIDList:
                 try:
                     number_row = soup.find(id=div_name.format('numberRow'))
                     number_row = number_row.findAll('div')[-1]
-                    card_number = str(number_row.contents)[6:].lstrip()[:-2]
+                    card_number = number_row.get_text(strip=True)
                     card_info['number'] = card_number
                 except AttributeError:
                     pass
@@ -289,13 +276,14 @@ class DownloadsCardsByMIDList:
                     artist_row = soup.find(id=div_name.format('artistRow'))
                     artist_row = artist_row.findAll('div')[-1]
                     artist_row = artist_row.find('a').contents
-                    card_artist = str(artist_row)[2:].lstrip()[:-2]
+                    card_artist = artist_row.get_text(strip=True)
                     card_info['artist'] = card_artist
                 except AttributeError:
                     pass
 
                 # Insert new value
                 self.cards_in_set[card_m_id] = card_info
+                print('Added {0}'.format(card_info['name']))
 
     @staticmethod
     def get_url_params(card_m_id):
@@ -311,20 +299,20 @@ class DownloadsCardsByMIDList:
 
 class StartToFinishForSet:
     def __init__(self, set_name):
-        print("S2F:{}".format(set_name))
+        print('S2F: {}'.format(set_name))
 
         urls_for_set = GetChecklistURLs().start(set_name)
-        print("S2F:{}".format(urls_for_set))
+        print('S2F: {}'.format(urls_for_set))
 
         m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
-        print("S2F:{0} with {1} ids".format(m_ids_for_set, len(m_ids_for_set)))
+        print('S2F: {0} with {1} ids'.format(m_ids_for_set, len(m_ids_for_set)))
 
         cards_holder = DownloadsCardsByMIDList().start(set_name, m_ids_for_set)
-        print("S2F:{}".format(cards_holder))
+        print('S2F: {}'.format(cards_holder))
 
-        with open("outputs/{}.json".format(set_name), "w") as fp:
+        with open('outputs/{}.json'.format(set_name), 'w') as fp:
             fp.write(json.dumps(cards_holder, sort_keys=True, indent=4))
-            print("S2F:{} written".format(fp.name))
+            print('S2F: {} written'.format(fp.name))
 
 
 if __name__ == '__main__':
