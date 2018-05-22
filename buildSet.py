@@ -10,8 +10,8 @@ from multiprocessing import Pool
 class GetChecklistURLs:
     set_to_download = ''
 
-    def start(self, magic_set):
-        self.set_to_download = magic_set
+    def start(self, magic_set_name):
+        self.set_to_download = magic_set_name
         return self.get_key_with_urls()
 
     @staticmethod
@@ -155,6 +155,7 @@ class DownloadsCardsByMIDList:
                     pass
 
                 """ Get Card Colors, Cost, and Color Identity (start) """
+                card_color_identity = []
                 try:
                     mana_row = soup.find(id=div_name.format('manaRow'))
                     mana_row = mana_row.findAll('div')[-1]
@@ -162,7 +163,6 @@ class DownloadsCardsByMIDList:
 
                     card_colors = []
                     card_cost = ""
-                    card_color_identity = []
 
                     for symbol in mana_row:
                         symbol_value = symbol['alt']
@@ -220,15 +220,30 @@ class DownloadsCardsByMIDList:
                 """ Get Card Text """
                 try:
                     text_row = soup.find(id=div_name.format('textRow'))
-                    text_row = text_row.findAll('div')[-1]
-                    text_row = str(text_row)[52:-6]  # Cannot use .contents as it messes with images
+                    text_row = text_row.select('div[class^=cardtextbox]')
 
-                    text_soup = BeautifulSoup(text_row, 'html.parser')
-                    for symbol in text_soup.findAll('img'):
-                        symbol_value = symbol['alt']
-                        symbol.replace_with("{{{0}}}".format(symbol_value))
+                    card_text = ''
+                    for div in text_row:
+                        # Start by replacing all images with alternative text
+                        # TODO: Add color identity information here
+                        images = div.findAll('img')
+                        for symbol in images:
+                            symbol_value = symbol['alt']
+                            symbol.replace_with('{{{0}}}'.format(symbol_value))
 
-                    card_info['text'] = str(text_soup)
+                        for paragraph in div.contents:
+                            paragraph = str(paragraph).strip()
+
+                            if paragraph.startswith('{'):
+                                if card_text.endswith('}'):
+                                    card_text += paragraph
+                                else:
+                                    card_text = '{0} {1} '.format(card_text[:-1], paragraph)
+                            else:
+                                card_text += paragraph + '\n'
+
+                    card_info['text'] = card_text[:-1]  # Remove last "\n"
+                    card_info['colorIdentity'] = list(set(card_color_identity))
                 except AttributeError:
                     pass
 
@@ -245,11 +260,10 @@ class DownloadsCardsByMIDList:
                         card_info['power'] = card_power
                         card_info['toughness'] = card_toughness
                     else:
-                        card_loyalty = pt_row[0]
+                        card_loyalty = pt_row[0].strip()
                         card_info['loyalty'] = card_loyalty
                 except (AttributeError, IndexError):
                     pass
-
 
                 """ Get Card Rarity """
                 try:
@@ -311,7 +325,6 @@ class StartToFinishForSet:
         with open("outputs/{}.json".format(set_name), "w") as fp:
             fp.write(json.dumps(cards_holder, sort_keys=True, indent=4))
             print("S2F:{} written".format(fp.name))
-            fp.close()
 
 
 if __name__ == '__main__':
