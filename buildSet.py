@@ -72,6 +72,42 @@ class GetChecklistURLs:
         return return_value
 
 
+class DownloadCardsBySet:
+    # Class Variable
+    all_set_multiverse_ids = []
+    set_name = ""
+
+    def parse_urls(self, set_name, set_urls):
+        self.set_name = set_name
+        for url in set_urls:
+            self.parse_url_for_m_ids(url)
+
+    def parse_url_for_m_ids(self, url):
+        with urllib.request.urlopen(url) as response:
+            html = response.read()
+            soup = BeautifulSoup(html.decode(), 'html.parser')
+
+            # All cards on the page
+            soup = soup.findAll('a', {'class': 'nameLink'})
+            for card_info in soup:
+                card_m_id = str(card_info).split('multiverseid=')[1].split('"')[0]
+                self.all_set_multiverse_ids.append(card_m_id)
+
+    def get_multiverse_ids_from_set(self):
+        return {self.set_name: self.all_set_multiverse_ids}
+
+    def clear(self):
+        self.set_name = ""
+        self.all_set_multiverse_ids = []
+
+
 if __name__ == "__main__":
     urls = GetChecklistURLs().get_key_with_urls()
-    print(urls)
+
+    download_holder = DownloadCardsBySet()
+    for key, value in urls.items():
+        download_holder.parse_urls(key, value)
+
+        multiverse_ids = download_holder.get_multiverse_ids_from_set()
+        download_holder.clear()
+        print(multiverse_ids)
