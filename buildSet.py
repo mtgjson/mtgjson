@@ -1,6 +1,4 @@
 # Library Imports
-import sys
-
 import bs4
 import json
 import multiprocessing
@@ -106,6 +104,7 @@ class DownloadsCardsByMIDList:
     cards_in_set = {}
     main_url = 'http://gatherer.wizards.com/Pages/Card/Details.aspx?{}'
     legal_url = 'http://gatherer.wizards.com/Pages/Card/Printings.aspx?{}'
+    foreign_url = 'http://gatherer.wizards.com/Pages/Card/Languages.aspx?{}'
     magic_colors = ['W', 'U', 'B', 'R', 'G']
 
     def start(self, set_name, multi_ids):
@@ -132,6 +131,7 @@ class DownloadsCardsByMIDList:
     def build_card(self, card_m_id):
         url_for_info = self.main_url.format(self.get_url_params(card_m_id))
         url_for_legal_info = self.legal_url.format(self.get_url_params(card_m_id))
+        url_for_foreign_info = self.foreign_url.format(self.get_url_params(card_m_id))
         card_info = {}
 
         with urllib.request.urlopen(url_for_info) as response:
@@ -383,12 +383,6 @@ class DownloadsCardsByMIDList:
             except AttributeError:
                 pass
 
-            # TODO: Missing types
-            # id, layout, variations, border, timeshifted, reserved,
-            # starter, mciNumber, scryfallNumber
-            # EX: foreignNames, legalities
-            print('Adding {0} to {1}'.format(card_info['name'], self.set_name))
-
         with urllib.request.urlopen(url_for_legal_info) as response:
             html = response.read()
 
@@ -414,6 +408,43 @@ class DownloadsCardsByMIDList:
                 card_info['legalities'] = card_formats
             except AttributeError:
                 pass
+
+        with urllib.request.urlopen(url_for_foreign_info) as response:
+            html = response.read()
+
+            # Parse webpage so we can gather all data from it
+            soup = bs4.BeautifulSoup(html.decode(), 'html.parser')
+
+            """ Get Card Foreign Information """
+            try:
+                language_rows = soup.select('table[class^=cardList]')[0]
+                language_rows = language_rows.select('tr[class^=cardItem]')
+
+                card_languages = []
+                for div in language_rows:
+                    table_rows = div.findAll('td')
+
+                    a_tag = table_rows[0].find('a')
+                    foreign_m_id = a_tag['href'].split('=')[-1]
+                    card_language_mid = foreign_m_id
+                    card_foreign_name_in_language = a_tag.get_text(strip=True)
+
+                    card_language_name = table_rows[1].get_text(strip=True)
+
+                    card_languages.append({
+                            'language': card_language_name,
+                            'name': card_foreign_name_in_language,
+                            'multiverseid': card_language_mid
+                    })
+
+                card_info['foreignNames'] = card_languages
+            except AttributeError:
+                pass
+
+            # TODO: Missing types
+            # id, layout, variations, border, timeshifted, reserved,
+            # starter, mciNumber, scryfallNumber
+            print('Adding {0} to {1}'.format(card_info['name'], self.set_name))
 
         return card_info
 
@@ -457,21 +488,21 @@ class DownloadsCardsByMIDList:
 
 
 def build_set(set_name):
-    print('S2F: {}'.format(set_name))
+    print('BuildSet: Building Set {}'.format(set_name))
 
     urls_for_set = GetChecklistURLs().start(set_name)
-    print('S2F: {}'.format(urls_for_set))
+    print('BuildSet: URLs for {0}: {1}'.format(set_name, urls_for_set))
 
     #m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
     m_ids_for_set = [442051, 435172]# , 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582]
-    print('S2F: {0} with {1} ids'.format(m_ids_for_set, len(m_ids_for_set)))
+    print('BuildSet: MIDs for {0}: {1}'.format(set_name, m_ids_for_set))
 
     cards_holder = DownloadsCardsByMIDList().start(set_name, m_ids_for_set)
-    print('S2F: {}'.format(cards_holder))
+    print('BuildSet: JSON generated for {}'.format(set_name))
 
     with open('outputs/{}.json'.format(set_name), 'w') as fp:
         fp.write(json.dumps(cards_holder, sort_keys=True, indent=4))
-        print('S2F: {} written'.format(fp.name))
+        print('BuildSet: JSON written for {}'.format(set_name))
 
 
 if __name__ == '__main__':
