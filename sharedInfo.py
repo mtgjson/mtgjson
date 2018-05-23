@@ -1,13 +1,13 @@
 def get_gatherer_sets():
     gatherer_sets = [
-        'Kaladesh',
-        'Dominaria',
-        'Aether Revolt',
-        'Amonkhet',
-        'Welcome Deck 2017',
-        'Hour of Devastation',
-        'Ixalan',
-        'Rivals of Ixalan'
+        'Kaladesh'
+        #'Dominaria',
+        #'Aether Revolt',
+        #'Amonkhet',
+        #'Welcome Deck 2017',
+        #'Hour of Devastation',
+        #'Ixalan',
+        #'Rivals of Ixalan'
     ]
 
     return gatherer_sets
