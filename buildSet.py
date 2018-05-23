@@ -1,11 +1,15 @@
+# My Imports
+import time
+
 import sharedInfo
 
+# Library Imports
+import bs4
 import json
+import multiprocessing
+import re
 import urllib.parse
 import urllib.request
-import re
-from bs4 import BeautifulSoup
-from multiprocessing import Pool
 
 
 class GetChecklistURLs:
@@ -20,7 +24,7 @@ class GetChecklistURLs:
         try:
             # Get the last instance of 'pagingcontrols' and get the page
             # number from the URL it contains
-            soup = BeautifulSoup(html_data.decode(), 'html.parser')
+            soup = bs4.BeautifulSoup(html_data.decode(), 'html.parser')
             soup = soup.select('div[class^=pagingcontrols]')[-1]
             soup = soup.findAll('a')
 
@@ -78,7 +82,7 @@ class GenerateMIDsBySet:
     def parse_url_for_m_ids(self, url):
         with urllib.request.urlopen(url) as response:
             html = response.read()
-            soup = BeautifulSoup(html.decode(), 'html.parser')
+            soup = bs4.BeautifulSoup(html.decode(), 'html.parser')
 
             # All cards on the page
             soup = soup.findAll('a', {'class': 'nameLink'})
@@ -124,7 +128,7 @@ class DownloadsCardsByMIDList:
             card_info = {}
 
             # Parse webpage so we can gather all data from it
-            soup = BeautifulSoup(html.decode(), 'html.parser')
+            soup = bs4.BeautifulSoup(html.decode(), 'html.parser')
 
             """ Get Card Multiverse ID """
             card_info['multiverseid'] = int(card_m_id)
@@ -417,15 +421,14 @@ class DownloadsCardsByMIDList:
         return self.cards_in_set
 
 
-class StartToFinishForSet:
-    def __init__(self, set_name):
+def build_set(set_name):
         print('S2F: {}'.format(set_name))
 
-        #urls_for_set = GetChecklistURLs().start(set_name)
-        #print('S2F: {}'.format(urls_for_set))
+        urls_for_set = GetChecklistURLs().start(set_name)
+        print('S2F: {}'.format(urls_for_set))
 
-        #m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
-        m_ids_for_set = [442051, 435172, 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582]
+        m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
+        # m_ids_for_set = [442051, 435172, 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582]
         print('S2F: {0} with {1} ids'.format(m_ids_for_set, len(m_ids_for_set)))
 
         cards_holder = DownloadsCardsByMIDList().start(set_name, m_ids_for_set)
@@ -437,11 +440,16 @@ class StartToFinishForSet:
 
 
 if __name__ == '__main__':
-    pool = Pool()
+    start_time = time.time()
+
+    pool = multiprocessing.Pool()
     results = []
 
     for magic_set in sharedInfo.get_gatherer_sets():
-        results.append(pool.apply_async(StartToFinishForSet, args=(magic_set,)))
+        results.append(pool.apply_async(build_set, args=(magic_set,)))
 
     pool.close()
     pool.join()
+
+    end_time = time.time()
+    print("Time: {}".format(end_time - start_time))

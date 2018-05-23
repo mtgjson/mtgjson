@@ -7,7 +7,7 @@ def get_gatherer_sets():
         #'Welcome Deck 2017',
         #'Hour of Devastation',
         'Ixalan'
-        #'Rivals of Ixalan',
+        #'Rivals of Ixalan'
     ]
 
     return gatherer_sets
