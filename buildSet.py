@@ -126,9 +126,9 @@ class DownloadsCardsByMIDList:
                 card_type = ''
                 cards_total = len(soup.select('table[class^=cardDetails]'))
                 if cards_total == 1:
-                    card_type = "normal"
+                    card_type = 'normal'
                 elif cards_total == 2:
-                    card_type = "double"
+                    card_type = 'double'
                     div_name = div_name[:-3] + '_ctl02_{}'
 
                 """ Get Card Name """
@@ -139,16 +139,13 @@ class DownloadsCardsByMIDList:
                     card_info['name'] = card_name
 
                     # Get other side's name for the user
-                    if card_type == "double":
+                    if card_type == 'double':
                         other_div_name = div_name.replace('02', '03')
                         other_name_row = soup.find(id=other_div_name.format('nameRow'))
                         other_name_row = other_name_row.findAll('div')[-1]
                         card_other_name = other_name_row.get_text(strip=True)
                         card_info['names'] = [card_name, card_other_name]
                 except AttributeError:
-                    # TODO: FAILS FOR SPLIT CARDS (http://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=439815)
-                    print("ERROR: NO CARD NAME FOR {0}".format(card_m_id))
-                    exit(1)
                     pass
 
                 """ Get Card CMC """
@@ -198,7 +195,7 @@ class DownloadsCardsByMIDList:
                     card_sub_types = []
                     type_row = soup.find(id=div_name.format('typeRow'))
                     type_row = type_row.findAll('div')[-1]
-                    type_row = type_row.get_text(strip=True)# str(type_row.contents)[6:].lstrip()[:-2]
+                    type_row = type_row.get_text(strip=True)
 
                     card_full_type = type_row
 
@@ -265,7 +262,7 @@ class DownloadsCardsByMIDList:
                     for div in flavor_row:
                         card_flavor_text += div.get_text() + '\n'
 
-                    card_info['flavor'] = card_flavor_text
+                    card_info['flavor'] = card_flavor_text[:-1]  # Remove last '\n'
                 except AttributeError:
                     pass
 
@@ -276,7 +273,7 @@ class DownloadsCardsByMIDList:
                     pt_row = pt_row.get_text(strip=True)
 
                     # If Vanguard
-                    if "Hand Modifier" in pt_row:
+                    if 'Hand Modifier' in pt_row:
                         pt_row = pt_row.split('\xa0,\xa0')
                         card_hand_mod = pt_row[0].split(' ')[-1]
                         card_life_mod = pt_row[1].split(' ')[-1][:-1]
@@ -304,7 +301,6 @@ class DownloadsCardsByMIDList:
                     card_rarity = rarity_row.find('span').get_text(strip=True)
                     card_info['rarity'] = card_rarity
                 except AttributeError:
-                    print("No rarity found")
                     pass
 
                 """ Get Card Set Number """
