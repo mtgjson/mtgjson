@@ -107,6 +107,7 @@ class DownloadsCardsByMIDList:
 
     def create_cards(self):
         main_url = 'http://gatherer.wizards.com/Pages/Card/Details.aspx?{}'
+        magic_colors = ['W', 'U', 'B', 'R', 'G']
 
         for card_m_id in self.multiverse_ids:
             url_for_info = main_url.format(self.get_url_params(card_m_id))
@@ -172,7 +173,7 @@ class DownloadsCardsByMIDList:
                         symbol_value = symbol['alt']
                         symbol_mapped = sharedInfo.get_symbol_short_name(symbol_value)
                         card_cost += '{{{0}}}'.format(symbol_mapped)
-                        if not symbol_value.isdigit() and symbol_value != 'X':
+                        if not symbol_value.isdigit() and symbol_mapped in magic_colors:
                             card_color_identity.append(symbol_mapped)
                             card_colors.append(symbol_mapped)
 
@@ -197,7 +198,7 @@ class DownloadsCardsByMIDList:
                     type_row = type_row.findAll('div')[-1]
                     type_row = type_row.get_text(strip=True)
 
-                    card_full_type = type_row
+                    card_full_type = type_row.replace('  ', ' ')
 
                     if '—' in type_row:
                         type_split = type_row.split('—')
@@ -242,7 +243,7 @@ class DownloadsCardsByMIDList:
                             symbol_value = symbol['alt']
                             symbol_mapped = sharedInfo.get_symbol_short_name(symbol_value)
                             symbol.replace_with('{{{0}}}'.format(symbol_mapped))
-                            if not symbol_mapped.isdigit() and symbol_mapped != 'X':
+                            if not symbol_mapped.isdigit() and symbol_mapped in magic_colors:
                                 card_info['colorIdentity'] += symbol_mapped
 
                         # Next, just add the card text, line by line
@@ -358,7 +359,7 @@ class StartToFinishForSet:
         #print('S2F: {}'.format(urls_for_set))
 
         #m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
-        m_ids_for_set = [435172, 182290, 435173, 435176, 366360]
+        m_ids_for_set = [435172, 182290, 435173, 435176, 366360, 370424, 6528]
         print('S2F: {0} with {1} ids'.format(m_ids_for_set, len(m_ids_for_set)))
 
         cards_holder = DownloadsCardsByMIDList().start(set_name, m_ids_for_set)
