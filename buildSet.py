@@ -269,13 +269,23 @@ class DownloadsCardsByMIDList:
                 except AttributeError:
                     pass
 
-                """ Get Card P/T OR Loyalty """
+                """ Get Card P/T OR Loyalty OR Hand/Life """
                 try:
                     pt_row = soup.find(id=div_name.format('ptRow'))
                     pt_row = pt_row.findAll('div')[-1]
                     pt_row = pt_row.get_text(strip=True)
-                    pt_row = pt_row.split('/')
 
+                    # If Vanguard
+                    if "Hand Modifier" in pt_row:
+                        pt_row = pt_row.split('\xa0,\xa0')
+                        card_hand_mod = pt_row[0].split(' ')[-1]
+                        card_life_mod = pt_row[1].split(' ')[-1][:-1]
+
+                        card_info['hand'] = card_hand_mod
+                        card_info['life'] = card_life_mod
+                        pass
+
+                    pt_row = pt_row.split('/')
                     if len(pt_row) == 2:
                         card_power = pt_row[0].strip()
                         card_toughness = pt_row[1].strip()
@@ -325,7 +335,7 @@ class DownloadsCardsByMIDList:
                     pass
 
                 # TODO: Missing types
-                # id, layout, variations, border, timeshifted, hand, life, reserved,
+                # id, layout, variations, border, timeshifted, reserved,
                 # starter, mciNumber, scryfallNumber
 
                 # Insert new value
@@ -352,7 +362,7 @@ class StartToFinishForSet:
         #print('S2F: {}'.format(urls_for_set))
 
         #m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
-        m_ids_for_set = [435172, 435173, 435176, 366360]
+        m_ids_for_set = [435172, 182290, 435173, 435176, 366360]
         print('S2F: {0} with {1} ids'.format(m_ids_for_set, len(m_ids_for_set)))
 
         cards_holder = DownloadsCardsByMIDList().start(set_name, m_ids_for_set)
