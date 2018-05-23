@@ -1,15 +1,14 @@
-# My Imports
-import time
-
-import sharedInfo
-
 # Library Imports
 import bs4
 import json
 import multiprocessing
 import re
+import time
 import urllib.parse
 import urllib.request
+
+# My Imports
+import sharedInfo
 
 
 class GetChecklistURLs:
@@ -109,16 +108,23 @@ class DownloadsCardsByMIDList:
     def start(self, set_name, multi_ids):
         self.set_name = set_name
         self.multiverse_ids = multi_ids
-
         self.create_cards()
-
         self.add_layouts()
         return self.get_cards_in_set()
 
     def create_cards(self):
-        # TODO: Parallelize this somehow
+        results = []
+
+        pool = multiprocessing.Pool()
         for card_m_id in self.multiverse_ids:
-            self.build_card(card_m_id)
+            results.append(pool.apply_async(self.build_card, args=(card_m_id,)))
+        pool.close()
+        pool.join()
+
+        results = [r.get() for r in results]
+
+        for card in results:
+            self.cards_in_set[card['multiverseid']] = card
 
     def build_card(self, card_m_id):
         url_for_info = self.main_url.format(self.get_url_params(card_m_id))
@@ -379,9 +385,8 @@ class DownloadsCardsByMIDList:
             # starter, mciNumber, scryfallNumber
             # EX: foreignNames, legalities
 
-            # Insert new value
-            self.cards_in_set[card_m_id] = card_info
-            print('Added {0} to {1}'.format(card_info['name'], self.set_name))
+            print('Adding {0} to {1}'.format(card_info['name'], self.set_name))
+        return card_info
 
     def add_layouts(self):
         """
@@ -398,7 +403,7 @@ class DownloadsCardsByMIDList:
                 else:
                     card_layout = 'Normal'
             elif cards_total == 2:
-                if "transform" in card_info.get('text'):
+                if 'transform' in card_info.get('text'):
                     card_layout = 'Double-Faced'
 
                 # split, flip, double-faced, aftermath, meld
@@ -422,34 +427,28 @@ class DownloadsCardsByMIDList:
 
 
 def build_set(set_name):
-        print('S2F: {}'.format(set_name))
+    print('S2F: {}'.format(set_name))
 
-        urls_for_set = GetChecklistURLs().start(set_name)
-        print('S2F: {}'.format(urls_for_set))
+    urls_for_set = GetChecklistURLs().start(set_name)
+    print('S2F: {}'.format(urls_for_set))
 
-        m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
-        # m_ids_for_set = [442051, 435172, 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582]
-        print('S2F: {0} with {1} ids'.format(m_ids_for_set, len(m_ids_for_set)))
+    m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
+    # m_ids_for_set = [442051, 435172, 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582]
+    print('S2F: {0} with {1} ids'.format(m_ids_for_set, len(m_ids_for_set)))
 
-        cards_holder = DownloadsCardsByMIDList().start(set_name, m_ids_for_set)
-        print('S2F: {}'.format(cards_holder))
+    cards_holder = DownloadsCardsByMIDList().start(set_name, m_ids_for_set)
+    print('S2F: {}'.format(cards_holder))
 
-        with open('outputs/{}.json'.format(set_name), 'w') as fp:
-            fp.write(json.dumps(cards_holder, sort_keys=True, indent=4))
-            print('S2F: {} written'.format(fp.name))
+    with open('outputs/{}.json'.format(set_name), 'w') as fp:
+        fp.write(json.dumps(cards_holder, sort_keys=True, indent=4))
+        print('S2F: {} written'.format(fp.name))
 
 
 if __name__ == '__main__':
     start_time = time.time()
 
-    pool = multiprocessing.Pool()
-    results = []
-
     for magic_set in sharedInfo.get_gatherer_sets():
-        results.append(pool.apply_async(build_set, args=(magic_set,)))
-
-    pool.close()
-    pool.join()
+        build_set(magic_set)
 
     end_time = time.time()
-    print("Time: {}".format(end_time - start_time))
+    print('Time: {}'.format(end_time - start_time))
