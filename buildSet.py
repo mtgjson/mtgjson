@@ -3,6 +3,7 @@ import sharedInfo
 import json
 import urllib.parse
 import urllib.request
+import re
 from bs4 import BeautifulSoup
 from multiprocessing import Pool
 
@@ -103,6 +104,7 @@ class DownloadsCardsByMIDList:
         self.set_name = set_name
         self.multiverse_ids = multi_ids
         self.create_cards()
+        self.add_layouts()
         return self.get_cards_in_set()
 
     def create_cards(self):
@@ -124,12 +126,12 @@ class DownloadsCardsByMIDList:
 
                 """ Determine if Card is Normal, Flip, or Split """
                 div_name = 'ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{}'
-                card_type = ''
+                card_layout = ''
                 cards_total = len(soup.select('table[class^=cardDetails]'))
                 if cards_total == 1:
-                    card_type = 'normal'
+                    card_layout = 'normal'
                 elif cards_total == 2:
-                    card_type = 'double'
+                    card_layout = 'double'
                     div_name = div_name[:-3] + '_ctl02_{}'
 
                 """ Get Card Name """
@@ -140,7 +142,7 @@ class DownloadsCardsByMIDList:
                     card_info['name'] = card_name
 
                     # Get other side's name for the user
-                    if card_type == 'double':
+                    if card_layout == 'double':
                         other_div_name = div_name.replace('02', '03')
                         other_name_row = soup.find(id=other_div_name.format('nameRow'))
                         other_name_row = other_name_row.findAll('div')[-1]
@@ -192,7 +194,7 @@ class DownloadsCardsByMIDList:
                 """ Get Card Type(s) """
                 try:
                     card_super_types = []
-                    card_types = []
+                    card_layouts = []
                     card_sub_types = []
                     type_row = soup.find(id=div_name.format('typeRow'))
                     type_row = type_row.findAll('div')[-1]
@@ -207,7 +209,7 @@ class DownloadsCardsByMIDList:
                             if value in sharedInfo.get_super_types():
                                 card_super_types.append(value)
                             elif value in sharedInfo.get_types():
-                                card_types.append(value)
+                                card_layouts.append(value)
 
                         for value in type_split[1].split(' '):
                             card_sub_types.append(value)
@@ -216,15 +218,15 @@ class DownloadsCardsByMIDList:
                             if value in sharedInfo.get_super_types():
                                 card_super_types.append(value)
                             elif value in sharedInfo.get_types():
-                                card_types.append(value)
+                                card_layouts.append(value)
 
                     # Remove empty values from the lists
                     card_super_types = list(filter(None, card_super_types))
-                    card_types = list(filter(None, card_types))
+                    card_layouts = list(filter(None, card_layouts))
                     card_sub_types = list(filter(None, card_sub_types))
 
                     card_info['supertypes'] = card_super_types
-                    card_info['types'] = card_types
+                    card_info['types'] = card_layouts
                     card_info['subtypes'] = card_sub_types
                     card_info['type'] = card_full_type
                 except AttributeError:
@@ -331,13 +333,72 @@ class DownloadsCardsByMIDList:
                 except AttributeError:
                     pass
 
+                """ Get Card Rulings """
+                try:
+                    rulings_row = soup.find(id=div_name.format('rulingsRow'))
+                    rulings_dates = rulings_row.findAll('td', id=re.compile(r'\w*_rulingDate\b'))
+                    rulings_text = rulings_row.findAll('td', id=re.compile(r'\w*_rulingText\b'))
+
+                    card_rulings = []
+                    for i in range(0, len(rulings_dates)):
+                        card_rulings.append({
+                            'date': rulings_dates[i].get_text(),
+                            'text': rulings_text[i].get_text()
+                        })
+
+                    card_info['rulings'] = card_rulings
+                except AttributeError:
+                    pass
+
+                """ Get Card Sets """
+                try:
+                    sets_row = soup.find(id=div_name.format('otherSetsRow'))
+                    images = sets_row.findAll('img')
+
+                    card_sets = []
+                    for symbol in images:
+                        symbol_value = symbol['alt'].split('(')[0].strip()
+                        card_sets.append(symbol_value)
+
+                    card_info['printings'] = card_sets
+
+                except AttributeError:
+                    pass
+
                 # TODO: Missing types
                 # id, layout, variations, border, timeshifted, reserved,
                 # starter, mciNumber, scryfallNumber
+                # EX: foreignNames, legalities
 
                 # Insert new value
                 self.cards_in_set[card_m_id] = card_info
                 print('Added {0} to {1}'.format(card_info['name'], self.set_name))
+
+    def add_layouts(self):
+        """
+        try:
+            if cards_total == 1:
+                if card_info.get('hand'):
+                    card_layout = 'Vanguard'
+                elif 'Scheme' in card_info.get('types'):
+                    card_layout = 'Scheme'
+                elif 'Plane' in card_info.get('types'):
+                    card_layout = 'Plane'
+                elif 'Phenomenon' in card_info.get('types'):
+                    card_layout = 'Phenomenon'
+                else:
+                    card_layout = 'Normal'
+            elif cards_total == 2:
+                if "transform" in card_info.get('text'):
+                    card_layout = 'Double-Faced'
+
+                # split, flip, double-faced, aftermath, meld
+
+            card_info['layout'] = card_layout
+        except AttributeError:
+            pass
+        """
+        pass
 
     @staticmethod
     def get_url_params(card_m_id):
@@ -359,7 +420,7 @@ class StartToFinishForSet:
         #print('S2F: {}'.format(urls_for_set))
 
         #m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
-        m_ids_for_set = [435172, 182290, 435173, 435176, 366360, 370424, 6528]
+        m_ids_for_set = [442051] # [435172, 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582]
         print('S2F: {0} with {1} ids'.format(m_ids_for_set, len(m_ids_for_set)))
 
         cards_holder = DownloadsCardsByMIDList().start(set_name, m_ids_for_set)
