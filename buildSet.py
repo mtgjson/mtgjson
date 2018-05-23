@@ -107,7 +107,6 @@ class DownloadsCardsByMIDList:
 
     def create_cards(self):
         main_url = 'http://gatherer.wizards.com/Pages/Card/Details.aspx?{}'
-        div_name = 'ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{}'
 
         for card_m_id in self.multiverse_ids:
             url_for_info = main_url.format(self.get_url_params(card_m_id))
@@ -122,13 +121,34 @@ class DownloadsCardsByMIDList:
                 """ Get Card Multiverse ID """
                 card_info['multiverseid'] = int(card_m_id)
 
+                """ Determine if Card is Normal, Flip, or Split """
+                div_name = 'ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{}'
+                card_type = ''
+                cards_total = len(soup.select('table[class^=cardDetails]'))
+                if cards_total == 1:
+                    card_type = "normal"
+                elif cards_total == 2:
+                    card_type = "double"
+                    div_name = div_name[:-3] + '_ctl02_{}'
+
                 """ Get Card Name """
                 try:
                     name_row = soup.find(id=div_name.format('nameRow'))
                     name_row = name_row.findAll('div')[-1]
                     card_name = name_row.get_text(strip=True)
                     card_info['name'] = card_name
+
+                    # Get other side's name for the user
+                    if card_type == "double":
+                        other_div_name = div_name.replace('02', '03')
+                        other_name_row = soup.find(id=other_div_name.format('nameRow'))
+                        other_name_row = other_name_row.findAll('div')[-1]
+                        card_other_name = other_name_row.get_text(strip=True)
+                        card_info['names'] = [card_name, card_other_name]
                 except AttributeError:
+                    # TODO: FAILS FOR SPLIT CARDS (http://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=439815)
+                    print("ERROR: NO CARD NAME FOR {0}".format(card_m_id))
+                    exit(1)
                     pass
 
                 """ Get Card CMC """
@@ -136,13 +156,12 @@ class DownloadsCardsByMIDList:
                     cmc_row = soup.find(id=div_name.format('cmcRow'))
                     cmc_row = cmc_row.findAll('div')[-1]
                     card_cmc = cmc_row.get_text(strip=True)
-                    card_info['cmc'] = card_cmc
+                    card_info['cmc'] = int(card_cmc)
                 except AttributeError:
                     card_info['cmc'] = 0
                     pass
 
                 """ Get Card Colors, Cost, and Color Identity (start) """
-
                 try:
                     mana_row = soup.find(id=div_name.format('manaRow'))
                     mana_row = mana_row.findAll('div')[-1]
@@ -164,11 +183,11 @@ class DownloadsCardsByMIDList:
                     card_colors = list(set(card_colors))
 
                     card_info['colors'] = card_colors
-                    card_info['cost'] = card_cost
+                    card_info['manaCost'] = card_cost
                     card_info['colorIdentity'] = card_color_identity
                 except AttributeError:
                     card_info['colors'] = []
-                    card_info['cost'] = ''
+                    card_info['manaCost'] = ''
                     card_info['colorIdentity'] = []
                     pass
 
@@ -179,7 +198,9 @@ class DownloadsCardsByMIDList:
                     card_sub_types = []
                     type_row = soup.find(id=div_name.format('typeRow'))
                     type_row = type_row.findAll('div')[-1]
-                    type_row = str(type_row.contents)[6:].lstrip()[:-2]
+                    type_row = type_row.get_text(strip=True)# str(type_row.contents)[6:].lstrip()[:-2]
+
+                    card_full_type = type_row
 
                     if '—' in type_row:
                         type_split = type_row.split('—')
@@ -207,6 +228,7 @@ class DownloadsCardsByMIDList:
                     card_info['supertypes'] = card_super_types
                     card_info['types'] = card_types
                     card_info['subtypes'] = card_sub_types
+                    card_info['type'] = card_full_type
                 except AttributeError:
                     pass
 
@@ -234,6 +256,19 @@ class DownloadsCardsByMIDList:
                 except AttributeError:
                     pass
 
+                """ Get Card Flavor Text """
+                try:
+                    flavor_row = soup.find(id=div_name.format('flavorRow'))
+                    flavor_row = flavor_row.select('div[class^=flavortextbox]')
+
+                    card_flavor_text = ''
+                    for div in flavor_row:
+                        card_flavor_text += div.get_text() + '\n'
+
+                    card_info['flavor'] = card_flavor_text
+                except AttributeError:
+                    pass
+
                 """ Get Card P/T OR Loyalty """
                 try:
                     pt_row = soup.find(id=div_name.format('ptRow'))
@@ -256,10 +291,10 @@ class DownloadsCardsByMIDList:
                 try:
                     rarity_row = soup.find(id=div_name.format('rarityRow'))
                     rarity_row = rarity_row.findAll('div')[-1]
-                    rarity_row = rarity_row.find('span').contents
-                    card_rarity = rarity_row.get_text(strip=True)
+                    card_rarity = rarity_row.find('span').get_text(strip=True)
                     card_info['rarity'] = card_rarity
                 except AttributeError:
+                    print("No rarity found")
                     pass
 
                 """ Get Card Set Number """
@@ -275,15 +310,27 @@ class DownloadsCardsByMIDList:
                 try:
                     artist_row = soup.find(id=div_name.format('artistRow'))
                     artist_row = artist_row.findAll('div')[-1]
-                    artist_row = artist_row.find('a').contents
-                    card_artist = artist_row.get_text(strip=True)
+                    card_artist = artist_row.find('a').get_text(strip=True)
                     card_info['artist'] = card_artist
                 except AttributeError:
                     pass
 
+                """ Get Card Watermark """
+                try:
+                    watermark_row = soup.find(id=div_name.format('markRow'))
+                    watermark_row = watermark_row.findAll('div')[-1]
+                    card_watermark = watermark_row.get_text(strip=True)
+                    card_info['watermark'] = card_watermark
+                except AttributeError:
+                    pass
+
+                # TODO: Missing types
+                # id, layout, variations, border, timeshifted, hand, life, reserved,
+                # starter, mciNumber, scryfallNumber
+
                 # Insert new value
                 self.cards_in_set[card_m_id] = card_info
-                print('Added {0}'.format(card_info['name']))
+                print('Added {0} to {1}'.format(card_info['name'], self.set_name))
 
     @staticmethod
     def get_url_params(card_m_id):
@@ -301,10 +348,11 @@ class StartToFinishForSet:
     def __init__(self, set_name):
         print('S2F: {}'.format(set_name))
 
-        urls_for_set = GetChecklistURLs().start(set_name)
-        print('S2F: {}'.format(urls_for_set))
+        #urls_for_set = GetChecklistURLs().start(set_name)
+        #print('S2F: {}'.format(urls_for_set))
 
-        m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
+        #m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
+        m_ids_for_set = [435172, 435173, 435176, 366360]
         print('S2F: {0} with {1} ids'.format(m_ids_for_set, len(m_ids_for_set)))
 
         cards_holder = DownloadsCardsByMIDList().start(set_name, m_ids_for_set)
