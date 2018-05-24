@@ -270,6 +270,10 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             card_watermark = watermark_row.get_text(strip=True)
             card_info['watermark'] = card_watermark
 
+        # Get Card Reserve List Status
+        if card_info['name'] in mtgjson4.shared_info.RESERVE_LIST:
+            card_info['reserved'] = True
+
         # Get Card Rulings
         rulings_row = soup.find(id=div_name.format('rulingsRow'))
         if rulings_row is not None:
@@ -356,7 +360,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         card_info['foreignNames'] = card_languages
 
     # TODO: Missing types
-    # id, layout, variations, border, timeshifted, reserved,
+    # id, layout, variations, border, timeshifted,
     # starter, mciNumber, scryfallNumber
 
     async def build_card(card_mid):
