@@ -416,14 +416,15 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 elif 'meld' in card_info['text']:
                     card_layout = 'Meld'
                 else:
-                    card_layout = 'Unknown'
-                    # cards.items()
-                    """
-                    if (second_cardCardText.includes("flip"))
-                        card.layout = "flip";
-                    else if (second_cardCardText.includes("transform"))
-                    card.layout = "double-faced";
-                    """
+                    card_2_name = next(card2 for card2 in card_info['names'] if card_info['name'] != card2)
+                    card_2_info = next(card2 for card2 in cards if card2['name'] == card_2_name)
+
+                    if 'flip' in card_2_info['text']:
+                        card_layout = 'Flip'
+                    elif 'transform' in card_2_info['text']:
+                        card_layout = 'Double-Faced'
+                    else:
+                        card_layout = 'Unknown'
             else:
                 card_layout = 'Meld'
 
