@@ -6,13 +6,9 @@ import bs4
 import contextlib
 import itertools
 import json
-import multiprocessing
 import pathlib
 import re
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
 
 import mtgjson4.shared_info
 
@@ -26,8 +22,7 @@ async def ensure_content_downloaded(session, url_to_download, max_retries=3, **k
         try:
             async with session.get(url_to_download, **kwargs) as response:
                 return await response.text()
-        except aiohttp.ClientError as e:
-            #print("ERROR: {0} with {1}".format(e, url_to_download))
+        except aiohttp.ClientError:
             if retry == max_retries:
                 raise
             await asyncio.sleep(2)
@@ -76,7 +71,7 @@ async def get_checklist_urls(session, set_name):
     ]
 
 
-async def generate_mids_by_set(session, set_name, set_urls):
+async def generate_mids_by_set(session, set_urls):
     for url, params in set_urls:
         async with session.get(url, params=params) as response:
             soup = bs4.BeautifulSoup(await response.text(), 'html.parser')
@@ -110,6 +105,8 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         elif cards_total == 2:
             card_layout = 'double'
             div_name = div_name[:-3] + '_ctl02_{}'
+        else:
+            card_layout = 'unknown'
 
         # Get Card Name
         name_row = soup.find(id=div_name.format('nameRow'))
@@ -156,7 +153,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                     card_colors.add(symbol_mapped)
 
             # Remove duplicates and sort in WUBRG order
-            #TODO use canonical color order
+            # TODO use canonical color order
             card_info['colors'] = list(filter(lambda c: c in card_colors, mtgjson4.shared_info.COLORS))
             card_info['manaCost'] = card_cost
 
@@ -212,7 +209,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             card_info['text'] = card_text[:-1]  # Remove last '\n'
 
         # Remove duplicates and sort in WUBRG order
-        #TODO use canonical color order
+        # TODO use canonical color order
         card_info['colorIdentity'] = list(filter(lambda c: c in card_color_identity, mtgjson4.shared_info.COLORS))
 
         # Get Card Flavor Text
@@ -301,7 +298,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             html = await ensure_content_downloaded(session, legal_url, params=get_url_params(card_mid))
         except aiohttp.ClientError:
             # if Gatherer errors, omit the data for now
-            #TODO remove this and handle Gatherer errors on a case-by-case basis
+            # TODO remove this and handle Gatherer errors on a case-by-case basis
             return
 
         # Parse web page so we can gather all data from it
@@ -311,11 +308,11 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         format_rows = soup.select('table[class^=cardList]')[1]
         format_rows = format_rows.select('tr[class^=cardItem]')
         card_formats = []
-        with contextlib.suppress(IndexError): # if no legalities, only one tr with only one td
+        with contextlib.suppress(IndexError):  # if no legalities, only one tr with only one td
             for div in format_rows:
                 table_rows = div.findAll('td')
                 card_format_name = table_rows[0].get_text(strip=True)
-                card_format_legal = table_rows[1].get_text(strip=True) # raises IndexError if no legalities
+                card_format_legal = table_rows[1].get_text(strip=True)  # raises IndexError if no legalities
 
                 card_formats.append({
                     'format': card_format_name,
@@ -329,7 +326,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             html = await ensure_content_downloaded(session, foreign_url, params=get_url_params(card_mid))
         except aiohttp.ClientError:
             # if Gatherer errors, omit the data for now
-            #TODO remove this and handle Gatherer errors on a case-by-case basis
+            # TODO remove this and handle Gatherer errors on a case-by-case basis
             return
 
         # Parse web page so we can gather all data from it
@@ -372,8 +369,8 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         print('Adding {0} to {1}'.format(card_info['name'], set_name))
         return card_info
 
+    """
     def add_layouts():
-        """
         try:
             if cards_total == 1:
                 if card_info.get('hand'):
@@ -395,8 +392,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             card_info['layout'] = card_layout
         except AttributeError:
             pass
-        """
-        pass
+    """
 
     def get_url_params(card_mid):
         return {
@@ -405,7 +401,6 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             'page': 0
         }
 
-    results = []
     # start asyncio tasks for building each card
     futures = [
         loop.create_task(build_card(card_mid))
@@ -418,7 +413,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         card = future.result()
         cards_in_set[card['multiverseid']] = card
 
-    #add_layouts()
+    # add_layouts()
     return cards_in_set
 
 
@@ -428,8 +423,8 @@ async def build_set(session, set_name):
     urls_for_set = await get_checklist_urls(session, set_name)
     print('BuildSet: URLs for {0}: {1}'.format(set_name, urls_for_set))
 
-    mids_for_set = [mid async for mid in generate_mids_by_set(session, set_name, urls_for_set)]
-    #mids_for_set = [442051, 435172, 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582] #DEBUG
+    mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
+    # mids_for_set = [442051, 435172, 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582] #DEBUG
     print('BuildSet: MIDs for {0}: {1}'.format(set_name, mids_for_set))
 
     cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
@@ -441,7 +436,7 @@ async def build_set(session, set_name):
 
 
 async def main(loop, session):
-    OUTPUT_DIR.mkdir(exist_ok=True) # make sure outputs dir exists
+    OUTPUT_DIR.mkdir(exist_ok=True)  # make sure outputs dir exists
 
     async with session:
         # start asyncio tasks for building each set
@@ -456,9 +451,9 @@ async def main(loop, session):
 if __name__ == '__main__':
     start_time = time.time()
 
-    loop = asyncio.get_event_loop()
-    session = aiohttp.ClientSession(loop=loop, raise_for_status=True)
-    loop.run_until_complete(main(loop, session))
+    card_loop = asyncio.get_event_loop()
+    card_session = aiohttp.ClientSession(loop=card_loop, raise_for_status=True)
+    card_loop.run_until_complete(main(card_loop, card_session))
 
     end_time = time.time()
     print('Time: {}'.format(end_time - start_time))
