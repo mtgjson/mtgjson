@@ -89,7 +89,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
     legal_url = 'http://gatherer.wizards.com/Pages/Card/Printings.aspx'
     foreign_url = 'http://gatherer.wizards.com/Pages/Card/Languages.aspx'
 
-    async def build_main_part(card_mid, card_info):
+    async def build_main_part(card_mid, card_info, second_card=False):
         html = await ensure_content_downloaded(session, main_url, params=get_url_params(card_mid))
 
         # Parse web page so we can gather all data from it
@@ -104,9 +104,15 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             card_layout = 'normal'
         elif cards_total == 2:
             card_layout = 'double'
-            div_name = div_name[:-3] + '_ctl02_{}'
+            if second_card:
+                div_name = div_name[:-3] + '_ctl03_{}'
+            else:
+                div_name = div_name[:-3] + '_ctl02_{}'
+                extras.append(loop.create_task(build_card(card_mid, second_card=True)))
         else:
             card_layout = 'unknown'
+
+
 
         # Get Card Name
         name_row = soup.find(id=div_name.format('nameRow'))
@@ -116,12 +122,14 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
         # Get other side's name for the user
         if card_layout == 'double':
-            other_div_name = div_name.replace('02', '03')
+            if 'ctl02' in div_name:
+                other_div_name = div_name.replace('02', '03')
+            else:
+                other_div_name = div_name.replace('03', '02')
             other_name_row = soup.find(id=other_div_name.format('nameRow'))
             other_name_row = other_name_row.findAll('div')[-1]
             card_other_name = other_name_row.get_text(strip=True)
             card_info['names'] = [card_name, card_other_name]
-            # card_info['TEMP_NAMES_MID'] =
 
         # Get Card CMC
         cmc_row = soup.find(id=div_name.format('cmcRow'))
@@ -298,7 +306,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 for symbol in images
             ]
 
-    async def build_legalities_part(card_mid, card_info):
+    async def build_legalities_part(card_mid, card_info, second_card=True):
         try:
             html = await ensure_content_downloaded(session, legal_url, params=get_url_params(card_mid))
         except aiohttp.ClientError:
@@ -326,7 +334,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_info['legalities'] = card_formats
 
-    async def build_foreign_part(card_mid, card_info):
+    async def build_foreign_part(card_mid, card_info, second_card=True):
         try:
             html = await ensure_content_downloaded(session, foreign_url, params=get_url_params(card_mid))
         except aiohttp.ClientError:
@@ -370,14 +378,19 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
     # scryfallNumber - I want to add this
     # variations - Added after the fact
 
-    async def build_card(card_mid):
+    async def build_card(card_mid, second_card=False):
         card_info = {}
 
-        await build_main_part(card_mid, card_info)
-        await build_legalities_part(card_mid, card_info)
-        await build_foreign_part(card_mid, card_info)
+        if second_card:
+            await build_main_part(card_mid, card_info, second_card=True)
+            await build_legalities_part(card_mid, card_info, second_card=True)
+            await build_foreign_part(card_mid, card_info, second_card=True)
+        else:
+            await build_main_part(card_mid, card_info)
+            await build_legalities_part(card_mid, card_info)
+            await build_foreign_part(card_mid, card_info)
 
-        print('Adding {0} to {1}'.format(card_info['name'], set_name))
+        print('Adding {0} to {1} {2}'.format(card_info['name'], set_name, second_card))
         return card_info
 
     def add_layouts(cards):
@@ -413,9 +426,9 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                     card_layout = 'Unknown'
                     # cards.items()
                     """
-                    if (secondCardText.includes("flip"))
+                    if (second_cardCardText.includes("flip"))
                         card.layout = "flip";
-                    else if (secondCardText.includes("transform"))
+                    else if (second_cardCardText.includes("transform"))
                     card.layout = "double-faced";
                     """
             else:
@@ -435,12 +448,20 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         loop.create_task(build_card(card_mid))
         for card_mid in multiverse_ids
     ]
+
+    extras = []
+
     # then wait until all of them are completed
     await asyncio.wait(futures)
     cards_in_set = {}
     for future in futures:
         card = future.result()
-        cards_in_set[card['multiverseid']] = card
+        cards_in_set[str("Zach_{0}").format(card['multiverseid'])] = card
+
+    await asyncio.wait(extras)
+    for future in extras:
+        card = future.result()
+        cards_in_set[str("Zach_{0}_1").format(card['multiverseid'])] = card
 
     add_layouts(cards_in_set)
     return cards_in_set
@@ -453,7 +474,7 @@ async def build_set(session, set_name):
     print('BuildSet: URLs for {0}: {1}'.format(set_name, urls_for_set))
 
     # mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
-    mids_for_set = [439335, 442051, 435172, 182290, 435173] #DEBUG
+    mids_for_set = [439335]#, 442051, 435172, 182290, 435173] #DEBUG
     print('BuildSet: MIDs for {0}: {1}'.format(set_name, mids_for_set))
 
     cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
