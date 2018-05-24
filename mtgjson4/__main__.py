@@ -121,6 +121,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             other_name_row = other_name_row.findAll('div')[-1]
             card_other_name = other_name_row.get_text(strip=True)
             card_info['names'] = [card_name, card_other_name]
+            # card_info['TEMP_NAMES_MID'] =
 
         # Get Card CMC
         cmc_row = soup.find(id=div_name.format('cmcRow'))
@@ -360,8 +361,14 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         card_info['foreignNames'] = card_languages
 
     # TODO: Missing types
-    # id, layout, variations, border, timeshifted,
-    # starter, mciNumber, scryfallNumber
+    # id - Will create myself
+    # layout - has to be added after card is created
+    # border - Only done if they don't match set (need set config)
+    # timeshifted - Only for timeshifted sets (need set config)
+    # starter - in starter deck (need set config)
+    # mciNumber - gonna have to look it up
+    # scryfallNumber - I want to add this
+    # variations - Added after the fact
 
     async def build_card(card_mid):
         card_info = {}
@@ -373,30 +380,48 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         print('Adding {0} to {1}'.format(card_info['name'], set_name))
         return card_info
 
-    """
-    def add_layouts():
-        try:
-            if cards_total == 1:
-                if card_info.get('hand'):
+    def add_layouts(cards):
+        for _, card_info in cards.items():
+            if 'names' in card_info:
+                sides = len(card_info['names'])
+            else:
+                sides = 1
+
+            if sides == 1:
+                if 'hand' in card_info:
                     card_layout = 'Vanguard'
-                elif 'Scheme' in card_info.get('types'):
+                elif 'Scheme' in card_info['types']:
                     card_layout = 'Scheme'
-                elif 'Plane' in card_info.get('types'):
+                elif 'Plane' in card_info['types']:
                     card_layout = 'Plane'
-                elif 'Phenomenon' in card_info.get('types'):
+                elif 'Phenomenon' in card_info['types']:
                     card_layout = 'Phenomenon'
                 else:
                     card_layout = 'Normal'
-            elif cards_total == 2:
-                if 'transform' in card_info.get('text'):
+            elif sides == 2:
+                if 'transform' in card_info['text']:
                     card_layout = 'Double-Faced'
-
-                # split, flip, double-faced, aftermath, meld
+                elif 'aftermath' in card_info['text']:
+                    card_layout = 'Aftermath'
+                elif 'flip' in card_info['text']:
+                    card_layout = 'Flip'
+                elif 'split' in card_info['text']:
+                    card_layout = 'Split'
+                elif 'meld' in card_info['text']:
+                    card_layout = 'Meld'
+                else:
+                    card_layout = 'Unknown'
+                    # cards.items()
+                    """
+                    if (secondCardText.includes("flip"))
+                        card.layout = "flip";
+                    else if (secondCardText.includes("transform"))
+                    card.layout = "double-faced";
+                    """
+            else:
+                card_layout = 'Meld'
 
             card_info['layout'] = card_layout
-        except AttributeError:
-            pass
-    """
 
     def get_url_params(card_mid):
         return {
@@ -417,7 +442,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         card = future.result()
         cards_in_set[card['multiverseid']] = card
 
-    # add_layouts()
+    add_layouts(cards_in_set)
     return cards_in_set
 
 
@@ -427,8 +452,8 @@ async def build_set(session, set_name):
     urls_for_set = await get_checklist_urls(session, set_name)
     print('BuildSet: URLs for {0}: {1}'.format(set_name, urls_for_set))
 
-    mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
-    # mids_for_set = [442051, 435172, 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582] #DEBUG
+    # mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
+    mids_for_set = [439335, 442051, 435172, 182290, 435173] #DEBUG
     print('BuildSet: MIDs for {0}: {1}'.format(set_name, mids_for_set))
 
     cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)

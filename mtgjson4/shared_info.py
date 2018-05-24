@@ -2,7 +2,8 @@ COLORS = ['W', 'U', 'B', 'R', 'G']
 
 GATHERER_SETS = [
     'Limited Edition Alpha',
-    'Kaladesh'
+    'Eldritch Moon'
+    # 'Kaladesh'
     #'Dominaria',
     #'Aether Revolt',
     #'Amonkhet',
