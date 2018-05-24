@@ -390,11 +390,11 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             await build_legalities_part(card_mid, card_info)
             await build_foreign_part(card_mid, card_info)
 
-        print('Adding {0} to {1} {2}'.format(card_info['name'], set_name, second_card))
+        print('Adding {0} to {1}'.format(card_info['name'], set_name))
         return card_info
 
     def add_layouts(cards):
-        for _, card_info in cards.items():
+        for card_info in cards:
             if 'names' in card_info:
                 sides = len(card_info['names'])
             else:
@@ -453,15 +453,15 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
     # then wait until all of them are completed
     await asyncio.wait(futures)
-    cards_in_set = {}
+    cards_in_set = []
     for future in futures:
         card = future.result()
-        cards_in_set[str("Zach_{0}").format(card['multiverseid'])] = card
+        cards_in_set.append(card)
 
     await asyncio.wait(extras)
     for future in extras:
         card = future.result()
-        cards_in_set[str("Zach_{0}_1").format(card['multiverseid'])] = card
+        cards_in_set.append(card)
 
     add_layouts(cards_in_set)
     return cards_in_set
@@ -474,7 +474,7 @@ async def build_set(session, set_name):
     print('BuildSet: URLs for {0}: {1}'.format(set_name, urls_for_set))
 
     # mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
-    mids_for_set = [439335]#, 442051, 435172, 182290, 435173] #DEBUG
+    mids_for_set = [439335, 442051, 435172, 182290, 435173] #DEBUG
     print('BuildSet: MIDs for {0}: {1}'.format(set_name, mids_for_set))
 
     cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
