@@ -108,11 +108,9 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 div_name = div_name[:-3] + '_ctl03_{}'
             else:
                 div_name = div_name[:-3] + '_ctl02_{}'
-                extras.append(loop.create_task(build_card(card_mid, second_card=True)))
+                additional_cards.append(loop.create_task(build_card(card_mid, second_card=True)))
         else:
             card_layout = 'unknown'
-
-
 
         # Get Card Name
         name_row = soup.find(id=div_name.format('nameRow'))
@@ -306,7 +304,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 for symbol in images
             ]
 
-    async def build_legalities_part(card_mid, card_info, second_card=True):
+    async def build_legalities_part(card_mid, card_info):
         try:
             html = await ensure_content_downloaded(session, legal_url, params=get_url_params(card_mid))
         except aiohttp.ClientError:
@@ -334,7 +332,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_info['legalities'] = card_formats
 
-    async def build_foreign_part(card_mid, card_info, second_card=True):
+    async def build_foreign_part(card_mid, card_info):
         try:
             html = await ensure_content_downloaded(session, foreign_url, params=get_url_params(card_mid))
         except aiohttp.ClientError:
@@ -381,14 +379,9 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
     async def build_card(card_mid, second_card=False):
         card_info = {}
 
-        if second_card:
-            await build_main_part(card_mid, card_info, second_card=True)
-            await build_legalities_part(card_mid, card_info, second_card=True)
-            await build_foreign_part(card_mid, card_info, second_card=True)
-        else:
-            await build_main_part(card_mid, card_info)
-            await build_legalities_part(card_mid, card_info)
-            await build_foreign_part(card_mid, card_info)
+        await build_main_part(card_mid, card_info, second_card=second_card)
+        await build_legalities_part(card_mid, card_info)
+        await build_foreign_part(card_mid, card_info)
 
         print('Adding {0} to {1}'.format(card_info['name'], set_name))
         return card_info
@@ -449,7 +442,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         for card_mid in multiverse_ids
     ]
 
-    extras = []
+    additional_cards = []
 
     # then wait until all of them are completed
     await asyncio.wait(futures)
@@ -458,8 +451,8 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         card = future.result()
         cards_in_set.append(card)
 
-    await asyncio.wait(extras)
-    for future in extras:
+    await asyncio.wait(additional_cards)
+    for future in additional_cards:
         card = future.result()
         cards_in_set.append(card)
 
@@ -474,7 +467,7 @@ async def build_set(session, set_name):
     print('BuildSet: URLs for {0}: {1}'.format(set_name, urls_for_set))
 
     # mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
-    mids_for_set = [439335, 442051, 435172, 182290, 435173] #DEBUG
+    mids_for_set = [439335, 442051, 435172, 182290, 435173]  # DEBUG
     print('BuildSet: MIDs for {0}: {1}'.format(set_name, mids_for_set))
 
     cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
