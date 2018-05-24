@@ -36,12 +36,11 @@ class GetChecklistURLs:
             else:
                 soup = soup[-1]
 
-            total_pages = str(soup).split('page=')[1].split('&')[0]
+            num_page_links = int(str(soup).split('page=')[1].split('&')[0])
         except IndexError:
-            #TODO why are we just catching this? It looks like an error
-            total_pages = 0
+            num_page_links = 0
 
-        return int(total_pages) + 1
+        return num_page_links + 1
 
     @staticmethod
     def get_url_params(card_set, page_number=0):
