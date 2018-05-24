@@ -4,6 +4,7 @@ import aiohttp
 import asyncio
 import bs4
 import contextlib
+import hashlib
 import itertools
 import json
 import pathlib
@@ -366,9 +367,16 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
         card_info['foreignNames'] = card_languages
 
+    async def build_id_part(card_mid, card_info):
+        card_id = hashlib.sha3_256()
+        card_id.update(set_name.encode('utf-8'))
+        card_id.update(str(card_mid).encode('utf-8'))
+        card_id.update(card_info['name'].encode('utf-8'))
+
+        card_info['id'] = card_id.hexdigest()
+
     # TODO: Missing types
     # id - Will create myself
-    # layout - has to be added after card is created
     # border - Only done if they don't match set (need set config)
     # timeshifted - Only for timeshifted sets (need set config)
     # starter - in starter deck (need set config)
@@ -382,6 +390,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         await build_main_part(card_mid, card_info, second_card=second_card)
         await build_legalities_part(card_mid, card_info)
         await build_foreign_part(card_mid, card_info)
+        await build_id_part(card_mid, card_info)
 
         print('Adding {0} to {1}'.format(card_info['name'], set_name))
         return card_info
