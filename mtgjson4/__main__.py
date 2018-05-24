@@ -9,7 +9,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-import mtgjson.shared_info
+import mtgjson4.shared_info
 
 
 class GetChecklistURLs:
@@ -205,7 +205,7 @@ class DownloadsCardsByMIDList:
 
             for symbol in mana_row:
                 symbol_value = symbol['alt']
-                symbol_mapped = mtgjson.shared_info.get_symbol_short_name(symbol_value)
+                symbol_mapped = mtgjson4.shared_info.get_symbol_short_name(symbol_value)
                 card_cost += '{{{0}}}'.format(symbol_mapped)
                 if not symbol_value.isdigit() and symbol_mapped in self.magic_colors:
                     card_color_identity.append(symbol_mapped)
@@ -238,18 +238,18 @@ class DownloadsCardsByMIDList:
                 type_split = type_row.split('—')
 
                 for value in type_split[0].split(' '):
-                    if value in mtgjson.shared_info.SUPERTYPES:
+                    if value in mtgjson4.shared_info.SUPERTYPES:
                         card_super_types.append(value)
-                    elif value in mtgjson.shared_info.CARD_TYPES:
+                    elif value in mtgjson4.shared_info.CARD_TYPES:
                         card_layouts.append(value)
 
                 for value in type_split[1].split(' '):
                     card_sub_types.append(value)
             else:
                 for value in type_row.split(' '):
-                    if value in mtgjson.shared_info.SUPERTYPES:
+                    if value in mtgjson4.shared_info.SUPERTYPES:
                         card_super_types.append(value)
-                    elif value in mtgjson.shared_info.CARD_TYPES:
+                    elif value in mtgjson4.shared_info.CARD_TYPES:
                         card_layouts.append(value)
 
             # Remove empty values from the lists
@@ -275,7 +275,7 @@ class DownloadsCardsByMIDList:
                 images = div.findAll('img')
                 for symbol in images:
                     symbol_value = symbol['alt']
-                    symbol_mapped = mtgjson.shared_info.get_symbol_short_name(symbol_value)
+                    symbol_mapped = mtgjson4.shared_info.get_symbol_short_name(symbol_value)
                     symbol.replace_with('{{{0}}}'.format(symbol_mapped))
                     if not symbol_mapped.isdigit() and symbol_mapped in self.magic_colors:
                         card_info['colorIdentity'] += symbol_mapped
@@ -536,7 +536,7 @@ def build_set(set_name):
 if __name__ == '__main__':
     start_time = time.time()
 
-    for magic_set in mtgjson.shared_info.GATHERER_SETS:
+    for magic_set in mtgjson4.shared_info.GATHERER_SETS:
         build_set(magic_set)
 
     end_time = time.time()
