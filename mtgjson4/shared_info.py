@@ -1,61 +1,53 @@
-def get_gatherer_sets():
-    gatherer_sets = [
-        'Kaladesh',
-        'Dominaria',
-        'Aether Revolt',
-        'Amonkhet',
-        'Welcome Deck 2017',
-        'Hour of Devastation',
-        'Ixalan',
-        'Rivals of Ixalan'
-    ]
+COLORS = ['W', 'U', 'B', 'R', 'G']
 
-    return gatherer_sets
+GATHERER_SETS = [
+    'Kaladesh',
+    'Dominaria',
+    'Aether Revolt',
+    'Amonkhet',
+    'Welcome Deck 2017',
+    'Hour of Devastation',
+    'Ixalan',
+    'Rivals of Ixalan'
+]
 
-
-def get_super_types():
-    super_types = [
-        'Basic',
-        'Legendary',
-        'Snow',
-        'World',
-        'Ongoing'
-    ]
-    return super_types
+SUPERTYPES = [
+    'Basic',
+    'Legendary',
+    'Ongoing',
+    'Snow',
+    'World',
+]
 
 
-def get_types():
-    types = [
-        'Instant',
-        'Sorcery',
-        'Artifact',
-        'Creature',
-        'Enchantment',
-        'Land',
-        'Planeswalker',
-        'Tribal',
-        'Plane',
-        'Phenomenon',
-        'Scheme',
-        'Vanguard',
-        'Conspiracy',
-        'Host',
-
-        # Un-Sets
-        'Enchant',
-        'Player',
-        'Interrupt',
-        'Scariest',
-        'You\'ll',
-        'Ever',
-        'See',
-        'Eaturecray'
-    ]
-    return types
+CARD_TYPES = [
+    'Instant',
+    'Sorcery',
+    'Artifact',
+    'Creature',
+    'Enchantment',
+    'Land',
+    'Planeswalker',
+    'Tribal',
+    'Plane',
+    'Phenomenon',
+    'Scheme',
+    'Vanguard',
+    'Conspiracy',
+    # Un-Sets
+    'Host',
+    'Enchant',
+    'Player',
+    'Interrupt',
+    'Scariest',
+    'You\'ll',
+    'Ever',
+    'See',
+    'Eaturecray'
+]
 
 
 def get_symbol_short_name(key_to_find):
-
     symbol_map = {
         'White': 'W',
         'Blue': 'U',
