@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import aiohttp
+import asyncio
 import bs4
 import json
 import multiprocessing
@@ -14,19 +16,12 @@ import mtgjson4.shared_info
 
 OUTPUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'outputs'
 
-class GetChecklistURLs:
-    set_to_download = ''
-
-    def start(self, magic_set_name):
-        self.set_to_download = magic_set_name
-        return self.get_key_with_urls()
-
-    @staticmethod
-    def get_page_count_for_set(html_data):
+async def get_checklist_urls(session, set_name):
+    def page_count_for_set(html_data):
         try:
             # Get the last instance of 'pagingcontrols' and get the page
             # number from the URL it contains
-            soup = bs4.BeautifulSoup(html_data.decode(), 'html.parser')
+            soup = bs4.BeautifulSoup(html_data, 'html.parser')
             soup = soup.select('div[class^=pagingcontrols]')[-1]
             soup = soup.findAll('a')
 
@@ -42,62 +37,36 @@ class GetChecklistURLs:
 
         return num_page_links + 1
 
-    @staticmethod
-    def get_url_params(card_set, page_number=0):
-        url_params = urllib.parse.urlencode({
+    def url_params_for_page(page_number):
+        return {
             'output': 'checklist',
             'sort': 'cn+',
             'action': 'advanced',
             'special': 'true',
-            'set': '["{0}"]'.format(card_set),
+            'set': f'["{set_name}"]',
             'page': page_number
-        })
+        }
 
-        return url_params
+    main_url = 'http://gatherer.wizards.com/Pages/Search/Default.aspx'
+    main_params = url_params_for_page(0)
 
-    def get_key_with_urls(self):
-        main_url = 'http://gatherer.wizards.com/Pages/Search/Default.aspx?{}'
+    async with session.get(main_url, params=main_params) as response:
+        html = await response.text()
 
-        urls_to_download = []
-        url_for_info = main_url.format(self.get_url_params(self.set_to_download, 0))
-
-        with urllib.request.urlopen(url_for_info) as response:
-            html = response.read()
-            for i in range(0, self.get_page_count_for_set(html)):
-                urls_to_download.append(main_url.format(self.get_url_params(self.set_to_download, i)))
-
-        return urls_to_download
+    return [
+        (main_url, url_params_for_page(page_number))
+        for page_number in range(page_count_for_set(html))
+    ]
 
 
-class GenerateMIDsBySet:
-    # Class Variable
-    all_set_multiverse_ids = []
-    set_name = ''
-
-    def start(self, set_name, set_urls):
-        self.set_name = set_name
-        for url in set_urls:
-            self.parse_url_for_m_ids(url)
-
-        return self.get_multiverse_ids_from_set()
-
-    def parse_url_for_m_ids(self, url):
-        with urllib.request.urlopen(url) as response:
-            html = response.read()
-            soup = bs4.BeautifulSoup(html.decode(), 'html.parser')
+async def generate_mids_by_set(session, set_name, set_urls):
+    for url, params in set_urls:
+        async with session.get(url, params=params) as response:
+            soup = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
             # All cards on the page
-            soup = soup.findAll('a', {'class': 'nameLink'})
-            for card_info in soup:
-                card_m_id = str(card_info).split('multiverseid=')[1].split('"')[0]
-                self.all_set_multiverse_ids.append(card_m_id)
-
-    def get_multiverse_ids_from_set(self):
-        return self.all_set_multiverse_ids
-
-    def clear(self):
-        self.set_name = ''
-        self.all_set_multiverse_ids = []
+            for card_info in soup.findAll('a', {'class': 'nameLink'}):
+                yield str(card_info).split('multiverseid=')[1].split('"')[0]
 
 
 class DownloadsCardsByMIDList:
@@ -517,17 +486,17 @@ class DownloadsCardsByMIDList:
         return self.cards_in_set
 
 
-def build_set(set_name):
+async def build_set(session, set_name):
     print('BuildSet: Building Set {}'.format(set_name))
 
-    urls_for_set = GetChecklistURLs().start(set_name)
+    urls_for_set = await get_checklist_urls(session, set_name)
     print('BuildSet: URLs for {0}: {1}'.format(set_name, urls_for_set))
 
-    m_ids_for_set = GenerateMIDsBySet().start(set_name, urls_for_set)
-    # m_ids_for_set = [442051, 435172, 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582]
-    print('BuildSet: MIDs for {0}: {1}'.format(set_name, m_ids_for_set))
+    mids_for_set = [mid async for mid in generate_mids_by_set(session, set_name, urls_for_set)]
+    #m_ids_for_set = [442051, 435172, 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582]
+    print('BuildSet: MIDs for {0}: {1}'.format(set_name, mids_for_set))
 
-    cards_holder = DownloadsCardsByMIDList().start(set_name, m_ids_for_set)
+    cards_holder = DownloadsCardsByMIDList().start(set_name, mids_for_set)
     print('BuildSet: JSON generated for {}'.format(set_name))
 
     with (OUTPUT_DIR / '{}.json'.format(set_name)).open('w') as fp:
@@ -535,12 +504,25 @@ def build_set(set_name):
     print('BuildSet: JSON written for {}'.format(set_name))
 
 
-if __name__ == '__main__':
-    start_time = time.time()
+async def main(loop, session):
     OUTPUT_DIR.mkdir(exist_ok=True) # make sure outputs dir exists
 
-    for magic_set in mtgjson4.shared_info.GATHERER_SETS:
-        build_set(magic_set)
+    async with session:
+        # start asyncio tasks for building each set
+        futures = [
+            loop.create_task(build_set(session, set_name))
+            for set_name in mtgjson4.shared_info.GATHERER_SETS
+        ]
+        # then wait until all of them are completed
+        await asyncio.wait(futures)
+
+
+if __name__ == '__main__':
+    start_time = time.time()
+
+    loop = asyncio.get_event_loop()
+    session = aiohttp.ClientSession(loop=loop, raise_for_status=True)
+    loop.run_until_complete(main(loop, session))
 
     end_time = time.time()
     print('Time: {}'.format(end_time - start_time))
