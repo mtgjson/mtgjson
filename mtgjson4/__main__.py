@@ -12,7 +12,7 @@ import urllib.request
 
 import mtgjson4.shared_info
 
-OUTPUT_DIR = pathlib.Path(__file__).parent.parent / 'outputs'
+OUTPUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'outputs'
 
 class GetChecklistURLs:
     set_to_download = ''
