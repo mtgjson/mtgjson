@@ -150,8 +150,8 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             for symbol in mana_row:
                 symbol_value = symbol['alt']
                 symbol_mapped = mtgjson4.shared_info.get_symbol_short_name(symbol_value)
-                card_cost += '{{{0}}}'.format(symbol_mapped)
-                if not symbol_value.isdigit() and symbol_mapped in mtgjson4.shared_info.COLORS:
+                card_cost += f'{{{symbol_mapped}}}'
+                if symbol_mapped in mtgjson4.shared_info.COLORS:
                     card_color_identity.add(symbol_mapped)
                     card_colors.add(symbol_mapped)
 
