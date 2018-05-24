@@ -3,6 +3,7 @@
 import bs4
 import json
 import multiprocessing
+import pathlib
 import re
 import time
 import urllib.error
@@ -11,6 +12,7 @@ import urllib.request
 
 import mtgjson4.shared_info
 
+OUTPUT_DIR = pathlib.Path(__file__).parent.parent / 'outputs'
 
 class GetChecklistURLs:
     set_to_download = ''
@@ -36,9 +38,10 @@ class GetChecklistURLs:
 
             total_pages = str(soup).split('page=')[1].split('&')[0]
         except IndexError:
+            #TODO why are we just catching this? It looks like an error
             total_pages = 0
 
-        return int(total_pages)+1
+        return int(total_pages) + 1
 
     @staticmethod
     def get_url_params(card_set, page_number=0):
@@ -528,13 +531,14 @@ def build_set(set_name):
     cards_holder = DownloadsCardsByMIDList().start(set_name, m_ids_for_set)
     print('BuildSet: JSON generated for {}'.format(set_name))
 
-    with open('outputs/{}.json'.format(set_name), 'w') as fp:
-        fp.write(json.dumps(cards_holder, sort_keys=True, indent=4))
-        print('BuildSet: JSON written for {}'.format(set_name))
+    with (OUTPUT_DIR / '{}.json'.format(set_name)).open('w') as fp:
+        json.dump(cards_holder, fp, indent=4, sort_keys=True)
+    print('BuildSet: JSON written for {}'.format(set_name))
 
 
 if __name__ == '__main__':
     start_time = time.time()
+    OUTPUT_DIR.mkdir(exist_ok=True) # make sure outputs dir exists
 
     for magic_set in mtgjson4.shared_info.GATHERER_SETS:
         build_set(magic_set)
