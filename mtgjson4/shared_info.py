@@ -1,3 +1,5 @@
+COLORS = ['W', 'U', 'B', 'R', 'G']
+
 GATHERER_SETS = [
     'Kaladesh',
     'Dominaria',

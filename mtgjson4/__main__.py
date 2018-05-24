@@ -3,6 +3,8 @@
 import aiohttp
 import asyncio
 import bs4
+import contextlib
+import itertools
 import json
 import multiprocessing
 import pathlib
@@ -14,7 +16,22 @@ import urllib.request
 
 import mtgjson4.shared_info
 
+
 OUTPUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'outputs'
+
+
+async def ensure_content_downloaded(session, url_to_download, max_retries=3, **kwargs):
+    # Ensure we can read the URL and its contents
+    for retry in itertools.count():
+        try:
+            async with session.get(url_to_download, **kwargs) as response:
+                return await response.text()
+        except aiohttp.ClientError as e:
+            #print("ERROR: {0} with {1}".format(e, url_to_download))
+            if retry == max_retries:
+                raise
+            await asyncio.sleep(2)
+
 
 async def get_checklist_urls(session, set_name):
     def page_count_for_set(html_data):
@@ -69,67 +86,24 @@ async def generate_mids_by_set(session, set_name, set_urls):
                 yield str(card_info).split('multiverseid=')[1].split('"')[0]
 
 
-class DownloadsCardsByMIDList:
-    # Class Variables
-    set_name = ''
-    multiverse_ids = []
-    cards_in_set = {}
-    main_url = 'http://gatherer.wizards.com/Pages/Card/Details.aspx?{}'
-    legal_url = 'http://gatherer.wizards.com/Pages/Card/Printings.aspx?{}'
-    foreign_url = 'http://gatherer.wizards.com/Pages/Card/Languages.aspx?{}'
-    magic_colors = ['W', 'U', 'B', 'R', 'G']
-    max_retries = 3
+async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=None):
+    if loop is None:
+        loop = asyncio.get_event_loop()
 
-    def start(self, set_name, multi_ids):
-        self.set_name = set_name
-        self.multiverse_ids = multi_ids
-        self.create_cards()
-        self.add_layouts()
-        return self.get_cards_in_set()
+    main_url = 'http://gatherer.wizards.com/Pages/Card/Details.aspx'
+    legal_url = 'http://gatherer.wizards.com/Pages/Card/Printings.aspx'
+    foreign_url = 'http://gatherer.wizards.com/Pages/Card/Languages.aspx'
 
-    def create_cards(self):
-        results = []
-        pool = multiprocessing.Pool()
-
-        for card_m_id in self.multiverse_ids:
-            results.append(pool.apply_async(self.build_card, args=(card_m_id,)))
-
-        pool.close()
-        pool.join()
-
-        results = [r.get() for r in results]
-        for card in results:
-            self.cards_in_set[card['multiverseid']] = card
-
-    def ensure_content_downloaded(self, url_to_download):
-        # Ensure we can read the URL and its contents
-        retries = 0
-        while True:
-            try:
-                with urllib.request.urlopen(url_to_download) as response:
-                    return response.read()
-            except urllib.error.HTTPError as e:
-                if retries == self.max_retries:
-                    return None
-                retries += 1
-                # print("ERROR: {0} with {1}".format(e, url_to_download))
-                time.sleep(2)
-
-    def build_main_part(self, card_m_id, card_info):
-        url_for_info = self.main_url.format(self.get_url_params(card_m_id))
-
-        html = self.ensure_content_downloaded(url_for_info)
-        if not html:
-            return
+    async def build_main_part(card_mid, card_info):
+        html = await ensure_content_downloaded(session, main_url, params=get_url_params(card_mid))
 
         # Parse web page so we can gather all data from it
-        soup = bs4.BeautifulSoup(html.decode(), 'html.parser')
-        """ Get Card Multiverse ID """
-        card_info['multiverseid'] = int(card_m_id)
+        soup = bs4.BeautifulSoup(html, 'html.parser')
+        # Get Card Multiverse ID
+        card_info['multiverseid'] = int(card_mid)
 
-        """ Determine if Card is Normal, Flip, or Split """
+        # Determine if Card is Normal, Flip, or Split
         div_name = 'ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{}'
-        card_layout = ''
         cards_total = len(soup.select('table[class^=cardDetails]'))
         if cards_total == 1:
             card_layout = 'normal'
@@ -137,107 +111,88 @@ class DownloadsCardsByMIDList:
             card_layout = 'double'
             div_name = div_name[:-3] + '_ctl02_{}'
 
-        """ Get Card Name """
-        try:
-            name_row = soup.find(id=div_name.format('nameRow'))
-            name_row = name_row.findAll('div')[-1]
-            card_name = name_row.get_text(strip=True)
-            card_info['name'] = card_name
+        # Get Card Name
+        name_row = soup.find(id=div_name.format('nameRow'))
+        name_row = name_row.findAll('div')[-1]
+        card_name = name_row.get_text(strip=True)
+        card_info['name'] = card_name
 
-            # Get other side's name for the user
-            if card_layout == 'double':
-                other_div_name = div_name.replace('02', '03')
-                other_name_row = soup.find(id=other_div_name.format('nameRow'))
-                other_name_row = other_name_row.findAll('div')[-1]
-                card_other_name = other_name_row.get_text(strip=True)
-                card_info['names'] = [card_name, card_other_name]
-        except AttributeError:
-            pass
+        # Get other side's name for the user
+        if card_layout == 'double':
+            other_div_name = div_name.replace('02', '03')
+            other_name_row = soup.find(id=other_div_name.format('nameRow'))
+            other_name_row = other_name_row.findAll('div')[-1]
+            card_other_name = other_name_row.get_text(strip=True)
+            card_info['names'] = [card_name, card_other_name]
 
-        """ Get Card CMC """
-        try:
-            cmc_row = soup.find(id=div_name.format('cmcRow'))
+        # Get Card CMC
+        cmc_row = soup.find(id=div_name.format('cmcRow'))
+        if cmc_row is None:
+            card_info['cmc'] = 0
+        else:
             cmc_row = cmc_row.findAll('div')[-1]
             card_cmc = cmc_row.get_text(strip=True)
             card_info['cmc'] = int(card_cmc)
-        except AttributeError:
-            card_info['cmc'] = 0
-            pass
 
-        """ Get Card Colors, Cost, and Color Identity (start) """
-        try:
-            mana_row = soup.find(id=div_name.format('manaRow'))
+        # Get Card Colors, Cost, and Color Identity (start)
+        card_color_identity = set()
+        mana_row = soup.find(id=div_name.format('manaRow'))
+        if mana_row is None:
+            card_info['colors'] = []
+            card_info['manaCost'] = ''
+        else:
             mana_row = mana_row.findAll('div')[-1]
             mana_row = mana_row.findAll('img')
 
-            card_colors = []
+            card_colors = set()
             card_cost = ''
-            card_color_identity = []
 
             for symbol in mana_row:
                 symbol_value = symbol['alt']
                 symbol_mapped = mtgjson4.shared_info.get_symbol_short_name(symbol_value)
                 card_cost += '{{{0}}}'.format(symbol_mapped)
-                if not symbol_value.isdigit() and symbol_mapped in self.magic_colors:
-                    card_color_identity.append(symbol_mapped)
-                    card_colors.append(symbol_mapped)
+                if not symbol_value.isdigit() and symbol_mapped in mtgjson4.shared_info.COLORS:
+                    card_color_identity.add(symbol_mapped)
+                    card_colors.add(symbol_mapped)
 
-            # Remove duplicates
-            card_colors = list(set(card_colors))
-
-            card_info['colors'] = card_colors
+            # Remove duplicates and sort in WUBRG order
+            #TODO use canonical color order
+            card_info['colors'] = list(filter(lambda c: c in card_colors, mtgjson4.shared_info.COLORS))
             card_info['manaCost'] = card_cost
-            card_info['colorIdentity'] = card_color_identity
-        except AttributeError:
-            card_info['colors'] = []
-            card_info['manaCost'] = ''
-            card_info['colorIdentity'] = []
-            pass
 
-        """ Get Card Type(s) """
-        try:
-            card_super_types = []
-            card_layouts = []
-            card_sub_types = []
-            type_row = soup.find(id=div_name.format('typeRow'))
-            type_row = type_row.findAll('div')[-1]
-            type_row = type_row.get_text(strip=True)
+        # Get Card Type(s)
+        card_super_types = []
+        card_types = []
+        type_row = soup.find(id=div_name.format('typeRow'))
+        type_row = type_row.findAll('div')[-1]
+        type_row = type_row.get_text(strip=True).replace('  ', ' ')
 
-            card_full_type = type_row.replace('  ', ' ')
+        if '—' in type_row:
+            supertypes_and_types, subtypes = type_row.split('—')
+        else:
+            supertypes_and_types = type_row
+            subtypes = ''
 
-            if '—' in type_row:
-                type_split = type_row.split('—')
-
-                for value in type_split[0].split(' '):
-                    if value in mtgjson4.shared_info.SUPERTYPES:
-                        card_super_types.append(value)
-                    elif value in mtgjson4.shared_info.CARD_TYPES:
-                        card_layouts.append(value)
-
-                for value in type_split[1].split(' '):
-                    card_sub_types.append(value)
+        for value in supertypes_and_types.split():
+            if value in mtgjson4.shared_info.SUPERTYPES:
+                card_super_types.append(value)
+            elif value in mtgjson4.shared_info.CARD_TYPES:
+                card_types.append(value)
             else:
-                for value in type_row.split(' '):
-                    if value in mtgjson4.shared_info.SUPERTYPES:
-                        card_super_types.append(value)
-                    elif value in mtgjson4.shared_info.CARD_TYPES:
-                        card_layouts.append(value)
+                raise ValueError(f'Unknown supertype or card type: {value}')
 
-            # Remove empty values from the lists
-            card_super_types = list(filter(None, card_super_types))
-            card_layouts = list(filter(None, card_layouts))
-            card_sub_types = list(filter(None, card_sub_types))
+        card_sub_types = subtypes.split()
 
-            card_info['supertypes'] = card_super_types
-            card_info['types'] = card_layouts
-            card_info['subtypes'] = card_sub_types
-            card_info['type'] = card_full_type
-        except AttributeError:
-            pass
+        card_info['supertypes'] = card_super_types
+        card_info['types'] = card_types
+        card_info['subtypes'] = card_sub_types
+        card_info['type'] = type_row
 
-        """ Get Card Text and Color Identity (remaining) """
-        try:
-            text_row = soup.find(id=div_name.format('textRow'))
+        # Get Card Text and Color Identity (remaining)
+        text_row = soup.find(id=div_name.format('textRow'))
+        if text_row is None:
+            card_info['text'] = ''
+        else:
             text_row = text_row.select('div[class^=cardtextbox]')
 
             card_text = ''
@@ -247,21 +202,22 @@ class DownloadsCardsByMIDList:
                 for symbol in images:
                     symbol_value = symbol['alt']
                     symbol_mapped = mtgjson4.shared_info.get_symbol_short_name(symbol_value)
-                    symbol.replace_with('{{{0}}}'.format(symbol_mapped))
-                    if not symbol_mapped.isdigit() and symbol_mapped in self.magic_colors:
-                        card_info['colorIdentity'] += symbol_mapped
+                    symbol.replace_with(f'{{{symbol_mapped}}}')
+                    if symbol_mapped in mtgjson4.shared_info.COLORS:
+                        card_color_identity.add(symbol_mapped)
 
                 # Next, just add the card text, line by line
                 card_text += div.get_text() + '\n'
 
             card_info['text'] = card_text[:-1]  # Remove last '\n'
-            card_info['colorIdentity'] = list(set(card_info['colorIdentity']))
-        except AttributeError:
-            pass
 
-        """ Get Card Flavor Text """
-        try:
-            flavor_row = soup.find(id=div_name.format('flavorRow'))
+        # Remove duplicates and sort in WUBRG order
+        #TODO use canonical color order
+        card_info['colorIdentity'] = list(filter(lambda c: c in card_color_identity, mtgjson4.shared_info.COLORS))
+
+        # Get Card Flavor Text
+        flavor_row = soup.find(id=div_name.format('flavorRow'))
+        if flavor_row is not None:
             flavor_row = flavor_row.select('div[class^=flavortextbox]')
 
             card_flavor_text = ''
@@ -269,12 +225,10 @@ class DownloadsCardsByMIDList:
                 card_flavor_text += div.get_text() + '\n'
 
             card_info['flavor'] = card_flavor_text[:-1]  # Remove last '\n'
-        except AttributeError:
-            pass
 
-        """ Get Card P/T OR Loyalty OR Hand/Life """
-        try:
-            pt_row = soup.find(id=div_name.format('ptRow'))
+        # Get Card P/T OR Loyalty OR Hand/Life
+        pt_row = soup.find(id=div_name.format('ptRow'))
+        if pt_row is not None:
             pt_row = pt_row.findAll('div')[-1]
             pt_row = pt_row.get_text(strip=True)
 
@@ -286,107 +240,82 @@ class DownloadsCardsByMIDList:
 
                 card_info['hand'] = card_hand_mod
                 card_info['life'] = card_life_mod
-                pass
-
-            pt_row = pt_row.split('/')
-            if len(pt_row) == 2:
-                card_power = pt_row[0].strip()
-                card_toughness = pt_row[1].strip()
-                card_info['power'] = card_power
-                card_info['toughness'] = card_toughness
+            elif '/' in pt_row:
+                card_power, card_toughness = pt_row.split('/')
+                card_info['power'] = card_power.strip()
+                card_info['toughness'] = card_toughness.strip()
             else:
-                card_loyalty = pt_row[0].strip()
-                card_info['loyalty'] = card_loyalty
-        except (AttributeError, IndexError):
-            pass
+                card_info['loyalty'] = pt_row.strip()
 
-        """ Get Card Rarity """
-        try:
-            rarity_row = soup.find(id=div_name.format('rarityRow'))
-            rarity_row = rarity_row.findAll('div')[-1]
-            card_rarity = rarity_row.find('span').get_text(strip=True)
-            card_info['rarity'] = card_rarity
-        except AttributeError:
-            pass
+        # Get Card Rarity
+        rarity_row = soup.find(id=div_name.format('rarityRow'))
+        rarity_row = rarity_row.findAll('div')[-1]
+        card_rarity = rarity_row.find('span').get_text(strip=True)
+        card_info['rarity'] = card_rarity
 
-        """ Get Card Set Number """
-        try:
-            number_row = soup.find(id=div_name.format('numberRow'))
+        # Get Card Set Number
+        number_row = soup.find(id=div_name.format('numberRow'))
+        if number_row is not None:
             number_row = number_row.findAll('div')[-1]
             card_number = number_row.get_text(strip=True)
             card_info['number'] = card_number
-        except AttributeError:
-            pass
 
-        """ Get Card Artist """
-        try:
-            artist_row = soup.find(id=div_name.format('artistRow'))
-            artist_row = artist_row.findAll('div')[-1]
-            card_artist = artist_row.find('a').get_text(strip=True)
-            card_info['artist'] = card_artist
-        except AttributeError:
-            pass
+        # Get Card Artist
+        artist_row = soup.find(id=div_name.format('artistRow'))
+        artist_row = artist_row.findAll('div')[-1]
+        card_artist = artist_row.find('a').get_text(strip=True)
+        card_info['artist'] = card_artist
 
-        """ Get Card Watermark """
-        try:
-            watermark_row = soup.find(id=div_name.format('markRow'))
+        # Get Card Watermark
+        watermark_row = soup.find(id=div_name.format('markRow'))
+        if watermark_row is not None:
             watermark_row = watermark_row.findAll('div')[-1]
             card_watermark = watermark_row.get_text(strip=True)
             card_info['watermark'] = card_watermark
-        except AttributeError:
-            pass
 
-        """ Get Card Rulings """
-        try:
-            rulings_row = soup.find(id=div_name.format('rulingsRow'))
+        # Get Card Rulings
+        rulings_row = soup.find(id=div_name.format('rulingsRow'))
+        if rulings_row is not None:
             rulings_dates = rulings_row.findAll('td', id=re.compile(r'\w*_rulingDate\b'))
             rulings_text = rulings_row.findAll('td', id=re.compile(r'\w*_rulingText\b'))
+            card_info['rulings'] = [
+                {
+                    'date': ruling_date.get_text(),
+                    'text': ruling_text.get_text()
+                }
+                for ruling_date, ruling_text in zip(rulings_dates, rulings_text)
+            ]
 
-            card_rulings = []
-            for i in range(0, len(rulings_dates)):
-                card_rulings.append({
-                    'date': rulings_dates[i].get_text(),
-                    'text': rulings_text[i].get_text()
-                })
-
-            card_info['rulings'] = card_rulings
-        except AttributeError:
-            pass
-
-        """ Get Card Sets """
-        try:
-            sets_row = soup.find(id=div_name.format('otherSetsRow'))
+        # Get Card Sets
+        card_info['printings'] = [set_name]
+        sets_row = soup.find(id=div_name.format('otherSetsRow'))
+        if sets_row is not None:
             images = sets_row.findAll('img')
+            card_info['printings'] += [
+                symbol['alt'].split('(')[0].strip()
+                for symbol in images
+            ]
 
-            card_sets = []
-            for symbol in images:
-                symbol_value = symbol['alt'].split('(')[0].strip()
-                card_sets.append(symbol_value)
-
-            card_info['printings'] = card_sets
-        except AttributeError:
-            pass
-
-    def build_legalities_part(self, card_m_id, card_info):
-        url_for_legal_info = self.legal_url.format(self.get_url_params(card_m_id))
-
-        html = self.ensure_content_downloaded(url_for_legal_info)
-        if not html:
+    async def build_legalities_part(card_mid, card_info):
+        try:
+            html = await ensure_content_downloaded(session, legal_url, params=get_url_params(card_mid))
+        except aiohttp.ClientError:
+            # if Gatherer errors, omit the data for now
+            #TODO remove this and handle Gatherer errors on a case-by-case basis
             return
 
         # Parse web page so we can gather all data from it
-        soup = bs4.BeautifulSoup(html.decode(), 'html.parser')
+        soup = bs4.BeautifulSoup(html, 'html.parser')
 
-        """ Get Card Legalities """
-        try:
-            format_rows = soup.select('table[class^=cardList]')[1]
-            format_rows = format_rows.select('tr[class^=cardItem]')
-
-            card_formats = []
+        # Get Card Legalities
+        format_rows = soup.select('table[class^=cardList]')[1]
+        format_rows = format_rows.select('tr[class^=cardItem]')
+        card_formats = []
+        with contextlib.suppress(IndexError): # if no legalities, only one tr with only one td
             for div in format_rows:
                 table_rows = div.findAll('td')
                 card_format_name = table_rows[0].get_text(strip=True)
-                card_format_legal = table_rows[1].get_text(strip=True)
+                card_format_legal = table_rows[1].get_text(strip=True) # raises IndexError if no legalities
 
                 card_formats.append({
                     'format': card_format_name,
@@ -394,60 +323,56 @@ class DownloadsCardsByMIDList:
                 })
 
             card_info['legalities'] = card_formats
-        except (AttributeError, IndexError):
-            pass
 
-    def build_foreign_part(self, card_m_id, card_info):
-        url_for_foreign_info = self.foreign_url.format(self.get_url_params(card_m_id))
-
-        html = self.ensure_content_downloaded(url_for_foreign_info)
-        if not html:
+    async def build_foreign_part(card_mid, card_info):
+        try:
+            html = await ensure_content_downloaded(session, foreign_url, params=get_url_params(card_mid))
+        except aiohttp.ClientError:
+            # if Gatherer errors, omit the data for now
+            #TODO remove this and handle Gatherer errors on a case-by-case basis
             return
 
         # Parse web page so we can gather all data from it
-        soup = bs4.BeautifulSoup(html.decode(), 'html.parser')
+        soup = bs4.BeautifulSoup(html, 'html.parser')
 
-        """ Get Card Foreign Information """
-        try:
-            language_rows = soup.select('table[class^=cardList]')[0]
-            language_rows = language_rows.select('tr[class^=cardItem]')
+        # Get Card Foreign Information
+        language_rows = soup.select('table[class^=cardList]')[0]
+        language_rows = language_rows.select('tr[class^=cardItem]')
 
-            card_languages = []
-            for div in language_rows:
-                table_rows = div.findAll('td')
+        card_languages = []
+        for div in language_rows:
+            table_rows = div.findAll('td')
 
-                a_tag = table_rows[0].find('a')
-                foreign_m_id = a_tag['href'].split('=')[-1]
-                card_language_mid = foreign_m_id
-                card_foreign_name_in_language = a_tag.get_text(strip=True)
+            a_tag = table_rows[0].find('a')
+            foreign_mid = a_tag['href'].split('=')[-1]
+            card_language_mid = foreign_mid
+            card_foreign_name_in_language = a_tag.get_text(strip=True)
 
-                card_language_name = table_rows[1].get_text(strip=True)
+            card_language_name = table_rows[1].get_text(strip=True)
 
-                card_languages.append({
-                    'language': card_language_name,
-                    'name': card_foreign_name_in_language,
-                    'multiverseid': card_language_mid
-                })
+            card_languages.append({
+                'language': card_language_name,
+                'name': card_foreign_name_in_language,
+                'multiverseid': card_language_mid
+            })
 
-            card_info['foreignNames'] = card_languages
-        except AttributeError:
-            pass
+        card_info['foreignNames'] = card_languages
 
-        # TODO: Missing types
-        # id, layout, variations, border, timeshifted, reserved,
-        # starter, mciNumber, scryfallNumber
+    # TODO: Missing types
+    # id, layout, variations, border, timeshifted, reserved,
+    # starter, mciNumber, scryfallNumber
 
-    def build_card(self, card_m_id):
+    async def build_card(card_mid):
         card_info = {}
 
-        self.build_main_part(card_m_id, card_info)
-        self.build_legalities_part(card_m_id, card_info)
-        self.build_foreign_part(card_m_id, card_info)
+        await build_main_part(card_mid, card_info)
+        await build_legalities_part(card_mid, card_info)
+        await build_foreign_part(card_mid, card_info)
 
-        print('Adding {0} to {1}'.format(card_info['name'], self.set_name))
+        print('Adding {0} to {1}'.format(card_info['name'], set_name))
         return card_info
 
-    def add_layouts(self):
+    def add_layouts():
         """
         try:
             if cards_total == 1:
@@ -473,17 +398,28 @@ class DownloadsCardsByMIDList:
         """
         pass
 
-    @staticmethod
-    def get_url_params(card_m_id):
-        url_params = urllib.parse.urlencode({
-            'multiverseid': '{}'.format(card_m_id),
+    def get_url_params(card_mid):
+        return {
+            'multiverseid': card_mid,
             'printed': 'false',
             'page': 0
-        })
-        return url_params
+        }
 
-    def get_cards_in_set(self):
-        return self.cards_in_set
+    results = []
+    # start asyncio tasks for building each card
+    futures = [
+        loop.create_task(build_card(card_mid))
+        for card_mid in multiverse_ids
+    ]
+    # then wait until all of them are completed
+    await asyncio.wait(futures)
+    cards_in_set = {}
+    for future in futures:
+        card = future.result()
+        cards_in_set[card['multiverseid']] = card
+
+    #add_layouts()
+    return cards_in_set
 
 
 async def build_set(session, set_name):
@@ -493,10 +429,10 @@ async def build_set(session, set_name):
     print('BuildSet: URLs for {0}: {1}'.format(set_name, urls_for_set))
 
     mids_for_set = [mid async for mid in generate_mids_by_set(session, set_name, urls_for_set)]
-    #m_ids_for_set = [442051, 435172, 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582]
+    #mids_for_set = [442051, 435172, 182290, 435173, 435176, 366360, 370424, 6528, 212578, 423590, 423582] #DEBUG
     print('BuildSet: MIDs for {0}: {1}'.format(set_name, mids_for_set))
 
-    cards_holder = DownloadsCardsByMIDList().start(set_name, mids_for_set)
+    cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
     print('BuildSet: JSON generated for {}'.format(set_name))
 
     with (OUTPUT_DIR / '{}.json'.format(set_name)).open('w') as fp:
