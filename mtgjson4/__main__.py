@@ -85,7 +85,7 @@ async def generate_mids_by_set(session, set_urls):
                 yield str(card_info).split('multiverseid=')[1].split('"')[0]
 
 
-async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=None, foreign=False):
+async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=None):
     if loop is None:
         loop = asyncio.get_event_loop()
 
@@ -407,6 +407,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
         card_info['foreignNames'] = card_languages
 
+
     async def build_id_part(card_mid, card_info):
         card_id = hashlib.sha3_256()
         card_id.update(set_name[0].encode('utf-8'))
@@ -457,44 +458,14 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_info['originalText'] = card_text[:-1]  # Remove last '\n'
 
-        """
-        if language_to_build != 'en':
-            if ('translations' not in json_ready.keys()) or (
-                    language_to_build not in json_ready['translations'].keys()):
-                print("BuildSet: Cannot translate {0} to {1}. Update set_configs for translations"
-                      .format(set_name[1], language_to_build))
-                return
-
-            foreign_mids_for_set = []
-            for card in json_ready['cards']:
-                full_name_lang_to_build = mtgjson4.globals.get_language_long_name(language_to_build)
-                for lang_dict in card['foreignNames']:
-                    if lang_dict['language'] == full_name_lang_to_build:
-                        foreign_mids_for_set.append(int(lang_dict['multiverseid']))
-                        break
-
-            for card in json_ready['cards']:
-                XXX
-
-            cards_holder = await download_cards_by_mid_list(session, set_name, foreign_mids_for_set, foreign=True)
-            print('BuildSet: Generated JSON for {0}.{1}'.format(set_name[0], language_to_build))
-
-            json_ready = await apply_set_config_options(set_name, cards_holder)
-            print('BuildSet: Applied Set Config options for {0}.{1}'.format(set_name[0], language_to_build))
-
-            with (OUTPUT_DIR / '{0}.{1}.json'.format(set_name[1], language_to_build)).open('w') as fp:
-                json.dump(json_ready, fp, indent=4, sort_keys=True)
-                print('BuildSet: JSON written for {0}.{2} ({1})'.format(set_name[0], set_name[1], language_to_build))
-        """
-
     async def build_card(card_mid, second_card=False):
         card_info = {}
 
         await build_main_part(card_mid, card_info, second_card=second_card)
         await build_original_details(card_mid, card_info, second_card=second_card)
         await build_legalities_part(card_mid, card_info)
-        await build_foreign_part(card_mid, card_info)
         await build_id_part(card_mid, card_info)
+        await build_foreign_part(card_mid, card_info)
 
         print('Adding {0} to {1}'.format(card_info['name'], set_name[0]))
         return card_info
@@ -659,25 +630,71 @@ async def apply_set_config_options(set_name, cards_dictionary):
     return return_product
 
 
-async def build_set(session, set_name, language_to_build):
-    print('BuildSet: Building Set {}'.format(set_name[0]))
+async def build_set(session, set_name, language):
+    async def get_mids_for_downloading():
+        print('BuildSet: Building Set {}'.format(set_name[0]))
 
-    urls_for_set = await get_checklist_urls(session, set_name)
-    print('BuildSet: Acquired URLs for {}'.format(set_name[0]))
+        urls_for_set = await get_checklist_urls(session, set_name)
+        print('BuildSet: Acquired URLs for {}'.format(set_name[0]))
 
-    mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
-    # mids_for_set = [401847, 401889, 401890]
-    print('BuildSet: Determined MIDs for {0}: {1}'.format(set_name[0], mids_for_set))
+        # mids_for_set = [401847, 401889, 401890]
+        ids_to_return = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
+        return ids_to_return
 
-    cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
-    print('BuildSet: Generated JSON for {}'.format(set_name[0]))
+    async def build_then_print_stuff(mids_for_set, lang=None):
+        if lang:
+            print('BuildSet: Determined MIDs for {0}: {1}.{2}'.format(set_name[0], mids_for_set, lang))
+        else:
+            print('BuildSet: Determined MIDs for {0}: {1}'.format(set_name[0], mids_for_set))
 
-    json_ready = await apply_set_config_options(set_name, cards_holder)
-    print('BuildSet: Applied Set Config options for {}'.format(set_name[0]))
+        cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
 
-    with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('w') as fp:
-        json.dump(json_ready, fp, indent=4, sort_keys=True)
-        print('BuildSet: JSON written for {0} ({1})'.format(set_name[0], set_name[1]))
+        if lang:
+            print('BuildSet: Generated JSON for {0}.{1}'.format(set_name[0], lang))
+        else:
+            print('BuildSet: Generated JSON for {}'.format(set_name[0]))
+
+        json_ready = await apply_set_config_options(set_name, cards_holder)
+
+        if lang:
+            print('BuildSet: Applied Set Config options for {0}.{1}'.format(set_name[0], lang))
+        else:
+            print('BuildSet: Applied Set Config options for {}'.format(set_name[0]))
+
+        if lang:
+            with (OUTPUT_DIR / '{0}.{1}.json'.format(set_name[1], lang)).open('w') as fp:
+                json.dump(json_ready, fp, indent=4, sort_keys=True)
+                print('BuildSet: JSON written for {0}.{2} ({1})'.format(set_name[0], set_name[1], lang))
+        else:
+            with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('w') as fp:
+                json.dump(json_ready, fp, indent=4, sort_keys=True)
+                print('BuildSet: JSON written for {0} ({1})'.format(set_name[0], set_name[1]))
+
+        return json_ready
+
+    async def build_foreign_language():
+        if ('translations' not in json_output.keys()) or (language not in json_output['translations'].keys()):
+            print("BuildSet: Cannot translate {0} to {1}. Update set_configs".format(set_name[1], language))
+            return
+
+        foreign_mids_for_set = []
+        for card in json_output['cards']:
+            full_name_lang_to_build = mtgjson4.globals.get_language_long_name(language)
+            for lang_dict in card['foreignNames']:
+                if lang_dict['language'] == full_name_lang_to_build:
+                    foreign_mids_for_set.append(int(lang_dict['multiverseid']))
+                    break
+
+        # Write to file the foreign build
+        await build_then_print_stuff(foreign_mids_for_set, language)
+        return
+
+    # Once this finishes, it will write to file AND return value
+    json_output = await build_then_print_stuff(await get_mids_for_downloading())
+    if language != 'en' and len(json_output) > 0:
+        await build_foreign_language()
+        print("FOREIGN DONE")
+        return
 
 
 async def main(loop, session, language_to_build):
@@ -692,6 +709,8 @@ async def main(loop, session, language_to_build):
         # then wait until all of them are completed
         await asyncio.wait(futures)
 
+    print("All Done!")
+
 
 if __name__ == '__main__':
     # Start by processing all arguments to the program
@@ -704,7 +723,7 @@ if __name__ == '__main__':
     group.add_argument('--all-sets', action='store_true', help='Build all sets (cannot be used with --sets)')
 
     parser.add_argument('--language', default='en', metavar='LANG', type=str, nargs=1,
-                        help='Build foreign language versions (defaults to English)')
+                        help='Build foreign language versions (defaults to English (en))')
 
     cl_args = vars(parser.parse_args())
 
