@@ -281,12 +281,8 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         # Get Card Artist
         artist_row = soup.find(id=div_name.format('artistRow'))
         artist_row = artist_row.findAll('div')[-1]
-        card_artist = artist_row.find('a').get_text(strip=True)
-        card_artists = card_artist.split('&')
-
-        card_info['artist'] = card_artist
-        if len(card_artists) > 1:
-            card_info['artists'] = card_artists
+        card_artists = artist_row.find('a').get_text(strip=True).split('&')
+        card_info['artist'] = card_artists
 
         # Get Card Watermark
         watermark_row = soup.find(id=div_name.format('markRow'))
