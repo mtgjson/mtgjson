@@ -156,9 +156,12 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                     card_color_identity.add(symbol_mapped)
                     card_colors.add(symbol_mapped)
 
-            # Remove duplicates and sort in WUBRG order
-            # TODO use canonical color order
-            card_colors = list(filter(lambda c: c in card_colors, mtgjson4.globals.COLORS))
+            # Sort field in WUBRG order
+            card_colors = sorted(
+                list(filter(lambda c: c in card_colors, mtgjson4.globals.COLORS)),
+                key=lambda word: [mtgjson4.globals.COLORS.index(c) for c in word]
+            )
+
             if card_colors:
                 card_info['colors'] = card_colors
             if card_cost:
@@ -219,9 +222,12 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_info['text'] = card_text[:-1]  # Remove last '\n'
 
-        # Remove duplicates and sort in WUBRG order
-        # TODO use canonical color order
-        card_color_identity = list(filter(lambda c: c in card_color_identity, mtgjson4.globals.COLORS))
+        # Sort field in WUBRG order
+        card_color_identity = sorted(
+            list(filter(lambda c: c in card_color_identity, mtgjson4.globals.COLORS)),
+            key=lambda word: [mtgjson4.globals.COLORS.index(c) for c in word]
+        )
+
         if card_color_identity:
             card_info['colorIdentity'] = card_color_identity
 

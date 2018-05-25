@@ -4,7 +4,7 @@ COLORS = ['W', 'U', 'B', 'R', 'G']
 GATHERER_SETS = [
     #['Limited Edition Alpha', 'LEA'],
     #['Eldritch Moon', 'EMN'],
-    ['Kaladesh', 'KLD']
+    #['Kaladesh', 'KLD']
     #['Dominaria', 'DOM'],
     #['Aether Revolt', 'AER'],
     #['Amonkhet', 'AKH'],
@@ -12,6 +12,7 @@ GATHERER_SETS = [
     #['Hour of Devastation', 'HOU'],
     #['Ixalan', 'XLN'],
     #['Rivals of Ixalan', 'RIX']
+    ['Oath of the Gatewatch', 'OGW']
 ]
 
 SUPERTYPES = [
