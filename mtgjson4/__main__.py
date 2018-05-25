@@ -8,6 +8,7 @@ import contextlib
 import hashlib
 import itertools
 import json
+import os
 import pathlib
 import re
 import time
@@ -500,29 +501,66 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
     return cards_in_set
 
 
-async def apply_set_config_options(session, set_name, cards_dictionary):
+def find_file(name, path):
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
+
+
+async def apply_set_config_options(set_name, cards_dictionary):
     return_product = dict()
 
-    with (SET_CONFIG_DIR / '{}.json'.format(set_name[1])).open('r') as fp:
+    # Will search the tree of set_configs to find the file
+    with (pathlib.Path(find_file("{}.json".format(set_name[1]), SET_CONFIG_DIR))).open('r') as fp:
         file_response = ast.literal_eval(fp.read())
 
         for key, value in file_response['SET'].items():
             return_product[key] = value
 
-        for match_replace_rule in file_response['SET_CORRECTIONS']:
-            for key, value in match_replace_rule.items():
-                # TODO: Change format of set_configs to make it easier to parse
-                print(key, value)
+        if 'SET_CORRECTIONS' in file_response.keys():
+            match_replace_rules = str(file_response['SET_CORRECTIONS'])
+            match_replace_rules = ast.literal_eval(match_replace_rules)
+
+            for replacement_rule in match_replace_rules:
+                with contextlib.suppress(KeyError):  # If there's no match, it's deprecated
+                    replacement_match = replacement_rule['match']
+
+                if 'replace' in replacement_rule.keys():
+                    fix_type = 'replace'
+                    replacement_update = replacement_rule['replace']
+                elif 'fixForeignNames' in replacement_rule.keys():
+                    fix_type = 'fixForeignNames'
+                    replacement_update = replacement_rule['fixForeignNames']
+                else:
+                    continue
+
+                for key, value in replacement_match.items():
+                    if isinstance(value, list):
+                        cards_to_modify = [card for card in cards_dictionary if card[key] in value]
+                    elif isinstance(value, str) or isinstance(value, int):
+                        cards_to_modify = [card for card in cards_dictionary if card[key] == value]
+                    else:
+                        continue
+
+                    if fix_type == 'replace':
+                        for key_name, replacement in replacement_update.items():
+                            for card in cards_to_modify:
+                                card[key_name] = replacement
+                    elif fix_type == 'fixForeignNames':
+                        for lang_replacements in replacement_update:
+                            language_name = lang_replacements['language']
+                            new_name = lang_replacements['name']
+
+                            for card in cards_to_modify:
+                                for foreign_names_field in card['foreignNames']:
+                                    if foreign_names_field['language'] == language_name:
+                                        foreign_names_field['name'] = new_name
 
     return_product['cards'] = cards_dictionary
 
     return return_product
 
 
-# TODO: Missing fields
-# border - Only done if they don't match set (need set config)
-# timeshifted - Only for timeshifted sets (need set config)
-# starter - in starter deck (need set config)
 async def build_set(session, set_name):
     print('BuildSet: Building Set {}'.format(set_name[0]))
 
@@ -530,18 +568,18 @@ async def build_set(session, set_name):
     print('BuildSet: Acquired URLs for {}'.format(set_name[0]))
 
     mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
-    # mids_for_set = [417835, 417836, 417837]  # DEBUG # 439335, 442051, 435172, 182290, 435173, 443154, 442767,
+    # mids_for_set = [401847, 401889, 401890]
     print('BuildSet: Determined MIDs for {0}: {1}'.format(set_name[0], mids_for_set))
 
     cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
     print('BuildSet: Generated JSON for {}'.format(set_name[0]))
 
-    json_ready = await apply_set_config_options(session, set_name, cards_holder)
+    json_ready = await apply_set_config_options(set_name, cards_holder)
     print('BuildSet: Applied Set Config options for {}'.format(set_name[0]))
 
     with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('w') as fp:
         json.dump(json_ready, fp, indent=4, sort_keys=True)
-    print('BuildSet: JSON written for {0} ({1})'.format(set_name[0], set_name[1]))
+        print('BuildSet: JSON written for {0} ({1})'.format(set_name[0], set_name[1]))
 
 
 async def main(loop, session):

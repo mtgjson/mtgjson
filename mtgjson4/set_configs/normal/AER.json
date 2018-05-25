@@ -1,20 +1,19 @@
 {
-  "PRODUCT_PAGE": "http://magic.wizards.com/en/content/kaladesh-information",
   "SET": {
-    "name": "Kaladesh",
-    "code": "KLD",
-    "magicCardsInfoCode": "kld",
-    "releaseDate": "2016-09-30",
+    "name": "Aether Revolt",
+    "code": "AER",
+    "magicCardsInfoCode": "aer",
+    "releaseDate": "2017-01-20",
     "border": "black",
-    "type": "expansion",
     "block": "Kaladesh",
+    "type": "expansion",
     "booster": [
       ["rare", "mythic rare"], "uncommon", "uncommon", "uncommon", "common", "common", "common", "common", "common", "common", "common", "common", "common", "common", "land", "marketing"
     ]
   },
   "SET_CORRECTIONS": [{
     "match": {
-      "multiverseid": [417820, 417581, 417777, 417687, 417614]
+      "multiverseid": [423678, 423758, 423698, 423720, 423795]
     },
     "replace": {
       "watermark": "Planeswalker"

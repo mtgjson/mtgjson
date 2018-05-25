@@ -4,10 +4,11 @@ COLORS = ['W', 'U', 'B', 'R', 'G']
 GATHERER_SETS = [
     # ['Limited Edition Alpha', 'LEA'],
     # ['Eldritch Moon', 'EMN'],
-    ['Kaladesh', 'KLD'],
+    # ['Kaladesh', 'KLD'],
     # ['Dominaria', 'DOM'],
     # ['Aether Revolt', 'AER'],
-    ['Amonkhet', 'AKH']
+    # ['Amonkhet', 'AKH']
+    ['Battle for Zendikar', 'BFZ']
     # ['Welcome Deck 2017', 'W17'],
     # ['Hour of Devastation', 'HOU'],
     # ['Ixalan', 'XLN'],
