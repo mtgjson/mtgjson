@@ -467,7 +467,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         await build_id_part(card_mid, card_info)
         await build_foreign_part(card_mid, card_info)
 
-        print('Adding {0} to {1}'.format(card_info['name'], set_name[0]))
+        print('\tAdding {0} to {1}'.format(card_info['name'], set_name[0]))
         return card_info
 
     def add_layouts(cards):
@@ -643,32 +643,23 @@ async def build_set(session, set_name, language):
 
     async def build_then_print_stuff(mids_for_set, lang=None):
         if lang:
-            print('BuildSet: Determined MIDs for {0}: {1}.{2}'.format(set_name[0], mids_for_set, lang))
+            set_stat = '{0}.{1}'.format(set_name[0], lang)
+            set_output = '{0}.{1}'.format(set_name[1], lang)
         else:
-            print('BuildSet: Determined MIDs for {0}: {1}'.format(set_name[0], mids_for_set))
+            set_stat = str(set_name[0])
+            set_output = str(set_name[1])
+
+        print('BuildSet: Determined MIDs for {0}: {1}'.format(set_stat, mids_for_set))
 
         cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
 
-        if lang:
-            print('BuildSet: Generated JSON for {0}.{1}'.format(set_name[0], lang))
-        else:
-            print('BuildSet: Generated JSON for {}'.format(set_name[0]))
-
+        print('BuildSet: Applied Set Config options for {}'.format(set_stat))
         json_ready = await apply_set_config_options(set_name, cards_holder)
 
-        if lang:
-            print('BuildSet: Applied Set Config options for {0}.{1}'.format(set_name[0], lang))
-        else:
-            print('BuildSet: Applied Set Config options for {}'.format(set_name[0]))
-
-        if lang:
-            with (OUTPUT_DIR / '{0}.{1}.json'.format(set_name[1], lang)).open('w') as fp:
-                json.dump(json_ready, fp, indent=4, sort_keys=True)
-                print('BuildSet: JSON written for {0}.{2} ({1})'.format(set_name[0], set_name[1], lang))
-        else:
-            with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('w') as fp:
-                json.dump(json_ready, fp, indent=4, sort_keys=True)
-                print('BuildSet: JSON written for {0} ({1})'.format(set_name[0], set_name[1]))
+        print('BuildSet: Generated JSON for {}'.format(set_stat))
+        with (OUTPUT_DIR / '{}.json'.format(set_output)).open('w') as fp:
+            json.dump(json_ready, fp, indent=4, sort_keys=True)
+            print('BuildSet: JSON written for {0} ({1})'.format(set_stat, set_name[1]))
 
         return json_ready
 
@@ -693,7 +684,6 @@ async def build_set(session, set_name, language):
     json_output = await build_then_print_stuff(await get_mids_for_downloading())
     if language != 'en' and len(json_output) > 0:
         await build_foreign_language()
-        print("FOREIGN DONE")
         return
 
 
@@ -708,8 +698,6 @@ async def main(loop, session, language_to_build):
         ]
         # then wait until all of them are completed
         await asyncio.wait(futures)
-
-    print("All Done!")
 
 
 if __name__ == '__main__':
