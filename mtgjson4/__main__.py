@@ -407,7 +407,6 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
         card_info['foreignNames'] = card_languages
 
-
     async def build_id_part(card_mid, card_info):
         card_id = hashlib.sha3_256()
         card_id.update(set_name[0].encode('utf-8'))
