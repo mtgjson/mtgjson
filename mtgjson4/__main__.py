@@ -3,7 +3,6 @@
 import aiohttp
 import asyncio
 import bs4
-import collections
 import contextlib
 import hashlib
 import itertools
@@ -13,7 +12,6 @@ import re
 import time
 
 import mtgjson4.globals
-
 
 OUTPUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'outputs'
 
@@ -143,9 +141,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         # Get Card Colors, Cost, and Color Identity (start)
         card_color_identity = set()
         mana_row = soup.find(id=div_name.format('manaRow'))
-        if mana_row is None:
-            card_info['manaCost'] = ''
-        else:
+        if mana_row:
             mana_row = mana_row.findAll('div')[-1]
             mana_row = mana_row.findAll('img')
 
@@ -319,6 +315,15 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
         card_info['printings'] = card_printings
 
+        # Get Card Variations
+        variations_row = soup.find(id=div_name.format('variationLinks'))
+        if variations_row is not None:
+            card_variations = []
+
+            for variations_info in variations_row.findAll('a', {'class': 'variationLink'}):
+                card_variations.append(int(variations_info['href'].split('multiverseid=')[1]))
+
+            card_info['variations'] = card_variations
 
     async def build_legalities_part(card_mid, card_info):
         try:
@@ -445,30 +450,6 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_info['layout'] = card_layout
 
-    def add_variants(cards):
-        card_variations = collections.defaultdict(set)
-        for card in cards:
-            card_variations[card['name']].add(card['multiverseid'])
-        for card in cards:
-            variations = sorted(filter(lambda var: var != card['multiverseid'], card_variations[card['name']]))
-            if variations:
-                card['variations'] = variations
-
-        # TODO: Make this less of O(n^2)
-
-        """
-        for card in cards:
-            card_name = card['name']
-            card_mid = card['multiverseid']
-            card_variations = [
-                same_name['multiverseid']
-                for same_name in cards if same_name['name'] == card_name and same_name['multiverseid'] != card_mid and card['names'] is None
-            ]
-
-            if card_variations:
-                card['variations'] = card_variations
-        """
-
     def get_url_params(card_mid):
         return {
             'multiverseid': card_mid,
@@ -498,7 +479,6 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             cards_in_set.append(card_future)
 
     add_layouts(cards_in_set)
-    add_variants(cards_in_set)
 
     return cards_in_set
 
@@ -516,7 +496,7 @@ async def build_set(session, set_name):
     print('BuildSet: URLs for {0}: {1}'.format(set_name[0], urls_for_set))
 
     mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
-    # mids_for_set = [21805]  # DEBUG # 439335, 442051, 435172, 182290, 435173, 443154, 442767,
+    # mids_for_set = [417835, 417836, 417837]  # DEBUG # 439335, 442051, 435172, 182290, 435173, 443154, 442767,
     print('BuildSet: MIDs for {0}: {1}'.format(set_name[0], mids_for_set))
 
     cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
