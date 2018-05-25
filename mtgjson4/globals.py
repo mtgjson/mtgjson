@@ -614,53 +614,51 @@ SYMBOL_MAP = {
     'Black': 'B',
     'Red': 'R',
     'Green': 'G',
-    'Snow': 'S',
+
     'Colorless': 'C',
-    'Energy': 'E',
+
+    # TODO: Fix issue of X, Y, and Z all having same key
     'Variable Colorless': 'X',
 
+    'Snow': 'S',
+    'Energy': 'E',
+
+    'Phyrexian White': 'PW',
+    'Phyrexian Blue': 'PU',
+    'Phyrexian Black': 'PB',
+    'Phyrexian Red': 'PR',
+    'Phyrexian Green': 'PG',
+
+    'Two or White': '2W',
+    'Two or Blue': '2U',
+    'Two or Black': '2B',
+    'Two or Red': '2R',
+    'Two or Green': '2G',
+
+    'White or Blue': 'WU',
+    'White or Black': 'WB',
+    'Blue or Black': 'UB',
+    'Blue or Red': 'UR',
+    'Black or Red': 'BR',
+    'Black or Green': 'BG',
+    'Red or Green': 'RG',
+    'Red or White': 'GU',
+    'Green or White': 'RW',
+    'Green or Blue': 'GW',
+
+    'Half a White': 'HW',
+    'Half a Blue': 'HU',
+    'Half a Black': 'HB',
+    'Half a Red': 'HR',
+    'Half a Green': 'HG',
+
     'Tap': 'T',
-    'Untap': 'Q'
+    'Untap': 'Q',
+
+    'Infinite': '∞'
 }
 
 
 def get_symbol_short_name(key_to_find):
     # Returns the key if not found
     return SYMBOL_MAP.get(key_to_find, key_to_find)
-
-
-"""
-    x : [],
-    y : [],
-    z : [],
-    wu : ['whiteblue', 'bluewhite', 'uw'],
-    wb : ['whiteblack', 'blackwhite', 'bw'],
-    ub : ['blueblack', 'blackblue', 'bu'],
-    ur : ['bluered', 'redblue', 'ru'],
-    br : ['blackred', 'redblack', 'rb'],
-    bg : ['blackgreen', 'greenblack', 'gb'],
-    rg : ['redgreen', 'greenred', 'gr'],
-    rw : ['redwhite', 'whitered', 'wr'],
-    gw : ['greenwhite', 'whitegreen', 'wg'],
-    gu : ['greenblue', 'bluegreen', 'ug'],
-    '2w' : ['twowhite', '2white', 'whitetwo', 'w2', 'white2'],
-    '2u' : ['twoblue', '2blue', 'bluetwo', 'u2', 'blue2'],
-    '2b' : ['twoblack', '2black', 'blacktwo', 'b2', 'black2'],
-    '2r' : ['twored', '2red', 'redtwo', 'r2', 'red2'],
-    '2g' : ['twogreen', '2green', 'greentwo', 'g2', 'green2'],
-    p : ['phyrexian'],
-    pw : ['phyrexianwhite', 'pwhite', 'whitephyrexian', 'whitep', 'wp', 'wphyrexian'],
-    pu : ['phyrexianblue', 'pblue', 'bluephyrexian', 'bluep', 'up', 'uphyrexian'],
-    pb : ['phyrexianblack', 'pblack', 'blackphyrexian', 'blackp', 'bp', 'bphyrexian'],
-    pr : ['phyrexianred', 'pred', 'redphyrexian', 'redp', 'rp', 'rphyrexian'],
-    pg : ['phyrexiangreen', 'pgreen', 'greenphyrexian', 'greenp', 'gp', 'gphyrexian'],
-    '∞' : ['infinity'],
-    h : ['half', 'halfcolorless', 'colorlesshalf'],
-    hw : ['halfwhite', 'halfw', 'whitehalf', 'whalf', 'wh', 'whiteh'],
-    hu : ['halfblue', 'halfu', 'bluehalf', 'uhalf', 'uh', 'blueh'],
-    hb : ['halfblack', 'halfb', 'blackhalf', 'bhalf', 'bh', 'blackh'],
-    hr : ['halfred', 'halfr', 'redhalf', 'rhalf', 'rh', 'redh'],
-    hg : ['halfgreen', 'halfg', 'greenhalf', 'ghalf', 'gh', 'greenh']
-    chaosdice : ['chaos', 'c'],
-    };
-"""
