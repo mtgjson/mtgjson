@@ -1,21 +1,5 @@
 COLORS = ['W', 'U', 'B', 'R', 'G']
 
-# Each row is the proper set name followed by the set code
-GATHERER_SETS = [
-    # ['Limited Edition Alpha', 'LEA'],
-    # ['Eldritch Moon', 'EMN'],
-    # ['Kaladesh', 'KLD'],
-    # ['Dominaria', 'DOM'],
-    # ['Aether Revolt', 'AER'],
-    # ['Amonkhet', 'AKH']
-    ['Battle for Zendikar', 'BFZ']
-    # ['Welcome Deck 2017', 'W17'],
-    # ['Hour of Devastation', 'HOU'],
-    # ['Ixalan', 'XLN'],
-    # ['Rivals of Ixalan', 'RIX']
-    # ['Oath of the Gatewatch', 'OGW']
-]
-
 SUPERTYPES = [
     'Basic',
     'Legendary',
@@ -23,7 +7,6 @@ SUPERTYPES = [
     'Snow',
     'World',
 ]
-
 
 CARD_TYPES = [
     'Instant',
@@ -624,7 +607,6 @@ RESERVE_LIST = [
     'Zirilan of the Claw',
     'Zuberi, Golden Feather',
 ]
-
 
 SYMBOL_MAP = {
     'White': 'W',

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import aiohttp
+import argparse
 import ast
 import asyncio
 import bs4
@@ -319,7 +320,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 this_set_name = symbol['alt'].split('(')[0].strip()
 
                 card_printings += (
-                    set_code[1] for set_code in mtgjson4.globals.GATHERER_SETS if this_set_name == set_code[0]
+                    set_code[1] for set_code in SETS_TO_BUILD if this_set_name == set_code[0]
                 )
 
         card_info['printings'] = card_printings
@@ -507,6 +508,29 @@ def find_file(name, path):
             return os.path.join(root, name)
 
 
+def determine_gatherer_sets(args):
+    def try_to_append(root_p, file_p):
+        with pathlib.Path(root_p, file_p).open('r') as fp:
+            this_set_name = json.loads(fp.read())
+            if 'SET' in this_set_name:
+                all_sets.append([this_set_name['SET']['name'], file.split('.json')[0]])
+
+    all_sets = list()
+    if args['all_sets']:
+        for root, dirs, files in os.walk(SET_CONFIG_DIR):
+            for file in files:
+                if file.endswith('.json'):
+                    try_to_append(root, file)
+    else:
+        for root, dirs, files in os.walk(SET_CONFIG_DIR):
+            for file in files:
+                set_name = file.split('.json')[0]
+                if set_name in args['sets']:
+                    try_to_append(root, file)
+
+    return all_sets
+
+
 async def apply_set_config_options(set_name, cards_dictionary):
     return_product = dict()
 
@@ -589,13 +613,28 @@ async def main(loop, session):
         # start asyncio tasks for building each set
         futures = [
             loop.create_task(build_set(session, set_name))
-            for set_name in mtgjson4.globals.GATHERER_SETS
+            for set_name in SETS_TO_BUILD
         ]
         # then wait until all of them are completed
         await asyncio.wait(futures)
 
 
 if __name__ == '__main__':
+    # Start by processing all arguments to the program
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description='MTGJSON4 -- Compiler')
+
+    # Can't have both sets and all sets
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--sets', metavar='SET', nargs='+', type=str,
+                       help='What set(s) to build (cannot be used with --all-sets)')
+    group.add_argument('--all-sets', action='store_true', help='Build all sets (cannot be used with --sets)')
+
+    cl_args = vars(parser.parse_args())
+
+    # Global of all sets to build
+    SETS_TO_BUILD = determine_gatherer_sets(cl_args)
+
+    # Start the build process
     start_time = time.time()
 
     card_loop = asyncio.get_event_loop()
