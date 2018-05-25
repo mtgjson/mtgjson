@@ -22,16 +22,18 @@ CARD_TYPES = [
     'Scheme',
     'Vanguard',
     'Conspiracy',
+
     # Un-Sets
     'Host',
     'Enchant',
     'Player',
     'Interrupt',
     'Scariest',
-    'You\'ll',
+    'You’ll',
     'Ever',
     'See',
-    'Eaturecray'
+    'Eaturecray',
+    '(none)'
 ]
 
 RESERVE_LIST = [
@@ -656,7 +658,25 @@ SYMBOL_MAP = {
     'Infinite': '∞'
 }
 
+LANGUAGE_MAP = {
+    'fr': 'French',
+    'de': 'German',
+    'cn': 'Chinese Traditional',
+    'es': 'Spanish',
+    'it': 'Italian',
+    'jp': 'Japanese',
+    'pt': 'Portuguese (Brazil)',
+    'ru': 'Russian'
+}
+
 
 def get_symbol_short_name(key_to_find):
     # Returns the key if not found
     return SYMBOL_MAP.get(key_to_find, key_to_find)
+
+
+def get_language_long_name(lang_short_name):
+    if lang_short_name not in LANGUAGE_MAP.keys():
+        raise ValueError("MTGJSON4: Language not supported yet")
+    else:
+        return LANGUAGE_MAP[lang_short_name]
