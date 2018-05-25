@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import aiohttp
+import ast
 import asyncio
 import bs4
 import contextlib
@@ -14,6 +15,7 @@ import time
 import mtgjson4.globals
 
 OUTPUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'outputs'
+SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
 
 
 async def ensure_content_downloaded(session, url_to_download, max_retries=3, **kwargs):
@@ -333,7 +335,9 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             for variations_info in variations_row.findAll('a', {'class': 'variationLink'}):
                 card_variations.append(int(variations_info['href'].split('multiverseid=')[1]))
 
-            card_variations.remove(card_info['multiverseid'])  # Don't need this card's MID in its variations
+            with contextlib.suppress(ValueError):
+                card_variations.remove(card_info['multiverseid'])  # Don't need this card's MID in its variations
+
             card_info['variations'] = card_variations
 
     async def build_legalities_part(card_mid, card_info):
@@ -500,6 +504,25 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
     return cards_in_set
 
 
+async def apply_set_config_options(session, set_name, cards_dictionary):
+    return_product = dict()
+
+    with (SET_CONFIG_DIR / '{}.json'.format(set_name[1])).open('r') as fp:
+        file_response = ast.literal_eval(fp.read())
+
+        for key, value in file_response['SET'].items():
+            return_product[key] = value
+
+        for match_replace_rule in file_response['SET_CORRECTIONS']:
+            for key, value in match_replace_rule.items():
+                # TODO: Change format of set_configs to make it easier to parse
+                print(key, value)
+
+    return_product['cards'] = cards_dictionary
+
+    return return_product
+
+
 # TODO: Missing fields
 # border - Only done if they don't match set (need set config)
 # timeshifted - Only for timeshifted sets (need set config)
@@ -517,8 +540,11 @@ async def build_set(session, set_name):
     cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
     print('BuildSet: Generated JSON for {}'.format(set_name[0]))
 
+    json_ready = await apply_set_config_options(session, set_name, cards_holder)
+    print('BuildSet: Applied Set Config options for {}'.format(set_name[0]))
+
     with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('w') as fp:
-        json.dump(cards_holder, fp, indent=4, sort_keys=True)
+        json.dump(json_ready, fp, indent=4, sort_keys=True)
     print('BuildSet: JSON written for {0} ({1})'.format(set_name[0], set_name[1]))
 
 
