@@ -96,13 +96,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
     async def build_main_part(card_mid, card_info, second_card=False):
         # Parse web page so we can gather all data from it
         html_oracle = await ensure_content_downloaded(session, main_url, params=get_url_params(card_mid))
-        html_print = await ensure_content_downloaded(session, main_url, params=get_url_params(card_mid, True))
-        
         soup_oracle = bs4.BeautifulSoup(html_oracle, 'html.parser')
-        soup_print = bs4.BeautifulSoup(html_print, 'html.parser')
-
-        # Useful for when we want fields from different components
-        switch_soup = soup_print if foreign else soup_oracle
 
         # Get Card Multiverse ID
         card_info['multiverseid'] = int(card_mid)
@@ -123,7 +117,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             card_layout = 'unknown'
 
         # Get Card Name
-        name_row = switch_soup.find(id=div_name.format('nameRow'))
+        name_row = soup_oracle.find(id=div_name.format('nameRow'))
         name_row = name_row.findAll('div')[-1]
         card_name = name_row.get_text(strip=True)
         card_info['name'] = card_name
@@ -210,13 +204,6 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         if type_row:
             card_info['type'] = type_row
 
-        # Get Card Original Type
-        orig_type_row = soup_print.find(id=div_name.format('typeRow'))
-        orig_type_row = orig_type_row.findAll('div')[-1]
-        orig_type_row = orig_type_row.get_text(strip=True).replace('  ', ' ')
-        if orig_type_row:
-            card_info['originalType'] = orig_type_row
-
         # Get Card Text and Color Identity (remaining)
         text_row = soup_oracle.find(id=div_name.format('textRow'))
         if text_row is None:
@@ -239,29 +226,6 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 card_text += div.get_text() + '\n'
 
             card_info['text'] = card_text[:-1]  # Remove last '\n'
-
-        # Get Card Original Text
-        text_row = soup_print.find(id=div_name.format('textRow'))
-        if text_row is None:
-            card_info['text'] = ''
-        else:
-            text_row = text_row.select('div[class^=cardtextbox]')
-
-            card_text = ''
-            for div in text_row:
-                # Start by replacing all images with alternative text
-                images = div.findAll('img')
-                for symbol in images:
-                    symbol_value = symbol['alt']
-                    symbol_mapped = mtgjson4.globals.get_symbol_short_name(symbol_value)
-                    symbol.replace_with(f'{{{symbol_mapped}}}')
-                    if symbol_mapped in mtgjson4.globals.COLORS:
-                        card_color_identity.add(symbol_mapped)
-
-                # Next, just add the card text, line by line
-                card_text += div.get_text() + '\n'
-
-            card_info['originalText'] = card_text[:-1]  # Remove last '\n'
 
         # Sort field in WUBRG order
         card_color_identity = sorted(
@@ -451,8 +415,49 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
         card_info['id'] = card_id.hexdigest()
 
-    async def add_original_details(card_mid, card_info, language_to_build):
-        return
+    async def build_original_details(card_mid, card_info, second_card=False):
+        html_print = await ensure_content_downloaded(session, main_url, params=get_url_params(card_mid, True))
+
+        soup_print = bs4.BeautifulSoup(html_print, 'html.parser')
+
+        # Determine if Card is Normal, Flip, or Split
+        div_name = 'ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{}'
+        cards_total = len(soup_print.select('table[class^=cardDetails]'))
+        if cards_total == 2:
+            if second_card:
+                div_name = div_name[:-3] + '_ctl03_{}'
+            else:
+                div_name = div_name[:-3] + '_ctl02_{}'
+
+        # Get Card Original Type
+        orig_type_row = soup_print.find(id=div_name.format('typeRow'))
+        orig_type_row = orig_type_row.findAll('div')[-1]
+        orig_type_row = orig_type_row.get_text(strip=True).replace('  ', ' ')
+        if orig_type_row:
+            card_info['originalType'] = orig_type_row
+
+        # Get Card Original Text
+        text_row = soup_print.find(id=div_name.format('textRow'))
+        if text_row is None:
+            card_info['originalText'] = ''
+        else:
+            text_row = text_row.select('div[class^=cardtextbox]')
+
+            card_text = ''
+            for div in text_row:
+                # Start by replacing all images with alternative text
+                images = div.findAll('img')
+                for symbol in images:
+                    symbol_value = symbol['alt']
+                    symbol_mapped = mtgjson4.globals.get_symbol_short_name(symbol_value)
+                    symbol.replace_with(f'{{{symbol_mapped}}}')
+
+                # Next, just add the card text, line by line
+                card_text += div.get_text() + '\n'
+
+            card_info['originalText'] = card_text[:-1]  # Remove last '\n'
+
+        """
         if language_to_build != 'en':
             if ('translations' not in json_ready.keys()) or (
                     language_to_build not in json_ready['translations'].keys()):
@@ -480,11 +485,13 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             with (OUTPUT_DIR / '{0}.{1}.json'.format(set_name[1], language_to_build)).open('w') as fp:
                 json.dump(json_ready, fp, indent=4, sort_keys=True)
                 print('BuildSet: JSON written for {0}.{2} ({1})'.format(set_name[0], set_name[1], language_to_build))
+        """
 
     async def build_card(card_mid, second_card=False):
         card_info = {}
 
         await build_main_part(card_mid, card_info, second_card=second_card)
+        await build_original_details(card_mid, card_info, second_card=second_card)
         await build_legalities_part(card_mid, card_info)
         await build_foreign_part(card_mid, card_info)
         await build_id_part(card_mid, card_info)
@@ -671,6 +678,7 @@ async def build_set(session, set_name, language_to_build):
     with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('w') as fp:
         json.dump(json_ready, fp, indent=4, sort_keys=True)
         print('BuildSet: JSON written for {0} ({1})'.format(set_name[0], set_name[1]))
+
 
 async def main(loop, session, language_to_build):
     OUTPUT_DIR.mkdir(exist_ok=True)  # make sure outputs dir exists
