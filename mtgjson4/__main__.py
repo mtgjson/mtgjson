@@ -280,7 +280,11 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         artist_row = soup.find(id=div_name.format('artistRow'))
         artist_row = artist_row.findAll('div')[-1]
         card_artist = artist_row.find('a').get_text(strip=True)
+        card_artists = card_artist.split('&')
+
         card_info['artist'] = card_artist
+        if len(card_artists) > 1:
+            card_info['artists'] = card_artists
 
         # Get Card Watermark
         watermark_row = soup.find(id=div_name.format('markRow'))
@@ -500,8 +504,6 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 # border - Only done if they don't match set (need set config)
 # timeshifted - Only for timeshifted sets (need set config)
 # starter - in starter deck (need set config)
-# mciNumber - gonna have to look it up
-# scryfallNumber - I want to add this
 async def build_set(session, set_name):
     print('BuildSet: Building Set {}'.format(set_name[0]))
 
