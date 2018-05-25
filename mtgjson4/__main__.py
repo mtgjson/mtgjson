@@ -12,6 +12,7 @@ import json
 import os
 import pathlib
 import re
+import sys
 import time
 
 import mtgjson4.globals
@@ -711,6 +712,11 @@ if __name__ == '__main__':
 
     parser.add_argument('--language', default='en', metavar='LANG', type=str, nargs=1,
                         help='Build foreign language versions (defaults to English (en))')
+
+    # If user supplies no arguments, show help screen
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
 
     cl_args = vars(parser.parse_args())
 
