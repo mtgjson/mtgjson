@@ -3,6 +3,7 @@
 import aiohttp
 import asyncio
 import bs4
+import collections
 import contextlib
 import hashlib
 import itertools
@@ -376,13 +377,11 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         card_info['id'] = card_id.hexdigest()
 
     # TODO: Missing types
-    # id - Will create myself
     # border - Only done if they don't match set (need set config)
     # timeshifted - Only for timeshifted sets (need set config)
     # starter - in starter deck (need set config)
     # mciNumber - gonna have to look it up
     # scryfallNumber - I want to add this
-    # variations - Added after the fact
 
     async def build_card(card_mid, second_card=False):
         card_info = {}
@@ -439,6 +438,19 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_info['layout'] = card_layout
 
+    def add_variants(cards):
+        # TODO: Make this less of O(n^2)
+        for card in cards:
+            card_name = card['name']
+            card_mid = card['multiverseid']
+            card_variations = [
+                same_name['multiverseid']
+                for same_name in cards if same_name['name'] == card_name and same_name['multiverseid'] != card_mid
+            ]
+
+            if card_variations:
+                card['variations'] = card_variations
+
     def get_url_params(card_mid):
         return {
             'multiverseid': card_mid,
@@ -458,15 +470,17 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
     await asyncio.wait(futures)
     cards_in_set = []
     for future in futures:
-        card = future.result()
-        cards_in_set.append(card)
+        card_future = future.result()
+        cards_in_set.append(card_future)
 
     await asyncio.wait(additional_cards)
     for future in additional_cards:
-        card = future.result()
-        cards_in_set.append(card)
+        card_future = future.result()
+        cards_in_set.append(card_future)
 
     add_layouts(cards_in_set)
+    add_variants(cards_in_set)
+
     return cards_in_set
 
 
@@ -477,7 +491,7 @@ async def build_set(session, set_name):
     print('BuildSet: URLs for {0}: {1}'.format(set_name, urls_for_set))
 
     # mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
-    mids_for_set = [439335, 442051, 435172, 182290, 435173]  # DEBUG
+    mids_for_set = [439335, 442051, 435172, 182290, 435173, 443154, 442767, 21805]  # DEBUG
     print('BuildSet: MIDs for {0}: {1}'.format(set_name, mids_for_set))
 
     cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
