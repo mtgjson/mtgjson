@@ -12,7 +12,7 @@ import pathlib
 import re
 import time
 
-import mtgjson4.shared_info
+import mtgjson4.globals
 
 
 OUTPUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'outputs'
@@ -57,7 +57,7 @@ async def get_checklist_urls(session, set_name):
             'sort': 'cn+',
             'action': 'advanced',
             'special': 'true',
-            'set': f'["{set_name}"]',
+            'set': f'["{set_name[0]}"]',
             'page': page_number
         }
 
@@ -144,7 +144,6 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         card_color_identity = set()
         mana_row = soup.find(id=div_name.format('manaRow'))
         if mana_row is None:
-            card_info['colors'] = []
             card_info['manaCost'] = ''
         else:
             mana_row = mana_row.findAll('div')[-1]
@@ -155,16 +154,19 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             for symbol in mana_row:
                 symbol_value = symbol['alt']
-                symbol_mapped = mtgjson4.shared_info.get_symbol_short_name(symbol_value)
+                symbol_mapped = mtgjson4.globals.get_symbol_short_name(symbol_value)
                 card_cost += f'{{{symbol_mapped}}}'
-                if symbol_mapped in mtgjson4.shared_info.COLORS:
+                if symbol_mapped in mtgjson4.globals.COLORS:
                     card_color_identity.add(symbol_mapped)
                     card_colors.add(symbol_mapped)
 
             # Remove duplicates and sort in WUBRG order
             # TODO use canonical color order
-            card_info['colors'] = list(filter(lambda c: c in card_colors, mtgjson4.shared_info.COLORS))
-            card_info['manaCost'] = card_cost
+            card_colors = list(filter(lambda c: c in card_colors, mtgjson4.globals.COLORS))
+            if card_colors:
+                card_info['colors'] = card_colors
+            if card_cost:
+                card_info['manaCost'] = card_cost
 
         # Get Card Type(s)
         card_super_types = []
@@ -180,19 +182,23 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             subtypes = ''
 
         for value in supertypes_and_types.split():
-            if value in mtgjson4.shared_info.SUPERTYPES:
+            if value in mtgjson4.globals.SUPERTYPES:
                 card_super_types.append(value)
-            elif value in mtgjson4.shared_info.CARD_TYPES:
+            elif value in mtgjson4.globals.CARD_TYPES:
                 card_types.append(value)
             else:
                 raise ValueError(f'Unknown supertype or card type: {value}')
 
         card_sub_types = subtypes.split()
 
-        card_info['supertypes'] = card_super_types
-        card_info['types'] = card_types
-        card_info['subtypes'] = card_sub_types
-        card_info['type'] = type_row
+        if card_super_types:
+            card_info['supertypes'] = card_super_types
+        if card_types:
+            card_info['types'] = card_types
+        if card_sub_types:
+            card_info['subtypes'] = card_sub_types
+        if type_row:
+            card_info['type'] = type_row
 
         # Get Card Text and Color Identity (remaining)
         text_row = soup.find(id=div_name.format('textRow'))
@@ -207,9 +213,9 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 images = div.findAll('img')
                 for symbol in images:
                     symbol_value = symbol['alt']
-                    symbol_mapped = mtgjson4.shared_info.get_symbol_short_name(symbol_value)
+                    symbol_mapped = mtgjson4.globals.get_symbol_short_name(symbol_value)
                     symbol.replace_with(f'{{{symbol_mapped}}}')
-                    if symbol_mapped in mtgjson4.shared_info.COLORS:
+                    if symbol_mapped in mtgjson4.globals.COLORS:
                         card_color_identity.add(symbol_mapped)
 
                 # Next, just add the card text, line by line
@@ -219,7 +225,9 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
         # Remove duplicates and sort in WUBRG order
         # TODO use canonical color order
-        card_info['colorIdentity'] = list(filter(lambda c: c in card_color_identity, mtgjson4.shared_info.COLORS))
+        card_color_identity = list(filter(lambda c: c in card_color_identity, mtgjson4.globals.COLORS))
+        if card_color_identity:
+            card_info['colorIdentity'] = card_color_identity
 
         # Get Card Flavor Text
         flavor_row = soup.find(id=div_name.format('flavorRow'))
@@ -280,7 +288,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             card_info['watermark'] = card_watermark
 
         # Get Card Reserve List Status
-        if card_info['name'] in mtgjson4.shared_info.RESERVE_LIST:
+        if card_info['name'] in mtgjson4.globals.RESERVE_LIST:
             card_info['reserved'] = True
 
         # Get Card Rulings
@@ -297,14 +305,20 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             ]
 
         # Get Card Sets
-        card_info['printings'] = [set_name]
+        card_printings = [set_name[1]]
         sets_row = soup.find(id=div_name.format('otherSetsRow'))
         if sets_row is not None:
             images = sets_row.findAll('img')
-            card_info['printings'] += [
-                symbol['alt'].split('(')[0].strip()
-                for symbol in images
-            ]
+
+            for symbol in images:
+                this_set_name = symbol['alt'].split('(')[0].strip()
+
+                card_printings += (
+                    set_code[1] for set_code in mtgjson4.globals.GATHERER_SETS if this_set_name == set_code[0]
+                )
+
+        card_info['printings'] = card_printings
+
 
     async def build_legalities_part(card_mid, card_info):
         try:
@@ -370,18 +384,11 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
     async def build_id_part(card_mid, card_info):
         card_id = hashlib.sha3_256()
-        card_id.update(set_name.encode('utf-8'))
+        card_id.update(set_name[0].encode('utf-8'))
         card_id.update(str(card_mid).encode('utf-8'))
         card_id.update(card_info['name'].encode('utf-8'))
 
         card_info['id'] = card_id.hexdigest()
-
-    # TODO: Missing types
-    # border - Only done if they don't match set (need set config)
-    # timeshifted - Only for timeshifted sets (need set config)
-    # starter - in starter deck (need set config)
-    # mciNumber - gonna have to look it up
-    # scryfallNumber - I want to add this
 
     async def build_card(card_mid, second_card=False):
         card_info = {}
@@ -391,7 +398,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         await build_foreign_part(card_mid, card_info)
         await build_id_part(card_mid, card_info)
 
-        print('Adding {0} to {1}'.format(card_info['name'], set_name))
+        print('Adding {0} to {1}'.format(card_info['name'], set_name[0]))
         return card_info
 
     def add_layouts(cards):
@@ -439,17 +446,28 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             card_info['layout'] = card_layout
 
     def add_variants(cards):
+        card_variations = collections.defaultdict(set)
+        for card in cards:
+            card_variations[card['name']].add(card['multiverseid'])
+        for card in cards:
+            variations = sorted(filter(lambda var: var != card['multiverseid'], card_variations[card['name']]))
+            if variations:
+                card['variations'] = variations
+
         # TODO: Make this less of O(n^2)
+
+        """
         for card in cards:
             card_name = card['name']
             card_mid = card['multiverseid']
             card_variations = [
                 same_name['multiverseid']
-                for same_name in cards if same_name['name'] == card_name and same_name['multiverseid'] != card_mid
+                for same_name in cards if same_name['name'] == card_name and same_name['multiverseid'] != card_mid and card['names'] is None
             ]
 
             if card_variations:
                 card['variations'] = card_variations
+        """
 
     def get_url_params(card_mid):
         return {
@@ -473,10 +491,11 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         card_future = future.result()
         cards_in_set.append(card_future)
 
-    await asyncio.wait(additional_cards)
-    for future in additional_cards:
-        card_future = future.result()
-        cards_in_set.append(card_future)
+    with contextlib.suppress(ValueError):  # if no double-sided cards, gracefully skip
+        await asyncio.wait(additional_cards)
+        for future in additional_cards:
+            card_future = future.result()
+            cards_in_set.append(card_future)
 
     add_layouts(cards_in_set)
     add_variants(cards_in_set)
@@ -484,22 +503,28 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
     return cards_in_set
 
 
+# TODO: Missing fields
+# border - Only done if they don't match set (need set config)
+# timeshifted - Only for timeshifted sets (need set config)
+# starter - in starter deck (need set config)
+# mciNumber - gonna have to look it up
+# scryfallNumber - I want to add this
 async def build_set(session, set_name):
-    print('BuildSet: Building Set {}'.format(set_name))
+    print('BuildSet: Building Set {}'.format(set_name[0]))
 
     urls_for_set = await get_checklist_urls(session, set_name)
-    print('BuildSet: URLs for {0}: {1}'.format(set_name, urls_for_set))
+    print('BuildSet: URLs for {0}: {1}'.format(set_name[0], urls_for_set))
 
-    # mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
-    mids_for_set = [439335, 442051, 435172, 182290, 435173, 443154, 442767, 21805]  # DEBUG
-    print('BuildSet: MIDs for {0}: {1}'.format(set_name, mids_for_set))
+    mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
+    # mids_for_set = [21805]  # DEBUG # 439335, 442051, 435172, 182290, 435173, 443154, 442767,
+    print('BuildSet: MIDs for {0}: {1}'.format(set_name[0], mids_for_set))
 
     cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
-    print('BuildSet: JSON generated for {}'.format(set_name))
+    print('BuildSet: JSON generated for {}'.format(set_name[0]))
 
-    with (OUTPUT_DIR / '{}.json'.format(set_name)).open('w') as fp:
+    with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('w') as fp:
         json.dump(cards_holder, fp, indent=4, sort_keys=True)
-    print('BuildSet: JSON written for {}'.format(set_name))
+    print('BuildSet: JSON written for {0} ({1})'.format(set_name[0], set_name[1]))
 
 
 async def main(loop, session):
@@ -509,7 +534,7 @@ async def main(loop, session):
         # start asyncio tasks for building each set
         futures = [
             loop.create_task(build_set(session, set_name))
-            for set_name in mtgjson4.shared_info.GATHERER_SETS
+            for set_name in mtgjson4.globals.GATHERER_SETS
         ]
         # then wait until all of them are completed
         await asyncio.wait(futures)

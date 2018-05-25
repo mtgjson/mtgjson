@@ -1,16 +1,17 @@
 COLORS = ['W', 'U', 'B', 'R', 'G']
 
+# Each row is the proper set name followed by the set code
 GATHERER_SETS = [
-    #'Limited Edition Alpha',
-    'Eldritch Moon'
-    # 'Kaladesh'
-    #'Dominaria',
-    #'Aether Revolt',
-    #'Amonkhet',
-    #'Welcome Deck 2017',
-    #'Hour of Devastation',
-    #'Ixalan',
-    #'Rivals of Ixalan'
+    ['Limited Edition Alpha', 'LEA'],
+    ['Eldritch Moon', 'EMN'],
+    ['Kaladesh', 'KLD']
+    #['Dominaria', 'DOM'],
+    #['Aether Revolt', 'AER'],
+    #['Amonkhet', 'AKH'],
+    #['Welcome Deck 2017', 'W17'],
+    #['Hour of Devastation', 'HOU'],
+    #['Ixalan', 'XLN'],
+    #['Rivals of Ixalan', 'RIX']
 ]
 
 SUPERTYPES = [
