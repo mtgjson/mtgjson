@@ -616,8 +616,6 @@ SYMBOL_MAP = {
     'Green': 'G',
 
     'Colorless': 'C',
-
-    # TODO: Fix issue of X, Y, and Z all having same key
     'Variable Colorless': 'X',
 
     'Snow': 'S',

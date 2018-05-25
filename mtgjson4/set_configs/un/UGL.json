@@ -113,5 +113,12 @@
       "type": "Instant",
       "types": ["Instant"]
     }
+  }, {
+    "match": {
+      "multiverseid": 9757
+    },
+    "replace":  {
+      "manaCost": "{X}{Y}{Z}{R}{R}"
+    }
   }]
 }
