@@ -329,15 +329,19 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             for variations_info in variations_row.findAll('a', {'class': 'variationLink'}):
                 card_variations.append(int(variations_info['href'].split('multiverseid=')[1]))
 
+            card_variations.remove(card_info['multiverseid'])  # Don't need this card's MID in its variations
             card_info['variations'] = card_variations
 
     async def build_legalities_part(card_mid, card_info):
         try:
             html = await ensure_content_downloaded(session, legal_url, params=get_url_params(card_mid))
-        except aiohttp.ClientError:
-            # if Gatherer errors, omit the data for now
-            # TODO remove this and handle Gatherer errors on a case-by-case basis
-            return
+        except aiohttp.ClientError as error:
+            # If Gatherer errors, omit the data for now
+            # This can be appended on a case-by-case basis
+            if error.code == 500:
+                return  # Page doesn't work, nothing we can do
+            else:
+                return
 
         # Parse web page so we can gather all data from it
         soup = bs4.BeautifulSoup(html, 'html.parser')
@@ -362,10 +366,13 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
     async def build_foreign_part(card_mid, card_info):
         try:
             html = await ensure_content_downloaded(session, foreign_url, params=get_url_params(card_mid))
-        except aiohttp.ClientError:
-            # if Gatherer errors, omit the data for now
-            # TODO remove this and handle Gatherer errors on a case-by-case basis
-            return
+        except aiohttp.ClientError as error:
+            # If Gatherer errors, omit the data for now
+            # This can be appended on a case-by-case basis
+            if error.code == 500:
+                return  # Page doesn't work, nothing we can do
+            else:
+                return
 
         # Parse web page so we can gather all data from it
         soup = bs4.BeautifulSoup(html, 'html.parser')
@@ -499,14 +506,14 @@ async def build_set(session, set_name):
     print('BuildSet: Building Set {}'.format(set_name[0]))
 
     urls_for_set = await get_checklist_urls(session, set_name)
-    print('BuildSet: URLs for {0}: {1}'.format(set_name[0], urls_for_set))
+    print('BuildSet: Acquired URLs for {}'.format(set_name[0]))
 
     mids_for_set = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
     # mids_for_set = [417835, 417836, 417837]  # DEBUG # 439335, 442051, 435172, 182290, 435173, 443154, 442767,
-    print('BuildSet: MIDs for {0}: {1}'.format(set_name[0], mids_for_set))
+    print('BuildSet: Determined MIDs for {0}: {1}'.format(set_name[0], mids_for_set))
 
     cards_holder = await download_cards_by_mid_list(session, set_name, mids_for_set)
-    print('BuildSet: JSON generated for {}'.format(set_name[0]))
+    print('BuildSet: Generated JSON for {}'.format(set_name[0]))
 
     with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('w') as fp:
         json.dump(cards_holder, fp, indent=4, sort_keys=True)

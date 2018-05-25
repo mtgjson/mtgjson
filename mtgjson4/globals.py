@@ -5,14 +5,14 @@ GATHERER_SETS = [
     #['Limited Edition Alpha', 'LEA'],
     #['Eldritch Moon', 'EMN'],
     #['Kaladesh', 'KLD']
-    #['Dominaria', 'DOM'],
+    ['Dominaria', 'DOM']
     #['Aether Revolt', 'AER'],
     #['Amonkhet', 'AKH'],
     #['Welcome Deck 2017', 'W17'],
     #['Hour of Devastation', 'HOU'],
     #['Ixalan', 'XLN'],
     #['Rivals of Ixalan', 'RIX']
-    ['Oath of the Gatewatch', 'OGW']
+    #['Oath of the Gatewatch', 'OGW']
 ]
 
 SUPERTYPES = [
