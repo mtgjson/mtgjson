@@ -558,7 +558,7 @@ def find_file(name, path):
 
 def determine_gatherer_sets(args):
     def try_to_append(root_p, file_p):
-        with pathlib.Path(root_p, file_p).open('r') as fp:
+        with pathlib.Path(root_p, file_p).open('r', encoding='utf8') as fp:
             this_set_name = json.load(fp)
             if 'SET' in this_set_name:
                 all_sets.append([this_set_name['SET']['name'], file.split('.json')[0]])
