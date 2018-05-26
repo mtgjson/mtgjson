@@ -151,18 +151,13 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         mana_row = soup_oracle.find(id=div_name.format('manaRow'))
         if mana_row:
             mana_row = mana_row.findAll('div')[-1]
-            mana_row = mana_row.findAll('img')
 
             card_colors = set()
-            card_cost = ''
 
-            for symbol in mana_row:
-                symbol_value = symbol['alt']
-                symbol_mapped = mtgjson4.globals.get_symbol_short_name(symbol_value)
-                card_cost += f'{{{symbol_mapped}}}'
-                if symbol_mapped in mtgjson4.globals.COLORS:
-                    card_color_identity.add(symbol_mapped)
-                    card_colors.add(symbol_mapped)
+            manaColors = replace_symbol_images_with_tokens(mana_row)
+            card_cost = mana_row.get_text(strip=True)
+            card_color_identity.update(manaColors)
+            card_colors.update(manaColors)
 
             # Sort field in WUBRG order
             card_colors = sorted(
@@ -218,13 +213,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             card_text = ''
             for div in text_row:
                 # Start by replacing all images with alternative text
-                images = div.findAll('img')
-                for symbol in images:
-                    symbol_value = symbol['alt']
-                    symbol_mapped = mtgjson4.globals.get_symbol_short_name(symbol_value)
-                    symbol.replace_with(f'{{{symbol_mapped}}}')
-                    if symbol_mapped in mtgjson4.globals.COLORS:
-                        card_color_identity.add(symbol_mapped)
+                card_color_identity.update(replace_symbol_images_with_tokens(div))
 
                 # Next, just add the card text, line by line
                 card_text += div.get_text() + '\n'
@@ -308,6 +297,9 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         if rulings_row is not None:
             rulings_dates = rulings_row.findAll('td', id=re.compile(r'\w*_rulingDate\b'))
             rulings_text = rulings_row.findAll('td', id=re.compile(r'\w*_rulingText\b'))
+            for ruling_text in rulings_text:
+                replace_symbol_images_with_tokens(ruling_text)
+
             card_info['rulings'] = [
                 {
                     'date': ruling_date.get_text(),
@@ -343,6 +335,24 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 card_variations.remove(card_info['multiverseid'])  # Don't need this card's MID in its variations
 
             card_info['variations'] = card_variations
+
+    def replace_symbol_images_with_tokens(tag):
+        """
+        Replaces the img tags of symbols with token representations
+        :rtype: set
+        :param tag:
+        :return: The color symbols found
+        """
+        colors_found = set()
+        images = tag.findAll('img')
+        for symbol in images:
+            symbol_value = symbol['alt']
+            symbol_mapped = mtgjson4.globals.get_symbol_short_name(symbol_value)
+            symbol.replace_with(f'{{{symbol_mapped}}}')
+            if symbol_mapped in mtgjson4.globals.COLORS:
+                colors_found.add(symbol_mapped)
+
+        return colors_found
 
     async def build_legalities_part(card_mid, card_info):
         try:
