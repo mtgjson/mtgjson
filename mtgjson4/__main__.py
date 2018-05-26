@@ -141,7 +141,10 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         else:
             cmc_row = cmc_row.findAll('div')[-1]
             card_cmc = cmc_row.get_text(strip=True)
-            card_info['cmc'] = float(card_cmc)
+            try:
+                card_info['cmc'] = int(card_cmc)
+            except ValueError:  # Little Girl causes this, for example
+                card_info['cmc'] = float(card_cmc)
 
         # Get Card Colors, Cost, and Color Identity (start)
         card_color_identity = set()
