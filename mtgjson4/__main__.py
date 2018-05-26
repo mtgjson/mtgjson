@@ -755,34 +755,33 @@ def create_all_sets_files():
         if card['name'] not in previous_seen_set_codes:
             previous_seen_set_codes[card['name']] = dict()
 
-        def check_taint(field_name, field_value=None):
+        def check_taint(a_field_name, a_field_value=None):
             if card_set['code'] in ignored_sets:
                 return
 
-            if field_value is None:
-                if field_name in card:
-                    field_value = card[field_name]
+            if a_field_value is None:
+                if a_field_name in card:
+                    a_field_value = card[a_field_name]
 
-            if field_name not in all_cards_with_extras[card['name']]:
+            if a_field_name not in all_cards_with_extras[card['name']]:
                 return
 
-            previous_value = all_cards_with_extras[card['name']][field_name]
+            previous_value = all_cards_with_extras[card['name']][a_field_name]
 
             taint = False
-            diff = None
 
             if previous_value:
-                if field_value is None:
+                if a_field_value is None:
                     taint = True
                 else:
                     prev = ready_to_diff(previous_value)
-                    field = ready_to_diff(field_value)
+                    field = ready_to_diff(a_field_value)
 
                     if prev != field:
                         taint = True
 
             if taint:
-                tainted_cards.append({'card': card, 'fieldName': field_name})
+                tainted_cards.append({'card': card, 'fieldName': a_field_name})
 
         for field_name, field_type in mtgjson4.globals.FIELD_TYPES:
             if field_name in mtgjson4.globals.SET_SPECIFIC_FIELDS:
@@ -802,7 +801,7 @@ def create_all_sets_files():
 
     def process_set(sets):
         for a_set in sets:
-            for card in sets['cards']:
+            for card in a_set['cards']:
                 card = process_card(a_set, card)
 
             a_set.remove('isMCISet')
