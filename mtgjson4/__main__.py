@@ -541,11 +541,11 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
     ]
 
     additional_cards = []
+    cards_in_set = []
 
     # then wait until all of them are completed
     with contextlib.suppress(ValueError):  # Happens if no cards are in the multiverse_ids
         await asyncio.wait(futures)
-        cards_in_set = []
         for future in futures:
             card_future = future.result()
             cards_in_set.append(card_future)
