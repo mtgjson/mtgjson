@@ -842,26 +842,8 @@ def create_all_sets_files():
 
         return [sets, simple_set]
 
-    """
-    function(SET, cb) {
-                params.sets[SET.code] = {
-                    code: SET.code,
-                    releaseDate : SET.releaseDate
-                };
-
-                processSet(SET, function(err, FullSET, SimpleSET) {
-                    allSetsWithExtras[SET.code] = FullSET;
-                    allSetsArrayWithExtras.push(FullSET);
-                    allSets[SET.code] = SimpleSET;
-                    allSetsArray.push(SimpleSET);
-
-                    saveSet(SET.code, FullSET, SimpleSET, function(err, FullSize, SimpleSize) {
-                        params.sets[SET.code].simpleSize = SimpleSize;
-                        params.sets[SET.code].fullSize = FullSize;
-                        cb();
-                    });
-                });
-    """
+    def save_set(set_code, full_set, simple_set):
+        return []
 
     sets_in_output = list()
     for file in SET_CONFIG_DIR:
@@ -876,7 +858,16 @@ def create_all_sets_files():
             'releaseDate': set_data['releaseDate']
         }
 
-        process_set(sets_in_output)
+        full_simple_sets = process_set(sets_in_output)
+        
+        all_sets_with_extras[set_data['code']] = full_simple_sets[0]
+        all_sets_array_with_extras.append(full_simple_sets[0])
+        all_sets[set_data['code']] = full_simple_sets[1]
+        all_sets_array.append(full_simple_sets[1])
+        
+        full_simple_size = save_set(set_data['code'], full_simple_sets[0], full_simple_sets[1])
+        params['sets'][set_data['code']]['simpleSize'] = full_simple_size[0]
+        params['sets'][set_data['code']]['fullSize'] = full_simple_size[1]
 
 
 if __name__ == '__main__':
