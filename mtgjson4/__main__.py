@@ -558,7 +558,7 @@ def find_file(name, path):
 
 def determine_gatherer_sets(args):
     def try_to_append(root_p, file_p):
-        with pathlib.Path(root_p, file_p).open('r') as fp:
+        with pathlib.Path(root_p, file_p).open('r', encoding='utf8') as fp:
             this_set_name = json.load(fp)
             if 'SET' in this_set_name:
                 all_sets.append([this_set_name['SET']['name'], file.split('.json')[0]])
@@ -589,7 +589,7 @@ async def apply_set_config_options(set_name, cards_dictionary):
     return_product = dict()
 
     # Will search the tree of set_configs to find the file
-    with (pathlib.Path(find_file("{}.json".format(set_name[1]), SET_CONFIG_DIR))).open('r') as fp:
+    with (pathlib.Path(find_file("{}.json".format(set_name[1]), SET_CONFIG_DIR))).open('r', encoding='utf-8') as fp:
         file_response = json.load(fp)
 
         for key, value in file_response['SET'].items():
@@ -683,7 +683,7 @@ async def build_set(session, set_name, language):
             print('BuildSet: Set {0} not built in English. Do that first before {1}'.format(set_name[1], language))
             return
 
-        with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('r') as fp:
+        with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('r', encoding='utf-8') as fp:
             json_input = json.load(fp)
 
         if ('translations' not in json_input.keys()) or (language not in json_input['translations'].keys()):
@@ -824,7 +824,7 @@ def create_all_sets_files():
     # LoadJSON
     sets_in_output = list()
     for file in os.listdir(OUTPUT_DIR):
-        with pathlib.Path(OUTPUT_DIR, file).open('r') as fp:
+        with pathlib.Path(OUTPUT_DIR, file).open('r', encoding='utf-8') as fp:
             file_content = json.load(fp)
             sets_in_output.append(file_content)
 
@@ -846,7 +846,7 @@ def create_all_sets_files():
 
     # saveFullJSON
     def save(f_name, data):
-        with (ALL_STUFF_OUTPUT_DIR / '{}.json'.format(f_name)).open('w') as save_fp:
+        with (ALL_STUFF_OUTPUT_DIR / '{}.json'.format(f_name)).open('w', encoding='utf-8') as save_fp:
             json.dump(data, save_fp, indent=4, sort_keys=True, ensure_ascii=False)
         return len(data)
 
