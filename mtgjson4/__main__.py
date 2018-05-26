@@ -666,7 +666,7 @@ async def build_set(session, set_name, language):
 
         print('BuildSet: Generated JSON for {}'.format(set_stat))
         with (OUTPUT_DIR / '{}.json'.format(set_output)).open('w') as fp:
-            json.dump(json_ready, fp, indent=4, sort_keys=True)
+            json.dump(json_ready, fp, indent=4, sort_keys=True, ensure_ascii=False)
             print('BuildSet: JSON written for {0} ({1})'.format(set_stat, set_name[1]))
 
         return json_ready
