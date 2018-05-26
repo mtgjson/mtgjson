@@ -711,7 +711,7 @@ if __name__ == '__main__':
     group.add_argument('--all-sets', action='store_true', help='Build all sets (cannot be used with --sets)')
     group.add_argument('-v', '--version', action='store_true', help='MTGJSON version information')
 
-    parser.add_argument('--language', default='en', metavar='LANG', type=str, nargs=1,
+    parser.add_argument('--language', default=['en'], metavar='LANG', type=str, nargs=1,
                         help='Build foreign language version, along with English')
 
     # If user supplies no arguments, show help screen
