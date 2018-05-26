@@ -108,4 +108,4 @@ venv.bak/
 
 # MTG JSON
 set_outputs/
-all_outputs/
+compiled_outputs/

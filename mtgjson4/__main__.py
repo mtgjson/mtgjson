@@ -16,8 +16,8 @@ import time
 
 import mtgjson4.globals
 
-OUTPUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'set_outputs'
-ALL_STUFF_OUTPUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'all_outputs'
+SET_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'set_outputs'
+COMP_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'compiled_outputs'
 SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
 
 
@@ -683,18 +683,18 @@ async def build_set(session, set_name, language):
         json_ready = await apply_set_config_options(set_name, cards_holder)
 
         print('BuildSet: Generated JSON for {}'.format(set_stat))
-        with (OUTPUT_DIR / '{}.json'.format(set_output)).open('w', encoding='utf-8') as fp:
+        with (SET_OUT_DIR / '{}.json'.format(set_output)).open('w', encoding='utf-8') as fp:
             json.dump(json_ready, fp, indent=4, sort_keys=True, ensure_ascii=False)
             print('BuildSet: JSON written for {0} ({1})'.format(set_stat, set_name[1]))
 
         return json_ready
 
     async def build_foreign_language():
-        if not os.path.isfile(os.path.join(OUTPUT_DIR, '{}.json'.format(set_name[1]))):
+        if not os.path.isfile(os.path.join(SET_OUT_DIR, '{}.json'.format(set_name[1]))):
             print('BuildSet: Set {0} not built in English. Do that first before {1}'.format(set_name[1], language))
             return
 
-        with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('r', encoding='utf-8') as fp:
+        with (SET_OUT_DIR / '{}.json'.format(set_name[1])).open('r', encoding='utf-8') as fp:
             json_input = json.load(fp)
 
         if ('translations' not in json_input.keys()) or (language not in json_input['translations'].keys()):
@@ -720,7 +720,7 @@ async def build_set(session, set_name, language):
 
 
 async def main(loop, session, language_to_build):
-    OUTPUT_DIR.mkdir(exist_ok=True)  # make sure set_outputs dir exists
+    SET_OUT_DIR.mkdir(exist_ok=True)  # make sure set_outputs dir exists
 
     async with session:
         # start asyncio tasks for building each set
@@ -733,7 +733,7 @@ async def main(loop, session, language_to_build):
 
 
 def create_all_sets_files():
-    ALL_STUFF_OUTPUT_DIR.mkdir(exist_ok=True)
+    COMP_OUT_DIR.mkdir(exist_ok=True)
 
     # Set Variables
     all_sets = dict()
@@ -834,8 +834,8 @@ def create_all_sets_files():
 
     # LoadJSON
     sets_in_output = list()
-    for file in os.listdir(OUTPUT_DIR):
-        with pathlib.Path(OUTPUT_DIR, file).open('r', encoding='utf-8') as fp:
+    for file in os.listdir(SET_OUT_DIR):
+        with pathlib.Path(SET_OUT_DIR, file).open('r', encoding='utf-8') as fp:
             file_content = json.load(fp)
             sets_in_output.append(file_content)
 
@@ -857,7 +857,7 @@ def create_all_sets_files():
 
     # saveFullJSON
     def save(f_name, data):
-        with (ALL_STUFF_OUTPUT_DIR / '{}.json'.format(f_name)).open('w', encoding='utf-8') as save_fp:
+        with (COMP_OUT_DIR / '{}.json'.format(f_name)).open('w', encoding='utf-8') as save_fp:
             json.dump(data, save_fp, indent=4, sort_keys=True, ensure_ascii=False)
         return len(data)
 
