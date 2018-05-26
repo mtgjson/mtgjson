@@ -1,3 +1,8 @@
+# Maintenance vars
+MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
+VERSION_INFO = 'MTGJSON\nVersion 4.0.0\nMay 25, 2018'
+
+# Building vars
 COLORS = ['W', 'U', 'B', 'R', 'G']
 
 SUPERTYPES = [
@@ -670,13 +675,13 @@ LANGUAGE_MAP = {
 }
 
 
+# Building functions
 def get_symbol_short_name(key_to_find):
-    # Returns the key if not found
     return SYMBOL_MAP.get(key_to_find, key_to_find)
 
 
 def get_language_long_name(lang_short_name):
     if lang_short_name not in LANGUAGE_MAP.keys():
-        raise ValueError("MTGJSON4: Language not supported yet")
+        raise ValueError('Language \''+lang_short_name+'\' not supported yet')
     else:
         return LANGUAGE_MAP[lang_short_name]

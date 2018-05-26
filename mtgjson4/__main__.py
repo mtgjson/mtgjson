@@ -702,23 +702,36 @@ async def main(loop, session, language_to_build):
 
 if __name__ == '__main__':
     # Start by processing all arguments to the program
-    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description='MTGJSON4 -- Compiler')
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
+                                     description='MTGJSON4 -- Create JSON files for distribution to the public' +
+                                                 '\nMaintained by {}'.format(mtgjson4.globals.MAINTAINER))
 
     # Can't have both sets and all sets
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--sets', metavar='SET', nargs='+', type=str,
                        help='What set(s) to build (cannot be used with --all-sets)')
     group.add_argument('--all-sets', action='store_true', help='Build all sets (cannot be used with --sets)')
+    group.add_argument('-v', '--version', action='store_true', help='MTGJSON version information')
 
     parser.add_argument('--language', default='en', metavar='LANG', type=str, nargs=1,
-                        help='Build foreign language versions (defaults to English (en))')
+                        help='Build foreign language version, along with English')
 
     # If user supplies no arguments, show help screen
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
-        sys.exit(1)
+        exit(1)
 
     cl_args = vars(parser.parse_args())
+    lang_to_process = cl_args['language'][0]
+
+    # Get version info and exit
+    if cl_args['version']:
+        print(mtgjson4.globals.VERSION_INFO)
+        exit(0)
+
+    # Ensure the language is a valid language
+    if mtgjson4.globals.get_language_long_name(lang_to_process):
+        pass
 
     # Global of all sets to build
     SETS_TO_BUILD = determine_gatherer_sets(cl_args)
@@ -728,7 +741,7 @@ if __name__ == '__main__':
 
     card_loop = asyncio.get_event_loop()
     card_session = aiohttp.ClientSession(loop=card_loop, raise_for_status=True)
-    card_loop.run_until_complete(main(card_loop, card_session, cl_args['language'][0]))
+    card_loop.run_until_complete(main(card_loop, card_session, lang_to_process))
 
     end_time = time.time()
     print('Time: {}'.format(end_time - start_time))
