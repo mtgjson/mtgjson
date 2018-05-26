@@ -729,7 +729,7 @@ def create_all_sets_files():
     all_sets_array_with_extras = list()
 
     # Cards Variables
-    all_cards = dict()
+    # all_cards = dict()
     all_cards_with_extras = dict()
 
     # Other Stuff
@@ -739,7 +739,7 @@ def create_all_sets_files():
 
     def ready_to_diff(obj):
         if isinstance(obj, list):
-            return ' '.join(obj)
+            return ' '.join([ready_to_diff(o) for o in obj])
 
         if isinstance(obj, dict):
             keys = sorted(obj.keys())
@@ -783,43 +783,46 @@ def create_all_sets_files():
             if taint:
                 tainted_cards.append({'card': card, 'fieldName': a_field_name})
 
-        for field_name, field_type in mtgjson4.globals.FIELD_TYPES:
+        for field_name, _ in mtgjson4.globals.FIELD_TYPES.items():
             if field_name in mtgjson4.globals.SET_SPECIFIC_FIELDS:
                 continue
 
             if field_name not in previous_seen_set_codes[card['name']]:
                 previous_seen_set_codes[card['name']][field_name] = list()
 
-            field_value = card[field_name]
-            if field_name in mtgjson4.globals.ORACLE_FIELDS and field_value != 'foreignNames':
-                check_taint(field_name, field_value)
+            if field_name in card.keys():
+                field_value = card[field_name]
 
-            previous_seen_set_codes[card['name']][field_name].append(card_set['code'])
-            all_cards_with_extras[card['name']][field_name] = field_value
+                if field_name in mtgjson4.globals.ORACLE_FIELDS and field_name != 'foreignNames':
+                    check_taint(field_name, field_value)
+
+                previous_seen_set_codes[card['name']][field_name].append(card_set['code'])
+                all_cards_with_extras[card['name']][field_name] = field_value
 
         return card
 
     def process_set(sets):
         for a_set in sets:
             for card in a_set['cards']:
-                card = process_card(a_set, card)
+                process_card(a_set, card)
 
-            a_set.remove('isMCISet')
-            a_set.remove('magicRaritiesCode')
-            a_set.remove('essentialMagicCode')
-            a_set.remove('useMagicRaritiesNumber')
+            a_set.pop('isMCISet', None)
+            a_set.pop('magicRaritiesCode', None)
+            a_set.pop('essentialMagicCode', None)
+            a_set.pop('useMagicRaritiesNumber', None)
 
-        simple_set = copy.copy(sets)
-        for simple_set_card in simple_set['cards']:
-            for extra_field in mtgjson4.globals.EXTRA_FIELDS:
-                simple_set_card.remove(extra_field)
+        simple_set = copy.deepcopy(sets)
+        for b_set in simple_set:
+            for simple_set_card in b_set['cards']:
+                for unneeded_field in mtgjson4.globals.EXTRA_FIELDS:
+                    simple_set_card.pop(unneeded_field, None)
 
         return [sets, simple_set]
 
     # LoadJSON
     sets_in_output = list()
-    for file in SET_CONFIG_DIR:
-        with file.open('r') as fp:
+    for file in os.listdir(OUTPUT_DIR):
+        with pathlib.Path(OUTPUT_DIR, file).open('r') as fp:
             file_content = json.load(fp)
             sets_in_output.append(file_content)
 
@@ -845,13 +848,10 @@ def create_all_sets_files():
 
     # saveFullJSON
     def save(f_name, data):
-        json_data = json.loads(data)
-        json_size = len(json_data)
+        with (SET_CONFIG_DIR / '{}.json'.format(f_name)).open('w') as save_fp:
+            json.dump(data, save_fp, indent=4, sort_keys=True, ensure_ascii=False)
 
-        with (SET_CONFIG_DIR / '{}.json'.format(f_name)).open('w') as fp:
-            json.dump(json_data, fp, indent=4, sort_keys=True, ensure_ascii=False)
-
-        return json_size
+        return len(data)
 
     all_cards = copy.copy(all_cards_with_extras)
     for card_keys in all_cards.keys():
@@ -860,19 +860,26 @@ def create_all_sets_files():
                 card_keys.remove(extra_field)
 
     data_block = {
-        'AllSets': { 'data': all_sets, 'param': 'allSize' },
-        'AllSets-x': { 'data': all_sets_with_extras, 'param': 'allSizeX' },
-        'AllSetsArray': { 'data': all_sets_array, 'param': 'allSizeArray' },
-        'AllSetsArray-x': { 'data': all_sets_array_with_extras, 'param': 'allSizeArrayX' },
-        'AllCards': { 'data': all_cards, 'param': 'allCards' },
-        'AllCards-x': { 'data': all_cards_with_extras, 'param': 'allCardsX' }
+        'AllSets': {'data': all_sets, 'param': 'allSize'},
+        'AllSets-x': {'data': all_sets_with_extras, 'param': 'allSizeX'},
+        'AllSetsArray': {'data': all_sets_array, 'param': 'allSizeArray'},
+        'AllSetsArray-x': {'data': all_sets_array_with_extras, 'param': 'allSizeArrayX'},
+        'AllCards': {'data': all_cards, 'param': 'allCards'},
+        'AllCards-x': {'data': all_cards_with_extras, 'param': 'allCardsX'}
     }
 
     for block in data_block:
         size = save(block, data_block[block]['data'])
-        data_block[data_block[block]['param']] = size
+        # data_block[data_block[block]['param']] = size
+
 
 if __name__ == '__main__':
+
+    if True:
+        create_all_sets_files()
+
+    exit(0)
+
     # Start by processing all arguments to the program
     parser = argparse.ArgumentParser(description=mtgjson4.globals.DESCRIPTION)
 
@@ -913,9 +920,6 @@ if __name__ == '__main__':
     card_loop = asyncio.get_event_loop()
     card_session = aiohttp.ClientSession(loop=card_loop, raise_for_status=True)
     card_loop.run_until_complete(main(card_loop, card_session, lang_to_process))
-
-    if True:
-        create_all_sets_files()
 
     end_time = time.time()
     print('Time: {}'.format(end_time - start_time))
