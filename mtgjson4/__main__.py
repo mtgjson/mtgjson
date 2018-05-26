@@ -573,6 +573,12 @@ def determine_gatherer_sets(args):
                 set_name = file.split('.json')[0]
                 if set_name in args['sets']:
                     try_to_append(root, file)
+                    args['sets'].remove(set_name)
+
+        # Ensure all sets provided by the user are valid
+        if len(args['sets']) > 0:
+            print("MTGJSON: Invalid Set Code(s) provided: {}".format(args['sets']))
+            exit(1)
 
     return all_sets
 
@@ -671,12 +677,19 @@ async def build_set(session, set_name, language):
         return json_ready
 
     async def build_foreign_language():
-        if ('translations' not in json_output.keys()) or (language not in json_output['translations'].keys()):
+        if not os.path.isfile(os.path.join(OUTPUT_DIR, '{}.json'.format(set_name[1]))):
+            print('BuildSet: Set {0} not built in English. Do that first before {1}'.format(set_name[1], language))
+            return
+
+        with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('r') as fp:
+            json_input = json.load(fp)
+
+        if ('translations' not in json_input.keys()) or (language not in json_input['translations'].keys()):
             print("BuildSet: Cannot translate {0} to {1}. Update set_configs".format(set_name[1], language))
             return
 
         foreign_mids_for_set = []
-        for card in json_output['cards']:
+        for card in json_input['cards']:
             full_name_lang_to_build = mtgjson4.globals.get_language_long_name(language)
             for lang_dict in card['foreignNames']:
                 if lang_dict['language'] == full_name_lang_to_build:
@@ -687,11 +700,10 @@ async def build_set(session, set_name, language):
         await build_then_print_stuff(foreign_mids_for_set, language)
         return
 
-    # Once this finishes, it will write to file AND return value
-    json_output = await build_then_print_stuff(await get_mids_for_downloading())
-    if language != 'en' and len(json_output) > 0:
+    if language == 'en':
+        await build_then_print_stuff(await get_mids_for_downloading())
+    else:
         await build_foreign_language()
-        return
 
 
 async def main(loop, session, language_to_build):
@@ -736,7 +748,7 @@ if __name__ == '__main__':
 
     # Ensure the language is a valid language
     if mtgjson4.globals.get_language_long_name(lang_to_process) is None:
-        print('MTGJSON: Language \'' + lang_to_process + '\' not supported yet')
+        print('MTGJSON: Language \'{}\' not supported yet'.format(lang_to_process))
         exit(1)
 
     # Global of all sets to build
