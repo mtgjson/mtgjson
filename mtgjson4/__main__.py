@@ -719,6 +719,184 @@ async def main(loop, session, language_to_build):
         await asyncio.wait(futures)
 
 
+def create_all_sets_files():
+    # Set Variables
+    all_sets = dict()
+    all_sets_with_extras = dict()
+    all_sets_array = list()
+    all_sets_array_with_extras = list()
+
+    # Cards Variables
+    all_cards = dict()
+    all_cards_with_extras = dict()
+
+    def process_card(sets, card):
+        """
+        function processCard(SET, card, callback) {
+        if (!c.hasOwnProperty(card.name)) {
+            allCardsWithExtras[card.name] = {};
+        }
+
+        if(!previousSeenSetCodes.hasOwnProperty(card.name))
+            previousSeenSetCodes[card.name] = {};
+
+        var checkTaint = function(fieldName, fieldValue) {
+            if (ignoredSets.indexOf(SET.code) >= 0)
+                // ignore un-sets.
+                return;
+
+            if (!fieldValue) {
+                if (card.hasOwnProperty(fieldName))
+                    fieldValue = card[fieldName];
+            }
+
+            // Do nothing if we do not have a previous value.
+            if (!allCardsWithExtras[card.name].hasOwnProperty(fieldName))
+                return;
+
+            var previousValue = allCardsWithExtras[card.name][fieldName];
+
+            var taint = false;
+            var diff = null;
+            if (previousValue) {
+                if (!fieldValue) {
+                    taint = true;
+                }
+                else {
+                  try {
+                    const a = readyToDiff(previousValue);
+                    const b = readyToDiff(fieldValue);
+
+                    diff = ansidiff.words(a, b);
+                  } catch (e) {
+                    console.error('error on ansidiff.words.');
+                    console.error('parameters:');
+                    console.error(previousValue);
+                    console.error(fieldValue);
+                    console.error(e);
+                  }
+                }
+
+                if (diff) {
+                    taint = true
+                }
+            }
+
+            if (taint) {
+                taintedCards.push({ card: card, fieldName: fieldName });
+                winston.info("Tainted field %s on card '%s' (%s)", fieldName, card.name, SET.code);
+                if (diff)
+                    winston.info(diff);
+            }
+        };
+
+        async.eachSeries(
+            Object.keys(C.FIELD_TYPES),
+            function(fieldName, subcb) {
+                if (C.SET_SPECIFIC_FIELDS.includes(fieldName)) {
+                    setImmediate(subcb);
+                    return;
+                }
+
+                if (!previousSeenSetCodes[card.name].hasOwnProperty(fieldName))
+                    previousSeenSetCodes[card.name][fieldName] = [];
+
+                var fieldValue = card[fieldName];
+                if (fieldName === "imageName")        // Modify for AllCards.json the imageName field
+                    fieldValue = card.name.toLowerCase().replace(new RegExp(":\"?", "g"), "").replace(new RegExp("/", "g"), " ").replace(new RegExp("^[0-9 \.]+|[0-9 \.]+$", "g"), "").replace(new RegExp(" token card", "g"), "");
+
+                if (C.ORACLE_FIELDS.includes(fieldName) && fieldName !== 'foreignNames') {
+                    checkTaint(fieldName, fieldValue);
+                }
+
+                previousSeenSetCodes[card.name][fieldName].push(SET.code);
+                allCardsWithExtras[card.name][fieldName] = fieldValue;
+
+                setImmediate(subcb);
+            },
+            callback
+        );
+
+    }
+        :param sets:
+        :param card:
+        :return:
+        """
+
+    def process_set(sets):
+        for card in sets['cards']:
+            process_card(sets, card)
+
+        """
+        function processSet(SET, callback) {
+        winston.info(SET.code);
+        // Fix cards
+        async.each(
+            SET.cards,
+            function(card, cb) {
+                processCard(SET, card, cb);
+            },
+            function(err) {
+                delete SET.isMCISet;
+                delete SET.magicRaritiesCode;
+                delete SET.essentialMagicCode;
+                delete SET.useMagicRaritiesNumber;
+
+                // Create Simple Set
+                var SimpleSet = clone(SET);
+                async.each(SimpleSet.cards, function(card, cb) {
+                    // Strip out extras
+                    async.each(C.EXTRA_FIELDS, function(EXTRA_FIELD, subcb) {
+                        delete card[EXTRA_FIELD];
+                        setImmediate(subcb);
+                    }, cb);
+                });
+
+                if (callback)
+                    setImmediate(callback, null, SET, SimpleSet);
+            }
+        );
+    }
+        :return:
+        """
+
+    """
+    function(SET, cb) {
+                params.sets[SET.code] = {
+                    code: SET.code,
+                    releaseDate : SET.releaseDate
+                };
+
+                processSet(SET, function(err, FullSET, SimpleSET) {
+                    allSetsWithExtras[SET.code] = FullSET;
+                    allSetsArrayWithExtras.push(FullSET);
+                    allSets[SET.code] = SimpleSET;
+                    allSetsArray.push(SimpleSET);
+
+                    saveSet(SET.code, FullSET, SimpleSET, function(err, FullSize, SimpleSize) {
+                        params.sets[SET.code].simpleSize = SimpleSize;
+                        params.sets[SET.code].fullSize = FullSize;
+                        cb();
+                    });
+                });
+    """
+
+    sets_in_output = list()
+    for file in SET_CONFIG_DIR:
+        with file.open('r') as fp:
+            file_content = json.load(fp)
+            sets_in_output.append(file_content)
+
+    params = {'sets': {}}
+    for set_data in sets_in_output:
+        params['sets'][set_data['code']] = {
+            'code': set_data['code'],
+            'releaseDate': set_data['releaseDate']
+        }
+
+        process_set(sets_in_output)
+
+
 if __name__ == '__main__':
     # Start by processing all arguments to the program
     parser = argparse.ArgumentParser(description=mtgjson4.globals.DESCRIPTION)
@@ -760,6 +938,9 @@ if __name__ == '__main__':
     card_loop = asyncio.get_event_loop()
     card_session = aiohttp.ClientSession(loop=card_loop, raise_for_status=True)
     card_loop.run_until_complete(main(card_loop, card_session, lang_to_process))
+
+    if True:
+        create_all_sets_files()
 
     end_time = time.time()
     print('Time: {}'.format(end_time - start_time))
