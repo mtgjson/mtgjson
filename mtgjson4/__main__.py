@@ -589,7 +589,7 @@ async def apply_set_config_options(set_name, cards_dictionary):
     return_product = dict()
 
     # Will search the tree of set_configs to find the file
-    with (pathlib.Path(find_file("{}.json".format(set_name[1]), SET_CONFIG_DIR))).open('r') as fp:
+    with (pathlib.Path(find_file("{}.json".format(set_name[1]), SET_CONFIG_DIR))).open('r', encoding='utf-8') as fp:
         file_response = json.load(fp)
 
         for key, value in file_response['SET'].items():
@@ -683,7 +683,7 @@ async def build_set(session, set_name, language):
             print('BuildSet: Set {0} not built in English. Do that first before {1}'.format(set_name[1], language))
             return
 
-        with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('r') as fp:
+        with (OUTPUT_DIR / '{}.json'.format(set_name[1])).open('r', encoding='utf-8') as fp:
             json_input = json.load(fp)
 
         if ('translations' not in json_input.keys()) or (language not in json_input['translations'].keys()):
@@ -847,7 +847,7 @@ def create_all_sets_files():
 
     sets_in_output = list()
     for file in SET_CONFIG_DIR:
-        with file.open('r') as fp:
+        with file.open('r', encoding='utf-8') as fp:
             file_content = json.load(fp)
             sets_in_output.append(file_content)
 
