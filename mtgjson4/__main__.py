@@ -775,16 +775,11 @@ def create_all_sets_files():
                 if field_value is None:
                     taint = True
                 else:
-                    try:
-                        prev = ready_to_diff(previous_value)
-                        field = ready_to_diff(field_value)
+                    prev = ready_to_diff(previous_value)
+                    field = ready_to_diff(field_value)
 
-                        # diff = ansidiff.words(prev, field)
-                    except ValueError:
-                        pass
-
-                if diff is not None:
-                    taint = True
+                    if prev != field:
+                        taint = True
 
             if taint:
                 tainted_cards.append({'card': card, 'fieldName': field_name})
