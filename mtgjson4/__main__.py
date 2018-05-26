@@ -731,7 +731,7 @@ if __name__ == '__main__':
     group.add_argument('-v', '--version', action='store_true', help='MTGJSON version information')
 
     parser.add_argument('--language', default=['en'], metavar='LANG', type=str, nargs=1,
-                        help='Build foreign language version, along with English')
+                        help='Build foreign language version (English must have been built prior)')
 
     # If user supplies no arguments, show help screen
     if len(sys.argv) == 1:
