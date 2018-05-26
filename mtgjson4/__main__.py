@@ -816,12 +816,14 @@ def create_all_sets_files():
 
         return [sets, simple_set]
 
+    # LoadJSON
     sets_in_output = list()
     for file in SET_CONFIG_DIR:
         with file.open('r') as fp:
             file_content = json.load(fp)
             sets_in_output.append(file_content)
 
+    # ProcessJSON
     params = {'sets': {}}
     for set_data in sets_in_output:
         params['sets'][set_data['code']] = {
@@ -841,6 +843,34 @@ def create_all_sets_files():
         # params['sets'][set_data['code']]['simpleSize'] = full_simple_size[0]
         # params['sets'][set_data['code']]['fullSize'] = full_simple_size[1]
 
+    # saveFullJSON
+    def save(f_name, data):
+        json_data = json.loads(data)
+        json_size = len(json_data)
+
+        with (SET_CONFIG_DIR / '{}.json'.format(f_name)).open('w') as fp:
+            json.dump(json_data, fp, indent=4, sort_keys=True, ensure_ascii=False)
+
+        return json_size
+
+    all_cards = copy.copy(all_cards_with_extras)
+    for card_keys in all_cards.keys():
+        for extra_field in mtgjson4.globals.EXTRA_FIELDS:
+            if extra_field in card_keys:
+                card_keys.remove(extra_field)
+
+    data_block = {
+        'AllSets': { 'data': all_sets, 'param': 'allSize' },
+        'AllSets-x': { 'data': all_sets_with_extras, 'param': 'allSizeX' },
+        'AllSetsArray': { 'data': all_sets_array, 'param': 'allSizeArray' },
+        'AllSetsArray-x': { 'data': all_sets_array_with_extras, 'param': 'allSizeArrayX' },
+        'AllCards': { 'data': all_cards, 'param': 'allCards' },
+        'AllCards-x': { 'data': all_cards_with_extras, 'param': 'allCardsX' }
+    }
+
+    for block in data_block:
+        size = save(block, data_block[block]['data'])
+        data_block[data_block[block]['param']] = size
 
 if __name__ == '__main__':
     # Start by processing all arguments to the program
