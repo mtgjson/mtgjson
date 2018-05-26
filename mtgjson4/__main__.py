@@ -154,10 +154,10 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_colors = set()
 
-            manaColors = replace_symbol_images_with_tokens(mana_row)
+            mana_colors = replace_symbol_images_with_tokens(mana_row)
             card_cost = mana_row.get_text(strip=True)
-            card_color_identity.update(manaColors)
-            card_colors.update(manaColors)
+            card_color_identity.update(mana_colors)
+            card_colors.update(mana_colors)
 
             # Sort field in WUBRG order
             card_colors = sorted(
@@ -891,7 +891,7 @@ if __name__ == '__main__':
     parser.add_argument('--all-sets', action='store_true', help='Build all sets')
 
     parser.add_argument('--full-out', action='store_true',
-                       help='Create the AllCards, AllSets, and AllSetsArray files (using what\'s in set_outputs dir)')
+                        help='Create the AllCards, AllSets, and AllSetsArray files (using what\'s in set_outputs dir)')
 
     parser.add_argument('--language', default=['en'], metavar='LANG', type=str, nargs=1,
                         help='Build foreign language version (English must have been built prior)')
