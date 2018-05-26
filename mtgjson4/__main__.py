@@ -670,7 +670,7 @@ async def build_set(session, set_name, language):
         json_ready = await apply_set_config_options(set_name, cards_holder)
 
         print('BuildSet: Generated JSON for {}'.format(set_stat))
-        with (OUTPUT_DIR / '{}.json'.format(set_output)).open('w') as fp:
+        with (OUTPUT_DIR / '{}.json'.format(set_output)).open('w', encoding='utf-8') as fp:
             json.dump(json_ready, fp, indent=4, sort_keys=True, ensure_ascii=False)
             print('BuildSet: JSON written for {0} ({1})'.format(set_stat, set_name[1]))
 
