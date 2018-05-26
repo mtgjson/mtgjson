@@ -1,6 +1,7 @@
 # Maintenance vars
 MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
 VERSION_INFO = 'MTGJSON\nVersion 4.0.0\nMay 25, 2018'
+DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
 # Building vars
 COLORS = ['W', 'U', 'B', 'R', 'G']
@@ -14,31 +15,28 @@ SUPERTYPES = [
 ]
 
 CARD_TYPES = [
-    'Instant',
-    'Sorcery',
     'Artifact',
-    'Creature',
-    'Enchantment',
-    'Land',
-    'Planeswalker',
-    'Tribal',
-    'Plane',
-    'Phenomenon',
-    'Scheme',
-    'Vanguard',
     'Conspiracy',
-
-    # Un-Sets
-    'Host',
+    'Creature',
+    'Eaturecray'
     'Enchant',
-    'Player',
-    'Interrupt',
-    'Scariest',
-    'You’ll',
+    'Enchantment',
     'Ever',
+    'Host',
+    'Instant',
+    'Interrupt',
+    'Land',
+    'Phenomenon',
+    'Plane',
+    'Planeswalker',
+    'Player',
+    'Scariest',
+    'Scheme',
     'See',
-    'Eaturecray',
-    '(none)'
+    'Sorcery',
+    'Tribal',
+    'Vanguard',
+    'You\'ll'
 ]
 
 RESERVE_LIST = [
@@ -664,10 +662,11 @@ SYMBOL_MAP = {
 }
 
 LANGUAGE_MAP = {
-    'fr': 'French',
-    'de': 'German',
     'cn': 'Chinese Traditional',
+    'de': 'German',
+    'en': 'English',
     'es': 'Spanish',
+    'fr': 'French',
     'it': 'Italian',
     'jp': 'Japanese',
     'pt': 'Portuguese (Brazil)',
@@ -682,6 +681,6 @@ def get_symbol_short_name(key_to_find):
 
 def get_language_long_name(lang_short_name):
     if lang_short_name not in LANGUAGE_MAP.keys():
-        raise ValueError('Language \''+lang_short_name+'\' not supported yet')
+        return None
     else:
         return LANGUAGE_MAP[lang_short_name]

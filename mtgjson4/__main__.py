@@ -702,9 +702,7 @@ async def main(loop, session, language_to_build):
 
 if __name__ == '__main__':
     # Start by processing all arguments to the program
-    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
-                                     description='MTGJSON4 -- Create JSON files for distribution to the public' +
-                                                 '\nMaintained by {}'.format(mtgjson4.globals.MAINTAINER))
+    parser = argparse.ArgumentParser(description=mtgjson4.globals.DESCRIPTION)
 
     # Can't have both sets and all sets
     group = parser.add_mutually_exclusive_group(required=True)
@@ -730,8 +728,9 @@ if __name__ == '__main__':
         exit(0)
 
     # Ensure the language is a valid language
-    if mtgjson4.globals.get_language_long_name(lang_to_process):
-        pass
+    if mtgjson4.globals.get_language_long_name(lang_to_process) is None:
+        print('MTGJSON: Language \'' + lang_to_process + '\' not supported yet')
+        exit(1)
 
     # Global of all sets to build
     SETS_TO_BUILD = determine_gatherer_sets(cl_args)
