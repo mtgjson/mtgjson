@@ -835,10 +835,12 @@ def create_all_sets_files():
             a_set.remove('essentialMagicCode')
             a_set.remove('useMagicRaritiesNumber')
 
-            simple_set = copy.copy(sets)
-            for simple_set_card in simple_set['cards']:
-                for extra_field in mtgjson4.globals.EXTRA_FIELDS:
-                    simple_set_card.remove(extra_field)
+        simple_set = copy.copy(sets)
+        for simple_set_card in simple_set['cards']:
+            for extra_field in mtgjson4.globals.EXTRA_FIELDS:
+                simple_set_card.remove(extra_field)
+
+        return [sets, simple_set]
 
     """
     function(SET, cb) {
