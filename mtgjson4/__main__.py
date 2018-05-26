@@ -6,6 +6,7 @@ import ast
 import asyncio
 import bs4
 import contextlib
+import copy
 import hashlib
 import itertools
 import json
@@ -729,128 +730,104 @@ def create_all_sets_files():
     all_sets_array_with_extras = list()
 
     # Cards Variables
-    all_cards = dict()
+    # all_cards = dict()
     all_cards_with_extras = dict()
 
-    def process_card(sets, card):
-        """
-        function processCard(SET, card, callback) {
-        if (!c.hasOwnProperty(card.name)) {
-            allCardsWithExtras[card.name] = {};
-        }
+    # Other Stuff
+    previous_seen_set_codes = dict()
+    tainted_cards = list()
+    ignored_sets = ['UGL', 'UST', 'UNH']
 
-        if(!previousSeenSetCodes.hasOwnProperty(card.name))
-            previousSeenSetCodes[card.name] = {};
+    def ready_to_diff(obj):
+        if isinstance(obj, list):
+            return ' '.join([ready_to_diff(o) for o in obj])
 
-        var checkTaint = function(fieldName, fieldValue) {
-            if (ignoredSets.indexOf(SET.code) >= 0)
-                // ignore un-sets.
-                return;
+        if isinstance(obj, dict):
+            keys = sorted(obj.keys())
+            arr = [str({key: ready_to_diff(obj[key])}) for key in keys]
+            return ' '.join(arr)
 
-            if (!fieldValue) {
-                if (card.hasOwnProperty(fieldName))
-                    fieldValue = card[fieldName];
-            }
+        return obj
 
-            // Do nothing if we do not have a previous value.
-            if (!allCardsWithExtras[card.name].hasOwnProperty(fieldName))
-                return;
+    def process_card(card_set, card):
+        if card['name'] not in all_cards_with_extras:
+            all_cards_with_extras[card['name']] = dict()
 
-            var previousValue = allCardsWithExtras[card.name][fieldName];
+        if card['name'] not in previous_seen_set_codes:
+            previous_seen_set_codes[card['name']] = dict()
 
-            var taint = false;
-            var diff = null;
-            if (previousValue) {
-                if (!fieldValue) {
-                    taint = true;
-                }
-                else {
-                  try {
-                    const a = readyToDiff(previousValue);
-                    const b = readyToDiff(fieldValue);
+        def check_taint(a_field_name, a_field_value=None):
+            if card_set['code'] in ignored_sets:
+                return
 
-                    diff = ansidiff.words(a, b);
-                  } catch (e) {
-                    console.error('error on ansidiff.words.');
-                    console.error('parameters:');
-                    console.error(previousValue);
-                    console.error(fieldValue);
-                    console.error(e);
-                  }
-                }
+            if a_field_value is None:
+                if a_field_name in card:
+                    a_field_value = card[a_field_name]
 
-                if (diff) {
-                    taint = true
-                }
-            }
+            if a_field_name not in all_cards_with_extras[card['name']]:
+                return
 
-            if (taint) {
-                taintedCards.push({ card: card, fieldName: fieldName });
-                winston.info("Tainted field %s on card '%s' (%s)", fieldName, card.name, SET.code);
-                if (diff)
-                    winston.info(diff);
-            }
-        };
+            previous_value = all_cards_with_extras[card['name']][a_field_name]
 
-        async.eachSeries(
-            Object.keys(C.FIELD_TYPES),
-            function(fieldName, subcb) {
-                if (C.SET_SPECIFIC_FIELDS.includes(fieldName)) {
-                    setImmediate(subcb);
-                    return;
-                }
+            taint = False
 
-                if (!previousSeenSetCodes[card.name].hasOwnProperty(fieldName))
-                    previousSeenSetCodes[card.name][fieldName] = [];
+            if previous_value:
+                if a_field_value is None:
+                    taint = True
+                else:
+                    prev = ready_to_diff(previous_value)
+                    field = ready_to_diff(a_field_value)
 
-                var fieldValue = card[fieldName];
-                if (fieldName === "imageName")        // Modify for AllCards.json the imageName field
-                    fieldValue = card.name.toLowerCase().replace(new RegExp(":\"?", "g"), "").replace(new RegExp("/", "g"), " ").replace(new RegExp("^[0-9 \.]+|[0-9 \.]+$", "g"), "").replace(new RegExp(" token card", "g"), "");
+                    if prev != field:
+                        taint = True
 
-                if (C.ORACLE_FIELDS.includes(fieldName) && fieldName !== 'foreignNames') {
-                    checkTaint(fieldName, fieldValue);
-                }
+            if taint:
+                tainted_cards.append({'card': card, 'fieldName': a_field_name})
 
-                previousSeenSetCodes[card.name][fieldName].push(SET.code);
-                allCardsWithExtras[card.name][fieldName] = fieldValue;
+        for field_name, _ in mtgjson4.globals.FIELD_TYPES.items():
+            if field_name in mtgjson4.globals.SET_SPECIFIC_FIELDS:
+                continue
 
-                setImmediate(subcb);
-            },
-            callback
-        );
+            if field_name not in previous_seen_set_codes[card['name']]:
+                previous_seen_set_codes[card['name']][field_name] = list()
 
-    }
-        :param sets:
-        :param card:
-        :return:
-        """
+            if field_name in card.keys():
+                field_value = card[field_name]
+
+                if field_name in mtgjson4.globals.ORACLE_FIELDS and field_name != 'foreignNames':
+                    check_taint(field_name, field_value)
+
+                previous_seen_set_codes[card['name']][field_name].append(card_set['code'])
+                all_cards_with_extras[card['name']][field_name] = field_value
+
+        return card
 
     def process_set(sets):
-        for card in sets['cards']:
-            process_card(sets, card)
-
         for a_set in sets:
-            a_set.remove('isMCISet')
-            a_set.remove('magicRaritiesCode')
-            a_set.remove('essentialMagicCode')
-            a_set.remove('useMagicRaritiesNumber')
+            for card in a_set['cards']:
+                process_card(a_set, card)
+
+            a_set.pop('isMCISet', None)
+            a_set.pop('magicRaritiesCode', None)
+            a_set.pop('essentialMagicCode', None)
+            a_set.pop('useMagicRaritiesNumber', None)
 
         simple_set = copy.copy(sets)
-        for simple_set_card in simple_set['cards']:
-            for extra_field in mtgjson4.globals.EXTRA_FIELDS:
-                simple_set_card.remove(extra_field)
+        for b_set in simple_set:
+            for simple_set_card in b_set['cards']:
+                for unneeded_field in mtgjson4.globals.EXTRA_FIELDS:
+                    simple_set_card.pop(unneeded_field, None)
 
         return [sets, simple_set]
 
-    def save_set(set_code, full_set, simple_set):
-        return []
-
+    # LoadJSON
     sets_in_output = list()
-    for file in filter(lambda p: p.is_file(), SET_CONFIG_DIR.glob('**/*')):
-        with file.open('r', encoding='utf-8') as fp:
+    for file in os.listdir(OUTPUT_DIR):
+        with pathlib.Path(OUTPUT_DIR, file).open('r', encoding='utf-8') as fp:
             file_content = json.load(fp)
             sets_in_output.append(file_content)
 
+    # ProcessJSON
     params = {'sets': {}}
     for set_data in sets_in_output:
         params['sets'][set_data['code']] = {
@@ -864,13 +841,44 @@ def create_all_sets_files():
         all_sets_array_with_extras.append(full_simple_sets[0])
         all_sets[set_data['code']] = full_simple_sets[1]
         all_sets_array.append(full_simple_sets[1])
-        
-        full_simple_size = save_set(set_data['code'], full_simple_sets[0], full_simple_sets[1])
-        params['sets'][set_data['code']]['simpleSize'] = full_simple_size[0]
-        params['sets'][set_data['code']]['fullSize'] = full_simple_size[1]
+
+        # Doesn't seem relevant as we're building before
+        # full_simple_size = save_set(set_data['code'], full_simple_sets[0], full_simple_sets[1])
+        # params['sets'][set_data['code']]['simpleSize'] = full_simple_size[0]
+        # params['sets'][set_data['code']]['fullSize'] = full_simple_size[1]
+
+    # saveFullJSON
+    def save(f_name, data):
+        with (OUTPUT_DIR / '{}.json'.format(f_name)).open('w', encoding='utf-8') as save_fp:
+            json.dump(data, save_fp, indent=4, sort_keys=True, ensure_ascii=False)
+        return len(data)
+
+    all_cards = copy.copy(all_cards_with_extras)
+    for card_keys in all_cards.keys():
+        for extra_field in mtgjson4.globals.EXTRA_FIELDS:
+            if extra_field in card_keys:
+                card_keys.remove(extra_field)
+
+    data_block = {
+        'AllSets': {'data': all_sets, 'param': 'allSize'},
+        'AllSets-x': {'data': all_sets_with_extras, 'param': 'allSizeX'},
+        'AllSetsArray': {'data': all_sets_array, 'param': 'allSizeArray'},
+        'AllSetsArray-x': {'data': all_sets_array_with_extras, 'param': 'allSizeArrayX'},
+        'AllCards': {'data': all_cards, 'param': 'allCards'},
+        'AllCards-x': {'data': all_cards_with_extras, 'param': 'allCardsX'}
+    }
+
+    for block in data_block:
+        save(block, data_block[block]['data'])
 
 
 if __name__ == '__main__':
+
+    if True:
+        create_all_sets_files()
+
+    exit(0)
+
     # Start by processing all arguments to the program
     parser = argparse.ArgumentParser(description=mtgjson4.globals.DESCRIPTION)
 
@@ -911,9 +919,6 @@ if __name__ == '__main__':
     card_loop = asyncio.get_event_loop()
     card_session = aiohttp.ClientSession(loop=card_loop, raise_for_status=True)
     card_loop.run_until_complete(main(card_loop, card_session, lang_to_process))
-
-    if True:
-        create_all_sets_files()
 
     end_time = time.time()
     print('Time: {}'.format(end_time - start_time))
