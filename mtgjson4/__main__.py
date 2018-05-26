@@ -1,11 +1,10 @@
-import copy
-
 import aiohttp
 import argparse
 import ast
 import asyncio
 import bs4
 import contextlib
+import copy
 import hashlib
 import itertools
 import json
@@ -811,7 +810,7 @@ def create_all_sets_files():
             a_set.pop('essentialMagicCode', None)
             a_set.pop('useMagicRaritiesNumber', None)
 
-        simple_set = copy.deepcopy(sets)
+        simple_set = copy.copy(sets)
         for b_set in simple_set:
             for simple_set_card in b_set['cards']:
                 for unneeded_field in mtgjson4.globals.EXTRA_FIELDS:
@@ -848,9 +847,8 @@ def create_all_sets_files():
 
     # saveFullJSON
     def save(f_name, data):
-        with (SET_CONFIG_DIR / '{}.json'.format(f_name)).open('w') as save_fp:
+        with (OUTPUT_DIR / '{}.json'.format(f_name)).open('w') as save_fp:
             json.dump(data, save_fp, indent=4, sort_keys=True, ensure_ascii=False)
-
         return len(data)
 
     all_cards = copy.copy(all_cards_with_extras)
@@ -869,8 +867,7 @@ def create_all_sets_files():
     }
 
     for block in data_block:
-        size = save(block, data_block[block]['data'])
-        # data_block[data_block[block]['param']] = size
+        save(block, data_block[block]['data'])
 
 
 if __name__ == '__main__':
