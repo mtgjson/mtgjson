@@ -846,7 +846,7 @@ def create_all_sets_files():
         return []
 
     sets_in_output = list()
-    for file in SET_CONFIG_DIR:
+    for file in filter(lambda p: p.is_file(), SET_CONFIG_DIR.glob('**/*')):
         with file.open('r', encoding='utf-8') as fp:
             file_content = json.load(fp)
             sets_in_output.append(file_content)
