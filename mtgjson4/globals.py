@@ -8,6 +8,51 @@ COLORS = ['W', 'U', 'B', 'R', 'G']
 
 EXTRA_FIELDS = ['rulings', 'foreignNames', 'printings', 'originalText', 'originalType', 'legalities']
 
+ORACLE_FIELDS = ["layout", "name", "names", "manaCost", "cmc", "colors", "type", "supertypes", "types", "subtypes", "text", "power", "toughness", "loyalty", "hand", "life", "rulings", "printings", "legalities"]
+
+FIELD_TYPES = {
+    "artist": ["string"],
+    "border": "string",
+    "cmc": "number",
+    "colorIdentity": ["string"],
+    "colors": ["string"],
+    "flavor": "string",
+    "foreignNames": ["object"],
+    "hand": "number",
+    "id": "string",
+    "imageName": "string",
+    "layout": "string",
+    "legalities": ["object"],
+    "life": "number",
+    "loyalty": "number",
+    "manaCost": "string",
+    "multiverseid": "number",
+    "name": "string",
+    "names": ["string"],
+    "number": "string",
+    "originalText": "string",
+    "originalType": "string",
+    "power": "string",
+    "printings": ["string"],
+    "rarity": "string",
+    "releaseDate": "string",
+    "reserved": "boolean",
+    "rulings": ["object"],
+    "source": "string",
+    "starter": "boolean",
+    "subtypes": ["string"],
+    "supertypes": ["string"],
+    "text": "string",
+    "timeshifted": "boolean",
+    "toughness": "string",
+    "type": "string",
+    "types": ["string"],
+    "variations": ["number"],
+    "watermark": "string",
+}
+
+SET_SPECIFIC_FIELDS = ["rarity", "artist", "flavor", "number", "multiverseid", "variations", "watermark", "border", "timeshifted", "reserved", "originalText", "originalType", "cardHash", "foreignNames"]
+
 SUPERTYPES = [
     'Basic',
     'Legendary',
