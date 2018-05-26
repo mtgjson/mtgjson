@@ -411,16 +411,15 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         card_info['foreignNames'] = card_languages
 
     async def build_id_part(card_mid, card_info):
-        card_id = hashlib.sha3_256()
-        card_id.update(set_name[0].encode('utf-8'))
-        card_id.update(str(card_mid).encode('utf-8'))
-        card_id.update(card_info['name'].encode('utf-8'))
+        card_hash = hashlib.sha3_256()
+        card_hash.update(set_name[0].encode('utf-8'))
+        card_hash.update(str(card_mid).encode('utf-8'))
+        card_hash.update(card_info['name'].encode('utf-8'))
 
-        card_info['id'] = card_id.hexdigest()
+        card_info['cardHash'] = card_hash.hexdigest()
 
     async def build_original_details(card_mid, card_info, second_card=False):
         html_print = await ensure_content_downloaded(session, main_url, params=get_url_params(card_mid, True))
-
         soup_print = bs4.BeautifulSoup(html_print, 'html.parser')
 
         # Determine if Card is Normal, Flip, or Split
