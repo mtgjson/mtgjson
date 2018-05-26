@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import aiohttp
 import argparse
 import ast
