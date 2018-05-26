@@ -6,6 +6,8 @@ DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMai
 # Building vars
 COLORS = ['W', 'U', 'B', 'R', 'G']
 
+EXTRA_FIELDS = ['rulings', 'foreignNames', 'printings', 'originalText', 'originalType', 'legalities']
+
 SUPERTYPES = [
     'Basic',
     'Legendary',

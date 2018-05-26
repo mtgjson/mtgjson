@@ -1,3 +1,5 @@
+import copy
+
 import aiohttp
 import argparse
 import ast
@@ -827,38 +829,16 @@ def create_all_sets_files():
         for card in sets['cards']:
             process_card(sets, card)
 
-        """
-        function processSet(SET, callback) {
-        winston.info(SET.code);
-        // Fix cards
-        async.each(
-            SET.cards,
-            function(card, cb) {
-                processCard(SET, card, cb);
-            },
-            function(err) {
-                delete SET.isMCISet;
-                delete SET.magicRaritiesCode;
-                delete SET.essentialMagicCode;
-                delete SET.useMagicRaritiesNumber;
+        for a_set in sets:
+            a_set.remove('isMCISet')
+            a_set.remove('magicRaritiesCode')
+            a_set.remove('essentialMagicCode')
+            a_set.remove('useMagicRaritiesNumber')
 
-                // Create Simple Set
-                var SimpleSet = clone(SET);
-                async.each(SimpleSet.cards, function(card, cb) {
-                    // Strip out extras
-                    async.each(C.EXTRA_FIELDS, function(EXTRA_FIELD, subcb) {
-                        delete card[EXTRA_FIELD];
-                        setImmediate(subcb);
-                    }, cb);
-                });
-
-                if (callback)
-                    setImmediate(callback, null, SET, SimpleSet);
-            }
-        );
-    }
-        :return:
-        """
+            simple_set = copy.copy(sets)
+            for simple_set_card in simple_set['cards']:
+                for extra_field in mtgjson4.globals.EXTRA_FIELDS:
+                    simple_set_card.remove(extra_field)
 
     """
     function(SET, cb) {
