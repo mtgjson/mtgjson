@@ -737,23 +737,16 @@ def create_all_sets_files():
     tainted_cards = list()
     ignored_sets = ['UGL', 'UST', 'UNH']
 
-    def ready_to_diff(value):
-        """
-        function readyToDiff(obj) {
-          if (Array.isArray(obj)) {
-            return obj.join(' ');
-          }
+    def ready_to_diff(obj):
+        if isinstance(obj, list):
+            return ' '.join(obj)
 
-          if (typeof obj === 'object') {
-            const keys = Object.keys(obj).sort();
-            const arr = keys.map(key => `${key}:${readyToDiff(obj[key])}`);
-            return arr.join(' ');
-          }
+        if isinstance(obj, dict):
+            keys = sorted(obj.keys())
+            arr = [str({key: ready_to_diff(obj[key])}) for key in keys]
+            return ' '.join(arr)
 
-          return obj;
-        }
-        """
-        return ''
+        return obj
 
     def process_card(card_set, card):
         if card['name'] not in all_cards_with_extras:
