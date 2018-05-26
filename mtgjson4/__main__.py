@@ -543,13 +543,14 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
     additional_cards = []
 
     # then wait until all of them are completed
-    await asyncio.wait(futures)
-    cards_in_set = []
-    for future in futures:
-        card_future = future.result()
-        cards_in_set.append(card_future)
+    with contextlib.suppress(ValueError):  # Happens if no cards are in the multiverse_ids
+        await asyncio.wait(futures)
+        cards_in_set = []
+        for future in futures:
+            card_future = future.result()
+            cards_in_set.append(card_future)
 
-    with contextlib.suppress(ValueError):  # if no double-sided cards, gracefully skip
+    with contextlib.suppress(ValueError):  # If no double-sided cards, gracefully skip
         await asyncio.wait(additional_cards)
         for future in additional_cards:
             card_future = future.result()
@@ -926,7 +927,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     card_loop = asyncio.get_event_loop()
-    card_session = aiohttp.ClientSession(loop=card_loop, raise_for_status=True)
+    card_session = aiohttp.ClientSession(loop=card_loop, raise_for_status=True, conn_timeout=None, read_timeout=None)
     card_loop.run_until_complete(main(card_loop, card_session, lang_to_process))
 
     if cl_args['full_out']:
