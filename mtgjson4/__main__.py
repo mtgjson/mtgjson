@@ -141,7 +141,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         else:
             cmc_row = cmc_row.findAll('div')[-1]
             card_cmc = cmc_row.get_text(strip=True)
-            card_info['cmc'] = int(card_cmc)
+            card_info['cmc'] = float(card_cmc)
 
         # Get Card Colors, Cost, and Color Identity (start)
         card_color_identity = set()
@@ -283,10 +283,11 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             card_info['number'] = card_number
 
         # Get Card Artist
-        artist_row = soup_oracle.find(id=div_name.format('artistRow'))
-        artist_row = artist_row.findAll('div')[-1]
-        card_artists = artist_row.find('a').get_text(strip=True).split('&')
-        card_info['artist'] = card_artists
+        with contextlib.suppress(AttributeError):  # Un-cards might not have an artist!
+            artist_row = soup_oracle.find(id=div_name.format('artistRow'))
+            artist_row = artist_row.findAll('div')[-1]
+            card_artists = artist_row.find('a').get_text(strip=True).split('&')
+            card_info['artist'] = card_artists
 
         # Get Card Watermark
         watermark_row = soup_oracle.find(id=div_name.format('markRow'))
@@ -556,7 +557,7 @@ def find_file(name, path):
 def determine_gatherer_sets(args):
     def try_to_append(root_p, file_p):
         with pathlib.Path(root_p, file_p).open('r') as fp:
-            this_set_name = json.loads(fp.read())
+            this_set_name = json.load(fp)
             if 'SET' in this_set_name:
                 all_sets.append([this_set_name['SET']['name'], file.split('.json')[0]])
 
@@ -581,7 +582,7 @@ async def apply_set_config_options(set_name, cards_dictionary):
 
     # Will search the tree of set_configs to find the file
     with (pathlib.Path(find_file("{}.json".format(set_name[1]), SET_CONFIG_DIR))).open('r') as fp:
-        file_response = ast.literal_eval(fp.read())
+        file_response = json.load(fp)
 
         for key, value in file_response['SET'].items():
             return_product[key] = value
@@ -605,9 +606,15 @@ async def apply_set_config_options(set_name, cards_dictionary):
 
                 for key, value in replacement_match.items():
                     if isinstance(value, list):
-                        cards_to_modify = [card for card in cards_dictionary if card[key] in value]
+                        cards_to_modify = [
+                            card
+                            for card in cards_dictionary if key in card.keys() and card[key] in value
+                        ]
                     elif isinstance(value, str) or isinstance(value, int):
-                        cards_to_modify = [card for card in cards_dictionary if card[key] == value]
+                        cards_to_modify = [
+                            card
+                            for card in cards_dictionary if key in card.keys() and card[key] == value
+                        ]
                     else:
                         continue
 
