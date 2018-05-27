@@ -10,17 +10,21 @@ import pathlib
 import re
 import sys
 import time
-from typing import Any, Dict, List, Set, Union, Optional
+from typing import Any, Dict, List, Optional, Set, Union
 
 import aiohttp
 import bs4
 
-from mtgjson4.download import get_card_details, get_card_legalities, get_card_foreign_details, get_checklist_urls, \
-    generate_mids_by_set
-from mtgjson4.globals import COLORS, SUPERTYPES, CARD_TYPES, RESERVE_LIST, get_symbol_short_name, \
-    get_language_long_name, FIELD_TYPES, SET_SPECIFIC_FIELDS, ORACLE_FIELDS, EXTRA_FIELDS, DESCRIPTION, VERSION_INFO
+from mtgjson4.download import (generate_mids_by_set, get_card_details,
+                               get_card_foreign_details, get_card_legalities,
+                               get_checklist_urls)
+from mtgjson4.globals import (CARD_TYPES, COLORS, DESCRIPTION, EXTRA_FIELDS,
+                              FIELD_TYPES, ORACLE_FIELDS, RESERVE_LIST,
+                              SET_SPECIFIC_FIELDS, SUPERTYPES, VERSION_INFO,
+                              get_language_long_name, get_symbol_short_name)
 from mtgjson4.parsing import replace_symbol_images_with_tokens
-from mtgjson4.storage import SET_OUT_DIR, open_set_json, is_set_file, ensure_set_dir_exists
+from mtgjson4.storage import (SET_OUT_DIR, ensure_set_dir_exists, is_set_file,
+                              open_set_json)
 
 COMP_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'compiled_outputs'
 SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
@@ -732,7 +736,7 @@ async def apply_set_config_options(set_name, cards_dictionary):
     return return_product
 
 
-async def build_set(session, set_name, language):
+async def build_set(session: aiohttp.ClientSession, set_name, language):
     async def get_mids_for_downloading():
         print('BuildSet: Building Set {}'.format(set_name[0]))
 
@@ -795,7 +799,7 @@ async def build_set(session, set_name, language):
         await build_foreign_language()
 
 
-async def main(loop, session, language_to_build):
+async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str) -> None:
     ensure_set_dir_exists()
 
     async with session:
@@ -1002,7 +1006,7 @@ if __name__ == '__main__':
     # Start the build process
     start_time = time.time()
 
-    card_loop = asyncio.get_event_loop()
+    card_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
     card_session = aiohttp.ClientSession(loop=card_loop, raise_for_status=True, conn_timeout=None, read_timeout=None)
     card_loop.run_until_complete(main(card_loop, card_session, lang_to_process))
 
