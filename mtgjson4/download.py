@@ -85,11 +85,20 @@ async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]
     ]
 
 
-async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrls) -> AsyncGenerator[int, None]:
+async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrls) -> List[int]:
     for url, params in set_urls:
         async with session.get(url, params=params) as response:
             soup_oracle = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
-            # All cards on the page
-            for card_info in soup_oracle.findAll('a', {'class': 'nameLink'}):
-                yield int(str(card_info).split('multiverseid=')[1].split('"')[0])
+            card_id_exist = set()
+            card_mids_to_parse: List[int] = list()
+
+            for row_info in soup_oracle.find_all('tr', {'class': 'cardItem'}):
+                td_row = row_info.find_all('td')
+                gatherer_page_id = td_row[0].get_text(strip=True)
+
+                if gatherer_page_id not in card_id_exist:
+                    card_id_exist.add(gatherer_page_id)
+                    card_mids_to_parse.append(int(td_row[1].find('a')['href'].split('id=')[1].split('"')[0]))
+
+            return card_mids_to_parse

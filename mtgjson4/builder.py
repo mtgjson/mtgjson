@@ -718,7 +718,7 @@ class MtgJson:
     async def build_set(self,
                         set_name: List[str],
                         language: str
-                        ) -> Dict[Union[str, Any], Union[list, Any]]:
+                        ) -> List[int]:
         async def get_mids_for_downloading() -> List[int]:
             print('BuildSet: Building Set {}'.format(set_name[0]))
 
@@ -726,10 +726,10 @@ class MtgJson:
             print('BuildSet: Acquired URLs for {}'.format(set_name[0]))
 
             # ids_to_return = [398434] # DEBUGGING IDs
-            ids_to_return = [mid async for mid in generate_mids_by_set(self.http_session, urls_for_set)]
+            ids_to_return = await generate_mids_by_set(self.http_session, urls_for_set)
             return ids_to_return
 
-        async def build_then_print_stuff(mids_for_set: List[int], lang: str = None):
+        async def build_then_print_stuff(mids_for_set: List[int], lang: str = None) -> dict:
             if lang:
                 set_stat = '{0}.{1}'.format(set_name[0], lang)
                 set_output = '{0}.{1}'.format(set_name[1], lang)
