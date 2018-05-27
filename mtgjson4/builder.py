@@ -56,7 +56,8 @@ class MtgJson:
     # TODO: Fix adding another card
     async def determine_layout_and_div_name(self,
                                             soup: bs4.BeautifulSoup,
-                                            is_second_card: bool
+                                            is_second_card: bool,
+                                            card_id: int
                                             ) -> Tuple[str, str, Optional[bool]]:
         # Determine how many cards on on the page
         cards_total = len(soup.select('table[class^=cardDetails]'))
@@ -404,15 +405,18 @@ class MtgJson:
                               set_name: List[str],
                               card_mid: int,
                               card_info: dict,
-                              other_cards_holder: List[object],
+                              other_cards_holder: Optional[List[object]],
                               second_card: bool=False
                               ) -> None:
         # Parse web page so we can gather all data from it
         soup_oracle = await self.get_card_html(card_mid)
 
-        card_layout, div_name, add_other_card = await self.determine_layout_and_div_name(soup_oracle, second_card)
-        if add_other_card:
-            other_cards_holder.append(self.loop.create_task(self.build_card(set_name, card_mid, [], second_card=True)))
+        card_layout, div_name, add_other_card = await self.determine_layout_and_div_name(soup_oracle, second_card, card_mid)
+        if add_other_card and other_cards_holder is not None:
+            other_cards_holder.append(self.loop.create_task(self.build_card(set_name,
+                                                                            card_mid,
+                                                                            None,
+                                                                            second_card=True)))
 
         card_info['multiverseid'] = int(card_mid)
         card_info['name'] = await self.parse_card_name(soup_oracle, div_name)
@@ -613,9 +617,10 @@ class MtgJson:
 
             card_info['originalText'] = card_text[:-1]  # Remove last '\n'
 
-    async def build_card(self, set_name: List[str],
+    async def build_card(self,
+                         set_name: List[str],
                          card_mid: int,
-                         other_cards_holder: List[object],
+                         other_cards_holder: Optional[List[object]],
                          second_card: bool=False
                          ) -> Dict[str, Any]:
         card_info: Dict[str, Any] = dict()
@@ -692,6 +697,7 @@ class MtgJson:
 
         with contextlib.suppress(ValueError):  # If no double-sided cards, gracefully skip
             await asyncio.wait(additional_cards)
+            print("Additional Cards found, lets work!")
             for future in additional_cards:
                 card_future = future.result()
                 cards_in_set.append(card_future)
@@ -707,7 +713,7 @@ class MtgJson:
             urls_for_set = await get_checklist_urls(self.http_session, set_name)
             print('BuildSet: Acquired URLs for {}'.format(set_name[0]))
 
-            # mids_for_set = [401847, 401889, 401890]
+            # ids_to_return = [398434] # DEBUGGING IDs
             ids_to_return = [mid async for mid in generate_mids_by_set(self.http_session, urls_for_set)]
             return ids_to_return
 
