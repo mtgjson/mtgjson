@@ -1,5 +1,6 @@
 import asyncio
 import itertools
+from typing import Any
 
 import aiohttp
 import bs4
@@ -10,7 +11,7 @@ legal_url = 'http://gatherer.wizards.com/Pages/Card/Printings.aspx'
 foreign_url = 'http://gatherer.wizards.com/Pages/Card/Languages.aspx'
 
 
-async def ensure_content_downloaded(session, url_to_download, max_retries=3, **kwargs) -> str:
+async def ensure_content_downloaded(session: aiohttp.ClientSession, url_to_download: str, max_retries: int = 3, **kwargs: Any) -> str:
     # Ensure we can read the URL and its contents
     for retry in itertools.count():
         try:

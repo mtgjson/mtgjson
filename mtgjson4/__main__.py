@@ -723,7 +723,7 @@ async def apply_set_config_options(set_name, cards_dictionary):
     return return_product
 
 
-async def build_set(session, set_name, language):
+async def build_set(session: aiohttp.ClientSession, set_name, language):
     async def get_mids_for_downloading():
         print('BuildSet: Building Set {}'.format(set_name[0]))
 
@@ -786,7 +786,7 @@ async def build_set(session, set_name, language):
         await build_foreign_language()
 
 
-async def main(loop, session, language_to_build):
+async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str) -> None:
     ensure_set_dir_exists()
 
     async with session:
@@ -993,7 +993,7 @@ if __name__ == '__main__':
     # Start the build process
     start_time = time.time()
 
-    card_loop = asyncio.get_event_loop()
+    card_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
     card_session = aiohttp.ClientSession(loop=card_loop, raise_for_status=True, conn_timeout=None, read_timeout=None)
     card_loop.run_until_complete(main(card_loop, card_session, lang_to_process))
 
