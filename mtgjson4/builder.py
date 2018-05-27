@@ -24,12 +24,12 @@ COMP_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'compiled_output
 SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
 
 
-class MtgJson():
+class MtgJson:
 
     def __init__(self, sets_to_build: List[List[str]],
                  session: Optional[aiohttp.ClientSession] = None,
                  loop: Optional[asyncio.AbstractEventLoop] = None
-                ) -> None:
+                 ) -> None:
         if loop is None:
             loop = asyncio.events.get_event_loop()
         if session is None:
@@ -354,7 +354,7 @@ class MtgJson():
 
         return card_variations
 
-    async def build_main_part(self, set_name: str, card_mid: int, card_info: dict, other_cards_holder: List[object],
+    async def build_main_part(self, set_name: List[str], card_mid: int, card_info: dict, other_cards_holder: List[object],
                               second_card: bool=False) -> None:
         # Parse web page so we can gather all data from it
         soup_oracle = await self.get_card_html(card_mid)
@@ -514,7 +514,7 @@ class MtgJson():
 
         card_info['foreignNames'] = card_languages
 
-    async def build_id_part(self, set_name: str, card_mid, card_info):
+    async def build_id_part(self, set_name: List[str], card_mid, card_info):
         card_hash = hashlib.sha3_256()
         card_hash.update(set_name[0].encode('utf-8'))
         card_hash.update(str(card_mid).encode('utf-8'))
@@ -562,7 +562,11 @@ class MtgJson():
 
             card_info['originalText'] = card_text[:-1]  # Remove last '\n'
 
-    async def build_card(self, set_name: str, card_mid: int, other_cards_holder: List[object], second_card: bool=False) -> Dict[str, Any]:
+    async def build_card(self, set_name: List[str],
+                         card_mid: int,
+                         other_cards_holder: List[object],
+                         second_card: bool=False
+                         ) -> Dict[str, Any]:
         card_info: Dict[str, Any] = dict()
 
         await self.build_main_part(set_name, card_mid, card_info, other_cards_holder, second_card=second_card)
@@ -618,7 +622,7 @@ class MtgJson():
 
             card_info['layout'] = card_layout
 
-    async def download_cards_by_mid_list(self, set_name: str, multiverse_ids: List[int]):
+    async def download_cards_by_mid_list(self, set_name: List[str], multiverse_ids: List[int]):
         additional_cards = []
         cards_in_set = []
 
@@ -766,11 +770,13 @@ async def apply_set_config_options(set_name, cards_dictionary):
 
     return return_product
 
+
 def find_file(name: str, path) -> Optional[str]:
     for root, _, files in os.walk(path):
         if name in files:
             return os.path.join(root, name)
     return None
+
 
 def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[List[str]]:
     def try_to_append(root_p, file_p):

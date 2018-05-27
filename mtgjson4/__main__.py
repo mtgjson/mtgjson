@@ -1,3 +1,4 @@
+import aiohttp
 import argparse
 import asyncio
 import copy
@@ -6,8 +7,6 @@ import os
 import pathlib
 import sys
 import time
-
-import aiohttp
 
 from mtgjson4.builder import COMP_OUT_DIR, MtgJson, determine_gatherer_sets
 from mtgjson4.globals import (DESCRIPTION, EXTRA_FIELDS, FIELD_TYPES,
@@ -22,6 +21,7 @@ async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, 
     async with session:
         # start asyncio tasks for building each set
         builder = MtgJson(SETS_TO_BUILD, session, loop)
+
         futures = [
             loop.create_task(builder.build_set(set_name, language_to_build))
             for set_name in SETS_TO_BUILD
