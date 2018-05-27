@@ -1,4 +1,4 @@
-from typing import NewType
+from typing import Dict, NewType, cast
 
 # Maintenance vars
 MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
@@ -664,7 +664,7 @@ RESERVE_LIST = [
     'Zuberi, Golden Feather',
 ]
 
-SYMBOL_MAP = {
+SYMBOL_MAP: Dict[str, str] = {
     'White': 'W',
     'Blue': 'U',
     'Black': 'B',
@@ -727,7 +727,7 @@ LANGUAGE_MAP = {
 
 # Building functions
 def get_symbol_short_name(key_to_find: str) -> Color:
-    return SYMBOL_MAP.get(key_to_find, key_to_find)
+    return cast(Color, SYMBOL_MAP.get(key_to_find, key_to_find))
 
 
 def get_language_long_name(lang_short_name):
