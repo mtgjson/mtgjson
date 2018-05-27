@@ -10,7 +10,7 @@ import pathlib
 import re
 import sys
 import time
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union, Tuple
 
 import aiohttp
 import bs4
@@ -21,7 +21,7 @@ from mtgjson4.download import (generate_mids_by_set, get_card_details,
 from mtgjson4.globals import (CARD_TYPES, COLORS, DESCRIPTION, EXTRA_FIELDS,
                               FIELD_TYPES, ORACLE_FIELDS, RESERVE_LIST,
                               SET_SPECIFIC_FIELDS, SUPERTYPES, VERSION_INFO,
-                              get_language_long_name, get_symbol_short_name)
+                              get_language_long_name, get_symbol_short_name, Color)
 from mtgjson4.parsing import replace_symbol_images_with_tokens
 from mtgjson4.storage import (SET_OUT_DIR, ensure_set_dir_exists, is_set_file,
                               open_set_json)
@@ -30,9 +30,13 @@ COMP_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'compiled_output
 SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
 
 
-async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=None):
+async def download_cards_by_mid_list(session: aiohttp.ClientSession,
+                                     set_name: str,
+                                     multiverse_ids: List[int],
+                                     loop: asyncio.AbstractEventLoop = None
+                                     ):
     if loop is None:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.events.get_event_loop()
 
     async def get_card_html(aio_session: aiohttp.ClientSession, card_mid: int,
                             is_printed: bool=False) -> bs4.BeautifulSoup:
@@ -49,7 +53,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
     # TODO: Fix adding another card
     async def determine_layout_and_div_name(soup: bs4.BeautifulSoup,
-                                            is_second_card: bool) -> List[Union[str, str, Optional[bool]]]:
+                                            is_second_card: bool) -> Tuple[str, str, Optional[bool]]:
         # Determine how many cards on on the page
         cards_total = len(soup.select('table[class^=cardDetails]'))
 
@@ -68,7 +72,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 div_name = div_name[:-3] + '_ctl02_{}'
                 add_additional_card = True
 
-        return [layout, div_name, add_additional_card]
+        return (layout, div_name, add_additional_card)
 
     async def parse_card_name(soup: bs4.BeautifulSoup, parse_div: str) -> str:
         """
@@ -129,7 +133,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         return [False, None]
 
     async def parse_colors_and_cost(soup: bs4.BeautifulSoup,
-                                    parse_div: str) -> List[Union[Optional[str], Optional[str]]]:
+                                    parse_div: str) -> Tuple[Optional[List[Color]], Optional[str]]:
         """
         Parse the colors and mana cost of the card
         Can use the colors to build the color identity later
@@ -141,21 +145,21 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         if mana_row:
             mana_row = mana_row.findAll('div')[-1]
 
-            card_colors = set()
+            card_colors: Set[Color] = set()
 
             mana_colors = replace_symbol_images_with_tokens(mana_row)[1]
             card_cost = mana_row.get_text(strip=True)
             card_colors.update(mana_colors)
 
             # Sort field in WUBRG order
-            card_colors = sorted(
+            sorted_colors = sorted(
                 list(filter(lambda c: c in card_colors, COLORS)),
-                key=lambda word: [COLORS.index(c) for c in word]
+                key=lambda word: [COLORS.index(Color(c)) for c in word]
             )
 
-            return [card_colors, card_cost]
+            return (sorted_colors, card_cost)
 
-        return [None, None]
+        return (None, None)
 
     async def parse_card_types(soup: bs4.BeautifulSoup,
                                parse_div: str) -> List[Union[List[str], List[str], List[str], str]]:
@@ -166,9 +170,9 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         :param parse_div:
         :return:
         """
-        card_super_types = []
-        card_types = []
-        card_sub_types = []
+        card_super_types: List[str] = []
+        card_types: List[str] = []
+        card_sub_types: List[str] = []
 
         type_row = soup.find(id=parse_div.format('typeRow'))
         type_row = type_row.findAll('div')[-1]
@@ -192,10 +196,10 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         return [card_super_types, card_types, card_sub_types, type_row]
 
     async def parse_card_text_and_color_identity(soup: bs4.BeautifulSoup, parse_div: str,
-                                                 card_colors: Optional[Set[str]]
-                                                 ) -> List[Union[Optional[str], Set[str]]]:
+                                                 card_colors: Optional[List[Color]]
+                                                 ) -> Tuple[Optional[str], List[Color]]:
         text_row = soup.find(id=parse_div.format('textRow'))
-        return_text = None
+        return_text = ''
         return_color_identity = set()
 
         if card_colors:
@@ -214,28 +218,29 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 # Next, just add the card text, line by line
                 return_text += div.get_text() + '\n'
 
-            return_text = return_text[:-1]  # Remove last '\n'
+            return_text = return_text.strip()  # Remove last '\n'
 
         # Sort field in WUBRG order
-        return_color_identity = sorted(
+        sorted_color_identity = sorted(
             list(filter(lambda c: c in return_color_identity, COLORS)),
-            key=lambda word: [COLORS.index(c) for c in word]
+            key=lambda word: [COLORS.index(Color(c)) for c in word]
         )
 
-        return [return_text, return_color_identity]
+        return (return_text or None, sorted_color_identity)
 
     async def parse_card_flavor(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
         flavor_row = soup.find(id=parse_div.format('flavorRow'))
-        card_flavor_text = None
+        card_flavor_text = ''
         if flavor_row is not None:
             flavor_row = flavor_row.select('div[class^=flavortextbox]')
 
-            card_flavor_text = ''
             for div in flavor_row:
                 card_flavor_text += div.get_text() + '\n'
 
-            card_flavor_text = card_flavor_text[:-1]  # Remove last '\n'
+            card_flavor_text = card_flavor_text.strip() # Remove last '\n'
 
+        if not card_flavor_text:
+            return None
         return card_flavor_text
 
     async def parse_card_pt_loyalty_vanguard(soup: bs4.BeautifulSoup,
@@ -305,7 +310,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         return card_watermark
 
     async def parse_rulings(soup: bs4.BeautifulSoup, parse_div: str) -> List[dict]:
-        rulings = list()
+        rulings: List[Dict[str, str]] = list()
         rulings_row = soup.find(id=parse_div.format('rulingsRow'))
         if rulings_row is not None:
             rulings_dates = rulings_row.findAll('td', id=re.compile(r'\w*_rulingDate\b'))
@@ -357,7 +362,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
         card_layout, div_name, add_other_card = await determine_layout_and_div_name(soup_oracle, second_card)
         if add_other_card:
-            other_cards_holder.append(loop.create_task(build_card(card_mid, None, second_card=True)))
+            other_cards_holder.append(loop.create_task(build_card(card_mid, [], second_card=True)))
 
         card_info['multiverseid'] = int(card_mid)
         card_info['name'] = await parse_card_name(soup_oracle, div_name)
@@ -558,8 +563,8 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_info['originalText'] = card_text[:-1]  # Remove last '\n'
 
-    async def build_card(card_mid: int, other_cards_holder: Optional[List[object]], second_card: bool=False) -> dict:
-        card_info = dict()
+    async def build_card(card_mid: int, other_cards_holder: List[object], second_card: bool=False) -> Dict[str, Any]:
+        card_info: Dict[str, Any] = dict()
 
         await build_main_part(card_mid, card_info, other_cards_holder, second_card=second_card)
         await build_original_details(card_mid, card_info, second_card=second_card)
@@ -736,8 +741,8 @@ async def apply_set_config_options(set_name, cards_dictionary):
     return return_product
 
 
-async def build_set(session: aiohttp.ClientSession, set_name, language):
-    async def get_mids_for_downloading():
+async def build_set(session: aiohttp.ClientSession, set_name: str, language: str):
+    async def get_mids_for_downloading() -> List[int]:
         print('BuildSet: Building Set {}'.format(set_name[0]))
 
         urls_for_set = await get_checklist_urls(session, set_name)
@@ -747,7 +752,7 @@ async def build_set(session: aiohttp.ClientSession, set_name, language):
         ids_to_return = [mid async for mid in generate_mids_by_set(session, urls_for_set)]
         return ids_to_return
 
-    async def build_then_print_stuff(mids_for_set, lang=None):
+    async def build_then_print_stuff(mids_for_set: List[int], lang: str = None):
         if lang:
             set_stat = '{0}.{1}'.format(set_name[0], lang)
             set_output = '{0}.{1}'.format(set_name[1], lang)
