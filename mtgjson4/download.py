@@ -1,6 +1,6 @@
 import asyncio
 import itertools
-from typing import Any, Dict, Tuple, Union, List, AsyncGenerator
+from typing import Any, AsyncGenerator, Dict, List, Tuple, Union
 
 import aiohttp
 import bs4

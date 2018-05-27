@@ -1,16 +1,12 @@
-import argparse
 import ast
 import asyncio
 import contextlib
-import copy
 import hashlib
 import json
 import os
 import pathlib
 import re
-import sys
-import time
-from typing import Any, Dict, List, Optional, Set, Union, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import aiohttp
 import bs4
@@ -18,13 +14,11 @@ import bs4
 from mtgjson4.download import (generate_mids_by_set, get_card_details,
                                get_card_foreign_details, get_card_legalities,
                                get_checklist_urls)
-from mtgjson4.globals import (CARD_TYPES, COLORS, DESCRIPTION, EXTRA_FIELDS,
-                              FIELD_TYPES, ORACLE_FIELDS, RESERVE_LIST,
-                              SET_SPECIFIC_FIELDS, SUPERTYPES, VERSION_INFO,
-                              get_language_long_name, get_symbol_short_name, Color)
+from mtgjson4.globals import (CARD_TYPES, COLORS, RESERVE_LIST, SUPERTYPES,
+                              Color, get_language_long_name,
+                              get_symbol_short_name)
 from mtgjson4.parsing import replace_symbol_images_with_tokens
-from mtgjson4.storage import (SET_OUT_DIR, ensure_set_dir_exists, is_set_file,
-                              open_set_json)
+from mtgjson4.storage import is_set_file, open_set_json
 
 COMP_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'compiled_outputs'
 SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
@@ -33,8 +27,8 @@ SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
 class MtgJson():
 
     def __init__(self, sets_to_build: List[str],
-                 session: aiohttp.ClientSession = None,
-                 loop: asyncio.AbstractEventLoop = None
+                 session: Optional[aiohttp.ClientSession] = None,
+                 loop: Optional[asyncio.AbstractEventLoop] = None
                 ) -> None:
         if loop is None:
             loop = asyncio.events.get_event_loop()

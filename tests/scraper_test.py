@@ -1,8 +1,11 @@
 import asyncio
+
 import aiohttp
-import vcr
-from mtgjson4 import builder
 import pytest
+import vcr
+
+from mtgjson4 import builder
+
 
 @pytest.mark.asyncio
 @vcr.use_cassette

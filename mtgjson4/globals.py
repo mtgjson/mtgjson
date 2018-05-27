@@ -1,4 +1,4 @@
-from typing import Dict, List, NewType, Optional, Union, Set
+from typing import Dict, List, NewType, Optional, Set, Union
 
 # Maintenance vars
 MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
