@@ -266,7 +266,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         return card_number
 
     async def parse_artists(soup: bs4.BeautifulSoup, parse_div: str) -> List[str]:
-        card_artists = list()
+        card_artists = []
         with contextlib.suppress(AttributeError):  # Un-cards might not have an artist!
             artist_row = soup.find(id=parse_div.format('artistRow'))
             artist_row = artist_row.findAll('div')[-1]
@@ -340,8 +340,8 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         card_info['cmc'] = await parse_card_cmc(soup_oracle, div_name)
 
         # Get other side's name for the user
-        card_other_name = await parse_card_other_name(soup_oracle, div_name, card_layout)
-        if card_other_name:
+        has_other, card_other_name = await parse_card_other_name(soup_oracle, div_name, card_layout)
+        if has_other:
             card_info['names'] = [card_info['name'], card_other_name]
 
         # Get card's colors and mana cost
@@ -368,7 +368,9 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                                                                                                  card_colors)
 
         # Get Card Flavor Text
-        card_info['flavor'] = await parse_card_flavor(soup_oracle, div_name)
+        c_flavor = await parse_card_flavor(soup_oracle, div_name)
+        if len(c_flavor) > 0:
+            card_info['flavor'] = c_flavor
 
         # Get Card P/T OR Loyalty OR Hand/Life
         c_power, c_toughness, c_loyalty, c_hand, c_life = await parse_card_pt_loyalty_vanguard(soup_oracle, div_name)
