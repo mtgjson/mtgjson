@@ -26,7 +26,8 @@ SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
 
 class MtgJson:
 
-    def __init__(self, sets_to_build: List[List[str]],
+    def __init__(self,
+                 sets_to_build: List[List[str]],
                  session: Optional[aiohttp.ClientSession] = None,
                  loop: Optional[asyncio.AbstractEventLoop] = None
                  ) -> None:
@@ -38,8 +39,10 @@ class MtgJson:
         self.http_session = session
         self.sets_to_build = sets_to_build
 
-    async def get_card_html(self, card_mid: int,
-                            is_printed: bool=False) -> bs4.BeautifulSoup:
+    async def get_card_html(self,
+                            card_mid: int,
+                            is_printed: bool=False
+                            ) -> bs4.BeautifulSoup:
         """
         Gets the card details (first page) of a single card
         :param card_mid:
@@ -51,8 +54,10 @@ class MtgJson:
         return soup
 
     # TODO: Fix adding another card
-    async def determine_layout_and_div_name(self, soup: bs4.BeautifulSoup,
-                                            is_second_card: bool) -> Tuple[str, str, Optional[bool]]:
+    async def determine_layout_and_div_name(self,
+                                            soup: bs4.BeautifulSoup,
+                                            is_second_card: bool
+                                            ) -> Tuple[str, str, Optional[bool]]:
         # Determine how many cards on on the page
         cards_total = len(soup.select('table[class^=cardDetails]'))
 
@@ -73,7 +78,10 @@ class MtgJson:
 
         return (layout, div_name, add_additional_card)
 
-    async def parse_card_name(self, soup: bs4.BeautifulSoup, parse_div: str) -> str:
+    async def parse_card_name(self,
+                              soup: bs4.BeautifulSoup,
+                              parse_div: str
+                              ) -> str:
         """
         Parse the card name from the row
         :param soup:
@@ -86,7 +94,10 @@ class MtgJson:
 
         return card_name
 
-    async def parse_card_cmc(self, soup: bs4.BeautifulSoup, parse_div: str) -> Union[int, float]:
+    async def parse_card_cmc(self,
+                             soup: bs4.BeautifulSoup,
+                             parse_div: str
+                             ) -> Union[int, float]:
         """
         Parse the card CMC from the row
         :param soup:
@@ -108,8 +119,11 @@ class MtgJson:
 
         return card_cmc
 
-    async def parse_card_other_name(self, soup: bs4.BeautifulSoup, parse_div: str,
-                                    layout: str) -> List[Union[bool, Optional[str]]]:
+    async def parse_card_other_name(self,
+                                    soup: bs4.BeautifulSoup,
+                                    parse_div: str,
+                                    layout: str
+                                    ) -> List[Union[bool, Optional[str]]]:
         """
         If the MID has 2 cards, return the other card's name
         :param soup:
@@ -131,8 +145,10 @@ class MtgJson:
 
         return [False, None]
 
-    async def parse_colors_and_cost(self, soup: bs4.BeautifulSoup,
-                                    parse_div: str) -> Tuple[Optional[List[Color]], Optional[str]]:
+    async def parse_colors_and_cost(self,
+                                    soup: bs4.BeautifulSoup,
+                                    parse_div: str
+                                    ) -> Tuple[Optional[List[Color]], Optional[str]]:
         """
         Parse the colors and mana cost of the card
         Can use the colors to build the color identity later
@@ -160,8 +176,10 @@ class MtgJson:
 
         return (None, None)
 
-    async def parse_card_types(self, soup: bs4.BeautifulSoup,
-                               parse_div: str) -> List[Union[List[str], List[str], List[str], str]]:
+    async def parse_card_types(self,
+                               soup: bs4.BeautifulSoup,
+                               parse_div: str
+                               ) -> List[Union[List[str], List[str], List[str], str]]:
         """
         Parse the types of the card and split them into 4 different structures
         super types, normal types, sub types, and the full row (all the types)
@@ -194,7 +212,8 @@ class MtgJson:
 
         return [card_super_types, card_types, card_sub_types, type_row]
 
-    async def parse_card_text_and_color_identity(self, soup: bs4.BeautifulSoup, parse_div: str,
+    async def parse_card_text_and_color_identity(self,
+                                                 soup: bs4.BeautifulSoup, parse_div: str,
                                                  card_colors: Optional[List[Color]]
                                                  ) -> Tuple[Optional[str], List[Color]]:
         text_row = soup.find(id=parse_div.format('textRow'))
@@ -227,7 +246,10 @@ class MtgJson:
 
         return (return_text or None, sorted_color_identity)
 
-    async def parse_card_flavor(self, soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
+    async def parse_card_flavor(self,
+                                soup: bs4.BeautifulSoup,
+                                parse_div: str
+                                ) -> Optional[str]:
         flavor_row = soup.find(id=parse_div.format('flavorRow'))
         card_flavor_text = ''
         if flavor_row is not None:
@@ -242,7 +264,8 @@ class MtgJson:
             return None
         return card_flavor_text
 
-    async def parse_card_pt_loyalty_vanguard(self, soup: bs4.BeautifulSoup,
+    async def parse_card_pt_loyalty_vanguard(self,
+                                             soup: bs4.BeautifulSoup,
                                              parse_div: str
                                              ) -> List[Union[Optional[str],
                                                              Optional[str],
@@ -275,13 +298,19 @@ class MtgJson:
 
         return [power, toughness, loyalty, hand, life]
 
-    async def parse_card_rarity(self, soup: bs4.BeautifulSoup, parse_div: str) -> str:
+    async def parse_card_rarity(self,
+                                soup: bs4.BeautifulSoup,
+                                parse_div: str
+                                ) -> str:
         rarity_row = soup.find(id=parse_div.format('rarityRow'))
         rarity_row = rarity_row.findAll('div')[-1]
         card_rarity = rarity_row.find('span').get_text(strip=True)
         return card_rarity
 
-    async def parse_card_number(self, soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
+    async def parse_card_number(self,
+                                soup: bs4.BeautifulSoup,
+                                parse_div: str
+                                ) -> Optional[str]:
         number_row = soup.find(id=parse_div.format('numberRow'))
         card_number = None
         if number_row is not None:
@@ -290,7 +319,10 @@ class MtgJson:
 
         return card_number
 
-    async def parse_artists(self, soup: bs4.BeautifulSoup, parse_div: str) -> List[str]:
+    async def parse_artists(self,
+                            soup: bs4.BeautifulSoup,
+                            parse_div: str
+                            ) -> List[str]:
 
         with contextlib.suppress(AttributeError):  # Un-cards might not have an artist!
             artist_row = soup.find(id=parse_div.format('artistRow'))
@@ -299,7 +331,10 @@ class MtgJson:
 
         return card_artists if card_artists else list()
 
-    async def parse_watermark(self, soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
+    async def parse_watermark(self,
+                              soup: bs4.BeautifulSoup,
+                              parse_div: str
+                              ) -> Optional[str]:
         card_watermark = None
         watermark_row = soup.find(id=parse_div.format('markRow'))
         if watermark_row is not None:
@@ -308,7 +343,10 @@ class MtgJson:
 
         return card_watermark
 
-    async def parse_rulings(self, soup: bs4.BeautifulSoup, parse_div: str) -> List[dict]:
+    async def parse_rulings(self,
+                            soup: bs4.BeautifulSoup,
+                            parse_div: str
+                            ) -> List[dict]:
         rulings: List[Dict[str, str]] = list()
         rulings_row = soup.find(id=parse_div.format('rulingsRow'))
         if rulings_row is not None:
@@ -327,7 +365,11 @@ class MtgJson:
 
         return rulings
 
-    async def parse_card_sets(self, soup: bs4.BeautifulSoup, parse_div: str, card_set: str) -> List[str]:
+    async def parse_card_sets(self,
+                              soup: bs4.BeautifulSoup,
+                              parse_div: str,
+                              card_set: str
+                              ) -> List[str]:
         card_printings = [card_set]
         sets_row = soup.find(id=parse_div.format('otherSetsRow'))
         if sets_row is not None:
@@ -342,7 +384,11 @@ class MtgJson:
 
         return card_printings
 
-    async def parse_card_variations(self, soup: bs4.BeautifulSoup, parse_div: str, card_mid: int) -> List[int]:
+    async def parse_card_variations(self,
+                                    soup: bs4.BeautifulSoup,
+                                    parse_div: str,
+                                    card_mid: int
+                                    ) -> List[int]:
         card_variations = []
         variations_row = soup.find(id=parse_div.format('variationLinks'))
         if variations_row is not None:
@@ -354,8 +400,13 @@ class MtgJson:
 
         return card_variations
 
-    async def build_main_part(self, set_name: List[str], card_mid: int, card_info: dict, other_cards_holder: List[object],
-                              second_card: bool=False) -> None:
+    async def build_main_part(self,
+                              set_name: List[str],
+                              card_mid: int,
+                              card_info: dict,
+                              other_cards_holder: List[object],
+                              second_card: bool=False
+                              ) -> None:
         # Parse web page so we can gather all data from it
         soup_oracle = await self.get_card_html(card_mid)
 
@@ -392,8 +443,8 @@ class MtgJson:
 
         # Get Card Text and Color Identity
         card_info['text'], card_info['colorIdentity'] = await self.parse_card_text_and_color_identity(soup_oracle,
-                                                                                                 div_name,
-                                                                                                 card_colors)
+                                                                                                      div_name,
+                                                                                                      card_colors)
 
         # Get Card Flavor Text
         c_flavor = await self.parse_card_flavor(soup_oracle, div_name)
