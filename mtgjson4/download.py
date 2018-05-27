@@ -21,7 +21,7 @@ async def ensure_content_downloaded(session: aiohttp.ClientSession, url_to_downl
             if retry == max_retries:
                 raise
             await asyncio.sleep(2)
-    raise
+    raise ValueError
 
 
 async def get_card_details(session: aiohttp.ClientSession, card_mid: int, printed: bool = False) -> str:

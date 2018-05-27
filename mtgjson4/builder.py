@@ -15,14 +15,11 @@ from mtgjson4.download import (generate_mids_by_set, get_card_details,
                                get_card_foreign_details, get_card_legalities,
                                get_checklist_urls)
 from mtgjson4.globals import (CARD_TYPES, COLORS, RESERVE_LIST, SUPERTYPES,
-                              Color, get_language_long_name,
-                              get_symbol_short_name)
-from mtgjson4.parsing import replace_symbol_images_with_tokens
-from mtgjson4.storage import is_set_file, open_set_json
+                              Color, get_language_long_name)
+from mtgjson4.parsing import (replace_symbol_images_with_tokens)
+from mtgjson4.storage import (is_set_file, open_set_json, open_set_config_json)
 
-COMP_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'compiled_outputs'
-SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
-
+from mtgjson4.storage import (SET_CONFIG_DIR)
 
 class MtgJson:
 
@@ -31,6 +28,12 @@ class MtgJson:
                  session: Optional[aiohttp.ClientSession] = None,
                  loop: Optional[asyncio.AbstractEventLoop] = None
                  ) -> None:
+        """
+        Start the class and define the i/o session and sets we'll have to build
+        :param sets_to_build:
+        :param session:
+        :param loop:
+        """
         if loop is None:
             loop = asyncio.events.get_event_loop()
         if session is None:
@@ -54,10 +57,9 @@ class MtgJson:
         return soup
 
     # TODO: Fix adding another card
-    async def determine_layout_and_div_name(self,
-                                            soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def determine_layout_and_div_name(soup: bs4.BeautifulSoup,
                                             is_second_card: bool,
-                                            card_id: int
                                             ) -> Tuple[str, str, Optional[bool]]:
         # Determine how many cards on on the page
         cards_total = len(soup.select('table[class^=cardDetails]'))
@@ -79,8 +81,8 @@ class MtgJson:
 
         return (layout, div_name, add_additional_card)
 
-    async def parse_card_name(self,
-                              soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def parse_card_name(soup: bs4.BeautifulSoup,
                               parse_div: str
                               ) -> str:
         """
@@ -95,8 +97,8 @@ class MtgJson:
 
         return card_name
 
-    async def parse_card_cmc(self,
-                             soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def parse_card_cmc(soup: bs4.BeautifulSoup,
                              parse_div: str
                              ) -> Union[int, float]:
         """
@@ -120,8 +122,8 @@ class MtgJson:
 
         return card_cmc
 
-    async def parse_card_other_name(self,
-                                    soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def parse_card_other_name(soup: bs4.BeautifulSoup,
                                     parse_div: str,
                                     layout: str
                                     ) -> List[Union[bool, Optional[str]]]:
@@ -146,39 +148,8 @@ class MtgJson:
 
         return [False, None]
 
-    async def parse_colors_and_cost(self,
-                                    soup: bs4.BeautifulSoup,
-                                    parse_div: str
-                                    ) -> Tuple[Optional[List[Color]], Optional[str]]:
-        """
-        Parse the colors and mana cost of the card
-        Can use the colors to build the color identity later
-        :param soup:
-        :param parse_div:
-        :return:
-        """
-        mana_row = soup.find(id=parse_div.format('manaRow'))
-        if mana_row:
-            mana_row = mana_row.findAll('div')[-1]
-
-            card_colors: Set[Color] = set()
-
-            mana_colors = replace_symbol_images_with_tokens(mana_row)[1]
-            card_cost = mana_row.get_text(strip=True)
-            card_colors.update(mana_colors)
-
-            # Sort field in WUBRG order
-            sorted_colors = sorted(
-                list(filter(lambda c: c in card_colors, COLORS)),
-                key=lambda word: [COLORS.index(Color(c)) for c in word]
-            )
-
-            return (sorted_colors, card_cost)
-
-        return (None, None)
-
-    async def parse_card_types(self,
-                               soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def parse_card_types(soup: bs4.BeautifulSoup,
                                parse_div: str
                                ) -> List[Union[List[str], List[str], List[str], str]]:
         """
@@ -213,8 +184,39 @@ class MtgJson:
 
         return [card_super_types, card_types, card_sub_types, type_row]
 
-    async def parse_card_text_and_color_identity(self,
-                                                 soup: bs4.BeautifulSoup, parse_div: str,
+    @staticmethod
+    async def parse_colors_and_cost(soup: bs4.BeautifulSoup,
+                                    parse_div: str
+                                    ) -> Tuple[Optional[List[Color]], Optional[str]]:
+        """
+        Parse the colors and mana cost of the card
+        Can use the colors to build the color identity later
+        :param soup:
+        :param parse_div:
+        :return:
+        """
+        mana_row = soup.find(id=parse_div.format('manaRow'))
+        if mana_row:
+            mana_row = mana_row.findAll('div')[-1]
+
+            card_colors: Set[Color] = set()
+
+            mana_colors = replace_symbol_images_with_tokens(mana_row)[1]
+            card_cost = mana_row.get_text(strip=True)
+            card_colors.update(mana_colors)
+
+            # Sort field in WUBRG order
+            sorted_colors = sorted(
+                list(filter(lambda c: c in card_colors, COLORS)),
+                key=lambda word: [COLORS.index(Color(c)) for c in word]
+            )
+
+            return (sorted_colors, card_cost)
+
+        return (None, None)
+
+    @staticmethod
+    async def parse_card_text_and_color_identity(soup: bs4.BeautifulSoup, parse_div: str,
                                                  card_colors: Optional[List[Color]]
                                                  ) -> Tuple[Optional[str], List[Color]]:
         text_row = soup.find(id=parse_div.format('textRow'))
@@ -247,8 +249,8 @@ class MtgJson:
 
         return (return_text or None, sorted_color_identity)
 
-    async def parse_card_flavor(self,
-                                soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def parse_card_flavor(soup: bs4.BeautifulSoup,
                                 parse_div: str
                                 ) -> Optional[str]:
         flavor_row = soup.find(id=parse_div.format('flavorRow'))
@@ -265,8 +267,8 @@ class MtgJson:
             return None
         return card_flavor_text
 
-    async def parse_card_pt_loyalty_vanguard(self,
-                                             soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def parse_card_pt_loyalty_vanguard(soup: bs4.BeautifulSoup,
                                              parse_div: str
                                              ) -> List[Union[Optional[str],
                                                              Optional[str],
@@ -299,8 +301,8 @@ class MtgJson:
 
         return [power, toughness, loyalty, hand, life]
 
-    async def parse_card_rarity(self,
-                                soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def parse_card_rarity(soup: bs4.BeautifulSoup,
                                 parse_div: str
                                 ) -> str:
         rarity_row = soup.find(id=parse_div.format('rarityRow'))
@@ -308,8 +310,8 @@ class MtgJson:
         card_rarity = rarity_row.find('span').get_text(strip=True)
         return card_rarity
 
-    async def parse_card_number(self,
-                                soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def parse_card_number(soup: bs4.BeautifulSoup,
                                 parse_div: str
                                 ) -> Optional[str]:
         number_row = soup.find(id=parse_div.format('numberRow'))
@@ -320,11 +322,10 @@ class MtgJson:
 
         return card_number
 
-    async def parse_artists(self,
-                            soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def parse_artists(soup: bs4.BeautifulSoup,
                             parse_div: str
                             ) -> List[str]:
-
         with contextlib.suppress(AttributeError):  # Un-cards might not have an artist!
             artist_row = soup.find(id=parse_div.format('artistRow'))
             artist_row = artist_row.findAll('div')[-1]
@@ -332,8 +333,8 @@ class MtgJson:
 
         return card_artists if card_artists else list()
 
-    async def parse_watermark(self,
-                              soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def parse_watermark(soup: bs4.BeautifulSoup,
                               parse_div: str
                               ) -> Optional[str]:
         card_watermark = None
@@ -344,8 +345,8 @@ class MtgJson:
 
         return card_watermark
 
-    async def parse_rulings(self,
-                            soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def parse_rulings(soup: bs4.BeautifulSoup,
                             parse_div: str
                             ) -> List[dict]:
         rulings: List[Dict[str, str]] = list()
@@ -385,8 +386,8 @@ class MtgJson:
 
         return card_printings
 
-    async def parse_card_variations(self,
-                                    soup: bs4.BeautifulSoup,
+    @staticmethod
+    async def parse_card_variations(soup: bs4.BeautifulSoup,
                                     parse_div: str,
                                     card_mid: int
                                     ) -> List[int]:
@@ -411,7 +412,7 @@ class MtgJson:
         # Parse web page so we can gather all data from it
         soup_oracle = await self.get_card_html(card_mid)
 
-        card_layout, div_name, add_other_card = await self.determine_layout_and_div_name(soup_oracle, second_card, card_mid)
+        card_layout, div_name, add_other_card = await self.determine_layout_and_div_name(soup_oracle, second_card)
         if add_other_card and other_cards_holder is not None:
             other_cards_holder.append(self.loop.create_task(self.build_card(set_name,
                                                                             card_mid,
@@ -456,7 +457,8 @@ class MtgJson:
             card_info['flavor'] = c_flavor
 
         # Get Card P/T OR Loyalty OR Hand/Life
-        c_power, c_toughness, c_loyalty, c_hand, c_life = await self.parse_card_pt_loyalty_vanguard(soup_oracle, div_name)
+        c_power, c_toughness, c_loyalty, c_hand, c_life = await self.parse_card_pt_loyalty_vanguard(soup_oracle,
+                                                                                                    div_name)
         if c_power:
             card_info['power'] = c_power
         if c_toughness:
@@ -501,22 +503,10 @@ class MtgJson:
         if c_variations:
             card_info['variations'] = c_variations
 
-    async def build_legalities_part(self, card_mid, card_info):
-        try:
-            html = await get_card_legalities(self.http_session, card_mid)
-        except aiohttp.ClientError as error:
-            # If Gatherer errors, omit the data for now
-            # This can be appended on a case-by-case basis
-            if error.code == 500:
-                return  # Page doesn't work, nothing we can do
-            else:
-                return
-
-        # Parse web page so we can gather all data from it
-        soup_oracle = bs4.BeautifulSoup(html, 'html.parser')
-
-        # Get Card Legalities
-        format_rows = soup_oracle.select('table[class^=cardList]')[1]
+    @staticmethod
+    async def parse_card_legal(soup: bs4.BeautifulSoup,
+                               ) -> List[Dict[str, Any]]:
+        format_rows = soup.select('table[class^=cardList]')[1]
         format_rows = format_rows.select('tr[class^=cardItem]')
         card_formats: List[Dict[str, Any]] = []
         with contextlib.suppress(IndexError):  # if no legalities, only one tr with only one td
@@ -530,24 +520,34 @@ class MtgJson:
                     'legality': card_format_legal
                 })
 
-            card_info['legalities'] = card_formats
+        return card_formats
 
-    async def build_foreign_part(self, card_mid, card_info):
+    async def build_legalities_part(self,
+                                    card_mid: int,
+                                    card_info: dict
+                                    ) -> None:
         try:
-            html = await get_card_foreign_details(self.http_session, card_mid)
+            html = await get_card_legalities(self.http_session, card_mid)
         except aiohttp.ClientError as error:
             # If Gatherer errors, omit the data for now
             # This can be appended on a case-by-case basis
             if error.code == 500:
                 return  # Page doesn't work, nothing we can do
             else:
+                print("Unknown error: ", error.code)
                 return
 
         # Parse web page so we can gather all data from it
         soup_oracle = bs4.BeautifulSoup(html, 'html.parser')
 
-        # Get Card Foreign Information
-        language_rows = soup_oracle.select('table[class^=cardList]')[0]
+        # Get Card Legalities
+        c_legal = await self.parse_card_legal(soup_oracle)
+        if c_legal:
+            card_info['legalities'] = c_legal
+
+    @staticmethod
+    async def parse_foreign_info(soup: bs4.BeautifulSoup) -> List[Dict[str, Any]]:
+        language_rows = soup.select('table[class^=cardList]')[0]
         language_rows = language_rows.select('tr[class^=cardItem]')
 
         card_languages: List[Dict[str, Any]] = []
@@ -567,55 +567,62 @@ class MtgJson:
                 'multiverseid': card_language_mid
             })
 
-        card_info['foreignNames'] = card_languages
+        return card_languages
 
-    async def build_id_part(self, set_name: List[str], card_mid, card_info):
+    async def build_foreign_part(self,
+                                 card_mid: int,
+                                 card_info: dict
+                                 ) -> None:
+        try:
+            html = await get_card_foreign_details(self.http_session, card_mid)
+        except aiohttp.ClientError as error:
+            # If Gatherer errors, omit the data for now
+            # This can be appended on a case-by-case basis
+            if error.code == 500:
+                return  # Page doesn't work, nothing we can do
+            else:
+                print("Unknown error: ", error.code)
+                return
+
+        # Parse web page so we can gather all data from it
+        soup_oracle = bs4.BeautifulSoup(html, 'html.parser')
+
+        # Get Card Foreign Information
+        c_foreign_info = await self.parse_foreign_info(soup_oracle)
+        if c_foreign_info:
+            card_info['foreignNames'] = c_foreign_info
+
+    @staticmethod
+    async def build_id_part(set_name: List[str],
+                            card_mid: int,
+                            card_info: dict
+                            ) -> str:
         card_hash = hashlib.sha3_256()
         card_hash.update(set_name[0].encode('utf-8'))
         card_hash.update(str(card_mid).encode('utf-8'))
         card_hash.update(card_info['name'].encode('utf-8'))
 
-        card_info['cardHash'] = card_hash.hexdigest()
+        return card_hash.hexdigest()
 
-    async def build_original_details(self, card_mid, card_info, second_card=False):
+    async def build_original_details(self,
+                                     card_mid: int,
+                                     card_info: dict,
+                                     second_card: bool=False
+                                     ) -> None:
         soup_print = await self.get_card_html(card_mid, True)
 
         # Determine if Card is Normal, Flip, or Split
-        div_name = 'ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{}'
-        cards_total = len(soup_print.select('table[class^=cardDetails]'))
-        if cards_total == 2:
-            if second_card:
-                div_name = div_name[:-3] + '_ctl03_{}'
-            else:
-                div_name = div_name[:-3] + '_ctl02_{}'
+        _, div_name, _ = await self.determine_layout_and_div_name(soup_print, second_card)
 
         # Get Card Original Type
-        orig_type_row = soup_print.find(id=div_name.format('typeRow'))
-        orig_type_row = orig_type_row.findAll('div')[-1]
-        orig_type_row = orig_type_row.get_text(strip=True).replace('  ', ' ')
-        if orig_type_row:
-            card_info['originalType'] = orig_type_row
+        _, _, _, c_original_type = await self.parse_card_types(soup_print, div_name)
+        if c_original_type:
+            card_info['originalType'] = c_original_type
 
         # Get Card Original Text
-        text_row = soup_print.find(id=div_name.format('textRow'))
-        if text_row is None:
-            card_info['originalText'] = ''
-        else:
-            text_row = text_row.select('div[class^=cardtextbox]')
-
-            card_text = ''
-            for div in text_row:
-                # Start by replacing all images with alternative text
-                images = div.findAll('img')
-                for symbol in images:
-                    symbol_value = symbol['alt']
-                    symbol_mapped = get_symbol_short_name(symbol_value)
-                    symbol.replace_with(f'{{{symbol_mapped}}}')
-
-                # Next, just add the card text, line by line
-                card_text += div.get_text() + '\n'
-
-            card_info['originalText'] = card_text[:-1]  # Remove last '\n'
+        c_original_text, _ = await self.parse_card_text_and_color_identity(soup_print, div_name, None)
+        if c_original_text:
+            card_info['originalText'] = c_original_text
 
     async def build_card(self,
                          set_name: List[str],
@@ -628,13 +635,15 @@ class MtgJson:
         await self.build_main_part(set_name, card_mid, card_info, other_cards_holder, second_card=second_card)
         await self.build_original_details(card_mid, card_info, second_card=second_card)
         await self.build_legalities_part(card_mid, card_info)
-        await self.build_id_part(set_name, card_mid, card_info)
         await self.build_foreign_part(card_mid, card_info)
+
+        card_info['cardHash'] = await self.build_id_part(set_name, card_mid, card_info)
 
         print('\tAdding {0} to {1}'.format(card_info['name'], set_name[0]))
         return card_info
 
-    def add_layouts(self, cards):
+    @staticmethod
+    def add_card_layouts_inline(cards: list) -> None:
         for card_info in cards:
             if 'names' in card_info:
                 sides = len(card_info['names'])
@@ -702,11 +711,14 @@ class MtgJson:
                 card_future = future.result()
                 cards_in_set.append(card_future)
 
-        self.add_layouts(cards_in_set)
+        self.add_card_layouts_inline(cards_in_set)
 
         return cards_in_set
 
-    async def build_set(self, set_name: List[str], language: str):
+    async def build_set(self,
+                        set_name: List[str],
+                        language: str
+                        ) -> Dict[Union[str, Any], Union[list, Any]]:
         async def get_mids_for_downloading() -> List[int]:
             print('BuildSet: Building Set {}'.format(set_name[0]))
 
@@ -768,71 +780,68 @@ class MtgJson:
             return await build_foreign_language()
 
 
-async def apply_set_config_options(set_name, cards_dictionary):
+async def apply_set_config_options(set_name: List[str],
+                                   cards_dictionary: list
+                                   ) -> Dict[Union[str, Any], Union[list, Any]]:
     return_product = dict()
 
     # Will search the tree of set_configs to find the file
-    with (pathlib.Path(find_file("{}.json".format(set_name[1]), SET_CONFIG_DIR))).open('r', encoding='utf-8') as fp:
+    with open_set_config_json(set_name[1], 'r') as fp:
         file_response = json.load(fp)
 
-        for key, value in file_response['SET'].items():
-            return_product[key] = value
+    for key, value in file_response['SET'].items():
+        return_product[key] = value
 
-        if 'SET_CORRECTIONS' in file_response.keys():
-            match_replace_rules = str(file_response['SET_CORRECTIONS'])
-            match_replace_rules = ast.literal_eval(match_replace_rules)
+    if 'SET_CORRECTIONS' in file_response.keys():
+        match_replace_rules = str(file_response['SET_CORRECTIONS'])
+        match_replace_rules = ast.literal_eval(match_replace_rules)
 
-            for replacement_rule in match_replace_rules:
-                with contextlib.suppress(KeyError):  # If there's no match, it's deprecated
-                    replacement_match = replacement_rule['match']
+        for replacement_rule in match_replace_rules:
+            with contextlib.suppress(KeyError):  # If there's no match, it's deprecated
+                replacement_match = replacement_rule['match']
 
-                if 'replace' in replacement_rule.keys():
-                    fix_type = 'replace'
-                    replacement_update = replacement_rule['replace']
-                elif 'fixForeignNames' in replacement_rule.keys():
-                    fix_type = 'fixForeignNames'
-                    replacement_update = replacement_rule['fixForeignNames']
+            if 'replace' in replacement_rule.keys():
+                fix_type = 'replace'
+                replacement_update = replacement_rule['replace']
+            elif 'fixForeignNames' in replacement_rule.keys():
+                fix_type = 'fixForeignNames'
+                replacement_update = replacement_rule['fixForeignNames']
+            else:
+                continue
+
+            for key, value in replacement_match.items():
+                if isinstance(value, list):
+                    cards_to_modify = [
+                        card
+                        for card in cards_dictionary if key in card.keys() and card[key] in value
+                    ]
+                elif isinstance(value, str) or isinstance(value, int):
+                    cards_to_modify = [
+                        card
+                        for card in cards_dictionary if key in card.keys() and card[key] == value
+                    ]
                 else:
                     continue
 
-                for key, value in replacement_match.items():
-                    if isinstance(value, list):
-                        cards_to_modify = [
-                            card
-                            for card in cards_dictionary if key in card.keys() and card[key] in value
-                        ]
-                    elif isinstance(value, str) or isinstance(value, int):
-                        cards_to_modify = [
-                            card
-                            for card in cards_dictionary if key in card.keys() and card[key] == value
-                        ]
-                    else:
-                        continue
+                if fix_type == 'replace':
+                    for key_name, replacement in replacement_update.items():
+                        for card in cards_to_modify:
+                            card[key_name] = replacement
+                elif fix_type == 'fixForeignNames':
+                    for lang_replacements in replacement_update:
+                        language_name = lang_replacements['language']
+                        new_name = lang_replacements['name']
 
-                    if fix_type == 'replace':
-                        for key_name, replacement in replacement_update.items():
-                            for card in cards_to_modify:
-                                card[key_name] = replacement
-                    elif fix_type == 'fixForeignNames':
-                        for lang_replacements in replacement_update:
-                            language_name = lang_replacements['language']
-                            new_name = lang_replacements['name']
-
-                            for card in cards_to_modify:
-                                for foreign_names_field in card['foreignNames']:
-                                    if foreign_names_field['language'] == language_name:
-                                        foreign_names_field['name'] = new_name
+                        for card in cards_to_modify:
+                            for foreign_names_field in card['foreignNames']:
+                                if foreign_names_field['language'] == language_name:
+                                    foreign_names_field['name'] = new_name
 
     return_product['cards'] = cards_dictionary
 
     return return_product
 
 
-def find_file(name: str, path) -> Optional[str]:
-    for root, _, files in os.walk(path):
-        if name in files:
-            return os.path.join(root, name)
-    return None
 
 
 def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[List[str]]:

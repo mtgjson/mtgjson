@@ -8,14 +8,21 @@ import pathlib
 import sys
 import time
 
-from mtgjson4.builder import COMP_OUT_DIR, MtgJson, determine_gatherer_sets
+from mtgjson4.builder import (MtgJson, determine_gatherer_sets)
 from mtgjson4.globals import (DESCRIPTION, EXTRA_FIELDS, FIELD_TYPES,
                               ORACLE_FIELDS, SET_SPECIFIC_FIELDS, VERSION_INFO,
                               get_language_long_name)
-from mtgjson4.storage import SET_OUT_DIR, ensure_set_dir_exists
+from mtgjson4.storage import (SET_OUT_DIR, COMP_OUT_DIR, ensure_set_dir_exists)
 
 
 async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str) -> None:
+    """
+    Main method that starts the entire build process
+    :param loop:
+    :param session:
+    :param language_to_build:
+    :return:
+    """
     ensure_set_dir_exists()
 
     async with session:
