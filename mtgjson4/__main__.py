@@ -48,13 +48,15 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         return soup
 
     # TODO: Fix adding another card
-    async def determine_layout_and_div_name(soup: bs4.BeautifulSoup, is_second_card: bool) -> List[Union[str, str]]:
+    async def determine_layout_and_div_name(soup: bs4.BeautifulSoup,
+                                            is_second_card: bool) -> List[Union[str, str, Optional[bool]]]:
         # Determine how many cards on on the page
         cards_total = len(soup.select('table[class^=cardDetails]'))
 
         # Values to return
         div_name = 'ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{}'
         layout = 'unknown'
+        add_additional_card = False
 
         if cards_total == 1:
             layout = 'normal'
@@ -64,9 +66,9 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 div_name = div_name[:-3] + '_ctl03_{}'
             else:
                 div_name = div_name[:-3] + '_ctl02_{}'
-                # additional_cards.append(loop.create_task(build_card(card_mid, second_card=True)))
+                add_additional_card = True
 
-        return [layout, div_name]
+        return [layout, div_name, add_additional_card]
 
     async def parse_card_name(soup: bs4.BeautifulSoup, parse_div: str) -> str:
         """
@@ -190,8 +192,8 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         return [card_super_types, card_types, card_sub_types, type_row]
 
     async def parse_card_text_and_color_identity(soup: bs4.BeautifulSoup, parse_div: str,
-                                                 card_colors: Optional[Set[str]])\
-            -> List[Union[Optional[str], Set[str]]]:
+                                                 card_colors: Optional[Set[str]]
+                                                 ) -> List[Union[Optional[str], Set[str]]]:
         text_row = soup.find(id=parse_div.format('textRow'))
         return_text = None
         return_color_identity = set()
@@ -237,8 +239,12 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         return card_flavor_text
 
     async def parse_card_pt_loyalty_vanguard(soup: bs4.BeautifulSoup,
-                                             parse_div: str) -> \
-            List[Union[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]]:
+                                             parse_div: str
+                                             ) -> List[Union[Optional[str],
+                                                             Optional[str],
+                                                             Optional[str],
+                                                             Optional[str],
+                                                             Optional[str]]]:
         pt_row = soup.find(id=parse_div.format('ptRow'))
 
         power = None
@@ -344,11 +350,14 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
         return card_variations
 
-    async def build_main_part(card_mid: int, card_info: dict, second_card: bool=False):
+    async def build_main_part(card_mid: int, card_info: dict, other_cards_holder: List[object],
+                              second_card: bool=False) -> None:
         # Parse web page so we can gather all data from it
         soup_oracle = await get_card_html(session, card_mid)
 
-        card_layout, div_name = await determine_layout_and_div_name(soup_oracle, second_card)
+        card_layout, div_name, add_other_card = await determine_layout_and_div_name(soup_oracle, second_card)
+        if add_other_card:
+            other_cards_holder.append(loop.create_task(build_card(card_mid, None, second_card=True)))
 
         card_info['multiverseid'] = int(card_mid)
         card_info['name'] = await parse_card_name(soup_oracle, div_name)
@@ -549,10 +558,10 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_info['originalText'] = card_text[:-1]  # Remove last '\n'
 
-    async def build_card(card_mid, second_card=False):
-        card_info = {}
+    async def build_card(card_mid: int, other_cards_holder: Optional[List[object]], second_card: bool=False) -> dict:
+        card_info = dict()
 
-        await build_main_part(card_mid, card_info, second_card=second_card)
+        await build_main_part(card_mid, card_info, other_cards_holder, second_card=second_card)
         await build_original_details(card_mid, card_info, second_card=second_card)
         await build_legalities_part(card_mid, card_info)
         await build_id_part(card_mid, card_info)
@@ -605,14 +614,14 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_info['layout'] = card_layout
 
-    # start asyncio tasks for building each card
-    futures = [
-        loop.create_task(build_card(card_mid))
-        for card_mid in multiverse_ids
-    ]
-
     additional_cards = []
     cards_in_set = []
+
+    # start asyncio tasks for building each card
+    futures = [
+        loop.create_task(build_card(card_mid, additional_cards))
+        for card_mid in multiverse_ids
+    ]
 
     # then wait until all of them are completed
     with contextlib.suppress(ValueError):  # Happens if no cards are in the multiverse_ids
@@ -627,7 +636,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             card_future = future.result()
             cards_in_set.append(card_future)
 
-    # add_layouts(cards_in_set)
+    add_layouts(cards_in_set)
 
     return cards_in_set
 
