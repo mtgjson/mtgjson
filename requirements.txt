@@ -1,3 +1,6 @@
 aiohttp
 bs4
 mypy
+vcrpy
+pytest
+pytest-asyncio

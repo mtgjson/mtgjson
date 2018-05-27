@@ -1,9 +1,9 @@
 import copy
-from typing import Set, List, Union
+from typing import List, Set, Union
 
 from bs4 import Tag
 
-from mtgjson4.globals import COLORS, get_symbol_short_name, Color
+from mtgjson4.globals import COLORS, Color, get_symbol_short_name
 
 
 def replace_symbol_images_with_tokens(tag: Tag) -> List[Union[Tag, Set[Color]]]:

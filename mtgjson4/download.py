@@ -1,6 +1,6 @@
 import asyncio
 import itertools
-from typing import Any
+from typing import Any, AsyncGenerator, Dict, List, Tuple, Union
 
 import aiohttp
 import bs4
@@ -21,30 +21,32 @@ async def ensure_content_downloaded(session: aiohttp.ClientSession, url_to_downl
             if retry == max_retries:
                 raise
             await asyncio.sleep(2)
+    raise
 
 
-async def get_card_details(session, card_mid, printed=False):
+async def get_card_details(session: aiohttp.ClientSession, card_mid: int, printed: bool = False) -> str:
     return await ensure_content_downloaded(session, main_url, params=get_params(card_mid, printed))
 
 
-async def get_card_legalities(session, card_mid):
+async def get_card_legalities(session: aiohttp.ClientSession, card_mid: int) -> str:
     return await ensure_content_downloaded(session, legal_url, params=get_params(card_mid))
 
 
-async def get_card_foreign_details(session, card_mid):
+async def get_card_foreign_details(session: aiohttp.ClientSession, card_mid: int) -> str:
     return await ensure_content_downloaded(session, foreign_url, params=get_params(card_mid))
 
 
-def get_params(card_mid, printed=False):
+def get_params(card_mid: int, printed: bool = False) -> Dict[str, Union[str, int]]:
     return {
         'multiverseid': card_mid,
         'printed': str(printed).lower(),
         'page': 0
     }
 
+SetUrls = List[Tuple[str, Dict[str, Union[str, int]]]]
 
-async def get_checklist_urls(session, set_name):
-    def page_count_for_set(html_data):
+async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]) -> SetUrls:
+    def page_count_for_set(html_data: str) -> int:
         try:
             # Get the last instance of 'pagingcontrols' and get the page
             # number from the URL it contains
@@ -64,7 +66,7 @@ async def get_checklist_urls(session, set_name):
 
         return num_page_links + 1
 
-    def url_params_for_page(page_number):
+    def url_params_for_page(page_number: int) -> Dict[str, Union[str, int]]:
         return {
             'output': 'checklist',
             'sort': 'cn+',
@@ -83,11 +85,11 @@ async def get_checklist_urls(session, set_name):
     ]
 
 
-async def generate_mids_by_set(session, set_urls):
+async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrls) -> AsyncGenerator[int, None]:
     for url, params in set_urls:
         async with session.get(url, params=params) as response:
             soup_oracle = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
             # All cards on the page
             for card_info in soup_oracle.findAll('a', {'class': 'nameLink'}):
-                yield str(card_info).split('multiverseid=')[1].split('"')[0]
+                yield int(str(card_info).split('multiverseid=')[1].split('"')[0])
