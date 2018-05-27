@@ -26,7 +26,7 @@ SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
 
 class MtgJson():
 
-    def __init__(self, sets_to_build: List[str],
+    def __init__(self, sets_to_build: List[List[str]],
                  session: Optional[aiohttp.ClientSession] = None,
                  loop: Optional[asyncio.AbstractEventLoop] = None
                 ) -> None:
@@ -645,7 +645,7 @@ class MtgJson():
 
         return cards_in_set
 
-    async def build_set(self, set_name: str, language: str):
+    async def build_set(self, set_name: List[str], language: str):
         async def get_mids_for_downloading() -> List[int]:
             print('BuildSet: Building Set {}'.format(set_name[0]))
 
@@ -766,12 +766,13 @@ async def apply_set_config_options(set_name, cards_dictionary):
 
     return return_product
 
-def find_file(name, path):
+def find_file(name: str, path) -> Optional[str]:
     for root, _, files in os.walk(path):
         if name in files:
             return os.path.join(root, name)
+    return None
 
-def determine_gatherer_sets(args):
+def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[List[str]]:
     def try_to_append(root_p, file_p):
         with pathlib.Path(root_p, file_p).open('r', encoding='utf8') as fp:
             this_set_name = json.load(fp)

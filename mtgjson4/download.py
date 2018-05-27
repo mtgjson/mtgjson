@@ -45,7 +45,7 @@ def get_params(card_mid: int, printed: bool = False) -> Dict[str, Union[str, int
 
 SetUrls = List[Tuple[str, Dict[str, Union[str, int]]]]
 
-async def get_checklist_urls(session: aiohttp.ClientSession, set_name: str) -> SetUrls:
+async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]) -> SetUrls:
     def page_count_for_set(html_data: str) -> int:
         try:
             # Get the last instance of 'pagingcontrols' and get the page
