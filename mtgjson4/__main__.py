@@ -10,7 +10,7 @@ import pathlib
 import re
 import sys
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set, Union, Optional
 
 import aiohttp
 import bs4
@@ -30,69 +30,117 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    async def build_main_part(card_mid, card_info, second_card=False):
-        # Parse web page so we can gather all data from it
-        html_oracle = await get_card_details(session, card_mid)
-        soup_oracle = bs4.BeautifulSoup(html_oracle, 'html.parser')
+    async def get_card_html(aio_session: aiohttp.ClientSession, card_mid: int,
+                            is_printed: bool=False) -> bs4.BeautifulSoup:
+        """
+        Gets the card details (first page) of a single card
+        :param aio_session:
+        :param card_mid:
+        :param is_printed:
+        :return:
+        """
+        html = await get_card_details(aio_session, card_mid, is_printed)
+        soup = bs4.BeautifulSoup(html, 'html.parser')
+        return soup
 
-        # Get Card Multiverse ID
-        card_info['multiverseid'] = int(card_mid)
+    # TODO: Fix adding another card
+    async def determine_layout_and_div_name(soup: bs4.BeautifulSoup,
+                                            is_second_card: bool) -> List[Union[str, str, Optional[bool]]]:
+        # Determine how many cards on on the page
+        cards_total = len(soup.select('table[class^=cardDetails]'))
 
-        # Determine if Card is Normal, Flip, or Split
+        # Values to return
         div_name = 'ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{}'
-        cards_total = len(soup_oracle.select('table[class^=cardDetails]'))
+        layout = 'unknown'
+        add_additional_card = False
+
         if cards_total == 1:
-            card_layout = 'normal'
+            layout = 'normal'
         elif cards_total == 2:
-            card_layout = 'double'
-            if second_card:
+            layout = 'double'
+            if is_second_card:
                 div_name = div_name[:-3] + '_ctl03_{}'
             else:
                 div_name = div_name[:-3] + '_ctl02_{}'
-                additional_cards.append(loop.create_task(build_card(card_mid, second_card=True)))
-        else:
-            card_layout = 'unknown'
+                add_additional_card = True
 
-        # Get Card Name
-        name_row = soup_oracle.find(id=div_name.format('nameRow'))
+        return [layout, div_name, add_additional_card]
+
+    async def parse_card_name(soup: bs4.BeautifulSoup, parse_div: str) -> str:
+        """
+        Parse the card name from the row
+        :param soup:
+        :param parse_div:
+        :return: card name from MID
+        """
+        name_row = soup.find(id=parse_div.format('nameRow'))
         name_row = name_row.findAll('div')[-1]
         card_name = name_row.get_text(strip=True)
-        card_info['name'] = card_name
 
-        # Get other side's name for the user
-        if card_layout == 'double':
-            if 'ctl02' in div_name:
-                other_div_name = div_name.replace('02', '03')
+        return card_name
+
+    async def parse_card_cmc(soup: bs4.BeautifulSoup, parse_div: str) -> Union[int, float]:
+        """
+        Parse the card CMC from the row
+        :param soup:
+        :param parse_div:
+        :return: cmc from MID
+        """
+        cmc_row = soup.find(id=parse_div.format('cmcRow'))
+
+        if cmc_row is None:
+            return 0
+
+        cmc_row = cmc_row.findAll('div')[-1]
+        card_cmc = cmc_row.get_text(strip=True)
+
+        try:
+            card_cmc = int(card_cmc)
+        except ValueError:  # Little Girl causes this, for example
+            card_cmc = float(card_cmc)
+
+        return card_cmc
+
+    async def parse_card_other_name(soup: bs4.BeautifulSoup, parse_div: str,
+                                    layout: str) -> List[Union[bool, Optional[str]]]:
+        """
+        If the MID has 2 cards, return the other card's name
+        :param soup:
+        :param parse_div:
+        :param layout:
+        :return: If the layout matches, return the other card's name
+        """
+        if layout == 'double':
+            if 'ctl02' in parse_div:
+                other_div_name = parse_div.replace('02', '03')
             else:
-                other_div_name = div_name.replace('03', '02')
-            other_name_row = soup_oracle.find(id=other_div_name.format('nameRow'))
+                other_div_name = parse_div.replace('03', '02')
+
+            other_name_row = soup.find(id=other_div_name.format('nameRow'))
             other_name_row = other_name_row.findAll('div')[-1]
             card_other_name = other_name_row.get_text(strip=True)
-            card_info['names'] = [card_name, card_other_name]
 
-        # Get Card CMC
-        cmc_row = soup_oracle.find(id=div_name.format('cmcRow'))
-        if cmc_row is None:
-            card_info['cmc'] = 0
-        else:
-            cmc_row = cmc_row.findAll('div')[-1]
-            card_cmc = cmc_row.get_text(strip=True)
-            try:
-                card_info['cmc'] = int(card_cmc)
-            except ValueError:  # Little Girl causes this, for example
-                card_info['cmc'] = float(card_cmc)
+            return [True, card_other_name]
 
-        # Get Card Colors, Cost, and Color Identity (start)
-        card_color_identity = set()
-        mana_row = soup_oracle.find(id=div_name.format('manaRow'))
+        return [False, None]
+
+    async def parse_colors_and_cost(soup: bs4.BeautifulSoup,
+                                    parse_div: str) -> List[Union[Optional[str], Optional[str]]]:
+        """
+        Parse the colors and mana cost of the card
+        Can use the colors to build the color identity later
+        :param soup:
+        :param parse_div:
+        :return:
+        """
+        mana_row = soup.find(id=parse_div.format('manaRow'))
         if mana_row:
             mana_row = mana_row.findAll('div')[-1]
 
             card_colors = set()
 
-            mana_colors = replace_symbol_images_with_tokens(mana_row)
+            mana_colors = replace_symbol_images_with_tokens(mana_row)[1]
             card_cost = mana_row.get_text(strip=True)
-            card_color_identity.update(mana_colors)
             card_colors.update(mana_colors)
 
             # Sort field in WUBRG order
@@ -101,23 +149,32 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 key=lambda word: [COLORS.index(c) for c in word]
             )
 
-            if card_colors:
-                card_info['colors'] = card_colors
-            if card_cost:
-                card_info['manaCost'] = card_cost
+            return [card_colors, card_cost]
 
-        # Get Card Type(s)
+        return [None, None]
+
+    async def parse_card_types(soup: bs4.BeautifulSoup,
+                               parse_div: str) -> List[Union[List[str], List[str], List[str], str]]:
+        """
+        Parse the types of the card and split them into 4 different structures
+        super types, normal types, sub types, and the full row (all the types)
+        :param soup:
+        :param parse_div:
+        :return:
+        """
         card_super_types = []
         card_types = []
-        type_row = soup_oracle.find(id=div_name.format('typeRow'))
+        card_sub_types = []
+
+        type_row = soup.find(id=parse_div.format('typeRow'))
         type_row = type_row.findAll('div')[-1]
         type_row = type_row.get_text(strip=True).replace('  ', ' ')
 
         if '—' in type_row:
             supertypes_and_types, subtypes = type_row.split('—')
+            card_sub_types = subtypes.split()
         else:
             supertypes_and_types = type_row
-            subtypes = ''
 
         for value in supertypes_and_types.split():
             if value in SUPERTYPES:
@@ -128,45 +185,44 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 card_types.append(value)
                 # raise ValueError(f'Unknown supertype or card type: {value}')
 
-        card_sub_types = subtypes.split()
+        return [card_super_types, card_types, card_sub_types, type_row]
 
-        if card_super_types:
-            card_info['supertypes'] = card_super_types
-        if card_types:
-            card_info['types'] = card_types
-        if card_sub_types:
-            card_info['subtypes'] = card_sub_types
-        if type_row:
-            card_info['type'] = type_row
+    async def parse_card_text_and_color_identity(soup: bs4.BeautifulSoup, parse_div: str,
+                                                 card_colors: Optional[Set[str]]
+                                                 ) -> List[Union[Optional[str], Set[str]]]:
+        text_row = soup.find(id=parse_div.format('textRow'))
+        return_text = None
+        return_color_identity = set()
 
-        # Get Card Text and Color Identity (remaining)
-        text_row = soup_oracle.find(id=div_name.format('textRow'))
-        if text_row is None:
-            card_info['text'] = ''
-        else:
+        if card_colors:
+            return_color_identity.update(card_colors)
+
+        if text_row is not None:
             text_row = text_row.select('div[class^=cardtextbox]')
 
-            card_text = ''
+            return_text = ''
             for div in text_row:
                 # Start by replacing all images with alternative text
-                card_color_identity.update(replace_symbol_images_with_tokens(div))
+                div, instance_color_identity = replace_symbol_images_with_tokens(div)
+
+                return_color_identity.update(instance_color_identity)
 
                 # Next, just add the card text, line by line
-                card_text += div.get_text() + '\n'
+                return_text += div.get_text() + '\n'
 
-            card_info['text'] = card_text[:-1]  # Remove last '\n'
+            return_text = return_text[:-1]  # Remove last '\n'
 
         # Sort field in WUBRG order
-        card_color_identity = sorted(
-            list(filter(lambda c: c in card_color_identity, COLORS)),
+        return_color_identity = sorted(
+            list(filter(lambda c: c in return_color_identity, COLORS)),
             key=lambda word: [COLORS.index(c) for c in word]
         )
 
-        if card_color_identity:
-            card_info['colorIdentity'] = card_color_identity
+        return [return_text, return_color_identity]
 
-        # Get Card Flavor Text
-        flavor_row = soup_oracle.find(id=div_name.format('flavorRow'))
+    async def parse_card_flavor(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
+        flavor_row = soup.find(id=parse_div.format('flavorRow'))
+        card_flavor_text = None
         if flavor_row is not None:
             flavor_row = flavor_row.select('div[class^=flavortextbox]')
 
@@ -174,10 +230,25 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             for div in flavor_row:
                 card_flavor_text += div.get_text() + '\n'
 
-            card_info['flavor'] = card_flavor_text[:-1]  # Remove last '\n'
+            card_flavor_text = card_flavor_text[:-1]  # Remove last '\n'
 
-        # Get Card P/T OR Loyalty OR Hand/Life
-        pt_row = soup_oracle.find(id=div_name.format('ptRow'))
+        return card_flavor_text
+
+    async def parse_card_pt_loyalty_vanguard(soup: bs4.BeautifulSoup,
+                                             parse_div: str
+                                             ) -> List[Union[Optional[str],
+                                                             Optional[str],
+                                                             Optional[str],
+                                                             Optional[str],
+                                                             Optional[str]]]:
+        pt_row = soup.find(id=parse_div.format('ptRow'))
+
+        power = None
+        toughness = None
+        loyalty = None
+        hand = None
+        life = None
+
         if pt_row is not None:
             pt_row = pt_row.findAll('div')[-1]
             pt_row = pt_row.get_text(strip=True)
@@ -185,58 +256,60 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             # If Vanguard
             if 'Hand Modifier' in pt_row:
                 pt_row = pt_row.split('\xa0,\xa0')
-                card_hand_mod = pt_row[0].split(' ')[-1]
-                card_life_mod = pt_row[1].split(' ')[-1][:-1]
-
-                card_info['hand'] = card_hand_mod
-                card_info['life'] = card_life_mod
+                hand = pt_row[0].split(' ')[-1]
+                life = pt_row[1].split(' ')[-1][:-1]
             elif '/' in pt_row:
                 card_power, card_toughness = pt_row.split('/')
-                card_info['power'] = card_power.strip()
-                card_info['toughness'] = card_toughness.strip()
+                power = card_power.strip()
+                toughness = card_toughness.strip()
             else:
-                card_info['loyalty'] = pt_row.strip()
+                loyalty = pt_row.strip()
 
-        # Get Card Rarity
-        rarity_row = soup_oracle.find(id=div_name.format('rarityRow'))
+        return [power, toughness, loyalty, hand, life]
+
+    async def parse_card_rarity(soup: bs4.BeautifulSoup, parse_div: str) -> str:
+        rarity_row = soup.find(id=parse_div.format('rarityRow'))
         rarity_row = rarity_row.findAll('div')[-1]
         card_rarity = rarity_row.find('span').get_text(strip=True)
-        card_info['rarity'] = card_rarity
+        return card_rarity
 
-        # Get Card Set Number
-        number_row = soup_oracle.find(id=div_name.format('numberRow'))
+    async def parse_card_number(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
+        number_row = soup.find(id=parse_div.format('numberRow'))
+        card_number = None
         if number_row is not None:
             number_row = number_row.findAll('div')[-1]
             card_number = number_row.get_text(strip=True)
-            card_info['number'] = card_number
 
-        # Get Card Artist
+        return card_number
+
+    async def parse_artists(soup: bs4.BeautifulSoup, parse_div: str) -> List[str]:
+
         with contextlib.suppress(AttributeError):  # Un-cards might not have an artist!
-            artist_row = soup_oracle.find(id=div_name.format('artistRow'))
+            artist_row = soup.find(id=parse_div.format('artistRow'))
             artist_row = artist_row.findAll('div')[-1]
             card_artists = artist_row.find('a').get_text(strip=True).split('&')
-            card_info['artist'] = card_artists
 
-        # Get Card Watermark
-        watermark_row = soup_oracle.find(id=div_name.format('markRow'))
+        return card_artists if card_artists else list()
+
+    async def parse_watermark(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
+        card_watermark = None
+        watermark_row = soup.find(id=parse_div.format('markRow'))
         if watermark_row is not None:
             watermark_row = watermark_row.findAll('div')[-1]
             card_watermark = watermark_row.get_text(strip=True)
-            card_info['watermark'] = card_watermark
 
-        # Get Card Reserve List Status
-        if card_info['name'] in RESERVE_LIST:
-            card_info['reserved'] = True
+        return card_watermark
 
-        # Get Card Rulings
-        rulings_row = soup_oracle.find(id=div_name.format('rulingsRow'))
+    async def parse_rulings(soup: bs4.BeautifulSoup, parse_div: str) -> List[dict]:
+        rulings = list()
+        rulings_row = soup.find(id=parse_div.format('rulingsRow'))
         if rulings_row is not None:
             rulings_dates = rulings_row.findAll('td', id=re.compile(r'\w*_rulingDate\b'))
             rulings_text = rulings_row.findAll('td', id=re.compile(r'\w*_rulingText\b'))
             for ruling_text in rulings_text:
-                replace_symbol_images_with_tokens(ruling_text)
+                ruling_text = replace_symbol_images_with_tokens(ruling_text)[0]
 
-            card_info['rulings'] = [
+            rulings = [
                 {
                     'date': ruling_date.get_text(),
                     'text': ruling_text.get_text()
@@ -244,9 +317,11 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 for ruling_date, ruling_text in zip(rulings_dates, rulings_text)
             ]
 
-        # Get Card Sets
-        card_printings = [set_name[1]]
-        sets_row = soup_oracle.find(id=div_name.format('otherSetsRow'))
+        return rulings
+
+    async def parse_card_sets(soup: bs4.BeautifulSoup, parse_div: str, card_set: str) -> List[str]:
+        card_printings = [card_set]
+        sets_row = soup.find(id=parse_div.format('otherSetsRow'))
         if sets_row is not None:
             images = sets_row.findAll('img')
 
@@ -257,20 +332,111 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                     set_code[1] for set_code in SETS_TO_BUILD if this_set_name == set_code[0]
                 )
 
-        card_info['printings'] = card_printings
+        return card_printings
 
-        # Get Card Variations
-        variations_row = soup_oracle.find(id=div_name.format('variationLinks'))
+    async def parse_card_variations(soup: bs4.BeautifulSoup, parse_div: str, card_mid: int) -> List[int]:
+        card_variations = []
+        variations_row = soup.find(id=parse_div.format('variationLinks'))
         if variations_row is not None:
-            card_variations = []
-
             for variations_info in variations_row.findAll('a', {'class': 'variationLink'}):
                 card_variations.append(int(variations_info['href'].split('multiverseid=')[1]))
 
             with contextlib.suppress(ValueError):
-                card_variations.remove(card_info['multiverseid'])  # Don't need this card's MID in its variations
+                card_variations.remove(card_mid)  # Don't need this card's MID in its variations
 
-            card_info['variations'] = card_variations
+        return card_variations
+
+    async def build_main_part(card_mid: int, card_info: dict, other_cards_holder: List[object],
+                              second_card: bool=False) -> None:
+        # Parse web page so we can gather all data from it
+        soup_oracle = await get_card_html(session, card_mid)
+
+        card_layout, div_name, add_other_card = await determine_layout_and_div_name(soup_oracle, second_card)
+        if add_other_card:
+            other_cards_holder.append(loop.create_task(build_card(card_mid, None, second_card=True)))
+
+        card_info['multiverseid'] = int(card_mid)
+        card_info['name'] = await parse_card_name(soup_oracle, div_name)
+        card_info['cmc'] = await parse_card_cmc(soup_oracle, div_name)
+
+        # Get other side's name for the user
+        has_other, card_other_name = await parse_card_other_name(soup_oracle, div_name, card_layout)
+        if has_other:
+            card_info['names'] = [card_info['name'], card_other_name]
+
+        # Get card's colors and mana cost
+        card_colors, card_cost = await parse_colors_and_cost(soup_oracle, div_name)
+        if card_colors:
+            card_info['colors'] = card_colors
+        if card_cost:
+            card_info['manaCost'] = card_cost
+
+        # Get Card Type(s)
+        card_super_types, card_types, card_sub_types, full_type = await parse_card_types(soup_oracle, div_name)
+        if card_super_types:
+            card_info['supertypes'] = card_super_types
+        if card_types:
+            card_info['types'] = card_types
+        if card_sub_types:
+            card_info['subtypes'] = card_sub_types
+        if full_type:
+            card_info['type'] = full_type
+
+        # Get Card Text and Color Identity
+        card_info['text'], card_info['colorIdentity'] = await parse_card_text_and_color_identity(soup_oracle,
+                                                                                                 div_name,
+                                                                                                 card_colors)
+
+        # Get Card Flavor Text
+        c_flavor = await parse_card_flavor(soup_oracle, div_name)
+        if c_flavor:
+            card_info['flavor'] = c_flavor
+
+        # Get Card P/T OR Loyalty OR Hand/Life
+        c_power, c_toughness, c_loyalty, c_hand, c_life = await parse_card_pt_loyalty_vanguard(soup_oracle, div_name)
+        if c_power:
+            card_info['power'] = c_power
+        if c_toughness:
+            card_info['toughness'] = c_toughness
+        if c_loyalty:
+            card_info['loyalty'] = c_loyalty
+        if c_hand:
+            card_info['hand'] = c_hand
+        if c_life:
+            card_info['life'] = c_life
+
+        # Get Card Rarity
+        card_info['rarity'] = await parse_card_rarity(soup_oracle, div_name)
+
+        # Get Card Set Number
+        c_number = await parse_card_number(soup_oracle, div_name)
+        if c_number:
+            card_info['number'] = c_number
+
+        # Get Card Artist(s)
+        card_info['artist'] = await parse_artists(soup_oracle, div_name)
+
+        # Get Card Watermark
+        c_watermark = await parse_watermark(soup_oracle, div_name)
+        if c_watermark:
+            card_info['watermark'] = c_watermark
+
+        # Get Card Reserve List Status
+        if card_info['name'] in RESERVE_LIST:
+            card_info['reserved'] = True
+
+        # Get Card Rulings
+        c_rulings = await parse_rulings(soup_oracle, div_name)
+        if c_rulings:
+            card_info['rulings'] = c_rulings
+
+        # Get Card Sets
+        card_info['printings'] = await parse_card_sets(soup_oracle, div_name, set_name[1])
+
+        # Get Card Variations
+        c_variations = await parse_card_variations(soup_oracle, div_name, card_mid)
+        if c_variations:
+            card_info['variations'] = c_variations
 
     async def build_legalities_part(card_mid, card_info):
         try:
@@ -340,7 +506,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
         card_info['foreignNames'] = card_languages
 
-    def build_id_part(card_mid, card_info):
+    async def build_id_part(card_mid, card_info):
         card_hash = hashlib.sha3_256()
         card_hash.update(set_name[0].encode('utf-8'))
         card_hash.update(str(card_mid).encode('utf-8'))
@@ -349,8 +515,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         card_info['cardHash'] = card_hash.hexdigest()
 
     async def build_original_details(card_mid, card_info, second_card=False):
-        html_print = await get_card_details(session, card_mid, printed=True)
-        soup_print = bs4.BeautifulSoup(html_print, 'html.parser')
+        soup_print = await get_card_html(session, card_mid, True)
 
         # Determine if Card is Normal, Flip, or Split
         div_name = 'ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{}'
@@ -389,13 +554,13 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_info['originalText'] = card_text[:-1]  # Remove last '\n'
 
-    async def build_card(card_mid, second_card=False):
-        card_info = {}
+    async def build_card(card_mid: int, other_cards_holder: Optional[List[object]], second_card: bool=False) -> dict:
+        card_info = dict()
 
-        await build_main_part(card_mid, card_info, second_card=second_card)
+        await build_main_part(card_mid, card_info, other_cards_holder, second_card=second_card)
         await build_original_details(card_mid, card_info, second_card=second_card)
         await build_legalities_part(card_mid, card_info)
-        build_id_part(card_mid, card_info)
+        await build_id_part(card_mid, card_info)
         await build_foreign_part(card_mid, card_info)
 
         print('\tAdding {0} to {1}'.format(card_info['name'], set_name[0]))
@@ -445,14 +610,14 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_info['layout'] = card_layout
 
-    # start asyncio tasks for building each card
-    futures = [
-        loop.create_task(build_card(card_mid))
-        for card_mid in multiverse_ids
-    ]
-
     additional_cards = []
     cards_in_set = []
+
+    # start asyncio tasks for building each card
+    futures = [
+        loop.create_task(build_card(card_mid, additional_cards))
+        for card_mid in multiverse_ids
+    ]
 
     # then wait until all of them are completed
     with contextlib.suppress(ValueError):  # Happens if no cards are in the multiverse_ids

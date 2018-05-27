@@ -1,4 +1,4 @@
-from typing import NewType
+from typing import Dict, List, NewType, Optional, Union, cast
 
 # Maintenance vars
 MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
@@ -6,15 +6,15 @@ VERSION_INFO = 'MTGJSON\nVersion 4.0.0\nMay 25, 2018'
 DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
 # Building vars
-COLORS = ['W', 'U', 'B', 'R', 'G']
+COLORS: List[str] = ['W', 'U', 'B', 'R', 'G']
 
 Color = NewType('Color', str)
 
-EXTRA_FIELDS = ['rulings', 'foreignNames', 'printings', 'originalText', 'originalType', 'legalities']
+EXTRA_FIELDS: List[str] = ['rulings', 'foreignNames', 'printings', 'originalText', 'originalType', 'legalities']
 
-ORACLE_FIELDS = ["layout", "name", "names", "manaCost", "cmc", "colors", "type", "supertypes", "types", "subtypes", "text", "power", "toughness", "loyalty", "hand", "life", "rulings", "printings", "legalities"]
+ORACLE_FIELDS: List[str] = ["layout", "name", "names", "manaCost", "cmc", "colors", "type", "supertypes", "types", "subtypes", "text", "power", "toughness", "loyalty", "hand", "life", "rulings", "printings", "legalities"]
 
-FIELD_TYPES = {
+FIELD_TYPES: Dict[str, Union[str, List[str]]] = { # This should be a mypy_extensions.TypedDict, but this works for now.
     "artist": ["string"],
     "border": "string",
     "cmc": "number",
@@ -55,9 +55,9 @@ FIELD_TYPES = {
     "watermark": "string",
 }
 
-SET_SPECIFIC_FIELDS = ["rarity", "artist", "flavor", "number", "multiverseid", "variations", "watermark", "border", "timeshifted", "reserved", "originalText", "originalType", "cardHash", "foreignNames"]
+SET_SPECIFIC_FIELDS: List[str] = ["rarity", "artist", "flavor", "number", "multiverseid", "variations", "watermark", "border", "timeshifted", "reserved", "originalText", "originalType", "cardHash", "foreignNames"]
 
-SUPERTYPES = [
+SUPERTYPES: List[str] = [
     'Basic',
     'Legendary',
     'Ongoing',
@@ -65,7 +65,7 @@ SUPERTYPES = [
     'World',
 ]
 
-CARD_TYPES = [
+CARD_TYPES: List[str] = [
     'Artifact',
     'Conspiracy',
     'Creature',
@@ -90,7 +90,7 @@ CARD_TYPES = [
     'You\'ll'
 ]
 
-RESERVE_LIST = [
+RESERVE_LIST: List[str] = [
     'Abeyance',
     'Aboroth',
     'Academy Rector',
@@ -664,7 +664,7 @@ RESERVE_LIST = [
     'Zuberi, Golden Feather',
 ]
 
-SYMBOL_MAP = {
+SYMBOL_MAP: Dict[str, str] = {
     'White': 'W',
     'Blue': 'U',
     'Black': 'B',
@@ -712,7 +712,7 @@ SYMBOL_MAP = {
     'Infinite': '∞'
 }
 
-LANGUAGE_MAP = {
+LANGUAGE_MAP: Dict[str, str] = {
     'cn': 'Chinese Traditional',
     'de': 'German',
     'en': 'English',
@@ -727,10 +727,10 @@ LANGUAGE_MAP = {
 
 # Building functions
 def get_symbol_short_name(key_to_find: str) -> Color:
-    return SYMBOL_MAP.get(key_to_find, key_to_find)
+    return cast(Color, SYMBOL_MAP.get(key_to_find, key_to_find))
 
 
-def get_language_long_name(lang_short_name):
+def get_language_long_name(lang_short_name: str) -> Optional[str]:
     if lang_short_name not in LANGUAGE_MAP.keys():
         return None
     else:
