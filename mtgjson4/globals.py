@@ -1,3 +1,5 @@
+from typing import NewType
+
 # Maintenance vars
 MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
 VERSION_INFO = 'MTGJSON\nVersion 4.0.0\nMay 25, 2018'
@@ -5,6 +7,8 @@ DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMai
 
 # Building vars
 COLORS = ['W', 'U', 'B', 'R', 'G']
+
+Color = NewType('Color', str)
 
 EXTRA_FIELDS = ['rulings', 'foreignNames', 'printings', 'originalText', 'originalType', 'legalities']
 
@@ -722,7 +726,7 @@ LANGUAGE_MAP = {
 
 
 # Building functions
-def get_symbol_short_name(key_to_find):
+def get_symbol_short_name(key_to_find: str) -> Color:
     return SYMBOL_MAP.get(key_to_find, key_to_find)
 
 

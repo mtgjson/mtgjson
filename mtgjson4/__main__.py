@@ -1,102 +1,38 @@
-import aiohttp
 import argparse
 import ast
 import asyncio
-import bs4
 import contextlib
 import copy
 import hashlib
-import itertools
 import json
 import os
 import pathlib
 import re
 import sys
 import time
+from typing import Any, Dict, List
 
-import mtgjson4.globals
+import aiohttp
+import bs4
 
-SET_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'set_outputs'
+from mtgjson4.download import get_card_details, get_card_legalities, get_card_foreign_details, get_checklist_urls, \
+    generate_mids_by_set
+from mtgjson4.globals import COLORS, SUPERTYPES, CARD_TYPES, RESERVE_LIST, get_symbol_short_name, \
+    get_language_long_name, FIELD_TYPES, SET_SPECIFIC_FIELDS, ORACLE_FIELDS, EXTRA_FIELDS, DESCRIPTION, VERSION_INFO
+from mtgjson4.parsing import replace_symbol_images_with_tokens
+from mtgjson4.storage import SET_OUT_DIR, open_set_json, is_set_file, ensure_set_dir_exists
+
 COMP_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'compiled_outputs'
 SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
-
-
-async def ensure_content_downloaded(session, url_to_download, max_retries=3, **kwargs):
-    # Ensure we can read the URL and its contents
-    for retry in itertools.count():
-        try:
-            async with session.get(url_to_download, **kwargs) as response:
-                return await response.text()
-        except aiohttp.ClientError:
-            if retry == max_retries:
-                raise
-            await asyncio.sleep(2)
-
-
-async def get_checklist_urls(session, set_name):
-    def page_count_for_set(html_data):
-        try:
-            # Get the last instance of 'pagingcontrols' and get the page
-            # number from the URL it contains
-            soup_oracle = bs4.BeautifulSoup(html_data, 'html.parser')
-            soup_oracle = soup_oracle.select('div[class^=pagingcontrols]')[-1]
-            soup_oracle = soup_oracle.findAll('a')
-
-            # If it sees '1,2,3>' will take the '3' instead of '>'
-            if '&gt;' in str(soup_oracle[-1]):
-                soup_oracle = soup_oracle[-2]
-            else:
-                soup_oracle = soup_oracle[-1]
-
-            num_page_links = int(str(soup_oracle).split('page=')[1].split('&')[0])
-        except IndexError:
-            num_page_links = 0
-
-        return num_page_links + 1
-
-    def url_params_for_page(page_number):
-        return {
-            'output': 'checklist',
-            'sort': 'cn+',
-            'action': 'advanced',
-            'special': 'true',
-            'set': f'["{set_name[0]}"]',
-            'page': page_number
-        }
-
-    main_url = 'http://gatherer.wizards.com/Pages/Search/Default.aspx'
-    main_params = url_params_for_page(0)
-
-    async with session.get(main_url, params=main_params) as response:
-        html = await response.text()
-
-    return [
-        (main_url, url_params_for_page(page_number))
-        for page_number in range(page_count_for_set(html))
-    ]
-
-
-async def generate_mids_by_set(session, set_urls):
-    for url, params in set_urls:
-        async with session.get(url, params=params) as response:
-            soup_oracle = bs4.BeautifulSoup(await response.text(), 'html.parser')
-
-            # All cards on the page
-            for card_info in soup_oracle.findAll('a', {'class': 'nameLink'}):
-                yield str(card_info).split('multiverseid=')[1].split('"')[0]
 
 
 async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=None):
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    main_url = 'http://gatherer.wizards.com/Pages/Card/Details.aspx'
-    legal_url = 'http://gatherer.wizards.com/Pages/Card/Printings.aspx'
-    foreign_url = 'http://gatherer.wizards.com/Pages/Card/Languages.aspx'
-
     async def build_main_part(card_mid, card_info, second_card=False):
         # Parse web page so we can gather all data from it
-        html_oracle = await ensure_content_downloaded(session, main_url, params=get_url_params(card_mid))
+        html_oracle = await get_card_details(session, card_mid)
         soup_oracle = bs4.BeautifulSoup(html_oracle, 'html.parser')
 
         # Get Card Multiverse ID
@@ -161,8 +97,8 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             # Sort field in WUBRG order
             card_colors = sorted(
-                list(filter(lambda c: c in card_colors, mtgjson4.globals.COLORS)),
-                key=lambda word: [mtgjson4.globals.COLORS.index(c) for c in word]
+                list(filter(lambda c: c in card_colors, COLORS)),
+                key=lambda word: [COLORS.index(c) for c in word]
             )
 
             if card_colors:
@@ -184,9 +120,9 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             subtypes = ''
 
         for value in supertypes_and_types.split():
-            if value in mtgjson4.globals.SUPERTYPES:
+            if value in SUPERTYPES:
                 card_super_types.append(value)
-            elif value in mtgjson4.globals.CARD_TYPES:
+            elif value in CARD_TYPES:
                 card_types.append(value)
             else:
                 card_types.append(value)
@@ -222,8 +158,8 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
         # Sort field in WUBRG order
         card_color_identity = sorted(
-            list(filter(lambda c: c in card_color_identity, mtgjson4.globals.COLORS)),
-            key=lambda word: [mtgjson4.globals.COLORS.index(c) for c in word]
+            list(filter(lambda c: c in card_color_identity, COLORS)),
+            key=lambda word: [COLORS.index(c) for c in word]
         )
 
         if card_color_identity:
@@ -289,7 +225,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
             card_info['watermark'] = card_watermark
 
         # Get Card Reserve List Status
-        if card_info['name'] in mtgjson4.globals.RESERVE_LIST:
+        if card_info['name'] in RESERVE_LIST:
             card_info['reserved'] = True
 
         # Get Card Rulings
@@ -336,27 +272,9 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
             card_info['variations'] = card_variations
 
-    def replace_symbol_images_with_tokens(tag):
-        """
-        Replaces the img tags of symbols with token representations
-        :rtype: set
-        :param tag:
-        :return: The color symbols found
-        """
-        colors_found = set()
-        images = tag.findAll('img')
-        for symbol in images:
-            symbol_value = symbol['alt']
-            symbol_mapped = mtgjson4.globals.get_symbol_short_name(symbol_value)
-            symbol.replace_with(f'{{{symbol_mapped}}}')
-            if symbol_mapped in mtgjson4.globals.COLORS:
-                colors_found.add(symbol_mapped)
-
-        return colors_found
-
     async def build_legalities_part(card_mid, card_info):
         try:
-            html = await ensure_content_downloaded(session, legal_url, params=get_url_params(card_mid))
+            html = await get_card_legalities(session, card_mid)
         except aiohttp.ClientError as error:
             # If Gatherer errors, omit the data for now
             # This can be appended on a case-by-case basis
@@ -371,7 +289,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         # Get Card Legalities
         format_rows = soup_oracle.select('table[class^=cardList]')[1]
         format_rows = format_rows.select('tr[class^=cardItem]')
-        card_formats = []
+        card_formats: List[Dict[str, Any]] = []
         with contextlib.suppress(IndexError):  # if no legalities, only one tr with only one td
             for div in format_rows:
                 table_rows = div.findAll('td')
@@ -387,7 +305,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
     async def build_foreign_part(card_mid, card_info):
         try:
-            html = await ensure_content_downloaded(session, foreign_url, params=get_url_params(card_mid))
+            html = await get_card_foreign_details(session, card_mid)
         except aiohttp.ClientError as error:
             # If Gatherer errors, omit the data for now
             # This can be appended on a case-by-case basis
@@ -403,7 +321,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         language_rows = soup_oracle.select('table[class^=cardList]')[0]
         language_rows = language_rows.select('tr[class^=cardItem]')
 
-        card_languages = []
+        card_languages: List[Dict[str, Any]] = []
         for div in language_rows:
             table_rows = div.findAll('td')
 
@@ -422,7 +340,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
 
         card_info['foreignNames'] = card_languages
 
-    async def build_id_part(card_mid, card_info):
+    def build_id_part(card_mid, card_info):
         card_hash = hashlib.sha3_256()
         card_hash.update(set_name[0].encode('utf-8'))
         card_hash.update(str(card_mid).encode('utf-8'))
@@ -431,7 +349,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         card_info['cardHash'] = card_hash.hexdigest()
 
     async def build_original_details(card_mid, card_info, second_card=False):
-        html_print = await ensure_content_downloaded(session, main_url, params=get_url_params(card_mid, True))
+        html_print = await get_card_details(session, card_mid, printed=True)
         soup_print = bs4.BeautifulSoup(html_print, 'html.parser')
 
         # Determine if Card is Normal, Flip, or Split
@@ -463,7 +381,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 images = div.findAll('img')
                 for symbol in images:
                     symbol_value = symbol['alt']
-                    symbol_mapped = mtgjson4.globals.get_symbol_short_name(symbol_value)
+                    symbol_mapped = get_symbol_short_name(symbol_value)
                     symbol.replace_with(f'{{{symbol_mapped}}}')
 
                 # Next, just add the card text, line by line
@@ -477,7 +395,7 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
         await build_main_part(card_mid, card_info, second_card=second_card)
         await build_original_details(card_mid, card_info, second_card=second_card)
         await build_legalities_part(card_mid, card_info)
-        await build_id_part(card_mid, card_info)
+        build_id_part(card_mid, card_info)
         await build_foreign_part(card_mid, card_info)
 
         print('\tAdding {0} to {1}'.format(card_info['name'], set_name[0]))
@@ -526,13 +444,6 @@ async def download_cards_by_mid_list(session, set_name, multiverse_ids, loop=Non
                 card_layout = 'Meld'
 
             card_info['layout'] = card_layout
-
-    def get_url_params(card_mid, is_printed=False):
-        return {
-            'multiverseid': card_mid,
-            'printed': str(is_printed).lower(),
-            'page': 0
-        }
 
     # start asyncio tasks for building each card
     futures = [
@@ -683,18 +594,18 @@ async def build_set(session, set_name, language):
         json_ready = await apply_set_config_options(set_name, cards_holder)
 
         print('BuildSet: Generated JSON for {}'.format(set_stat))
-        with (SET_OUT_DIR / '{}.json'.format(set_output)).open('w', encoding='utf-8') as fp:
+        with open_set_json(set_output, 'w') as fp:
             json.dump(json_ready, fp, indent=4, sort_keys=True, ensure_ascii=False)
             print('BuildSet: JSON written for {0} ({1})'.format(set_stat, set_name[1]))
 
         return json_ready
 
     async def build_foreign_language():
-        if not os.path.isfile(os.path.join(SET_OUT_DIR, '{}.json'.format(set_name[1]))):
+        if not is_set_file(set_name[1]):
             print('BuildSet: Set {0} not built in English. Do that first before {1}'.format(set_name[1], language))
             return
 
-        with (SET_OUT_DIR / '{}.json'.format(set_name[1])).open('r', encoding='utf-8') as fp:
+        with open_set_json(set_name[1], 'r') as fp:
             json_input = json.load(fp)
 
         if ('translations' not in json_input.keys()) or (language not in json_input['translations'].keys()):
@@ -703,7 +614,7 @@ async def build_set(session, set_name, language):
 
         foreign_mids_for_set = []
         for card in json_input['cards']:
-            full_name_lang_to_build = mtgjson4.globals.get_language_long_name(language)
+            full_name_lang_to_build = get_language_long_name(language)
             for lang_dict in card['foreignNames']:
                 if lang_dict['language'] == full_name_lang_to_build:
                     foreign_mids_for_set.append(int(lang_dict['multiverseid']))
@@ -720,7 +631,7 @@ async def build_set(session, set_name, language):
 
 
 async def main(loop, session, language_to_build):
-    SET_OUT_DIR.mkdir(exist_ok=True)  # make sure set_outputs dir exists
+    ensure_set_dir_exists()
 
     async with session:
         # start asyncio tasks for building each set
@@ -796,8 +707,8 @@ def create_all_sets_files():
             if taint:
                 tainted_cards.append({'card': card, 'fieldName': a_field_name})
 
-        for field_name, _ in mtgjson4.globals.FIELD_TYPES.items():
-            if field_name in mtgjson4.globals.SET_SPECIFIC_FIELDS:
+        for field_name in FIELD_TYPES.keys():
+            if field_name in SET_SPECIFIC_FIELDS:
                 continue
 
             if field_name not in previous_seen_set_codes[card['name']]:
@@ -806,7 +717,7 @@ def create_all_sets_files():
             if field_name in card.keys():
                 field_value = card[field_name]
 
-                if field_name in mtgjson4.globals.ORACLE_FIELDS and field_name != 'foreignNames':
+                if field_name in ORACLE_FIELDS and field_name != 'foreignNames':
                     check_taint(field_name, field_value)
 
                 previous_seen_set_codes[card['name']][field_name].append(card_set['code'])
@@ -827,7 +738,7 @@ def create_all_sets_files():
         simple_set = copy.copy(sets)
         for b_set in simple_set:
             for simple_set_card in b_set['cards']:
-                for unneeded_field in mtgjson4.globals.EXTRA_FIELDS:
+                for unneeded_field in EXTRA_FIELDS:
                     simple_set_card.pop(unneeded_field, None)
 
         return [sets, simple_set]
@@ -849,7 +760,7 @@ def create_all_sets_files():
         }
 
         full_simple_sets = process_set(sets_in_output)
-        
+
         all_sets_with_extras[set_data['code']] = full_simple_sets[0]
         all_sets_array_with_extras.append(full_simple_sets[0])
         all_sets[set_data['code']] = full_simple_sets[1]
@@ -863,7 +774,7 @@ def create_all_sets_files():
 
     all_cards = copy.copy(all_cards_with_extras)
     for card_keys in all_cards.keys():
-        for extra_field in mtgjson4.globals.EXTRA_FIELDS:
+        for extra_field in EXTRA_FIELDS:
             if extra_field in card_keys:
                 card_keys.remove(extra_field)
 
@@ -882,7 +793,7 @@ def create_all_sets_files():
 
 if __name__ == '__main__':
     # Start by processing all arguments to the program
-    parser = argparse.ArgumentParser(description=mtgjson4.globals.DESCRIPTION)
+    parser = argparse.ArgumentParser(description=DESCRIPTION)
 
     parser.add_argument('-v', '--version', action='store_true', help='MTGJSON version information')
 
@@ -907,11 +818,11 @@ if __name__ == '__main__':
 
     # Get version info and exit
     if cl_args['version']:
-        print(mtgjson4.globals.VERSION_INFO)
+        print(VERSION_INFO)
         exit(0)
 
     # Ensure the language is a valid language, otherwise exit
-    if mtgjson4.globals.get_language_long_name(lang_to_process) is None:
+    if get_language_long_name(lang_to_process) is None:
         print('MTGJSON: Language \'{}\' not supported yet'.format(lang_to_process))
         exit(1)
 
