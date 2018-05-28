@@ -31,10 +31,7 @@ async def test_isd(event_loop: asyncio.AbstractEventLoop) -> None:
     json = await b.build_set(isd[0], 'en')
     delver = [c for c in json['cards'] if c['multiverseid'] == 226749][0]
     assert delver['name'] == 'Delver of Secrets'
-    assert delver['names'] == [
-                "Delver of Secrets",
-                "Insectile Aberration"
-            ]
+    assert delver['names'] == ["Delver of Secrets", "Insectile Aberration"]
     assert delver["number"] == "51a"
     aberration = [c for c in json['cards'] if c['multiverseid'] == 226755][0]
     assert aberration['name'] == 'Insectile Aberration'

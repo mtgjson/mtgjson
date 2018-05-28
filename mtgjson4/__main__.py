@@ -223,17 +223,23 @@ if __name__ == '__main__':
         metavar='SET',
         nargs='+',
         type=str,
-        help='What set(s) to build (if used with --all-sets, will be ignored)')
+        help='A list of sets to build. Will be ignored if used with --all-sets.'
+    )
 
     parser.add_argument(
-        '-a', '--all-sets', action='store_true', help='Build all sets')
+        '-a',
+        '--all-sets',
+        action='store_true',
+        help=
+        'Build all sets found in the set_configs directory, including sub-directories.'
+    )
 
     parser.add_argument(
         '-f',
         '--full-out',
         action='store_true',
         help=
-        'Create the AllCards, AllSets, and AllSetsArray files (using what\'s in set_outputs dir)'
+        'Create the AllCards, AllSets, and AllSetsArray files based on the sets found in the set_outputs directory.'
     )
 
     parser.add_argument(
@@ -244,7 +250,8 @@ if __name__ == '__main__':
         type=str,
         nargs=1,
         help=
-        'Build foreign language version (English must have been built prior)')
+        'Build foreign language version of a specific set. The english version must have been built already for this flag to be used.'
+    )
 
     # If user supplies no arguments, show help screen and exit
     if len(sys.argv) == 1:
