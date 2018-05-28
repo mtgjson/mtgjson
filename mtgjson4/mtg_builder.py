@@ -328,7 +328,7 @@ class MTGJSON:
                 set_stat = str(set_name[0])
                 set_output = str(set_name[1])
 
-            print('BuildSet: Determined {2} MIDs for {0}: {1}'.format(set_stat, mids_for_set, len(mids_for_set)))
+            print('BuildSet: Determined {1} MIDs for {0}'.format(set_stat, len(mids_for_set)))
 
             cards_holder = await self.download_cards_by_mid_list(set_name, mids_for_set)
 
