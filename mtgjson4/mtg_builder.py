@@ -387,8 +387,16 @@ async def apply_set_config_options(set_name: List[str],
         match_replace_rules = ast.literal_eval(match_replace_rules)
 
         for replacement_rule in match_replace_rules:
-            with contextlib.suppress(KeyError):  # If there's no match, it's deprecated
-                replacement_match = replacement_rule['match']
+
+            # If the replacement row isn't a match or fixForeignNames, skip
+            if isinstance(replacement_rule, dict):
+                if all(key not in replacement_rule.keys() for key in ('match', 'fixForeignNames')):
+                    continue
+            elif isinstance(replacement_rule, str):
+                if replacement_rule == 'noBasicLandWatermarks':
+                    continue
+
+            replacement_match = replacement_rule['match']
 
             if 'replace' in replacement_rule.keys():
                 fix_type = 'replace'
@@ -396,6 +404,9 @@ async def apply_set_config_options(set_name: List[str],
             elif 'fixForeignNames' in replacement_rule.keys():
                 fix_type = 'fixForeignNames'
                 replacement_update = replacement_rule['fixForeignNames']
+            elif 'fixFlavorNewlines' in replacement_rule.keys():
+                fix_type = 'fixFlavorNewlines'
+                replacement_update = replacement_rule['fixFlavorNewlines']
             else:
                 continue
 
