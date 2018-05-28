@@ -1,5 +1,5 @@
-from typing import Dict, List, NewType, Optional, Union
 from mypy_extensions import TypedDict
+from typing import Dict, List, NewType, Optional, Union
 
 # Maintenance vars
 MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
@@ -7,37 +7,40 @@ VERSION_INFO = 'MTGJSON\nVersion 4.0.0\nMay 25, 2018'
 DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
 ColorType = NewType('ColorType', str)
-ForeignNamesDescription = TypedDict('ForeignNamesDescription', {
-    'language': str,
-    'multiverseid': str, # Should this be an int?
-    'name': str,
-})
-CardDescription = TypedDict('CardDescription', {
-    'artist': List[str],
-    'cardHash': str,
-    'cmc': Union[int, float],
-    'colorIdentity': List[ColorType],
-    'colors': List[ColorType],
-    'flavor': str,
-    'foreignNames': List[ForeignNamesDescription],
-    'layout': str,
-    'legalities': List[Dict[str, str]],
-    'multiverseid': int,
-    'name': str,
-    'number': str,
-    'originalText': str,
-    'originalType': str,
-    'power': float,
-    'printings': List[str],
-    'rarity': str,
-    'rulings': List[Dict[str, str]],
-    'subtypes': List[str],
-    'supertypes': List[str],
-    'text': str,
-    'toughness': float,
-    'type': str,
-    'types': List[str],
-})
+ForeignNamesDescription = TypedDict(
+    'ForeignNamesDescription',
+    {
+        'language': str,
+        'multiverseid': str,  # Should this be an int?
+        'name': str,
+    })
+CardDescription = TypedDict(
+    'CardDescription', {
+        'artist': List[str],
+        'cardHash': str,
+        'cmc': Union[int, float],
+        'colorIdentity': List[ColorType],
+        'colors': List[ColorType],
+        'flavor': str,
+        'foreignNames': List[ForeignNamesDescription],
+        'layout': str,
+        'legalities': List[Dict[str, str]],
+        'multiverseid': int,
+        'name': str,
+        'number': str,
+        'originalText': str,
+        'originalType': str,
+        'power': float,
+        'printings': List[str],
+        'rarity': str,
+        'rulings': List[Dict[str, str]],
+        'subtypes': List[str],
+        'supertypes': List[str],
+        'text': str,
+        'toughness': float,
+        'type': str,
+        'types': List[str],
+    })
 
 # Building vars
 COLORS: List[ColorType] = list(ColorType(c) for c in ['W', 'U', 'B', 'R', 'G'])
@@ -735,6 +738,12 @@ LANGUAGE_MAP: Dict[str, str] = {
     'pt': 'Portuguese (Brazil)',
     'ru': 'Russian'
 }
+
+# These file names cannot be used on WindowsOS
+INVALID_FILE_NAMES: List[str] = [
+    'CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2',
+    'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+]
 
 
 # Building functions

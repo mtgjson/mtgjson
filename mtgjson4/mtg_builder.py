@@ -1,17 +1,14 @@
-import copy
-
+import aiohttp
 import asyncio
+import bs4
 import contextlib
+import copy
 import json
+from mtgjson4 import mtg_global, mtg_http, mtg_parse, mtg_storage, corrections
 import os
 import pathlib
 from typing import Any, Dict, List, Optional, Union
 
-import aiohttp
-import bs4
-
-from mtgjson4 import mtg_global, mtg_http, mtg_parse, mtg_storage, corrections
-from mtgjson4.mtg_global import CardDescription
 
 class MTGJSON:
     def __init__(self,
@@ -73,7 +70,7 @@ class MTGJSON:
     async def build_main_part(self,
                               set_name: List[str],
                               card_mid: int,
-                              card_info: CardDescription,
+                              card_info: mtg_global.CardDescription,
                               other_cards_holder: Optional[List[object]],
                               second_card: bool = False) -> None:
         # Parse web page so we can gather all data from it
@@ -290,7 +287,6 @@ class MTGJSON:
             card_info['layout'] = card_layout
         return return_cards
 
-
     async def download_cards_by_mid_list(self, set_name: List[str], multiverse_ids: List[int]):
         additional_cards = []
         cards_in_set = []
@@ -382,7 +378,7 @@ class MTGJSON:
 
 
 async def apply_set_config_options(set_name: List[str],
-                                   cards_dictionary: List[CardDescription]) -> Dict[str, Union[list, Any]]:
+                                   cards_dictionary: List[mtg_global.CardDescription]) -> Dict[str, Union[list, Any]]:
     return_product = dict()
 
     # Will search the tree of set_configs to find the file
@@ -413,8 +409,8 @@ def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[Lis
                 if file.endswith('.json'):
                     try_to_append(root, file)
     else:
-        # Upper all the sets, and fix the Conflux set (Windows can't have CON files)
-        set_args = ['CON_' if sa.upper() == 'CON' else sa for sa in args['sets']]
+        # Capitalize inputs and fix bad file names (WinOS can't have CON files, for example)
+        set_args = [str(sa.upper() + '_') if sa.upper() in mtg_global.INVALID_FILE_NAMES else sa for sa in args['sets']]
 
         for root, _, files in os.walk(mtg_storage.SET_CONFIG_DIR):
             for file in files:

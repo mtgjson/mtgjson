@@ -1,9 +1,8 @@
+import aiohttp
 import asyncio
+import bs4
 import itertools
 from typing import Any, Dict, List, Set, Tuple, Union
-
-import aiohttp
-import bs4
 
 SEARCH_URL = 'http://gatherer.wizards.com/Pages/Search/Default.aspx'
 MAIN_URL = 'http://gatherer.wizards.com/Pages/Card/Details.aspx'
@@ -22,7 +21,7 @@ async def ensure_content_downloaded(session: aiohttp.ClientSession,
     for retry in itertools.count():
         try:
             async with session.get(url_to_download, **kwargs) as response:
-                text = await response.text() # type: str
+                text = await response.text()  # type: str
                 return text
         except aiohttp.ClientError:
             if retry == max_retries:
@@ -45,7 +44,6 @@ async def get_card_foreign_details(session: aiohttp.ClientSession, card_mid: int
 
 def get_params(card_mid: int, printed: bool = False) -> ParamsType:
     return {'multiverseid': card_mid, 'printed': str(printed).lower(), 'page': 0}
-
 
 
 async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]) -> SetUrlsType:

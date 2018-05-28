@@ -39,6 +39,7 @@ async def test_isd(event_loop: asyncio.AbstractEventLoop) -> None:
     assert aberration['name'] == 'Insectile Aberration'
     assert aberration['number'] == '51b'
 
+
 @pytest.mark.asyncio
 @vcr.use_cassette
 async def test_chk(event_loop: asyncio.AbstractEventLoop) -> None:

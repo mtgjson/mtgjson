@@ -1,26 +1,24 @@
+import bs4
 import contextlib
 import copy
 import datetime
 import hashlib
+from mtgjson4 import mtg_global
 import re
 from typing import Dict, List, Optional, Set, Tuple, Union
-
-import bs4
-
-from mtgjson4 import mtg_global
-from mtgjson4.mtg_global import ColorType
 
 PowTouLoyaltyVanType = Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]
 
 
-def replace_symbol_images_with_tokens(tag: bs4.BeautifulSoup) -> List[Union[bs4.BeautifulSoup, Set[ColorType]]]:
+def replace_symbol_images_with_tokens(
+        tag: bs4.BeautifulSoup) -> List[Union[bs4.BeautifulSoup, Set[mtg_global.ColorType]]]:
     """
     Replaces the img tags of symbols with token representations
     :rtype: set
     :return: The color symbols found
     """
     tag_copy = copy.copy(tag)
-    colors_found: Set[ColorType] = set()
+    colors_found: Set[mtg_global.ColorType] = set()
     images = tag_copy.find_all('img')
     for symbol in images:
         symbol_value = symbol['alt']
@@ -127,7 +125,7 @@ def parse_card_types(soup: bs4.BeautifulSoup, parse_div: str) -> List[Union[List
 
 
 def parse_colors_and_cost(soup: bs4.BeautifulSoup,
-                          parse_div: str) -> List[Union[Optional[List[ColorType]], Optional[str]]]:
+                          parse_div: str) -> List[Union[Optional[List[mtg_global.ColorType]], Optional[str]]]:
     """
     Parse the colors and mana cost of the card
     Can use the colors to build the color identity later
@@ -141,12 +139,12 @@ def parse_colors_and_cost(soup: bs4.BeautifulSoup,
         mana_row = replace_symbol_images_with_tokens(mana_row)
 
         card_cost = mana_row[0].get_text(strip=True).replace('’', '\'')
-        card_colors: Set[ColorType] = set(mana_row[1])
+        card_colors: Set[mtg_global.ColorType] = set(mana_row[1])
 
         # Sort field in WUBRG order
         sorted_colors = sorted(
             list(filter(lambda c: c in card_colors, mtg_global.COLORS)),
-            key=lambda word: [mtg_global.COLORS.index(ColorType(c)) for c in word])
+            key=lambda word: [mtg_global.COLORS.index(mtg_global.ColorType(c)) for c in word])
 
         return [sorted_colors, card_cost]
 
@@ -155,7 +153,7 @@ def parse_colors_and_cost(soup: bs4.BeautifulSoup,
 
 def parse_card_text_and_color_identity(
         soup: bs4.BeautifulSoup, parse_div: str,
-        card_colors: Optional[List[ColorType]]) -> List[Union[Optional[str], List[ColorType]]]:
+        card_colors: Optional[List[mtg_global.ColorType]]) -> List[Union[Optional[str], List[mtg_global.ColorType]]]:
     text_row = soup.find(id=parse_div.format('textRow'))
     return_text = ''
     return_color_identity = set()
@@ -181,7 +179,7 @@ def parse_card_text_and_color_identity(
     # Sort field in WUBRG order
     sorted_color_identity = sorted(
         list(filter(lambda c: c in return_color_identity, mtg_global.COLORS)),
-        key=lambda word: [mtg_global.COLORS.index(ColorType(c)) for c in word])
+        key=lambda word: [mtg_global.COLORS.index(mtg_global.ColorType(c)) for c in word])
 
     return [return_text or None, sorted_color_identity]
 

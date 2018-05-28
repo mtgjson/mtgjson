@@ -1,11 +1,11 @@
-import re
 import itertools
+from mtgjson4 import mtg_global
 from typing import List, Dict, Union, Any
-from mtgjson4.mtg_global import CardDescription
 
 ReplacementType = Dict[str, Union[str, List[str], Any]]
 
-def apply_corrections(match_replace_rules, cards_dictionary: List[CardDescription]) -> None:
+
+def apply_corrections(match_replace_rules, cards_dictionary: List[mtg_global.CardDescription]) -> None:
     for replacement_rule in match_replace_rules:
 
         if isinstance(replacement_rule, dict):
@@ -34,7 +34,8 @@ def apply_corrections(match_replace_rules, cards_dictionary: List[CardDescriptio
                 continue
         raise KeyError(replacement_rule)
 
-def apply_match(replacement_rule, cards_dictionary: List[CardDescription]) -> None:
+
+def apply_match(replacement_rule, cards_dictionary: List[mtg_global.CardDescription]) -> None:
     keys = set(replacement_rule.keys())
     cards_to_modify = parse_match(replacement_rule['match'], cards_dictionary)
     keys.remove('match')
@@ -81,21 +82,22 @@ def apply_match(replacement_rule, cards_dictionary: List[CardDescription]) -> No
         # remove_card(cards_to_modify)
         keys.remove('removeCard')
 
-
-
     if keys:
         raise KeyError(keys)
+
 
 def no_basic_land_watermarks(cards_dictionary):
     # TODO: Not sure what to do with this.
     pass
 
-def replace(replacements: Dict[str, Any], cards_to_modify: List[CardDescription]) -> None:
+
+def replace(replacements: Dict[str, Any], cards_to_modify: List[mtg_global.CardDescription]) -> None:
     for key_name, replacement in replacements.items():
         for card in cards_to_modify:
-            card[key_name] = replacement # type: ignore
+            card[key_name] = replacement  # type: ignore
 
-def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: List[CardDescription]) -> None:
+
+def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: List[mtg_global.CardDescription]) -> None:
     for lang_replacements in replacements:
         language_name = lang_replacements['language']
         new_name = lang_replacements['name']
@@ -105,7 +107,8 @@ def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: List[
                 if foreign_names_field['language'] == language_name:
                     foreign_names_field['name'] = new_name
 
-def fix_flavor_newlines(cards_to_modify: List[CardDescription]) -> None:
+
+def fix_flavor_newlines(cards_to_modify: List[mtg_global.CardDescription]) -> None:
     # The javascript version had the following regex to normalize em-dashes /(\s|")-\s*([^"—-]+)\s*$/
     for card in cards_to_modify:
         flavor = card.get('flavor')
@@ -116,8 +119,7 @@ def fix_flavor_newlines(cards_to_modify: List[CardDescription]) -> None:
 
 
 def parse_match(match_rule: Union[str, Dict[str, str]],
-                card_list: List[CardDescription]
-               ) -> List[CardDescription]:
+                card_list: List[mtg_global.CardDescription]) -> List[mtg_global.CardDescription]:
     if isinstance(match_rule, list):
         return itertools.chain([parse_match(rule, card_list) for rule in match_rule])
     elif isinstance(match_rule, str):

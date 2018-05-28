@@ -22,7 +22,8 @@ from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import PythonLexer
 
- # Taken from http://bzimmer.ziclix.com/2008/12/17/python-thread-dumps/
+# Taken from http://bzimmer.ziclix.com/2008/12/17/python-thread-dumps/
+
 
 def stacktraces():
     code = []
@@ -33,17 +34,20 @@ def stacktraces():
             if line:
                 code.append("  %s" % (line.strip()))
 
-    return highlight("\n".join(code), PythonLexer(), HtmlFormatter(
-      full=False,
-      # style="native",
-      noclasses=True,
-    ))
-
+    return highlight(
+        "\n".join(code),
+        PythonLexer(),
+        HtmlFormatter(
+            full=False,
+            # style="native",
+            noclasses=True,
+        ))
 
 
 class TraceDumper(threading.Thread):
     """Dump stack traces into a given file periodically."""
-    def __init__(self,fpath,interval,auto):
+
+    def __init__(self, fpath, interval, auto):
         """
         @param fpath: File path to output HTML (stack trace file)
         @param auto: Set flag (True) to update trace continuously.
@@ -51,7 +55,7 @@ class TraceDumper(threading.Thread):
             (Then delete the file to force update.)
         @param interval: In seconds: how often to update the trace file.
         """
-        assert(interval>0.1)
+        assert (interval > 0.1)
         self.auto = auto
         self.interval = interval
         self.fpath = os.path.abspath(fpath)
@@ -82,15 +86,18 @@ class TraceDumper(threading.Thread):
 
 
 _tracer = None
-def trace_start(fpath,interval=5,auto=True):
+
+
+def trace_start(fpath, interval=5, auto=True):
     """Start tracing into the given file."""
     global _tracer
     if _tracer is None:
-        _tracer = TraceDumper(fpath,interval,auto)
+        _tracer = TraceDumper(fpath, interval, auto)
         _tracer.setDaemon(True)
         _tracer.start()
     else:
-        raise Exception("Already tracing to %s"%_tracer.fpath)
+        raise Exception("Already tracing to %s" % _tracer.fpath)
+
 
 def trace_stop():
     """Stop tracing."""

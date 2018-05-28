@@ -3,6 +3,7 @@ from typing import List
 from mtgjson4 import corrections, mtg_builder, mtg_storage
 from mtgjson4.mtg_global import CardDescription
 
+
 def test_validate_corrections() -> None:
     all_sets = mtg_builder.determine_gatherer_sets({'all_sets': True})
     assert all_sets
