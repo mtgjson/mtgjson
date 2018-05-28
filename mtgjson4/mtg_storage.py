@@ -18,7 +18,7 @@ def open_set_config_json(path: str, mode: str) -> IO:
     raise KeyError
 
 
-def find_file(name: str, path: str) -> Optional[str]:
+def find_file(name: str, path: pathlib.Path) -> Optional[str]:
     for root, _, files in os.walk(path):
         if name in files:
             return os.path.join(root, name)
@@ -26,7 +26,8 @@ def find_file(name: str, path: str) -> Optional[str]:
 
 
 def is_set_file(path: str) -> bool:
-    return os.path.isfile(os.path.join(SET_OUT_DIR, '{}.json'.format(path)))
+    joined = SET_OUT_DIR / '{}.json'.format(path)
+    return os.path.isfile(joined)
 
 
 def ensure_set_dir_exists() -> None:
