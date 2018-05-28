@@ -11,7 +11,8 @@ import sys
 import time
 from typing import List, Iterator
 
-from . import stacktracer
+from mtgjson4 import stacktracer
+
 stacktracer.trace_start("trace.html")
 
 async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str,
