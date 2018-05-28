@@ -83,12 +83,12 @@ async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]
 
 
 async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrls) -> List[int]:
+    card_mids_to_parse: List[int] = list()
     for url, params in set_urls:
         async with session.get(url, params=params) as response:
             soup_oracle = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
             card_id_exist = set()
-            card_mids_to_parse: List[int] = list()
 
             for row_info in soup_oracle.find_all('tr', {'class': 'cardItem'}):
                 td_row = row_info.find_all('td')
@@ -99,4 +99,4 @@ async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrls
                     card_id_exist.add(gatherer_page_id)
                     card_mids_to_parse.append(int(td_row[1].find('a')['href'].split('id=')[1].split('"')[0]))
 
-            return card_mids_to_parse
+    return card_mids_to_parse

@@ -314,7 +314,7 @@ class MTGJSON:
             print('BuildSet: Building Set {}'.format(set_name[0]))
 
             urls_for_set = await mtg_http.get_checklist_urls(self.http_session, set_name)
-            print('BuildSet: Acquired URLs for {}'.format(set_name[0]))
+            print('BuildSet: Acquired {1} URLs for {0}'.format(set_name[0], len(urls_for_set)))
 
             # ids_to_return = [398434] # DEBUGGING IDs
             ids_to_return = await mtg_http.generate_mids_by_set(self.http_session, urls_for_set)
@@ -328,7 +328,7 @@ class MTGJSON:
                 set_stat = str(set_name[0])
                 set_output = str(set_name[1])
 
-            print('BuildSet: Determined MIDs for {0}: {1}'.format(set_stat, mids_for_set))
+            print('BuildSet: Determined {2} MIDs for {0}: {1}'.format(set_stat, mids_for_set, len(mids_for_set)))
 
             cards_holder = await self.download_cards_by_mid_list(set_name, mids_for_set)
 
