@@ -1,6 +1,4 @@
 import asyncio
-
-import aiohttp
 import pytest
 import vcr
 
@@ -13,13 +11,14 @@ async def test_w17(event_loop: asyncio.AbstractEventLoop) -> None:
     """
     Very basic test.  Can the scraper scrape Gatherer?
     """
-    W17 = builder.determine_gatherer_sets({'sets': ['W17'], 'all_sets': False})
-    b = builder.MtgJson(W17, loop=event_loop)
-    json = await b.build_set(W17[0], 'en')
+    w17 = builder.determine_gatherer_sets({'sets': ['W17'], 'all_sets': False})
+    b = builder.MtgJson(w17, loop=event_loop)
+    json = await b.build_set(w17[0], 'en')
     assert json["block"] == 'Amonkhet'
     assert json["border"] == 'black'
     assert len(json['cards']) == 30
     assert json['code'] == 'W17'
+
 
 @pytest.mark.asyncio
 @vcr.use_cassette
