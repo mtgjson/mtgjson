@@ -1,7 +1,9 @@
 import asyncio
-from mtgjson4 import mtg_builder
+
 import pytest
 import vcr
+
+from mtgjson4 import mtg_builder
 
 
 @pytest.mark.asyncio

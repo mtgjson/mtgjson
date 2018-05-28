@@ -5,10 +5,10 @@ MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
 VERSION_INFO = 'MTGJSON\nVersion 4.0.0\nMay 25, 2018'
 DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
-Color = NewType('Color', str)
+ColorType = NewType('ColorType', str)
 
 # Building vars
-COLORS: List[Color] = list(Color(c) for c in ['W', 'U', 'B', 'R', 'G'])
+COLORS: List[ColorType] = list(ColorType(c) for c in ['W', 'U', 'B', 'R', 'G'])
 
 EXTRA_FIELDS: List[str] = ['rulings', 'foreignNames', 'printings', 'originalText', 'originalType', 'legalities']
 
@@ -706,8 +706,8 @@ LANGUAGE_MAP: Dict[str, str] = {
 
 
 # Building functions
-def get_symbol_short_name(key_to_find: str) -> Color:
-    return Color(SYMBOL_MAP.get(key_to_find, key_to_find))
+def get_symbol_short_name(key_to_find: str) -> ColorType:
+    return ColorType(SYMBOL_MAP.get(key_to_find, key_to_find))
 
 
 def get_language_long_name(lang_short_name: str) -> Optional[str]:

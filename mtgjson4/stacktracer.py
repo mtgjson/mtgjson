@@ -11,11 +11,16 @@ stacktracer.stop_trace()
 Source: https://code.activestate.com/recipes/577334-how-to-debug-deadlocked-multi-threaded-programs/
 """
 
+# This part was made by nagylzs
+import os
 import sys
+import threading
+import time
 import traceback
+
 from pygments import highlight
-from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
+from pygments.lexers import PythonLexer
 
  # Taken from http://bzimmer.ziclix.com/2008/12/17/python-thread-dumps/
 
@@ -35,10 +40,6 @@ def stacktraces():
     ))
 
 
-# This part was made by nagylzs
-import os
-import time
-import threading
 
 class TraceDumper(threading.Thread):
     """Dump stack traces into a given file periodically."""
