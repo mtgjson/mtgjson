@@ -8,19 +8,15 @@ import os
 import pathlib
 from typing import Any, Dict, List, Optional, Union
 
-from mtgjson4.download import (generate_mids_by_set, get_card_details,
-                               get_card_foreign_details, get_card_legalities,
+from mtgjson4.download import (generate_mids_by_set, get_card_details, get_card_foreign_details, get_card_legalities,
                                get_checklist_urls)
 from mtgjson4.globals import (RESERVE_LIST, get_language_long_name)
-from mtgjson4.parsing import (
-    parse_card_name, parse_card_cmc, parse_card_other_name,
-    parse_colors_and_cost, parse_card_types,
-    parse_card_text_and_color_identity, parse_card_flavor,
-    parse_card_pt_loyalty_vanguard, parse_card_rarity, parse_card_number,
-    parse_artists, parse_watermark, parse_rulings, parse_card_sets,
-    parse_card_variations, parse_card_legal, parse_foreign_info, build_id_part)
-from mtgjson4.storage import (SET_CONFIG_DIR, is_set_file,
-                              open_set_config_json, open_set_json)
+from mtgjson4.parsing import (parse_card_name, parse_card_cmc, parse_card_other_name, parse_colors_and_cost,
+                              parse_card_types, parse_card_text_and_color_identity, parse_card_flavor,
+                              parse_card_pt_loyalty_vanguard, parse_card_rarity, parse_card_number, parse_artists,
+                              parse_watermark, parse_rulings, parse_card_sets, parse_card_variations, parse_card_legal,
+                              parse_foreign_info, build_id_part)
+from mtgjson4.storage import (SET_CONFIG_DIR, is_set_file, open_set_config_json, open_set_json)
 
 
 class MtgJson:
@@ -38,18 +34,13 @@ class MtgJson:
             loop = asyncio.events.get_event_loop()
 
         if session is None:
-            session = aiohttp.ClientSession(
-                loop=loop,
-                raise_for_status=True,
-                conn_timeout=None,
-                read_timeout=None)
+            session = aiohttp.ClientSession(loop=loop, raise_for_status=True, conn_timeout=None, read_timeout=None)
 
         self.loop = loop
         self.http_session = session
         self.sets_to_build = sets_to_build
 
-    async def get_card_html(self, card_mid: int,
-                            is_printed: bool = False) -> bs4.BeautifulSoup:
+    async def get_card_html(self, card_mid: int, is_printed: bool = False) -> bs4.BeautifulSoup:
         """
         Gets the card details (first page) of a single card
         :param card_mid:
@@ -94,21 +85,17 @@ class MtgJson:
         # Parse web page so we can gather all data from it
         soup_oracle = await self.get_card_html(card_mid)
 
-        card_layout, div_name, add_other_card = self.determine_layout_and_div_name(
-            soup_oracle, second_card)
+        card_layout, div_name, add_other_card = self.determine_layout_and_div_name(soup_oracle, second_card)
         if add_other_card and other_cards_holder is not None:
             other_cards_holder.append(
-                self.loop.create_task(
-                    self.build_card(
-                        set_name, card_mid, None, second_card=True)))
+                self.loop.create_task(self.build_card(set_name, card_mid, None, second_card=True)))
 
         card_info['multiverseid'] = int(card_mid)
         card_info['name'] = parse_card_name(soup_oracle, div_name)
         card_info['cmc'] = parse_card_cmc(soup_oracle, div_name)
 
         # Get other side's name for the user
-        has_other, card_other_name = parse_card_other_name(
-            soup_oracle, div_name, card_layout)
+        has_other, card_other_name = parse_card_other_name(soup_oracle, div_name, card_layout)
         if has_other:
             card_info['names'] = [card_info['name'], card_other_name]
 
@@ -120,8 +107,7 @@ class MtgJson:
             card_info['manaCost'] = card_cost
 
         # Get Card Type(s)
-        card_super_types, card_types, card_sub_types, full_type = parse_card_types(
-            soup_oracle, div_name)
+        card_super_types, card_types, card_sub_types, full_type = parse_card_types(soup_oracle, div_name)
         if card_super_types:
             card_info['supertypes'] = card_super_types
         if card_types:
@@ -132,9 +118,8 @@ class MtgJson:
             card_info['type'] = full_type
 
         # Get Card Text and Color Identity
-        card_info['text'], card_info[
-            'colorIdentity'] = parse_card_text_and_color_identity(
-                soup_oracle, div_name, card_colors)
+        card_info['text'], card_info['colorIdentity'] = parse_card_text_and_color_identity(
+            soup_oracle, div_name, card_colors)
 
         # Get Card Flavor Text
         c_flavor = parse_card_flavor(soup_oracle, div_name)
@@ -142,8 +127,7 @@ class MtgJson:
             card_info['flavor'] = c_flavor
 
         # Get Card P/T OR Loyalty OR Hand/Life
-        c_power, c_toughness, c_loyalty, c_hand, c_life = parse_card_pt_loyalty_vanguard(
-            soup_oracle, div_name)
+        c_power, c_toughness, c_loyalty, c_hand, c_life = parse_card_pt_loyalty_vanguard(soup_oracle, div_name)
         if c_power:
             card_info['power'] = c_power
         if c_toughness:
@@ -181,16 +165,14 @@ class MtgJson:
             card_info['rulings'] = c_rulings
 
         # Get Card Sets
-        card_info['printings'] = parse_card_sets(
-            soup_oracle, div_name, set_name[1], self.sets_to_build)
+        card_info['printings'] = parse_card_sets(soup_oracle, div_name, set_name[1], self.sets_to_build)
 
         # Get Card Variations
         c_variations = parse_card_variations(soup_oracle, div_name, card_mid)
         if c_variations:
             card_info['variations'] = c_variations
 
-    async def build_legalities_part(self, card_mid: int,
-                                    card_info: dict) -> None:
+    async def build_legalities_part(self, card_mid: int, card_info: dict) -> None:
         try:
             html = await get_card_legalities(self.http_session, card_mid)
         except aiohttp.ClientError as error:
@@ -230,15 +212,11 @@ class MtgJson:
         if c_foreign_info:
             card_info['foreignNames'] = c_foreign_info
 
-    async def build_original_details(self,
-                                     card_mid: int,
-                                     card_info: dict,
-                                     second_card: bool = False) -> None:
+    async def build_original_details(self, card_mid: int, card_info: dict, second_card: bool = False) -> None:
         soup_print = await self.get_card_html(card_mid, True)
 
         # Determine if Card is Normal, Flip, or Split
-        div_name = self.determine_layout_and_div_name(soup_print,
-                                                      second_card)[1]
+        div_name = self.determine_layout_and_div_name(soup_print, second_card)[1]
 
         # Get Card Original Type
         c_original_type = parse_card_types(soup_print, div_name)[3]
@@ -246,8 +224,7 @@ class MtgJson:
             card_info['originalType'] = c_original_type
 
         # Get Card Original Text
-        c_original_text = parse_card_text_and_color_identity(
-            soup_print, div_name, None)[0]
+        c_original_text = parse_card_text_and_color_identity(soup_print, div_name, None)[0]
         if c_original_text:
             card_info['originalText'] = c_original_text
 
@@ -258,14 +235,8 @@ class MtgJson:
                          second_card: bool = False) -> Dict[str, Any]:
         card_info: Dict[str, Any] = dict()
 
-        await self.build_main_part(
-            set_name,
-            card_mid,
-            card_info,
-            other_cards_holder,
-            second_card=second_card)
-        await self.build_original_details(
-            card_mid, card_info, second_card=second_card)
+        await self.build_main_part(set_name, card_mid, card_info, other_cards_holder, second_card=second_card)
+        await self.build_original_details(card_mid, card_info, second_card=second_card)
         await self.build_legalities_part(card_mid, card_info)
         await self.build_foreign_part(card_mid, card_info)
 
@@ -305,10 +276,8 @@ class MtgJson:
                 elif 'meld' in card_info['text']:
                     card_layout = 'Meld'
                 else:
-                    card_2_name = next(card2 for card2 in card_info['names']
-                                       if card_info['name'] != card2)
-                    card_2_info = next(card2 for card2 in cards
-                                       if card2['name'] == card_2_name)
+                    card_2_name = next(card2 for card2 in card_info['names'] if card_info['name'] != card2)
+                    card_2_info = next(card2 for card2 in cards if card2['name'] == card_2_name)
 
                     if 'flip' in card_2_info['text']:
                         card_layout = 'Flip'
@@ -321,28 +290,23 @@ class MtgJson:
 
             card_info['layout'] = card_layout
 
-    async def download_cards_by_mid_list(self, set_name: List[str],
-                                         multiverse_ids: List[int]):
+    async def download_cards_by_mid_list(self, set_name: List[str], multiverse_ids: List[int]):
         additional_cards = []
         cards_in_set = []
 
         # start asyncio tasks for building each card
         futures = [
-            self.loop.create_task(
-                self.build_card(set_name, card_mid, additional_cards))
-            for card_mid in multiverse_ids
+            self.loop.create_task(self.build_card(set_name, card_mid, additional_cards)) for card_mid in multiverse_ids
         ]
 
         # then wait until all of them are completed
-        with contextlib.suppress(
-                ValueError):  # Happens if no cards are in the multiverse_ids
+        with contextlib.suppress(ValueError):  # Happens if no cards are in the multiverse_ids
             await asyncio.wait(futures)
             for future in futures:
                 card_future = future.result()
                 cards_in_set.append(card_future)
 
-        with contextlib.suppress(
-                ValueError):  # If no double-sided cards, gracefully skip
+        with contextlib.suppress(ValueError):  # If no double-sided cards, gracefully skip
             await asyncio.wait(additional_cards)
             print("Additional Cards found, lets work!")
             for future in additional_cards:
@@ -357,17 +321,14 @@ class MtgJson:
         async def get_mids_for_downloading() -> List[int]:
             print('BuildSet: Building Set {}'.format(set_name[0]))
 
-            urls_for_set = await get_checklist_urls(self.http_session,
-                                                    set_name)
+            urls_for_set = await get_checklist_urls(self.http_session, set_name)
             print('BuildSet: Acquired URLs for {}'.format(set_name[0]))
 
             # ids_to_return = [398434] # DEBUGGING IDs
-            ids_to_return = await generate_mids_by_set(self.http_session,
-                                                       urls_for_set)
+            ids_to_return = await generate_mids_by_set(self.http_session, urls_for_set)
             return ids_to_return
 
-        async def build_then_print_stuff(mids_for_set: List[int],
-                                         lang: str = None) -> dict:
+        async def build_then_print_stuff(mids_for_set: List[int], lang: str = None) -> dict:
             if lang:
                 set_stat = '{0}.{1}'.format(set_name[0], lang)
                 set_output = '{0}.{1}'.format(set_name[1], lang)
@@ -375,44 +336,30 @@ class MtgJson:
                 set_stat = str(set_name[0])
                 set_output = str(set_name[1])
 
-            print('BuildSet: Determined MIDs for {0}: {1}'.format(
-                set_stat, mids_for_set))
+            print('BuildSet: Determined MIDs for {0}: {1}'.format(set_stat, mids_for_set))
 
-            cards_holder = await self.download_cards_by_mid_list(
-                set_name, mids_for_set)
+            cards_holder = await self.download_cards_by_mid_list(set_name, mids_for_set)
 
-            print(
-                'BuildSet: Applied Set Config options for {}'.format(set_stat))
+            print('BuildSet: Applied Set Config options for {}'.format(set_stat))
             json_ready = await apply_set_config_options(set_name, cards_holder)
 
             print('BuildSet: Generated JSON for {}'.format(set_stat))
             with open_set_json(set_output, 'w') as fp:
-                json.dump(
-                    json_ready,
-                    fp,
-                    indent=4,
-                    sort_keys=True,
-                    ensure_ascii=False)
-                print('BuildSet: JSON written for {0} ({1})'.format(
-                    set_stat, set_name[1]))
+                json.dump(json_ready, fp, indent=4, sort_keys=True, ensure_ascii=False)
+                print('BuildSet: JSON written for {0} ({1})'.format(set_stat, set_name[1]))
 
             return json_ready
 
         async def build_foreign_language() -> Optional[dict]:
             if not is_set_file(set_name[1]):
-                print(
-                    'BuildSet: Set {0} not built in English. Do that first before {1}'.
-                    format(set_name[1], language))
+                print('BuildSet: Set {0} not built in English. Do that first before {1}'.format(set_name[1], language))
                 return None
 
             with open_set_json(set_name[1], 'r') as fp:
                 json_input = json.load(fp)
 
-            if ('translations' not in json_input.keys()) or (
-                    language not in json_input['translations'].keys()):
-                print(
-                    "BuildSet: Cannot translate {0} to {1}. Update set_configs".
-                    format(set_name[1], language))
+            if ('translations' not in json_input.keys()) or (language not in json_input['translations'].keys()):
+                print("BuildSet: Cannot translate {0} to {1}. Update set_configs".format(set_name[1], language))
                 return None
 
             foreign_mids_for_set = []
@@ -420,23 +367,20 @@ class MtgJson:
                 full_name_lang_to_build = get_language_long_name(language)
                 for lang_dict in card['foreignNames']:
                     if lang_dict['language'] == full_name_lang_to_build:
-                        foreign_mids_for_set.append(
-                            int(lang_dict['multiverseid']))
+                        foreign_mids_for_set.append(int(lang_dict['multiverseid']))
                         break
 
             # Write to file the foreign build
             return await build_then_print_stuff(foreign_mids_for_set, language)
 
         if language == 'en':
-            return await build_then_print_stuff(await
-                                                get_mids_for_downloading())
+            return await build_then_print_stuff(await get_mids_for_downloading())
         else:
             return await build_foreign_language()
 
 
-async def apply_set_config_options(
-        set_name: List[str],
-        cards_dictionary: list) -> Dict[Union[str, Any], Union[list, Any]]:
+async def apply_set_config_options(set_name: List[str],
+                                   cards_dictionary: list) -> Dict[Union[str, Any], Union[list, Any]]:
     return_product = dict()
 
     # Will search the tree of set_configs to find the file
@@ -451,8 +395,7 @@ async def apply_set_config_options(
         match_replace_rules = ast.literal_eval(match_replace_rules)
 
         for replacement_rule in match_replace_rules:
-            with contextlib.suppress(
-                    KeyError):  # If there's no match, it's deprecated
+            with contextlib.suppress(KeyError):  # If there's no match, it's deprecated
                 replacement_match = replacement_rule['match']
 
             if 'replace' in replacement_rule.keys():
@@ -466,15 +409,9 @@ async def apply_set_config_options(
 
             for key, value in replacement_match.items():
                 if isinstance(value, list):
-                    cards_to_modify = [
-                        card for card in cards_dictionary
-                        if key in card.keys() and card[key] in value
-                    ]
+                    cards_to_modify = [card for card in cards_dictionary if key in card.keys() and card[key] in value]
                 elif isinstance(value, str) or isinstance(value, int):
-                    cards_to_modify = [
-                        card for card in cards_dictionary
-                        if key in card.keys() and card[key] == value
-                    ]
+                    cards_to_modify = [card for card in cards_dictionary if key in card.keys() and card[key] == value]
                 else:
                     continue
 
@@ -489,8 +426,7 @@ async def apply_set_config_options(
 
                         for card in cards_to_modify:
                             for foreign_names_field in card['foreignNames']:
-                                if foreign_names_field[
-                                        'language'] == language_name:
+                                if foreign_names_field['language'] == language_name:
                                     foreign_names_field['name'] = new_name
 
     return_product['cards'] = cards_dictionary
@@ -498,15 +434,12 @@ async def apply_set_config_options(
     return return_product
 
 
-def determine_gatherer_sets(
-        args: Dict[str, Union[bool, List[str]]]) -> List[List[str]]:
+def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[List[str]]:
     def try_to_append(root_p, file_p):
         with pathlib.Path(root_p, file_p).open('r', encoding='utf8') as fp:
             this_set_name = json.load(fp)
             if 'SET' in this_set_name:
-                all_sets.append(
-                    [this_set_name['SET']['name'],
-                     file.split('.json')[0]])
+                all_sets.append([this_set_name['SET']['name'], file.split('.json')[0]])
 
     all_sets = list()
     if args['all_sets']:
@@ -524,8 +457,7 @@ def determine_gatherer_sets(
 
         # Ensure all sets provided by the user are valid
         if len(args['sets']) > 0:
-            print("MTGJSON: Invalid Set Code(s) provided: {}".format(
-                args['sets']))
+            print("MTGJSON: Invalid Set Code(s) provided: {}".format(args['sets']))
             exit(1)
 
     return all_sets

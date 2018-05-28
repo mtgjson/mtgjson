@@ -10,15 +10,11 @@ Color = NewType('Color', str)
 # Building vars
 COLORS: List[Color] = list(Color(c) for c in ['W', 'U', 'B', 'R', 'G'])
 
-EXTRA_FIELDS: List[str] = [
-    'rulings', 'foreignNames', 'printings', 'originalText', 'originalType',
-    'legalities'
-]
+EXTRA_FIELDS: List[str] = ['rulings', 'foreignNames', 'printings', 'originalText', 'originalType', 'legalities']
 
 ORACLE_FIELDS: List[str] = [
-    "layout", "name", "names", "manaCost", "cmc", "colors", "type",
-    "supertypes", "types", "subtypes", "text", "power", "toughness", "loyalty",
-    "hand", "life", "rulings", "printings", "legalities"
+    "layout", "name", "names", "manaCost", "cmc", "colors", "type", "supertypes", "types", "subtypes", "text", "power",
+    "toughness", "loyalty", "hand", "life", "rulings", "printings", "legalities"
 ]
 
 # This should be a mypy_extensions.TypedDict, but this works for now.
@@ -64,9 +60,8 @@ FIELD_TYPES: Dict[str, Union[str, List[str]]] = {
 }
 
 SET_SPECIFIC_FIELDS: List[str] = [
-    "rarity", "artist", "flavor", "number", "multiverseid", "variations",
-    "watermark", "border", "timeshifted", "reserved", "originalText",
-    "originalType", "cardHash", "foreignNames"
+    "rarity", "artist", "flavor", "number", "multiverseid", "variations", "watermark", "border", "timeshifted",
+    "reserved", "originalText", "originalType", "cardHash", "foreignNames"
 ]
 
 SUPERTYPES: List[str] = [
@@ -79,9 +74,8 @@ SUPERTYPES: List[str] = [
 
 CARD_TYPES: List[str] = [
     'Artifact', 'Conspiracy', 'Creature', 'Eaturecray'
-    'Enchant', 'Enchantment', 'Ever', 'Host', 'Instant', 'Interrupt', 'Land',
-    'Phenomenon', 'Plane', 'Planeswalker', 'Player', 'Scariest', 'Scheme',
-    'See', 'Sorcery', 'Tribal', 'Vanguard', 'You\'ll'
+    'Enchant', 'Enchantment', 'Ever', 'Host', 'Instant', 'Interrupt', 'Land', 'Phenomenon', 'Plane', 'Planeswalker',
+    'Player', 'Scariest', 'Scheme', 'See', 'Sorcery', 'Tribal', 'Vanguard', 'You\'ll'
 ]
 
 RESERVE_LIST: List[str] = [

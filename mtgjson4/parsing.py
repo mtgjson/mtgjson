@@ -14,12 +14,10 @@ from mtgjson4.globals import (
     SUPERTYPES,
 )
 
-PT_LOYALTY_VAN_RET_TYPE = List[Union[Optional[str], Optional[str], Optional[
-    str], Optional[str], Optional[str]]]
+PT_LOYALTY_VAN_RET_TYPE = List[Union[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]]
 
 
-def replace_symbol_images_with_tokens(
-        tag: bs4.BeautifulSoup) -> List[Union[bs4.BeautifulSoup, Set[Color]]]:
+def replace_symbol_images_with_tokens(tag: bs4.BeautifulSoup) -> List[Union[bs4.BeautifulSoup, Set[Color]]]:
     """
     Replaces the img tags of symbols with token representations
     :rtype: set
@@ -52,8 +50,7 @@ def parse_card_name(soup: bs4.BeautifulSoup, parse_div: str) -> str:
     return card_name
 
 
-def parse_card_cmc(soup: bs4.BeautifulSoup,
-                   parse_div: str) -> Union[int, float]:
+def parse_card_cmc(soup: bs4.BeautifulSoup, parse_div: str) -> Union[int, float]:
     """
     Parse the card CMC from the row
     :param soup:
@@ -76,8 +73,7 @@ def parse_card_cmc(soup: bs4.BeautifulSoup,
     return card_cmc
 
 
-def parse_card_other_name(soup: bs4.BeautifulSoup, parse_div: str,
-                          layout: str) -> List[Union[bool, Optional[str]]]:
+def parse_card_other_name(soup: bs4.BeautifulSoup, parse_div: str, layout: str) -> List[Union[bool, Optional[str]]]:
     """
     If the MID has 2 cards, return the other card's name
     :param soup:
@@ -100,8 +96,7 @@ def parse_card_other_name(soup: bs4.BeautifulSoup, parse_div: str,
     return [False, None]
 
 
-def parse_card_types(soup: bs4.BeautifulSoup, parse_div: str
-                     ) -> List[Union[List[str], List[str], List[str], str]]:
+def parse_card_types(soup: bs4.BeautifulSoup, parse_div: str) -> List[Union[List[str], List[str], List[str], str]]:
     """
     Parse the types of the card and split them into 4 different structures
     super types, normal types, sub types, and the full row (all the types)
@@ -135,9 +130,7 @@ def parse_card_types(soup: bs4.BeautifulSoup, parse_div: str
     return [card_super_types, card_types, card_sub_types, type_row]
 
 
-def parse_colors_and_cost(
-        soup: bs4.BeautifulSoup,
-        parse_div: str) -> List[Union[Optional[List[Color]], Optional[str]]]:
+def parse_colors_and_cost(soup: bs4.BeautifulSoup, parse_div: str) -> List[Union[Optional[List[Color]], Optional[str]]]:
     """
     Parse the colors and mana cost of the card
     Can use the colors to build the color identity later
@@ -155,18 +148,15 @@ def parse_colors_and_cost(
 
         # Sort field in WUBRG order
         sorted_colors = sorted(
-            list(filter(lambda c: c in card_colors, COLORS)),
-            key=lambda word: [COLORS.index(Color(c)) for c in word])
+            list(filter(lambda c: c in card_colors, COLORS)), key=lambda word: [COLORS.index(Color(c)) for c in word])
 
         return [sorted_colors, card_cost]
 
     return [None, None]
 
 
-def parse_card_text_and_color_identity(
-        soup: bs4.BeautifulSoup, parse_div: str,
-        card_colors: Optional[List[Color]]
-) -> List[Union[Optional[str], List[Color]]]:
+def parse_card_text_and_color_identity(soup: bs4.BeautifulSoup, parse_div: str,
+                                       card_colors: Optional[List[Color]]) -> List[Union[Optional[str], List[Color]]]:
     text_row = soup.find(id=parse_div.format('textRow'))
     return_text = ''
     return_color_identity = set()
@@ -180,8 +170,7 @@ def parse_card_text_and_color_identity(
         return_text = ''
         for div in text_row:
             # Start by replacing all images with alternative text
-            div, instance_color_identity = replace_symbol_images_with_tokens(
-                div)
+            div, instance_color_identity = replace_symbol_images_with_tokens(div)
 
             return_color_identity.update(instance_color_identity)
 
@@ -198,8 +187,7 @@ def parse_card_text_and_color_identity(
     return [return_text or None, sorted_color_identity]
 
 
-def parse_card_flavor(soup: bs4.BeautifulSoup,
-                      parse_div: str) -> Optional[str]:
+def parse_card_flavor(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
     flavor_row = soup.find(id=parse_div.format('flavorRow'))
     card_flavor_text = ''
     if flavor_row is not None:
@@ -215,8 +203,7 @@ def parse_card_flavor(soup: bs4.BeautifulSoup,
     return card_flavor_text
 
 
-def parse_card_pt_loyalty_vanguard(soup: bs4.BeautifulSoup,
-                                   parse_div: str) -> PT_LOYALTY_VAN_RET_TYPE:
+def parse_card_pt_loyalty_vanguard(soup: bs4.BeautifulSoup, parse_div: str) -> PT_LOYALTY_VAN_RET_TYPE:
     pt_row = soup.find(id=parse_div.format('ptRow'))
 
     power = None
@@ -251,8 +238,7 @@ def parse_card_rarity(soup: bs4.BeautifulSoup, parse_div: str) -> str:
     return card_rarity
 
 
-def parse_card_number(soup: bs4.BeautifulSoup,
-                      parse_div: str) -> Optional[str]:
+def parse_card_number(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
     number_row = soup.find(id=parse_div.format('numberRow'))
     card_number = None
     if number_row is not None:
@@ -263,8 +249,7 @@ def parse_card_number(soup: bs4.BeautifulSoup,
 
 
 def parse_artists(soup: bs4.BeautifulSoup, parse_div: str) -> List[str]:
-    with contextlib.suppress(
-            AttributeError):  # Un-cards might not have an artist!
+    with contextlib.suppress(AttributeError):  # Un-cards might not have an artist!
         artist_row = soup.find(id=parse_div.format('artistRow'))
         artist_row = artist_row.findAll('div')[-1]
         card_artists = artist_row.find('a').get_text(strip=True).split('&')
@@ -286,19 +271,16 @@ def parse_rulings(soup: bs4.BeautifulSoup, parse_div: str) -> List[dict]:
     rulings: List[Dict[str, str]] = list()
     rulings_row = soup.find(id=parse_div.format('rulingsRow'))
     if rulings_row is not None:
-        rulings_dates = rulings_row.findAll(
-            'td', id=re.compile(r'\w*_rulingDate\b'))
-        rulings_text = rulings_row.findAll(
-            'td', id=re.compile(r'\w*_rulingText\b'))
+        rulings_dates = rulings_row.findAll('td', id=re.compile(r'\w*_rulingDate\b'))
+        rulings_text = rulings_row.findAll('td', id=re.compile(r'\w*_rulingText\b'))
 
         rulings_text = [
-            replace_symbol_images_with_tokens(ruling_text)[0].get_text()
-            .replace('’', '\'') for ruling_text in rulings_text
+            replace_symbol_images_with_tokens(ruling_text)[0].get_text().replace('’', '\'')
+            for ruling_text in rulings_text
         ]
 
         rulings_dates = [
-            datetime.datetime.strptime(rulings_date.get_text(),
-                                       '%m/%d/%Y').strftime('%Y-%m-%d')
+            datetime.datetime.strptime(rulings_date.get_text(), '%m/%d/%Y').strftime('%Y-%m-%d')
             for rulings_date in rulings_dates
         ]
 
@@ -320,25 +302,20 @@ def parse_card_sets(soup: bs4.BeautifulSoup, parse_div: str, card_set: str,
         for symbol in images:
             this_set_name = symbol['alt'].split('(')[0].strip()
 
-            card_printings += (set_code[1] for set_code in sets_to_build
-                               if this_set_name == set_code[0])
+            card_printings += (set_code[1] for set_code in sets_to_build if this_set_name == set_code[0])
 
     return card_printings
 
 
-def parse_card_variations(soup: bs4.BeautifulSoup, parse_div: str,
-                          card_mid: int) -> List[int]:
+def parse_card_variations(soup: bs4.BeautifulSoup, parse_div: str, card_mid: int) -> List[int]:
     card_variations = []
     variations_row = soup.find(id=parse_div.format('variationLinks'))
     if variations_row is not None:
-        for variations_info in variations_row.findAll(
-                'a', {'class': 'variationLink'}):
-            card_variations.append(
-                int(variations_info['href'].split('multiverseid=')[1]))
+        for variations_info in variations_row.findAll('a', {'class': 'variationLink'}):
+            card_variations.append(int(variations_info['href'].split('multiverseid=')[1]))
 
         with contextlib.suppress(ValueError):
-            card_variations.remove(
-                card_mid)  # Don't need this card's MID in its variations
+            card_variations.remove(card_mid)  # Don't need this card's MID in its variations
 
     return card_variations
 
@@ -347,18 +324,13 @@ def parse_card_legal(soup: bs4.BeautifulSoup) -> List[dict]:
     format_rows = soup.select('table[class^=cardList]')[1]
     format_rows = format_rows.select('tr[class^=cardItem]')
     card_formats = []
-    with contextlib.suppress(
-            IndexError):  # if no legalities, only one tr with only one td
+    with contextlib.suppress(IndexError):  # if no legalities, only one tr with only one td
         for div in format_rows:
             table_rows = div.findAll('td')
             card_format_name = table_rows[0].get_text(strip=True)
-            card_format_legal = table_rows[1].get_text(
-                strip=True)  # raises IndexError if no legalities
+            card_format_legal = table_rows[1].get_text(strip=True)  # raises IndexError if no legalities
 
-            card_formats.append({
-                'format': card_format_name,
-                'legality': card_format_legal
-            })
+            card_formats.append({'format': card_format_name, 'legality': card_format_legal})
 
     return card_formats
 

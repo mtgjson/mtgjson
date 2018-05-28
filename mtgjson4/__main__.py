@@ -9,14 +9,12 @@ import sys
 import time
 
 from mtgjson4.builder import (MtgJson, determine_gatherer_sets)
-from mtgjson4.globals import (DESCRIPTION, EXTRA_FIELDS, FIELD_TYPES,
-                              ORACLE_FIELDS, SET_SPECIFIC_FIELDS, VERSION_INFO,
+from mtgjson4.globals import (DESCRIPTION, EXTRA_FIELDS, FIELD_TYPES, ORACLE_FIELDS, SET_SPECIFIC_FIELDS, VERSION_INFO,
                               get_language_long_name)
 from mtgjson4.storage import (SET_OUT_DIR, COMP_OUT_DIR, ensure_set_dir_exists)
 
 
-async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession,
-               language_to_build: str) -> None:
+async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str) -> None:
     """
     Main method that starts the entire build process
     :param loop:
@@ -30,10 +28,7 @@ async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession,
         # start asyncio tasks for building each set
         builder = MtgJson(SETS_TO_BUILD, session, loop)
 
-        futures = [
-            loop.create_task(builder.build_set(set_name, language_to_build))
-            for set_name in SETS_TO_BUILD
-        ]
+        futures = [loop.create_task(builder.build_set(set_name, language_to_build)) for set_name in SETS_TO_BUILD]
         # then wait until all of them are completed
         await asyncio.wait(futures)
 
@@ -115,8 +110,7 @@ def create_all_sets_files():
                 if field_name in ORACLE_FIELDS and field_name != 'foreignNames':
                     check_taint(field_name, field_value)
 
-                previous_seen_set_codes[card['name']][field_name].append(
-                    card_set['code'])
+                previous_seen_set_codes[card['name']][field_name].append(card_set['code'])
                 all_cards_with_extras[card['name']][field_name] = field_value
 
         return card
@@ -150,10 +144,7 @@ def create_all_sets_files():
     params = {'sets': {}}
 
     for set_data in sets_in_output:
-        params['sets'][set_data['code']] = {
-            'code': set_data['code'],
-            'releaseDate': set_data['releaseDate']
-        }
+        params['sets'][set_data['code']] = {'code': set_data['code'], 'releaseDate': set_data['releaseDate']}
 
         full_simple_sets = process_set(sets_in_output)
 
@@ -164,10 +155,8 @@ def create_all_sets_files():
 
     # saveFullJSON
     def save(f_name, data):
-        with (COMP_OUT_DIR / '{}.json'.format(f_name)).open(
-                'w', encoding='utf-8') as save_fp:
-            json.dump(
-                data, save_fp, indent=4, sort_keys=True, ensure_ascii=False)
+        with (COMP_OUT_DIR / '{}.json'.format(f_name)).open('w', encoding='utf-8') as save_fp:
+            json.dump(data, save_fp, indent=4, sort_keys=True, ensure_ascii=False)
         return len(data)
 
     all_cards = copy.copy(all_cards_with_extras)
@@ -211,11 +200,7 @@ if __name__ == '__main__':
     # Start by processing all arguments to the program
     parser = argparse.ArgumentParser(description=DESCRIPTION)
 
-    parser.add_argument(
-        '-v',
-        '--version',
-        action='store_true',
-        help='MTGJSON version information')
+    parser.add_argument('-v', '--version', action='store_true', help='MTGJSON version information')
 
     parser.add_argument(
         '-s',
@@ -223,23 +208,19 @@ if __name__ == '__main__':
         metavar='SET',
         nargs='+',
         type=str,
-        help='A list of sets to build. Will be ignored if used with --all-sets.'
-    )
+        help='A list of sets to build. Will be ignored if used with --all-sets.')
 
     parser.add_argument(
         '-a',
         '--all-sets',
         action='store_true',
-        help=
-        'Build all sets found in the set_configs directory, including sub-directories.'
-    )
+        help='Build all sets found in the set_configs directory, including sub-directories.')
 
     parser.add_argument(
         '-f',
         '--full-out',
         action='store_true',
-        help=
-        'Create the AllCards, AllSets, and AllSetsArray files based on the sets found in the set_outputs directory.'
+        help='Create the AllCards, AllSets, and AllSetsArray files based on the sets found in the set_outputs directory.'
     )
 
     parser.add_argument(
@@ -268,13 +249,11 @@ if __name__ == '__main__':
 
     # Ensure the language is a valid language, otherwise exit
     if get_language_long_name(lang_to_process) is None:
-        print('MTGJSON: Language \'{}\' not supported yet'.format(
-            lang_to_process))
+        print('MTGJSON: Language \'{}\' not supported yet'.format(lang_to_process))
         exit(1)
 
     # If only full out, just build from what's there and exit
-    if (cl_args['sets'] is
-            None) and (not cl_args['all_sets']) and cl_args['full_out']:
+    if (cl_args['sets'] is None) and (not cl_args['all_sets']) and cl_args['full_out']:
         create_all_sets_files()
         exit(0)
 
@@ -285,13 +264,8 @@ if __name__ == '__main__':
     start_time = time.time()
 
     card_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
-    card_session = aiohttp.ClientSession(
-        loop=card_loop,
-        raise_for_status=True,
-        conn_timeout=None,
-        read_timeout=None)
-    card_loop.run_until_complete(
-        main(card_loop, card_session, lang_to_process))
+    card_session = aiohttp.ClientSession(loop=card_loop, raise_for_status=True, conn_timeout=None, read_timeout=None)
+    card_loop.run_until_complete(main(card_loop, card_session, lang_to_process))
 
     if cl_args['full_out']:
         create_all_sets_files()
