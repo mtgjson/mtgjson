@@ -218,6 +218,7 @@ if __name__ == '__main__':
         help='MTGJSON version information')
 
     parser.add_argument(
+        '-s',
         '--sets',
         metavar='SET',
         nargs='+',
@@ -225,9 +226,10 @@ if __name__ == '__main__':
         help='What set(s) to build (if used with --all-sets, will be ignored)')
 
     parser.add_argument(
-        '--all-sets', action='store_true', help='Build all sets')
+        '-a', '--all-sets', action='store_true', help='Build all sets')
 
     parser.add_argument(
+        '-f',
         '--full-out',
         action='store_true',
         help=
@@ -235,6 +237,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        '-l',
         '--language',
         default=['en'],
         metavar='LANG',
