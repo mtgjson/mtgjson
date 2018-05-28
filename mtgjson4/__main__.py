@@ -11,17 +11,26 @@ import sys
 import time
 from typing import List, Iterator
 
-MAX_SETS_TO_BUILD_AT_ONCE = 5
 
-
-async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str) -> None:
+async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str,
+               args: dict) -> None:
     """
     Main method that starts the entire build process
+    :param args:
     :param loop:
     :param session:
     :param language_to_build:
     :return:
     """
+
+    def get_next_batch_of_sets(queue: Iterator[List[str]]) -> List[List[str]]:
+        max_pops = int(args['max_sets_build'][0])
+
+        # User disabled this memory protection feature
+        if max_pops == 0:
+            return list(queue)
+        return list(itertools.islice(queue, max_pops))
+
     mtg_storage.ensure_set_dir_exists()
 
     sets_queue = iter(SETS_TO_BUILD)
@@ -45,10 +54,6 @@ async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, 
 
     # And we're done! :)
     return
-
-
-def get_next_batch_of_sets(queue: Iterator[List[str]]) -> List[List[str]]:
-    return list(itertools.islice(queue, MAX_SETS_TO_BUILD_AT_ONCE))
 
 
 # This is a raw transposition from MTGJSONv3...
@@ -254,6 +259,16 @@ if __name__ == '__main__':
         'Build foreign language version of a specific set. The english version must have been built already for this flag to be used.'
     )
 
+    parser.add_argument(
+        '--max-sets-build',
+        default=[5],
+        metavar='#',
+        type=int,
+        nargs=1,
+        help=
+        'You can limit how many sets will be built at one time. The higher the number, the more memory consumption. If not enough memory, swap space will be used, which slows down the program tremendiously. Defaults to 5. 0 to Disable.'
+    )
+
     # If user supplies no arguments, show help screen and exit
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -285,7 +300,7 @@ if __name__ == '__main__':
 
     card_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
     card_session = aiohttp.ClientSession(loop=card_loop, raise_for_status=True, conn_timeout=None, read_timeout=None)
-    card_loop.run_until_complete(main(card_loop, card_session, lang_to_process))
+    card_loop.run_until_complete(main(card_loop, card_session, lang_to_process, cl_args))
 
     if cl_args['full_out']:
         create_all_sets_files()
