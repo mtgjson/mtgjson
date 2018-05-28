@@ -10,23 +10,18 @@ here = path.abspath(path.dirname(__file__))
 runtime_deps = [
     'aiohttp',
     'bs4',
-    'mypy',
-    'vcrpy'
+    'mypy'
 ]
 
 dev_deps = [
-    'aiohttp',
-    'bs4',
-    'mypy',
-    'vcrpy',
-    'pytest-asyncio',
-    'yapf',
-
     'coverage',
     'hypothesis==3.1.0',
     'pytest',
+    'pytest-asyncio',
     'pytest-cov',
     'tox',
+    'vcrpy',
+    'yapf'
 ]
 
 setup(
