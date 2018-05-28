@@ -112,3 +112,4 @@ venv.bak/
 # MTG JSON
 set_outputs/
 compiled_outputs/
+/trace.html
