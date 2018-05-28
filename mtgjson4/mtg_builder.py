@@ -451,15 +451,16 @@ def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[Lis
                 if file.endswith('.json'):
                     try_to_append(root, file)
     else:
+        set_args = [s.upper() for s in args['sets']]
         for root, _, files in os.walk(mtg_storage.SET_CONFIG_DIR):
             for file in files:
                 set_name: str = file.split('.json')[0]
-                if set_name in args['sets']:
+                if str.upper(set_name) in set_args:
                     try_to_append(root, file)
-                    args['sets'].remove(set_name)
+                    set_args.remove(set_name)
 
         # Ensure all sets provided by the user are valid
-        if len(args['sets']) > 0:
+        if len(set_args) > 0:
             print("MTGJSON: Invalid Set Code(s) provided: {}".format(args['sets']))
             exit(1)
 
