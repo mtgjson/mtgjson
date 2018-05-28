@@ -3,15 +3,11 @@ import argparse
 import asyncio
 import copy
 import json
+from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 import os
 import pathlib
 import sys
 import time
-
-from mtgjson4.builder import (MtgJson, determine_gatherer_sets)
-from mtgjson4.globals import (DESCRIPTION, EXTRA_FIELDS, FIELD_TYPES, ORACLE_FIELDS, SET_SPECIFIC_FIELDS, VERSION_INFO,
-                              get_language_long_name)
-from mtgjson4.storage import (SET_OUT_DIR, COMP_OUT_DIR, ensure_set_dir_exists)
 
 
 async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str) -> None:
@@ -22,19 +18,19 @@ async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, 
     :param language_to_build:
     :return:
     """
-    ensure_set_dir_exists()
+    mtg_storage.ensure_set_dir_exists()
 
     async with session:
         # start asyncio tasks for building each set
-        builder = MtgJson(SETS_TO_BUILD, session, loop)
+        json_builder = mtg_builder.MTGJSON(SETS_TO_BUILD, session, loop)
 
-        futures = [loop.create_task(builder.build_set(set_name, language_to_build)) for set_name in SETS_TO_BUILD]
+        futures = [loop.create_task(json_builder.build_set(set_name, language_to_build)) for set_name in SETS_TO_BUILD]
         # then wait until all of them are completed
         await asyncio.wait(futures)
 
 
 def create_all_sets_files():
-    COMP_OUT_DIR.mkdir(exist_ok=True)
+    mtg_storage.COMP_OUT_DIR.mkdir(exist_ok=True)
 
     # Set Variables
     all_sets = dict()
@@ -97,8 +93,8 @@ def create_all_sets_files():
             if taint:
                 tainted_cards.append({'card': card, 'fieldName': a_field_name})
 
-        for field_name in FIELD_TYPES.keys():
-            if field_name in SET_SPECIFIC_FIELDS:
+        for field_name in mtg_global.FIELD_TYPES.keys():
+            if field_name in mtg_global.SET_SPECIFIC_FIELDS:
                 continue
 
             if field_name not in previous_seen_set_codes[card['name']]:
@@ -107,7 +103,7 @@ def create_all_sets_files():
             if field_name in card.keys():
                 field_value = card[field_name]
 
-                if field_name in ORACLE_FIELDS and field_name != 'foreignNames':
+                if field_name in mtg_global.ORACLE_FIELDS and field_name != 'foreignNames':
                     check_taint(field_name, field_value)
 
                 previous_seen_set_codes[card['name']][field_name].append(card_set['code'])
@@ -128,15 +124,15 @@ def create_all_sets_files():
         simple_set = copy.copy(sets)
         for b_set in simple_set:
             for simple_set_card in b_set['cards']:
-                for unneeded_field in EXTRA_FIELDS:
+                for unneeded_field in mtg_global.EXTRA_FIELDS:
                     simple_set_card.pop(unneeded_field, None)
 
         return [sets, simple_set]
 
     # LoadJSON
     sets_in_output = list()
-    for file in os.listdir(SET_OUT_DIR):
-        with pathlib.Path(SET_OUT_DIR, file).open('r', encoding='utf-8') as fp:
+    for file in os.listdir(mtg_storage.SET_OUT_DIR):
+        with pathlib.Path(mtg_storage.SET_OUT_DIR, file).open('r', encoding='utf-8') as fp:
             file_content = json.load(fp)
             sets_in_output.append(file_content)
 
@@ -155,13 +151,13 @@ def create_all_sets_files():
 
     # saveFullJSON
     def save(f_name, data):
-        with (COMP_OUT_DIR / '{}.json'.format(f_name)).open('w', encoding='utf-8') as save_fp:
+        with (mtg_storage.COMP_OUT_DIR / '{}.json'.format(f_name)).open('w', encoding='utf-8') as save_fp:
             json.dump(data, save_fp, indent=4, sort_keys=True, ensure_ascii=False)
         return len(data)
 
     all_cards = copy.copy(all_cards_with_extras)
     for card_keys in all_cards.keys():
-        for extra_field in EXTRA_FIELDS:
+        for extra_field in mtg_global.EXTRA_FIELDS:
             if extra_field in card_keys:
                 card_keys.remove(extra_field)
 
@@ -198,7 +194,7 @@ def create_all_sets_files():
 
 if __name__ == '__main__':
     # Start by processing all arguments to the program
-    parser = argparse.ArgumentParser(description=DESCRIPTION)
+    parser = argparse.ArgumentParser(description=mtg_global.DESCRIPTION)
 
     parser.add_argument('-v', '--version', action='store_true', help='MTGJSON version information')
 
@@ -244,11 +240,11 @@ if __name__ == '__main__':
 
     # Get version info and exit
     if cl_args['version']:
-        print(VERSION_INFO)
+        print(mtg_global.VERSION_INFO)
         exit(0)
 
     # Ensure the language is a valid language, otherwise exit
-    if get_language_long_name(lang_to_process) is None:
+    if mtg_global.get_language_long_name(lang_to_process) is None:
         print('MTGJSON: Language \'{}\' not supported yet'.format(lang_to_process))
         exit(1)
 
@@ -258,7 +254,7 @@ if __name__ == '__main__':
         exit(0)
 
     # Global of all sets to build
-    SETS_TO_BUILD = determine_gatherer_sets(cl_args)
+    SETS_TO_BUILD = mtg_builder.determine_gatherer_sets(cl_args)
 
     # Start the build process
     start_time = time.time()

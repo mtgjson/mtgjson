@@ -3,34 +3,27 @@ import contextlib
 import copy
 import datetime
 import hashlib
+from mtgjson4 import mtg_global
 import re
 from typing import List, Set, Union, Optional, Dict
-
-from mtgjson4.globals import (
-    get_symbol_short_name,
-    CARD_TYPES,
-    COLORS,
-    Color,
-    SUPERTYPES,
-)
 
 PT_LOYALTY_VAN_RET_TYPE = List[Union[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]]
 
 
-def replace_symbol_images_with_tokens(tag: bs4.BeautifulSoup) -> List[Union[bs4.BeautifulSoup, Set[Color]]]:
+def replace_symbol_images_with_tokens(tag: bs4.BeautifulSoup) -> List[Union[bs4.BeautifulSoup, Set[mtg_global.Color]]]:
     """
     Replaces the img tags of symbols with token representations
     :rtype: set
     :return: The color symbols found
     """
     tag_copy = copy.copy(tag)
-    colors_found: Set[Color] = set()
+    colors_found: Set[mtg_global.Color] = set()
     images = tag_copy.find_all('img')
     for symbol in images:
         symbol_value = symbol['alt']
-        symbol_mapped = get_symbol_short_name(symbol_value)
+        symbol_mapped = mtg_global.get_symbol_short_name(symbol_value)
         symbol.replace_with(f'{{{symbol_mapped}}}')
-        if symbol_mapped in COLORS:
+        if symbol_mapped in mtg_global.COLORS:
             colors_found.add(symbol_mapped)
 
     return [tag_copy, colors_found]
@@ -119,9 +112,9 @@ def parse_card_types(soup: bs4.BeautifulSoup, parse_div: str) -> List[Union[List
         supertypes_and_types = type_row
 
     for value in supertypes_and_types.split():
-        if value in SUPERTYPES:
+        if value in mtg_global.SUPERTYPES:
             card_super_types.append(value)
-        elif value in CARD_TYPES:
+        elif value in mtg_global.CARD_TYPES:
             card_types.append(value)
         else:
             card_types.append(value)
@@ -130,7 +123,8 @@ def parse_card_types(soup: bs4.BeautifulSoup, parse_div: str) -> List[Union[List
     return [card_super_types, card_types, card_sub_types, type_row]
 
 
-def parse_colors_and_cost(soup: bs4.BeautifulSoup, parse_div: str) -> List[Union[Optional[List[Color]], Optional[str]]]:
+def parse_colors_and_cost(soup: bs4.BeautifulSoup,
+                          parse_div: str) -> List[Union[Optional[List[mtg_global.Color]], Optional[str]]]:
     """
     Parse the colors and mana cost of the card
     Can use the colors to build the color identity later
@@ -144,19 +138,21 @@ def parse_colors_and_cost(soup: bs4.BeautifulSoup, parse_div: str) -> List[Union
         mana_row = replace_symbol_images_with_tokens(mana_row)
 
         card_cost = mana_row[0].get_text(strip=True).replace('’', '\'')
-        card_colors: Set[Color] = set(mana_row[1])
+        card_colors: Set[mtg_global.Color] = set(mana_row[1])
 
         # Sort field in WUBRG order
         sorted_colors = sorted(
-            list(filter(lambda c: c in card_colors, COLORS)), key=lambda word: [COLORS.index(Color(c)) for c in word])
+            list(filter(lambda c: c in card_colors, mtg_global.COLORS)),
+            key=lambda word: [mtg_global.COLORS.index(mtg_global.Color(c)) for c in word])
 
         return [sorted_colors, card_cost]
 
     return [None, None]
 
 
-def parse_card_text_and_color_identity(soup: bs4.BeautifulSoup, parse_div: str,
-                                       card_colors: Optional[List[Color]]) -> List[Union[Optional[str], List[Color]]]:
+def parse_card_text_and_color_identity(
+        soup: bs4.BeautifulSoup, parse_div: str,
+        card_colors: Optional[List[mtg_global.Color]]) -> List[Union[Optional[str], List[mtg_global.Color]]]:
     text_row = soup.find(id=parse_div.format('textRow'))
     return_text = ''
     return_color_identity = set()
@@ -181,8 +177,8 @@ def parse_card_text_and_color_identity(soup: bs4.BeautifulSoup, parse_div: str,
 
     # Sort field in WUBRG order
     sorted_color_identity = sorted(
-        list(filter(lambda c: c in return_color_identity, COLORS)),
-        key=lambda word: [COLORS.index(Color(c)) for c in word])
+        list(filter(lambda c: c in return_color_identity, mtg_global.COLORS)),
+        key=lambda word: [mtg_global.COLORS.index(mtg_global.Color(c)) for c in word])
 
     return [return_text or None, sorted_color_identity]
 
