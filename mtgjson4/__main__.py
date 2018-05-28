@@ -2,12 +2,16 @@ import aiohttp
 import argparse
 import asyncio
 import copy
+import itertools
 import json
 from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 import os
 import pathlib
 import sys
 import time
+from typing import List, Iterator
+
+MAX_SETS_TO_BUILD_AT_ONCE = 5
 
 
 async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str) -> None:
@@ -20,15 +24,35 @@ async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, 
     """
     mtg_storage.ensure_set_dir_exists()
 
+    sets_queue = iter(SETS_TO_BUILD)
     async with session:
-        # start asyncio tasks for building each set
+        # Start asyncio tasks for building each set
         json_builder = mtg_builder.MTGJSON(SETS_TO_BUILD, session, loop)
 
-        futures = [loop.create_task(json_builder.build_set(set_name, language_to_build)) for set_name in SETS_TO_BUILD]
-        # then wait until all of them are completed
-        await asyncio.wait(futures)
+        # We will only be building a few sets at a time, to allow for partial outputs
+        sets_to_build_now = get_next_batch_of_sets(sets_queue)
+        while len(sets_to_build_now) > 0:
+            # Create our builders for the few sets
+            futures = [
+                loop.create_task(json_builder.build_set(set_name, language_to_build)) for set_name in sets_to_build_now
+            ]
+
+            # Then wait until all of them are completed
+            await asyncio.wait(futures)
+
+            # Then queue up our next sets to build
+            sets_to_build_now = get_next_batch_of_sets(sets_queue)
+
+    # And we're done! :)
+    return
 
 
+def get_next_batch_of_sets(queue: Iterator[List[str]]) -> List[List[str]]:
+    return list(itertools.islice(queue, MAX_SETS_TO_BUILD_AT_ONCE))
+
+
+# This is a raw transposition from MTGJSONv3...
+# I have no idea if it's correct or not.
 def create_all_sets_files():
     mtg_storage.COMP_OUT_DIR.mkdir(exist_ok=True)
 
