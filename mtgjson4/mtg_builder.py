@@ -451,7 +451,9 @@ def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[Lis
                 if file.endswith('.json'):
                     try_to_append(root, file)
     else:
-        set_args = [s.upper() for s in args['sets']]
+        # Upper all the sets, and fix the Conflux set (Windows can't have CON files)
+        set_args = ['CON_' if sa.upper() == 'CON' else sa for sa in args['sets']]
+
         for root, _, files in os.walk(mtg_storage.SET_CONFIG_DIR):
             for file in files:
                 set_name: str = file.split('.json')[0]
