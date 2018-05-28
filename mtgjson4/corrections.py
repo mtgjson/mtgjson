@@ -12,11 +12,27 @@ def apply_corrections(match_replace_rules, cards_dictionary: List[CardDescriptio
             if replacement_rule.get('match'):
                 apply_match(replacement_rule, cards_dictionary)
                 continue
+            elif replacement_rule.get('renumberImages'):
+                # TODO: Implement
+                continue
+            elif replacement_rule.get('copyCard'):
+                # TODO Implement
+                continue
+            elif replacement_rule.get('importCard'):
+                # TODO: implement
+                # This one sounds like it might be messy.  I'm not sure how to do it.
+                continue
         elif isinstance(replacement_rule, str):
             if replacement_rule == 'noBasicLandWatermarks':
                 no_basic_land_watermarks(cards_dictionary)
                 continue
-        # raise KeyError(replacement_rule)
+            elif replacement_rule == 'numberCards':
+                # TODO: Implement
+                continue
+            elif replacement_rule == 'sortCards':
+                # TODO: Implement
+                continue
+        raise KeyError(replacement_rule)
 
 def apply_match(replacement_rule, cards_dictionary: List[CardDescription]) -> None:
     keys = set(replacement_rule.keys())
@@ -27,6 +43,16 @@ def apply_match(replacement_rule, cards_dictionary: List[CardDescription]) -> No
         replace(replacement_rule['replace'], cards_to_modify)
         keys.remove('replace')
 
+    if 'remove' in replacement_rule.keys():
+        # TODO: implement
+        # remove(replacement_rule['remove'], cards_to_modify)
+        keys.remove('remove')
+
+    if 'prefixNumber' in replacement_rule.keys():
+        # TODO: implement
+        # prefix_number(replacement_rule['prefixNumber'], cards_to_modify)
+        keys.remove('prefixNumber')
+
     if 'fixForeignNames' in replacement_rule.keys():
         fix_foreign_names(replacement_rule['fixForeignNames'], cards_to_modify)
         keys.remove('fixForeignNames')
@@ -35,8 +61,30 @@ def apply_match(replacement_rule, cards_dictionary: List[CardDescription]) -> No
         fix_flavor_newlines(cards_to_modify)
         keys.remove('fixFlavorNewlines')
 
-    # if keys:
-    #     raise KeyError(keys)
+    if 'flavorAddDash' in replacement_rule.keys() and replacement_rule['flavorAddDash']:
+        # TODO: Implement
+        # flavor_add_dash(cards_to_modify)
+        keys.remove('flavorAddDash')
+
+    if 'flavorAddExclamation' in replacement_rule.keys() and replacement_rule['flavorAddExclamation']:
+        # TODO: Implement
+        # flavor_add_exclamation(cards_to_modify)
+        keys.remove('flavorAddExclamation')
+
+    if 'incrementNumber' in replacement_rule.keys() and replacement_rule['incrementNumber']:
+        # TODO: Implement
+        # increment_number(cards_to_modify)
+        keys.remove('incrementNumber')
+
+    if 'removeCard' in replacement_rule.keys() and replacement_rule['removeCard']:
+        # TODO: Implement
+        # remove_card(cards_to_modify)
+        keys.remove('removeCard')
+
+
+
+    if keys:
+        raise KeyError(keys)
 
 def no_basic_land_watermarks(cards_dictionary):
     # TODO: Not sure what to do with this.
@@ -76,11 +124,11 @@ def parse_match(match_rule: Union[str, Dict[str, str]],
         if match_rule == "*":
             return card_list
     elif isinstance(match_rule, dict):
-        if len(match_rule.items()) != 1:
-            raise KeyError(match_rule)
+        matches = card_list
         for key, value in match_rule.items():
             if isinstance(value, list):
-                return [card for card in card_list if key in card.keys() and card[key] in value]
+                matches = [card for card in matches if key in card.keys() and card[key] in value]
             elif isinstance(value, (int, str)):
-                return [card for card in card_list if card.get(key) == value]
+                matches = [card for card in matches if card.get(key) == value]
+        return matches
     raise KeyError(match_rule)
