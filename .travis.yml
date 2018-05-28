@@ -5,9 +5,7 @@ cache: pip
 install:
   - travis_retry pip install -r requirements.txt
 script:
-  # - pylint mtgjson4 tests
-  - pytest
-  - mypy --ignore-missing-imports --disallow-untyped-calls --disallow-incomplete-defs .
+  - tox
 notifications:
     webhooks: https://www.travisbuddy.com/?insertMode=update
     on_success: never

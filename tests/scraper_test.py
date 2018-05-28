@@ -28,6 +28,7 @@ async def test_isd(event_loop: asyncio.AbstractEventLoop) -> None:
     isd = mtg_builder.determine_gatherer_sets({'sets': ['ISD'], 'all_sets': False})
     b = mtg_builder.MTGJSON(isd, loop=event_loop)
     json = await b.build_set(isd[0], 'en')
+    assert len(json['cards']) == 284
     delver = [c for c in json['cards'] if c['multiverseid'] == 226749][0]
     assert delver['name'] == 'Delver of Secrets'
     assert delver['names'] == ["Delver of Secrets", "Insectile Aberration"]
@@ -35,3 +36,21 @@ async def test_isd(event_loop: asyncio.AbstractEventLoop) -> None:
     aberration = [c for c in json['cards'] if c['multiverseid'] == 226755][0]
     assert aberration['name'] == 'Insectile Aberration'
     assert aberration['number'] == '51b'
+
+@pytest.mark.asyncio
+@vcr.use_cassette
+async def test_chk(event_loop: asyncio.AbstractEventLoop) -> None:
+    """
+    Scrape Champions of Kamigawa.  Make sure those Flip Cards work.
+    """
+    chk = mtg_builder.determine_gatherer_sets({'sets': ['CHK'], 'all_sets': False})
+    b = mtg_builder.MTGJSON(chk, loop=event_loop)
+    json = await b.build_set(chk[0], 'en')
+    lavarunner = [c for c in json['cards'] if c['multiverseid'] == 78694][0]
+    assert lavarunner['name'] == 'Akki Lavarunner'
+    assert lavarunner['names'] == ["Akki Lavarunner", "Tok-Tok, Volcano Born"]
+    assert lavarunner["number"] == "153a"
+    toktok = [c for c in json['cards'] if c['multiverseid'] == 78694][1]
+    assert toktok['name'] == 'Tok-Tok, Volcano Born'
+    assert toktok['names'] == ["Akki Lavarunner", "Tok-Tok, Volcano Born"]
+    assert toktok["number"] == "153b"
