@@ -94,7 +94,8 @@ async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrls
                 td_row = row_info.find_all('td')
                 gatherer_page_id = td_row[0].get_text(strip=True)
 
-                if gatherer_page_id not in card_id_exist:
+                # Some sets don't have card numbers, like Alpha and Beta
+                if (gatherer_page_id not in card_id_exist) or len(gatherer_page_id) == 0:
                     card_id_exist.add(gatherer_page_id)
                     card_mids_to_parse.append(int(td_row[1].find('a')['href'].split('id=')[1].split('"')[0]))
 
