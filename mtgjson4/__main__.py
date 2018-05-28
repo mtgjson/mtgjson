@@ -13,7 +13,7 @@ import aiohttp
 
 from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 
-from . import stacktracer
+from mtgjson4 import stacktracer
 
 stacktracer.trace_start("trace.html")
 

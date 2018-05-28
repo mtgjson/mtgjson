@@ -1,3 +1,5 @@
+import copy
+
 import asyncio
 import contextlib
 import json
@@ -239,8 +241,9 @@ class MTGJSON:
         return card_info
 
     @staticmethod
-    def add_card_layouts_inline(cards: list) -> None:
-        for card_info in cards:
+    def rebuild_card_layouts(cards: list) -> list:
+        return_cards = copy.copy(cards)
+        for card_info in return_cards:
             if 'names' in card_info:
                 sides = len(card_info['names'])
             else:
@@ -258,7 +261,17 @@ class MTGJSON:
                 else:
                     card_layout = 'Normal'
             elif sides == 2:
-                if 'transform' in card_info['text']:
+                print("side2", card_info)
+                if card_info['text'] is None:
+                    card_2_name = next(card2 for card2 in card_info['names'] if card_info['name'] != card2)
+                    card_2_info = next(card2 for card2 in cards if card2['name'] == card_2_name)
+                    if 'flip' in card_2_info['text']:
+                        card_layout = 'Flip'
+                    elif 'transform' in card_2_info['text']:
+                        card_layout = 'Double-Faced'
+                    else:
+                        card_layout = 'Unknown1'
+                elif 'transform' in card_info['text']:
                     card_layout = 'Double-Faced'
                 elif 'aftermath' in card_info['text']:
                     card_layout = 'Aftermath'
@@ -269,19 +282,14 @@ class MTGJSON:
                 elif 'meld' in card_info['text']:
                     card_layout = 'Meld'
                 else:
-                    card_2_name = next(card2 for card2 in card_info['names'] if card_info['name'] != card2)
-                    card_2_info = next(card2 for card2 in cards if card2['name'] == card_2_name)
-
-                    if 'flip' in card_2_info['text']:
-                        card_layout = 'Flip'
-                    elif 'transform' in card_2_info['text']:
-                        card_layout = 'Double-Faced'
-                    else:
-                        card_layout = 'Unknown'
+                    print("Unknown")
+                    card_layout = 'Unknown2'
             else:
                 card_layout = 'Meld'
 
             card_info['layout'] = card_layout
+        return return_cards
+
 
     async def download_cards_by_mid_list(self, set_name: List[str], multiverse_ids: List[int]):
         additional_cards = []
@@ -306,7 +314,8 @@ class MTGJSON:
                 card_future = future.result()
                 cards_in_set.append(card_future)
 
-        self.add_card_layouts_inline(cards_in_set)
+        cards_in_set = self.rebuild_card_layouts(cards_in_set)
+        print(cards_in_set)
 
         return cards_in_set
 
@@ -333,7 +342,7 @@ class MTGJSON:
 
             cards_holder = await self.download_cards_by_mid_list(set_name, mids_for_set)
 
-            print('BuildSet: Applied Set Config options for {}'.format(set_stat))
+            print('BuildSet: Applied Set Config options for {}'.format(set_name))
             json_ready = await apply_set_config_options(set_name, cards_holder)
 
             print('BuildSet: Generated JSON for {}'.format(set_stat))
@@ -385,11 +394,9 @@ async def apply_set_config_options(set_name: List[str],
 
     if 'SET_CORRECTIONS' in file_response.keys():
         corrections.apply_corrections(file_response['SET_CORRECTIONS'], cards_dictionary)
-
     return_product['cards'] = cards_dictionary
 
     return return_product
-
 
 
 def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[List[str]]:
