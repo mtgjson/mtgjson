@@ -1,6 +1,7 @@
 import ast
 import asyncio
 import contextlib
+import datetime
 import hashlib
 import json
 import os
@@ -198,12 +199,10 @@ class MtgJson:
         mana_row = soup.find(id=parse_div.format('manaRow'))
         if mana_row:
             mana_row = mana_row.findAll('div')[-1]
+            mana_row = replace_symbol_images_with_tokens(mana_row)
 
-            card_colors: Set[Color] = set()
-
-            mana_colors = replace_symbol_images_with_tokens(mana_row)[1]
-            card_cost = mana_row.get_text(strip=True)
-            card_colors.update(mana_colors)
+            card_cost = mana_row[0].get_text(strip=True).replace('’', '\'')
+            card_colors: Set[Color] = set(mana_row[1])
 
             # Sort field in WUBRG order
             sorted_colors = sorted(
@@ -211,9 +210,10 @@ class MtgJson:
                 key=lambda word: [COLORS.index(Color(c)) for c in word]
             )
 
-            return (sorted_colors, card_cost)
+            # print("returning", sorted_colors, card_cost)
+            return sorted_colors, card_cost
 
-        return (None, None)
+        return None, None
 
     @staticmethod
     async def parse_card_text_and_color_identity(soup: bs4.BeautifulSoup, parse_div: str,
@@ -354,13 +354,21 @@ class MtgJson:
         if rulings_row is not None:
             rulings_dates = rulings_row.findAll('td', id=re.compile(r'\w*_rulingDate\b'))
             rulings_text = rulings_row.findAll('td', id=re.compile(r'\w*_rulingText\b'))
-            for ruling_text in rulings_text:
-                ruling_text = replace_symbol_images_with_tokens(ruling_text)[0]
+
+            rulings_text = [
+                replace_symbol_images_with_tokens(ruling_text)[0].get_text().replace('’', '\'')
+                for ruling_text in rulings_text
+            ]
+
+            rulings_dates = [
+                    datetime.datetime.strptime(rulings_date.get_text(), '%m/%d/%Y').strftime('%Y-%m-%d')
+                    for rulings_date in rulings_dates
+            ]
 
             rulings = [
                 {
-                    'date': ruling_date.get_text(),
-                    'text': ruling_text.get_text()
+                    'date': ruling_date,
+                    'text': ruling_text
                 }
                 for ruling_date, ruling_text in zip(rulings_dates, rulings_text)
             ]
@@ -556,7 +564,7 @@ class MtgJson:
 
             a_tag = table_rows[0].find('a')
             foreign_mid = a_tag['href'].split('=')[-1]
-            card_language_mid = foreign_mid
+            card_language_mid = int(foreign_mid)
             card_foreign_name_in_language = a_tag.get_text(strip=True)
 
             card_language_name = table_rows[1].get_text(strip=True)
