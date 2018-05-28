@@ -1,7 +1,9 @@
 aiohttp
 bs4
 mypy
+mypy_extensions
 pytest
 pytest-asyncio
+tox
 vcrpy
 yapf

@@ -1,6 +1,7 @@
 from codecs import open
 from os import path
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 here = path.abspath(path.dirname(__file__))
 
@@ -8,7 +9,8 @@ here = path.abspath(path.dirname(__file__))
 # Pinned dependencies that we've tested with are present in requirements.txt
 runtime_deps = [
     'aiohttp',
-    'bs4'
+    'bs4',
+    'mypy_extensions'
 ]
 
 dev_deps = [

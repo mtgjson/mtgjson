@@ -1,13 +1,17 @@
-import aiohttp
 import asyncio
-import bs4
 import itertools
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Set, Tuple, Union
 
-search_url = 'http://gatherer.wizards.com/Pages/Search/Default.aspx'
-main_url = 'http://gatherer.wizards.com/Pages/Card/Details.aspx'
-legal_url = 'http://gatherer.wizards.com/Pages/Card/Printings.aspx'
-foreign_url = 'http://gatherer.wizards.com/Pages/Card/Languages.aspx'
+import aiohttp
+import bs4
+
+SEARCH_URL = 'http://gatherer.wizards.com/Pages/Search/Default.aspx'
+MAIN_URL = 'http://gatherer.wizards.com/Pages/Card/Details.aspx'
+LEGAL_URL = 'http://gatherer.wizards.com/Pages/Card/Printings.aspx'
+FOREIGN_URL = 'http://gatherer.wizards.com/Pages/Card/Languages.aspx'
+
+ParamsType = Dict[str, Union[str, int]]
+SetUrlsType = List[Tuple[str, ParamsType]]
 
 
 async def ensure_content_downloaded(session: aiohttp.ClientSession,
@@ -18,7 +22,8 @@ async def ensure_content_downloaded(session: aiohttp.ClientSession,
     for retry in itertools.count():
         try:
             async with session.get(url_to_download, **kwargs) as response:
-                return await response.text()
+                text = await response.text() # type: str
+                return text
         except aiohttp.ClientError:
             if retry == max_retries:
                 raise
@@ -27,25 +32,23 @@ async def ensure_content_downloaded(session: aiohttp.ClientSession,
 
 
 async def get_card_details(session: aiohttp.ClientSession, card_mid: int, printed: bool = False) -> str:
-    return await ensure_content_downloaded(session, main_url, params=get_params(card_mid, printed))
+    return await ensure_content_downloaded(session, MAIN_URL, params=get_params(card_mid, printed))
 
 
 async def get_card_legalities(session: aiohttp.ClientSession, card_mid: int) -> str:
-    return await ensure_content_downloaded(session, legal_url, params=get_params(card_mid))
+    return await ensure_content_downloaded(session, LEGAL_URL, params=get_params(card_mid))
 
 
 async def get_card_foreign_details(session: aiohttp.ClientSession, card_mid: int) -> str:
-    return await ensure_content_downloaded(session, foreign_url, params=get_params(card_mid))
+    return await ensure_content_downloaded(session, FOREIGN_URL, params=get_params(card_mid))
 
 
-def get_params(card_mid: int, printed: bool = False) -> Dict[str, Union[str, int]]:
+def get_params(card_mid: int, printed: bool = False) -> ParamsType:
     return {'multiverseid': card_mid, 'printed': str(printed).lower(), 'page': 0}
 
 
-SetUrls = List[Tuple[str, Dict[str, Union[str, int]]]]
 
-
-async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]) -> SetUrls:
+async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]) -> SetUrlsType:
     def page_count_for_set(html_data: str) -> int:
         try:
             # Get the last instance of 'pagingcontrols' and get the page
@@ -66,7 +69,7 @@ async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]
 
         return num_page_links + 1
 
-    def url_params_for_page(page_number: int) -> Dict[str, Union[str, int]]:
+    def url_params_for_page(page_number: int) -> ParamsType:
         return {
             'output': 'checklist',
             'sort': 'cn+',
@@ -76,26 +79,26 @@ async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]
             'page': page_number
         }
 
-    async with session.get(search_url, params=(url_params_for_page(0))) as response:
+    async with session.get(SEARCH_URL, params=(url_params_for_page(0))) as response:
         first_page = await response.text()
 
-    return [(search_url, url_params_for_page(page_number)) for page_number in range(page_count_for_set(first_page))]
+    return [(SEARCH_URL, url_params_for_page(page_number)) for page_number in range(page_count_for_set(first_page))]
 
 
-async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrls) -> List[int]:
+async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrlsType) -> List[int]:
     card_mids_to_parse: List[int] = list()
     for url, params in set_urls:
         async with session.get(url, params=params) as response:
             soup_oracle = bs4.BeautifulSoup(await response.text(), 'html.parser')
 
-            card_id_exist = set()
+            card_id_exist: Set[str] = set()
 
             for row_info in soup_oracle.find_all('tr', {'class': 'cardItem'}):
                 td_row = row_info.find_all('td')
                 gatherer_page_id = td_row[0].get_text(strip=True)
 
                 # Some sets don't have card numbers, like Alpha and Beta
-                if (gatherer_page_id not in card_id_exist) or len(gatherer_page_id) == 0:
+                if (gatherer_page_id not in card_id_exist) or not gatherer_page_id:
                     card_id_exist.add(gatherer_page_id)
                     card_mids_to_parse.append(int(td_row[1].find('a')['href'].split('id=')[1].split('"')[0]))
 

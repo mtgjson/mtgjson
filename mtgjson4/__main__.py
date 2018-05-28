@@ -1,15 +1,17 @@
-import aiohttp
 import argparse
 import asyncio
 import copy
 import itertools
 import json
-from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 import os
 import pathlib
 import sys
 import time
-from typing import List, Iterator
+from typing import Iterator, List
+
+import aiohttp
+
+from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 
 from mtgjson4 import stacktracer
 
