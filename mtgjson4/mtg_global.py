@@ -1,4 +1,5 @@
 from typing import Dict, List, NewType, Optional, Union
+from mypy_extensions import TypedDict
 
 # Maintenance vars
 MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
@@ -6,6 +7,37 @@ VERSION_INFO = 'MTGJSON\nVersion 4.0.0\nMay 25, 2018'
 DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
 ColorType = NewType('ColorType', str)
+ForeignNamesDescription = TypedDict('ForeignNamesDescription', {
+    'language': str,
+    'multiverseid': str, # Should this be an int?
+    'name': str,
+})
+CardDescription = TypedDict('CardDescription', {
+    'artist': List[str],
+    'cardHash': str,
+    'cmc': Union[int, float],
+    'colorIdentity': List[ColorType],
+    'colors': List[ColorType],
+    'flavor': str,
+    'foreignNames': List[ForeignNamesDescription],
+    'layout': str,
+    'legalities': List[Dict[str, str]],
+    'multiverseid': int,
+    'name': str,
+    'number': str,
+    'originalText': str,
+    'originalType': str,
+    'power': float,
+    'printings': List[str],
+    'rarity': str,
+    'rulings': List[Dict[str, str]],
+    'subtypes': List[str],
+    'supertypes': List[str],
+    'text': str,
+    'toughness': float,
+    'type': str,
+    'types': List[str],
+})
 
 # Building vars
 COLORS: List[ColorType] = list(ColorType(c) for c in ['W', 'U', 'B', 'R', 'G'])

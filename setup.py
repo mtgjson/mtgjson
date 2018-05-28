@@ -9,7 +9,8 @@ here = path.abspath(path.dirname(__file__))
 # Pinned dependencies that we've tested with are present in requirements.txt
 runtime_deps = [
     'aiohttp',
-    'bs4'
+    'bs4',
+    'mypy_extensions'
 ]
 
 dev_deps = [

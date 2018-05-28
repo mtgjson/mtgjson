@@ -59,12 +59,12 @@ def parse_card_cmc(soup: bs4.BeautifulSoup, parse_div: str) -> Union[int, float]
         return 0
 
     cmc_row = cmc_row.findAll('div')[-1]
-    card_cmc = cmc_row.get_text(strip=True)
+    cmc_str = cmc_row.get_text(strip=True)
 
     try:
-        card_cmc = int(card_cmc)
+        card_cmc: Union[int, float] = int(cmc_str)
     except ValueError:  # Little Girl causes this, for example
-        card_cmc = float(card_cmc)
+        card_cmc = float(cmc_str)
 
     return card_cmc
 

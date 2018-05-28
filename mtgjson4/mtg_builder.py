@@ -1,4 +1,3 @@
-import ast
 import asyncio
 import contextlib
 import json
@@ -9,8 +8,8 @@ from typing import Any, Dict, List, Optional, Union
 import aiohttp
 import bs4
 
-from mtgjson4 import mtg_global, mtg_http, mtg_parse, mtg_storage
-
+from mtgjson4 import mtg_global, mtg_http, mtg_parse, mtg_storage, corrections
+from mtgjson4.mtg_global import CardDescription
 
 class MTGJSON:
     def __init__(self,
@@ -72,7 +71,7 @@ class MTGJSON:
     async def build_main_part(self,
                               set_name: List[str],
                               card_mid: int,
-                              card_info: dict,
+                              card_info: CardDescription,
                               other_cards_holder: Optional[List[object]],
                               second_card: bool = False) -> None:
         # Parse web page so we can gather all data from it
@@ -374,75 +373,29 @@ class MTGJSON:
 
 
 async def apply_set_config_options(set_name: List[str],
-                                   cards_dictionary: list) -> Dict[Union[str, Any], Union[list, Any]]:
+                                   cards_dictionary: List[CardDescription]) -> Dict[str, Union[list, Any]]:
     return_product = dict()
 
     # Will search the tree of set_configs to find the file
-    with mtg_storage.open_set_config_json(set_name[1], 'r') as fp:
-        file_response = json.load(fp)
+    with mtg_storage.open_set_config_json(set_name[1], 'r') as f:
+        file_response = json.load(f)
 
     for key, value in file_response['SET'].items():
         return_product[key] = value
 
     if 'SET_CORRECTIONS' in file_response.keys():
-        match_replace_rules = str(file_response['SET_CORRECTIONS'])
-        match_replace_rules = ast.literal_eval(match_replace_rules)
-
-        for replacement_rule in match_replace_rules:
-
-            # If the replacement row isn't a match or fixForeignNames, skip
-            if isinstance(replacement_rule, dict):
-                if all(key not in replacement_rule.keys() for key in ('match', 'fixForeignNames')):
-                    continue
-            elif isinstance(replacement_rule, str):
-                if replacement_rule == 'noBasicLandWatermarks':
-                    continue
-
-            replacement_match = replacement_rule['match']
-
-            if 'replace' in replacement_rule.keys():
-                fix_type = 'replace'
-                replacement_update = replacement_rule['replace']
-            elif 'fixForeignNames' in replacement_rule.keys():
-                fix_type = 'fixForeignNames'
-                replacement_update = replacement_rule['fixForeignNames']
-            elif 'fixFlavorNewlines' in replacement_rule.keys():
-                fix_type = 'fixFlavorNewlines'
-                replacement_update = replacement_rule['fixFlavorNewlines']
-            else:
-                continue
-
-            for key, value in replacement_match.items():
-                if isinstance(value, list):
-                    cards_to_modify = [card for card in cards_dictionary if key in card.keys() and card[key] in value]
-                elif isinstance(value, str) or isinstance(value, int):
-                    cards_to_modify = [card for card in cards_dictionary if key in card.keys() and card[key] == value]
-                else:
-                    continue
-
-                if fix_type == 'replace':
-                    for key_name, replacement in replacement_update.items():
-                        for card in cards_to_modify:
-                            card[key_name] = replacement
-                elif fix_type == 'fixForeignNames':
-                    for lang_replacements in replacement_update:
-                        language_name = lang_replacements['language']
-                        new_name = lang_replacements['name']
-
-                        for card in cards_to_modify:
-                            for foreign_names_field in card['foreignNames']:
-                                if foreign_names_field['language'] == language_name:
-                                    foreign_names_field['name'] = new_name
+        corrections.apply_corrections(file_response['SET_CORRECTIONS'], cards_dictionary)
 
     return_product['cards'] = cards_dictionary
 
     return return_product
 
 
+
 def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[List[str]]:
     def try_to_append(root_p, file_p):
-        with pathlib.Path(root_p, file_p).open('r', encoding='utf8') as fp:
-            this_set_name = json.load(fp)
+        with pathlib.Path(root_p, file_p).open('r', encoding='utf8') as f:
+            this_set_name = json.load(f)
             if 'SET' in this_set_name:
                 all_sets.append([this_set_name['SET']['name'], file.split('.json')[0]])
 
@@ -464,7 +417,7 @@ def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[Lis
                     set_args.remove(set_name)
 
         # Ensure all sets provided by the user are valid
-        if len(set_args) > 0:
+        if set_args:
             print("MTGJSON: Invalid Set Code(s) provided: {}".format(args['sets']))
             exit(1)
 
