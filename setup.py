@@ -9,13 +9,13 @@ here = path.abspath(path.dirname(__file__))
 # Pinned dependencies that we've tested with are present in requirements.txt
 runtime_deps = [
     'aiohttp',
-    'bs4',
-    'mypy'
+    'bs4'
 ]
 
 dev_deps = [
     'coverage',
     'hypothesis==3.1.0',
+    'mypy',
     'pytest',
     'pytest-asyncio',
     'pytest-cov',
