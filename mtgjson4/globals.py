@@ -1,4 +1,4 @@
-from typing import Dict, List, NewType, Optional, Set, Union
+from typing import Dict, List, NewType, Optional, Union
 
 # Maintenance vars
 MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
@@ -10,11 +10,19 @@ Color = NewType('Color', str)
 # Building vars
 COLORS: List[Color] = list(Color(c) for c in ['W', 'U', 'B', 'R', 'G'])
 
-EXTRA_FIELDS: List[str] = ['rulings', 'foreignNames', 'printings', 'originalText', 'originalType', 'legalities']
+EXTRA_FIELDS: List[str] = [
+    'rulings', 'foreignNames', 'printings', 'originalText', 'originalType',
+    'legalities'
+]
 
-ORACLE_FIELDS: List[str] = ["layout", "name", "names", "manaCost", "cmc", "colors", "type", "supertypes", "types", "subtypes", "text", "power", "toughness", "loyalty", "hand", "life", "rulings", "printings", "legalities"]
+ORACLE_FIELDS: List[str] = [
+    "layout", "name", "names", "manaCost", "cmc", "colors", "type",
+    "supertypes", "types", "subtypes", "text", "power", "toughness", "loyalty",
+    "hand", "life", "rulings", "printings", "legalities"
+]
 
-FIELD_TYPES: Dict[str, Union[str, List[str]]] = { # This should be a mypy_extensions.TypedDict, but this works for now.
+# This should be a mypy_extensions.TypedDict, but this works for now.
+FIELD_TYPES: Dict[str, Union[str, List[str]]] = {
     "artist": ["string"],
     "border": "string",
     "cmc": "number",
@@ -55,7 +63,11 @@ FIELD_TYPES: Dict[str, Union[str, List[str]]] = { # This should be a mypy_extens
     "watermark": "string",
 }
 
-SET_SPECIFIC_FIELDS: List[str] = ["rarity", "artist", "flavor", "number", "multiverseid", "variations", "watermark", "border", "timeshifted", "reserved", "originalText", "originalType", "cardHash", "foreignNames"]
+SET_SPECIFIC_FIELDS: List[str] = [
+    "rarity", "artist", "flavor", "number", "multiverseid", "variations",
+    "watermark", "border", "timeshifted", "reserved", "originalText",
+    "originalType", "cardHash", "foreignNames"
+]
 
 SUPERTYPES: List[str] = [
     'Basic',
@@ -66,28 +78,10 @@ SUPERTYPES: List[str] = [
 ]
 
 CARD_TYPES: List[str] = [
-    'Artifact',
-    'Conspiracy',
-    'Creature',
-    'Eaturecray'
-    'Enchant',
-    'Enchantment',
-    'Ever',
-    'Host',
-    'Instant',
-    'Interrupt',
-    'Land',
-    'Phenomenon',
-    'Plane',
-    'Planeswalker',
-    'Player',
-    'Scariest',
-    'Scheme',
-    'See',
-    'Sorcery',
-    'Tribal',
-    'Vanguard',
-    'You\'ll'
+    'Artifact', 'Conspiracy', 'Creature', 'Eaturecray'
+    'Enchant', 'Enchantment', 'Ever', 'Host', 'Instant', 'Interrupt', 'Land',
+    'Phenomenon', 'Plane', 'Planeswalker', 'Player', 'Scariest', 'Scheme',
+    'See', 'Sorcery', 'Tribal', 'Vanguard', 'You\'ll'
 ]
 
 RESERVE_LIST: List[str] = [
@@ -670,25 +664,20 @@ SYMBOL_MAP: Dict[str, str] = {
     'Black': 'B',
     'Red': 'R',
     'Green': 'G',
-
     'Colorless': 'C',
     'Variable Colorless': 'X',
-
     'Snow': 'S',
     'Energy': 'E',
-
     'Phyrexian White': 'PW',
     'Phyrexian Blue': 'PU',
     'Phyrexian Black': 'PB',
     'Phyrexian Red': 'PR',
     'Phyrexian Green': 'PG',
-
     'Two or White': '2W',
     'Two or Blue': '2U',
     'Two or Black': '2B',
     'Two or Red': '2R',
     'Two or Green': '2G',
-
     'White or Blue': 'WU',
     'White or Black': 'WB',
     'Blue or Black': 'UB',
@@ -699,16 +688,13 @@ SYMBOL_MAP: Dict[str, str] = {
     'Red or White': 'GU',
     'Green or White': 'RW',
     'Green or Blue': 'GW',
-
     'Half a White': 'HW',
     'Half a Blue': 'HU',
     'Half a Black': 'HB',
     'Half a Red': 'HR',
     'Half a Green': 'HG',
-
     'Tap': 'T',
     'Untap': 'Q',
-
     'Infinite': '∞'
 }
 

@@ -4,3 +4,4 @@ mypy
 vcrpy
 pytest
 pytest-asyncio
+yapf

@@ -9,12 +9,14 @@ import sys
 import time
 
 from mtgjson4.builder import (MtgJson, determine_gatherer_sets)
-from mtgjson4.globals import (DESCRIPTION, EXTRA_FIELDS, FIELD_TYPES, ORACLE_FIELDS, SET_SPECIFIC_FIELDS,
-                              VERSION_INFO, get_language_long_name)
+from mtgjson4.globals import (DESCRIPTION, EXTRA_FIELDS, FIELD_TYPES,
+                              ORACLE_FIELDS, SET_SPECIFIC_FIELDS, VERSION_INFO,
+                              get_language_long_name)
 from mtgjson4.storage import (SET_OUT_DIR, COMP_OUT_DIR, ensure_set_dir_exists)
 
 
-async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str) -> None:
+async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession,
+               language_to_build: str) -> None:
     """
     Main method that starts the entire build process
     :param loop:
@@ -113,7 +115,8 @@ def create_all_sets_files():
                 if field_name in ORACLE_FIELDS and field_name != 'foreignNames':
                     check_taint(field_name, field_value)
 
-                previous_seen_set_codes[card['name']][field_name].append(card_set['code'])
+                previous_seen_set_codes[card['name']][field_name].append(
+                    card_set['code'])
                 all_cards_with_extras[card['name']][field_name] = field_value
 
         return card
@@ -161,8 +164,10 @@ def create_all_sets_files():
 
     # saveFullJSON
     def save(f_name, data):
-        with (COMP_OUT_DIR / '{}.json'.format(f_name)).open('w', encoding='utf-8') as save_fp:
-            json.dump(data, save_fp, indent=4, sort_keys=True, ensure_ascii=False)
+        with (COMP_OUT_DIR / '{}.json'.format(f_name)).open(
+                'w', encoding='utf-8') as save_fp:
+            json.dump(
+                data, save_fp, indent=4, sort_keys=True, ensure_ascii=False)
         return len(data)
 
     all_cards = copy.copy(all_cards_with_extras)
@@ -172,12 +177,30 @@ def create_all_sets_files():
                 card_keys.remove(extra_field)
 
     data_block = {
-        'AllSets': {'data': all_sets, 'param': 'allSize'},
-        'AllSets-x': {'data': all_sets_with_extras, 'param': 'allSizeX'},
-        'AllSetsArray': {'data': all_sets_array, 'param': 'allSizeArray'},
-        'AllSetsArray-x': {'data': all_sets_array_with_extras, 'param': 'allSizeArrayX'},
-        'AllCards': {'data': all_cards, 'param': 'allCards'},
-        'AllCards-x': {'data': all_cards_with_extras, 'param': 'allCardsX'}
+        'AllSets': {
+            'data': all_sets,
+            'param': 'allSize'
+        },
+        'AllSets-x': {
+            'data': all_sets_with_extras,
+            'param': 'allSizeX'
+        },
+        'AllSetsArray': {
+            'data': all_sets_array,
+            'param': 'allSizeArray'
+        },
+        'AllSetsArray-x': {
+            'data': all_sets_array_with_extras,
+            'param': 'allSizeArrayX'
+        },
+        'AllCards': {
+            'data': all_cards,
+            'param': 'allCards'
+        },
+        'AllCards-x': {
+            'data': all_cards_with_extras,
+            'param': 'allCardsX'
+        }
     }
 
     for block in data_block:
@@ -188,18 +211,37 @@ if __name__ == '__main__':
     # Start by processing all arguments to the program
     parser = argparse.ArgumentParser(description=DESCRIPTION)
 
-    parser.add_argument('-v', '--version', action='store_true', help='MTGJSON version information')
+    parser.add_argument(
+        '-v',
+        '--version',
+        action='store_true',
+        help='MTGJSON version information')
 
-    parser.add_argument('--sets', metavar='SET', nargs='+', type=str,
-                        help='What set(s) to build (if used with --all-sets, will be ignored)')
+    parser.add_argument(
+        '--sets',
+        metavar='SET',
+        nargs='+',
+        type=str,
+        help='What set(s) to build (if used with --all-sets, will be ignored)')
 
-    parser.add_argument('--all-sets', action='store_true', help='Build all sets')
+    parser.add_argument(
+        '--all-sets', action='store_true', help='Build all sets')
 
-    parser.add_argument('--full-out', action='store_true',
-                        help='Create the AllCards, AllSets, and AllSetsArray files (using what\'s in set_outputs dir)')
+    parser.add_argument(
+        '--full-out',
+        action='store_true',
+        help=
+        'Create the AllCards, AllSets, and AllSetsArray files (using what\'s in set_outputs dir)'
+    )
 
-    parser.add_argument('--language', default=['en'], metavar='LANG', type=str, nargs=1,
-                        help='Build foreign language version (English must have been built prior)')
+    parser.add_argument(
+        '--language',
+        default=['en'],
+        metavar='LANG',
+        type=str,
+        nargs=1,
+        help=
+        'Build foreign language version (English must have been built prior)')
 
     # If user supplies no arguments, show help screen and exit
     if len(sys.argv) == 1:
@@ -216,11 +258,13 @@ if __name__ == '__main__':
 
     # Ensure the language is a valid language, otherwise exit
     if get_language_long_name(lang_to_process) is None:
-        print('MTGJSON: Language \'{}\' not supported yet'.format(lang_to_process))
+        print('MTGJSON: Language \'{}\' not supported yet'.format(
+            lang_to_process))
         exit(1)
 
     # If only full out, just build from what's there and exit
-    if (cl_args['sets'] is None) and (not cl_args['all_sets']) and cl_args['full_out']:
+    if (cl_args['sets'] is
+            None) and (not cl_args['all_sets']) and cl_args['full_out']:
         create_all_sets_files()
         exit(0)
 
@@ -231,8 +275,13 @@ if __name__ == '__main__':
     start_time = time.time()
 
     card_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
-    card_session = aiohttp.ClientSession(loop=card_loop, raise_for_status=True, conn_timeout=None, read_timeout=None)
-    card_loop.run_until_complete(main(card_loop, card_session, lang_to_process))
+    card_session = aiohttp.ClientSession(
+        loop=card_loop,
+        raise_for_status=True,
+        conn_timeout=None,
+        read_timeout=None)
+    card_loop.run_until_complete(
+        main(card_loop, card_session, lang_to_process))
 
     if cl_args['full_out']:
         create_all_sets_files()
