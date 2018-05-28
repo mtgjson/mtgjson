@@ -410,7 +410,9 @@ def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[Lis
                     try_to_append(root, file)
     else:
         # Capitalize inputs and fix bad file names (WinOS can't have CON files, for example)
-        set_args = [str(sa.upper() + '_') if sa.upper() in mtg_global.INVALID_FILE_NAMES else sa for sa in args['sets']]
+        set_args = [
+            str(sa.upper() + '_') if sa.upper() in mtg_global.INVALID_FILE_NAMES else sa.upper() for sa in args['sets']
+        ]
 
         for root, _, files in os.walk(mtg_storage.SET_CONFIG_DIR):
             for file in files:
