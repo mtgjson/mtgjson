@@ -71,11 +71,11 @@ class MTGJSON:
 
     async def build_main_part(self,
                               set_name: List[str],
-                              card_mid: int,
                               card_info: mtg_global.CardDescription,
                               other_cards_holder: Optional[List[object]],
                               second_card: bool = False) -> None:
         # Parse web page so we can gather all data from it
+        card_mid = card_info['multiverseid']
         soup_oracle = await self.get_card_html(card_mid)
 
         card_layout, div_name, add_other_card = self.determine_layout_and_div_name(soup_oracle, second_card)
@@ -234,8 +234,9 @@ class MTGJSON:
                          other_cards_holder: Optional[List[object]],
                          second_card: bool = False) -> mtg_global.CardDescription:
         card_info: mtg_global.CardDescription = dict()  # type: ignore
+        card_info['multiverseid'] = int(card_mid)
 
-        await self.build_main_part(set_name, card_mid, card_info, other_cards_holder, second_card=second_card)
+        await self.build_main_part(set_name, card_info, other_cards_holder, second_card=second_card)
         await self.build_original_details(card_mid, card_info, second_card=second_card)
         await self.build_legalities_part(card_mid, card_info)
         await self.build_foreign_part(card_mid, card_info)

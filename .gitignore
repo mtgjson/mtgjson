@@ -116,3 +116,4 @@ compiled_outputs/
 /tests/test_chk
 /tests/test_isd
 
+/test_results/*.xml
