@@ -7,7 +7,7 @@ COMP_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'compiled_output
 SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
 
 
-def open_set_json(path: str, mode: str) -> object:
+def open_set_json(path: str, mode: str) -> IO:
     return (SET_OUT_DIR / f'{path}.json').open(mode, encoding='utf-8')
 
 

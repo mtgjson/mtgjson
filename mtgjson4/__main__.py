@@ -9,7 +9,7 @@ import os
 import pathlib
 import sys
 import time
-from typing import Iterator, List
+from typing import Iterator, List, Dict, Any, TypeVar, Union, Iterable, Tuple
 
 from mtgjson4 import stacktracer  # TEMPORARY
 
@@ -62,7 +62,7 @@ async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, 
 
 # This is a raw transposition from MTGJSONv3...
 # I have no idea if it's correct or not.
-def create_all_sets_files():
+def create_all_sets_files() -> None:
     mtg_storage.COMP_OUT_DIR.mkdir(exist_ok=True)
 
     # Set Variables
@@ -73,14 +73,17 @@ def create_all_sets_files():
 
     # Cards Variables
     # all_cards = dict()
-    all_cards_with_extras = dict()
+    all_cards_with_extras: Dict[str, Any] = dict()
 
     # Other Stuff
-    previous_seen_set_codes = dict()
+    previous_seen_set_codes: Dict[str, Any] = dict()
     tainted_cards = list()
     ignored_sets = ['UGL', 'UST', 'UNH']
 
-    def ready_to_diff(obj):
+    _LD = TypeVar('_LD', bound=Union[list, dict])
+
+    # TODO define an override so _LD->str and A->A
+    def ready_to_diff(obj: Any) -> Any:
         if isinstance(obj, list):
             return ' '.join([ready_to_diff(o) for o in obj])
 
@@ -91,14 +94,14 @@ def create_all_sets_files():
 
         return obj
 
-    def process_card(card_set, card):
+    def process_card(card_set: dict, card: dict) -> None:
         if card['name'] not in all_cards_with_extras:
             all_cards_with_extras[card['name']] = dict()
 
         if card['name'] not in previous_seen_set_codes:
             previous_seen_set_codes[card['name']] = dict()
 
-        def check_taint(a_field_name, a_field_value=None):
+        def check_taint(a_field_name: str, a_field_value: str = None) -> None:
             if card_set['code'] in ignored_sets:
                 return
 
@@ -142,9 +145,7 @@ def create_all_sets_files():
                 previous_seen_set_codes[card['name']][field_name].append(card_set['code'])
                 all_cards_with_extras[card['name']][field_name] = field_value
 
-        return card
-
-    def process_set(sets):
+    def process_set(sets: List[dict]) -> Tuple[List[dict], List[dict]]:
         for a_set in sets:
             for card in a_set['cards']:
                 process_card(a_set, card)
@@ -160,7 +161,7 @@ def create_all_sets_files():
                 for unneeded_field in mtg_global.EXTRA_FIELDS:
                     simple_set_card.pop(unneeded_field, None)
 
-        return [sets, simple_set]
+        return sets, simple_set
 
     # LoadJSON
     sets_in_output = list()
@@ -170,7 +171,7 @@ def create_all_sets_files():
             sets_in_output.append(file_content)
 
     # ProcessJSON
-    params = {'sets': {}}
+    params: Dict[str, Any] = {'sets': {}}
 
     for set_data in sets_in_output:
         params['sets'][set_data['code']] = {'code': set_data['code'], 'releaseDate': set_data['releaseDate']}
@@ -183,8 +184,8 @@ def create_all_sets_files():
         all_sets_array.append(full_simple_sets[1])
 
     # saveFullJSON
-    def save(f_name, data):
-        with (mtg_storage.COMP_OUT_DIR / '{}.json'.format(f_name)).open('w', encoding='utf-8') as save_fp:
+    def save(f_name: str, data: dict) -> int:
+        with (mtg_storage.COMP_OUT_DIR / f'{f_name}.json').open('w', encoding='utf-8') as save_fp:
             json.dump(data, save_fp, indent=4, sort_keys=True, ensure_ascii=False)
         return len(data)
 
@@ -192,9 +193,9 @@ def create_all_sets_files():
     for card_keys in all_cards.keys():
         for extra_field in mtg_global.EXTRA_FIELDS:
             if extra_field in card_keys:
-                card_keys.remove(extra_field)
+                card_keys.remove(extra_field)  # TODO this almost definitely is wrong
 
-    data_block = {
+    data_block: Dict[str, Dict[str, Any]] = {
         'AllSets': {
             'data': all_sets,
             'param': 'allSize'
