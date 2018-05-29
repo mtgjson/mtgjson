@@ -1,8 +1,9 @@
-import aiohttp
 import asyncio
-import bs4
 import itertools
 from typing import Any, Dict, List, Set, Tuple, Union
+
+import aiohttp
+import bs4
 
 SEARCH_URL = 'http://gatherer.wizards.com/Pages/Search/Default.aspx'
 MAIN_URL = 'http://gatherer.wizards.com/Pages/Card/Details.aspx'
