@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 import traceback
+from typing import Any
 
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
@@ -25,7 +26,7 @@ from pygments.lexers import PythonLexer
 # Taken from http://bzimmer.ziclix.com/2008/12/17/python-thread-dumps/
 
 
-def stacktraces():
+def stacktraces() -> Any:
     code = []
     for threadId, stack in sys._current_frames().items():
         code.append("\n# ThreadID: %s" % threadId)
@@ -47,7 +48,7 @@ def stacktraces():
 class TraceDumper(threading.Thread):
     """Dump stack traces into a given file periodically."""
 
-    def __init__(self, fpath, interval, auto):
+    def __init__(self, fpath: str, interval: float, auto: bool) -> None:
         """
         @param fpath: File path to output HTML (stack trace file)
         @param auto: Set flag (True) to update trace continuously.
@@ -62,13 +63,13 @@ class TraceDumper(threading.Thread):
         self.stop_requested = threading.Event()
         threading.Thread.__init__(self)
 
-    def run(self):
+    def run(self) -> None:
         while not self.stop_requested.isSet():
             time.sleep(self.interval)
             if self.auto or not os.path.isfile(self.fpath):
                 self.stacktraces()
 
-    def stop(self):
+    def stop(self) -> None:
         self.stop_requested.set()
         self.join()
         try:
@@ -77,7 +78,7 @@ class TraceDumper(threading.Thread):
         except:
             pass
 
-    def stacktraces(self):
+    def stacktraces(self) -> None:
         fout = open(self.fpath, "w+")
         try:
             fout.write(stacktraces())
@@ -88,7 +89,7 @@ class TraceDumper(threading.Thread):
 _tracer = None
 
 
-def trace_start(fpath, interval=5, auto=True):
+def trace_start(fpath: str, interval: int = 5, auto: bool = True) -> None:
     """Start tracing into the given file."""
     global _tracer
     if _tracer is None:
@@ -99,7 +100,7 @@ def trace_start(fpath, interval=5, auto=True):
         raise Exception("Already tracing to %s" % _tracer.fpath)
 
 
-def trace_stop():
+def trace_stop() -> None:
     """Stop tracing."""
     global _tracer
     if _tracer is None:

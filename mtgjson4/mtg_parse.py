@@ -5,20 +5,22 @@ import datetime
 import hashlib
 from mtgjson4 import mtg_global
 import re
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union, cast
+
+from mtgjson4.mtg_global import ForeignNamesDescription, CardDescription
 
 PowTouLoyaltyVanType = Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]
 
 
 def replace_symbol_images_with_tokens(
-        tag: bs4.BeautifulSoup) -> List[Union[bs4.BeautifulSoup, Set[mtg_global.ColorType]]]:
+        tag: bs4.BeautifulSoup) -> Tuple[bs4.BeautifulSoup, Set[mtg_global.Color]]:
     """
     Replaces the img tags of symbols with token representations
     :rtype: set
     :return: The color symbols found
     """
     tag_copy = copy.copy(tag)
-    colors_found: Set[mtg_global.ColorType] = set()
+    colors_found: Set[mtg_global.Color] = set()
     images = tag_copy.find_all('img')
     for symbol in images:
         symbol_value = symbol['alt']
@@ -27,7 +29,7 @@ def replace_symbol_images_with_tokens(
         if symbol_mapped in mtg_global.COLORS:
             colors_found.add(symbol_mapped)
 
-    return [tag_copy, colors_found]
+    return tag_copy, colors_found
 
 
 def parse_card_name(soup: bs4.BeautifulSoup, parse_div: str) -> str:
@@ -67,7 +69,7 @@ def parse_card_cmc(soup: bs4.BeautifulSoup, parse_div: str) -> Union[int, float]
     return card_cmc
 
 
-def parse_card_other_name(soup: bs4.BeautifulSoup, parse_div: str, layout: str) -> List[Union[bool, Optional[str]]]:
+def parse_card_other_name(soup: bs4.BeautifulSoup, parse_div: str, layout: str) -> Optional[str]:
     """
     If the MID has 2 cards, return the other card's name
     :param soup:
@@ -83,14 +85,14 @@ def parse_card_other_name(soup: bs4.BeautifulSoup, parse_div: str, layout: str) 
 
         other_name_row = soup.find(id=other_div_name.format('nameRow'))
         other_name_row = other_name_row.findAll('div')[-1]
-        card_other_name = other_name_row.get_text(strip=True)
+        card_other_name: str = other_name_row.get_text(strip=True)
 
-        return [True, card_other_name]
+        return card_other_name
 
-    return [False, None]
+    return None
 
 
-def parse_card_types(soup: bs4.BeautifulSoup, parse_div: str) -> List[Union[List[str], List[str], List[str], str]]:
+def parse_card_types(soup: bs4.BeautifulSoup, parse_div: str) -> Tuple[List[str], List[str], List[str], str]:
     """
     Parse the types of the card and split them into 4 different structures
     super types, normal types, sub types, and the full row (all the types)
@@ -121,11 +123,11 @@ def parse_card_types(soup: bs4.BeautifulSoup, parse_div: str) -> List[Union[List
             card_types.append(value)
             # raise ValueError(f'Unknown supertype or card type: {value}')
 
-    return [card_super_types, card_types, card_sub_types, type_row]
+    return card_super_types, card_types, card_sub_types, type_row
 
 
 def parse_colors_and_cost(soup: bs4.BeautifulSoup,
-                          parse_div: str) -> List[Union[Optional[List[mtg_global.ColorType]], Optional[str]]]:
+                          parse_div: str) -> Tuple[Optional[List[mtg_global.Color]], Optional[str]]:
     """
     Parse the colors and mana cost of the card
     Can use the colors to build the color identity later
@@ -139,21 +141,21 @@ def parse_colors_and_cost(soup: bs4.BeautifulSoup,
         mana_row = replace_symbol_images_with_tokens(mana_row)
 
         card_cost = mana_row[0].get_text(strip=True).replace('’', '\'')
-        card_colors: Set[mtg_global.ColorType] = set(mana_row[1])
+        card_colors: Set[mtg_global.Color] = set(mana_row[1])
 
         # Sort field in WUBRG order
         sorted_colors = sorted(
             list(filter(lambda c: c in card_colors, mtg_global.COLORS)),
-            key=lambda word: [mtg_global.COLORS.index(mtg_global.ColorType(c)) for c in word])
+            key=lambda word: [mtg_global.COLORS.index(mtg_global.Color(c)) for c in word])
 
-        return [sorted_colors, card_cost]
+        return sorted_colors, card_cost
 
-    return [None, None]
+    return None, None
 
 
 def parse_card_text_and_color_identity(
         soup: bs4.BeautifulSoup, parse_div: str,
-        card_colors: Optional[List[mtg_global.ColorType]]) -> List[Union[Optional[str], List[mtg_global.ColorType]]]:
+        card_colors: Optional[List[mtg_global.Color]]) -> Tuple[Optional[str], List[mtg_global.Color]]:
     text_row = soup.find(id=parse_div.format('textRow'))
     return_text = ''
     return_color_identity = set()
@@ -179,9 +181,9 @@ def parse_card_text_and_color_identity(
     # Sort field in WUBRG order
     sorted_color_identity = sorted(
         list(filter(lambda c: c in return_color_identity, mtg_global.COLORS)),
-        key=lambda word: [mtg_global.COLORS.index(mtg_global.ColorType(c)) for c in word])
+        key=mtg_global.color_order)
 
-    return [return_text or None, sorted_color_identity]
+    return return_text or None, sorted_color_identity
 
 
 def parse_card_flavor(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
@@ -249,9 +251,9 @@ def parse_artists(soup: bs4.BeautifulSoup, parse_div: str) -> List[str]:
     with contextlib.suppress(AttributeError):  # Un-cards might not have an artist!
         artist_row = soup.find(id=parse_div.format('artistRow'))
         artist_row = artist_row.findAll('div')[-1]
-        card_artists = artist_row.find('a').get_text(strip=True).split('&')
+        card_artists: List[str] = artist_row.find('a').get_text(strip=True).split('&')
 
-    return card_artists if card_artists else list()
+    return card_artists if card_artists else cast(List[str], [])
 
 
 def parse_watermark(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
@@ -332,11 +334,11 @@ def parse_card_legal(soup: bs4.BeautifulSoup) -> List[dict]:
     return card_formats
 
 
-def parse_foreign_info(soup: bs4.BeautifulSoup) -> List[dict]:
+def parse_foreign_info(soup: bs4.BeautifulSoup) -> List[ForeignNamesDescription]:
     language_rows = soup.select('table[class^=cardList]')[0]
     language_rows = language_rows.select('tr[class^=cardItem]')
 
-    card_languages = []
+    card_languages: List[ForeignNamesDescription] = []
     for div in language_rows:
         table_rows = div.findAll('td')
 
@@ -356,7 +358,7 @@ def parse_foreign_info(soup: bs4.BeautifulSoup) -> List[dict]:
     return card_languages
 
 
-def build_id_part(set_name: List[str], card_mid: int, card_info: dict) -> str:
+def build_id_part(set_name: List[str], card_mid: int, card_info: CardDescription) -> str:
     card_hash = hashlib.sha3_256()
     card_hash.update(set_name[0].encode('utf-8'))
     card_hash.update(str(card_mid).encode('utf-8'))

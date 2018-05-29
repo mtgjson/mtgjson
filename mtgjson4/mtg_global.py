@@ -6,7 +6,7 @@ MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
 VERSION_INFO = 'MTGJSON\nVersion 4.0.0\nMay 25, 2018'
 DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
-ColorType = NewType('ColorType', str)
+Color = NewType('Color', str)
 ForeignNamesDescription = TypedDict(
     'ForeignNamesDescription',
     {
@@ -19,31 +19,35 @@ CardDescription = TypedDict(
         'artist': List[str],
         'cardHash': str,
         'cmc': Union[int, float],
-        'colorIdentity': List[ColorType],
-        'colors': List[ColorType],
+        'colorIdentity': List[Color],
+        'colors': List[Color],
         'flavor': str,
         'foreignNames': List[ForeignNamesDescription],
         'layout': str,
         'legalities': List[Dict[str, str]],
+        'loyalty': str,
+        'manaCost': str,
         'multiverseid': int,
         'name': str,
+        'names': List[str],
         'number': str,
         'originalText': str,
         'originalType': str,
-        'power': float,
+        'power': str,
         'printings': List[str],
         'rarity': str,
         'rulings': List[Dict[str, str]],
         'subtypes': List[str],
         'supertypes': List[str],
         'text': str,
-        'toughness': float,
+        'toughness': str,
         'type': str,
         'types': List[str],
     })
 
 # Building vars
-COLORS: List[ColorType] = list(ColorType(c) for c in ['W', 'U', 'B', 'R', 'G'])
+COLORS: List[Color] = list(Color(c) for c in ['W', 'U', 'B', 'R', 'G'])
+color_order = lambda word: [COLORS.index(Color(c)) for c in word]
 
 EXTRA_FIELDS: List[str] = ['rulings', 'foreignNames', 'printings', 'originalText', 'originalType', 'legalities']
 
@@ -747,8 +751,8 @@ INVALID_FILE_NAMES: List[str] = [
 
 
 # Building functions
-def get_symbol_short_name(key_to_find: str) -> ColorType:
-    return ColorType(SYMBOL_MAP.get(key_to_find, key_to_find))
+def get_symbol_short_name(key_to_find: str) -> Color:
+    return Color(SYMBOL_MAP.get(key_to_find, key_to_find))
 
 
 def get_language_long_name(lang_short_name: str) -> Optional[str]:

@@ -7,7 +7,9 @@ import json
 from mtgjson4 import mtg_global, mtg_http, mtg_parse, mtg_storage, corrections
 import os
 import pathlib
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple
+
+from mtgjson4.mtg_global import CardDescription
 
 
 class MTGJSON:
@@ -46,7 +48,7 @@ class MTGJSON:
     def determine_layout_and_div_name(
             soup: bs4.BeautifulSoup,
             is_second_card: bool,
-    ) -> List[Union[str, str, Optional[bool]]]:
+    ) -> Tuple[str, str, Optional[bool]]:
         # Determine how many cards on on the page
         cards_total = len(soup.select('table[class^=cardDetails]'))
 
@@ -65,7 +67,7 @@ class MTGJSON:
                 div_name = div_name[:-3] + '_ctl02_{}'
                 add_additional_card = True
 
-        return [layout, div_name, add_additional_card]
+        return layout, div_name, add_additional_card
 
     async def build_main_part(self,
                               set_name: List[str],
@@ -86,8 +88,8 @@ class MTGJSON:
         card_info['cmc'] = mtg_parse.parse_card_cmc(soup_oracle, div_name)
 
         # Get other side's name for the user
-        has_other, card_other_name = mtg_parse.parse_card_other_name(soup_oracle, div_name, card_layout)
-        if has_other:
+        card_other_name = mtg_parse.parse_card_other_name(soup_oracle, div_name, card_layout)
+        if card_other_name is not None:
             card_info['names'] = [card_info['name'], card_other_name]
 
         # Get card's colors and mana cost
@@ -164,7 +166,7 @@ class MTGJSON:
         if c_variations:
             card_info['variations'] = c_variations
 
-    async def build_legalities_part(self, card_mid: int, card_info: dict) -> None:
+    async def build_legalities_part(self, card_mid: int, card_info: CardDescription) -> None:
         try:
             html = await mtg_http.get_card_legalities(self.http_session, card_mid)
         except aiohttp.ClientError as error:
@@ -184,7 +186,7 @@ class MTGJSON:
         if c_legal:
             card_info['legalities'] = c_legal
 
-    async def build_foreign_part(self, card_mid: int, card_info: dict) -> None:
+    async def build_foreign_part(self, card_mid: int, card_info: CardDescription) -> None:
         try:
             html = await mtg_http.get_card_foreign_details(self.http_session, card_mid)
         except aiohttp.ClientError as error:
@@ -204,7 +206,7 @@ class MTGJSON:
         if c_foreign_info:
             card_info['foreignNames'] = c_foreign_info
 
-    async def build_original_details(self, card_mid: int, card_info: dict, second_card: bool = False) -> None:
+    async def build_original_details(self, card_mid: int, card_info: CardDescription, second_card: bool = False) -> None:
         soup_print = await self.get_card_html(card_mid, True)
 
         # Determine if Card is Normal, Flip, or Split
@@ -224,8 +226,8 @@ class MTGJSON:
                          set_name: List[str],
                          card_mid: int,
                          other_cards_holder: Optional[List[object]],
-                         second_card: bool = False) -> Dict[str, Any]:
-        card_info: Dict[str, Any] = dict()
+                         second_card: bool = False) -> CardDescription:
+        card_info: CardDescription = dict()  # type: ignore
 
         await self.build_main_part(set_name, card_mid, card_info, other_cards_holder, second_card=second_card)
         await self.build_original_details(card_mid, card_info, second_card=second_card)
@@ -238,7 +240,7 @@ class MTGJSON:
         return card_info
 
     @staticmethod
-    def rebuild_card_layouts(cards: list) -> list:
+    def rebuild_card_layouts(cards: List[CardDescription]) -> List[CardDescription]:
         return_cards = copy.copy(cards)
         for card_info in return_cards:
             if 'names' in card_info:
@@ -287,9 +289,9 @@ class MTGJSON:
             card_info['layout'] = card_layout
         return return_cards
 
-    async def download_cards_by_mid_list(self, set_name: List[str], multiverse_ids: List[int]):
-        additional_cards = []
-        cards_in_set = []
+    async def download_cards_by_mid_list(self, set_name: List[str], multiverse_ids: List[int]) -> List[CardDescription]:
+        additional_cards: List[Any] = []
+        cards_in_set: List[CardDescription] = []
 
         # start asyncio tasks for building each card
         futures = [
@@ -315,7 +317,7 @@ class MTGJSON:
 
         return cards_in_set
 
-    async def build_set(self, set_name: List[str], language: str) -> dict:
+    async def build_set(self, set_name: List[str], language: str) -> Optional[dict]:
         async def get_mids_for_downloading() -> List[int]:
             print('BuildSet: Building Set {}'.format(set_name[0]))
 
@@ -378,7 +380,7 @@ class MTGJSON:
 
 
 async def apply_set_config_options(set_name: List[str],
-                                   cards_dictionary: List[mtg_global.CardDescription]) -> Dict[str, Union[list, Any]]:
+                                   cards_dictionary: List[mtg_global.CardDescription]) -> Dict[str, Any]:
     return_product = dict()
 
     # Will search the tree of set_configs to find the file
@@ -395,14 +397,15 @@ async def apply_set_config_options(set_name: List[str],
     return return_product
 
 
-def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[List[str]]:
-    def try_to_append(root_p, file_p):
+def determine_gatherer_sets(args: Dict[str, Any]) -> List[List[str]]:
+    def try_to_append(root_p: str, file_p: str) -> None:
         with pathlib.Path(root_p, file_p).open('r', encoding='utf8') as f:
             this_set_name = json.load(f)
             if 'SET' in this_set_name:
-                all_sets.append([this_set_name['SET']['name'], file.split('.json')[0]])
+                set_value = [this_set_name['SET']['name'], file.split('.json')[0]]
+                all_sets.append(set_value)
 
-    all_sets = list()
+    all_sets: List[List[str]] = list()
     if args['all_sets']:
         for root, _, files in os.walk(mtg_storage.SET_CONFIG_DIR):
             for file in files:
@@ -423,7 +426,8 @@ def determine_gatherer_sets(args: Dict[str, Union[bool, List[str]]]) -> List[Lis
 
         # Ensure all sets provided by the user are valid
         if set_args:
-            print("MTGJSON: Invalid Set Code(s) provided: {}".format(args['sets']))
-            exit(1)
+            err = f"MTGJSON: Invalid Set Code(s) provided: {args['sets']}"
+            print(err)
+            raise ValueError(err)
 
     return all_sets
