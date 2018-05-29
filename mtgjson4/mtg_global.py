@@ -3,7 +3,8 @@ from typing import Dict, List, NewType, Optional, Union
 
 # Maintenance vars
 MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
-VERSION_INFO = 'MTGJSON\nVersion 4.0.0\nMay 25, 2018'
+__VERSION__ = '4.0.0'
+VERSION_INFO = f'MTGJSON\nVersion {__VERSION__}\nMay 25, 2018'
 DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
 Color = NewType('Color', str)

@@ -1,6 +1,6 @@
 import itertools
 from mtgjson4 import mtg_global
-from typing import List, Dict, Union, Any, Iterable
+from typing import List, Dict, Union, Any, Iterable, Callable
 
 ReplacementType = Dict[str, Union[str, List[str], Any]]
 
@@ -41,64 +41,43 @@ def apply_match(replacement_rule: dict, cards_dictionary: List[mtg_global.CardDe
     cards_to_modify = parse_match(replacement_rule['match'], cards_dictionary)
     keys.remove('match')
 
-    if 'replace' in replacement_rule.keys():
-        replace(replacement_rule['replace'], cards_to_modify)
-        keys.remove('replace')
+    rules: Dict[str, Callable] = {
+        'replace': replace,
+        'remove': remove,
+        'prefixNumber': prefix_number,
+        'fixForeignNames': fix_foreign_names,
+        'fixFlavorNewlines': fix_flavor_newlines,
+        'flavorAddDash': flavor_add_dash,
+        'flavorAddExclamation': flavor_add_exclamation,
+        'incrementNumber': increment_number,
+        'removeCard': remove_card,
+    }
 
-    if 'remove' in replacement_rule.keys():
-        # TODO: implement
-        # remove(replacement_rule['remove'], cards_to_modify)
-        keys.remove('remove')
-
-    if 'prefixNumber' in replacement_rule.keys():
-        # TODO: implement
-        # prefix_number(replacement_rule['prefixNumber'], cards_to_modify)
-        keys.remove('prefixNumber')
-
-    if 'fixForeignNames' in replacement_rule.keys():
-        fix_foreign_names(replacement_rule['fixForeignNames'], cards_to_modify)
-        keys.remove('fixForeignNames')
-
-    if 'fixFlavorNewlines' in replacement_rule.keys() and replacement_rule['fixFlavorNewlines']:
-        fix_flavor_newlines(cards_to_modify)
-        keys.remove('fixFlavorNewlines')
-
-    if 'flavorAddDash' in replacement_rule.keys() and replacement_rule['flavorAddDash']:
-        # TODO: Implement
-        # flavor_add_dash(cards_to_modify)
-        keys.remove('flavorAddDash')
-
-    if 'flavorAddExclamation' in replacement_rule.keys() and replacement_rule['flavorAddExclamation']:
-        # TODO: Implement
-        # flavor_add_exclamation(cards_to_modify)
-        keys.remove('flavorAddExclamation')
-
-    if 'incrementNumber' in replacement_rule.keys() and replacement_rule['incrementNumber']:
-        # TODO: Implement
-        # increment_number(cards_to_modify)
-        keys.remove('incrementNumber')
-
-    if 'removeCard' in replacement_rule.keys() and replacement_rule['removeCard']:
-        # TODO: Implement
-        # remove_card(cards_to_modify)
-        keys.remove('removeCard')
-
-    if keys:
-        raise KeyError(keys)
-
-
-def no_basic_land_watermarks(cards_dictionary: Any) -> Any:
-    # TODO: Not sure what to do with this.
-    pass
+    for action in keys:
+        rules[action](replacement_rule[action], cards_to_modify) # type: ignore
 
 
 def replace(replacements: Dict[str, Any], cards_to_modify: List[mtg_global.CardDescription]) -> None:
+    """
+    Replaces the values of fields to other fields.
+    """
     for key_name, replacement in replacements.items():
         for card in cards_to_modify:
             card[key_name] = replacement  # type: ignore
 
+def remove(removals, cards_to_modify):
+    pass
 
-def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: List[mtg_global.CardDescription]) -> None:
+def prefix_number(prefix, cards_to_modify):
+    pass
+
+def fix_foreign_names(replacements: List[Dict[str, Any]],
+                      cards_to_modify: List[mtg_global.CardDescription]
+                     ) -> None:
+    """
+    Sometimes the foreign names are wrong.
+    This completely replaces the names with accurate ones.
+    """
     for lang_replacements in replacements:
         language_name = lang_replacements['language']
         new_name = lang_replacements['name']
@@ -109,7 +88,7 @@ def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: List[
                     foreign_names_field['name'] = new_name
 
 
-def fix_flavor_newlines(cards_to_modify: List[mtg_global.CardDescription]) -> None:
+def fix_flavor_newlines(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
     # The javascript version had the following regex to normalize em-dashes /(\s|")-\s*([^"—-]+)\s*$/
     for card in cards_to_modify:
         flavor = card.get('flavor')
@@ -118,6 +97,15 @@ def fix_flavor_newlines(cards_to_modify: List[mtg_global.CardDescription]) -> No
             # TODO
             pass
 
+def flavor_add_dash(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
+    pass
+
+def flavor_add_exclamation(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
+    pass
+def increment_number(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
+    pass
+def remove_card(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
+    pass
 
 def parse_match(match_rule: Union[str, Dict[str, str]],
                 card_list: List[mtg_global.CardDescription]) -> List[mtg_global.CardDescription]:
@@ -135,3 +123,7 @@ def parse_match(match_rule: Union[str, Dict[str, str]],
                 matches = [card for card in matches if card.get(key) == value]
         return matches
     raise KeyError(match_rule)
+
+def no_basic_land_watermarks(cards_dictionary: Any) -> Any:
+    # TODO: Not sure what to do with this.
+    pass

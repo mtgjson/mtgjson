@@ -13,3 +13,4 @@ def test_validate_corrections() -> None:
             blob = json.load(f)
             if blob.get('SET_CORRECTIONS'):
                 corrections.apply_corrections(blob['SET_CORRECTIONS'], empty_card_list)
+
