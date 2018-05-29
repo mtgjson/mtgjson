@@ -5,7 +5,8 @@ from typing import List, Dict, Union, Any, Iterable
 ReplacementType = Dict[str, Union[str, List[str], Any]]
 
 
-def apply_corrections(match_replace_rules: Iterable[Union[dict, str]], cards_dictionary: List[mtg_global.CardDescription]) -> None:
+def apply_corrections(match_replace_rules: Iterable[Union[dict, str]],
+                      cards_dictionary: List[mtg_global.CardDescription]) -> None:
     for replacement_rule in match_replace_rules:
 
         if isinstance(replacement_rule, dict):

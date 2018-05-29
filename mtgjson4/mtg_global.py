@@ -7,13 +7,11 @@ VERSION_INFO = 'MTGJSON\nVersion 4.0.0\nMay 25, 2018'
 DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
 Color = NewType('Color', str)
-ForeignNamesDescription = TypedDict(
-    'ForeignNamesDescription',
-    {
-        'language': str,
-        'multiverseid': int,
-        'name': str,
-    })
+ForeignNamesDescription = TypedDict('ForeignNamesDescription', {
+    'language': str,
+    'multiverseid': int,
+    'name': str,
+})
 CardDescription = TypedDict(
     'CardDescription', {
         'artist': List[str],

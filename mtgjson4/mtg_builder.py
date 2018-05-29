@@ -209,7 +209,8 @@ class MTGJSON:
         if c_foreign_info:
             card_info['foreignNames'] = c_foreign_info
 
-    async def build_original_details(self, card_mid: int, card_info: CardDescription, second_card: bool = False) -> None:
+    async def build_original_details(self, card_mid: int, card_info: CardDescription,
+                                     second_card: bool = False) -> None:
         soup_print = await self.get_card_html(card_mid, True)
 
         # Determine if Card is Normal, Flip, or Split

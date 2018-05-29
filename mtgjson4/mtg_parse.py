@@ -12,8 +12,7 @@ from mtgjson4.mtg_global import ForeignNamesDescription, CardDescription
 PowTouLoyaltyVanType = Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]
 
 
-def replace_symbol_images_with_tokens(
-        tag: bs4.BeautifulSoup) -> Tuple[bs4.BeautifulSoup, Set[mtg_global.Color]]:
+def replace_symbol_images_with_tokens(tag: bs4.BeautifulSoup) -> Tuple[bs4.BeautifulSoup, Set[mtg_global.Color]]:
     """
     Replaces the img tags of symbols with token representations
     :rtype: set
@@ -180,8 +179,7 @@ def parse_card_text_and_color_identity(
 
     # Sort field in WUBRG order
     sorted_color_identity = sorted(
-        list(filter(lambda c: c in return_color_identity, mtg_global.COLORS)),
-        key=mtg_global.color_order)
+        list(filter(lambda c: c in return_color_identity, mtg_global.COLORS)), key=mtg_global.color_order)
 
     return return_text or None, sorted_color_identity
 
