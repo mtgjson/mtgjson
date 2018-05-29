@@ -193,7 +193,7 @@ def create_all_sets_files() -> None:
     for card_keys in all_cards.keys():
         for extra_field in mtg_global.EXTRA_FIELDS:
             if extra_field in card_keys:
-                card_keys.remove(extra_field)  # TODO this almost definitely is wrong
+                del all_cards[extra_field]
 
     data_block: Dict[str, Dict[str, Any]] = {
         'AllSets': {

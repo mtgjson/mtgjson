@@ -7,7 +7,7 @@ import json
 from mtgjson4 import mtg_global, mtg_http, mtg_parse, mtg_storage, corrections
 import os
 import pathlib
-from typing import Any, Dict, List, Optional, Union, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from mtgjson4.mtg_global import CardDescription
 
@@ -111,8 +111,11 @@ class MTGJSON:
             card_info['type'] = full_type
 
         # Get Card Text and Color Identity
-        card_info['text'], card_info['colorIdentity'] = mtg_parse.parse_card_text_and_color_identity(
-            soup_oracle, div_name, card_colors)
+        c_text, c_color_identity = mtg_parse.parse_card_text_and_color_identity(soup_oracle, div_name, card_colors)
+        if c_text:
+            card_info['text'] = c_text
+        if c_color_identity:
+            card_info['colorIdentity'] = c_color_identity
 
         # Get Card Flavor Text
         c_flavor = mtg_parse.parse_card_flavor(soup_oracle, div_name)

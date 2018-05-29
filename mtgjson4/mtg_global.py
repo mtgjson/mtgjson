@@ -11,7 +11,7 @@ ForeignNamesDescription = TypedDict(
     'ForeignNamesDescription',
     {
         'language': str,
-        'multiverseid': str,  # Should this be an int?
+        'multiverseid': int,
         'name': str,
     })
 CardDescription = TypedDict(
@@ -43,6 +43,11 @@ CardDescription = TypedDict(
         'toughness': str,
         'type': str,
         'types': List[str],
+        'hand': str,
+        'life': str,
+        'watermark': str,
+        'reserved': bool,
+        'variations': List[int],
     })
 
 # Building vars

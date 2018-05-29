@@ -64,7 +64,7 @@ class TraceDumper(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self) -> None:
-        while not self.stop_requested.isSet():
+        while not self.stop_requested.is_set():
             time.sleep(self.interval)
             if self.auto or not os.path.isfile(self.fpath):
                 self.stacktraces()
@@ -106,5 +106,5 @@ def trace_stop() -> None:
     if _tracer is None:
         raise Exception("Not tracing, cannot stop.")
     else:
-        _trace.stop()
-        _trace = None
+        _tracer.stop()
+        _tracer = None
