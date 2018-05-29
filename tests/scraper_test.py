@@ -7,8 +7,14 @@ from mtgjson4 import mtg_builder, mtg_storage
 
 mtg_storage.ensure_set_dir_exists()
 
+TEST_VCR = vcr.VCR(
+    record_mode='new_episodes',
+    path_transformer=vcr.VCR.ensure_suffix('.yaml'),
+    )
+
+
 @pytest.mark.asyncio
-@vcr.use_cassette
+@TEST_VCR.use_cassette
 async def test_w17(event_loop: asyncio.AbstractEventLoop) -> None:
     """
     Very basic test.  Can the scraper scrape Gatherer?
@@ -23,7 +29,7 @@ async def test_w17(event_loop: asyncio.AbstractEventLoop) -> None:
 
 
 @pytest.mark.asyncio
-@vcr.use_cassette
+@TEST_VCR.use_cassette
 async def test_isd(event_loop: asyncio.AbstractEventLoop) -> None:
     """
     Scrape Innistrad.  Make sure those DFCs work.
@@ -42,7 +48,7 @@ async def test_isd(event_loop: asyncio.AbstractEventLoop) -> None:
 
 
 @pytest.mark.asyncio
-@vcr.use_cassette
+@TEST_VCR.use_cassette
 async def test_chk(event_loop: asyncio.AbstractEventLoop) -> None:
     """
     Scrape Champions of Kamigawa.  Make sure those Flip Cards work.
