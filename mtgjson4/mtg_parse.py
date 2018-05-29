@@ -1,11 +1,13 @@
-import bs4
 import contextlib
 import copy
 import datetime
 import hashlib
-from mtgjson4 import mtg_global
 import re
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
+
+import bs4
+
+from mtgjson4 import mtg_global
 
 PowTouLoyaltyVanType = Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]
 

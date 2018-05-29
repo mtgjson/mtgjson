@@ -1,19 +1,21 @@
-import aiohttp
 import argparse
 import asyncio
 import copy
 import itertools
 import json
-from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 import os
 import pathlib
 import sys
 import time
-from typing import Iterator, List, Dict, Any, TypeVar, Union, Iterable, Tuple
+from typing import Any, Dict, Iterator, List, Tuple, TypeVar, Union
 
-from mtgjson4 import stacktracer  # TEMPORARY
+import aiohttp
+import hanging_threads
 
-stacktracer.trace_start("trace.html")
+from mtgjson4 import mtg_builder, mtg_global, mtg_storage
+
+THREAD_MONITOR = hanging_threads.start_monitoring()
+
 
 
 async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str,
@@ -44,7 +46,7 @@ async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, 
 
         # We will only be building a few sets at a time, to allow for partial outputs
         sets_to_build_now = get_next_batch_of_sets(sets_queue)
-        while len(sets_to_build_now) > 0:
+        while sets_to_build_now:
             # Create our builders for the few sets
             futures = [
                 loop.create_task(json_builder.build_set(set_name, language_to_build)) for set_name in sets_to_build_now

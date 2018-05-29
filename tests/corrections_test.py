@@ -1,5 +1,6 @@
 import json
 from typing import List
+
 from mtgjson4 import corrections, mtg_builder, mtg_storage
 from mtgjson4.mtg_global import CardDescription
 

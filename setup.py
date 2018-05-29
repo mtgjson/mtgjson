@@ -2,6 +2,7 @@ from codecs import open
 from os import path
 
 from setuptools import find_packages, setup
+from setuptools.depends import get_module_constant
 
 here = path.abspath(path.dirname(__file__))
 
@@ -31,7 +32,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='4.0.0',
+    version=get_module_constant('mtgjson4.mtg_globals', '__version__'),
 
     description='Build JSON files for distribution for Magic: The Gathering',
     long_description='Create JSON files of Magic: The Gathering cards for distribution from sources such as Gatherer',
@@ -82,7 +83,7 @@ setup(
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
-    package_data={ },
+    package_data={},
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:

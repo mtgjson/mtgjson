@@ -4,6 +4,7 @@ python:
 cache: pip
 install:
   - travis_retry pip install -r requirements.txt
+  - mkdir test_results
 script:
   - tox
 notifications:
