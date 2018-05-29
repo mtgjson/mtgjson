@@ -7,8 +7,6 @@ from mtgjson4 import mtg_global
 import re
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
-from mtgjson4.mtg_global import ForeignNamesDescription, CardDescription
-
 PowTouLoyaltyVanType = Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]
 
 
@@ -34,8 +32,8 @@ def replace_symbol_images_with_tokens(tag: bs4.BeautifulSoup) -> Tuple[bs4.Beaut
 def parse_card_name(soup: bs4.BeautifulSoup, parse_div: str) -> str:
     """
     Parse the card name from the row
-    :param soup:
-    :param parse_div:
+    :param soup: bs4.BeautifulSoup
+    :param parse_div: str
     :return: card name from MID
     """
     name_row = soup.find(id=parse_div.format('nameRow'))
@@ -97,7 +95,7 @@ def parse_card_types(soup: bs4.BeautifulSoup, parse_div: str) -> Tuple[List[str]
     super types, normal types, sub types, and the full row (all the types)
     :param soup:
     :param parse_div:
-    :return:
+    :return: card types
     """
     card_super_types: List[str] = []
     card_types: List[str] = []
@@ -132,7 +130,7 @@ def parse_colors_and_cost(soup: bs4.BeautifulSoup,
     Can use the colors to build the color identity later
     :param soup:
     :param parse_div:
-    :return:
+    :return: card's colors and mana cost
     """
     mana_row = soup.find(id=parse_div.format('manaRow'))
     if mana_row:
@@ -155,6 +153,13 @@ def parse_colors_and_cost(soup: bs4.BeautifulSoup,
 def parse_card_text_and_color_identity(
         soup: bs4.BeautifulSoup, parse_div: str,
         card_colors: Optional[List[mtg_global.Color]]) -> Tuple[Optional[str], List[mtg_global.Color]]:
+    """
+    Get the card's text and determine the colors the card fits with (Useful for EDH)
+    :param soup:
+    :param parse_div:
+    :param card_colors:
+    :return: card's text and color identity
+    """
     text_row = soup.find(id=parse_div.format('textRow'))
     return_text = ''
     return_color_identity = set()
@@ -185,6 +190,12 @@ def parse_card_text_and_color_identity(
 
 
 def parse_card_flavor(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
+    """
+    Get the card's flavor text, if applicable
+    :param soup:
+    :param parse_div:
+    :return: card flavor text if there is some
+    """
     flavor_row = soup.find(id=parse_div.format('flavorRow'))
     card_flavor_text = ''
     if flavor_row is not None:
@@ -201,6 +212,12 @@ def parse_card_flavor(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
 
 
 def parse_card_pt_loyalty_vanguard(soup: bs4.BeautifulSoup, parse_div: str) -> PowTouLoyaltyVanType:
+    """
+    The ptRow is shared by pow/tough (creatures), loyalty (planeswalkers), and hand/life (vanguard)
+    :param soup:
+    :param parse_div:
+    :return: whatever was on that line as a tuple
+    """
     pt_row = soup.find(id=parse_div.format('ptRow'))
 
     power = None
@@ -229,6 +246,12 @@ def parse_card_pt_loyalty_vanguard(soup: bs4.BeautifulSoup, parse_div: str) -> P
 
 
 def parse_card_rarity(soup: bs4.BeautifulSoup, parse_div: str) -> str:
+    """
+    Get the card's rarity
+    :param soup:
+    :param parse_div:
+    :return: rarity of the card
+    """
     rarity_row = soup.find(id=parse_div.format('rarityRow'))
     rarity_row = rarity_row.findAll('div')[-1]
     card_rarity = str(rarity_row.find('span').get_text(strip=True))
@@ -236,6 +259,13 @@ def parse_card_rarity(soup: bs4.BeautifulSoup, parse_div: str) -> str:
 
 
 def parse_card_number(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
+    """
+    Get the card's number, if applicable
+    Older cards don't have numbers
+    :param soup:
+    :param parse_div:
+    :return: the card's number, if one exists
+    """
     number_row = soup.find(id=parse_div.format('numberRow'))
     card_number = None
     if number_row is not None:
@@ -246,6 +276,12 @@ def parse_card_number(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
 
 
 def parse_artists(soup: bs4.BeautifulSoup, parse_div: str) -> List[str]:
+    """
+    Get the card's artist(s) if they are listed
+    :param soup:
+    :param parse_div:
+    :return: a list of the card's artists
+    """
     with contextlib.suppress(AttributeError):  # Un-cards might not have an artist!
         artist_row = soup.find(id=parse_div.format('artistRow'))
         artist_row = artist_row.findAll('div')[-1]
@@ -255,6 +291,12 @@ def parse_artists(soup: bs4.BeautifulSoup, parse_div: str) -> List[str]:
 
 
 def parse_watermark(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
+    """
+    Get the card's watermarks, if applicable
+    :param soup:
+    :param parse_div:
+    :return: the card's watermark, if it exists
+    """
     card_watermark = None
     watermark_row = soup.find(id=parse_div.format('markRow'))
     if watermark_row is not None:
@@ -265,6 +307,12 @@ def parse_watermark(soup: bs4.BeautifulSoup, parse_div: str) -> Optional[str]:
 
 
 def parse_rulings(soup: bs4.BeautifulSoup, parse_div: str) -> List[dict]:
+    """
+    Get the card's ruling(s), if there are any
+    :param soup:
+    :param parse_div:
+    :return: list of rulings
+    """
     rulings: List[Dict[str, str]] = list()
     rulings_row = soup.find(id=parse_div.format('rulingsRow'))
     if rulings_row is not None:
@@ -291,6 +339,14 @@ def parse_rulings(soup: bs4.BeautifulSoup, parse_div: str) -> List[dict]:
 
 def parse_card_sets(soup: bs4.BeautifulSoup, parse_div: str, card_set: str,
                     sets_to_build: List[List[str]]) -> List[str]:
+    """
+    Determine what sets this card has been apart of, including this set
+    :param soup:
+    :param parse_div:
+    :param card_set:
+    :param sets_to_build:
+    :return: list of sets the card's in
+    """
     card_printings = [card_set]
     sets_row = soup.find(id=parse_div.format('otherSetsRow'))
     if sets_row is not None:
@@ -305,6 +361,13 @@ def parse_card_sets(soup: bs4.BeautifulSoup, parse_div: str, card_set: str,
 
 
 def parse_card_variations(soup: bs4.BeautifulSoup, parse_div: str, card_mid: int) -> List[int]:
+    """
+    If there are multiple copies of a card in a set, give a list of the other MIDs
+    :param soup:
+    :param parse_div:
+    :param card_mid:
+    :return: list of variations
+    """
     card_variations = []
     variations_row = soup.find(id=parse_div.format('variationLinks'))
     if variations_row is not None:
@@ -318,6 +381,11 @@ def parse_card_variations(soup: bs4.BeautifulSoup, parse_div: str, card_mid: int
 
 
 def parse_card_legal(soup: bs4.BeautifulSoup) -> List[dict]:
+    """
+    Determine the card's legal formats
+    :param soup:
+    :return: list of formats the card's in
+    """
     format_rows = soup.select('table[class^=cardList]')[1]
     format_rows = format_rows.select('tr[class^=cardItem]')
     card_formats = []
@@ -332,11 +400,16 @@ def parse_card_legal(soup: bs4.BeautifulSoup) -> List[dict]:
     return card_formats
 
 
-def parse_foreign_info(soup: bs4.BeautifulSoup) -> List[ForeignNamesDescription]:
+def parse_foreign_info(soup: bs4.BeautifulSoup) -> List[mtg_global.ForeignNamesDescription]:
+    """
+    Get the name and MID of this card for each other set it's printed in
+    :param soup:
+    :return: list of card's foreign information
+    """
     language_rows = soup.select('table[class^=cardList]')[0]
     language_rows = language_rows.select('tr[class^=cardItem]')
 
-    card_languages: List[ForeignNamesDescription] = []
+    card_languages: List[mtg_global.ForeignNamesDescription] = []
     for div in language_rows:
         table_rows = div.findAll('td')
 
@@ -356,7 +429,14 @@ def parse_foreign_info(soup: bs4.BeautifulSoup) -> List[ForeignNamesDescription]
     return card_languages
 
 
-def build_id_part(set_name: List[str], card_mid: int, card_info: CardDescription) -> str:
+def build_id_part(set_name: List[str], card_mid: int, card_info: mtg_global.CardDescription) -> str:
+    """
+    Create a unique ID for the card based on the set name, card's mid, and the card's name
+    :param set_name:
+    :param card_mid:
+    :param card_info:
+    :return: card's unique ID
+    """
     card_hash = hashlib.sha3_256()
     card_hash.update(set_name[0].encode('utf-8'))
     card_hash.update(str(card_mid).encode('utf-8'))

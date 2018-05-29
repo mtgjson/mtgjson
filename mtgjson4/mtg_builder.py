@@ -9,8 +9,6 @@ import os
 import pathlib
 from typing import Any, Dict, List, Optional, Tuple
 
-from mtgjson4.mtg_global import CardDescription
-
 
 class MTGJSON:
     def __init__(self,
@@ -169,7 +167,7 @@ class MTGJSON:
         if c_variations:
             card_info['variations'] = c_variations
 
-    async def build_legalities_part(self, card_mid: int, card_info: CardDescription) -> None:
+    async def build_legalities_part(self, card_mid: int, card_info: mtg_global.CardDescription) -> None:
         try:
             html = await mtg_http.get_card_legalities(self.http_session, card_mid)
         except aiohttp.ClientError as error:
@@ -177,9 +175,9 @@ class MTGJSON:
             # This can be appended on a case-by-case basis
             if error.code == 500:
                 return  # Page doesn't work, nothing we can do
-            else:
-                print("Unknown error: ", error.code)
-                return
+
+            print("Unknown error: ", error.code)
+            return
 
         # Parse web page so we can gather all data from it
         soup_oracle = bs4.BeautifulSoup(html, 'html.parser')
@@ -189,7 +187,7 @@ class MTGJSON:
         if c_legal:
             card_info['legalities'] = c_legal
 
-    async def build_foreign_part(self, card_mid: int, card_info: CardDescription) -> None:
+    async def build_foreign_part(self, card_mid: int, card_info: mtg_global.CardDescription) -> None:
         try:
             html = await mtg_http.get_card_foreign_details(self.http_session, card_mid)
         except aiohttp.ClientError as error:
@@ -209,7 +207,9 @@ class MTGJSON:
         if c_foreign_info:
             card_info['foreignNames'] = c_foreign_info
 
-    async def build_original_details(self, card_mid: int, card_info: CardDescription,
+    async def build_original_details(self,
+                                     card_mid: int,
+                                     card_info: mtg_global.CardDescription,
                                      second_card: bool = False) -> None:
         soup_print = await self.get_card_html(card_mid, True)
 
@@ -230,8 +230,8 @@ class MTGJSON:
                          set_name: List[str],
                          card_mid: int,
                          other_cards_holder: Optional[List[object]],
-                         second_card: bool = False) -> CardDescription:
-        card_info: CardDescription = dict()  # type: ignore
+                         second_card: bool = False) -> mtg_global.CardDescription:
+        card_info: mtg_global.CardDescription = dict()  # type: ignore
 
         await self.build_main_part(set_name, card_mid, card_info, other_cards_holder, second_card=second_card)
         await self.build_original_details(card_mid, card_info, second_card=second_card)
@@ -244,7 +244,7 @@ class MTGJSON:
         return card_info
 
     @staticmethod
-    def rebuild_card_layouts(cards: List[CardDescription]) -> List[CardDescription]:
+    def rebuild_card_layouts(cards: List[mtg_global.CardDescription]) -> List[mtg_global.CardDescription]:
         return_cards = copy.copy(cards)
         for card_info in return_cards:
             if 'names' in card_info:
@@ -293,9 +293,10 @@ class MTGJSON:
             card_info['layout'] = card_layout
         return return_cards
 
-    async def download_cards_by_mid_list(self, set_name: List[str], multiverse_ids: List[int]) -> List[CardDescription]:
+    async def download_cards_by_mid_list(self, set_name: List[str],
+                                         multiverse_ids: List[int]) -> List[mtg_global.CardDescription]:
         additional_cards: List[Any] = []
-        cards_in_set: List[CardDescription] = []
+        cards_in_set: List[mtg_global.CardDescription] = []
 
         # start asyncio tasks for building each card
         futures = [
@@ -348,8 +349,8 @@ class MTGJSON:
             json_ready = await apply_set_config_options(set_name, cards_holder)
 
             print('BuildSet: Generated JSON for {}'.format(set_stat))
-            with mtg_storage.open_set_json(set_output, 'w') as fp:
-                json.dump(json_ready, fp, indent=4, sort_keys=True, ensure_ascii=False)
+            with mtg_storage.open_set_json(set_output, 'w') as f:
+                json.dump(json_ready, f, indent=4, sort_keys=True, ensure_ascii=False)
                 print('BuildSet: JSON written for {0} ({1})'.format(set_stat, set_name[1]))
 
             return json_ready
@@ -359,8 +360,8 @@ class MTGJSON:
                 print('BuildSet: Set {0} not built in English. Do that first before {1}'.format(set_name[1], language))
                 return None
 
-            with mtg_storage.open_set_json(set_name[1], 'r') as fp:
-                json_input = json.load(fp)
+            with mtg_storage.open_set_json(set_name[1], 'r') as f:
+                json_input = json.load(f)
 
             if ('translations' not in json_input.keys()) or (language not in json_input['translations'].keys()):
                 print("BuildSet: Cannot translate {0} to {1}. Update set_configs".format(set_name[1], language))

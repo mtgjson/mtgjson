@@ -761,5 +761,4 @@ def get_symbol_short_name(key_to_find: str) -> Color:
 def get_language_long_name(lang_short_name: str) -> Optional[str]:
     if lang_short_name not in LANGUAGE_MAP.keys():
         return None
-    else:
-        return LANGUAGE_MAP[lang_short_name]
+    return LANGUAGE_MAP[lang_short_name]
