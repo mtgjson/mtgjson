@@ -29,6 +29,15 @@ def replace_symbol_images_with_tokens(tag: bs4.BeautifulSoup) -> Tuple[bs4.Beaut
     return tag_copy, colors_found
 
 
+def parse_card_other_id(soup: bs4.BeautifulSoup, parse_div: str) -> int:
+    """
+    Determine the MID of the other card for split/meld/etc
+    """
+    image_tag = soup.find(id=parse_div.format('cardImage'))
+    other_card_mid = int(image_tag['src'].split('id=')[1].split('&')[0])
+    return other_card_mid
+
+
 def parse_card_name(soup: bs4.BeautifulSoup, parse_div: str) -> str:
     """
     Parse the card name from the row
@@ -37,7 +46,7 @@ def parse_card_name(soup: bs4.BeautifulSoup, parse_div: str) -> str:
     :return: card name from MID
     """
     name_row = soup.find(id=parse_div.format('nameRow'))
-    name_row = name_row.findAll('div')[-1]
+    name_row = name_row.find_all('div')[-1]
     card_name = str(name_row.get_text(strip=True))
 
     return card_name
