@@ -10,11 +10,12 @@ import time
 from typing import Any, Dict, Iterable, Iterator, List, Tuple, TypeVar, Union
 
 import aiohttp
+import hanging_threads
 
-from mtgjson4 import stacktracer  # TEMPORARY
 from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 
-stacktracer.trace_start("trace.html")
+THREAD_MONITOR = hanging_threads.start_monitoring()
+
 
 
 async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str,
