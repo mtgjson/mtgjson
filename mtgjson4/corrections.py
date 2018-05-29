@@ -66,6 +66,7 @@ def replace(replacements: Dict[str, Any], cards_to_modify: List[mtg_global.CardD
         for card in cards_to_modify:
             card[key_name] = replacement  # type: ignore
 
+
 def remove(removals: List[str], cards_to_modify: List[mtg_global.CardDescription]) -> None:
     """
     Removes the specified keys from a card.
@@ -74,12 +75,12 @@ def remove(removals: List[str], cards_to_modify: List[mtg_global.CardDescription
         for card in cards_to_modify:
             card.pop(key_name, None)
 
+
 def prefix_number(prefix, cards_to_modify):
     pass
 
-def fix_foreign_names(replacements: List[Dict[str, Any]],
-                      cards_to_modify: List[mtg_global.CardDescription]
-                     ) -> None:
+
+def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: List[mtg_global.CardDescription]) -> None:
     """
     Sometimes the foreign names are wrong.
     This completely replaces the names with accurate ones.
@@ -103,15 +104,22 @@ def fix_flavor_newlines(enabled: bool, cards_to_modify: List[mtg_global.CardDesc
             # TODO
             pass
 
+
 def flavor_add_dash(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
     pass
 
+
 def flavor_add_exclamation(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
     pass
+
+
 def increment_number(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
     pass
+
+
 def remove_card(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
     pass
+
 
 def parse_match(match_rule: Union[str, Dict[str, str]],
                 card_list: List[mtg_global.CardDescription]) -> List[mtg_global.CardDescription]:
@@ -129,6 +137,7 @@ def parse_match(match_rule: Union[str, Dict[str, str]],
                 matches = [card for card in matches if card.get(key) == value]
         return matches
     raise KeyError(match_rule)
+
 
 def no_basic_land_watermarks(cards_dictionary: Any) -> Any:
     # TODO: Not sure what to do with this.

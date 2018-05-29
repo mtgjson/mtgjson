@@ -10,7 +10,7 @@ mtg_storage.ensure_set_dir_exists()
 TEST_VCR = vcr.VCR(
     record_mode='new_episodes',
     path_transformer=vcr.VCR.ensure_suffix('.yaml'),
-    )
+)
 
 
 @pytest.mark.asyncio
