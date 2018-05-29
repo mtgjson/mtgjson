@@ -83,7 +83,7 @@ class MTGJSON:
 
         card_layout, div_name, add_other_card, alt_div_name = self.determine_layout_and_div_name(
             soup_oracle, second_card)
-        if (not second_card) and add_other_card and (other_cards_holder is not None) and (alt_div_name is not None):
+        if add_other_card and (other_cards_holder is not None) and (alt_div_name is not None):
             other_card_mid: int = mtg_parse.parse_card_other_id(soup_oracle, alt_div_name)
             other_cards_holder.append(
                 self.loop.create_task(self.build_card(set_name, other_card_mid, None, second_card=True)))
