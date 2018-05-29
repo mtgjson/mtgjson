@@ -66,8 +66,13 @@ def replace(replacements: Dict[str, Any], cards_to_modify: List[mtg_global.CardD
         for card in cards_to_modify:
             card[key_name] = replacement  # type: ignore
 
-def remove(removals, cards_to_modify):
-    pass
+def remove(removals: List[str], cards_to_modify: List[mtg_global.CardDescription]) -> None:
+    """
+    Removes the specified keys from a card.
+    """
+    for key_name in removals:
+        for card in cards_to_modify:
+            card.pop(key_name, None)
 
 def prefix_number(prefix, cards_to_modify):
     pass

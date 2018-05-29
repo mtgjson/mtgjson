@@ -113,3 +113,6 @@ venv.bak/
 set_outputs/
 compiled_outputs/
 /trace.html
+/tests/test_chk
+/tests/test_isd
+
