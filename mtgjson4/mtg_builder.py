@@ -321,7 +321,7 @@ class MTGJSON:
 
         with contextlib.suppress(ValueError):  # If no double-sided cards, gracefully skip
             await asyncio.wait(additional_cards)
-            print("Additional Cards found, lets work!")
+            # print("Additional Cards found, lets work!")
             for future in additional_cards:
                 card_future = future.result()
                 cards_in_set.append(card_future)
