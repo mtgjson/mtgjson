@@ -1,6 +1,7 @@
 import itertools
+from typing import Any, Callable, Dict, Iterable, List, Union
+
 from mtgjson4 import mtg_global
-from typing import List, Dict, Union, Any, Iterable, Callable
 
 ReplacementType = Dict[str, Union[str, List[str], Any]]
 
@@ -54,7 +55,7 @@ def apply_match(replacement_rule: dict, cards_dictionary: List[mtg_global.CardDe
     }
 
     for action in keys:
-        rules[action](replacement_rule[action], cards_to_modify) # type: ignore
+        rules[action](replacement_rule[action], cards_to_modify)
 
 
 def replace(replacements: Dict[str, Any], cards_to_modify: List[mtg_global.CardDescription]) -> None:

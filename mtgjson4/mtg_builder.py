@@ -1,13 +1,15 @@
-import aiohttp
 import asyncio
-import bs4
 import contextlib
 import copy
 import json
-from mtgjson4 import mtg_global, mtg_http, mtg_parse, mtg_storage, corrections
 import os
 import pathlib
 from typing import Any, Dict, List, Optional, Tuple
+
+import aiohttp
+import bs4
+
+from mtgjson4 import corrections, mtg_global, mtg_http, mtg_parse, mtg_storage
 
 
 class MTGJSON:
@@ -17,9 +19,9 @@ class MTGJSON:
                  loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         """
         Start the class and define the i/o session and sets we'll have to build
-        :param sets_to_build:
-        :param session:
-        :param loop:
+        :param sets_to_build: List of Sets to build
+        :param session: Aiohttp session. May be null.
+        :param loop: Asyncio Loop. May be null.
         """
         if loop is None:
             loop = asyncio.events.get_event_loop()
@@ -31,14 +33,14 @@ class MTGJSON:
         self.http_session = session
         self.sets_to_build = sets_to_build
 
-    async def get_card_html(self, card_mid: int, is_printed: bool = False) -> bs4.BeautifulSoup:
+    async def get_card_html(self, card_mid: int, lookup_printed_text: bool = False) -> bs4.BeautifulSoup:
         """
         Gets the card details (first page) of a single card
-        :param card_mid:
-        :param is_printed:
-        :return:
+        :param card_mid: Multiverse ID of requested card
+        :param lookup_printed_text: Do we want the original text, or oracle text?
+        :return: Returns a BeautifulSoup object of the requested gatherer page.
         """
-        html = await mtg_http.get_card_details(self.http_session, card_mid, is_printed)
+        html = await mtg_http.get_card_details(self.http_session, card_mid, lookup_printed_text)
         soup = bs4.BeautifulSoup(html, 'html.parser')
         return soup
 
@@ -318,7 +320,7 @@ class MTGJSON:
                 cards_in_set.append(card_future)
 
         cards_in_set = self.rebuild_card_layouts(cards_in_set)
-        print(cards_in_set)
+        # print(cards_in_set)
 
         return cards_in_set
 

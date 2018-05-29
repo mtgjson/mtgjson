@@ -1,17 +1,18 @@
-import aiohttp
 import argparse
 import asyncio
 import copy
 import itertools
 import json
-from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 import os
 import pathlib
 import sys
 import time
-from typing import Iterator, List, Dict, Any, TypeVar, Union, Iterable, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Tuple, TypeVar, Union
+
+import aiohttp
 
 from mtgjson4 import stacktracer  # TEMPORARY
+from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 
 stacktracer.trace_start("trace.html")
 

@@ -1,5 +1,6 @@
-from mypy_extensions import TypedDict
 from typing import Dict, List, NewType, Optional, Union
+
+from mypy_extensions import TypedDict
 
 # Maintenance vars
 MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
