@@ -48,7 +48,7 @@ class MTGJSON:
     def determine_layout_and_div_name(
             soup: bs4.BeautifulSoup,
             is_second_card: bool,
-    ) -> Tuple[str, str, Optional[bool]]:
+    ) -> Tuple[str, str, Optional[bool], Optional[str]]:
         # Determine how many cards on on the page
         cards_total = len(soup.select('table[class^=cardDetails]'))
 
@@ -56,6 +56,7 @@ class MTGJSON:
         div_name = 'ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{}'
         layout = 'unknown'
         add_additional_card = False
+        second_div_name = None
 
         if cards_total == 1:
             layout = 'normal'
@@ -64,10 +65,12 @@ class MTGJSON:
             if is_second_card:
                 div_name = div_name[:-3] + '_ctl03_{}'
             else:
+                second_div_name = div_name[:-3] + '_ctl03_{}'
                 div_name = div_name[:-3] + '_ctl02_{}'
+
                 add_additional_card = True
 
-        return layout, div_name, add_additional_card
+        return layout, div_name, add_additional_card, second_div_name
 
     async def build_main_part(self,
                               set_name: List[str],
@@ -78,10 +81,12 @@ class MTGJSON:
         card_mid = card_info['multiverseid']
         soup_oracle = await self.get_card_html(card_mid)
 
-        card_layout, div_name, add_other_card = self.determine_layout_and_div_name(soup_oracle, second_card)
-        if add_other_card and other_cards_holder is not None:
+        card_layout, div_name, add_other_card, alt_div_name = self.determine_layout_and_div_name(
+            soup_oracle, second_card)
+        if add_other_card and (other_cards_holder is not None) and (alt_div_name is not None):
+            other_card_mid: int = mtg_parse.parse_card_other_id(soup_oracle, alt_div_name)
             other_cards_holder.append(
-                self.loop.create_task(self.build_card(set_name, card_mid, None, second_card=True)))
+                self.loop.create_task(self.build_card(set_name, other_card_mid, None, second_card=True)))
 
         card_info['multiverseid'] = int(card_mid)
         card_info['name'] = mtg_parse.parse_card_name(soup_oracle, div_name)
@@ -248,6 +253,16 @@ class MTGJSON:
 
     @staticmethod
     def rebuild_card_layouts(cards: List[mtg_global.CardDescription]) -> List[mtg_global.CardDescription]:
+        def get_layout_from_other_side(c_info: mtg_global.CardDescription, unknown_num: int) -> str:
+            card_2_name = next(card2 for card2 in c_info['names'] if c_info['name'] != card2)
+            card_2_info = next(card2 for card2 in cards if card2['name'] == card_2_name)
+            if 'flip' in card_2_info['text']:
+                return 'Flip'
+            elif 'transform' in card_2_info['text']:
+                return 'Double-Faced'
+            else:
+                return f'Unknown{unknown_num}'
+
         return_cards = copy.copy(cards)
         for card_info in return_cards:
             if 'names' in card_info:
@@ -267,16 +282,8 @@ class MTGJSON:
                 else:
                     card_layout = 'Normal'
             elif sides == 2:
-                print("side2", card_info)
                 if card_info['text'] is None:
-                    card_2_name = next(card2 for card2 in card_info['names'] if card_info['name'] != card2)
-                    card_2_info = next(card2 for card2 in cards if card2['name'] == card_2_name)
-                    if 'flip' in card_2_info['text']:
-                        card_layout = 'Flip'
-                    elif 'transform' in card_2_info['text']:
-                        card_layout = 'Double-Faced'
-                    else:
-                        card_layout = 'Unknown1'
+                    card_layout = get_layout_from_other_side(card_info, 2)
                 elif 'transform' in card_info['text']:
                     card_layout = 'Double-Faced'
                 elif 'aftermath' in card_info['text']:
@@ -288,8 +295,7 @@ class MTGJSON:
                 elif 'meld' in card_info['text']:
                     card_layout = 'Meld'
                 else:
-                    print("Unknown")
-                    card_layout = 'Unknown2'
+                    card_layout = get_layout_from_other_side(card_info, 1)
             else:
                 card_layout = 'Meld'
 
@@ -315,7 +321,7 @@ class MTGJSON:
 
         with contextlib.suppress(ValueError):  # If no double-sided cards, gracefully skip
             await asyncio.wait(additional_cards)
-            print("Additional Cards found, lets work!")
+            # print("Additional Cards found, lets work!")
             for future in additional_cards:
                 card_future = future.result()
                 cards_in_set.append(card_future)
