@@ -69,6 +69,7 @@ async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]
     We will give back the URLs for the pages, which can be parsed further for
     each individual card on the page.
     """
+
     def page_count_for_set(html_data: str) -> int:
         """
         Determine how many pages of card data exist for a set. The way Gatherer does

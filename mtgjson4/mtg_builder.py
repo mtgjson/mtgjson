@@ -478,7 +478,7 @@ async def apply_set_config_options(set_name: List[str],
         return_product[key] = value
 
     # Declare the version of the build in the output file
-    return_product["version"] = mtg_global.__VERSION__
+    return_product['meta'] = {'version': mtg_global.__VERSION__, 'date': mtg_global.__VERSION_DATE__}
 
     if 'SET_CORRECTIONS' in file_response.keys():
         corrections.apply_corrections(file_response['SET_CORRECTIONS'], cards_dictionary)

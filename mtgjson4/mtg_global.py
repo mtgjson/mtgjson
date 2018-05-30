@@ -4,7 +4,7 @@ from mypy_extensions import TypedDict
 
 # Maintenance variables
 __VERSION__ = '4.0.0'
-__VERSION_DATE__ = 'May 25, 2018'
+__VERSION_DATE__ = '2018-05-30'
 
 MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
 VERSION_INFO = f'MTGJSON\nVersion {__VERSION__}\n{__VERSION_DATE__}'
