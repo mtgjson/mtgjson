@@ -49,6 +49,10 @@ class MTGJSON:
             soup: bs4.BeautifulSoup,
             is_second_card: bool,
     ) -> Tuple[str, str, Optional[bool], Optional[str]]:
+        """
+        Determine the card's layout, which will then generate the parse div for all future operations
+        """
+
         # Determine how many cards on on the page
         cards_total = len(soup.select('table[class^=cardDetails]'))
 
@@ -77,6 +81,13 @@ class MTGJSON:
                               card_info: mtg_global.CardDescription,
                               other_cards_holder: Optional[List[object]],
                               second_card: bool = False) -> None:
+        """
+        This is the main builder for each card. This will put together the card, key by key, until it
+        has most of its elements finished. There are some this doesn't encompass at this time, and those
+        are handled by subsequent build functions.
+        This builder only builds the main page of Gatherer.
+        """
+
         # Parse web page so we can gather all data from it
         card_mid = card_info['multiverseid']
         soup_oracle = await self.get_card_html(card_mid)
@@ -90,7 +101,7 @@ class MTGJSON:
 
         card_info['multiverseid'] = int(card_mid)
         card_info['name'] = mtg_parse.parse_card_name(soup_oracle, div_name)
-        card_info['cmc'] = mtg_parse.parse_card_cmc(soup_oracle, div_name)
+        card_info['convertedManaCost'] = mtg_parse.parse_card_cmc(soup_oracle, div_name)
 
         # Get other side's name for the user
         card_other_name = mtg_parse.parse_card_other_name(soup_oracle, div_name, card_layout)
@@ -180,6 +191,9 @@ class MTGJSON:
             card_info['variations'] = c_variations
 
     async def build_legalities_part(self, card_mid: int, card_info: mtg_global.CardDescription) -> None:
+        """
+        This builder will build from the legalities page of Gatherer
+        """
         try:
             html = await mtg_http.get_card_legalities(self.http_session, card_mid)
         except aiohttp.ClientError as error:
@@ -200,6 +214,12 @@ class MTGJSON:
             card_info['legalities'] = c_legal
 
     async def build_foreign_part(self, card_mid: int, card_info: mtg_global.CardDescription) -> None:
+        """
+        This builder builds the foreign identifiers page of gathere
+        :param card_mid:
+        :param card_info:
+        :return:
+        """
         try:
             html = await mtg_http.get_card_foreign_details(self.http_session, card_mid)
         except aiohttp.ClientError as error:
@@ -223,6 +243,10 @@ class MTGJSON:
                                      card_mid: int,
                                      card_info: mtg_global.CardDescription,
                                      second_card: bool = False) -> None:
+        """
+        This builder builds the original type/text of the card. Useful for foreign languages
+        and those who like the original printed text over Oracle text.
+        """
         soup_print = await self.get_card_html(card_mid, True)
 
         # Determine if Card is Normal, Flip, or Split
@@ -243,6 +267,10 @@ class MTGJSON:
                          card_mid: int,
                          other_cards_holder: Optional[List[object]],
                          second_card: bool = False) -> mtg_global.CardDescription:
+        """
+        This build method constructs the entire card from start to finish. It will call
+        all the subsequent build methods, one by one, to put the card together.
+        """
         card_info: mtg_global.CardDescription = dict()  # type: ignore
         card_info['multiverseid'] = int(card_mid)
 
@@ -258,7 +286,15 @@ class MTGJSON:
 
     @staticmethod
     def rebuild_card_layouts(cards: List[mtg_global.CardDescription]) -> List[mtg_global.CardDescription]:
+        """
+        When we first build the card, the layout is only determining if it has one or two+ cards.
+        As such, we now need to determine the real layout name and update the card's layout field.
+        """
         def get_layout_from_other_side(c_info: mtg_global.CardDescription, unknown_num: int) -> str:
+            """
+            If the first side doesn't have enough information to determine the type,
+            we can use the second side to help us out
+            """
             card_2_name = next(card2 for card2 in c_info['names'] if c_info['name'] != card2)
             card_2_info = next(card2 for card2 in cards if card2['name'] == card_2_name)
             if 'flip' in card_2_info['text']:
@@ -309,6 +345,11 @@ class MTGJSON:
 
     async def download_cards_by_mid_list(self, set_name: List[str],
                                          multiverse_ids: List[int]) -> List[mtg_global.CardDescription]:
+        """
+        Method async calls the build process for each card in the multiverse_ids arg passed.
+        There are two pass throughs; One for main cards, one for alternative sided cards
+        that get added while the main process is running.
+        """
         additional_cards: List[Any] = []
         cards_in_set: List[mtg_global.CardDescription] = []
 
@@ -337,7 +378,16 @@ class MTGJSON:
         return cards_in_set
 
     async def build_set(self, set_name: List[str], language: str) -> Optional[dict]:
+        """
+        Main method that will build the entire set by calling the build_*
+        method(s) depending on what language(s) is/are required.
+        :return: The entire set that was written to the file
+        """
         async def get_mids_for_downloading() -> List[int]:
+            """
+            Use the URLs from another function to determine the MIDs that
+            the build process should download and incorporate.
+            """
             print('BuildSet: Building Set {}'.format(set_name[0]))
 
             urls_for_set = await mtg_http.get_checklist_urls(self.http_session, set_name)
@@ -348,6 +398,12 @@ class MTGJSON:
             return ids_to_return
 
         async def build_then_print_stuff(mids_for_set: List[int], lang: str = None) -> dict:
+            """
+            Function puts all sub-functions together to determine what IDs are
+            needed for building, downloading the cards/building them, and
+            applying the set configurations.
+            :return: JSON text that was also written to file
+            """
             if lang:
                 set_stat = '{0}.{1}'.format(set_name[0], lang)
                 set_output = '{0}.{1}'.format(set_name[1], lang)
@@ -370,6 +426,11 @@ class MTGJSON:
             return json_ready
 
         async def build_foreign_language() -> Optional[dict]:
+            """
+            This will create the foreign language version of sets.
+            It pulls the english set, strips the MIDs from it for the language
+            selected, then updates the appropriate fields with the new information
+            """
             if not mtg_storage.is_set_file(set_name[1]):
                 print('BuildSet: Set {0} not built in English. Do that first before {1}'.format(set_name[1], language))
                 return None
@@ -400,6 +461,11 @@ class MTGJSON:
 
 async def apply_set_config_options(set_name: List[str],
                                    cards_dictionary: List[mtg_global.CardDescription]) -> Dict[str, Any]:
+    """
+    Take all options from set_config and add them to the final output product
+    This will also add a version field, so it can be determined when it was last
+    updated.
+    """
     return_product = dict()
 
     # Will search the tree of set_configs to find the file
@@ -420,7 +486,15 @@ async def apply_set_config_options(set_name: List[str],
 
 
 def determine_gatherer_sets(args: Dict[str, Any]) -> List[List[str]]:
-    def try_to_append(root_p: str, file_p: str) -> None:
+    """
+    If the user wants a specific subset, get the set_configs for those specific sets.
+    If they want all sets, pull every set_config file.
+    Will exit if there is an invalid set code passed and alert for fixing.
+    """
+    def add_to_sets_to_build(root_p: str, file_p: str) -> None:
+        """
+        Append the set to the build process if it's real
+        """
         with pathlib.Path(root_p, file_p).open('r', encoding='utf8') as f:
             this_set_name = json.load(f)
             if 'SET' in this_set_name:
@@ -432,7 +506,7 @@ def determine_gatherer_sets(args: Dict[str, Any]) -> List[List[str]]:
         for root, _, files in os.walk(mtg_storage.SET_CONFIG_DIR):
             for file in files:
                 if file.endswith('.json'):
-                    try_to_append(root, file)
+                    add_to_sets_to_build(root, file)
     else:
         # Capitalize inputs and fix bad file names (WinOS can't have CON files, for example)
         set_args = [
@@ -443,7 +517,7 @@ def determine_gatherer_sets(args: Dict[str, Any]) -> List[List[str]]:
             for file in files:
                 set_name: str = file.split('.json')[0]
                 if str.upper(set_name) in set_args:
-                    try_to_append(root, file)
+                    add_to_sets_to_build(root, file)
                     set_args.remove(set_name)
 
         # Ensure all sets provided by the user are valid
