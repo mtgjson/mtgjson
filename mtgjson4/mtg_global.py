@@ -3,9 +3,11 @@ from typing import Dict, List, NewType, Optional, Union
 from mypy_extensions import TypedDict
 
 # Maintenance variables
-MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
 __VERSION__ = '4.0.0'
-VERSION_INFO = f'MTGJSON\nVersion {__VERSION__}\nMay 25, 2018'
+__VERSION_DATE__ = 'May 25, 2018'
+
+MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
+VERSION_INFO = f'MTGJSON\nVersion {__VERSION__}\n{__VERSION_DATE__}'
 DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
 Color = NewType('Color', str)
@@ -54,7 +56,7 @@ CardDescription = TypedDict(
 
 # Building vars
 COLORS: List[Color] = list(Color(c) for c in ['W', 'U', 'B', 'R', 'G'])
-color_order = lambda word: [COLORS.index(Color(c)) for c in word]
+color_order_lambda = lambda word: [COLORS.index(Color(c)) for c in word]
 
 EXTRA_FIELDS: List[str] = ['rulings', 'foreignNames', 'printings', 'originalText', 'originalType', 'legalities']
 

@@ -195,7 +195,7 @@ def parse_card_text_and_color_identity(
 
     # Sort field in WUBRG order
     sorted_color_identity = sorted(
-        list(filter(lambda c: c in return_color_identity, mtg_global.COLORS)), key=mtg_global.color_order)
+        list(filter(lambda c: c in return_color_identity, mtg_global.COLORS)), key=mtg_global.color_order_lambda)
 
     return return_text or None, sorted_color_identity
 

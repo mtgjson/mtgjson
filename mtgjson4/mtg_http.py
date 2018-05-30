@@ -18,6 +18,10 @@ async def ensure_content_downloaded(session: aiohttp.ClientSession,
                                     url_to_download: str,
                                     max_retries: int = 3,
                                     **kwargs: Any) -> str:
+    """
+    Sometimes downloads fail. This method will retry up to max_retries to ensure
+    we get the data we have requested. Raises error on failure
+    """
     # Ensure we can read the URL and its contents
     for retry in itertools.count():
         try:
@@ -32,23 +36,45 @@ async def ensure_content_downloaded(session: aiohttp.ClientSession,
 
 
 async def get_card_details(session: aiohttp.ClientSession, card_mid: int, printed: bool = False) -> str:
+    """
+    Download the main page for a specific card_mid
+    """
     return await ensure_content_downloaded(session, MAIN_URL, params=get_params(card_mid, printed))
 
 
 async def get_card_legalities(session: aiohttp.ClientSession, card_mid: int) -> str:
+    """
+    Download the legal page for a specific card_mid
+    """
     return await ensure_content_downloaded(session, LEGAL_URL, params=get_params(card_mid))
 
 
 async def get_card_foreign_details(session: aiohttp.ClientSession, card_mid: int) -> str:
+    """
+    Download the foreign prints page for a specific card_mid
+    """
     return await ensure_content_downloaded(session, FOREIGN_URL, params=get_params(card_mid))
 
 
 def get_params(card_mid: int, printed: bool = False) -> ParamsType:
+    """
+    Get the parameters necessary for URL manipulations to get the card's data
+    """
     return {'multiverseid': card_mid, 'printed': str(printed).lower(), 'page': 0}
 
 
 async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]) -> SetUrlsType:
+    """
+    Function will get all URLs needed by other methods to download the card data.
+    We will give back the URLs for the pages, which can be parsed further for
+    each individual card on the page.
+    """
     def page_count_for_set(html_data: str) -> int:
+        """
+        Determine how many pages of card data exist for a set. The way Gatherer does
+        it with the "1, 2, 3 >" we need to pull the last numerical value to get the
+        real answer.
+        """
         try:
             # Get the last instance of 'pagingcontrols' and get the page
             # number from the URL it contains
@@ -69,6 +95,9 @@ async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]
         return num_page_links + 1
 
     def url_params_for_page(page_number: int) -> ParamsType:
+        """
+        Get the parameters necessary for determing how many pages exist for the set.
+        """
         return {
             'output': 'checklist',
             'sort': 'cn+',
@@ -85,6 +114,11 @@ async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]
 
 
 async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrlsType) -> List[int]:
+    """
+    Function will take download all content from the set_urls and parse them to determine
+    all the card's needed for the set. Will take the MIDs and return them back for
+    further downloads of each individual card
+    """
     card_mids_to_parse: List[int] = list()
     for url, params in set_urls:
         async with session.get(url, params=params) as response:
