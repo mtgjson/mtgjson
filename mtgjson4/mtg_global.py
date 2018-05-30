@@ -16,8 +16,9 @@ ForeignNamesDescription = TypedDict('ForeignNamesDescription', {
     'language': str,
     'multiverseid': int,
     'name': str,
-    'text': str,
-    'type': str
+    'type': str,
+    'text': Optional[str],
+    'flavor': Optional[str]
 })
 
 CardDescription = TypedDict(

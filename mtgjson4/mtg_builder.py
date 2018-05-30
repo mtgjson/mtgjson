@@ -106,20 +106,27 @@ class MTGJSON:
             # Get Card Foreign Type
             c_foreign_type = mtg_parse.parse_card_types(soup_print, div_name)[3]
 
-            # Get Card Foreign Printed Rules Text
-            c_foreign_text = mtg_parse.parse_card_text_and_color_identity(soup_print, div_name, None)[0] or ''
-
-            # Get Card Foreign Flavor Text
-            c_flavor_text = mtg_parse.parse_card_flavor(soup_print, div_name) or ''
-
-            card_languages.append({
+            # Following types are optionals, so we just build it here instead
+            c_foreign_dict: mtg_global.ForeignNamesDescription = {
                 'language': card_language_name,
                 'name': card_foreign_name_in_language,
                 'multiverseid': card_language_mid,
-                'text': c_foreign_text,
                 'type': c_foreign_type,
-                'flavor': c_flavor_text
-            })
+                'text': None,
+                'flavor': None
+            }
+
+            # Get Card Foreign Printed Rules Text
+            c_foreign_text = mtg_parse.parse_card_text_and_color_identity(soup_print, div_name, None)[0]
+            if c_foreign_text:
+                c_foreign_dict['text'] = c_foreign_text
+
+            # Get Card Foreign Flavor Text
+            c_flavor_text = mtg_parse.parse_card_flavor(soup_print, div_name)
+            if c_flavor_text:
+                c_foreign_dict['flavor'] = c_flavor_text
+
+            card_languages.append(c_foreign_dict)
 
         return card_languages
 
@@ -262,10 +269,7 @@ class MTGJSON:
 
     async def build_foreign_part(self, card_mid: int, card_info: mtg_global.CardDescription, second_card: bool) -> None:
         """
-        This builder builds the foreign identifiers page of gathere
-        :param card_mid:
-        :param card_info:
-        :return:
+        This builder builds the foreign identifiers page of gatherer
         """
         try:
             html = await mtg_http.get_card_foreign_details(self.http_session, card_mid)
