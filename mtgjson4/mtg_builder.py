@@ -45,10 +45,8 @@ class MTGJSON:
         return soup
 
     @staticmethod
-    def determine_layout_and_div_name(
-            soup: bs4.BeautifulSoup,
-            is_second_card: bool,
-    ) -> Tuple[str, str, Optional[bool], Optional[str]]:
+    def determine_layout_and_div_name(soup: bs4.BeautifulSoup,
+                                      is_second_card: bool) -> Tuple[str, str, Optional[bool], Optional[str]]:
         """
         Determine the card's layout, which will then generate the parse div for all future operations
         """
@@ -75,6 +73,51 @@ class MTGJSON:
                 add_additional_card = True
 
         return layout, div_name, add_additional_card, second_div_name
+
+    async def build_foreign_info(self, soup: bs4.BeautifulSoup,
+                                 second_card: bool) -> List[mtg_global.ForeignNamesDescription]:
+        """
+        Get the name and MID of this card for each other set it's printed in
+        From there, we will get the foreign text/type for the user to decipher
+        """
+        language_rows = soup.select('table[class^=cardList]')[0]
+        language_rows = language_rows.select('tr[class^=cardItem]')
+
+        card_languages: List[mtg_global.ForeignNamesDescription] = []
+        for div in language_rows:
+            table_rows = div.findAll('td')
+
+            a_tag = table_rows[0].find('a')
+            foreign_mid = a_tag['href'].split('=')[-1]
+            card_language_mid = int(foreign_mid)
+            card_foreign_name_in_language = a_tag.get_text(strip=True)
+
+            card_language_name = table_rows[1].get_text(strip=True)
+
+            # Download foreign URLs and append
+            soup_print = await self.get_card_html(foreign_mid, True)
+
+            # Determine if Card is Normal, Flip, or Split
+            div_name = self.determine_layout_and_div_name(soup_print, second_card)[1]
+
+            # Foreign names use 01, 02 to indicate the sides instead of 02, 03 like in English
+            div_name = div_name.replace('02', '01').replace('03', '02')
+
+            # Get Card Original Type
+            c_foreign_type = mtg_parse.parse_card_types(soup_print, div_name)[3]
+
+            # Get Card Original Text
+            c_foreign_text = mtg_parse.parse_card_text_and_color_identity(soup_print, div_name, None)[0] or ''
+
+            card_languages.append({
+                'language': card_language_name,
+                'name': card_foreign_name_in_language,
+                'multiverseid': card_language_mid,
+                'text': c_foreign_text,
+                'type': c_foreign_type
+            })
+
+        return card_languages
 
     async def build_main_part(self,
                               set_name: List[str],
@@ -213,7 +256,7 @@ class MTGJSON:
         if c_legal:
             card_info['legalities'] = c_legal
 
-    async def build_foreign_part(self, card_mid: int, card_info: mtg_global.CardDescription) -> None:
+    async def build_foreign_part(self, card_mid: int, card_info: mtg_global.CardDescription, second_card: bool) -> None:
         """
         This builder builds the foreign identifiers page of gathere
         :param card_mid:
@@ -234,10 +277,10 @@ class MTGJSON:
         # Parse web page so we can gather all data from it
         soup_oracle = bs4.BeautifulSoup(html, 'html.parser')
 
-        # Get Card Foreign Information
-        c_foreign_info = mtg_parse.parse_foreign_info(soup_oracle)
+        # Get Card Foreign Data
+        c_foreign_info = await self.build_foreign_info(soup_oracle, second_card)
         if c_foreign_info:
-            card_info['foreignNames'] = c_foreign_info
+            card_info['foreignData'] = c_foreign_info
 
     async def build_original_details(self,
                                      card_mid: int,
@@ -254,6 +297,7 @@ class MTGJSON:
 
         # Get Card Original Type
         c_original_type = mtg_parse.parse_card_types(soup_print, div_name)[3]
+
         if c_original_type:
             card_info['originalType'] = c_original_type
 
@@ -277,7 +321,7 @@ class MTGJSON:
         await self.build_main_part(set_name, card_info, other_cards_holder, second_card=second_card)
         await self.build_original_details(card_mid, card_info, second_card=second_card)
         await self.build_legalities_part(card_mid, card_info)
-        await self.build_foreign_part(card_mid, card_info)
+        await self.build_foreign_part(card_mid, card_info, second_card=second_card)
 
         card_info['cardHash'] = mtg_parse.build_id_part(set_name, card_mid, card_info)
 
@@ -395,7 +439,7 @@ class MTGJSON:
             urls_for_set = await mtg_http.get_checklist_urls(self.http_session, set_name)
             print('BuildSet: Acquired {1} URLs for {0}'.format(set_name[0], len(urls_for_set)))
 
-            # ids_to_return = [398434] # DEBUGGING IDs
+            # ids_to_return = [435173]  # DEBUGGING IDs 235597,
             ids_to_return = await mtg_http.generate_mids_by_set(self.http_session, urls_for_set)
             return ids_to_return
 

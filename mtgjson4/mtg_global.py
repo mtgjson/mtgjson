@@ -16,6 +16,8 @@ ForeignNamesDescription = TypedDict('ForeignNamesDescription', {
     'language': str,
     'multiverseid': int,
     'name': str,
+    'text': str,
+    'type': str
 })
 
 CardDescription = TypedDict(
@@ -26,7 +28,7 @@ CardDescription = TypedDict(
         'colorIdentity': List[Color],
         'colors': List[Color],
         'flavor': str,
-        'foreignNames': List[ForeignNamesDescription],
+        'foreignData': List[ForeignNamesDescription],
         'layout': str,
         'legalities': List[Dict[str, str]],
         'loyalty': str,

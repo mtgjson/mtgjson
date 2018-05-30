@@ -3,11 +3,12 @@ import copy
 import datetime
 import hashlib
 import re
-from typing import Dict, List, Optional, Set, Tuple, Union, cast
+from typing import Dict, List, Optional, Set, Tuple, Union, cast, Any
 
+import aiohttp
 import bs4
 
-from mtgjson4 import mtg_global
+from mtgjson4 import mtg_global, mtg_builder
 
 PowTouLoyaltyVanType = Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]
 
@@ -409,35 +410,6 @@ def parse_card_legal(soup: bs4.BeautifulSoup) -> List[dict]:
             card_formats.append({'format': card_format_name, 'legality': card_format_legal})
 
     return card_formats
-
-
-def parse_foreign_info(soup: bs4.BeautifulSoup) -> List[mtg_global.ForeignNamesDescription]:
-    """
-    Get the name and MID of this card for each other set it's printed in
-    :param soup:
-    :return: list of card's foreign information
-    """
-    language_rows = soup.select('table[class^=cardList]')[0]
-    language_rows = language_rows.select('tr[class^=cardItem]')
-
-    card_languages: List[mtg_global.ForeignNamesDescription] = []
-    for div in language_rows:
-        table_rows = div.findAll('td')
-
-        a_tag = table_rows[0].find('a')
-        foreign_mid = a_tag['href'].split('=')[-1]
-        card_language_mid = int(foreign_mid)
-        card_foreign_name_in_language = a_tag.get_text(strip=True)
-
-        card_language_name = table_rows[1].get_text(strip=True)
-
-        card_languages.append({
-            'language': card_language_name,
-            'name': card_foreign_name_in_language,
-            'multiverseid': card_language_mid
-        })
-
-    return card_languages
 
 
 def build_id_part(set_name: List[str], card_mid: int, card_info: mtg_global.CardDescription) -> str:

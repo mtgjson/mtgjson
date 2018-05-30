@@ -92,7 +92,7 @@ def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: List[
         new_name = lang_replacements['name']
 
         for card in cards_to_modify:
-            for foreign_names_field in card['foreignNames']:
+            for foreign_names_field in card['foreignData']:
                 if foreign_names_field['language'] == language_name:
                     foreign_names_field['name'] = new_name
 
