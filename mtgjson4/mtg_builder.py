@@ -396,6 +396,69 @@ class MTGJSON:
             card_info['layout'] = card_layout
         return return_cards
 
+    async def download_tokens_from_set(self, set_name: List[str]) -> List[mtg_global.TokenDescription]:
+        xml = await mtg_http.get_set_tokens(self.http_session, set_name[0])
+
+        return_list: List[mtg_global.TokenDescription] = list()
+
+        soup = bs4.BeautifulSoup(xml, 'html.parser')
+
+        card_list = soup.find('cards').find_all('card')
+        for card in card_list:
+            printings = card.find_all('set')
+            for printing in printings:
+                if printing.get_text() == set_name[1]:
+                    token_builder: mtg_global.TokenDescription = {
+                        'name': '',
+                        'colors': None,
+                        'convertedManaCost': 0,
+                        'type': None,
+                        'power': None,
+                        'toughness': None,
+                        'text': None,
+                        'relatedToken': None,
+                        'generators': None
+                    }
+
+                    with contextlib.suppress(AttributeError):
+                        c_name = card.find('name').get_text()
+                        token_builder['name'] = c_name
+
+                    with contextlib.suppress(AttributeError):
+                        c_colors = [c.get_text() for c in card.find_all('color')]
+                        token_builder['colors'] = c_colors
+
+                    with contextlib.suppress(AttributeError):
+                        c_cmc = int(card.find('cmc').get_text())
+                        token_builder['convertedManaCost'] = c_cmc
+
+                    with contextlib.suppress(AttributeError):
+                        c_type = card.find('type').get_text()
+                        token_builder['type'] = c_type
+
+                    with contextlib.suppress(AttributeError):
+                        pt_find = card.find('pt').get_text().split('/')
+                        c_power = pt_find[0]
+                        c_toughness = pt_find[1]
+                        token_builder['power'] = c_power
+                        token_builder['toughness'] = c_toughness
+
+                    with contextlib.suppress(AttributeError):
+                        c_text = card.find('text').get_text()
+                        token_builder['text'] = c_text
+
+                    with contextlib.suppress(AttributeError):
+                        c_related_token = card.find('related').get_text()
+                        token_builder['relatedToken'] = c_related_token
+
+                    with contextlib.suppress(AttributeError):
+                        c_generators = [c.get_text() for c in card.find_all('reverse-related')]
+                        token_builder['generators'] = c_generators
+
+                    return_list.append(token_builder)
+
+        return return_list
+
     async def download_cards_by_mid_list(self, set_name: List[str],
                                          multiverse_ids: List[int]) -> List[mtg_global.CardDescription]:
         """
@@ -466,11 +529,13 @@ class MTGJSON:
                 set_output = str(set_name[1])
 
             print('BuildSet: Determined {1} MIDs for {0}'.format(set_stat, len(mids_for_set)))
-
             cards_holder = await self.download_cards_by_mid_list(set_name, mids_for_set)
 
+            print('BuildSet: Acquiring Tokens')
+            tokens_holder = await self.download_tokens_from_set(set_name)
+
             print('BuildSet: Applied Set Config options for {}'.format(set_name))
-            json_ready = await apply_set_config_options(set_name, cards_holder)
+            json_ready = await apply_set_config_options(set_name, cards_holder, tokens_holder)
 
             print('BuildSet: Generated JSON for {}'.format(set_stat))
             with mtg_storage.open_set_json(set_output, 'w') as f:
@@ -513,8 +578,8 @@ class MTGJSON:
             return await build_foreign_language()
 
 
-async def apply_set_config_options(set_name: List[str],
-                                   cards_dictionary: List[mtg_global.CardDescription]) -> Dict[str, Any]:
+async def apply_set_config_options(set_name: List[str], cards_dictionary: List[mtg_global.CardDescription],
+                                   tokens_dictionary: List[mtg_global.TokenDescription]) -> Dict[str, Any]:
     """
     Take all options from set_config and add them to the final output product
     This will also add a version field, so it can be determined when it was last
@@ -535,6 +600,8 @@ async def apply_set_config_options(set_name: List[str],
     if 'SET_CORRECTIONS' in file_response.keys():
         mtg_corrections.apply_corrections(file_response['SET_CORRECTIONS'], cards_dictionary)
     return_product['cards'] = cards_dictionary
+
+    return_product['tokens'] = tokens_dictionary
 
     return return_product
 

@@ -57,6 +57,19 @@ CardDescription = TypedDict(
         'variations': List[int],
     })
 
+TokenDescription = TypedDict(
+    'TokenDescription', {
+        'name': str,
+        'colors': Optional[List[str]],
+        'convertedManaCost': int,
+        'type': Optional[str],
+        'power': Optional[str],
+        'toughness': Optional[str],
+        'text': Optional[str],
+        'relatedToken': Optional[str],
+        'generators': Optional[List[str]]
+    })
+
 # Building vars
 COLORS: List[Color] = list(Color(c) for c in ['W', 'U', 'B', 'R', 'G'])
 color_order_lambda = lambda word: [COLORS.index(Color(c)) for c in word]

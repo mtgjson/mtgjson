@@ -9,6 +9,7 @@ SEARCH_URL = 'http://gatherer.wizards.com/Pages/Search/Default.aspx'
 MAIN_URL = 'http://gatherer.wizards.com/Pages/Card/Details.aspx'
 LEGAL_URL = 'http://gatherer.wizards.com/Pages/Card/Printings.aspx'
 FOREIGN_URL = 'http://gatherer.wizards.com/Pages/Card/Languages.aspx'
+TOKEN_URL = 'https://raw.githubusercontent.com/cockatrice/Magic-Token/master/tokens.xml'
 
 ParamsType = Dict[str, Union[str, int]]
 SetUrlsType = List[Tuple[str, ParamsType]]
@@ -54,6 +55,13 @@ async def get_card_foreign_details(session: aiohttp.ClientSession, card_mid: int
     Download the foreign prints page for a specific card_mid
     """
     return await ensure_content_downloaded(session, FOREIGN_URL, params=get_params(card_mid))
+
+
+async def get_set_tokens(session: aiohttp.ClientSession, set_name: str) -> str:
+    """
+    Download the Tokens XML from Magic-Token
+    """
+    return await ensure_content_downloaded(session, TOKEN_URL)
 
 
 def get_params(card_mid: int, printed: bool = False) -> ParamsType:
