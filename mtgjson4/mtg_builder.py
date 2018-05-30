@@ -103,18 +103,22 @@ class MTGJSON:
             # Foreign names use 01, 02 to indicate the sides instead of 02, 03 like in English
             div_name = div_name.replace('02', '01').replace('03', '02')
 
-            # Get Card Original Type
+            # Get Card Foreign Type
             c_foreign_type = mtg_parse.parse_card_types(soup_print, div_name)[3]
 
-            # Get Card Original Text
+            # Get Card Foreign Printed Rules Text
             c_foreign_text = mtg_parse.parse_card_text_and_color_identity(soup_print, div_name, None)[0] or ''
+
+            # Get Card Foreign Flavor Text
+            c_flavor_text = mtg_parse.parse_card_flavor(soup_print, div_name) or ''
 
             card_languages.append({
                 'language': card_language_name,
                 'name': card_foreign_name_in_language,
                 'multiverseid': card_language_mid,
                 'text': c_foreign_text,
-                'type': c_foreign_type
+                'type': c_foreign_type,
+                'flavor': c_flavor_text
             })
 
         return card_languages

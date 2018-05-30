@@ -14,9 +14,8 @@ import hanging_threads
 
 from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 
-THREAD_MONITOR = hanging_threads.start_monitoring()
 
-
+# THREAD_MONITOR = hanging_threads.start_monitoring()
 async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str,
                args: dict) -> None:
     """
