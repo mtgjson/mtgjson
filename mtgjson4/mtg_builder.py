@@ -409,6 +409,9 @@ async def apply_set_config_options(set_name: List[str],
     for key, value in file_response['SET'].items():
         return_product[key] = value
 
+    # Declare the version of the build in the output file
+    return_product["version"] = mtg_global.__VERSION__
+
     if 'SET_CORRECTIONS' in file_response.keys():
         corrections.apply_corrections(file_response['SET_CORRECTIONS'], cards_dictionary)
     return_product['cards'] = cards_dictionary
