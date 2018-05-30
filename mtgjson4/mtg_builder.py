@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import aiohttp
 import bs4
 
-from mtgjson4 import corrections, mtg_global, mtg_http, mtg_parse, mtg_storage
+from mtgjson4 import mtg_corrections, mtg_global, mtg_http, mtg_parse, mtg_storage
 
 
 class MTGJSON:
@@ -481,7 +481,7 @@ async def apply_set_config_options(set_name: List[str],
     return_product['meta'] = {'version': mtg_global.__VERSION__, 'date': mtg_global.__VERSION_DATE__}
 
     if 'SET_CORRECTIONS' in file_response.keys():
-        corrections.apply_corrections(file_response['SET_CORRECTIONS'], cards_dictionary)
+        mtg_corrections.apply_corrections(file_response['SET_CORRECTIONS'], cards_dictionary)
     return_product['cards'] = cards_dictionary
 
     return return_product

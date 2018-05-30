@@ -1,7 +1,7 @@
 import json
 from typing import List
 
-from mtgjson4 import corrections, mtg_builder, mtg_storage
+from mtgjson4 import mtg_corrections, mtg_builder, mtg_storage
 from mtgjson4.mtg_global import CardDescription
 
 
@@ -13,4 +13,4 @@ def test_validate_corrections() -> None:
         with mtg_storage.open_set_config_json(set_info[1], 'r') as f:
             blob = json.load(f)
             if blob.get('SET_CORRECTIONS'):
-                corrections.apply_corrections(blob['SET_CORRECTIONS'], empty_card_list)
+                mtg_corrections.apply_corrections(blob['SET_CORRECTIONS'], empty_card_list)
