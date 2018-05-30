@@ -2,23 +2,25 @@ from typing import Dict, List, NewType, Optional, Union
 
 from mypy_extensions import TypedDict
 
-# Maintenance vars
+# Maintenance variables
 MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
 __VERSION__ = '4.0.0'
 VERSION_INFO = f'MTGJSON\nVersion {__VERSION__}\nMay 25, 2018'
 DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
 Color = NewType('Color', str)
+
 ForeignNamesDescription = TypedDict('ForeignNamesDescription', {
     'language': str,
     'multiverseid': int,
     'name': str,
 })
+
 CardDescription = TypedDict(
     'CardDescription', {
         'artist': List[str],
         'cardHash': str,
-        'cmc': Union[int, float],
+        'convertedManaCost': Union[int, float],
         'colorIdentity': List[Color],
         'colors': List[Color],
         'flavor': str,

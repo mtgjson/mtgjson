@@ -290,6 +290,7 @@ class MTGJSON:
         When we first build the card, the layout is only determining if it has one or two+ cards.
         As such, we now need to determine the real layout name and update the card's layout field.
         """
+
         def get_layout_from_other_side(c_info: mtg_global.CardDescription, unknown_num: int) -> str:
             """
             If the first side doesn't have enough information to determine the type,
@@ -383,6 +384,7 @@ class MTGJSON:
         method(s) depending on what language(s) is/are required.
         :return: The entire set that was written to the file
         """
+
         async def get_mids_for_downloading() -> List[int]:
             """
             Use the URLs from another function to determine the MIDs that
@@ -491,6 +493,7 @@ def determine_gatherer_sets(args: Dict[str, Any]) -> List[List[str]]:
     If they want all sets, pull every set_config file.
     Will exit if there is an invalid set code passed and alert for fixing.
     """
+
     def add_to_sets_to_build(root_p: str, file_p: str) -> None:
         """
         Append the set to the build process if it's real
