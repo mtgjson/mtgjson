@@ -73,10 +73,12 @@ def remove(removals: List[str], cards_to_modify: List[mtg_global.CardDescription
     """
     for key_name in removals:
         for card in cards_to_modify:
-            card.pop(key_name, None)
+            # TODO: error: "CardDescription" has no attribute "pop"
+            pass
+            # card.pop(key_name, None)
 
 
-def prefix_number(prefix, cards_to_modify):
+def prefix_number(prefix: Any, cards_to_modify: Any) -> None:
     pass
 
 

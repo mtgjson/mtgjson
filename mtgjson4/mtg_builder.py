@@ -95,7 +95,12 @@ class MTGJSON:
         # Get other side's name for the user
         card_other_name = mtg_parse.parse_card_other_name(soup_oracle, div_name, card_layout)
         if card_other_name is not None:
-            card_info['names'] = [card_info['name'], card_other_name]
+            if second_card:
+                insert_order = [card_other_name, card_info['name']]
+            else:
+                insert_order = [card_info['name'], card_other_name]
+
+            card_info['names'] = insert_order
 
         # Get card's colors and mana cost
         card_colors, card_cost = mtg_parse.parse_colors_and_cost(soup_oracle, div_name)
