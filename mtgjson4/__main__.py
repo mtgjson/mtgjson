@@ -29,6 +29,11 @@ async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, 
     """
 
     def get_next_batch_of_sets(queue: Iterator[List[str]]) -> List[List[str]]:
+        """
+        To ensure better performance, we limit the number of sets built at a time
+        to limit our memory impact. This will return the next group of sets to
+        build.
+        """
         max_pops = int(args['max_sets_build'][0])
 
         # User disabled this memory protection feature
