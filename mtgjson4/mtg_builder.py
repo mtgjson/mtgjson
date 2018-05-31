@@ -525,8 +525,8 @@ class MTGJSON:
             urls_for_set = await mtg_http.get_checklist_urls(self.http_session, set_name)
             print('BuildSet: Acquired {1} URLs for {0}'.format(set_name[0], len(urls_for_set)))
 
-            ids_to_return = [235597]  # DEBUGGING IDs 235597,
-            # ids_to_return = await mtg_http.generate_mids_by_set(self.http_session, urls_for_set)
+            # ids_to_return = [235597]  # DEBUGGING IDs 235597,
+            ids_to_return = await mtg_http.generate_mids_by_set(self.http_session, urls_for_set)
             return ids_to_return
 
         async def build_then_print_stuff(mids_for_set: List[int], lang: str = None) -> dict:
