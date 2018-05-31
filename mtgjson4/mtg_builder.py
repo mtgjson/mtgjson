@@ -4,6 +4,7 @@ import copy
 import json
 import os
 import pathlib
+import re
 from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
@@ -194,6 +195,11 @@ class MTGJSON:
         # Get Card Text and Color Identity
         c_text, c_color_identity = mtg_parse.parse_card_text_and_color_identity(soup_oracle, div_name, card_colors)
         if c_text:
+            if 'Planeswalker' in full_type:
+                # Surround planeswalker activation cost by []
+                # Ex: +1 => [+1]
+                c_text = re.sub(r'([\+−])([0-9]):', r'[\1\2]:', c_text)
+
             card_info['text'] = c_text
         if c_color_identity:
             card_info['colorIdentity'] = c_color_identity
@@ -519,7 +525,7 @@ class MTGJSON:
             urls_for_set = await mtg_http.get_checklist_urls(self.http_session, set_name)
             print('BuildSet: Acquired {1} URLs for {0}'.format(set_name[0], len(urls_for_set)))
 
-            ids_to_return = [27168]  # DEBUGGING IDs 235597,
+            ids_to_return = [235597]  # DEBUGGING IDs 235597,
             # ids_to_return = await mtg_http.generate_mids_by_set(self.http_session, urls_for_set)
             return ids_to_return
 
