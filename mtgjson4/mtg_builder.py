@@ -46,33 +46,40 @@ class MTGJSON:
 
     @staticmethod
     def determine_layout_and_div_name(soup: bs4.BeautifulSoup,
-                                      is_second_card: bool) -> Tuple[str, str, Optional[bool], Optional[str]]:
+                                      is_second_card: bool) -> Tuple[str, str, str, Optional[bool]]:
         """
         Determine the card's layout, which will then generate the parse div for all future operations
+        Grab the ClientID from the page, which designates the front side's number (as it can be any int...)
+        so we can have smarter parsing of the data
         """
 
         # Determine how many cards on on the page
         cards_total = len(soup.select('table[class^=cardDetails]'))
 
-        # Values to return
-        div_name = 'ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{}'
+        number = soup.find_all('script')
+        client_id_tags = None
+        for script in number:
+            if 'ClientIDs' in script.get_text():
+                client_id_tags = script.get_text()
+                break
+
+        # ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{} for single cards or
+        # ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_ctl0*_{} for double cards, * being any int
+        div_name = str((client_id_tags.split('ClientIDs.nameRow = \'')[1].split(';')[0])[:-8] + "{}").strip()
         layout = 'unknown'
         add_additional_card = False
-        second_div_name = None
+        second_div_name = div_name.replace('04', '05').replace('02', '03').replace('03', '04')
 
         if cards_total == 1:
             layout = 'normal'
         elif cards_total == 2:
             layout = 'double'
             if is_second_card:
-                div_name = div_name[:-3] + '_ctl03_{}'
+                div_name = second_div_name
             else:
-                second_div_name = div_name[:-3] + '_ctl03_{}'
-                div_name = div_name[:-3] + '_ctl02_{}'
-
                 add_additional_card = True
 
-        return layout, div_name, add_additional_card, second_div_name
+        return layout, div_name, second_div_name, add_additional_card
 
     async def build_foreign_info(self, soup: bs4.BeautifulSoup,
                                  second_card: bool) -> List[mtg_global.ForeignNamesDescription]:
@@ -99,9 +106,6 @@ class MTGJSON:
 
             # Determine if Card is Normal, Flip, or Split
             div_name = self.determine_layout_and_div_name(soup_print, second_card)[1]
-
-            # Foreign names use 01, 02 to indicate the sides instead of 02, 03 like in English
-            div_name = div_name.replace('02', '01').replace('03', '02')
 
             # Get Card Foreign Type
             c_foreign_type = mtg_parse.parse_card_types(soup_print, div_name)[3]
@@ -146,14 +150,16 @@ class MTGJSON:
         card_mid = card_info['multiverseid']
         soup_oracle = await self.get_card_html(card_mid)
 
-        card_layout, div_name, add_other_card, alt_div_name = self.determine_layout_and_div_name(
+        card_layout, div_name, alt_div_name, add_other_card = self.determine_layout_and_div_name(
             soup_oracle, second_card)
-        if add_other_card and (other_cards_holder is not None) and (alt_div_name is not None):
+
+        if add_other_card and (other_cards_holder is not None):
             other_card_mid: int = mtg_parse.parse_card_other_id(soup_oracle, alt_div_name)
             other_cards_holder.append(
                 self.loop.create_task(self.build_card(set_name, other_card_mid, None, second_card=True)))
 
         card_info['multiverseid'] = int(card_mid)
+
         card_info['name'] = mtg_parse.parse_card_name(soup_oracle, div_name)
         card_info['convertedManaCost'] = mtg_parse.parse_card_cmc(soup_oracle, div_name)
 
@@ -348,7 +354,10 @@ class MTGJSON:
             If the first side doesn't have enough information to determine the type,
             we can use the second side to help us out
             """
-            card_2_name = next(card2 for card2 in c_info['names'] if c_info['name'] != card2)
+            try:
+                card_2_name = next(card2 for card2 in c_info['names'] if c_info['name'] != card2)
+            except StopIteration:
+                return 'Double Card'
             card_2_info = next(card2 for card2 in cards if card2['name'] == card_2_name)
             if 'flip' in card_2_info['text']:
                 return 'Flip'
@@ -510,8 +519,8 @@ class MTGJSON:
             urls_for_set = await mtg_http.get_checklist_urls(self.http_session, set_name)
             print('BuildSet: Acquired {1} URLs for {0}'.format(set_name[0], len(urls_for_set)))
 
-            # ids_to_return = [435173]  # DEBUGGING IDs 235597,
-            ids_to_return = await mtg_http.generate_mids_by_set(self.http_session, urls_for_set)
+            ids_to_return = [27168]  # DEBUGGING IDs 235597,
+            # ids_to_return = await mtg_http.generate_mids_by_set(self.http_session, urls_for_set)
             return ids_to_return
 
         async def build_then_print_stuff(mids_for_set: List[int], lang: str = None) -> dict:

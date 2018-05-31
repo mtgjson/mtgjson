@@ -51,7 +51,6 @@ def parse_card_name(soup: bs4.BeautifulSoup, parse_div: str) -> str:
     name_row = soup.find(id=parse_div.format('nameRow'))
     name_row = name_row.find_all('div')[-1]
     card_name = str(name_row.get_text(strip=True))
-
     return card_name
 
 
@@ -88,11 +87,11 @@ def parse_card_other_name(soup: bs4.BeautifulSoup, parse_div: str, layout: str) 
     """
     if layout == 'double':
         if 'ctl02' in parse_div:
-            other_div_name = parse_div.replace('02', '03')
+            other_div_name = parse_div.replace('04', '05').replace('02', '03').replace('03', '04')
         else:
-            other_div_name = parse_div.replace('03', '02')
+            other_div_name = parse_div.replace('03', '02').replace('04', '03').replace('05', '04')
 
-        other_name_row = soup.find(id=other_div_name.format('nameRow'))
+        other_name_row = soup.find(id=parse_div.format('nameRow'))
         other_name_row = other_name_row.findAll('div')[-1]
         card_other_name: str = other_name_row.get_text(strip=True)
 
@@ -297,7 +296,7 @@ def parse_artists(soup: bs4.BeautifulSoup, parse_div: str) -> List[str]:
     with contextlib.suppress(AttributeError):  # Un-cards might not have an artist!
         artist_row = soup.find(id=parse_div.format('artistRow'))
         artist_row = artist_row.findAll('div')[-1]
-        card_artists: List[str] = artist_row.find('a').get_text(strip=True).split('&')
+        card_artists: List[str] = artist_row.find('a').get_text(strip=True).split(' & ')
 
     return card_artists if card_artists else cast(List[str], [])
 
