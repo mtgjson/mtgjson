@@ -757,15 +757,17 @@ SYMBOL_MAP: Dict[str, str] = {
 }
 
 LANGUAGE_MAP: Dict[str, str] = {
-    'cn': 'Chinese Traditional',
     'de': 'German',
     'en': 'English',
     'es': 'Spanish',
     'fr': 'French',
     'it': 'Italian',
     'jp': 'Japanese',
+    'ko': 'Korean',
     'pt': 'Portuguese (Brazil)',
-    'ru': 'Russian'
+    'ru': 'Russian',
+    'zh-Hans': 'Chinese Simplified',
+    'zh-Hant': 'Chinese Traditional'
 }
 
 # These file names cannot be used on WindowsOS
