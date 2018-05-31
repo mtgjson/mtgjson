@@ -766,8 +766,8 @@ LANGUAGE_MAP: Dict[str, str] = {
     'ko': 'Korean',
     'pt': 'Portuguese (Brazil)',
     'ru': 'Russian',
-    'zh-Hans': 'Chinese Simplified',
-    'zh-Hant': 'Chinese Traditional'
+    'zh-hans': 'Chinese Simplified',
+    'zh-hant': 'Chinese Traditional'
 }
 
 # These file names cannot be used on WindowsOS
