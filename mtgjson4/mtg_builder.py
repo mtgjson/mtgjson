@@ -198,7 +198,7 @@ class MTGJSON:
             if 'Planeswalker' in full_type:
                 # Surround planeswalker activation cost by []
                 # Ex: +1 => [+1]
-                c_text = re.sub(r'([\+−])([0-9]):', r'[\1\2]:', c_text)
+                c_text = re.sub(r'([\+−][0-9]):', r'[\1]:', c_text)
 
             card_info['text'] = c_text
         if c_color_identity:
