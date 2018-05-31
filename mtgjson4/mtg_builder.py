@@ -28,7 +28,12 @@ class MTGJSON:
             loop = asyncio.events.get_event_loop()
 
         if session is None:
-            session = aiohttp.ClientSession(loop=loop, raise_for_status=True, conn_timeout=None, read_timeout=None)
+            session = aiohttp.ClientSession(
+                loop=loop,
+                raise_for_status=True,
+                conn_timeout=None,
+                read_timeout=None,
+                connector=aiohttp.TCPConnector(limit=200))
 
         self.loop = loop
         self.http_session = session
@@ -58,7 +63,7 @@ class MTGJSON:
         cards_total = len(soup.select('table[class^=cardDetails]'))
 
         number = soup.find_all('script')
-        client_id_tags = None
+        client_id_tags = ''
         for script in number:
             if 'ClientIDs' in script.get_text():
                 client_id_tags = script.get_text()
@@ -425,14 +430,14 @@ class MTGJSON:
                 if printing.get_text() == set_name[1]:
                     token_builder: mtg_global.TokenDescription = {
                         'name': '',
-                        'colors': None,
+                        'colors': [],
                         'convertedManaCost': 0,
-                        'type': None,
-                        'power': None,
-                        'toughness': None,
-                        'text': None,
-                        'relatedToken': None,
-                        'generators': None
+                        'type': '',
+                        'power': '',
+                        'toughness': '',
+                        'text': '',
+                        'relatedToken': '',
+                        'generators': []
                     }
 
                     with contextlib.suppress(AttributeError):
@@ -470,6 +475,7 @@ class MTGJSON:
                         c_generators = [c.get_text() for c in card.find_all('reverse-related')]
                         token_builder['generators'] = c_generators
 
+                    print("TK", token_builder)
                     return_list.append(token_builder)
 
         return return_list
@@ -546,7 +552,7 @@ class MTGJSON:
             print('BuildSet: Determined {1} MIDs for {0}'.format(set_stat, len(mids_for_set)))
             cards_holder = await self.download_cards_by_mid_list(set_name, mids_for_set)
 
-            print('BuildSet: Acquiring Tokens')
+            print('BuildSet: Acquiring Tokens for {}'.format(set_name[0]))
             tokens_holder = await self.download_tokens_from_set(set_name)
 
             print('BuildSet: Applied Set Config options for {}'.format(set_name))
@@ -616,7 +622,8 @@ async def apply_set_config_options(set_name: List[str], cards_dictionary: List[m
         mtg_corrections.apply_corrections(file_response['SET_CORRECTIONS'], cards_dictionary)
     return_product['cards'] = cards_dictionary
 
-    return_product['tokens'] = tokens_dictionary
+    if tokens_dictionary:
+        return_product['tokens'] = tokens_dictionary
 
     return return_product
 

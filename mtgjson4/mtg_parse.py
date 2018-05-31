@@ -358,17 +358,16 @@ def parse_card_sets(soup: bs4.BeautifulSoup, parse_div: str, card_set: str,
     :param sets_to_build:
     :return: list of sets the card's in
     """
-    card_printings = [card_set]
+    card_printings = set(card_set)
     sets_row = soup.find(id=parse_div.format('otherSetsRow'))
     if sets_row is not None:
         images = sets_row.findAll('img')
 
         for symbol in images:
             this_set_name = symbol['alt'].split('(')[0].strip()
+            card_printings.update(set_code[1] for set_code in sets_to_build if this_set_name == set_code[0])
 
-            card_printings += (set_code[1] for set_code in sets_to_build if this_set_name == set_code[0])
-
-    return card_printings
+    return list(card_printings)
 
 
 def parse_card_variations(soup: bs4.BeautifulSoup, parse_div: str, card_mid: int) -> List[int]:

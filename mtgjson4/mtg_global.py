@@ -60,14 +60,14 @@ CardDescription = TypedDict(
 TokenDescription = TypedDict(
     'TokenDescription', {
         'name': str,
-        'colors': Optional[List[str]],
+        'colors': List[str],
         'convertedManaCost': int,
-        'type': Optional[str],
-        'power': Optional[str],
-        'toughness': Optional[str],
-        'text': Optional[str],
-        'relatedToken': Optional[str],
-        'generators': Optional[List[str]]
+        'type': str,
+        'power': str,
+        'toughness': str,
+        'text': str,
+        'relatedToken': str,
+        'generators': List[str],
     })
 
 # Building vars
