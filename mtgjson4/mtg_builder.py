@@ -74,7 +74,7 @@ class MTGJSON:
         div_name = str((client_id_tags.split('ClientIDs.nameRow = \'')[1].split(';')[0])[:-8] + "{}").strip()
         layout = 'unknown'
         add_additional_card = False
-        second_div_name = div_name.replace('04', '05').replace('02', '03').replace('03', '04')
+        second_div_name = div_name.replace('04', '05').replace('03', '04').replace('02', '03')
 
         if cards_total == 1:
             layout = 'normal'
