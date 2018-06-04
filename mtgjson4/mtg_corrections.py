@@ -1,3 +1,4 @@
+import re
 import itertools
 from typing import Any, Callable, Dict, Iterable, List, Union
 
@@ -73,13 +74,12 @@ def remove(removals: List[str], cards_to_modify: List[mtg_global.CardDescription
     """
     for key_name in removals:
         for card in cards_to_modify:
-            # TODO: error: "CardDescription" has no attribute "pop"
-            pass
-            # card.pop(key_name, None)
+            # We need to type: ignore because of https://github.com/python/mypy/issues/3843
+            card.pop(key_name, None) # type: ignore
 
-
-def prefix_number(prefix: Any, cards_to_modify: Any) -> None:
-    pass
+def prefix_number(prefix: str, cards_to_modify: List[mtg_global.CardDescription]) -> None:
+    for card in cards_to_modify:
+        card['number'] = prefix + card['number']
 
 
 def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: List[mtg_global.CardDescription]) -> None:
@@ -99,20 +99,34 @@ def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: List[
 
 def fix_flavor_newlines(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
     # The javascript version had the following regex to normalize em-dashes /(\s|")-\s*([^"—-]+)\s*$/
+    if not enabled:
+        return
+    for card in cards_to_modify:
+        flavor = card.get('flavor')
+        if flavor and "—" in flavor:
+            # Ensure two quotes appear before the last em-dash
+            firstquote = flavor.index('"')
+            secondquote = flavor[firstquote + 1:].index('"')
+            card['flavor'] = re.sub(r'\s*—\s*([^—]+)\s*$', r'\n—\1', flavor)
+
+def flavor_add_dash(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
+    if not enabled:
+        return
     for card in cards_to_modify:
         flavor = card.get('flavor')
         if flavor:
-            # Ensure two quotes appear before the last em-dash
-            # TODO
-            pass
-
-
-def flavor_add_dash(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
-    pass
+            flavor = re.sub(r"""([.!?,'])(["][/]?[\n]?)(\s*)([A-Za-z])""", r'\1\2\n—\4', flavor)
+            card['flavor'] = flavor
 
 
 def flavor_add_exclamation(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
-    pass
+    if not enabled:
+        return
+    for card in cards_to_modify:
+        flavor = card.get('flavor')
+        if flavor:
+            card['flavor'] = re.sub(r'([A-Za-z])"', r'\1!"', flavor)
+
 
 
 def increment_number(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
