@@ -89,3 +89,17 @@ async def test_inv(event_loop: asyncio.AbstractEventLoop) -> None:
     assert deliver['names'] == ["Stand", "Deliver"]
     assert deliver["number"] == "292b"
     assert deliver["layout"] == 'split'
+
+@pytest.mark.meld
+@pytest.mark.asyncio
+@TEST_VCR.use_cassette
+async def test_emn(event_loop: asyncio.AbstractEventLoop) -> None:
+    """
+    Eldrich Moon is a messy set.
+    """
+    emn = mtg_builder.determine_gatherer_sets({'sets': ['EMN'], 'all_sets': False})
+    builder = mtg_builder.MTGJSON(emn, loop=event_loop)
+    json = await builder.build_set(emn[0], 'en')
+    chittering = [c for c in json['cards'] if c['name'] == "Chittering Host"]
+    # assert len(chittering) == 1
+    assert chittering[0]['names'] == ["Graf Rats", "Midnight Scavengers", "Chittering Host"]
