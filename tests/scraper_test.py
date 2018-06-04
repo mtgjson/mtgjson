@@ -27,7 +27,7 @@ async def test_w17(event_loop: asyncio.AbstractEventLoop) -> None:
     assert len(json['cards']) == 30
     assert json['code'] == 'W17'
 
-
+@pytest.mark.dfc
 @pytest.mark.asyncio
 @TEST_VCR.use_cassette
 async def test_isd(event_loop: asyncio.AbstractEventLoop) -> None:
@@ -50,6 +50,7 @@ async def test_isd(event_loop: asyncio.AbstractEventLoop) -> None:
     assert aberration['layout'] == 'Double-Faced'
 
 
+@pytest.mark.flip
 @pytest.mark.asyncio
 @TEST_VCR.use_cassette
 async def test_chk(event_loop: asyncio.AbstractEventLoop) -> None:
@@ -68,6 +69,7 @@ async def test_chk(event_loop: asyncio.AbstractEventLoop) -> None:
     assert toktok['names'] == ["Akki Lavarunner", "Tok-Tok, Volcano Born"]
     assert toktok["number"] == "153b"
 
+@pytest.mark.split
 @pytest.mark.asyncio
 @TEST_VCR.use_cassette
 async def test_inv(event_loop: asyncio.AbstractEventLoop) -> None:
