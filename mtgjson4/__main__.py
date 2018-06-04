@@ -315,8 +315,6 @@ if __name__ == '__main__':
     card_session = aiohttp.ClientSession(
         loop=card_loop,
         raise_for_status=True,
-        conn_timeout=None,
-        read_timeout=None,
         connector=aiohttp.TCPConnector(limit=200))
     card_loop.run_until_complete(main(card_loop, card_session, lang_to_process, cl_args))
 

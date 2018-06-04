@@ -130,7 +130,15 @@ def flavor_add_exclamation(enabled: bool, cards_to_modify: List[mtg_global.CardD
 
 
 def increment_number(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
-    pass
+    # Seems like a hack to correct MCI imports?
+    # I don't think we need it.
+    if not enabled:
+        return
+    counts: Dict[str, int] = {}
+    for card in cards_to_modify:
+        addition = counts.get(card['name'], 0)
+        card['number'] = str(int(card['number']) + addition)
+        counts[card['name']] = addition + 1
 
 
 def remove_card(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:

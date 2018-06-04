@@ -31,8 +31,8 @@ class MTGJSON:
             session = aiohttp.ClientSession(
                 loop=loop,
                 raise_for_status=True,
-                conn_timeout=None,
-                read_timeout=None,
+                conn_timeout=60,
+                read_timeout=60,
                 connector=aiohttp.TCPConnector(limit=200))
 
         self.loop = loop
