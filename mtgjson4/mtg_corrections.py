@@ -5,10 +5,10 @@ from typing import Any, Callable, Dict, Iterable, List, Union
 from mtgjson4 import mtg_global
 
 ReplacementType = Dict[str, Union[str, List[str], Any]]
-
+CardList = List[mtg_global.CardDescription]
 
 def apply_corrections(match_replace_rules: Iterable[Union[dict, str]],
-                      cards_dictionary: List[mtg_global.CardDescription]) -> None:
+                      cards_dictionary: CardList) -> None:
     for replacement_rule in match_replace_rules:
 
         if isinstance(replacement_rule, dict):
@@ -16,7 +16,7 @@ def apply_corrections(match_replace_rules: Iterable[Union[dict, str]],
                 apply_match(replacement_rule, cards_dictionary)
                 continue
             elif replacement_rule.get('renumberImages'):
-                # TODO: Implement
+                # We no longer set the imagename property.
                 continue
             elif replacement_rule.get('copyCard'):
                 # TODO Implement
@@ -38,7 +38,7 @@ def apply_corrections(match_replace_rules: Iterable[Union[dict, str]],
         raise KeyError(replacement_rule)
 
 
-def apply_match(replacement_rule: dict, full_set: List[mtg_global.CardDescription]) -> None:
+def apply_match(replacement_rule: dict, full_set: CardList) -> None:
     keys = set(replacement_rule.keys())
     cards_to_modify = parse_match(replacement_rule['match'], full_set)
     keys.remove('match')
@@ -53,13 +53,14 @@ def apply_match(replacement_rule: dict, full_set: List[mtg_global.CardDescriptio
         'flavorAddExclamation': flavor_add_exclamation,
         'incrementNumber': increment_number,
         'removeCard': remove_card,
+        'removeDuplicates': remove_duplicates,
     }
 
     for action in keys:
         rules[action](replacement_rule[action], cards_to_modify, full_set)
 
 
-def replace(replacements: Dict[str, Any], cards_to_modify: List[mtg_global.CardDescription], **kwargs: Any) -> None:
+def replace(replacements: Dict[str, Any], cards_to_modify: CardList, **kwargs: Any) -> None:
     """
     Replaces the values of fields to other fields.
     """
@@ -68,7 +69,7 @@ def replace(replacements: Dict[str, Any], cards_to_modify: List[mtg_global.CardD
             card[key_name] = replacement  # type: ignore
 
 
-def remove(removals: List[str], cards_to_modify: List[mtg_global.CardDescription], **kwargs: Any) -> None:
+def remove(removals: List[str], cards_to_modify: CardList, **kwargs: Any) -> None:
     """
     Removes the specified keys from a card.
     """
@@ -77,12 +78,12 @@ def remove(removals: List[str], cards_to_modify: List[mtg_global.CardDescription
             # We need to type: ignore because of https://github.com/python/mypy/issues/3843
             card.pop(key_name, None) # type: ignore
 
-def prefix_number(prefix: str, cards_to_modify: List[mtg_global.CardDescription], **kwargs: Any) -> None:
+def prefix_number(prefix: str, cards_to_modify: CardList, **kwargs: Any) -> None:
     for card in cards_to_modify:
         card['number'] = prefix + card['number']
 
 
-def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: List[mtg_global.CardDescription], **kwargs: Any) -> None:
+def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: CardList, **kwargs: Any) -> None:
     """
     Sometimes the foreign names are wrong.
     This completely replaces the names with accurate ones.
@@ -97,7 +98,7 @@ def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: List[
                     foreign_names_field['name'] = new_name
 
 
-def fix_flavor_newlines(enabled: bool, cards_to_modify: List[mtg_global.CardDescription], **kwargs: Any) -> None:
+def fix_flavor_newlines(enabled: bool, cards_to_modify: CardList, **kwargs: Any) -> None:
 """
 "When a card's flavortext is an attributed quote, the attribution should be on the next line"
 -Katelyn
@@ -113,7 +114,7 @@ def fix_flavor_newlines(enabled: bool, cards_to_modify: List[mtg_global.CardDesc
             secondquote = flavor[firstquote + 1:].index('"')
             card['flavor'] = re.sub(r'\s*—\s*([^—]+)\s*$', r'\n—\1', flavor)
 
-def flavor_add_dash(enabled: bool, cards_to_modify: List[mtg_global.CardDescription], **kwargs: Any) -> None:
+def flavor_add_dash(enabled: bool, cards_to_modify: CardList, **kwargs: Any) -> None:
 """
 Speaking of attributed quotations, they should also have the em-dash between the quote and the speaker.
 """
@@ -126,7 +127,7 @@ Speaking of attributed quotations, they should also have the em-dash between the
             card['flavor'] = flavor
 
 
-def flavor_add_exclamation(enabled: bool, cards_to_modify: List[mtg_global.CardDescription], **kwargs: Any) -> None:
+def flavor_add_exclamation(enabled: bool, cards_to_modify: CardList, **kwargs: Any) -> None:
 """
 Gatherer is really bad at listing exclaimation points.
 """
@@ -139,7 +140,7 @@ Gatherer is really bad at listing exclaimation points.
 
 
 
-def increment_number(enabled: bool, cards_to_modify: List[mtg_global.CardDescription], **kwargs: Any) -> None:
+def increment_number(enabled: bool, cards_to_modify: CardList, **kwargs: Any) -> None:
 """
 Fix numbers for basic lands.
 Usually preceded by a "replace: number"
@@ -155,7 +156,7 @@ Usually preceded by a "replace: number"
         counts[card['name']] = addition + 1
 
 
-def remove_card(enabled: bool, cards_to_modify: List[mtg_global.CardDescription], full_set: List[mtg_global.CardDescription]) -> None:
+def remove_card(enabled: bool, cards_to_modify: CardList, full_set: CardList) -> None:
     """
     Completely remove the cards from the set.
     """
@@ -164,7 +165,7 @@ def remove_card(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]
     for card in cards_to_modify:
         full_set.remove(card)
 
-def remove_duplicates(enabled: bool, cards_to_modify: List[mtg_global.CardDescription]) -> None:
+def remove_duplicates(enabled: bool, cards_to_modify: CardList) -> None:
     """
     Sometimes a card appears twice in the set. We don't want that.
     """
@@ -172,7 +173,7 @@ def remove_duplicates(enabled: bool, cards_to_modify: List[mtg_global.CardDescri
     pass
 
 def parse_match(match_rule: Union[str, Dict[str, str]],
-                card_list: List[mtg_global.CardDescription]) -> List[mtg_global.CardDescription]:
+                card_list: CardList) -> CardList:
     if isinstance(match_rule, list):
         return itertools.chain([parse_match(rule, card_list) for rule in match_rule])
     elif isinstance(match_rule, str):
