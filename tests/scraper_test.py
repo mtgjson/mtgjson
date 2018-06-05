@@ -28,6 +28,7 @@ async def test_w17(event_loop: asyncio.AbstractEventLoop) -> None:
     assert json['code'] == 'W17'
 
 
+@pytest.mark.dfc
 @pytest.mark.asyncio
 @TEST_VCR.use_cassette
 async def test_isd(event_loop: asyncio.AbstractEventLoop) -> None:
@@ -42,12 +43,15 @@ async def test_isd(event_loop: asyncio.AbstractEventLoop) -> None:
     assert delver['name'] == 'Delver of Secrets'
     assert delver['names'] == ["Delver of Secrets", "Insectile Aberration"]
     assert delver["number"] == "51a"
+    assert delver['layout'] == 'Double-Faced'
     aberration = [c for c in json['cards'] if c['multiverseid'] == 226755][0]
     assert aberration['name'] == 'Insectile Aberration'
     assert aberration['names'] == ["Delver of Secrets", "Insectile Aberration"]
     assert aberration['number'] == '51b'
+    assert aberration['layout'] == 'Double-Faced'
 
 
+@pytest.mark.flip
 @pytest.mark.asyncio
 @TEST_VCR.use_cassette
 async def test_chk(event_loop: asyncio.AbstractEventLoop) -> None:
@@ -65,3 +69,40 @@ async def test_chk(event_loop: asyncio.AbstractEventLoop) -> None:
     assert toktok['name'] == 'Tok-Tok, Volcano Born'
     assert toktok['names'] == ["Akki Lavarunner", "Tok-Tok, Volcano Born"]
     assert toktok["number"] == "153b"
+
+
+@pytest.mark.split
+@pytest.mark.asyncio
+@TEST_VCR.use_cassette
+async def test_inv(event_loop: asyncio.AbstractEventLoop) -> None:
+    """
+    Scrape Invasion.  Make sure those Split Cards work.
+    """
+    inv = mtg_builder.determine_gatherer_sets({'sets': ['INV'], 'all_sets': False})
+    builder = mtg_builder.MTGJSON(inv, loop=event_loop)
+    json = await builder.build_set(inv[0], 'en')
+    stand = [c for c in json['cards'] if c['multiverseid'] == 20573][0]
+    assert stand['name'] == 'Stand'
+    assert stand['names'] == ["Stand", "Deliver"]
+    assert stand["number"] == "292a"
+    assert stand["layout"] == 'split'
+    deliver = [c for c in json['cards'] if c['multiverseid'] == 20573][1]
+    assert deliver['name'] == 'Deliver'
+    assert deliver['names'] == ["Stand", "Deliver"]
+    assert deliver["number"] == "292b"
+    assert deliver["layout"] == 'split'
+
+
+@pytest.mark.meld
+@pytest.mark.asyncio
+@TEST_VCR.use_cassette
+async def test_emn(event_loop: asyncio.AbstractEventLoop) -> None:
+    """
+    Eldrich Moon is a messy set.
+    """
+    emn = mtg_builder.determine_gatherer_sets({'sets': ['EMN'], 'all_sets': False})
+    builder = mtg_builder.MTGJSON(emn, loop=event_loop)
+    json = await builder.build_set(emn[0], 'en')
+    chittering = [c for c in json['cards'] if c['name'] == "Chittering Host"]
+    # assert len(chittering) == 1
+    assert chittering[0]['names'] == ["Graf Rats", "Midnight Scavengers", "Chittering Host"]

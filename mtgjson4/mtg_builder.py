@@ -31,8 +31,8 @@ class MTGJSON:
             session = aiohttp.ClientSession(
                 loop=loop,
                 raise_for_status=True,
-                conn_timeout=None,
-                read_timeout=None,
+                conn_timeout=60,
+                read_timeout=60,
                 connector=aiohttp.TCPConnector(limit=200))
 
         self.loop = loop
@@ -514,7 +514,7 @@ class MTGJSON:
 
         return cards_in_set
 
-    async def build_set(self, set_name: List[str], language: str) -> Optional[dict]:
+    async def build_set(self, set_name: List[str], language: str) -> Optional[Dict[str, Any]]:
         """
         Main method that will build the entire set by calling the build_*
         method(s) depending on what language(s) is/are required.

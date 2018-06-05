@@ -6,7 +6,7 @@ install:
   - travis_retry pip install -r requirements.txt
   - mkdir test_results
 script:
-  - tox
+  - pytest -s
 notifications:
     webhooks: https://www.travisbuddy.com/?insertMode=update
     on_success: never
