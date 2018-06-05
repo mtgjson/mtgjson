@@ -7,8 +7,8 @@ from mtgjson4 import mtg_global
 ReplacementType = Dict[str, Union[str, List[str], Any]]
 CardList = List[mtg_global.CardDescription]
 
-def apply_corrections(match_replace_rules: Iterable[Union[dict, str]],
-                      cards_dictionary: CardList) -> None:
+
+def apply_corrections(match_replace_rules: Iterable[Union[dict, str]], cards_dictionary: CardList) -> None:
     for replacement_rule in match_replace_rules:
 
         if isinstance(replacement_rule, dict):
@@ -76,7 +76,8 @@ def remove(removals: List[str], cards_to_modify: CardList, **kwargs: Any) -> Non
     for key_name in removals:
         for card in cards_to_modify:
             # We need to type: ignore because of https://github.com/python/mypy/issues/3843
-            card.pop(key_name, None) # type: ignore
+            card.pop(key_name, None)  # type: ignore
+
 
 def prefix_number(prefix: str, cards_to_modify: CardList, **kwargs: Any) -> None:
     for card in cards_to_modify:
@@ -99,10 +100,10 @@ def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: CardL
 
 
 def fix_flavor_newlines(enabled: bool, cards_to_modify: CardList, **kwargs: Any) -> None:
-"""
-"When a card's flavortext is an attributed quote, the attribution should be on the next line"
--Katelyn
-"""
+    """
+    "When a card's flavortext is an attributed quote, the attribution should be on the next line"
+    -Katelyn
+    """
     # The javascript version had the following regex to normalize em-dashes /(\s|")-\s*([^"—-]+)\s*$/
     if not enabled:
         return
@@ -114,10 +115,11 @@ def fix_flavor_newlines(enabled: bool, cards_to_modify: CardList, **kwargs: Any)
             secondquote = flavor[firstquote + 1:].index('"')
             card['flavor'] = re.sub(r'\s*—\s*([^—]+)\s*$', r'\n—\1', flavor)
 
+
 def flavor_add_dash(enabled: bool, cards_to_modify: CardList, **kwargs: Any) -> None:
-"""
-Speaking of attributed quotations, they should also have the em-dash between the quote and the speaker.
-"""
+    """
+    Speaking of attributed quotations, they should also have the em-dash between the quote and the speaker.
+    """
     if not enabled:
         return
     for card in cards_to_modify:
@@ -128,9 +130,9 @@ Speaking of attributed quotations, they should also have the em-dash between the
 
 
 def flavor_add_exclamation(enabled: bool, cards_to_modify: CardList, **kwargs: Any) -> None:
-"""
-Gatherer is really bad at listing exclaimation points.
-"""
+    """
+    Gatherer is really bad at listing exclaimation points.
+    """
     if not enabled:
         return
     for card in cards_to_modify:
@@ -139,12 +141,11 @@ Gatherer is really bad at listing exclaimation points.
             card['flavor'] = re.sub(r'([A-Za-z])"', r'\1!"', flavor)
 
 
-
 def increment_number(enabled: bool, cards_to_modify: CardList, **kwargs: Any) -> None:
-"""
-Fix numbers for basic lands.
-Usually preceded by a "replace: number"
-"""
+    """
+    Fix numbers for basic lands.
+    Usually preceded by a "replace: number"
+    """
     # Seems like a hack to correct MCI imports?
     # I don't think we need it.
     if not enabled:
@@ -165,6 +166,7 @@ def remove_card(enabled: bool, cards_to_modify: CardList, full_set: CardList) ->
     for card in cards_to_modify:
         full_set.remove(card)
 
+
 def remove_duplicates(enabled: bool, cards_to_modify: CardList) -> None:
     """
     Sometimes a card appears twice in the set. We don't want that.
@@ -172,10 +174,10 @@ def remove_duplicates(enabled: bool, cards_to_modify: CardList) -> None:
     # TODO: Fix Meld Cards.
     pass
 
-def parse_match(match_rule: Union[str, Dict[str, str]],
-                card_list: CardList) -> CardList:
+
+def parse_match(match_rule: Union[str, Dict[str, str]], card_list: CardList) -> CardList:
     if isinstance(match_rule, list):
-        return itertools.chain([parse_match(rule, card_list) for rule in match_rule])
+        return list(itertools.chain([parse_match(rule, card_list) for rule in match_rule]))
     elif isinstance(match_rule, str):
         if match_rule == "*":
             return card_list
