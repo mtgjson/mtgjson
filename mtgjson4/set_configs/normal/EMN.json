@@ -26,23 +26,11 @@
       }
     }, {
       "match": {
-        "imageName": "brisela, voice of nightmares1"
+        "name": ["Chittering Host", "Hanweir, the Writhing Township", "Brisela, Voice of Nightmares"]
       },
-      "replace": {
-        "imageName": "brisela, voice of nightmares",
-        "number": "15b",
-        "cmc": 11,
-        "colorIdentity": [
-          "W"
-        ]
-      }
+      "removeDuplicates": true
     },
     {
-      "match": {
-        "imageName": "brisela, voice of nightmares2"
-      },
-      "removeCard": true
-    }, {
       "match": {
         "name": [
           "Gisela, the Broken Blade",
@@ -69,11 +57,6 @@
           "B"
         ]
       }
-    }, {
-      "match": {
-        "imageName": "chittering host2"
-      },
-      "removeCard": true
     }, {
       "match": {
         "name": [
