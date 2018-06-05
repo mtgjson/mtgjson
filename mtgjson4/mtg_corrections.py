@@ -1,5 +1,5 @@
-import re
 import itertools
+import re
 from typing import Any, Callable, Dict, Iterable, List, Union
 
 from mtgjson4 import mtg_global
