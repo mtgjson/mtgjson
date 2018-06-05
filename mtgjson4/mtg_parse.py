@@ -358,7 +358,7 @@ def parse_card_sets(soup: bs4.BeautifulSoup, parse_div: str, card_set: str,
     :param sets_to_build:
     :return: list of sets the card's in
     """
-    card_printings = set(card_set)
+    card_printings = set([card_set])
     sets_row = soup.find(id=parse_div.format('otherSetsRow'))
     if sets_row is not None:
         images = sets_row.findAll('img')
