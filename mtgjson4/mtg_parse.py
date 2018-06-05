@@ -3,12 +3,11 @@ import copy
 import datetime
 import hashlib
 import re
-from typing import Dict, List, Optional, Set, Tuple, Union, cast, Any
+from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
-import aiohttp
 import bs4
 
-from mtgjson4 import mtg_global, mtg_builder
+from mtgjson4 import mtg_global
 
 PowTouLoyaltyVanType = Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]
 

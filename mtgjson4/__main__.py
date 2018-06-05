@@ -14,7 +14,7 @@ import hanging_threads
 
 from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 
-# THREAD_MONITOR = hanging_threads.start_monitoring()
+THREAD_MONITOR = hanging_threads.start_monitoring()
 
 
 async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str,
@@ -313,7 +313,11 @@ if __name__ == '__main__':
     card_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
     # card_loop.set_debug(enabled=True)
     card_session = aiohttp.ClientSession(
-        loop=card_loop, raise_for_status=True, connector=aiohttp.TCPConnector(limit=200))
+        loop=card_loop,
+        conn_timeout=60,
+        read_timeout=60,
+        raise_for_status=True,
+        connector=aiohttp.TCPConnector(limit=200))
     card_loop.run_until_complete(main(card_loop, card_session, lang_to_process, cl_args))
 
     if cl_args['full_out']:

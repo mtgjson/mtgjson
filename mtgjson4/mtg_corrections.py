@@ -1,6 +1,6 @@
 import itertools
 import re
-from typing import Any, Callable, Dict, Iterable, List, Union
+from typing import Any, Callable, Dict, Iterable, List, Union, Set
 
 from mtgjson4 import mtg_global
 
@@ -78,6 +78,7 @@ def remove(removals: List[str], cards_to_modify: CardList, *args: Any) -> None:
             # We need to type: ignore because of https://github.com/python/mypy/issues/3843
             card.pop(key_name, None)  # type: ignore
 
+
 def prefix_number(prefix: str, cards_to_modify: CardList, *args: Any) -> None:
     for card in cards_to_modify:
         card['number'] = prefix + card['number']
@@ -113,6 +114,7 @@ def fix_flavor_newlines(enabled: bool, cards_to_modify: CardList, *args: Any) ->
             firstquote = flavor.index('"')
             secondquote = flavor[firstquote + 1:].index('"')
             card['flavor'] = re.sub(r'\s*—\s*([^—]+)\s*$', r'\n—\1', flavor)
+
 
 def flavor_add_dash(enabled: bool, cards_to_modify: CardList, *args: Any) -> None:
     """
@@ -163,6 +165,7 @@ def remove_card(enabled: bool, cards_to_modify: CardList, full_set: CardList) ->
         return
     for card in cards_to_modify:
         full_set.remove(card)
+
 
 def remove_duplicates(enabled: bool, cards_to_modify: CardList, full_set: CardList) -> None:
     """
