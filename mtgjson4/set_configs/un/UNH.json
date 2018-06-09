@@ -92,11 +92,7 @@
       "originalText": "Target player gains X life.",
       "manaCost": "{X}{W}",
       "cmc": 1,
-      "colors": ["White"],
-      "foreignNames": [{
-        "language": "French",
-        "name": "Qui"
-      }]
+      "colors": ["W"]
     }
   }, {
     "copyCard": "Who // What // When // Where // Why",
@@ -107,11 +103,7 @@
       "originalText": "Destroy target artifact.",
       "manaCost": "{2}{R}",
       "cmc": 3,
-      "colors": ["Red"],
-      "foreignNames": [{
-        "language": "French",
-        "name": "Quoi"
-      }]
+      "colors": ["R"]
     }
   }, {
     "copyCard": "Who // What // When // Where // Why",
@@ -122,11 +114,7 @@
       "originalText": "Counter target creature spell.",
       "manaCost": "{2}{U}",
       "cmc": 3,
-      "colors": ["Blue"],
-      "foreignNames": [{
-        "language": "French",
-        "name": "Quand"
-      }]
+      "colors": ["U"]
     }
   }, {
     "copyCard": "Who // What // When // Where // Why",
@@ -137,11 +125,7 @@
       "originalText": "Destroy target land.",
       "manaCost": "{3}{B}",
       "cmc": 4,
-      "colors": ["Black"],
-      "foreignNames": [{
-        "language": "French",
-        "name": "Où"
-      }]
+      "colors": ["B"]
     }
   }, {
     "match": {
@@ -154,11 +138,7 @@
       "originalText": "Destroy target enchantment.",
       "manaCost": "{1}{G}",
       "cmc": 2,
-      "colors": ["Green"],
-      "foreignNames": [{
-        "language": "French",
-        "name": "Pourquoi"
-      }]
+      "colors": ["G"]
     }
   }, {
     "match": {

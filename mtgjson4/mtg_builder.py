@@ -170,7 +170,7 @@ class MTGJSON:
         card_info['convertedManaCost'] = mtg_parse.parse_card_cmc(soup_oracle, div_name)
 
         # Get other side's name for the user
-        card_other_name = mtg_parse.parse_card_other_name(soup_oracle, div_name, card_layout)
+        card_other_name = mtg_parse.parse_card_other_name(soup_oracle, alt_div_name, card_layout)
         if card_other_name is not None:
             if second_card:
                 insert_order = [card_other_name, card_info['name']]
@@ -550,10 +550,10 @@ class MTGJSON:
             print('BuildSet: Determined {1} MIDs for {0}'.format(set_stat, len(mids_for_set)))
             cards_holder = await self.download_cards_by_mid_list(set_name, mids_for_set)
 
-            print('BuildSet: Acquiring Tokens for {}'.format(set_name[0]))
+            print('BuildSet: Acquiring Tokens for {}'.format(set_stat))
             tokens_holder = await self.download_tokens_from_set(set_name)
 
-            print('BuildSet: Applied Set Config options for {}'.format(set_name))
+            print('BuildSet: Applied Set Config options for {}'.format(set_stat))
             json_ready = await apply_set_config_options(set_name, cards_holder, tokens_holder)
 
             print('BuildSet: Generated JSON for {}'.format(set_stat))
