@@ -21,9 +21,6 @@ ForeignNamesDescription = TypedDict('ForeignNamesDescription', {
     'flavor': Optional[str]
 })
 
-# TODO
-SetDescription = TypedDict('SetDescription', {})
-
 CardDescription = TypedDict(
     'CardDescription', {
         'artist': List[str],
@@ -71,6 +68,40 @@ TokenDescription = TypedDict(
         'text': str,
         'relatedToken': str,
         'generators': List[str],
+    })
+
+AllSetsDescription = TypedDict(
+    'AllSetsDescription', {
+        'block': str,
+        'booster': List[Union[List[str], str]],
+        'border': str,
+        'cards': List[CardDescription],
+        'name': str,
+        'releaseDate': str,
+        'tokens': List[TokenDescription],
+        'translations': Dict[str, str],
+        'type': str,
+    })
+
+AllCardsDescription = TypedDict(
+    'AllCardsDescription', {
+        'colorIdentity': List[str],
+        'colors': List[str],
+        'convertedManaCost': Union[int, float],
+        'foreignData': List[ForeignNamesDescription],
+        'layout': str,
+        'legalities': List[Dict[str, str]],
+        'manaCost': int,
+        'name': str,
+        'power': str,
+        'toughness': str,
+        'printings': List[str],
+        'subtypes': List[str],
+        'text': str,
+        'type': str,
+        'types': List[str],
+        'loyalty': str,
+        'supertypes': List[str],
     })
 
 # Building vars

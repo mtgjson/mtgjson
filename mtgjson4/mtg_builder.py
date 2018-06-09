@@ -475,7 +475,6 @@ class MTGJSON:
                         c_generators = [c.get_text() for c in card.find_all('reverse-related')]
                         token_builder['generators'] = c_generators
 
-                    print("TK", token_builder)
                     return_list.append(token_builder)
 
         return return_list
@@ -678,14 +677,15 @@ def create_combined_outputs() -> None:
     This method class will create the combined output files
     like AllSets.json and AllCards.json
     """
-    def create_all_sets() -> Dict[str, Any]:
+
+    def create_all_sets() -> Dict[str, mtg_global.AllSetsDescription]:
         """
         This will create the AllSets.json file
         by pulling the compile data from the
         compiled sets and combining them into
         one conglomerate file.
         """
-        all_sets_data = dict()
+        all_sets_data: Dict[str, mtg_global.AllSetsDescription] = dict()
         for file in os.listdir(mtg_storage.SET_OUT_DIR):
             with pathlib.Path(mtg_storage.SET_OUT_DIR, file).open('r', encoding='utf-8') as fp:
                 file_content = json.load(fp)
@@ -699,19 +699,20 @@ def create_combined_outputs() -> None:
                 file_content.pop('meta', None)
                 file_content.pop('mkm_id', None)
                 file_content.pop('mkm_name', None)
+                file_content.pop('magicCardsInfoCode', None)
 
                 set_name = file.split('.')[0]
                 all_sets_data[set_name] = file_content
         return all_sets_data
 
-    def create_all_cards() -> Dict[str, Any]:
+    def create_all_cards() -> Dict[str, mtg_global.AllCardsDescription]:
         """
         This will create the AllCards.json file
         by pulling the compile data from the
         compiled sets and combining them into
         one conglomerate file.
         """
-        all_cards_data: Dict[str, Any] = dict()
+        all_cards_data: Dict[str, mtg_global.AllCardsDescription] = dict()
         for file in os.listdir(mtg_storage.SET_OUT_DIR):
             with pathlib.Path(mtg_storage.SET_OUT_DIR, file).open('r', encoding='utf-8') as fp:
                 file_content = json.load(fp)
