@@ -1,4 +1,3 @@
-from codecs import open
 from os import path
 
 from setuptools import find_packages, setup
@@ -51,7 +50,7 @@ setup(
     classifiers=[
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7'
+        'Programming Language :: Python :: 3.7',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)'
     ],
 
