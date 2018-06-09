@@ -1,6 +1,7 @@
+import json
 import os
 import pathlib
-from typing import IO, Optional
+from typing import IO, Optional, Dict, Any
 
 SET_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'set_outputs'
 COMP_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'compiled_outputs'
@@ -56,3 +57,16 @@ def ensure_set_dir_exists() -> None:
     exists, by creating it if necessary
     """
     SET_OUT_DIR.mkdir(exist_ok=True)  # make sure set_outputs dir exists
+
+
+def write_to_compiled_file(file_name: str, file_contents: Dict[str, Any]) -> bool:
+    """
+    Write the compiled data to the specified file
+    and return the status of the output.
+    Will ensure the output directory exists first
+    """
+    COMP_OUT_DIR.mkdir(exist_ok=True)
+    with pathlib.Path(COMP_OUT_DIR, file_name).open('w', encoding='utf-8') as fp:
+        json.dump(file_contents, fp, indent=4, sort_keys=True, ensure_ascii=False)
+        return True
+    return False

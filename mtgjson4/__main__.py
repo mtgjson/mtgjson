@@ -301,7 +301,7 @@ if __name__ == '__main__':
 
     # If only full out, just build from what's there and exit
     if (cl_args['sets'] is None) and (not cl_args['all_sets']) and cl_args['full_out']:
-        create_all_sets_files()
+        mtg_builder.create_combined_outputs()
         exit(0)
 
     # Global of all sets to build

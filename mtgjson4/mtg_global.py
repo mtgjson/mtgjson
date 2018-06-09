@@ -21,6 +21,9 @@ ForeignNamesDescription = TypedDict('ForeignNamesDescription', {
     'flavor': Optional[str]
 })
 
+# TODO
+SetDescription = TypedDict('SetDescription', {})
+
 CardDescription = TypedDict(
     'CardDescription', {
         'artist': List[str],

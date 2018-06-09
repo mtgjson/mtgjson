@@ -203,7 +203,7 @@ class MTGJSON:
             if 'Planeswalker' in full_type:
                 # Surround planeswalker activation cost by []
                 # Ex: +1 => [+1]
-                c_text = re.sub(r'([\+−][0-9]):', r'[\1]:', c_text)
+                c_text = re.sub(r'([+−][0-9]):', r'[\1]:', c_text)
 
             card_info['text'] = c_text
         if c_color_identity:
@@ -671,3 +671,73 @@ def determine_gatherer_sets(args: Dict[str, Any]) -> List[List[str]]:
             raise ValueError(err)
 
     return all_sets
+
+
+def create_combined_outputs() -> None:
+    """
+    This method class will create the combined output files
+    like AllSets.json and AllCards.json
+    """
+    def create_all_sets() -> Dict[str, Any]:
+        """
+        This will create the AllSets.json file
+        by pulling the compile data from the
+        compiled sets and combining them into
+        one conglomerate file.
+        """
+        all_sets_data = dict()
+        for file in os.listdir(mtg_storage.SET_OUT_DIR):
+            with pathlib.Path(mtg_storage.SET_OUT_DIR, file).open('r', encoding='utf-8') as fp:
+                file_content = json.load(fp)
+
+                # Do not add these to the final output
+                file_content.pop('isMCISet', None)
+                file_content.pop('magicRaritiesCode', None)
+                file_content.pop('essentialMagicCode', None)
+                file_content.pop('useMagicRaritiesNumber', None)
+                file_content.pop('code', None)
+                file_content.pop('meta', None)
+                file_content.pop('mkm_id', None)
+                file_content.pop('mkm_name', None)
+
+                set_name = file.split('.')[0]
+                all_sets_data[set_name] = file_content
+        return all_sets_data
+
+    def create_all_cards() -> Dict[str, Any]:
+        """
+        This will create the AllCards.json file
+        by pulling the compile data from the
+        compiled sets and combining them into
+        one conglomerate file.
+        """
+        all_cards_data: Dict[str, Any] = dict()
+        for file in os.listdir(mtg_storage.SET_OUT_DIR):
+            with pathlib.Path(mtg_storage.SET_OUT_DIR, file).open('r', encoding='utf-8') as fp:
+                file_content = json.load(fp)
+
+                # For each card in the set, attempt to add it
+                for card in file_content['cards']:
+                    if card['name'] not in all_cards_data.keys():
+
+                        # Since these can vary from printing to printing
+                        # We do not include them in the output
+                        card.pop('artist', None)
+                        card.pop('cardHash', None)
+                        card.pop('flavor', None)
+                        card.pop('multiverseid', None)
+                        card.pop('number', None)
+                        card.pop('originalText', None)
+                        card.pop('originalType', None)
+                        card.pop('rarity', None)
+                        card.pop('variations', None)
+
+                        all_cards_data[card['name']] = card
+        return all_cards_data
+
+    # Actual compilation process of the method
+    all_sets = create_all_sets()
+    all_cards = create_all_cards()
+
+    mtg_storage.write_to_compiled_file('AllSets.json', all_sets)
+    mtg_storage.write_to_compiled_file('AllCards.json', all_cards)
