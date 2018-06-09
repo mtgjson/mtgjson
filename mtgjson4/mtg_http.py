@@ -57,9 +57,10 @@ async def get_card_foreign_details(session: aiohttp.ClientSession, card_mid: int
     return await ensure_content_downloaded(session, FOREIGN_URL, params=get_params(card_mid))
 
 
-async def get_set_tokens(session: aiohttp.ClientSession, set_name: str) -> str:
+async def get_all_tokens(session: aiohttp.ClientSession) -> str:
     """
     Download the Tokens XML from Magic-Token
+    This will be parsed in another method
     """
     return await ensure_content_downloaded(session, TOKEN_URL)
 

@@ -12,14 +12,14 @@ from mtgjson4 import mtg_global
 PowTouLoyaltyVanType = Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]
 
 
-def replace_symbol_images_with_tokens(tag: bs4.BeautifulSoup) -> Tuple[bs4.BeautifulSoup, Set[mtg_global.Color]]:
+def replace_images_with_text(tag: bs4.BeautifulSoup) -> Tuple[bs4.BeautifulSoup, Set[mtg_global.color_type]]:
     """
     Replaces the img tags of symbols with token representations
     :rtype: set
     :return: The color symbols found
     """
     tag_copy = copy.copy(tag)
-    colors_found: Set[mtg_global.Color] = set()
+    colors_found: Set[mtg_global.color_type] = set()
     images = tag_copy.find_all('img')
     for symbol in images:
         symbol_value = symbol['alt']
@@ -90,7 +90,7 @@ def parse_card_other_name(soup: bs4.BeautifulSoup, parse_div: str, layout: str) 
         else:
             other_div_name = parse_div.replace('03', '02').replace('04', '03').replace('05', '04')
 
-        other_name_row = soup.find(id=parse_div.format('nameRow'))
+        other_name_row = soup.find(id=other_div_name.format('nameRow'))
         other_name_row = other_name_row.findAll('div')[-1]
         card_other_name: str = other_name_row.get_text(strip=True)
 
@@ -134,7 +134,7 @@ def parse_card_types(soup: bs4.BeautifulSoup, parse_div: str) -> Tuple[List[str]
 
 
 def parse_colors_and_cost(soup: bs4.BeautifulSoup,
-                          parse_div: str) -> Tuple[Optional[List[mtg_global.Color]], Optional[str]]:
+                          parse_div: str) -> Tuple[Optional[List[mtg_global.color_type]], Optional[str]]:
     """
     Parse the colors and mana cost of the card
     Can use the colors to build the color identity later
@@ -145,24 +145,24 @@ def parse_colors_and_cost(soup: bs4.BeautifulSoup,
     mana_row = soup.find(id=parse_div.format('manaRow'))
     if mana_row:
         mana_row = mana_row.findAll('div')[-1]
-        mana_row = replace_symbol_images_with_tokens(mana_row)
+        mana_row = replace_images_with_text(mana_row)
 
         card_cost = mana_row[0].get_text(strip=True).replace('’', '\'')
-        card_colors: Set[mtg_global.Color] = set(mana_row[1])
+        card_colors: Set[mtg_global.color_type] = set(mana_row[1])
 
         # Sort field in WUBRG order
         sorted_colors = sorted(
             list(filter(lambda c: c in card_colors, mtg_global.COLORS)),
-            key=lambda word: [mtg_global.COLORS.index(mtg_global.Color(c)) for c in word])
+            key=lambda word: [mtg_global.COLORS.index(mtg_global.color_type(c)) for c in word])
 
         return sorted_colors, card_cost
 
     return None, None
 
 
-def parse_card_text_and_color_identity(
+def parse_text_and_color_identity(
         soup: bs4.BeautifulSoup, parse_div: str,
-        card_colors: Optional[List[mtg_global.Color]]) -> Tuple[Optional[str], List[mtg_global.Color]]:
+        card_colors: Optional[List[mtg_global.color_type]]) -> Tuple[Optional[str], List[mtg_global.color_type]]:
     """
     Get the card's text and determine the colors the card fits with (Useful for EDH)
     :param soup:
@@ -183,7 +183,7 @@ def parse_card_text_and_color_identity(
         return_text = ''
         for div in text_row:
             # Start by replacing all images with alternative text
-            div, instance_color_identity = replace_symbol_images_with_tokens(div)
+            div, instance_color_identity = replace_images_with_text(div)
 
             return_color_identity.update(instance_color_identity)
 
@@ -330,7 +330,7 @@ def parse_rulings(soup: bs4.BeautifulSoup, parse_div: str) -> List[dict]:
         rulings_text = rulings_row.findAll('td', id=re.compile(r'\w*_rulingText\b'))
 
         rulings_text = [
-            replace_symbol_images_with_tokens(ruling_text)[0].get_text().replace('’', '\'')
+            replace_images_with_text(ruling_text)[0].get_text().replace('’', '\'')
             for ruling_text in rulings_text
         ]
 

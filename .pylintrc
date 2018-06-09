@@ -119,7 +119,6 @@ disable=print-statement,
         exception-message-attribute,
         invalid-str-codec,
         sys-max-int,
-        bad-python3-import,
         deprecated-string-function,
         deprecated-str-translate-call,
         deprecated-itertools-function,
@@ -138,7 +137,12 @@ disable=print-statement,
         ungrouped-imports,
         missing-docstring,
         missing-type-doc,
-        missing-return-type-doc
+        missing-return-type-doc,
+        no-member,
+        too-many-branches,
+        too-many-locals,
+        invalid-name,
+        too-many-statements
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

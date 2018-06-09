@@ -66,7 +66,7 @@ def write_to_compiled_file(file_name: str, file_contents: Dict[str, Any]) -> boo
     Will ensure the output directory exists first
     """
     COMP_OUT_DIR.mkdir(exist_ok=True)
-    with pathlib.Path(COMP_OUT_DIR, file_name).open('w', encoding='utf-8') as fp:
-        json.dump(file_contents, fp, indent=4, sort_keys=True, ensure_ascii=False)
+    with pathlib.Path(COMP_OUT_DIR, file_name).open('w', encoding='utf-8') as f:
+        json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
         return True
     return False

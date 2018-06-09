@@ -10,7 +10,7 @@ MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
 VERSION_INFO = f'MTGJSON\nVersion {__VERSION__}\n{__VERSION_DATE__}'
 DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
-Color = NewType('Color', str)
+color_type = NewType('Color', str)
 
 ForeignNamesDescription = TypedDict('ForeignNamesDescription', {
     'language': str,
@@ -26,8 +26,8 @@ CardDescription = TypedDict(
         'artist': List[str],
         'cardHash': str,
         'convertedManaCost': Union[int, float],
-        'colorIdentity': List[Color],
-        'colors': List[Color],
+        'colorIdentity': List[color_type],
+        'colors': List[color_type],
         'flavor': str,
         'foreignData': List[ForeignNamesDescription],
         'layout': str,
@@ -105,8 +105,8 @@ AllCardsDescription = TypedDict(
     })
 
 # Building vars
-COLORS: List[Color] = list(Color(c) for c in ['W', 'U', 'B', 'R', 'G'])
-color_order_lambda = lambda word: [COLORS.index(Color(c)) for c in word]
+COLORS: List[color_type] = list(color_type(c) for c in ['W', 'U', 'B', 'R', 'G'])
+color_order_lambda = lambda word: [COLORS.index(color_type(c)) for c in word]
 
 EXTRA_FIELDS: List[str] = ['rulings', 'foreignNames', 'printings', 'originalText', 'originalType', 'legalities']
 
@@ -812,8 +812,8 @@ INVALID_FILE_NAMES: List[str] = [
 
 
 # Building functions
-def get_symbol_short_name(key_to_find: str) -> Color:
-    return Color(SYMBOL_MAP.get(key_to_find, key_to_find))
+def get_symbol_short_name(key_to_find: str) -> color_type:
+    return color_type(SYMBOL_MAP.get(key_to_find, key_to_find))
 
 
 def get_language_long_name(lang_short_name: str) -> Optional[str]:

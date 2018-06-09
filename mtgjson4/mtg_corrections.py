@@ -1,3 +1,4 @@
+import copy
 import itertools
 import re
 from typing import Any, Callable, Dict, Iterable, List, Union, Set
@@ -19,7 +20,7 @@ def apply_corrections(match_replace_rules: Iterable[Union[dict, str]], cards_dic
                 # We no longer set the imagename property.
                 continue
             elif replacement_rule.get('copyCard'):
-                # TODO Implement
+                copy_card(replacement_rule, cards_dictionary)
                 continue
             elif replacement_rule.get('importCard'):
                 # TODO: implement
@@ -61,6 +62,7 @@ def apply_match(replacement_rule: dict, full_set: CardList) -> None:
 
 
 def replace(replacements: Dict[str, Any], cards_to_modify: CardList, *args: Any) -> None:
+    # pylint: disable-msg=unused-argument
     """
     Replaces the values of fields to other fields.
     """
@@ -70,6 +72,7 @@ def replace(replacements: Dict[str, Any], cards_to_modify: CardList, *args: Any)
 
 
 def remove(removals: List[str], cards_to_modify: CardList, *args: Any) -> None:
+    # pylint: disable-msg=unused-argument
     """
     Removes the specified keys from a card.
     """
@@ -80,11 +83,13 @@ def remove(removals: List[str], cards_to_modify: CardList, *args: Any) -> None:
 
 
 def prefix_number(prefix: str, cards_to_modify: CardList, *args: Any) -> None:
+    # pylint: disable-msg=unused-argument
     for card in cards_to_modify:
         card['number'] = prefix + card['number']
 
 
 def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: CardList, *args: Any) -> None:
+    # pylint: disable-msg=unused-argument
     """
     Sometimes the foreign names are wrong.
     This completely replaces the names with accurate ones.
@@ -100,6 +105,7 @@ def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: CardL
 
 
 def fix_flavor_newlines(enabled: bool, cards_to_modify: CardList, *args: Any) -> None:
+    # pylint: disable-msg=unused-argument
     """
     "When a card's flavortext is an attributed quote, the attribution should be on the next line"
     -Katelyn
@@ -113,10 +119,12 @@ def fix_flavor_newlines(enabled: bool, cards_to_modify: CardList, *args: Any) ->
             # Ensure two quotes appear before the last em-dash
             firstquote = flavor.index('"')
             secondquote = flavor[firstquote + 1:].index('"')
-            card['flavor'] = re.sub(r'\s*—\s*([^—]+)\s*$', r'\n—\1', flavor)
+            if firstquote and secondquote:
+                card['flavor'] = re.sub(r'\s*—\s*([^—]+)\s*$', r'\n—\1', flavor)
 
 
 def flavor_add_dash(enabled: bool, cards_to_modify: CardList, *args: Any) -> None:
+    # pylint: disable-msg=unused-argument
     """
     Speaking of attributed quotations, they should also have the em-dash between the quote and the speaker.
     """
@@ -130,6 +138,7 @@ def flavor_add_dash(enabled: bool, cards_to_modify: CardList, *args: Any) -> Non
 
 
 def flavor_add_exclamation(enabled: bool, cards_to_modify: CardList, *args: Any) -> None:
+    # pylint: disable-msg=unused-argument
     """
     Gatherer is really bad at listing exclaimation points.
     """
@@ -142,6 +151,7 @@ def flavor_add_exclamation(enabled: bool, cards_to_modify: CardList, *args: Any)
 
 
 def increment_number(enabled: bool, cards_to_modify: CardList, *args: Any) -> None:
+    # pylint: disable-msg=unused-argument
     """
     Fix numbers for basic lands.
     Usually preceded by a "replace: number"
@@ -180,6 +190,19 @@ def remove_duplicates(enabled: bool, cards_to_modify: CardList, full_set: CardLi
         hashes.add(card['cardHash'])
 
 
+def copy_card(replacement_rule: dict, full_set: CardList) -> None:
+    card_name = replacement_rule['copyCard']
+    replacements = replacement_rule['replace']
+
+    for card in full_set:
+        if card['name'] == card_name:
+            # Copy the card, fix the card, and add the card to the set
+            new_addition = copy.copy(card)
+            replace(replacements, new_addition)
+            full_set.append(new_addition)
+            return
+
+
 def parse_match(match_rule: Union[str, Dict[str, str]], card_list: CardList) -> CardList:
     if isinstance(match_rule, list):
         return list(itertools.chain([parse_match(rule, card_list) for rule in match_rule]))
@@ -197,6 +220,6 @@ def parse_match(match_rule: Union[str, Dict[str, str]], card_list: CardList) -> 
     raise KeyError(match_rule)
 
 
-def no_basic_land_watermarks(cards_dictionary: Any) -> Any:
+def no_basic_land_watermarks(card_dictionary: Any) -> Any:
     # TODO: Not sure what to do with this.
     pass

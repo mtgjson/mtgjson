@@ -96,7 +96,7 @@ class MTGJSON:
         language_rows = soup.select('table[class^=cardList]')[0]
         language_rows = language_rows.select('tr[class^=cardItem]')
 
-        card_languages: List[mtg_global.ForeignNamesDescription] = []
+        card_languages: List[mtg_global.ForeignNamesDescription] = list()
         for div in language_rows:
             table_rows = div.findAll('td')
 
@@ -127,7 +127,7 @@ class MTGJSON:
             }
 
             # Get Card Foreign Printed Rules Text
-            c_foreign_text = mtg_parse.parse_card_text_and_color_identity(soup_print, div_name, None)[0]
+            c_foreign_text = mtg_parse.parse_text_and_color_identity(soup_print, div_name, None)[0]
             if c_foreign_text:
                 c_foreign_dict['text'] = c_foreign_text
 
@@ -198,7 +198,7 @@ class MTGJSON:
             card_info['type'] = full_type
 
         # Get Card Text and Color Identity
-        c_text, c_color_identity = mtg_parse.parse_card_text_and_color_identity(soup_oracle, div_name, card_colors)
+        c_text, c_color_identity = mtg_parse.parse_text_and_color_identity(soup_oracle, div_name, card_colors)
         if c_text:
             if 'Planeswalker' in full_type:
                 # Surround planeswalker activation cost by []
@@ -295,9 +295,9 @@ class MTGJSON:
             # This can be appended on a case-by-case basis
             if error.code == 500:
                 return  # Page doesn't work, nothing we can do
-            else:
-                print("Unknown error: ", error.code)
-                return
+
+            print("Unknown error: ", error.code)
+            return
 
         # Parse web page so we can gather all data from it
         soup_oracle = bs4.BeautifulSoup(html, 'html.parser')
@@ -327,7 +327,7 @@ class MTGJSON:
             card_info['originalType'] = c_original_type
 
         # Get Card Original Text
-        c_original_text = mtg_parse.parse_card_text_and_color_identity(soup_print, div_name, None)[0]
+        c_original_text = mtg_parse.parse_text_and_color_identity(soup_print, div_name, None)[0]
         if c_original_text:
             card_info['originalText'] = c_original_text
 
@@ -372,10 +372,9 @@ class MTGJSON:
             card_2_info = next(card2 for card2 in cards if card2['name'] == card_2_name)
             if 'flip' in card_2_info['text']:
                 return 'Flip'
-            elif 'transform' in card_2_info['text']:
+            if 'transform' in card_2_info['text']:
                 return 'Double-Faced'
-            else:
-                return f'Unknown{unknown_num}'
+            return f'Unknown{unknown_num}'
 
         return_cards = copy.copy(cards)
         for card_info in return_cards:
@@ -417,7 +416,7 @@ class MTGJSON:
         return return_cards
 
     async def download_tokens_from_set(self, set_name: List[str]) -> List[mtg_global.TokenDescription]:
-        xml = await mtg_http.get_set_tokens(self.http_session, set_name[0])
+        xml = await mtg_http.get_all_tokens(self.http_session)
 
         return_list: List[mtg_global.TokenDescription] = list()
 
@@ -592,10 +591,10 @@ class MTGJSON:
             # Write to file the foreign build
             return await build_then_print_stuff(foreign_mids_for_set, language)
 
-        if language == 'en':
-            return await build_then_print_stuff(await get_mids_for_downloading())
-        else:
+        if language != 'en':
             return await build_foreign_language()
+
+        return await build_then_print_stuff(await get_mids_for_downloading())
 
 
 async def apply_set_config_options(set_name: List[str], cards_dictionary: List[mtg_global.CardDescription],
@@ -687,8 +686,8 @@ def create_combined_outputs() -> None:
         """
         all_sets_data: Dict[str, mtg_global.AllSetsDescription] = dict()
         for file in os.listdir(mtg_storage.SET_OUT_DIR):
-            with pathlib.Path(mtg_storage.SET_OUT_DIR, file).open('r', encoding='utf-8') as fp:
-                file_content = json.load(fp)
+            with pathlib.Path(mtg_storage.SET_OUT_DIR, file).open('r', encoding='utf-8') as f:
+                file_content = json.load(f)
 
                 # Do not add these to the final output
                 file_content.pop('isMCISet', None)
@@ -714,8 +713,8 @@ def create_combined_outputs() -> None:
         """
         all_cards_data: Dict[str, mtg_global.AllCardsDescription] = dict()
         for file in os.listdir(mtg_storage.SET_OUT_DIR):
-            with pathlib.Path(mtg_storage.SET_OUT_DIR, file).open('r', encoding='utf-8') as fp:
-                file_content = json.load(fp)
+            with pathlib.Path(mtg_storage.SET_OUT_DIR, file).open('r', encoding='utf-8') as f:
+                file_content = json.load(f)
 
                 # For each card in the set, attempt to add it
                 for card in file_content['cards']:
