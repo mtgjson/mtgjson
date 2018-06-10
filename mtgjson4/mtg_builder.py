@@ -192,6 +192,8 @@ class MTGJSON:
             card_info['supertypes'] = card_super_types
         if card_types:
             card_info['types'] = card_types
+            if card_info['name'] in mtg_global.basic_lands:  # Basic lands (usually) have a watermark
+                card_info['watermark'] = card_info['name']
         if card_sub_types:
             card_info['subtypes'] = card_sub_types
         if full_type:
@@ -429,14 +431,14 @@ class MTGJSON:
                 if printing.get_text() == set_name[1]:
                     token_builder: mtg_global.TokenDescription = {
                         'name': '',
-                        'colors': [],
+                        'colors': list(),
                         'convertedManaCost': 0,
                         'type': '',
                         'power': '',
                         'toughness': '',
                         'text': '',
                         'relatedToken': '',
-                        'generators': []
+                        'generators': list()
                     }
 
                     with contextlib.suppress(AttributeError):
@@ -485,8 +487,8 @@ class MTGJSON:
         There are two pass throughs; One for main cards, one for alternative sided cards
         that get added while the main process is running.
         """
-        additional_cards: List[Any] = []
-        cards_in_set: List[mtg_global.CardDescription] = []
+        additional_cards: List[Any] = list()
+        cards_in_set: List[mtg_global.CardDescription] = list()
 
         # start asyncio tasks for building each card
         futures = [
@@ -580,7 +582,7 @@ class MTGJSON:
                 print("BuildSet: Cannot translate {0} to {1}. Update set_configs".format(set_name[1], language))
                 return None
 
-            foreign_mids_for_set = []
+            foreign_mids_for_set = list()
             for card in json_input['cards']:
                 full_name_lang_to_build = mtg_global.get_language_long_name(language)
                 for lang_dict in card['foreignNames']:
@@ -690,7 +692,6 @@ def create_combined_outputs() -> None:
                 file_content = json.load(f)
 
                 # Do not add these to the final output
-                file_content.pop('isMCISet', None)
                 file_content.pop('magicRaritiesCode', None)
                 file_content.pop('essentialMagicCode', None)
                 file_content.pop('useMagicRaritiesNumber', None)

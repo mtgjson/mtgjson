@@ -10,7 +10,9 @@ MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
 VERSION_INFO = f'MTGJSON\nVersion {__VERSION__}\n{__VERSION_DATE__}'
 DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
-color_type = NewType('Color', str)
+color_type = NewType('color_type', str)
+
+basic_lands = ["Plains", "Island", "Swamp", "Mountain", "Forest", "Wastes"]
 
 ForeignNamesDescription = TypedDict('ForeignNamesDescription', {
     'language': str,

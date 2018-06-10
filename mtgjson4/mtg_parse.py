@@ -325,8 +325,7 @@ def parse_rulings(soup: bs4.BeautifulSoup, parse_div: str) -> List[dict]:
         rulings_text = rulings_row.findAll('td', id=re.compile(r'\w*_rulingText\b'))
 
         rulings_text = [
-            replace_images_with_text(ruling_text)[0].get_text().replace('’', '\'')
-            for ruling_text in rulings_text
+            replace_images_with_text(ruling_text)[0].get_text().replace('’', '\'') for ruling_text in rulings_text
         ]
 
         rulings_dates = [

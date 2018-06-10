@@ -10,8 +10,11 @@ CardList = List[mtg_global.CardDescription]
 
 
 def apply_corrections(match_replace_rules: Iterable[Union[dict, str]], cards_dictionary: CardList) -> None:
+    """
+    Read the inputs and determine the appropriate type of
+    fix to be applied
+    """
     for replacement_rule in match_replace_rules:
-
         if isinstance(replacement_rule, dict):
             if replacement_rule.get('match'):
                 apply_match(replacement_rule, cards_dictionary)
@@ -23,23 +26,26 @@ def apply_corrections(match_replace_rules: Iterable[Union[dict, str]], cards_dic
                 copy_card(replacement_rule, cards_dictionary)
                 continue
             elif replacement_rule.get('importCard'):
-                # TODO: implement
-                # This one sounds like it might be messy.  I'm not sure how to do it.
+                add_card(replacement_rule, cards_dictionary)
                 continue
         elif isinstance(replacement_rule, str):
             if replacement_rule == 'noBasicLandWatermarks':
                 no_basic_land_watermarks(cards_dictionary)
                 continue
             elif replacement_rule == 'numberCards':
-                # TODO: Implement
+                # This doesn't make any sense and will be discontinued
                 continue
             elif replacement_rule == 'sortCards':
-                # TODO: Implement
+                # This only was applied to MCI sets, which are discontinued
                 continue
         raise KeyError(replacement_rule)
 
 
 def apply_match(replacement_rule: dict, full_set: CardList) -> None:
+    """
+    Take the replacement rules and function-pointer style
+    call the methods to fix the card(s)
+    """
     keys = set(replacement_rule.keys())
     cards_to_modify = parse_match(replacement_rule['match'], full_set)
     keys.remove('match')
@@ -84,6 +90,9 @@ def remove(removals: List[str], cards_to_modify: CardList, *args: Any) -> None:
 
 def prefix_number(prefix: str, cards_to_modify: CardList, *args: Any) -> None:
     # pylint: disable-msg=unused-argument
+    """
+    If the card number needs a pre-pend, this method will accomplish that
+    """
     for card in cards_to_modify:
         card['number'] = prefix + card['number']
 
@@ -160,7 +169,7 @@ def increment_number(enabled: bool, cards_to_modify: CardList, *args: Any) -> No
     # I don't think we need it.
     if not enabled:
         return
-    counts: Dict[str, int] = {}
+    counts: Dict[str, int] = dict()
     for card in cards_to_modify:
         addition = counts.get(card['name'], 0)
         card['number'] = str(int(card['number']) + addition)
@@ -191,6 +200,10 @@ def remove_duplicates(enabled: bool, cards_to_modify: CardList, full_set: CardLi
 
 
 def copy_card(replacement_rule: dict, full_set: CardList) -> None:
+    """
+    Copy a card already in the set, calling any replacement rules necessary,
+    and adding it to the set
+    """
     card_name = replacement_rule['copyCard']
     replacements = replacement_rule['replace']
 
@@ -198,16 +211,31 @@ def copy_card(replacement_rule: dict, full_set: CardList) -> None:
         if card['name'] == card_name:
             # Copy the card, fix the card, and add the card to the set
             new_addition = copy.copy(card)
-            replace(replacements, new_addition)
+            print(replacements, new_addition)
+            replace(replacements, [new_addition])
             full_set.append(new_addition)
             return
 
 
+def add_card(replacement_rule: dict, full_set: CardList) -> None:
+    """
+    Add a new card to the set (name only)
+    Should be appended later with a match/replace
+    """
+    card_to_add: mtg_global.CardDescription
+    card_to_add['name'] = replacement_rule['importCard']['name']
+    full_set.append(card_to_add)
+
+
 def parse_match(match_rule: Union[str, Dict[str, str]], card_list: CardList) -> CardList:
+    """
+    Based on the replacement rule, we need to get all the cards necessary to
+    be modified by the rule
+    """
     if isinstance(match_rule, list):
         return list(itertools.chain([parse_match(rule, card_list) for rule in match_rule]))
     elif isinstance(match_rule, str):
-        if match_rule == "*":
+        if match_rule == '*':
             return card_list
     elif isinstance(match_rule, dict):
         matches = card_list
@@ -221,5 +249,11 @@ def parse_match(match_rule: Union[str, Dict[str, str]], card_list: CardList) -> 
 
 
 def no_basic_land_watermarks(card_dictionary: Any) -> Any:
-    # TODO: Not sure what to do with this.
-    pass
+    """
+    Basic lands in most sets have watermarks.
+    This function removes that field for those
+    sets which don't conform
+    """
+    for card in card_dictionary:
+        if card['name'] in mtg_global.basic_lands:
+            card.pop('watermark', None)
