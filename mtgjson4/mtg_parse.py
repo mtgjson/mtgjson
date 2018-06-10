@@ -246,7 +246,7 @@ def parse_card_pt_loyalty_vanguard(soup: bs4.BeautifulSoup, parse_div: str) -> P
         else:
             loyalty = pt_row.strip()
 
-    return (power, toughness, loyalty, hand, life)
+    return power, toughness, loyalty, hand, life
 
 
 def parse_card_rarity(soup: bs4.BeautifulSoup, parse_div: str) -> str:
@@ -351,7 +351,7 @@ def parse_card_sets(soup: bs4.BeautifulSoup, parse_div: str, card_set: str,
     :param sets_to_build:
     :return: list of sets the card's in
     """
-    card_printings = set([card_set])
+    card_printings = {card_set}
     sets_row = soup.find(id=parse_div.format('otherSetsRow'))
     if sets_row is not None:
         images = sets_row.findAll('img')

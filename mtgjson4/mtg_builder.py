@@ -418,6 +418,10 @@ class MTGJSON:
         return return_cards
 
     async def download_tokens_from_set(self, set_name: List[str]) -> List[mtg_global.TokenDescription]:
+        """
+        This will take the downloaded tokens (from the get all tokens method)
+        and pull out the tokens necessary for the specific set being built
+        """
         xml = await mtg_http.get_all_tokens(self.http_session)
 
         return_list: List[mtg_global.TokenDescription] = list()
@@ -429,17 +433,7 @@ class MTGJSON:
             printings = card.find_all('set')
             for printing in printings:
                 if printing.get_text() == set_name[1]:
-                    token_builder: mtg_global.TokenDescription = {
-                        'name': '',
-                        'colors': list(),
-                        'convertedManaCost': 0,
-                        'type': '',
-                        'power': '',
-                        'toughness': '',
-                        'text': '',
-                        'relatedToken': '',
-                        'generators': list()
-                    }
+                    token_builder: mtg_global.TokenDescription
 
                     with contextlib.suppress(AttributeError):
                         c_name = card.find('name').get_text()

@@ -12,6 +12,7 @@ from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 
 THREAD_MONITOR = hanging_threads.start_monitoring()
 
+
 async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str,
                args: dict) -> None:
     """
@@ -36,6 +37,7 @@ async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, 
             return list(queue)
         return list(itertools.islice(queue, max_pops))
 
+    # Main Applied
     mtg_storage.ensure_set_dir_exists()
 
     sets_queue = iter(SETS_TO_BUILD)

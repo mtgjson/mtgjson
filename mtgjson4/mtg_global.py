@@ -792,6 +792,7 @@ SYMBOL_MAP: Dict[str, str] = {
     'Infinite': '∞'
 }
 
+# Languages MTG is printed in
 LANGUAGE_MAP: Dict[str, str] = {
     'de': 'German',
     'en': 'English',
@@ -812,13 +813,17 @@ INVALID_FILE_NAMES: List[str] = [
     'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
 ]
 
-
-# Building functions
 def get_symbol_short_name(key_to_find: str) -> color_type:
+    """
+    Grab the image symbol's alt name
+    """
     return color_type(SYMBOL_MAP.get(key_to_find, key_to_find))
 
 
 def get_language_long_name(lang_short_name: str) -> Optional[str]:
+    """
+    Grab the language's full name (ex: de -> German)
+    """
     if lang_short_name not in LANGUAGE_MAP.keys():
         return None
     return LANGUAGE_MAP[lang_short_name]
