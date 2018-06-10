@@ -23,7 +23,8 @@ def test_fix_flavor_newline():
     cards = [
         CardDescription({
             "flavor":
-            "\"The humans are useful in their way, but they must be commanded as the builder commands the stone. Be soft with them, and they will become soft.\"—Radiant, archangel",
+            '"The humans are useful in their way, but they must be commanded as the builder commands the '
+            'stone. Be soft with them, and they will become soft."—Radiant, archangel',
             "multiverseid":
             5707,
             "name":
@@ -40,8 +41,9 @@ def test_fix_flavor_newline():
         "fixFlavorNewlines": True,
     }]
     mtg_corrections.apply_corrections(corrections, cards)
-    assert cards[0][
-        'flavor'] == "\"The humans are useful in their way, but they must be commanded as the builder commands the stone. Be soft with them, and they will become soft.\"\n—Radiant, archangel"
+    assert cards[0]['flavor'] == '"The humans are useful in their way, but they must be commanded as the builder ' \
+                                 'commands the stone. Be soft with them, and they will become soft."\n—Radiant, ' \
+                                 'archangel '
 
 
 def test_flavor_add_dash():
@@ -60,7 +62,8 @@ def test_flavor_add_dash():
 
     mtg_corrections.apply_corrections(corrections, cards)
     assert cards[0][
-        'flavor'] == "\"Unlike Zhalfir, the griffin needs no council to keep harmony among its parts.\"\n—Asmira, Holy Avenger"
+        'flavor'] == '"Unlike Zhalfir, the griffin needs no council to keep harmony among its parts."\n—Asmira, ' \
+                     'Holy Avenger '
 
 
 def test_flavor_add_exclaimation():
@@ -71,7 +74,7 @@ def test_flavor_add_exclaimation():
             "name":
             "Dwarven Miner",
             "flavor":
-            "\"Fetch the pestridder, Paka—we've got dwarves in the rutabagas\"\n—Jamul, Femeref farmer",
+            '"Fetch the pestridder, Paka—we\'ve got dwarves in the rutabagas"\n—Jamul, Femeref farmer',
         })
     ]
 
@@ -86,5 +89,5 @@ def test_flavor_add_exclaimation():
     }]
 
     mtg_corrections.apply_corrections(corrections, cards)
-    assert cards[0][
-        'flavor'] == "\"Fetch the pestridder, Paka—we've got dwarves in the rutabagas!\"\n—Jamul, Femeref farmer"
+    assert cards[0]['flavor'] == '"Fetch the pestridder, Paka—we\'ve got dwarves in the rutabagas!"\n—Jamul, Femeref ' \
+                                 'farmer '

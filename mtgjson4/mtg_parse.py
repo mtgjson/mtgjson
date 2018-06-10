@@ -414,6 +414,6 @@ def build_id_part(set_name: List[str], card_mid: int, card_info: mtg_global.Card
     card_hash = hashlib.sha3_256()
     card_hash.update(set_name[0].encode('utf-8'))
     card_hash.update(str(card_mid).encode('utf-8'))
-    card_hash.update(card_info['name'].encode('utf-8'))
+    card_hash.update(str(card_info['name']).encode('utf-8'))
 
     return card_hash.hexdigest()

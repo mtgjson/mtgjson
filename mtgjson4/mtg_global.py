@@ -12,63 +12,64 @@ DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMai
 
 color_type = NewType('color_type', str)
 
-basic_lands = ["Plains", "Island", "Swamp", "Mountain", "Forest", "Wastes"]
+basic_lands = ['Plains', 'Island', 'Swamp', 'Mountain', 'Forest', 'Wastes']
 
-ForeignNamesDescription = TypedDict('ForeignNamesDescription', {
-    'language': str,
-    'multiverseid': int,
-    'name': str,
-    'type': str,
-    'text': Optional[str],
-    'flavor': Optional[str]
-})
+ForeignNamesDescription = TypedDict(
+    'ForeignNamesDescription', {
+        'language': Optional[str],
+        'multiverseid': Optional[int],
+        'name': Optional[str],
+        'type': Optional[str],
+        'text': Optional[str],
+        'flavor': Optional[str],
+    })
 
 CardDescription = TypedDict(
     'CardDescription', {
         'artist': List[str],
-        'cardHash': str,
-        'convertedManaCost': Union[int, float],
+        'cardHash': Optional[str],
+        'convertedManaCost': Optional[Union[int, float]],
         'colorIdentity': List[color_type],
         'colors': List[color_type],
-        'flavor': str,
+        'flavor': Optional[str],
         'foreignData': List[ForeignNamesDescription],
-        'layout': str,
+        'layout': Optional[str],
         'legalities': List[Dict[str, str]],
-        'loyalty': str,
-        'manaCost': str,
-        'multiverseid': int,
-        'name': str,
+        'loyalty': Optional[str],
+        'manaCost': Optional[str],
+        'multiverseid': Optional[int],
+        'name': Optional[str],
         'names': List[str],
-        'number': str,
-        'originalText': str,
-        'originalType': str,
-        'power': str,
+        'number': Optional[str],
+        'originalText': Optional[str],
+        'originalType': Optional[str],
+        'power': Optional[str],
         'printings': List[str],
-        'rarity': str,
+        'rarity': Optional[str],
         'rulings': List[Dict[str, str]],
         'subtypes': List[str],
         'supertypes': List[str],
-        'text': str,
-        'toughness': str,
-        'type': str,
+        'text': Optional[str],
+        'toughness': Optional[str],
+        'type': Optional[str],
         'types': List[str],
-        'hand': str,
-        'life': str,
-        'watermark': str,
-        'reserved': bool,
+        'hand': Optional[str],
+        'life': Optional[str],
+        'watermark': Optional[str],
+        'reserved': Optional[bool],
         'variations': List[int],
     })
 
 TokenDescription = TypedDict(
     'TokenDescription', {
-        'name': str,
+        'name': Optional[str],
         'colors': List[str],
-        'convertedManaCost': int,
-        'type': str,
-        'power': str,
-        'toughness': str,
-        'text': str,
-        'relatedToken': str,
+        'convertedManaCost': Optional[int],
+        'type': Optional[str],
+        'power': Optional[str],
+        'toughness': Optional[str],
+        'text': Optional[str],
+        'relatedToken': Optional[str],
         'generators': List[str],
     })
 
@@ -109,60 +110,6 @@ AllCardsDescription = TypedDict(
 # Building vars
 COLORS: List[color_type] = list(color_type(c) for c in ['W', 'U', 'B', 'R', 'G'])
 color_order_lambda = lambda word: [COLORS.index(color_type(c)) for c in word]
-
-EXTRA_FIELDS: List[str] = ['rulings', 'foreignNames', 'printings', 'originalText', 'originalType', 'legalities']
-
-ORACLE_FIELDS: List[str] = [
-    "layout", "name", "names", "manaCost", "cmc", "colors", "type", "supertypes", "types", "subtypes", "text", "power",
-    "toughness", "loyalty", "hand", "life", "rulings", "printings", "legalities"
-]
-
-# This should be a mypy_extensions.TypedDict, but this works for now.
-FIELD_TYPES: Dict[str, Union[str, List[str]]] = {
-    "artist": ["string"],
-    "border": "string",
-    "cmc": "number",
-    "colorIdentity": ["string"],
-    "colors": ["string"],
-    "flavor": "string",
-    "foreignNames": ["object"],
-    "hand": "number",
-    "id": "string",
-    "imageName": "string",
-    "layout": "string",
-    "legalities": ["object"],
-    "life": "number",
-    "loyalty": "number",
-    "manaCost": "string",
-    "multiverseid": "number",
-    "name": "string",
-    "names": ["string"],
-    "number": "string",
-    "originalText": "string",
-    "originalType": "string",
-    "power": "string",
-    "printings": ["string"],
-    "rarity": "string",
-    "releaseDate": "string",
-    "reserved": "boolean",
-    "rulings": ["object"],
-    "source": "string",
-    "starter": "boolean",
-    "subtypes": ["string"],
-    "supertypes": ["string"],
-    "text": "string",
-    "timeshifted": "boolean",
-    "toughness": "string",
-    "type": "string",
-    "types": ["string"],
-    "variations": ["number"],
-    "watermark": "string",
-}
-
-SET_SPECIFIC_FIELDS: List[str] = [
-    "rarity", "artist", "flavor", "number", "multiverseid", "variations", "watermark", "border", "timeshifted",
-    "reserved", "originalText", "originalType", "cardHash", "foreignNames"
-]
 
 SUPERTYPES: List[str] = [
     'Basic',
@@ -812,6 +759,7 @@ INVALID_FILE_NAMES: List[str] = [
     'CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2',
     'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
 ]
+
 
 def get_symbol_short_name(key_to_find: str) -> color_type:
     """

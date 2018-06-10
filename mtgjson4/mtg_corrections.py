@@ -94,7 +94,7 @@ def prefix_number(prefix: str, cards_to_modify: CardList, *args: Any) -> None:
     If the card number needs a pre-pend, this method will accomplish that
     """
     for card in cards_to_modify:
-        card['number'] = prefix + card['number']
+        card['number'] = prefix + str(card['number'])
 
 
 def fix_foreign_names(replacements: List[Dict[str, Any]], cards_to_modify: CardList, *args: Any) -> None:
@@ -171,9 +171,9 @@ def increment_number(enabled: bool, cards_to_modify: CardList, *args: Any) -> No
         return
     counts: Dict[str, int] = dict()
     for card in cards_to_modify:
-        addition = counts.get(card['name'], 0)
-        card['number'] = str(int(card['number']) + addition)
-        counts[card['name']] = addition + 1
+        addition = counts.get(str(card['name']), 0)
+        card['number'] = str(int(str(card['number'])) + addition)
+        counts[str(card['name'])] = addition + 1
 
 
 def remove_card(enabled: bool, cards_to_modify: CardList, full_set: CardList) -> None:
@@ -196,7 +196,7 @@ def remove_duplicates(enabled: bool, cards_to_modify: CardList, full_set: CardLi
     for card in cards_to_modify:
         if card['cardHash'] in hashes:
             full_set.remove(card)
-        hashes.add(card['cardHash'])
+        hashes.add(str(card['cardHash']))
 
 
 def copy_card(replacement_rule: dict, full_set: CardList) -> None:
@@ -222,8 +222,40 @@ def add_card(replacement_rule: dict, full_set: CardList) -> None:
     Add a new card to the set (name only)
     Should be appended later with a match/replace
     """
-    card_to_add: mtg_global.CardDescription
-    card_to_add['name'] = replacement_rule['importCard']['name']
+    card_to_add: mtg_global.CardDescription = {
+        'artist': [],
+        'cardHash': None,
+        'convertedManaCost': None,
+        'colorIdentity': [],
+        'colors': [],
+        'flavor': None,
+        'foreignData': [],
+        'layout': None,
+        'legalities': [],
+        'loyalty': None,
+        'manaCost': None,
+        'multiverseid': None,
+        'name': replacement_rule['importCard']['name'],
+        'names': [],
+        'number': None,
+        'originalText': None,
+        'originalType': None,
+        'power': None,
+        'printings': [],
+        'rarity': None,
+        'rulings': [],
+        'subtypes': [],
+        'supertypes': [],
+        'text': None,
+        'toughness': None,
+        'type': None,
+        'types': [],
+        'hand': None,
+        'life': None,
+        'watermark': None,
+        'reserved': None,
+        'variations': []
+    }
     full_set.append(card_to_add)
 
 

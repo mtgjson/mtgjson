@@ -154,7 +154,7 @@ class MTGJSON:
 
         # Parse web page so we can gather all data from it
         card_mid = card_info['multiverseid']
-        soup_oracle = await self.get_card_html(card_mid)
+        soup_oracle = await self.get_card_html(int(str(card_mid)))
 
         card_layout, div_name, alt_div_name, add_other_card = self.determine_layout_and_div_name(
             soup_oracle, second_card)
@@ -164,7 +164,7 @@ class MTGJSON:
             other_cards_holder.append(
                 self.loop.create_task(self.build_card(set_name, other_card_mid, None, second_card=True)))
 
-        card_info['multiverseid'] = int(card_mid)
+        card_info['multiverseid'] = int(str(card_mid))
 
         card_info['name'] = mtg_parse.parse_card_name(soup_oracle, div_name)
         card_info['convertedManaCost'] = mtg_parse.parse_card_cmc(soup_oracle, div_name)
@@ -173,9 +173,9 @@ class MTGJSON:
         card_other_name = mtg_parse.parse_card_other_name(soup_oracle, alt_div_name, card_layout)
         if card_other_name is not None:
             if second_card:
-                insert_order = [card_other_name, card_info['name']]
+                insert_order = [card_other_name, str(card_info['name'])]
             else:
-                insert_order = [card_info['name'], card_other_name]
+                insert_order = [str(card_info['name']), card_other_name]
 
             card_info['names'] = insert_order
 
@@ -259,7 +259,7 @@ class MTGJSON:
         card_info['printings'] = mtg_parse.parse_card_sets(soup_oracle, div_name, set_name[1], self.sets_to_build)
 
         # Get Card Variations
-        c_variations = mtg_parse.parse_card_variations(soup_oracle, div_name, card_mid)
+        c_variations = mtg_parse.parse_card_variations(soup_oracle, div_name, int(str(card_mid)))
         if c_variations:
             card_info['variations'] = c_variations
 
@@ -372,9 +372,9 @@ class MTGJSON:
             except StopIteration:
                 return 'Double Card'
             card_2_info = next(card2 for card2 in cards if card2['name'] == card_2_name)
-            if 'flip' in card_2_info['text']:
+            if 'flip' in str(card_2_info['text']):
                 return 'Flip'
-            if 'transform' in card_2_info['text']:
+            if 'transform' in str(card_2_info['text']):
                 return 'Double-Faced'
             return f'Unknown{unknown_num}'
 
@@ -433,7 +433,17 @@ class MTGJSON:
             printings = card.find_all('set')
             for printing in printings:
                 if printing.get_text() == set_name[1]:
-                    token_builder: mtg_global.TokenDescription
+                    token_builder: mtg_global.TokenDescription = {
+                        'name': None,
+                        'colors': [],
+                        'convertedManaCost': None,
+                        'type': None,
+                        'power': None,
+                        'toughness': None,
+                        'text': None,
+                        'relatedToken': None,
+                        'generators': []
+                    }
 
                     with contextlib.suppress(AttributeError):
                         c_name = card.find('name').get_text()
@@ -554,6 +564,7 @@ class MTGJSON:
 
             print('BuildSet: Generated JSON for {}'.format(set_stat))
             with mtg_storage.open_set_json(set_output, 'w') as f:
+                json_ready = mtg_storage.remove_null_fields(json_ready)
                 json.dump(json_ready, f, indent=4, sort_keys=True, ensure_ascii=False)
                 print('BuildSet: JSON written for {0} ({1})'.format(set_stat, set_name[1]))
 
