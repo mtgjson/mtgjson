@@ -13,14 +13,12 @@ from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 THREAD_MONITOR = hanging_threads.start_monitoring()
 
 
-async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, language_to_build: str,
-               args: dict) -> None:
+async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, args: dict) -> None:
     """
     Main method that starts the entire build process
     :param args:
     :param loop:
     :param session:
-    :param language_to_build:
     :return:
     """
 
@@ -49,9 +47,7 @@ async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, 
         sets_to_build_now = get_next_batch_of_sets(sets_queue)
         while sets_to_build_now:
             # Create our builders for the few sets
-            futures = [
-                loop.create_task(json_builder.build_set(set_name, language_to_build)) for set_name in sets_to_build_now
-            ]
+            futures = [loop.create_task(json_builder.build_set(set_name)) for set_name in sets_to_build_now]
 
             # Then wait until all of them are completed
             await asyncio.wait(futures)
@@ -91,17 +87,6 @@ if __name__ == '__main__':
         'directory. ')
 
     arg_parser.add_argument(
-        '-l',
-        '--language',
-        default=['en'],
-        metavar='LANG',
-        type=str,
-        nargs=1,
-        help=
-        'Build foreign language version of a specific set. The english version must have been built already for this '
-        'flag to be used. ')
-
-    arg_parser.add_argument(
         '--max-sets-build',
         default=[5],
         metavar='#',
@@ -117,17 +102,11 @@ if __name__ == '__main__':
         exit(1)
 
     cl_args = vars(arg_parser.parse_args())
-    lang_to_process = cl_args['language'][0]
 
     # Get version info and exit
     if cl_args['version']:
         print(mtg_global.VERSION_INFO)
         exit(0)
-
-    # Ensure the language is a valid language, otherwise exit
-    if mtg_global.get_language_long_name(lang_to_process) is None:
-        print('MTGJSON: Language \'{}\' not supported yet'.format(lang_to_process))
-        exit(1)
 
     # If only full out, just build from what's there and exit
     if (cl_args['sets'] is None) and (not cl_args['all_sets']) and cl_args['full_out']:
@@ -148,7 +127,7 @@ if __name__ == '__main__':
         read_timeout=60,
         raise_for_status=True,
         connector=aiohttp.TCPConnector(limit=200))
-    card_loop.run_until_complete(main(card_loop, card_session, lang_to_process, cl_args))
+    card_loop.run_until_complete(main(card_loop, card_session, cl_args))
 
     if cl_args['full_out']:
         mtg_builder.create_combined_outputs()
