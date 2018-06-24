@@ -144,7 +144,7 @@ class MTGJSON:
                               set_name: List[str],
                               card_mid: int,
                               other_cards_holder: Optional[List[object]],
-                              second_card: bool = False) -> None:
+                              second_card: bool = False) -> Dict[str, Any]:
         """
         This is the main builder for each card. This will put together the card, key by key, until it
         has most of its elements finished. There are some this doesn't encompass at this time, and those
@@ -267,7 +267,7 @@ class MTGJSON:
 
         return card_info
 
-    async def build_legalities_part(self, card_mid: int) -> None:
+    async def build_legalities_part(self, card_mid: int) -> Dict[str, Any]:
         """
         This builder will build from the legalities page of Gatherer
         """
@@ -277,10 +277,10 @@ class MTGJSON:
             # If Gatherer errors, omit the data for now
             # This can be appended on a case-by-case basis
             if error.code == 500:
-                return  # Page doesn't work, nothing we can do
+                return dict()  # Page doesn't work, nothing we can do
 
             print("Unknown error: ", error.code)
-            return
+            return dict()
 
         # Return holder
         card_info = dict()
@@ -295,7 +295,7 @@ class MTGJSON:
 
         return card_info
 
-    async def build_foreign_part(self, card_mid: int, second_card: bool) -> None:
+    async def build_foreign_part(self, card_mid: int, second_card: bool) -> Dict[str, Any]:
         """
         This builder builds the foreign identifiers page of gatherer
         """
@@ -305,10 +305,10 @@ class MTGJSON:
             # If Gatherer errors, omit the data for now
             # This can be appended on a case-by-case basis
             if error.code == 500:
-                return  # Page doesn't work, nothing we can do
+                return dict()  # Page doesn't work, nothing we can do
 
             print("Unknown error: ", error.code)
-            return
+            return dict()
 
         # Return holder
         card_info = dict()
@@ -323,7 +323,7 @@ class MTGJSON:
 
         return card_info
 
-    async def build_original_details(self, card_mid: int, second_card: bool = False) -> None:
+    async def build_original_details(self, card_mid: int, second_card: bool = False) -> Dict[str, Any]:
         """
         This builder builds the original type/text of the card. Useful for foreign languages
         and those who like the original printed text over Oracle text.
@@ -352,9 +352,10 @@ class MTGJSON:
 
     @staticmethod
     def combine_all_parts_into_a_card(main_parts, original_parts, legal_parts, foreign_parts) -> Dict[str, Any]:
-        dict_builder1 = {**main_parts, **original_parts}
-        dict_builder2 = {**legal_parts, **foreign_parts}
-        return {**dict_builder1, **dict_builder2}
+        """
+        Will combine all dictionaries into one. If any conflicts arise, the newest value takes precedent
+        """
+        return {**main_parts, **original_parts, **legal_parts, **foreign_parts}
 
     async def build_card(self,
                          set_name: List[str],
