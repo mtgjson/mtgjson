@@ -142,7 +142,7 @@ class MTGJSON:
 
     async def build_main_part(self,
                               set_name: List[str],
-                              card_info: mtg_global.CardDescription,
+                              card_mid: int,
                               other_cards_holder: Optional[List[object]],
                               second_card: bool = False) -> None:
         """
@@ -152,9 +152,11 @@ class MTGJSON:
         This builder only builds the main page of Gatherer.
         """
 
+        # This will be the holder that is returned
+        card_info = dict()
+
         # Parse web page so we can gather all data from it
-        card_mid = card_info['multiverseid']
-        soup_oracle = await self.get_card_html(int(str(card_mid)))
+        soup_oracle = await self.get_card_html(card_mid)
 
         card_layout, div_name, alt_div_name, add_other_card = self.determine_layout_and_div_name(
             soup_oracle, second_card)
@@ -263,7 +265,9 @@ class MTGJSON:
         if c_variations:
             card_info['variations'] = c_variations
 
-    async def build_legalities_part(self, card_mid: int, card_info: mtg_global.CardDescription) -> None:
+        return card_info
+
+    async def build_legalities_part(self, card_mid: int) -> None:
         """
         This builder will build from the legalities page of Gatherer
         """
@@ -278,6 +282,9 @@ class MTGJSON:
             print("Unknown error: ", error.code)
             return
 
+        # Return holder
+        card_info = dict()
+
         # Parse web page so we can gather all data from it
         soup_oracle = bs4.BeautifulSoup(html, 'html.parser')
 
@@ -286,7 +293,9 @@ class MTGJSON:
         if c_legal:
             card_info['legalities'] = c_legal
 
-    async def build_foreign_part(self, card_mid: int, card_info: mtg_global.CardDescription, second_card: bool) -> None:
+        return card_info
+
+    async def build_foreign_part(self, card_mid: int, second_card: bool) -> None:
         """
         This builder builds the foreign identifiers page of gatherer
         """
@@ -301,6 +310,9 @@ class MTGJSON:
             print("Unknown error: ", error.code)
             return
 
+        # Return holder
+        card_info = dict()
+
         # Parse web page so we can gather all data from it
         soup_oracle = bs4.BeautifulSoup(html, 'html.parser')
 
@@ -309,14 +321,17 @@ class MTGJSON:
         if c_foreign_info:
             card_info['foreignData'] = c_foreign_info
 
-    async def build_original_details(self,
-                                     card_mid: int,
-                                     card_info: mtg_global.CardDescription,
-                                     second_card: bool = False) -> None:
+        return card_info
+
+    async def build_original_details(self, card_mid: int, second_card: bool = False) -> None:
         """
         This builder builds the original type/text of the card. Useful for foreign languages
         and those who like the original printed text over Oracle text.
         """
+
+        # Return holder
+        card_info = dict()
+
         soup_print = await self.get_card_html(card_mid, True)
 
         # Determine if Card is Normal, Flip, or Split
@@ -333,6 +348,14 @@ class MTGJSON:
         if c_original_text:
             card_info['originalText'] = c_original_text
 
+        return card_info
+
+    @staticmethod
+    def combine_all_parts_into_a_card(main_parts, original_parts, legal_parts, foreign_parts) -> Dict[str, Any]:
+        dict_builder1 = {**main_parts, **original_parts}
+        dict_builder2 = {**legal_parts, **foreign_parts}
+        return {**dict_builder1, **dict_builder2}
+
     async def build_card(self,
                          set_name: List[str],
                          card_mid: int,
@@ -342,15 +365,14 @@ class MTGJSON:
         This build method constructs the entire card from start to finish. It will call
         all the subsequent build methods, one by one, to put the card together.
         """
-        card_info: mtg_global.CardDescription = dict()  # type: ignore
-        card_info['multiverseid'] = int(card_mid)
+        main_parts = await self.build_main_part(set_name, card_mid, other_cards_holder, second_card=second_card)
+        original_parts = await self.build_original_details(card_mid, second_card=second_card)
+        legal_parts = await self.build_legalities_part(card_mid)
+        foreign_parts = await self.build_foreign_part(card_mid, second_card=second_card)
 
-        await self.build_main_part(set_name, card_info, other_cards_holder, second_card=second_card)
-        await self.build_original_details(card_mid, card_info, second_card=second_card)
-        await self.build_legalities_part(card_mid, card_info)
-        await self.build_foreign_part(card_mid, card_info, second_card=second_card)
-
-        card_info['cardHash'] = mtg_parse.build_id_part(set_name, card_mid, card_info)
+        card_info: mtg_global.CardDescription = self.combine_all_parts_into_a_card(main_parts, original_parts,
+                                                                                   legal_parts, foreign_parts)
+        card_info['cardHash'] = mtg_parse.build_id_part(set_name, card_mid, card_info['name'])
 
         print('\tAdding {0} to {1}'.format(card_info['name'], set_name[0]))
         return card_info
@@ -518,7 +540,7 @@ class MTGJSON:
 
         return cards_in_set
 
-    async def build_set(self, set_name: List[str], language: str) -> Optional[Dict[str, Any]]:
+    async def build_set(self, set_name: List[str]) -> Optional[Dict[str, Any]]:
         """
         Main method that will build the entire set by calling the build_*
         method(s) depending on what language(s) is/are required.
@@ -539,19 +561,16 @@ class MTGJSON:
             ids_to_return = await mtg_http.generate_mids_by_set(self.http_session, urls_for_set)
             return ids_to_return
 
-        async def build_then_print_stuff(mids_for_set: List[int], lang: str = None) -> dict:
+        async def build_then_print_stuff(mids_for_set: List[int]) -> dict:
             """
             Function puts all sub-functions together to determine what IDs are
             needed for building, downloading the cards/building them, and
             applying the set configurations.
             :return: JSON text that was also written to file
             """
-            if lang:
-                set_stat = '{0}.{1}'.format(set_name[0], lang)
-                set_output = '{0}.{1}'.format(set_name[1], lang)
-            else:
-                set_stat = str(set_name[0])
-                set_output = str(set_name[1])
+
+            set_stat = str(set_name[0])
+            set_output = str(set_name[1])
 
             print('BuildSet: Determined {1} MIDs for {0}'.format(set_stat, len(mids_for_set)))
             cards_holder = await self.download_cards_by_mid_list(set_name, mids_for_set)
@@ -569,37 +588,6 @@ class MTGJSON:
                 print('BuildSet: JSON written for {0} ({1})'.format(set_stat, set_name[1]))
 
             return json_ready
-
-        async def build_foreign_language() -> Optional[dict]:
-            """
-            This will create the foreign language version of sets.
-            It pulls the english set, strips the MIDs from it for the language
-            selected, then updates the appropriate fields with the new information
-            """
-            if not mtg_storage.is_set_file(set_name[1]):
-                print('BuildSet: Set {0} not built in English. Do that first before {1}'.format(set_name[1], language))
-                return None
-
-            with mtg_storage.open_set_json(set_name[1], 'r') as f:
-                json_input = json.load(f)
-
-            if ('translations' not in json_input.keys()) or (language not in json_input['translations'].keys()):
-                print("BuildSet: Cannot translate {0} to {1}. Update set_configs".format(set_name[1], language))
-                return None
-
-            foreign_mids_for_set = list()
-            for card in json_input['cards']:
-                full_name_lang_to_build = mtg_global.get_language_long_name(language)
-                for lang_dict in card['foreignNames']:
-                    if lang_dict['language'] == full_name_lang_to_build:
-                        foreign_mids_for_set.append(int(lang_dict['multiverseid']))
-                        break
-
-            # Write to file the foreign build
-            return await build_then_print_stuff(foreign_mids_for_set, language)
-
-        if language != 'en':
-            return await build_foreign_language()
 
         return await build_then_print_stuff(await get_mids_for_downloading())
 
