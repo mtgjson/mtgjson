@@ -555,11 +555,20 @@ class MTGJSON:
             """
             print('BuildSet: Building Set {}'.format(set_name[0]))
 
-            urls_for_set = await mtg_http.get_checklist_urls(self.http_session, set_name)
+            # Cache Read
+            if os.path.exists(os.path.join(mtg_storage.CACHE_DIR, 'set_checklists', set_name[1] + '.txt')):
+                with mtg_storage.open_cache_location(f'set_checklists/{set_name[1]}.txt', 'r') as f:
+                    urls_for_set = eval(f.read())
+            else:
+                # Cache Write
+                urls_for_set = await mtg_http.get_checklist_urls(self.http_session, set_name)
+                with mtg_storage.open_cache_location(f'set_checklists/{set_name[1]}.txt', 'w') as f:
+                    f.write(str(urls_for_set))
+
             print('BuildSet: Acquired {1} URLs for {0}'.format(set_name[0], len(urls_for_set)))
 
             # ids_to_return = [235597]  # DEBUGGING IDs 235597,
-            ids_to_return = await mtg_http.generate_mids_by_set(self.http_session, urls_for_set)
+            ids_to_return = await mtg_http.generate_mids_by_set(self.http_session, urls_for_set, set_name[1])
             return ids_to_return
 
         async def build_then_print_stuff(mids_for_set: List[int]) -> dict:
