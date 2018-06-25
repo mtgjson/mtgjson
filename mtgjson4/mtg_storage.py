@@ -6,6 +6,22 @@ from typing import IO, Optional, Dict, Any
 SET_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'set_outputs'
 COMP_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'compiled_outputs'
 SET_CONFIG_DIR = pathlib.Path(__file__).resolve().parent / 'set_configs'
+CACHE_DIR = pathlib.Path(__file__).resolve().parent.parent / '.mtgjson4_cache'
+
+
+def open_file(directory: pathlib.Path, path: Optional[str], mode: str) -> IO:
+    if path is not None:
+        return (directory / path).open(mode, encoding='utf-8')
+
+    return directory.open(mode, encoding='utf-8')
+
+
+def open_cache_location(path: str, mode: str) -> IO:
+    """
+    Open the Cache File
+    """
+    ensure_cache_dir_exists()
+    return open_file(CACHE_DIR, path, mode)
 
 
 def open_set_json(path: str, mode: str) -> IO:
@@ -13,7 +29,7 @@ def open_set_json(path: str, mode: str) -> IO:
     Open the set output file for R/W (hopefully reading only)
     and return the IO
     """
-    return (SET_OUT_DIR / f'{path}.json').open(mode, encoding='utf-8')
+    return open_file(SET_OUT_DIR, path, mode)
 
 
 def open_set_config_json(path: str, mode: str) -> IO:
@@ -23,7 +39,7 @@ def open_set_config_json(path: str, mode: str) -> IO:
     """
     file_path = find_file(f'{path}.json', SET_CONFIG_DIR)
     if file_path:
-        return pathlib.Path(file_path).open(mode, encoding='utf-8')
+        return open_file(pathlib.Path(file_path), None, mode)
     raise KeyError
 
 
@@ -59,6 +75,12 @@ def ensure_set_dir_exists() -> None:
     SET_OUT_DIR.mkdir(exist_ok=True)  # make sure set_outputs dir exists
 
 
+def ensure_cache_dir_exists() -> None:
+    CACHE_DIR.mkdir(exist_ok=True)
+    pathlib.Path.joinpath(CACHE_DIR, 'set_checklists').mkdir(exist_ok=True)
+    pathlib.Path.joinpath(CACHE_DIR, 'set_mids').mkdir(exist_ok=True)
+
+
 def remove_null_fields(card_dict: Dict[str, Any]) -> Any:
     """
     Recursively remove all null values found
@@ -83,4 +105,3 @@ def write_to_compiled_file(file_name: str, file_contents: Dict[str, Any]) -> boo
         new_contents: Dict[str, Any] = remove_null_fields(file_contents)
         json.dump(new_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
         return True
-    return False

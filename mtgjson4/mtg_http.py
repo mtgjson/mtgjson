@@ -1,9 +1,12 @@
 import asyncio
 import itertools
+import os
 from typing import Any, Dict, List, Set, Tuple, Union
 
 import aiohttp
 import bs4
+
+import mtgjson4.mtg_storage
 
 SEARCH_URL = 'http://gatherer.wizards.com/Pages/Search/Default.aspx'
 MAIN_URL = 'http://gatherer.wizards.com/Pages/Card/Details.aspx'
@@ -123,12 +126,18 @@ async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]
     return [(SEARCH_URL, url_params_for_page(page_number)) for page_number in range(page_count_for_set(first_page))]
 
 
-async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrlsType) -> List[int]:
+async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrlsType, set_name: str) -> List[int]:
     """
     Function will take download all content from the set_urls and parse them to determine
     all the card's needed for the set. Will take the MIDs and return them back for
     further downloads of each individual card
     """
+
+    # Cache Read
+    if os.path.exists(os.path.join(mtgjson4.mtg_storage.CACHE_DIR, 'set_mids', set_name + '.txt')):
+        with mtgjson4.mtg_storage.open_cache_location(f'set_mids/{set_name}.txt', 'r') as f:
+            return eval(f.read())
+
     card_mids_to_parse: List[int] = list()
     for url, params in set_urls:
         async with session.get(url, params=params) as response:
@@ -144,5 +153,9 @@ async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrls
                 if (gatherer_page_id not in card_id_exist) or not gatherer_page_id:
                     card_id_exist.add(gatherer_page_id)
                     card_mids_to_parse.append(int(td_row[1].find('a')['href'].split('id=')[1].split('"')[0]))
+
+    # Cache Write
+    with mtgjson4.mtg_storage.open_cache_location(f'set_mids/{set_name}.txt', 'w') as f:
+        f.write(str(card_mids_to_parse))
 
     return card_mids_to_parse
