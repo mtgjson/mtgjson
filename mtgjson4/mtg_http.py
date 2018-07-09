@@ -20,21 +20,20 @@ SetUrlsType = List[Tuple[str, ParamsType]]
 
 async def ensure_content_downloaded(session: aiohttp.ClientSession,
                                     url_to_download: str,
-                                    max_retries: int = 3,
+                                    max_retries: int = 10,
                                     **kwargs: Any) -> str:
     """
     Sometimes downloads fail. This method will retry up to max_retries to ensure
     we get the data we have requested. Raises error on failure
     """
     # Ensure we can read the URL and its contents
-    for retry in itertools.count():
+    for retry in range(0, max_retries):
         try:
             async with session.get(url_to_download, **kwargs) as response:
                 text = await response.text()  # type: str
                 return text
-        except aiohttp.ClientError:
-            if retry == max_retries:
-                raise
+        except aiohttp.ClientError as e:
+            print("Failed to download", url_to_download, kwargs, "retry #", retry, e)
             await asyncio.sleep(2)
     raise ValueError
 
