@@ -1,7 +1,7 @@
 import json
 from typing import List
 
-from mtgjson4 import mtg_corrections, mtg_builder, mtg_storage
+from mtgjson4 import mtg_builder, mtg_corrections, mtg_storage
 from mtgjson4.mtg_global import CardDescription
 
 
@@ -22,14 +22,10 @@ def test_validate_corrections() -> None:
 def test_fix_flavor_newline():
     cards = [
         CardDescription({
-            "flavor":
-            "\"The humans are useful in their way, but they must be commanded as the builder commands the stone. Be soft with them, and they will become soft.\"—Radiant, archangel",
-            "multiverseid":
-            5707,
-            "name":
-            "Serra Zealot",
-            "number":
-            "46",
+            "flavor": "\"The humans are useful in their way, but they must be commanded as the builder commands the stone. Be soft with them, and they will become soft.\"—Radiant, archangel",
+            "multiverseid": 5707,
+            "name": "Serra Zealot",
+            "number": "46",
         })
     ]
 
@@ -47,12 +43,9 @@ def test_fix_flavor_newline():
 def test_flavor_add_dash():
     cards = [
         CardDescription({
-            "multiverseid":
-            3503,
-            "name":
-            "Mtenda Griffin",
-            "flavor":
-            "\"Unlike Zhalfir, the griffin needs no council to keep harmony among its parts.\"Asmira, Holy Avenger",
+            "multiverseid": 3503,
+            "name": "Mtenda Griffin",
+            "flavor": "\"Unlike Zhalfir, the griffin needs no council to keep harmony among its parts.\"Asmira, Holy Avenger",
         })
     ]
 
@@ -66,12 +59,9 @@ def test_flavor_add_dash():
 def test_flavor_add_exclaimation():
     cards = [
         CardDescription({
-            "multiverseid":
-            3440,
-            "name":
-            "Dwarven Miner",
-            "flavor":
-            "\"Fetch the pestridder, Paka—we've got dwarves in the rutabagas\"\n—Jamul, Femeref farmer",
+            "multiverseid": 3440,
+            "name": "Dwarven Miner",
+            "flavor": "\"Fetch the pestridder, Paka—we've got dwarves in the rutabagas\"\n—Jamul, Femeref farmer",
         })
     ]
 

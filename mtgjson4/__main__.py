@@ -6,12 +6,14 @@ import time
 from typing import Iterator, List
 
 import aiohttp
-import hanging_threads
 
 from mtgjson4 import mtg_builder, mtg_global, mtg_storage
 
-THREAD_MONITOR = hanging_threads.start_monitoring()
-
+try:
+    import hanging_threads
+    THREAD_MONITOR = hanging_threads.start_monitoring()
+except ImportError:
+    print('INFO: hanging_threads not installed - Thread Monitor is not running.')
 
 async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, args: dict) -> None:
     """

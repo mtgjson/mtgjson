@@ -1,7 +1,7 @@
 import json
 import os
 import pathlib
-from typing import IO, Optional, Dict, Any
+from typing import IO, Any, Dict, Optional
 
 SET_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'set_outputs'
 COMP_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'compiled_outputs'
