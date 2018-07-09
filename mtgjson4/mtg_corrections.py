@@ -1,7 +1,7 @@
 import copy
 import itertools
 import re
-from typing import Any, Callable, Dict, Iterable, List, Union, Set
+from typing import Any, Callable, Dict, Iterable, List, Set, Union
 
 from mtgjson4 import mtg_global
 

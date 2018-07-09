@@ -10,7 +10,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import aiohttp
 import bs4
 
-from mtgjson4 import mtg_corrections, mtg_global, mtg_http, mtg_parse, mtg_storage
+from mtgjson4 import (mtg_corrections, mtg_global, mtg_http, mtg_parse,
+                      mtg_storage)
 
 
 class MTGJSON:
