@@ -400,7 +400,7 @@ def parse_card_legal(soup: bs4.BeautifulSoup) -> List[dict]:
 
             card_formats.append({'format': card_format_name, 'legality': card_format_legal})
 
-    return card_formats
+    return sorted(card_formats, key=lambda f: f['format'])
 
 
 def build_id_part(set_name: List[str], card_mid: int, card_name: str) -> str:
