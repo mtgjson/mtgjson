@@ -1,7 +1,6 @@
 import json
-import os
 import pathlib
-from typing import IO, Any, Dict, Optional
+from typing import IO, Any, Dict, Optional, Generator
 
 SET_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'set_outputs'
 COMP_OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / 'compiled_outputs'
@@ -43,15 +42,15 @@ def open_set_config_json(path: str, mode: str) -> IO:
     raise KeyError
 
 
-def find_file(name: str, path: pathlib.Path) -> Optional[str]:
+def find_file(name: str, path: pathlib.Path) -> Optional[pathlib.Path]:
     """
     Function finds where on the path tree a specific file
     can be found. Useful for set_configs as we use sub
     directories to better organize data.
     """
-    for root, _, files in os.walk(str(path)):
+    for root, _, files in path_walk(path):
         if name in files:
-            return os.path.join(root, name)
+            return pathlib.Path.joinpath(root, name)
     return None
 
 
@@ -64,7 +63,7 @@ def is_set_file(path: str) -> bool:
     :return:
     """
     joined = SET_OUT_DIR / '{}.json'.format(path)
-    return os.path.isfile(joined)
+    return pathlib.Path.is_file(joined)
 
 
 def ensure_set_dir_exists() -> None:
@@ -105,3 +104,24 @@ def write_to_compiled_file(file_name: str, file_contents: Dict[str, Any]) -> boo
         new_contents: Dict[str, Any] = remove_null_fields(file_contents)
         json.dump(new_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
         return True
+
+
+def path_walk(top: pathlib.Path, top_down: bool = False, follow_links: bool = False) -> Generator[Any, Any, Any]:
+    """
+    See Python docs for os.walk, exact same behavior but it yields Path() instances instead
+    """
+    names = list(top.iterdir())
+
+    dirs = (node for node in names if node.is_dir() is True)
+    non_dirs = (node for node in names if node.is_dir() is False)
+
+    if top_down:
+        yield top, dirs, non_dirs
+
+    for name in dirs:
+        if follow_links or name.is_symlink() is False:
+            for x in path_walk(name, top_down, follow_links):
+                yield x
+
+    if top_down is not True:
+        yield top, dirs, non_dirs

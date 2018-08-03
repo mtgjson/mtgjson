@@ -1,5 +1,5 @@
 import asyncio
-import os
+import pathlib
 from typing import Any, Dict, List, Set, Tuple, Union
 
 import aiohttp
@@ -107,7 +107,7 @@ async def get_checklist_urls(session: aiohttp.ClientSession, set_name: List[str]
 
     def url_params_for_page(page_number: int) -> ParamsType:
         """
-        Get the parameters necessary for determing how many pages exist for the set.
+        Get the parameters necessary for determining how many pages exist for the set.
         """
         return {
             'output': 'checklist',
@@ -132,7 +132,7 @@ async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrls
     """
 
     # Cache Read
-    if os.path.exists(os.path.join(mtgjson4.mtg_storage.CACHE_DIR, 'set_mids', set_name + '.txt')):
+    if pathlib.Path(pathlib.Path.joinpath(mtgjson4.mtg_storage.CACHE_DIR, 'set_mids', set_name + '.txt')).exists():
         with mtgjson4.mtg_storage.open_cache_location(f'set_mids/{set_name}.txt', 'r') as f:
             return eval(f.read())
 

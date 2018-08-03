@@ -266,7 +266,8 @@ def parse_match(match_rule: Union[str, Dict[str, str]], card_list: CardList) -> 
     """
     if isinstance(match_rule, list):
         return list(itertools.chain([parse_match(rule, card_list) for rule in match_rule]))
-    elif isinstance(match_rule, str):
+
+    if isinstance(match_rule, str):
         if match_rule == '*':
             return card_list
     elif isinstance(match_rule, dict):
