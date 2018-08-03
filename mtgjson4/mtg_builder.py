@@ -152,7 +152,7 @@ class MTGJSON:
         """
 
         # This will be the holder that is returned
-        card_info = dict()
+        card_info: Dict[str, Any] = dict()
 
         # Parse web page so we can gather all data from it
         soup_oracle = await self.get_card_html(card_mid)
@@ -350,7 +350,9 @@ class MTGJSON:
         return card_info
 
     @staticmethod
-    def combine_all_parts_into_a_card(main_parts, original_parts, legal_parts, foreign_parts) -> Dict[str, Any]:
+    def combine_all_parts_into_a_card(main_parts: Dict[str, Any], original_parts: Dict[str, Any],
+                                      legal_parts: Dict[str, Any],
+                                      foreign_parts: Dict[str, Any]) -> mtg_global.CardDescription:
         """
         Will combine all dictionaries into one. If any conflicts arise, the newest value takes precedent
         """
@@ -558,12 +560,12 @@ class MTGJSON:
             if pathlib.Path(pathlib.Path.joinpath(mtg_storage.CACHE_DIR, 'set_checklists',
                                                   set_name[1] + '.txt')).exists():
                 with mtg_storage.open_cache_location(f'set_checklists/{set_name[1]}.txt', 'r') as f:
-                    urls_for_set = eval(f.read())
+                    urls_for_set = list(f.read())
             else:
                 # Cache Write
                 urls_for_set = await mtg_http.get_checklist_urls(self.http_session, set_name)
                 with mtg_storage.open_cache_location(f'set_checklists/{set_name[1]}.txt', 'w') as f:
-                    f.write(str(urls_for_set))
+                    f.write(str(urls_for_set).lstrip("[").rstrip("]"))
 
             print('BuildSet: Acquired {1} URLs for {0}'.format(set_name[0], len(urls_for_set)))
 

@@ -134,7 +134,7 @@ async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrls
     # Cache Read
     if pathlib.Path(pathlib.Path.joinpath(mtgjson4.mtg_storage.CACHE_DIR, 'set_mids', set_name + '.txt')).exists():
         with mtgjson4.mtg_storage.open_cache_location(f'set_mids/{set_name}.txt', 'r') as f:
-            return eval(f.read())
+            return list(f.read())
 
     card_mids_to_parse: List[int] = list()
     for url, params in set_urls:
@@ -154,6 +154,6 @@ async def generate_mids_by_set(session: aiohttp.ClientSession, set_urls: SetUrls
 
     # Cache Write
     with mtgjson4.mtg_storage.open_cache_location(f'set_mids/{set_name}.txt', 'w') as f:
-        f.write(str(card_mids_to_parse))
+        f.write(str(card_mids_to_parse).lstrip("[").rstrip("]"))
 
     return card_mids_to_parse

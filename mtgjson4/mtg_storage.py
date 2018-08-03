@@ -50,7 +50,7 @@ def find_file(name: str, path: pathlib.Path) -> Optional[pathlib.Path]:
     """
     for root, _, files in path_walk(path):
         if name in files:
-            return pathlib.Path.joinpath(root, name)
+            return pathlib.Path(pathlib.Path.joinpath(root, name))
     return None
 
 
