@@ -15,6 +15,7 @@ try:
 except ImportError:
     print('INFO: hanging_threads not installed - Thread Monitor is not running.')
 
+
 async def main(loop: asyncio.AbstractEventLoop, session: aiohttp.ClientSession, args: dict) -> None:
     """
     Main method that starts the entire build process
