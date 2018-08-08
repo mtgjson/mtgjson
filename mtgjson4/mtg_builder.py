@@ -2,7 +2,6 @@ import asyncio
 import contextlib
 import copy
 import json
-import os
 import pathlib
 import re
 from typing import Any, Dict, List, Optional, Tuple
@@ -10,8 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import aiohttp
 import bs4
 
-from mtgjson4 import (mtg_corrections, mtg_global, mtg_http, mtg_parse,
-                      mtg_storage)
+from mtgjson4 import (mtg_corrections, mtg_global, mtg_http, mtg_parse, mtg_storage)
 
 
 class MTGJSON:
@@ -154,7 +152,7 @@ class MTGJSON:
         """
 
         # This will be the holder that is returned
-        card_info = dict()
+        card_info: Dict[str, Any] = dict()
 
         # Parse web page so we can gather all data from it
         soup_oracle = await self.get_card_html(card_mid)
@@ -352,7 +350,9 @@ class MTGJSON:
         return card_info
 
     @staticmethod
-    def combine_all_parts_into_a_card(main_parts, original_parts, legal_parts, foreign_parts) -> Dict[str, Any]:
+    def combine_all_parts_into_a_card(main_parts: Dict[str, Any], original_parts: Dict[str, Any],
+                                      legal_parts: Dict[str, Any],
+                                      foreign_parts: Dict[str, Any]) -> mtg_global.CardDescription:
         """
         Will combine all dictionaries into one. If any conflicts arise, the newest value takes precedent
         """
@@ -512,7 +512,7 @@ class MTGJSON:
                                          multiverse_ids: List[int]) -> List[mtg_global.CardDescription]:
         """
         Method async calls the build process for each card in the multiverse_ids arg passed.
-        There are two pass throughs; One for main cards, one for alternative sided cards
+        There are two passes; One for main cards, one for alternative sided cards
         that get added while the main process is running.
         """
         additional_cards: List[Any] = list()
@@ -557,14 +557,15 @@ class MTGJSON:
             print('BuildSet: Building Set {}'.format(set_name[0]))
 
             # Cache Read
-            if os.path.exists(os.path.join(mtg_storage.CACHE_DIR, 'set_checklists', set_name[1] + '.txt')):
+            if pathlib.Path(pathlib.Path.joinpath(mtg_storage.CACHE_DIR, 'set_checklists',
+                                                  set_name[1] + '.txt')).exists():
                 with mtg_storage.open_cache_location(f'set_checklists/{set_name[1]}.txt', 'r') as f:
-                    urls_for_set = eval(f.read())
+                    urls_for_set = list(f.read())
             else:
                 # Cache Write
                 urls_for_set = await mtg_http.get_checklist_urls(self.http_session, set_name)
                 with mtg_storage.open_cache_location(f'set_checklists/{set_name[1]}.txt', 'w') as f:
-                    f.write(str(urls_for_set))
+                    f.write(str(urls_for_set).lstrip("[").rstrip("]"))
 
             print('BuildSet: Acquired {1} URLs for {0}'.format(set_name[0], len(urls_for_set)))
 
@@ -646,12 +647,12 @@ def determine_gatherer_sets(args: Dict[str, Any]) -> List[List[str]]:
         with pathlib.Path(root_p, file_p).open('r', encoding='utf8') as f:
             this_set_name = json.load(f)
             if 'SET' in this_set_name:
-                set_value = [this_set_name['SET']['name'], file.split('.json')[0]]
+                set_value = [this_set_name['SET']['name'], file.name.split('.json')[0]]
                 all_sets.append(set_value)
 
     all_sets: List[List[str]] = list()
     if args['all_sets']:
-        for root, _, files in os.walk(mtg_storage.SET_CONFIG_DIR):
+        for root, _, files in mtg_storage.path_walk(mtg_storage.SET_CONFIG_DIR):
             for file in files:
                 if file.endswith('.json'):
                     add_to_sets_to_build(root, file)
@@ -661,9 +662,9 @@ def determine_gatherer_sets(args: Dict[str, Any]) -> List[List[str]]:
             str(sa.upper() + '_') if sa.upper() in mtg_global.INVALID_FILE_NAMES else sa.upper() for sa in args['sets']
         ]
 
-        for root, _, files in os.walk(mtg_storage.SET_CONFIG_DIR):
+        for root, _, files in mtg_storage.path_walk(mtg_storage.SET_CONFIG_DIR):
             for file in files:
-                set_name: str = file.split('.json')[0]
+                set_name: str = file.name.split('.json')[0]
                 if str.upper(set_name) in set_args:
                     add_to_sets_to_build(root, file)
                     set_args.remove(set_name)
@@ -691,7 +692,7 @@ def create_combined_outputs() -> None:
         one conglomerate file.
         """
         all_sets_data: Dict[str, mtg_global.AllSetsDescription] = dict()
-        for file in os.listdir(mtg_storage.SET_OUT_DIR):
+        for file in [x for x in pathlib.Path(mtg_storage.SET_OUT_DIR).glob('**/*') if x.is_file()]:
             with pathlib.Path(mtg_storage.SET_OUT_DIR, file).open('r', encoding='utf-8') as f:
                 file_content = json.load(f)
 
@@ -705,7 +706,7 @@ def create_combined_outputs() -> None:
                 file_content.pop('mkm_name', None)
                 file_content.pop('magicCardsInfoCode', None)
 
-                set_name = file.split('.')[0]
+                set_name = file.name.split('.')[0]
                 all_sets_data[set_name] = file_content
         return all_sets_data
 
@@ -717,7 +718,7 @@ def create_combined_outputs() -> None:
         one conglomerate file.
         """
         all_cards_data: Dict[str, mtg_global.AllCardsDescription] = dict()
-        for file in os.listdir(mtg_storage.SET_OUT_DIR):
+        for file in [x for x in pathlib.Path(mtg_storage.SET_OUT_DIR).glob('**/*') if x.is_file()]:
             with pathlib.Path(mtg_storage.SET_OUT_DIR, file).open('r', encoding='utf-8') as f:
                 file_content = json.load(f)
 

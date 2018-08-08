@@ -403,7 +403,7 @@ def parse_card_legal(soup: bs4.BeautifulSoup) -> List[dict]:
     return sorted(card_formats, key=lambda f: f['format'])
 
 
-def build_id_part(set_name: List[str], card_mid: int, card_name: str) -> str:
+def build_id_part(set_name: List[str], card_mid: int, card_name: Optional[str]) -> str:
     """
     Create a unique ID for the card based on the set name, card's mid, and the card's name
     :param set_name:
@@ -414,6 +414,8 @@ def build_id_part(set_name: List[str], card_mid: int, card_name: str) -> str:
     card_hash = hashlib.sha3_256()
     card_hash.update(set_name[0].encode('utf-8'))
     card_hash.update(str(card_mid).encode('utf-8'))
-    card_hash.update(str(card_name).encode('utf-8'))
+
+    if card_name is not None:
+        card_hash.update(str(card_name).encode('utf-8'))
 
     return card_hash.hexdigest()

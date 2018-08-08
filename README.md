@@ -4,7 +4,7 @@ If you would like to talk to the devs, [join us on Discord](https://discord.gg/H
 
 # How to build
 
-First, you will need at least Python 3.6.
+First, you will need at least Python 3.7.
 
 Then, run the following to install dependencies:
 
