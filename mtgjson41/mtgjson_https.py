@@ -138,7 +138,7 @@ def parse_scryfall_foreign(sf_prints_url: str, set_name: str, mid_entry: int) ->
             continue
 
         card_foreign_entry: Dict[str, str] = dict()
-        card_foreign_entry["language"] = mtgjson41.LANGUAGE_MAP.get(foreign_card["lang"])
+        card_foreign_entry["language"] = mtgjson41.LANGUAGE_MAP[foreign_card["lang"]]
         card_foreign_entry["multiverseid"] = foreign_card["multiverse_ids"][mid_entry]
         card_foreign_entry["text"] = foreign_card.get("printed_text")
         card_foreign_entry["flavor"] = foreign_card.get("flavor_text")
