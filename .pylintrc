@@ -15,10 +15,10 @@ ignore-patterns=
 
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
-# init-hook='sys.path = list(); sys.path.append(".")'
+#init-hook=
 
 # Use multiple processes to speed up Pylint.
-jobs=2
+jobs=1
 
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
