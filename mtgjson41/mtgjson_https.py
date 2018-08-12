@@ -126,25 +126,27 @@ def parse_scryfall_legalities(sf_card_legalities: Dict[str, str]) -> Dict[str, s
     return card_legalities
 
 
-def parse_scryfall_foreign_information() -> None:
-    """
-    "foreignData": [
-            {
-                "language": "Chinese Traditional",
-                "multiverseid": 424036,
-                "name": "翔空改裝",
-                "text": "",
-                "type": "結界～ - 靈氣"
-            },
-            {
-                "language": "German",
-                "multiverseid": 424220,
-                "name": "Flugmodifikation",
-                "text": ""
-                "type": "Verzauberung — Aura"
-            },
-    """
-    return
+def parse_scryfall_foreign(sf_prints_url: str, set_name: str, mid_entry: int) -> List[Dict[str, str]]:
+    card_foreign_entries: List[Dict[str, str]] = list()
+
+    # Add information to get all languages
+    sf_prints_url = sf_prints_url.replace("&unique=prints", "+lang%3Aany&unique=prints")
+
+    prints_api_json: Dict[str, Any] = download_scryfall_json(sf_prints_url)
+    for foreign_card in prints_api_json["data"]:
+        if set_name != foreign_card["set"] or foreign_card["lang"] == "en":
+            continue
+
+        card_foreign_entry: Dict[str, str] = dict()
+        card_foreign_entry["language"] = mtgjson41.LANGUAGE_MAP.get(foreign_card["lang"])
+        card_foreign_entry["multiverseid"] = foreign_card["multiverse_ids"][mid_entry]
+        card_foreign_entry["text"] = foreign_card.get("printed_text")
+        card_foreign_entry["flavor"] = foreign_card.get("flavor_text")
+        card_foreign_entry["type"] = foreign_card["printed_type_line"]
+
+        card_foreign_entries.append(card_foreign_entry)
+
+    return card_foreign_entries
 
 
 def parse_from_scryfall_cards(sf_cards: List[Dict[str, Any]], sf_card_face: int = 0) -> List[Dict[str, Any]]:
@@ -209,7 +211,7 @@ def parse_from_scryfall_cards(sf_cards: List[Dict[str, Any]], sf_card_face: int 
 
         # Characteristics that we cannot get from Scryfall
         # Characteristics we have to do further API calls for
-        mtgjson_card["foreignData"] = ""
+        mtgjson_card["foreignData"] = parse_scryfall_foreign(sf_card["prints_search_uri"], sf_card["set"], sf_card_face)
         mtgjson_card["originalText"] = ""
         mtgjson_card["originalType"] = ""
 
