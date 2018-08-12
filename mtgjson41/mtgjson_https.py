@@ -99,8 +99,8 @@ def scryfall_to_mtgjson(sf_cards: List[Dict[str, Any]], sf_card_face: int = 0) -
 
         # Characteristics that we cannot get from Scryfall
         # Characteristics we have to do further API calls for
-        mtgjson_card["foreignData"] = parse_scryfall_foreign(sf_card["prints_search_uri"], sf_card["set"],
-                                                             sf_card_face)  # Dict[str, str]
+        mtgjson_card["foreignData"] = parse_scryfall_foreign(sf_card["prints_search_uri"],
+                                                             sf_card["set"])  # Dict[str, str]
         mtgjson_card["originalText"] = ""  # str
         mtgjson_card["originalType"] = ""  # str
 
@@ -225,7 +225,7 @@ def parse_scryfall_legalities(sf_card_legalities: Dict[str, str]) -> Dict[str, s
     return card_legalities
 
 
-def parse_scryfall_foreign(sf_prints_url: str, set_name: str, mid_entry: int) -> List[Dict[str, str]]:
+def parse_scryfall_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
     card_foreign_entries: List[Dict[str, str]] = list()
 
     # Add information to get all languages
@@ -238,10 +238,10 @@ def parse_scryfall_foreign(sf_prints_url: str, set_name: str, mid_entry: int) ->
 
         card_foreign_entry: Dict[str, str] = dict()
         card_foreign_entry["language"] = mtgjson41.LANGUAGE_MAP[foreign_card["lang"]]
-        card_foreign_entry["multiverseid"] = foreign_card["multiverse_ids"][mid_entry]
+        card_foreign_entry["multiverseid"] = foreign_card["multiverse_ids"][0]
         card_foreign_entry["text"] = foreign_card.get("printed_text")
         card_foreign_entry["flavor"] = foreign_card.get("flavor_text")
-        card_foreign_entry["type"] = foreign_card["printed_type_line"]
+        card_foreign_entry["type"] = foreign_card.get("printed_type_line")
 
         card_foreign_entries.append(card_foreign_entry)
 
@@ -309,11 +309,11 @@ def main() -> None:
     """
     Temporary main method
     """
-    set_list: List[str] = ["V11"]
+    set_list: List[str] = ["ISD", "ORI"]
     scryfall_sets: List[List[Dict[str, Any]]] = [get_scryfall_set(set_code) for set_code in set_list]
     mtgjson_full_sets: List[Dict[str, Any]] = list()
 
-    pool: multiprocessing.pool.ThreadPool = multiprocessing.pool.ThreadPool()
+    pool: multiprocessing.pool.ThreadPool = multiprocessing.pool.ThreadPool(processes=8)
     for sf_set, set_code in zip(scryfall_sets, set_list):
         mtgjson_full_sets.append(pool.apply(build_output_file, args=(
             sf_set,
