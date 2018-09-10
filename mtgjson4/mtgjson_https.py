@@ -1,19 +1,17 @@
+import bs4
 import configparser
 import copy
 import json
 import logging
-import multiprocessing.pool
+import mtgjson4
+import multiprocessing
 import pathlib
+import requests
 from typing import List, Dict, Any, Tuple, Set, Optional
 
-import bs4
-import requests
 
-import mtgjson4
-
-
-def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str, sf_card_face: int = 0) -> Dict[str, Any]:
-    output_file: Dict[str, Any] = dict()
+def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str, Any]:
+    output_file: Dict[str, Any] = {}
 
     # Open set_outputs and read into config_file
     file_path: Optional[pathlib.Path] = find_file(f'{set_code.upper()}.json', mtgjson4.SET_CONFIG_DIR)
@@ -30,88 +28,98 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str, sf_card_fac
     # Declare the version of the build in the output file
     output_file['meta'] = {'version': mtgjson4.__VERSION__, 'date': mtgjson4.__VERSION_DATE__}
 
-    output_file['cards'] = scryfall_to_mtgjson(sf_cards, sf_card_face)
+    logging.info("Starting cards for {}".format(set_code))
+    output_file['cards'] = scryfall_to_mtgjson(sf_cards)
+    logging.info("Finished cards for {}".format(set_code))
 
-    tokens_dictionary = None
+    tokens_dictionary = None  # TODO
     if tokens_dictionary:
         output_file['tokens'] = tokens_dictionary
 
     return output_file
 
 
-def scryfall_to_mtgjson(sf_cards: List[Dict[str, Any]], sf_card_face: int = 0) -> List[Dict[str, Any]]:
-    mtgjson_cards: List[Dict[str, Any]] = list()
+def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0, recurse: bool = True) -> List[Dict[str, Any]]:
+    mtgjson_cards: List[Dict[str, Any]] = []
+    mtgjson_card: Dict[str, Any] = {}
 
-    for sf_card in sf_cards:
-        mtgjson_card: Dict[str, Any] = dict()
+    # If flip-type, go to card_faces for alt attributes
+    face_data: Dict[str, Any] = sf_card
 
-        # If flip-type, go to card_faces for alt attributes
-        face_data: Dict[str, Any] = sf_card
-        if "card_faces" in sf_card:
-            mtgjson_card["names"] = sf_card["name"].split(" // ")  # List[str]
-            face_data = sf_card["card_faces"][sf_card_face]
+    if "card_faces" in sf_card and recurse:
+        mtgjson_card["names"] = sf_card["name"].split(" // ")  # List[str]
+        face_data = sf_card["card_faces"][sf_card_face]
 
-            # Recursively parse the other cards within this card too
-            # Only call recursive if it is the first time we see this card object
-            if sf_card_face == 0:
-                for i in range(1, len(sf_card["card_faces"])):
-                    mtgjson_cards += scryfall_to_mtgjson([sf_card], i)
+        # Recursively parse the other cards within this card too
+        # Only call recursive if it is the first time we see this card object
+        if sf_card_face == 0:
+            for i in range(1, len(sf_card["card_faces"])):
+                logging.info("Parsing additional card {0} face {1}".format(sf_card, i))
+                mtgjson_cards += build_mtgjson_card(sf_card, i, False)
 
-        # Characteristics that can are not shared to both sides of flip-type cards
-        mtgjson_card["manaCost"] = face_data.get("mana_cost")  # str
-        mtgjson_card["name"] = face_data.get("name")  # str
-        mtgjson_card["type"] = face_data.get("type_line")  # str
-        mtgjson_card["text"] = face_data.get("oracle_text")  # str
-        mtgjson_card["colors"] = face_data.get("colors")  # List[str]
-        mtgjson_card["power"] = face_data.get("power")  # str
-        mtgjson_card["toughness"] = face_data.get("toughness")  # str
-        mtgjson_card["loyalty"] = face_data.get("loyalty")  # str
-        mtgjson_card["watermark"] = face_data.get("watermark")  # str
-        mtgjson_card["multiverseid"] = sf_card["multiverse_ids"][sf_card_face]  # int
+    # Characteristics that can are not shared to both sides of flip-type cards
+    mtgjson_card["manaCost"] = face_data.get("mana_cost")  # str
+    mtgjson_card["name"] = face_data.get("name")  # str
+    mtgjson_card["type"] = face_data.get("type_line")  # str
+    mtgjson_card["text"] = face_data.get("oracle_text")  # str
+    mtgjson_card["colors"] = face_data.get("colors")  # List[str]
+    mtgjson_card["power"] = face_data.get("power")  # str
+    mtgjson_card["toughness"] = face_data.get("toughness")  # str
+    mtgjson_card["loyalty"] = face_data.get("loyalty")  # str
+    mtgjson_card["watermark"] = face_data.get("watermark")  # str
 
-        # Characteristics that are shared to all sides of flip-type cards, that we don't have to modify
-        mtgjson_card["artist"] = sf_card.get("artist")  # str
-        mtgjson_card["borderColor"] = sf_card.get("border_color")
-        mtgjson_card["colorIdentity"] = sf_card.get("color_identity")  # List[str]
-        mtgjson_card["convertedManaCost"] = sf_card.get("cmc")  # float
-        mtgjson_card["flavorText"] = sf_card.get("flavor_text")  # str
-        mtgjson_card["frameVersion"] = sf_card.get("frame")  # str
-        mtgjson_card["hasFoil"] = sf_card.get("foil")  # bool
-        mtgjson_card["hasNonFoil"] = sf_card.get("nonfoil")  # bool
-        mtgjson_card["isOnlineOnly"] = sf_card.get("digital")  # bool
-        mtgjson_card["isOversized"] = sf_card.get("oversized")  # bool
-        mtgjson_card["layout"] = sf_card.get("layout")  # str
-        mtgjson_card["number"] = sf_card.get("collector_number")  # str
-        mtgjson_card["reserved"] = sf_card.get("reserved")  # bool
-        mtgjson_card["uuid"] = sf_card.get("id")  # str
+    logging.info("Break Point {2}: {0} at index {1}".format(sf_card["multiverse_ids"], sf_card_face, mtgjson_card["name"]))
+    mtgjson_card["multiverseid"] = sf_card["multiverse_ids"][sf_card_face]  # int
 
-        # Characteristics that we have to format ourselves from provided data
-        mtgjson_card["timeshifted"] = (sf_card.get("timeshifted") or sf_card.get("futureshifted"))  # bool
-        mtgjson_card["rarity"] = sf_card.get("rarity") if not mtgjson_card.get("timeshifted") else "Special"  # str
+    # Characteristics that are shared to all sides of flip-type cards, that we don't have to modify
+    mtgjson_card["artist"] = sf_card.get("artist")  # str
+    mtgjson_card["borderColor"] = sf_card.get("border_color")
+    mtgjson_card["colorIdentity"] = sf_card.get("color_identity")  # List[str]
+    mtgjson_card["convertedManaCost"] = sf_card.get("cmc")  # float
+    mtgjson_card["flavorText"] = sf_card.get("flavor_text")  # str
+    mtgjson_card["frameVersion"] = sf_card.get("frame")  # str
+    mtgjson_card["hasFoil"] = sf_card.get("foil")  # bool
+    mtgjson_card["hasNonFoil"] = sf_card.get("nonfoil")  # bool
+    mtgjson_card["isOnlineOnly"] = sf_card.get("digital")  # bool
+    mtgjson_card["isOversized"] = sf_card.get("oversized")  # bool
+    mtgjson_card["layout"] = sf_card.get("layout")  # str
+    mtgjson_card["number"] = sf_card.get("collector_number")  # str
+    mtgjson_card["reserved"] = sf_card.get("reserved")  # bool
+    mtgjson_card["uuid"] = sf_card.get("id")  # str
 
-        # Characteristics that we need custom functions to parse
-        mtgjson_card["legalities"] = parse_scryfall_legalities(sf_card["legalities"])  # Dict[str, str]
-        mtgjson_card["rulings"] = parse_scryfall_rulings(sf_card["rulings_uri"])  # List[Dict[str, str]]
-        mtgjson_card["printings"] = parse_scryfall_printings(sf_card["prints_search_uri"])  # List[str]
+    # Characteristics that we have to format ourselves from provided data
+    mtgjson_card["timeshifted"] = (sf_card.get("timeshifted") or sf_card.get("futureshifted"))  # bool
+    mtgjson_card["rarity"] = sf_card.get("rarity") if not mtgjson_card.get("timeshifted") else "Special"  # str
 
-        card_types: Tuple[List[str], List[str], List[str]] = parse_scryfall_card_types(mtgjson_card["type"])
-        mtgjson_card["supertypes"] = card_types[0]  # List[str]
-        mtgjson_card["types"] = card_types[1]  # List[str]
-        mtgjson_card["subtypes"] = card_types[2]  # List[str]
+    # Characteristics that we need custom functions to parse
+    mtgjson_card["legalities"] = parse_scryfall_legalities(sf_card["legalities"])  # Dict[str, str]
+    mtgjson_card["rulings"] = parse_scryfall_rulings(sf_card["rulings_uri"])  # List[Dict[str, str]]
+    mtgjson_card["printings"] = parse_scryfall_printings(sf_card["prints_search_uri"])  # List[str]
 
-        # Characteristics that we cannot get from Scryfall
-        # Characteristics we have to do further API calls for
-        mtgjson_card["foreignData"] = parse_sf_foreign(sf_card["prints_search_uri"], sf_card["set"])  # Dict[str, str]
+    card_types: Tuple[List[str], List[str], List[str]] = parse_scryfall_card_types(mtgjson_card["type"])
+    mtgjson_card["supertypes"] = card_types[0]  # List[str]
+    mtgjson_card["types"] = card_types[1]  # List[str]
+    mtgjson_card["subtypes"] = card_types[2]  # List[str]
 
-        original_soup = download_from_gatherer(mtgjson_card["multiverseid"])
-        div_name = layout_options(original_soup)
+    # Characteristics that we cannot get from Scryfall
+    # Characteristics we have to do further API calls for
+    mtgjson_card["foreignData"] = parse_sf_foreign(sf_card["prints_search_uri"], sf_card["set"])  # Dict[str, str]
 
-        mtgjson_card["originalText"] = parse_card_original_text(original_soup, div_name)  # str
-        mtgjson_card["originalType"] = parse_card_original_type(original_soup, div_name)  # str
+    original_soup = download_from_gatherer(mtgjson_card["multiverseid"])
+    div_name = layout_options(original_soup)
 
-        logging.info("Parsed {0} from {1}".format(mtgjson_card.get("name"), sf_card.get("set")))
-        mtgjson_cards.append(mtgjson_card)
+    mtgjson_card["originalText"] = parse_card_original_text(original_soup, div_name)  # str
+    mtgjson_card["originalType"] = parse_card_original_type(original_soup, div_name)  # str
+
+    logging.info("Parsed {0} from {1}".format(mtgjson_card.get("name"), sf_card.get("set")))
+    mtgjson_cards.append(mtgjson_card)
     return mtgjson_cards
+
+
+def scryfall_to_mtgjson(sf_cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    pool: multiprocessing.Pool = multiprocessing.Pool(processes=8)
+    results = pool.map(build_mtgjson_card, sf_cards)
+    return results
 
 
 def download_from_scryfall(scryfall_url: str) -> Dict[str, Any]:
@@ -373,7 +381,7 @@ def write_to_output(set_name: str, file_contents: Dict[str, Any]) -> None:
     """
     mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
     with pathlib.Path(mtgjson4.COMPILED_OUTPUT_DIR, set_name.upper() + ".json").open('w', encoding='utf-8') as f:
-        file_contents["cards"] = remove_null_fields(file_contents["cards"])
+        # file_contents["cards"] = remove_null_fields(file_contents["cards"])
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
         return
 
@@ -382,21 +390,13 @@ def main() -> None:
     """
     Temporary main method
     """
-    set_list: List[str] = ["ISD", "ORI"]
+    set_list: List[str] = ["AKH"]
     scryfall_sets: List[List[Dict[str, Any]]] = [get_scryfall_set(set_code) for set_code in set_list]
-    mtgjson_full_sets: List[Dict[str, Any]] = list()
 
-    pool: multiprocessing.pool.ThreadPool = multiprocessing.pool.ThreadPool(processes=8)
+    # For each set, build it in memory then dump it to a file
+    # Prevents excessive memory usage
     for sf_set, set_code in zip(scryfall_sets, set_list):
-        mtgjson_full_sets.append(pool.apply(build_output_file, args=(
-            sf_set,
-            set_code,
-            0,
-        )))
-    pool.close()
-
-    for set_name, data in zip(set_list, mtgjson_full_sets):
-        write_to_output(set_name, data)
+        write_to_output(set_code, build_output_file(sf_set, set_code))
 
 
 if __name__ == '__main__':
