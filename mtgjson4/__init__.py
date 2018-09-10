@@ -12,12 +12,13 @@ VERSION_INFO = f'MTGJSON\nVersion {__VERSION__}\n{__VERSION_DATE__}'
 DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
 
 # Globals
-SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
+SCRYFALL_API_SETS: str = 'https://api.scryfall.com/sets/'
 SUPERTYPES: List[str] = ['Basic', 'Legendary', 'Ongoing', 'Snow', 'World']
 COMPILED_OUTPUT_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent / 'set_outputs'
 SET_CONFIG_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent / 'set_configs'
+LOG_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent / 'logs'
 CONFIG_PATH: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent / 'mtgjson.properties'
-GATHERER_CARD: str = "http://gatherer.wizards.com/Pages/Card/Details.aspx"
+GATHERER_CARD: str = 'http://gatherer.wizards.com/Pages/Card/Details.aspx'
 
 LANGUAGE_MAP: Dict[str, str] = {
     'de': 'German',
@@ -82,10 +83,12 @@ def get_symbol_short_name(key_to_find: str) -> str:
 
 
 # Logging configuration
+LOG_DIR.mkdir(exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
-    format="[%(levelname)s] %(asctime)s: %(message)s",
+    format='[%(levelname)s] %(asctime)s: %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('../logs/mtgjson_' + str(time.strftime('%Y-%m-%d_%H:%M:%S')) + '.log')
+        logging.FileHandler(
+            str(pathlib.Path.joinpath(LOG_DIR, 'mtgjson_' + str(time.strftime('%Y-%m-%d_%H:%M:%S')) + '.log')))
     ])
