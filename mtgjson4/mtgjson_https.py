@@ -54,7 +54,7 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0, recurse: 
         # Only call recursive if it is the first time we see this card object
         if sf_card_face == 0:
             for i in range(1, len(sf_card["card_faces"])):
-                logging.info("Parsing additional card {0} face {1}".format(sf_card, i))
+                logging.info("Parsing additional card {0} face {1}".format(sf_card.get("name"), i))
                 mtgjson_cards += build_mtgjson_card(sf_card, i, False)
 
     # Characteristics that can are not shared to both sides of flip-type cards
@@ -68,8 +68,10 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0, recurse: 
     mtgjson_card["loyalty"] = face_data.get("loyalty")  # str
     mtgjson_card["watermark"] = face_data.get("watermark")  # str
 
-    logging.info("Break Point {2}: {0} at index {1}".format(sf_card["multiverse_ids"], sf_card_face, mtgjson_card["name"]))
-    mtgjson_card["multiverseid"] = sf_card["multiverse_ids"][sf_card_face]  # int
+    try:
+        mtgjson_card["multiverseid"] = sf_card["multiverse_ids"][sf_card_face]  # int
+    except IndexError:
+        mtgjson_card["multiverseid"] = sf_card["multiverse_ids"][0]  # int
 
     # Characteristics that are shared to all sides of flip-type cards, that we don't have to modify
     mtgjson_card["artist"] = sf_card.get("artist")  # str
@@ -390,7 +392,7 @@ def main() -> None:
     """
     Temporary main method
     """
-    set_list: List[str] = ["AKH"]
+    set_list: List[str] = ["AKH", "ISD", "ORI"]
     scryfall_sets: List[List[Dict[str, Any]]] = [get_scryfall_set(set_code) for set_code in set_list]
 
     # For each set, build it in memory then dump it to a file
