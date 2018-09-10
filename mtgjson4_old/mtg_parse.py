@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
 import bs4
 
-from mtgjson4 import mtg_global
+from mtgjson4_old import mtg_global
 
 PowTouLoyaltyVanType = Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]
 

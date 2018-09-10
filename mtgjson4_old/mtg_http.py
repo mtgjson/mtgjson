@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Set, Tuple, Union
 
 import aiohttp
 import bs4
-
 import mtgjson4.mtg_storage
 
 SEARCH_URL = 'http://gatherer.wizards.com/Pages/Search/Default.aspx'
