@@ -109,6 +109,8 @@ venv.bak/
 # VS Code
 .vscode/
 
+.DS_Store
+
 # MTG JSON
 set_outputs/
 compiled_outputs/

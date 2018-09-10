@@ -7,14 +7,14 @@ from typing import List, Dict, Any, Tuple, Set, Optional
 
 import requests
 
-import mtgjson41
+import mtgjson4
 
 
 def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str, sf_card_face: int = 0) -> Dict[str, Any]:
     output_file: Dict[str, Any] = dict()
 
     # Open set_outputs and read into config_file
-    file_path: Optional[pathlib.Path] = find_file(f'{set_code.upper()}.json', mtgjson41.SET_CONFIG_DIR)
+    file_path: Optional[pathlib.Path] = find_file(f'{set_code.upper()}.json', mtgjson4.SET_CONFIG_DIR)
     if file_path:
         with pathlib.Path(file_path).open('r', encoding='utf-8') as f:
             config_file: Dict[str, Any] = json.loads(f.read())
@@ -26,7 +26,7 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str, sf_card_fac
         return {"cards": []}
 
     # Declare the version of the build in the output file
-    output_file['meta'] = {'version': mtgjson41.__VERSION__, 'date': mtgjson41.__VERSION_DATE__}
+    output_file['meta'] = {'version': mtgjson4.__VERSION__, 'date': mtgjson4.__VERSION_DATE__}
 
     output_file['cards'] = scryfall_to_mtgjson(sf_cards, sf_card_face)
 
@@ -117,7 +117,7 @@ def download_from_scryfall(scryfall_url: str) -> Dict[str, Any]:
     """
     # Open and read MTGJSON secret properties
     config = configparser.RawConfigParser()
-    config.read(mtgjson41.CONFIG_PATH)
+    config.read(mtgjson4.CONFIG_PATH)
 
     request_api_json: Dict[str, Any] = requests.get(
         url=scryfall_url, headers={
@@ -136,7 +136,7 @@ def get_scryfall_set(set_code: str) -> List[Dict[str, Any]]:
     :return: List of all card objects
     """
     logging.info("Downloading set {0} information".format(set_code))
-    set_api_json: Dict[str, Any] = download_from_scryfall(mtgjson41.SCRYFALL_API_SETS + set_code)
+    set_api_json: Dict[str, Any] = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + set_code)
     cards_api_url: Optional[str] = set_api_json.get("search_uri")
 
     # All cards in the set structure
@@ -203,7 +203,7 @@ def parse_scryfall_card_types(card_type: str) -> Tuple[List[str], List[str], Lis
         supertypes_and_types = str(types)
 
     for value in supertypes_and_types.split(' '):
-        if value in mtgjson41.SUPERTYPES:
+        if value in mtgjson4.SUPERTYPES:
             super_types.append(value)
         elif value:
             types.append(value)
@@ -237,7 +237,7 @@ def parse_scryfall_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, 
             continue
 
         card_foreign_entry: Dict[str, str] = dict()
-        card_foreign_entry["language"] = mtgjson41.LANGUAGE_MAP[foreign_card["lang"]]
+        card_foreign_entry["language"] = mtgjson4.LANGUAGE_MAP[foreign_card["lang"]]
         card_foreign_entry["multiverseid"] = foreign_card["multiverse_ids"][0]
         card_foreign_entry["text"] = foreign_card.get("printed_text")
         card_foreign_entry["flavor"] = foreign_card.get("flavor_text")
@@ -298,8 +298,8 @@ def write_to_output(set_name: str, file_contents: Dict[str, Any]) -> None:
     Write the compiled data to a file with the set's code
     Will ensure the output directory exists first
     """
-    mtgjson41.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
-    with pathlib.Path(mtgjson41.COMPILED_OUTPUT_DIR, set_name.upper() + ".json").open('w', encoding='utf-8') as f:
+    mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
+    with pathlib.Path(mtgjson4.COMPILED_OUTPUT_DIR, set_name.upper() + ".json").open('w', encoding='utf-8') as f:
         file_contents["cards"] = remove_null_fields(file_contents["cards"])
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
         return
