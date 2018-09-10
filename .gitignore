@@ -116,3 +116,5 @@ compiled_outputs/
 /tests/test_*.yaml
 /test_results/*.xml
 .mtgjson4_cache/
+*.properties
+.DS_Store
