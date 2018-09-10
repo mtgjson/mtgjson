@@ -15,7 +15,7 @@ setuptools.setup(
     version=setuptools.depends.get_module_constant('mtgjson4.mtg_globals', '__version__'),
     description='Build JSON files for distribution for Magic: The Gathering',
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type='text/markdown',
     url='https://github.com/mtgjson/mtgjson-python',
     author='Zach Halpern',
     author_email='zahalpern+github@gmail.com',
