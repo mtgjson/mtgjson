@@ -4,21 +4,8 @@ runtime_deps = [
     'aiohttp',
     'bs4',
     'mypy_extensions',
-    'requests'
+    'requests',
 ]
-
-dev_deps = [
-    'coverage',
-    'hypothesis>=3.1.0',
-    'mypy',
-    'pytest',
-    'pytest-asyncio',
-    'pytest-cov',
-    'tox',
-    'vcrpy',
-    'yapf'
-]
-
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -40,8 +27,6 @@ setuptools.setup(
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
     ],
     keywords='Magic: The Gathering, MTG, JSON, Card Games, Collectible, Trading Cards',
+    packages=setuptools.find_packages(),
     install_requires=runtime_deps,
-    extras_require={
-        'dev': dev_deps,
-    },
 )
