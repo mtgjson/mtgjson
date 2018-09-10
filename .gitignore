@@ -109,6 +109,8 @@ venv.bak/
 # VS Code
 .vscode/
 
+.DS_Store
+
 # MTG JSON
 set_outputs/
 compiled_outputs/
@@ -116,5 +118,6 @@ compiled_outputs/
 /tests/test_*.yaml
 /test_results/*.xml
 .mtgjson4_cache/
-*.properties
+
 .DS_Store
+mtgjson.properties
