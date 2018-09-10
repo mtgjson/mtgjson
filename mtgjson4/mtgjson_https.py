@@ -1,10 +1,12 @@
 import configparser
+import copy
 import json
 import logging
 import multiprocessing.pool
 import pathlib
 from typing import List, Dict, Any, Tuple, Set, Optional
 
+import bs4
 import requests
 
 import mtgjson4
@@ -99,10 +101,13 @@ def scryfall_to_mtgjson(sf_cards: List[Dict[str, Any]], sf_card_face: int = 0) -
 
         # Characteristics that we cannot get from Scryfall
         # Characteristics we have to do further API calls for
-        mtgjson_card["foreignData"] = parse_scryfall_foreign(sf_card["prints_search_uri"],
-                                                             sf_card["set"])  # Dict[str, str]
-        mtgjson_card["originalText"] = ""  # str
-        mtgjson_card["originalType"] = ""  # str
+        mtgjson_card["foreignData"] = parse_sf_foreign(sf_card["prints_search_uri"], sf_card["set"])  # Dict[str, str]
+
+        original_soup = download_from_gatherer(mtgjson_card["multiverseid"])
+        div_name = layout_options(original_soup)
+
+        mtgjson_card["originalText"] = parse_card_original_text(original_soup, div_name)  # str
+        mtgjson_card["originalType"] = parse_card_original_type(original_soup, div_name)  # str
 
         logging.info("Parsed {0} from {1}".format(mtgjson_card.get("name"), sf_card.get("set")))
         mtgjson_cards.append(mtgjson_card)
@@ -159,6 +164,74 @@ def get_scryfall_set(set_code: str) -> List[Dict[str, Any]]:
             cards_api_url = None
 
     return scryfall_cards
+
+
+def download_from_gatherer(card_mid: str) -> bs4.BeautifulSoup:
+    request_data_html: Any = requests.get(
+        url=mtgjson4.GATHERER_CARD, params={
+            'multiverseid': str(card_mid),
+            'printed': 'true',
+            'page': '0'
+        }, headers={})
+
+    soup: bs4.BeautifulSoup = bs4.BeautifulSoup(request_data_html.text, 'html.parser')
+    logging.info("Downloaded URL {0}".format(request_data_html.url))
+    return soup
+
+
+def parse_card_original_type(soup: bs4.BeautifulSoup, parse_div: str) -> str:
+    type_row = soup.find(id=parse_div.format('typeRow'))
+    type_row = type_row.findAll('div')[-1]
+    type_row = type_row.get_text(strip=True).replace('  ', ' ')
+    return str(type_row)
+
+
+def parse_card_original_text(soup: bs4.BeautifulSoup, parse_div: str) -> str:
+    text_row = soup.find(id=parse_div.format('textRow'))
+    return_text = ''
+
+    if text_row is not None:
+        text_row = text_row.select('div[class^=cardtextbox]')
+
+        return_text = ''
+        for div in text_row:
+            # Start by replacing all images with alternative text
+            div = replace_images_with_text(div)
+            # Next, just add the card text, line by line
+            return_text += div.get_text() + '\n'
+        return_text = return_text.strip()  # Remove last '\n'
+
+    return return_text
+
+
+def replace_images_with_text(tag: bs4.BeautifulSoup) -> bs4.BeautifulSoup:
+    """
+    Replaces the img tags of symbols with token representations
+    :rtype: set
+    :return: The color symbols found
+    """
+    tag_copy = copy.copy(tag)
+    images = tag_copy.find_all('img')
+    for symbol in images:
+        symbol_value = symbol['alt']
+        symbol_mapped = mtgjson4.get_symbol_short_name(symbol_value)
+        symbol.replace_with(f'{{{symbol_mapped}}}')
+
+    return tag_copy
+
+
+def layout_options(soup: bs4.BeautifulSoup) -> str:
+    number = soup.find_all('script')
+    client_id_tags = ''
+    for script in number:
+        if 'ClientIDs' in script.get_text():
+            client_id_tags = script.get_text()
+            break
+
+    # ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{} for single cards or
+    # ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_ctl0*_{} for double cards, * being any int
+    div_name = str((client_id_tags.split('ClientIDs.nameRow = \'')[1].split(';')[0])[:-8] + "{}").strip()
+    return div_name
 
 
 def parse_scryfall_rulings(rulings_url: str) -> List[Dict[str, str]]:
@@ -225,7 +298,7 @@ def parse_scryfall_legalities(sf_card_legalities: Dict[str, str]) -> Dict[str, s
     return card_legalities
 
 
-def parse_scryfall_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
+def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
     card_foreign_entries: List[Dict[str, str]] = list()
 
     # Add information to get all languages
