@@ -428,7 +428,7 @@ def find_file(name: str, path: pathlib.Path) -> Optional[pathlib.Path]:
     return None
 
 
-def write_to_output(set_name: str, file_contents: Dict[str, Any]) -> None:
+def write_to_file(set_name: str, file_contents: Dict[str, Any]) -> None:
     """
     Write the compiled data to a file with the set's code
     Will ensure the output directory exists first
@@ -468,11 +468,11 @@ def compile_and_write_outputs() -> None:
         """
         all_sets_data: Dict[str, Any] = {}
 
-        for file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-            if file.name in files_to_ignore:
+        for f in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
+            if f.name in files_to_ignore:
                 continue
 
-            with file.open('r', encoding='utf-8') as f:
+            with f.open('r', encoding='utf-8') as f:
                 file_content = json.load(f)
 
                 # Do not add these to the final output
@@ -485,7 +485,7 @@ def compile_and_write_outputs() -> None:
                 file_content.pop('mkm_name', None)
                 file_content.pop('magicCardsInfoCode', None)
 
-                set_name = file.name.split('.')[0]
+                set_name = f.name.split('.')[0]
                 all_sets_data[set_name] = file_content
         return all_sets_data
 
@@ -498,11 +498,11 @@ def compile_and_write_outputs() -> None:
         """
         all_cards_data: Dict[str, Any] = {}
 
-        for file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-            if file.name in files_to_ignore:
+        for f in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
+            if f.name in files_to_ignore:
                 continue
 
-            with file.open('r', encoding='utf-8') as f:
+            with f.open('r', encoding='utf-8') as f:
                 file_content = json.load(f)
 
                 for card in file_content['cards']:
@@ -533,10 +533,10 @@ def compile_and_write_outputs() -> None:
 
     # Actual compilation process of the method
     all_sets = create_all_sets()
-    write_to_output('AllSets', all_sets)
+    write_to_file('AllSets', all_sets)
 
     all_cards = create_all_cards()
-    write_to_output('AllCards', all_cards)
+    write_to_file('AllCards', all_cards)
 
 
 def main() -> None:
@@ -558,7 +558,7 @@ def main() -> None:
         for set_code in set_list:
             sf_set: List[Dict[str, Any]] = get_scryfall_set(set_code)
             compiled: Dict[str, Any] = build_output_file(sf_set, set_code)
-            write_to_output(set_code.upper(), compiled)
+            write_to_file(set_code.upper(), compiled)
 
     if args.compiled_outputs:
         logging.info("Compiling AllSets and AllCards")
