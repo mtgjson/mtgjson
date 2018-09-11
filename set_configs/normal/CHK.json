@@ -21,6 +21,9 @@
     "mkm_id": 48
   },
   "SET_CORRECTIONS": [{
+    "renumberImages": "Brothers Yamazaki",
+    "order": [78968, 85106]
+  }, {
     "match": {
       "multiverseid": 78968
     },

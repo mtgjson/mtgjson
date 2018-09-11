@@ -1,9 +1,10 @@
 {
   "SET": {
     "name": "Nemesis",
-    "code": "NEM",
+    "code": "NMS",
     "gathererCode": "NE",
     "magicCardsInfoCode": "ne",
+    "oldCode": "NEM",
     "releaseDate": "2000-02-14",
     "border": "black",
     "type": "expansion",

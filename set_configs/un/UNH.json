@@ -92,7 +92,11 @@
       "originalText": "Target player gains X life.",
       "manaCost": "{X}{W}",
       "cmc": 1,
-      "colors": ["W"]
+      "colors": ["White"],
+      "foreignNames": [{
+        "language": "French",
+        "name": "Qui"
+      }]
     }
   }, {
     "copyCard": "Who // What // When // Where // Why",
@@ -103,7 +107,11 @@
       "originalText": "Destroy target artifact.",
       "manaCost": "{2}{R}",
       "cmc": 3,
-      "colors": ["R"]
+      "colors": ["Red"],
+      "foreignNames": [{
+        "language": "French",
+        "name": "Quoi"
+      }]
     }
   }, {
     "copyCard": "Who // What // When // Where // Why",
@@ -114,7 +122,11 @@
       "originalText": "Counter target creature spell.",
       "manaCost": "{2}{U}",
       "cmc": 3,
-      "colors": ["U"]
+      "colors": ["Blue"],
+      "foreignNames": [{
+        "language": "French",
+        "name": "Quand"
+      }]
     }
   }, {
     "copyCard": "Who // What // When // Where // Why",
@@ -125,7 +137,11 @@
       "originalText": "Destroy target land.",
       "manaCost": "{3}{B}",
       "cmc": 4,
-      "colors": ["B"]
+      "colors": ["Black"],
+      "foreignNames": [{
+        "language": "French",
+        "name": "Où"
+      }]
     }
   }, {
     "match": {
@@ -138,7 +154,11 @@
       "originalText": "Destroy target enchantment.",
       "manaCost": "{1}{G}",
       "cmc": 2,
-      "colors": ["G"]
+      "colors": ["Green"],
+      "foreignNames": [{
+        "language": "French",
+        "name": "Pourquoi"
+      }]
     }
   }, {
     "match": {
@@ -150,11 +170,28 @@
       }
     }
   }, {
+    "copyCard": "Curse of the Fire Penguin Creature",
+    "replace": {
+      "name": "Curse of the Fire Penguin",
+      "type": "Enchantment -- Aura",
+      "text": "Enchant creature\nCurse of the Fire Penguin consumes and confuses enchanted creature.",
+      "originalText": "Curse of the Fire Penguin consumes and confuses enchanted creature.",
+      "originalType": "Enchant creature"
+    },
+    "remove": ["power","toughness"]
+  }, {
     "match": {
       "name": "Yet Another Æther Vortex"
     },
     "replace": {
       "name": "Yet Another Aether Vortex"
+    }
+  }, {
+    "match": {
+      "name": "Mox Lotus"
+    },
+    "replace": {
+      "text": "{T}: Add {∞}.\n{100}: Add one mana of any color."
     }
   }]
 }

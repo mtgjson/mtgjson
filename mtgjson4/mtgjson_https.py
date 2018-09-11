@@ -41,7 +41,14 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     output_file['cards'] = scryfall_to_mtgjson(sf_cards)
     logging.info('Finished cards for {}'.format(set_code))
 
-    tokens_dictionary = None  # TODO
+    tokens_dictionary = []
+    tokens_api_json: Dict[str, Any] = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + 't' + set_code)
+    for card in tokens_api_json['data']:
+        tokens_dictionary.append(card)
+
+    print(tokens_dictionary)
+    exit(0)
+
     if tokens_dictionary:
         output_file['tokens'] = tokens_dictionary
 

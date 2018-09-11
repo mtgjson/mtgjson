@@ -1,9 +1,10 @@
 {
   "SET": {
     "name": "Portal Second Age",
-    "code": "P02",
+    "code": "PO2",
     "gathererCode": "P2",
     "magicCardsInfoCode": "po2",
+    "oldCode": "P02",
     "releaseDate": "1998-06-24",
     "border": "black",
     "type": "starter",
