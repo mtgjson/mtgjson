@@ -41,16 +41,10 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     output_file['cards'] = scryfall_to_mtgjson(sf_cards)
     logging.info('Finished cards for {}'.format(set_code))
 
-    tokens_dictionary = []
-    tokens_api_json: Dict[str, Any] = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + 't' + set_code)
-    for card in tokens_api_json['data']:
-        tokens_dictionary.append(card)
-
-    print(tokens_dictionary)
-    exit(0)
-
-    if tokens_dictionary:
-        output_file['tokens'] = tokens_dictionary
+    logging.info('Starting tokens for {}'.format(set_code))
+    sf_tokens: List[Dict[str, Any]] = get_scryfall_set('t' + set_code)
+    output_file['tokens'] = sf_tokens
+    logging.info('Finished tokens for {}'.format(set_code))
 
     return output_file
 
@@ -379,11 +373,13 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
         if set_name != foreign_card['set'] or foreign_card['lang'] == "en":
             continue
 
-        card_foreign_entry: Dict[str, str] = {'language': mtgjson4.LANGUAGE_MAP[foreign_card['lang']],
-                                              'multiverseid': foreign_card['multiverse_ids'][0],
-                                              'text': foreign_card.get('printed_text'),
-                                              'flavor': foreign_card.get('flavor_text'),
-                                              'type': foreign_card.get('printed_type_line')}
+        card_foreign_entry: Dict[str, str] = {
+            'language': mtgjson4.LANGUAGE_MAP[foreign_card['lang']],
+            'multiverseid': foreign_card['multiverse_ids'][0],
+            'text': foreign_card.get('printed_text'),
+            'flavor': foreign_card.get('flavor_text'),
+            'type': foreign_card.get('printed_type_line')
+        }
 
         card_foreign_entries.append(card_foreign_entry)
 
@@ -475,11 +471,11 @@ def compile_and_write_outputs() -> None:
         """
         all_sets_data: Dict[str, Any] = {}
 
-        for f in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-            if f.name in files_to_ignore:
+        for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
+            if set_file.name in files_to_ignore:
                 continue
 
-            with f.open('r', encoding='utf-8') as f:
+            with set_file.open('r', encoding='utf-8') as f:
                 file_content = json.load(f)
 
                 # Do not add these to the final output
@@ -505,11 +501,11 @@ def compile_and_write_outputs() -> None:
         """
         all_cards_data: Dict[str, Any] = {}
 
-        for f in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-            if f.name in files_to_ignore:
+        for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
+            if set_file.name in files_to_ignore:
                 continue
 
-            with f.open('r', encoding='utf-8') as f:
+            with set_file.open('r', encoding='utf-8') as f:
                 file_content = json.load(f)
 
                 for card in file_content['cards']:
