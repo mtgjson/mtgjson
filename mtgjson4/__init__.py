@@ -4,12 +4,9 @@ import time
 from typing import List, Dict
 
 # Maintenance variables
-__VERSION__ = '4.0.0'
-__VERSION_DATE__ = '2018-05-30'
-
-MAINTAINER = 'Zach Halpern (GitHub: @ZeldaZach)'
-VERSION_INFO = f'MTGJSON\nVersion {__VERSION__}\n{__VERSION_DATE__}'
-DESCRIPTION = 'MTGJSON4 -- Create JSON files for distribution to the public\nMaintained by ' + MAINTAINER
+__VERSION__ = '4.0.0-beta.1'
+__VERSION_DATE__ = '2018-09-10'
+__MAINTAINER__ = 'Zach Halpern (GitHub: @ZeldaZach)'
 
 # Globals
 SCRYFALL_API_SETS: str = 'https://api.scryfall.com/sets/'
