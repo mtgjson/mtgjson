@@ -405,6 +405,19 @@ def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str,
     """
     Remove invalid field entries to shrink JSON output size
     """
+
+    def fix_foreign_entries(value: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        # List of dicts
+        fd_insert_list = []
+        for foreign_info in value:
+            fd_insert_dict = {}
+            for fd_key, fd_value in foreign_info.items():
+                if fd_value is not None:
+                    fd_insert_dict[fd_key] = fd_value
+
+            fd_insert_list.append(fd_insert_dict)
+        return fd_insert_list
+
     fixed_dict: List[Dict[str, Any]] = []
     remove_field_if_false: List[str] = ['reserved', 'isOversized', 'isOnlineOnly', 'timeshifted']
 
@@ -416,16 +429,7 @@ def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str,
                 if key in remove_field_if_false and value is False:
                     continue
                 if key == 'foreignData':
-                    # List of dicts
-                    fd_insert_list = []
-                    for foreign_info in value:
-                        fd_insert_dict = {}
-                        for fd_key, fd_value in foreign_info.items():
-                            if fd_value is not None:
-                                fd_insert_dict[fd_key] = fd_value
-
-                        fd_insert_list.append(fd_insert_dict)
-                    value = fd_insert_list
+                    value = fix_foreign_entries(value)
 
                 insert_value[key] = value
 
