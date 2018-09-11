@@ -488,7 +488,7 @@ def compile_and_write_outputs() -> None:
                 file_content.pop('mkm_name', None)
                 file_content.pop('magicCardsInfoCode', None)
 
-                set_name = f.name.split('.')[0]
+                set_name = set_file.name.split('.')[0]
                 all_sets_data[set_name] = file_content
         return all_sets_data
 
