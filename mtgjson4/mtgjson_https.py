@@ -401,16 +401,32 @@ def parse_scryfall_printings(sf_prints_url: str) -> List[str]:
     return list(card_sets)
 
 
-def remove_null_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Recursively remove all null values found
+    Remove invalid field entries to shrink JSON output size
     """
     fixed_dict: List[Dict[str, Any]] = []
+    remove_field_if_false: List[str] = ['reserved', 'isOversized', 'isOnlineOnly', 'timeshifted']
 
     for card_entry in card_list:
         insert_value = {}
+
         for key, value in card_entry.items():
             if value is not None:
+                if key in remove_field_if_false and value is False:
+                    continue
+                if key == 'foreignData':
+                    # List of dicts
+                    fd_insert_list = []
+                    for foreign_info in value:
+                        fd_insert_dict = {}
+                        for fd_key, fd_value in foreign_info.items():
+                            if fd_value is not None:
+                                fd_insert_dict[fd_key] = fd_value
+
+                        fd_insert_list.append(fd_insert_dict)
+                    value = fd_insert_list
+
                 insert_value[key] = value
 
         fixed_dict.append(insert_value)
@@ -438,7 +454,7 @@ def write_to_file(set_name: str, file_contents: Dict[str, Any]) -> None:
     """
     mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
     with pathlib.Path(mtgjson4.COMPILED_OUTPUT_DIR, set_name + '.json').open('w', encoding='utf-8') as f:
-        # file_contents['cards'] = remove_null_fields(file_contents['cards'])  # TODO
+        file_contents['cards'] = remove_unnecessary_fields(file_contents['cards'])
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
         return
 
