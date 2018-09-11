@@ -451,14 +451,15 @@ def find_file(name: str, path: pathlib.Path) -> Optional[pathlib.Path]:
     return None
 
 
-def write_to_file(set_name: str, file_contents: Dict[str, Any]) -> None:
+def write_to_file(set_name: str, file_contents: Dict[str, Any], do_cleanup: bool = False) -> None:
     """
     Write the compiled data to a file with the set's code
     Will ensure the output directory exists first
     """
     mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
     with pathlib.Path(mtgjson4.COMPILED_OUTPUT_DIR, set_name + '.json').open('w', encoding='utf-8') as f:
-        file_contents['cards'] = remove_unnecessary_fields(file_contents['cards'])
+        if do_cleanup:
+            file_contents['cards'] = remove_unnecessary_fields(file_contents['cards'])
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
         return
 
@@ -581,7 +582,7 @@ def main() -> None:
         for set_code in set_list:
             sf_set: List[Dict[str, Any]] = get_scryfall_set(set_code)
             compiled: Dict[str, Any] = build_output_file(sf_set, set_code)
-            write_to_file(set_code.upper(), compiled)
+            write_to_file(set_code.upper(), compiled, do_cleanup=True)
 
     if args.compiled_outputs:
         logging.info("Compiling AllSets and AllCards")
