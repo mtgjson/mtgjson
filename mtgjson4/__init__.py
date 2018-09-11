@@ -10,12 +10,14 @@ __MAINTAINER__ = 'Zach Halpern (GitHub: @ZeldaZach)'
 
 # Globals
 SCRYFALL_API_SETS: str = 'https://api.scryfall.com/sets/'
-SUPERTYPES: List[str] = ['Basic', 'Legendary', 'Ongoing', 'Snow', 'World']
-COMPILED_OUTPUT_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent / 'set_outputs'
-SET_CONFIG_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent / 'set_configs'
-LOG_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent / 'logs'
-CONFIG_PATH: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent / 'mtgjson.properties'
 GATHERER_CARD: str = 'http://gatherer.wizards.com/Pages/Card/Details.aspx'
+SUPERTYPES: List[str] = ['Basic', 'Legendary', 'Ongoing', 'Snow', 'World']
+TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
+COMPILED_OUTPUT_DIR: pathlib.Path = pathlib.Path.joinpath(TOP_LEVEL_DIR, 'set_outputs')
+SET_CONFIG_DIR: pathlib.Path = pathlib.Path.joinpath(TOP_LEVEL_DIR, 'set_configs')
+LOG_DIR: pathlib.Path = pathlib.Path.joinpath(TOP_LEVEL_DIR, 'logs')
+CONFIG_PATH: pathlib.Path = pathlib.Path.joinpath(TOP_LEVEL_DIR, 'mtgjson.properties')
+
 
 LANGUAGE_MAP: Dict[str, str] = {
     'de': 'German',
