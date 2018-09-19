@@ -14,7 +14,6 @@ GATHERER_CARD: str = 'http://gatherer.wizards.com/Pages/Card/Details.aspx'
 SUPERTYPES: List[str] = ['Basic', 'Host', 'Legendary', 'Ongoing', 'Snow', 'World']
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 COMPILED_OUTPUT_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath('set_outputs')
-SET_CONFIG_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath('set_configs')
 LOG_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath('logs')
 CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath('mtgjson.properties')
 

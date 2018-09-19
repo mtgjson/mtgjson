@@ -22,17 +22,25 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     """
     output_file: Dict[str, Any] = {}
 
-    # Open set_outputs and read into config_file
-    file_path: Optional[pathlib.Path] = find_file(f'{set_code.upper()}.json', mtgjson4.SET_CONFIG_DIR)
-    if file_path:
-        with pathlib.Path(file_path).open('r', encoding='utf-8') as f:
-            config_file: Dict[str, Any] = json.loads(f.read())
+    # Get the set config from ScryFall
+    set_config = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + '/' + set_code)
 
-            for key, value in config_file['SET'].items():
-                output_file[key] = value
-    else:
+    if set_config['object'] == 'error':
         logging.error('Set Config for {0} was not found, skipping...'.format(set_code))
         return {'cards': []}
+
+    output_file['name'] = set_config.get('name')
+    output_file['code'] = set_config.get('code')
+    output_file['mtgoCode'] = set_config.get('mtgo_code')
+    output_file['releaseDate'] = set_config.get('released_at')
+    output_file['type'] = set_config.get('set_type')
+    output_file['booster'] = ''  # TODO for 4.1
+
+    if set_config.get('digital'):
+        output_file['onlineOnly'] = True
+
+    if set_config.get('foil_only'):
+        output_file['foilOnly'] = True
 
     # Declare the version of the build in the output file
     output_file['meta'] = {'version': mtgjson4.__VERSION__, 'date': mtgjson4.__VERSION_DATE__}
@@ -409,10 +417,10 @@ def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str,
     Remove invalid field entries to shrink JSON output size
     """
 
-    def fix_foreign_entries(value: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def fix_foreign_entries(values: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         # List of dicts
         fd_insert_list = []
-        for foreign_info in value:
+        for foreign_info in values:
             fd_insert_dict = {}
             for fd_key, fd_value in foreign_info.items():
                 if fd_value is not None:
@@ -473,9 +481,9 @@ def get_all_sets() -> List[str]:
     in the config database.
     :return: List of all set codes found
     """
-    all_paths: List[pathlib.Path] = list(mtgjson4.SET_CONFIG_DIR.glob("**/*.json"))
-    all_sets: List[str] = [str(card_set).split('/')[-1][:-5] for card_set in all_paths]
-    return all_sets
+    downloaded = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS)
+    set_urls: List[str] = [set_obj['code'] for set_obj in downloaded['data']]
+    return set_urls
 
 
 def get_compiled_sets() -> List[str]:
