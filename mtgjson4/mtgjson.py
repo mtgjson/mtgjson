@@ -58,21 +58,34 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
 
 
 def build_mtgjson_tokens(sf_tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Convert Scryfall tokens to MTGJSON tokens
+    :param sf_tokens: All tokens in a set
+    :return: List of MTGJSON tokens
+    """
     token_cards: List[Dict[str, Any]] = []
 
     for sf_token in sf_tokens:
-        token_card: Dict[str, Any] = {'name': sf_token.get('name'), 'type': sf_token.get('type_line'),
-                                      'text': sf_token.get('oracle_text'), 'power': sf_token.get('power'),
-                                      'colors': sf_token.get('colors'), 'colorIdentity': sf_token.get('color_identity'),
-                                      'toughness': sf_token.get('toughness'), 'loyalty': sf_token.get('loyalty'),
-                                      'watermark': sf_token.get('watermark'), 'uuid': sf_token.get('id'),
-                                      'borderColor': sf_token.get('border_color'), 'artist': sf_token.get('artist'),
-                                      'isOnlineOnly': sf_token.get('digital'),
-                                      'number': sf_token.get('collector_number')}
+        token_card: Dict[str, Any] = {
+            'name': sf_token.get('name'),
+            'type': sf_token.get('type_line'),
+            'text': sf_token.get('oracle_text'),
+            'power': sf_token.get('power'),
+            'colors': sf_token.get('colors'),
+            'colorIdentity': sf_token.get('color_identity'),
+            'toughness': sf_token.get('toughness'),
+            'loyalty': sf_token.get('loyalty'),
+            'watermark': sf_token.get('watermark'),
+            'uuid': sf_token.get('id'),
+            'borderColor': sf_token.get('border_color'),
+            'artist': sf_token.get('artist'),
+            'isOnlineOnly': sf_token.get('digital'),
+            'number': sf_token.get('collector_number')
+        }
 
         reverse_related: List[str] = []
         if 'all_parts' in sf_token:
-            for a_part in sf_token.get('all_parts'):
+            for a_part in sf_token['all_parts']:
                 if a_part.get('name') != token_card.get('name'):
                     reverse_related.append(a_part.get('name'))
         token_card['reverseRelated'] = reverse_related
