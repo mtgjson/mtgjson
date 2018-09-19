@@ -49,15 +49,38 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     output_file['cards'] = scryfall_to_mtgjson(sf_cards)
     logging.info('Finished cards for {}'.format(set_code))
 
-    # TODO in 4.1
-    """
     logging.info('Starting tokens for {}'.format(set_code))
     sf_tokens: List[Dict[str, Any]] = get_scryfall_set('t' + set_code)
-    output_file['tokens'] = sf_tokens
+    output_file['tokens'] = build_mtgjson_tokens(sf_tokens)
     logging.info('Finished tokens for {}'.format(set_code))
-    """
 
     return output_file
+
+
+def build_mtgjson_tokens(sf_tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    token_cards: List[Dict[str, Any]] = []
+
+    for sf_token in sf_tokens:
+        token_card: Dict[str, Any] = {'name': sf_token.get('name'), 'type': sf_token.get('type_line'),
+                                      'text': sf_token.get('oracle_text'), 'power': sf_token.get('power'),
+                                      'colors': sf_token.get('colors'), 'colorIdentity': sf_token.get('color_identity'),
+                                      'toughness': sf_token.get('toughness'), 'loyalty': sf_token.get('loyalty'),
+                                      'watermark': sf_token.get('watermark'), 'uuid': sf_token.get('id'),
+                                      'borderColor': sf_token.get('border_color'), 'artist': sf_token.get('artist'),
+                                      'isOnlineOnly': sf_token.get('digital'),
+                                      'number': sf_token.get('collector_number')}
+
+        reverse_related: List[str] = []
+        if 'all_parts' in sf_token:
+            for a_part in sf_token.get('all_parts'):
+                if a_part.get('name') != token_card.get('name'):
+                    reverse_related.append(a_part.get('name'))
+        token_card['reverseRelated'] = reverse_related
+
+        logging.info("Parsed {0} from {1}".format(token_card.get('name'), sf_token.get('set')))
+        token_cards.append(token_card)
+
+    return token_cards
 
 
 def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[Dict[str, Any]]:
@@ -471,6 +494,7 @@ def write_to_file(set_name: str, file_contents: Dict[str, Any], do_cleanup: bool
     with pathlib.Path(mtgjson4.COMPILED_OUTPUT_DIR, set_name + '.json').open('w', encoding='utf-8') as f:
         if do_cleanup:
             file_contents['cards'] = remove_unnecessary_fields(file_contents['cards'])
+            file_contents['tokens'] = remove_unnecessary_fields(file_contents['tokens'])
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
         return
 
