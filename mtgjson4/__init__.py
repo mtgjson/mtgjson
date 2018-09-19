@@ -4,14 +4,14 @@ import time
 from typing import List, Dict
 
 # Maintenance variables
-__VERSION__ = '4.0.0-beta.1'
-__VERSION_DATE__ = '2018-09-10'
+__VERSION__ = '4.0.0-beta.2'
+__VERSION_DATE__ = '2018-09-19'
 __MAINTAINER__ = 'Zach Halpern (GitHub: @ZeldaZach)'
 
 # Globals
 SCRYFALL_API_SETS: str = 'https://api.scryfall.com/sets/'
 GATHERER_CARD: str = 'http://gatherer.wizards.com/Pages/Card/Details.aspx'
-SUPERTYPES: List[str] = ['Basic', 'Legendary', 'Ongoing', 'Snow', 'World']
+SUPERTYPES: List[str] = ['Basic', 'Host', 'Legendary', 'Ongoing', 'Snow', 'World']
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 COMPILED_OUTPUT_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath('set_outputs')
 SET_CONFIG_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath('set_configs')

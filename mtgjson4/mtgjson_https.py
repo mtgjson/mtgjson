@@ -41,10 +41,13 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     output_file['cards'] = scryfall_to_mtgjson(sf_cards)
     logging.info('Finished cards for {}'.format(set_code))
 
+    # TODO in 4.1
+    """
     logging.info('Starting tokens for {}'.format(set_code))
     sf_tokens: List[Dict[str, Any]] = get_scryfall_set('t' + set_code)
     output_file['tokens'] = sf_tokens
     logging.info('Finished tokens for {}'.format(set_code))
+    """
 
     return output_file
 
@@ -475,6 +478,17 @@ def get_all_sets() -> List[str]:
     return all_sets
 
 
+def get_compiled_sets() -> List[str]:
+    """
+    Grab the set codes for all sets that have already been
+    compiled and are awaiting use in the set_outputs dir.
+    :return: List of all set codes found
+    """
+    all_paths: List[pathlib.Path] = list(mtgjson4.COMPILED_OUTPUT_DIR.glob("**/*.json"))
+    all_sets_found: List[str] = [str(card_set).split('/')[-1][:-5] for card_set in all_paths]
+    return all_sets_found
+
+
 def compile_and_write_outputs() -> None:
     """
     This method class will create the combined output files
@@ -572,12 +586,19 @@ def main() -> None:
     parser.add_argument('-a', '--all-sets', action='store_true')
     parser.add_argument('-f', '--compiled-outputs', action='store_true')
     parser.add_argument('--skip-rebuild', action='store_true')
+    parser.add_argument('-c', '--skip-cached', action='store_true')
     args = parser.parse_args()
 
     if not args.skip_rebuild:
-        # Determine sets to build
+        # Determine sets to build, whether they're passed in as args or all sets in our configs
         set_list: List[str] = get_all_sets() if args.all_sets else args.sets
-        logging.info("Sets to compile {}".format(set_list))
+        logging.info("Sets to compile: {}".format(set_list))
+
+        # If we had to kill mid-rebuild, we can skip the sets that already were done
+        if args.skip_cached:
+            sets_compiled_already: List[str] = get_compiled_sets()
+            set_list = [s for s in set_list if s not in sets_compiled_already]
+            logging.info("Sets to compile, after cached sets removed: {}".format(set_list))
 
         for set_code in set_list:
             sf_set: List[Dict[str, Any]] = get_scryfall_set(set_code)
