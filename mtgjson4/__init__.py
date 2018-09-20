@@ -1,3 +1,6 @@
+"""
+MTGJSON Version 4 Initializer
+"""
 import logging
 import pathlib
 import time
@@ -90,4 +93,4 @@ logging.basicConfig(
     ],
 )
 
-logger = logging.getLogger()
+LOGGER = logging.getLogger()
