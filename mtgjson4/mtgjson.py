@@ -237,7 +237,7 @@ def get_scryfall_set(set_code: str) -> List[Dict[str, Any]]:
     mtgjson4.LOGGER.info('Downloading set {} information'.format(set_code))
     set_api_json: Dict[str, Any] = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + set_code)
     if set_api_json['object'] == 'error':
-        mtgjson4.LOGGER.error('Set api download failed: {}'.format(set_api_json))
+        mtgjson4.LOGGER.error('Set api download failed for {0}: {1}'.format(set_code, set_api_json))
         return []
 
     cards_api_url: Optional[str] = set_api_json.get('search_uri')
@@ -253,7 +253,7 @@ def get_scryfall_set(set_code: str) -> List[Dict[str, Any]]:
 
         cards_api_json: Dict[str, Any] = download_from_scryfall(cards_api_url)
         if cards_api_json['object'] == 'error':
-            mtgjson4.LOGGER.error('Error downloading set info: {}'.format(cards_api_json))
+            mtgjson4.LOGGER.error('Error downloading {0}: {1}'.format(set_code, cards_api_json))
             return scryfall_cards
 
         for card in cards_api_json['data']:
@@ -367,7 +367,7 @@ def parse_scryfall_rulings(rulings_url: str) -> List[Dict[str, str]]:
     """
     rules_api_json: Dict[str, Any] = download_from_scryfall(rulings_url)
     if rules_api_json['object'] == 'error':
-        mtgjson4.LOGGER.error('Error downloading rules: {}'.format(rules_api_json))
+        mtgjson4.LOGGER.error('Error downloading URL {0}: {1}'.format(rulings_url, rules_api_json))
 
     sf_rules: List[Dict[str, str]] = []
     mtgjson_rules: List[Dict[str, str]] = []
@@ -437,7 +437,7 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
 
     prints_api_json: Dict[str, Any] = download_from_scryfall(sf_prints_url)
     if prints_api_json['object'] == 'error':
-        mtgjson4.LOGGER.error('No data found: {}'.format(prints_api_json))
+        mtgjson4.LOGGER.error('No data found for {0}: {1}'.format(sf_prints_url, prints_api_json))
         return []
 
     for foreign_card in prints_api_json['data']:
