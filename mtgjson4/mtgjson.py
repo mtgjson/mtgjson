@@ -23,7 +23,7 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     output_file: Dict[str, Any] = {}
 
     # Get the set config from ScryFall
-    set_config = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + '/' + set_code)
+    set_config = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + set_code)
 
     if set_config['object'] == 'error':
         logging.error('Set Config for {0} was not found, skipping...'.format(set_code))
@@ -34,7 +34,7 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     output_file['mtgoCode'] = set_config.get('mtgo_code')
     output_file['releaseDate'] = set_config.get('released_at')
     output_file['type'] = set_config.get('set_type')
-    output_file['booster'] = ''  # TODO for 4.1
+    # output_file['booster'] = ''  # Maybe will re-add
 
     if set_config.get('digital'):
         output_file['onlineOnly'] = True
@@ -134,7 +134,10 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     try:
         mtgjson_card['multiverseid'] = sf_card['multiverse_ids'][sf_card_face]  # int
     except IndexError:
-        mtgjson_card['multiverseid'] = sf_card['multiverse_ids'][0]  # int
+        try:
+            mtgjson_card['multiverseid'] = sf_card['multiverse_ids'][0]  # int
+        except IndexError:
+            mtgjson_card['multiverseid'] = None  # int
 
     # Characteristics that are shared to all sides of flip-type cards, that we don't have to modify
     mtgjson_card['artist'] = sf_card.get('artist')  # str
@@ -170,13 +173,15 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     # Characteristics we have to do further API calls for
     mtgjson_card['foreignData'] = parse_sf_foreign(sf_card['prints_search_uri'], sf_card['set'])  # Dict[str, str]
 
-    original_soup = download_from_gatherer(mtgjson_card['multiverseid'])
-    div_name = layout_options(original_soup)
+    if mtgjson_card['multiverseid'] is not None:
+        original_soup = download_from_gatherer(mtgjson_card['multiverseid'])
+        div_name = layout_options(original_soup)
 
-    mtgjson_card['originalText'] = parse_card_original_text(original_soup, div_name)  # str
-    mtgjson_card['originalType'] = parse_card_original_type(original_soup, div_name)  # str
+        mtgjson_card['originalText'] = parse_card_original_text(original_soup, div_name)  # str
+        mtgjson_card['originalType'] = parse_card_original_type(original_soup, div_name)  # str
 
-    logging.info('Parsed {0} from {1}'.format(mtgjson_card.get('name'), sf_card.get('set')))
+        logging.info('Parsed {0} from {1}'.format(mtgjson_card.get('name'), sf_card.get('set')))
+
     mtgjson_cards.append(mtgjson_card)
     return mtgjson_cards
 
@@ -378,7 +383,7 @@ def parse_scryfall_card_types(card_type: str) -> Tuple[List[str], List[str], Lis
         subtypes: str = split_type[1]
         sub_types = [x for x in subtypes.split(' ') if x]
     else:
-        supertypes_and_types = str(types)
+        supertypes_and_types = card_type
 
     for value in supertypes_and_types.split(' '):
         if value in mtgjson4.SUPERTYPES:
@@ -421,12 +426,16 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
             continue
 
         card_foreign_entry: Dict[str, str] = {
-            'language': mtgjson4.LANGUAGE_MAP[foreign_card['lang']],
-            'multiverseid': foreign_card['multiverse_ids'][0],
+            'language': mtgjson4.LANGUAGE_MAP.get(foreign_card.get('lang')),
             'text': foreign_card.get('printed_text'),
             'flavor': foreign_card.get('flavor_text'),
             'type': foreign_card.get('printed_type_line')
         }
+
+        try:
+            card_foreign_entry['multiverseid'] = foreign_card['multiverse_ids'][0]
+        except IndexError:
+            card_foreign_entry['multiverseid'] = None
 
         card_foreign_entries.append(card_foreign_entry)
 
@@ -530,7 +539,7 @@ def get_compiled_sets() -> List[str]:
     :return: List of all set codes found
     """
     all_paths: List[pathlib.Path] = list(mtgjson4.COMPILED_OUTPUT_DIR.glob("**/*.json"))
-    all_sets_found: List[str] = [str(card_set).split('/')[-1][:-5] for card_set in all_paths]
+    all_sets_found: List[str] = [str(card_set).split('/')[-1][:-5].lower() for card_set in all_paths]
     return all_sets_found
 
 
