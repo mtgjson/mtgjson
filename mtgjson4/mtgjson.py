@@ -24,7 +24,7 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     # Get the set config from ScryFall
     set_config = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + set_code)
     if set_config['object'] == 'error':
-        mtgjson4.logger.error('Set Config for {0} was not found, skipping...'.format(set_code))
+        mtgjson4.logger.error('Set Config for {} was not found, skipping...'.format(set_code))
         return {'cards': []}
 
     output_file['name'] = set_config.get('name')
@@ -206,16 +206,22 @@ def download_from_scryfall(scryfall_url: str) -> Dict[str, Any]:
     :param scryfall_url: URL to download JSON data from
     :return: JSON object of the Scryfall data
     """
-    # Open and read MTGJSON secret properties
-    config = configparser.RawConfigParser()
-    config.read(mtgjson4.CONFIG_PATH)
 
-    request_api_json: Dict[str, Any] = requests.get(
-        url=scryfall_url, headers={
-            'Authorization': 'Bearer {}'.format(config.get('Scryfall', 'client_secret'))
-        }).json()
+    header_auth: Dict[str, str] = {}
+    auth_status: str = 'with authentication'
+    if pathlib.Path(mtgjson4.CONFIG_PATH).is_file():
+        # Open and read MTGJSON secret properties
+        config = configparser.RawConfigParser()
+        config.read(mtgjson4.CONFIG_PATH)
+        header_auth = {'Authorization': 'Bearer {}'.format(config.get('Scryfall', 'client_secret'))}
+    else:
+        auth_status = 'WITHOUT authentication'
 
-    mtgjson4.logger.info('Downloaded URL {0}'.format(scryfall_url))
+    request_api_json: Dict[str, Any] = requests.get(url=scryfall_url, headers=header_auth).json()
+
+    mtgjson4.logger.info('Downloaded ({0}) URL: {1}'.format(auth_status, scryfall_url))
+
+    exit(0)
     return request_api_json
 
 
@@ -226,7 +232,7 @@ def get_scryfall_set(set_code: str) -> List[Dict[str, Any]]:
     :param set_code: Set to download (Ex: AER, M19)
     :return: List of all card objects
     """
-    mtgjson4.logger.info('Downloading set {0} information'.format(set_code))
+    mtgjson4.logger.info('Downloading set {} information'.format(set_code))
     set_api_json: Dict[str, Any] = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + set_code)
     if set_api_json['object'] == 'error':
         mtgjson4.logger.error('Set api download failed: {}'.format(set_api_json))
@@ -275,7 +281,7 @@ def download_from_gatherer(card_mid: str) -> bs4.BeautifulSoup:
     )
 
     soup: bs4.BeautifulSoup = bs4.BeautifulSoup(request_data_html.text, 'html.parser')
-    mtgjson4.logger.info('Downloaded URL {0}'.format(request_data_html.url))
+    mtgjson4.logger.info('Downloaded URL {}'.format(request_data_html.url))
     return soup
 
 
@@ -446,13 +452,11 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
             card_foreign_entry['language'] = mtgjson4.LANGUAGE_MAP[foreign_card['lang']]
         except IndexError:
             mtgjson4.logger.warning('Error trying to get language {}'.format(foreign_card))
-            pass
 
         try:
             card_foreign_entry['multiverseid'] = foreign_card['multiverse_ids'][0]
         except IndexError:
             mtgjson4.logger.warning('Error trying to get multiverseid {}'.format(foreign_card))
-            pass
 
         card_foreign_entries.append(card_foreign_entry)
 
