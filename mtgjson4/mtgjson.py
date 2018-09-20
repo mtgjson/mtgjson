@@ -2,7 +2,6 @@ import argparse
 import configparser
 import copy
 import json
-import logging
 import multiprocessing
 import pathlib
 from typing import List, Dict, Any, Tuple, Set, Optional
@@ -26,7 +25,7 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     set_config = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + set_code)
 
     if set_config['object'] == 'error':
-        logging.error('Set Config for {0} was not found, skipping...'.format(set_code))
+        mtgjson4.logger.error('Set Config for {0} was not found, skipping...'.format(set_code))
         return {'cards': []}
 
     output_file['name'] = set_config.get('name')
@@ -45,14 +44,14 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     # Declare the version of the build in the output file
     output_file['meta'] = {'version': mtgjson4.__VERSION__, 'date': mtgjson4.__VERSION_DATE__}
 
-    logging.info('Starting cards for {}'.format(set_code))
+    mtgjson4.logger.info('Starting cards for {}'.format(set_code))
     output_file['cards'] = scryfall_to_mtgjson(sf_cards)
-    logging.info('Finished cards for {}'.format(set_code))
+    mtgjson4.logger.info('Finished cards for {}'.format(set_code))
 
-    logging.info('Starting tokens for {}'.format(set_code))
+    mtgjson4.logger.info('Starting tokens for {}'.format(set_code))
     sf_tokens: List[Dict[str, Any]] = get_scryfall_set('t' + set_code)
     output_file['tokens'] = build_mtgjson_tokens(sf_tokens)
-    logging.info('Finished tokens for {}'.format(set_code))
+    mtgjson4.logger.info('Finished tokens for {}'.format(set_code))
 
     return output_file
 
@@ -90,7 +89,7 @@ def build_mtgjson_tokens(sf_tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]
                     reverse_related.append(a_part.get('name'))
         token_card['reverseRelated'] = reverse_related
 
-        logging.info("Parsed {0} from {1}".format(token_card.get('name'), sf_token.get('set')))
+        mtgjson4.logger.info("Parsed {0} from {1}".format(token_card.get('name'), sf_token.get('set')))
         token_cards.append(token_card)
 
     return token_cards
@@ -117,7 +116,7 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
         # Only call recursive if it is the first time we see this card object
         if sf_card_face == 0:
             for i in range(1, len(sf_card['card_faces'])):
-                logging.info('Parsing additional card {0} face {1}'.format(sf_card.get('name'), i))
+                mtgjson4.logger.info('Parsing additional card {0} face {1}'.format(sf_card.get('name'), i))
                 mtgjson_cards += build_mtgjson_card(sf_card, i)
 
     # Characteristics that can are not shared to both sides of flip-type cards
@@ -180,7 +179,7 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
         mtgjson_card['originalText'] = parse_card_original_text(original_soup, div_name)  # str
         mtgjson_card['originalType'] = parse_card_original_type(original_soup, div_name)  # str
 
-        logging.info('Parsed {0} from {1}'.format(mtgjson_card.get('name'), sf_card.get('set')))
+        mtgjson4.logger.info('Parsed {0} from {1}'.format(mtgjson_card.get('name'), sf_card.get('set')))
 
     mtgjson_cards.append(mtgjson_card)
     return mtgjson_cards
@@ -217,7 +216,7 @@ def download_from_scryfall(scryfall_url: str) -> Dict[str, Any]:
             'Authorization': 'Bearer {}'.format(config.get('Scryfall', 'client_secret'))
         }).json()
 
-    logging.info('Downloaded URL {0}'.format(scryfall_url))
+    mtgjson4.logger.info('Downloaded URL {0}'.format(scryfall_url))
     return request_api_json
 
 
@@ -228,7 +227,7 @@ def get_scryfall_set(set_code: str) -> List[Dict[str, Any]]:
     :param set_code: Set to download (Ex: AER, M19)
     :return: List of all card objects
     """
-    logging.info('Downloading set {0} information'.format(set_code))
+    mtgjson4.logger.info('Downloading set {0} information'.format(set_code))
     set_api_json: Dict[str, Any] = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + set_code)
     cards_api_url: Optional[str] = set_api_json.get('search_uri')
 
@@ -238,7 +237,7 @@ def get_scryfall_set(set_code: str) -> List[Dict[str, Any]]:
     # For each page, append all the data, go to next page
     page_downloaded: int = 1
     while cards_api_url is not None:
-        logging.info('Downloading page {0} of card data for {1}'.format(page_downloaded, set_code))
+        mtgjson4.logger.info('Downloading page {0} of card data for {1}'.format(page_downloaded, set_code))
         page_downloaded += 1
 
         cards_api_json: Dict[str, Any] = download_from_scryfall(cards_api_url)
@@ -270,7 +269,7 @@ def download_from_gatherer(card_mid: str) -> bs4.BeautifulSoup:
     )
 
     soup: bs4.BeautifulSoup = bs4.BeautifulSoup(request_data_html.text, 'html.parser')
-    logging.info('Downloaded URL {0}'.format(request_data_html.url))
+    mtgjson4.logger.info('Downloaded URL {0}'.format(request_data_html.url))
     return soup
 
 
@@ -421,6 +420,10 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
     sf_prints_url = sf_prints_url.replace('&unique=prints', '+lang%3Aany&unique=prints')
 
     prints_api_json: Dict[str, Any] = download_from_scryfall(sf_prints_url)
+    if prints_api_json['object'] == 'error':
+        mtgjson4.logger.error("No data found: ".format(prints_api_json))
+        return []
+
     for foreign_card in prints_api_json['data']:
         if set_name != foreign_card['set'] or foreign_card['lang'] == "en":
             continue
@@ -435,7 +438,7 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
         try:
             card_foreign_entry['multiverseid'] = foreign_card['multiverse_ids'][0]
         except IndexError:
-            card_foreign_entry['multiverseid'] = None
+            pass
 
         card_foreign_entries.append(card_foreign_entry)
 
@@ -451,6 +454,11 @@ def parse_scryfall_printings(sf_prints_url: str) -> List[str]:
     card_sets: Set[str] = set()
 
     prints_api_json: Dict[str, Any] = download_from_scryfall(sf_prints_url)
+
+    if prints_api_json['object'] == 'error':
+        mtgjson4.logger.error('Bad download: {}'.format(sf_prints_url))
+        return []
+
     for card in prints_api_json['data']:
         card_sets.add(card.get('set').upper())
 
@@ -528,8 +536,14 @@ def get_all_sets() -> List[str]:
     :return: List of all set codes found
     """
     downloaded = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS)
-    set_urls: List[str] = [set_obj['code'] for set_obj in downloaded['data']]
-    return set_urls
+
+    # Get _ALL_ Scryfall sets
+    set_codes: List[str] = [set_obj['code'] for set_obj in downloaded['data']]
+
+    # Remove Scryfall token sets
+    set_codes = [s for s in set_codes if not (len(s) >= 4 and s.startswith('t'))]
+
+    return set_codes
 
 
 def get_compiled_sets() -> List[str]:
@@ -646,13 +660,14 @@ def main() -> None:
     if not args.skip_rebuild:
         # Determine sets to build, whether they're passed in as args or all sets in our configs
         set_list: List[str] = get_all_sets() if args.all_sets else args.sets
-        logging.info("Sets to compile: {}".format(set_list))
+        mtgjson4.logger.info("Sets to compile: {}".format(set_list))
 
         # If we had to kill mid-rebuild, we can skip the sets that already were done
         if args.skip_cached:
             sets_compiled_already: List[str] = get_compiled_sets()
             set_list = [s for s in set_list if s not in sets_compiled_already]
-            logging.info("Sets to compile, after cached sets removed: {}".format(set_list))
+            mtgjson4.logger.info("Sets to skip compilation for: {}".format(sets_compiled_already))
+            mtgjson4.logger.info("Sets to compile, after cached sets removed: {}".format(set_list))
 
         for set_code in set_list:
             sf_set: List[Dict[str, Any]] = get_scryfall_set(set_code)
@@ -660,7 +675,7 @@ def main() -> None:
             write_to_file(set_code.upper(), compiled, do_cleanup=True)
 
     if args.compiled_outputs:
-        logging.info("Compiling AllSets and AllCards")
+        mtgjson4.logger.info("Compiling AllSets and AllCards")
         compile_and_write_outputs()
 
 
