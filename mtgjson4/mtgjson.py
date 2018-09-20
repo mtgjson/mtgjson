@@ -224,7 +224,6 @@ def download_from_scryfall(scryfall_url: str) -> Dict[str, Any]:
 
     mtgjson4.LOGGER.info('Downloaded ({0}) URL: {1}'.format(auth_status, scryfall_url))
 
-    exit(0)
     return request_api_json
 
 

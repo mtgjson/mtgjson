@@ -83,6 +83,7 @@ def get_symbol_short_name(key_to_find: str) -> str:
 
 
 # Logging configuration
+LOG_DIR.mkdir(exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format='[%(levelname)s] %(asctime)s: %(message)s',
@@ -92,5 +93,4 @@ logging.basicConfig(
             str(pathlib.Path.joinpath(LOG_DIR, 'mtgjson_' + str(time.strftime('%Y-%m-%d_%H:%M:%S')) + '.log'))),
     ],
 )
-
 LOGGER = logging.getLogger()
