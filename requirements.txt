@@ -1,11 +1,4 @@
-aiohttp
 bs4
-hanging_threads
-mypy
 mypy_extensions
-pytest
-pytest-asyncio
 requests
 tox
-vcrpy
-yapf

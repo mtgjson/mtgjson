@@ -1,13 +1,11 @@
 import setuptools
 
 runtime_deps = [
-    'aiohttp',
     'bs4',
-    'mypy_extensions',
     'requests',
 ]
 
-with open("README.md", "r") as fh:
+with open('README.md', 'r') as fh:
     long_description = fh.read()
 
 setuptools.setup(
