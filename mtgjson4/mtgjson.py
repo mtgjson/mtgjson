@@ -445,7 +445,7 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
             continue
 
         card_foreign_entry: Dict[str, str] = {
-            'name': foreign_card.get('name'),
+            'name': foreign_card.get('printed_name'),
             'text': foreign_card.get('printed_text'),
             'flavor': foreign_card.get('flavor_text'),
             'type': foreign_card.get('printed_type_line')
