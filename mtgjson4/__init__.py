@@ -4,7 +4,7 @@ MTGJSON Version 4 Initializer
 import logging
 import pathlib
 import time
-from typing import List, Dict
+from typing import Dict, List
 
 # Maintenance variables
 __VERSION__ = '4.0.0-beta.3'

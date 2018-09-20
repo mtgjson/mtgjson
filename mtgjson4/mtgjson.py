@@ -7,7 +7,7 @@ import copy
 import json
 import multiprocessing
 import pathlib
-from typing import List, Dict, Any, Tuple, Set, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import bs4
 import requests
