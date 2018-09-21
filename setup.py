@@ -10,10 +10,10 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name='MTGJSON4',
-    version=setuptools.depends.get_module_constant('mtgjson4.mtg_globals', '__VERSION__'),
-    author=setuptools.depends.get_module_constant('mtgjson4.mtg_globals', '__MAINTAINER__'),
-    author_email=setuptools.depends.get_module_constant('mtgjson4.mtg_globals', '__MAINTAINER_EMAIL__'),
-    url=setuptools.depends.get_module_constant('mtgjson4.mtg_globals', '__REPO_URL__'),
+    version=setuptools.depends.get_module_constant('mtgjson4', '__VERSION__'),
+    author=setuptools.depends.get_module_constant('mtgjson4', '__MAINTAINER__'),
+    author_email=setuptools.depends.get_module_constant('mtgjson4', '__MAINTAINER_EMAIL__'),
+    url=setuptools.depends.get_module_constant('mtgjson4', '__REPO_URL__'),
     description='Build JSON files for distribution for Magic: The Gathering',
     long_description=long_description,
     long_description_content_type='text/markdown',
