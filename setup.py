@@ -11,12 +11,12 @@ with open('README.md', 'r') as fh:
 setuptools.setup(
     name='MTGJSON4',
     version=setuptools.depends.get_module_constant('mtgjson4.mtg_globals', '__VERSION__'),
+    author=setuptools.depends.get_module_constant('mtgjson4.mtg_globals', '__MAINTAINER__'),
+    author_email=setuptools.depends.get_module_constant('mtgjson4.mtg_globals', '__MAINTAINER_EMAIL__'),
+    url=setuptools.depends.get_module_constant('mtgjson4.mtg_globals', '__REPO_URL__'),
     description='Build JSON files for distribution for Magic: The Gathering',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/mtgjson/mtgjson-python',
-    author=setuptools.depends.get_module_constant('mtgjson4.mtg_globals', '__MAINTAINER__'),
-    author_email='zahalpern+github@gmail.com',
     license='GPL-3.0',
     classifiers=[
         'Programming Language :: Python :: 3 :: Only',

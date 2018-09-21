@@ -7,9 +7,11 @@ import time
 from typing import Dict, List
 
 # Maintenance variables
-__VERSION__ = '4.0.0-beta.4'
-__VERSION_DATE__ = '2018-09-20'
+__VERSION__ = '4.0.0-beta.5'
+__VERSION_DATE__ = '2018-09-21'
 __MAINTAINER__ = 'Zach Halpern (GitHub: @ZeldaZach)'
+__MAINTAINER_EMAIL__ = 'zahalpern+github@gmail.com'
+__REPO_URL__ = 'https://github.com/mtgjson/mtgjson-python'
 
 # Globals
 SCRYFALL_API_SETS: str = 'https://api.scryfall.com/sets/'
@@ -89,8 +91,7 @@ logging.basicConfig(
     format='[%(levelname)s] %(asctime)s: %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(
-            str(pathlib.Path.joinpath(LOG_DIR, 'mtgjson_' + str(time.strftime('%Y-%m-%d_%H:%M:%S')) + '.log'))),
+        logging.FileHandler(str(LOG_DIR.joinpath('mtgjson_' + str(time.strftime('%Y-%m-%d_%H:%M:%S')) + '.log'))),
     ],
 )
 LOGGER = logging.getLogger()
