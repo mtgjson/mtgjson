@@ -19,10 +19,9 @@ import mtgjson4
 def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str, Any]:
     """
     Compile the entire XYZ.json file and pass it off to be written out
-    :param list sf_cards: Scryfall cards
-    :param str set_code: Set code
+    :param sf_cards: Scryfall cards
+    :param set_code: Set code
     :return Completed JSON file
-    :rtype dict
     """
     output_file: Dict[str, Any] = {}
 
@@ -64,7 +63,7 @@ def build_mtgjson_tokens(sf_tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]
     """
     Convert Scryfall tokens to MTGJSON tokens
     :param sf_tokens: All tokens in a set
-    :return: List of MTGJSON tokens
+    :return List of MTGJSON tokens
     """
     token_cards: List[Dict[str, Any]] = []
 
@@ -104,7 +103,7 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     Build a mtgjson card (and all sub pieces of that card)
     :param sf_card: Card to build
     :param sf_card_face: Which part of the card (defaults to 0)
-    :return: List of card(s) build (usually 1)
+    :return List of card(s) build (usually 1)
     """
     mtgjson_cards: List[Dict[str, Any]] = []
     mtgjson_card: Dict[str, Any] = {}
@@ -193,7 +192,7 @@ def scryfall_to_mtgjson(sf_cards: List[Dict[str, Any]]) -> List[Any]:
     """
     Parallel method to build each card in the set
     :param sf_cards: cards to build
-    :return: list of cards built
+    :return list of cards built
     """
     with multiprocessing.Pool(processes=8) as pool:
         results: List[Any] = pool.map(build_mtgjson_card, sf_cards)
@@ -209,7 +208,7 @@ def download_from_scryfall(scryfall_url: str) -> Dict[str, Any]:
     """
     Get the data from Scryfall in JSON format using our secret keys
     :param scryfall_url: URL to download JSON data from
-    :return: JSON object of the Scryfall data
+    :return JSON object of the Scryfall data
     """
 
     header_auth: Dict[str, str] = {}
@@ -234,7 +233,7 @@ def get_scryfall_set(set_code: str) -> List[Dict[str, Any]]:
     Connects to Scryfall API and goes through all redirects to get the
     card data from their several pages via multiple API calls.
     :param set_code: Set to download (Ex: AER, M19)
-    :return: List of all card objects
+    :return List of all card objects
     """
     mtgjson4.LOGGER.info('Downloading set {} information'.format(set_code))
     set_api_json: Dict[str, Any] = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + set_code)
@@ -273,7 +272,7 @@ def download_from_gatherer(card_mid: str) -> bs4.BeautifulSoup:
     """
     Download a specific card from gatherer
     :param card_mid: card id to download
-    :return: HTML soup parser of the resulting page
+    :return HTML soup parser of the resulting page
     """
     request_data_html: Any = requests.get(
         url=mtgjson4.GATHERER_CARD,
@@ -294,7 +293,7 @@ def parse_card_original_type(soup: bs4.BeautifulSoup, parse_div: str) -> str:
     Take the HTML parser and get the printed type
     :param soup: HTML parser object
     :param parse_div: Div to parse (split cards are weird)
-    :return: original type
+    :return original type
     """
     type_row = soup.find(id=parse_div.format('typeRow'))
     type_row = type_row.findAll('div')[-1]
@@ -307,7 +306,7 @@ def parse_card_original_text(soup: bs4.BeautifulSoup, parse_div: str) -> str:
     Take the HTML parser and get the printed text
     :param soup: HTML parser object
     :param parse_div: Div to parse (split cards are weird)
-    :return: original text
+    :return original text
     """
     text_row = soup.find(id=parse_div.format('textRow'))
     return_text = ''
@@ -329,8 +328,8 @@ def parse_card_original_text(soup: bs4.BeautifulSoup, parse_div: str) -> str:
 def replace_images_with_text(tag: bs4.BeautifulSoup) -> bs4.BeautifulSoup:
     """
     Replaces the img tags of symbols with token representations
-    :rtype: set
-    :return: The color symbols found
+    :param tag: Information to modify
+    :return The color symbols found
     """
     tag_copy = copy.copy(tag)
     images = tag_copy.find_all('img')
@@ -346,7 +345,7 @@ def layout_options(soup: bs4.BeautifulSoup) -> str:
     """
     Get the div to parse out (split cards have multiple)
     :param soup: HTML parser object
-    :return: div name to parse
+    :return div name to parse
     """
     number = soup.find_all('script')
     client_id_tags = ''
@@ -365,7 +364,7 @@ def parse_scryfall_rulings(rulings_url: str) -> List[Dict[str, str]]:
     """
     Get the JSON data from Scryfall and convert it to MTGJSON format for rulings
     :param rulings_url: URL to get Scryfall JSON data from
-    :return: MTGJSON rulings list
+    :return MTGJSON rulings list
     """
     rules_api_json: Dict[str, Any] = download_from_scryfall(rulings_url)
     if rules_api_json['object'] == 'error':
@@ -388,7 +387,7 @@ def parse_scryfall_card_types(card_type: str) -> Tuple[List[str], List[str], Lis
     """
     Given a card type string, split it up into its raw components: super, sub, and type
     :param card_type: Card type string to parse
-    :return: Tuple (super, type, sub) of the card's attributes
+    :return Tuple (super, type, sub) of the card's attributes
     """
     sub_types: List[str] = []
     super_types: List[str] = []
@@ -415,7 +414,7 @@ def parse_scryfall_legalities(sf_card_legalities: Dict[str, str]) -> Dict[str, s
     """
     Given a Scryfall legalities dictionary, convert it to MTGJSON format
     :param sf_card_legalities: Scryfall legalities
-    :return: MTGJSON legalities
+    :return MTGJSON legalities
     """
     card_legalities: Dict[str, str] = {}
     for key, value in sf_card_legalities.items():
@@ -430,7 +429,7 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
     Get the foreign printings information for a specific card
     :param sf_prints_url: URL to get prints from
     :param set_name: Set name
-    :return: Foreign entries object
+    :return Foreign entries object
     """
     card_foreign_entries: List[Dict[str, str]] = []
 
@@ -472,7 +471,7 @@ def parse_scryfall_printings(sf_prints_url: str) -> List[str]:
     """
     Given a Scryfall printings URL, extract all sets a card was printed in
     :param sf_prints_url: URL to extract data from
-    :return: List of all sets a specific card was printed in
+    :return List of all sets a specific card was printed in
     """
     card_sets: Set[str] = set()
 
@@ -555,7 +554,7 @@ def get_all_sets() -> List[str]:
     """
     Grab the set codes (~3 letters) for all sets found
     in the config database.
-    :return: List of all set codes found
+    :return List of all set codes found
     """
     downloaded = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS)
     if downloaded['object'] == 'error':
@@ -575,7 +574,7 @@ def get_compiled_sets() -> List[str]:
     """
     Grab the set codes for all sets that have already been
     compiled and are awaiting use in the set_outputs dir.
-    :return: List of all set codes found
+    :return List of all set codes found
     """
     all_paths: List[pathlib.Path] = list(mtgjson4.COMPILED_OUTPUT_DIR.glob('**/*.json'))
     all_sets_found: List[str] = [str(card_set).split('/')[-1][:-5].lower() for card_set in all_paths]
