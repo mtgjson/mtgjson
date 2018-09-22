@@ -21,13 +21,33 @@ python3 setup.py install
 
 2: Select the flags you'd like to run the program with:
 
-| Flag Options &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Flag Descriptions                                                                                                                                   	        |
-|------------------------------	|-------------------------------------------------------------------------------------------------------------------------------------------------------------  |
-| `-a`<br>`--all-sets`         	| This tells the program to build all sets. This supersedes the `-s` flag.                                                                                      |
-| `-s SET1 SET2 ...`       	    | This tells the program to build all set codes passed, provided they exist.                                                                                	|
-| `-f`<br>`--compiled-outputs` 	| This tells the program to compile AllCards and AllSets.                                                                                             	        |
-| `-x`<br>`--skip-rebuild`     	| This tells the program to build no sets, and just used what is cached already. This supersedes the `-a` and `-s` flags, and is useful with the `-f` flag. 	|
-| `-c`<br>`--skip-cached`      	| This flag, in conjunction with `-s` or `-a`, tells the program to skips sets that have already been built, and just used what is cached already.        	    |
+<table>
+    <tr>
+        <th style="width:40%">Flags</th>
+        <th style="width:60%">Descriptions</th>
+    </tr>
+    <tr>
+    <td><b>-a</b><br><b>--all-sets</b></td>
+    <td>This tells the program to build all sets. This supersedes the <b>-s</b> flag.</td>
+    </tr>
+    <tr>
+    <td><b>-s SET1 SET2 ...</b></td>
+        <td>This tells the program to build all set codes passed, provided they exist.</td>
+    </tr>
+    <tr>
+        <td><b>-f</b><br><b>--compiled-outputs</b></td>
+        <td>This tells the program to compile AllCards and AllSets.</td>
+    </tr>
+    <tr>
+        <td><b>-x</b><br><b>--skip-rebuild</b></td>
+        <td>This tells the program to build no sets, and just used what is cached already. This supersedes the <b>-a</b> and <b>-s</b> flags, and is useful with the <b>-f</b> flag.</td>
+    </tr>
+    <tr>
+        <td><b>-c</b><br><b>--skip-cached</b></td>
+        <td>This flag, in conjunction with <b>-s</b> or <b>-a</b>, tells the program to skips sets that have already been built, and just used what is cached already.</td>
+    </tr>
+</table>
+        
 
 3: Run the program via:
 ```sh
