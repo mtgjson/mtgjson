@@ -23,14 +23,14 @@ python3 setup.py install
 
 | Flags              | Descriptions                                                                                                                                              |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-a, --all-sets`   | This tells the program to build all sets. This supersedes the `-s` flag.                                                                                  |
+| `-h`               | This prints out the help menu and exits.                                                                                                                  |
+| `-a`, `--all-sets` | This tells the program to build all sets. This supersedes the `-s` flag.                                                                                  |
 | `-s SET1 SET2 ...` | This tells the program to build all set codes passed, provided they exist.                                                                                |
-| `-c, --compiled`   | This tells the program to compile AllCards and AllSets.                                                                                                   |
+| `-c`, `--compiled` | This tells the program to compile AllCards and AllSets.                                                                                                   |
 | `--skip-rebuild`   | This tells the program to build no sets, and just used what is cached already. This supersedes the `-a` and `-s` flags, and is useful with the `-c` flag. |
 | `--skip-cached`    | This flag, in conjunction with `-s` or `-a`, tells the program to skips sets that have already been built, and build the remaining sets.                  |
 
-
 3: Run the program via:
 ```sh
-python3 mtgjson.py [-h] [-s SET [SET ...]] [-a] [-f] [-x] [-c]
+python3 mtgjson.py [-h] [-s SET [SET ...]] [-a] [-c] [--skip-rebuild] [--skip-cached]
 ```
