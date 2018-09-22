@@ -19,9 +19,10 @@ import mtgjson4
 def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str, Any]:
     """
     Compile the entire XYZ.json file and pass it off to be written out
-    :param sf_cards: Scryfall cards
-    :param set_code: Set code
-    :return: Completed JSON file
+    :param list sf_cards: Scryfall cards
+    :param str set_code: Set code
+    :return Completed JSON file
+    :rtype dict
     """
     output_file: Dict[str, Any] = {}
 
