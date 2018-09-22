@@ -238,7 +238,7 @@ def get_scryfall_set(set_code: str) -> List[Dict[str, Any]]:
     mtgjson4.LOGGER.info('Downloading set {} information'.format(set_code))
     set_api_json: Dict[str, Any] = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + set_code)
     if set_api_json['object'] == 'error':
-        mtgjson4.LOGGER.error('Set api download failed for {0}: {1}'.format(set_code, set_api_json))
+        mtgjson4.LOGGER.warning('Set api download failed for {0}: {1}'.format(set_code, set_api_json))
         return []
 
     cards_api_url: Optional[str] = set_api_json.get('search_uri')
@@ -686,6 +686,10 @@ def main() -> None:
         sys.exit(1)
     else:
         args = parser.parse_args()
+
+    if not pathlib.Path(mtgjson4.CONFIG_PATH).is_file():
+        mtgjson4.LOGGER.warning('No properties file found at {}. Will download without authentication'.format(
+            mtgjson4.CONFIG_PATH))
 
     if not args.skip_rebuild:
         # Determine sets to build, whether they're passed in as args or all sets in our configs

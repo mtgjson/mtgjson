@@ -18,7 +18,6 @@ This system was built using Python 3.7, so we can only guarantee proper function
 
 ```sh
 $ pip3 install -r requirements.txt
-$ python3 setup.py install
 ```
 
 2: Select the flags you'd like to run the program with:
@@ -32,7 +31,8 @@ $ python3 setup.py install
 | `--skip-rebuild`           | This tells the program to build no sets, superseding `-a` and `-s`, and just use what is cached already. This is the equivalent of passing an empty `-s` flag. This is only useful with the `-c` flag. |
 | `--skip-cached`            | This flag, in conjunction with `-a` or `-s`, tells the program to skips sets that have already been built, and build the remaining sets.                                                               |
 
-3: Run the program via:
+3: Run the program, with any flags you'd like, via:
 ```sh
-$ python3 mtgjson4 [-h] [-s SET [SET ...]] [-a] [-c] [--skip-rebuild] [--skip-cached]
+usage: mtgjson4 [-h] [-s [SET [SET ...]]] [-a] [-c] [--skip-rebuild] [--skip-cached]
+$ python3 -m mtgjson4 
 ```
