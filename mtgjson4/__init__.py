@@ -23,17 +23,23 @@ LOG_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath('logs')
 CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath('mtgjson.properties')
 
 LANGUAGE_MAP: Dict[str, str] = {
-    'de': 'German',
     'en': 'English',
     'es': 'Spanish',
     'fr': 'French',
+    'de': 'German',
     'it': 'Italian',
+    'pt': 'Portuguese (Brazil)',
     'ja': 'Japanese',
     'ko': 'Korean',
-    'pt': 'Portuguese (Brazil)',
     'ru': 'Russian',
     'zhs': 'Chinese Simplified',
-    'zht': 'Chinese Traditional'
+    'zht': 'Chinese Traditional',
+    'he': 'Hebrew',
+    'la': 'Latin',
+    'grc': 'Ancient Greek',
+    'ar': 'Arabic',
+    'sa': 'Sanskrit',
+    'px': 'Phyrexian',
 }
 
 SYMBOL_MAP: Dict[str, str] = {

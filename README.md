@@ -28,11 +28,11 @@ $ python3 setup.py install
 | `-h`                       | This prints out the help menu and exits.                                                                                                                                                               |
 | `-a`, `--all-sets`         | This tells the program to build all sets. This supersedes the `-s` flag.                                                                                                                               |
 | `-s SET1 SET2 ...`         | This tells the program to build all set codes passed, provided they exist.                                                                                                                             |
-| `-c`, `--compiled-outputs` | This tells the program to compile AllCards and AllSets, following any additional sets being built.                                                                                                     |
-| `--skip-rebuild`           | This tells the program to build no sets, superseding `-a` and `-s`, and just use what is cached already. This is the equivalant of passing an empty `-s` flag. This is only useful with the `-c` flag. |
+| `-c`, `--compiled-outputs` | This tells the program to compile AllCards and AllSets, following any additional sets being built. This flag needs to be accompanied by either `-a`, `-s`, or `--skip-rebuild`.                        |
+| `--skip-rebuild`           | This tells the program to build no sets, superseding `-a` and `-s`, and just use what is cached already. This is the equivalent of passing an empty `-s` flag. This is only useful with the `-c` flag. |
 | `--skip-cached`            | This flag, in conjunction with `-a` or `-s`, tells the program to skips sets that have already been built, and build the remaining sets.                                                               |
 
 3: Run the program via:
 ```sh
-$ python3 mtgjson.py [-h] [-s SET [SET ...]] [-a] [-c] [--skip-rebuild] [--skip-cached]
+$ python3 mtgjson4 [-h] [-s SET [SET ...]] [-a] [-c] [--skip-rebuild] [--skip-cached]
 ```
