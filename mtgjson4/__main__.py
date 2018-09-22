@@ -679,12 +679,13 @@ def main() -> None:
     parser.add_argument('-c', '--compiled-outputs', action='store_true')
     parser.add_argument('--skip-rebuild', action='store_true')
     parser.add_argument('--skip-cached', action='store_true')
-    args = parser.parse_args()
 
     # Ensure there are args
     if len(sys.argv) < 2:
         parser.print_usage()
         sys.exit(1)
+    else:
+        args = parser.parse_args()
 
     if not args.skip_rebuild:
         # Determine sets to build, whether they're passed in as args or all sets in our configs
