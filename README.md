@@ -27,15 +27,15 @@ python3 setup.py install
         <th style="width:60%">Descriptions</th>
     </tr>
     <tr>
-    <td><b>-a</b><br><b>--all-sets</b></td>
-    <td>This tells the program to build all sets. This supersedes the <b>-s</b> flag.</td>
+        <td><b>-a</b><br><b>--all-sets</b></td>
+        <td>This tells the program to build all sets. This supersedes the <b>-s</b> flag.</td>
     </tr>
     <tr>
-    <td><b>-s SET1 SET2 ...</b></td>
+        <td><b>-s SET1 SET2 ...</b></td>
         <td>This tells the program to build all set codes passed, provided they exist.</td>
     </tr>
     <tr>
-        <td><b>-f</b><br><b>--compiled-outputs</b></td>
+        <td><b>-f</b><br><b>--compiled</b></td>
         <td>This tells the program to compile AllCards and AllSets.</td>
     </tr>
     <tr>
