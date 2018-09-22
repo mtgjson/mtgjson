@@ -13,22 +13,23 @@ If you would like to join or assist the development of the project, you can [joi
 
 This system was built using Python 3.7, so we can only guarentee proper functionality with this version.
 
-1) To start, you'll need to install the MTGJSON4 package and dependencies. You can do this via:
+1: To start, you'll need to install the MTGJSON4 package and dependencies. You can do this via:
 
 ```sh
 python3 setup.py install
 ```
 
-2) Select the flags you'd like to run the program with:
+2: Select the flags you'd like to run the program with:
 
-| `-a, --all-sets`         	| This tells the program to build all sets. This supersedes the -s flag.                                                                              	|
-|--------------------------	|-----------------------------------------------------------------------------------------------------------------------------------------------------	|
-| `-s SET1 SET2 ...`       	| This tells the program to build all set codes passed, provided they exist.                                                                          	|
-| `-f, --compiled-outputs` 	| This tells the program to compile AllCards and AllSets.                                                                                             	|
-| `-x, --skip-rebuild`     	| This tells the program to build no sets, and just used what is cached already. This supersedes the -a and -s flags, and is useful with the -f flag. 	|
-| `-c, --skip-cached`      	| This flag, in conjunction with -s or -a, tells the program to skips sets that have already been built, and just used what is cached already.        	|
+| Flag Options             	| Flag Descriptions                                                                                                                                   	        |
+|--------------------------	|-------------------------------------------------------------------------------------------------------------------------------------------------------------  |
+| `-a, --all-sets`         	| This tells the program to build all sets. This supersedes the `-s` flag.                                                                                      |
+| `-s SET1 SET2 ...`       	| This tells the program to build all set codes passed, provided they exist.                                                                                	|
+| `-f, --compiled-outputs` 	| This tells the program to compile AllCards and AllSets.                                                                                             	        |
+| `-x, --skip-rebuild`     	| This tells the program to build no sets, and just used what is cached already. This supersedes the `-a` and `-s` flags, and is useful with the `-f` flag. 	|
+| `-c, --skip-cached`      	| This flag, in conjunction with `-s` or `-a`, tells the program to skips sets that have already been built, and just used what is cached already.        	    |
 
-3) Run the program via:
+3: Run the program via:
 ```sh
 python3 mtgjson.py [-h] [-s SET [SET ...]] [-a] [-f] [-x] [-c]
 ```
