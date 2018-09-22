@@ -675,14 +675,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('-s', metavar='SET', nargs='+', type=str)
     parser.add_argument('-a', '--all-sets', action='store_true')
-    parser.add_argument('-f', '--compiled', action='store_true')
-    parser.add_argument('-x', '--skip-rebuild', action='store_true')
-    parser.add_argument('-c', '--skip-cached', action='store_true')
+    parser.add_argument('-c', '--compiled-outputs', action='store_true')
+    parser.add_argument('--skip-rebuild', action='store_true')
+    parser.add_argument('--skip-cached', action='store_true')
     args = parser.parse_args()
 
     if not args.skip_rebuild:
         # Determine sets to build, whether they're passed in as args or all sets in our configs
-        set_list: List[str] = get_all_sets() if args.all_sets else args.sets
+        set_list: List[str] = get_all_sets() if args.all_sets else args.s
         mtgjson4.LOGGER.info('Sets to compile: {}'.format(set_list))
 
         # If we had to kill mid-rebuild, we can skip the sets that already were done
@@ -697,7 +697,7 @@ def main() -> None:
             compiled: Dict[str, Any] = build_output_file(sf_set, set_code)
             write_to_file(set_code.upper(), compiled, do_cleanup=True)
 
-    if args.compiled:
+    if args.compiled_outputs:
         mtgjson4.LOGGER.info('Compiling AllSets and AllCards')
         compile_and_write_outputs()
 
