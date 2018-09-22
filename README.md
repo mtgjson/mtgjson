@@ -1,22 +1,34 @@
-[**MTG JSON**](https://mtgjson.com/) is a database of [*Magic: The Gathering*](https://magic.wizards.com/en) cards in [JSON](https://json.org/) format. This is the code for the next major release, which will be version 4. Create JSON files of Magic: The Gathering cards for distribution from sources such as Gatherer
+# [**MTGJSON**](https://mtgjson.com/)
 
-If you would like to talk to the devs, [join us on Discord](https://discord.gg/Hgyg7GJ)!
+MTGJSON is an open sourced database creation and distribution tool for [*Magic: The Gathering*](https://magic.wizards.com/en) cards, specifically in [JSON](https://json.org/) format.
 
-# How to build
+This repo contains our newest release, version 4. This version relies upon a variety of sources, such as Scryfall and Gatherer for our data.
 
-First, you will need at least Python 3.7.
 
-Then, run the following to install dependencies:
+To provide feedback and/or bug reports, please open a ticket as it is the best way for us to communicate with the public.  
+
+If you would like to join or assist the development of the project, you can [join us on Discord](https://discord.gg/Hgyg7GJ) to discuss things further.
+
+# How To Use
+
+This system was built using Python 3.7, so we can only guarentee proper functionality with this version.
+
+1) To start, you'll need to install the MTGJSON4 package and dependencies. You can do this via:
 
 ```sh
 python3 setup.py install
 ```
 
-To build all set files, as well as `AllCards.json`, `AllSets.json`, and `AllSetsArray.json`, run:
+2) Select the flags you'd like to run the program with:
 
+| `-a, --all-sets`         	| This tells the program to build all sets. This supersedes the -s flag.                                                                              	|
+|--------------------------	|-----------------------------------------------------------------------------------------------------------------------------------------------------	|
+| `-s SET1 SET2 ...`       	| This tells the program to build all set codes passed, provided they exist.                                                                          	|
+| `-f, --compiled-outputs` 	| This tells the program to compile AllCards and AllSets.                                                                                             	|
+| `-x, --skip-rebuild`     	| This tells the program to build no sets, and just used what is cached already. This supersedes the -a and -s flags, and is useful with the -f flag. 	|
+| `-c, --skip-cached`      	| This flag, in conjunction with -s or -a, tells the program to skips sets that have already been built, and just used what is cached already.        	|
+
+3) Run the program via:
 ```sh
-python3 -m mtgjson4 -af
+python3 mtgjson.py [-h] [-s SET [SET ...]] [-a] [-f] [-x] [-c]
 ```
-
-For advanced options, see `python3 -m mtgjson4 --help`.
-

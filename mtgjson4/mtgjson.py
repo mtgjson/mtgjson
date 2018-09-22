@@ -673,7 +673,7 @@ def main() -> None:
     Main Method
     """
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('-s', '--sets', metavar='SET', nargs='+', type=str)
+    parser.add_argument('-s', metavar='SET', nargs='+', type=str)
     parser.add_argument('-a', '--all-sets', action='store_true')
     parser.add_argument('-f', '--compiled-outputs', action='store_true')
     parser.add_argument('-x', '--skip-rebuild', action='store_true')

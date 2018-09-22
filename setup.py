@@ -1,13 +1,5 @@
 import setuptools
 
-runtime_deps = [
-    'bs4',
-    'requests',
-]
-
-with open('README.md', 'r') as fh:
-    long_description = fh.read()
-
 setuptools.setup(
     name='MTGJSON4',
     version=setuptools.depends.get_module_constant('mtgjson4', '__VERSION__'),
@@ -15,7 +7,7 @@ setuptools.setup(
     author_email=setuptools.depends.get_module_constant('mtgjson4', '__MAINTAINER_EMAIL__'),
     url=setuptools.depends.get_module_constant('mtgjson4', '__REPO_URL__'),
     description='Build JSON files for distribution for Magic: The Gathering',
-    long_description=long_description,
+    long_description=open('README.md', 'r').read(),
     long_description_content_type='text/markdown',
     license='GPL-3.0',
     classifiers=[
@@ -26,5 +18,8 @@ setuptools.setup(
     ],
     keywords='Magic: The Gathering, MTG, JSON, Card Games, Collectible, Trading Cards',
     packages=setuptools.find_packages(),
-    install_requires=runtime_deps,
+    install_requires=[
+        'bs4',
+        'requests',
+    ],
 )

@@ -1,4 +1,6 @@
 bs4
-mypy_extensions
+mypy
+pylint
 requests
 tox
+yapf
