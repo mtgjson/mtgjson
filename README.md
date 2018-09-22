@@ -21,7 +21,7 @@ python3 setup.py install
 
 2: Select the flags you'd like to run the program with:
 
-| Flag Options             	    | Flag Descriptions                                                                                                                                   	        |
+| Flag Options &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Flag Descriptions                                                                                                                                   	        |
 |------------------------------	|-------------------------------------------------------------------------------------------------------------------------------------------------------------  |
 | `-a`<br>`--all-sets`         	| This tells the program to build all sets. This supersedes the `-s` flag.                                                                                      |
 | `-s SET1 SET2 ...`       	    | This tells the program to build all set codes passed, provided they exist.                                                                                	|
