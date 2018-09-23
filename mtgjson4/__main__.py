@@ -134,12 +134,12 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     mtgjson_card['watermark'] = face_data.get('watermark')  # str
 
     try:
-        mtgjson_card['multiverseid'] = sf_card['multiverse_ids'][sf_card_face]  # int
+        mtgjson_card['multiverseId'] = sf_card['multiverse_ids'][sf_card_face]  # int
     except IndexError:
         try:
-            mtgjson_card['multiverseid'] = sf_card['multiverse_ids'][0]  # int
+            mtgjson_card['multiverseId'] = sf_card['multiverse_ids'][0]  # int
         except IndexError:
-            mtgjson_card['multiverseid'] = None  # int
+            mtgjson_card['multiverseId'] = None  # int
 
     # Characteristics that are shared to all sides of flip-type cards, that we don't have to modify
     mtgjson_card['artist'] = sf_card.get('artist')  # str
@@ -175,8 +175,8 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     # Characteristics we have to do further API calls for
     mtgjson_card['foreignData'] = parse_sf_foreign(sf_card['prints_search_uri'], sf_card['set'])  # Dict[str, str]
 
-    if mtgjson_card['multiverseid'] is not None:
-        original_soup = download_from_gatherer(mtgjson_card['multiverseid'])
+    if mtgjson_card['multiverseId'] is not None:
+        original_soup = download_from_gatherer(mtgjson_card['multiverseId'])
         div_name = layout_options(original_soup)
 
         mtgjson_card['originalText'] = parse_card_original_text(original_soup, div_name)  # str
@@ -458,9 +458,9 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
             mtgjson4.LOGGER.warning('Error trying to get language {}'.format(foreign_card))
 
         try:
-            card_foreign_entry['multiverseid'] = foreign_card['multiverse_ids'][0]
+            card_foreign_entry['multiverseId'] = foreign_card['multiverse_ids'][0]
         except IndexError:
-            mtgjson4.LOGGER.warning('Error trying to get multiverseid {}'.format(foreign_card))
+            mtgjson4.LOGGER.warning('Error trying to get multiverseId {}'.format(foreign_card))
 
         card_foreign_entries.append(card_foreign_entry)
 
@@ -550,8 +550,10 @@ def write_to_file(set_name: str, file_contents: Dict[str, Any], do_cleanup: bool
     mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
     with pathlib.Path(mtgjson4.COMPILED_OUTPUT_DIR, set_name + '.json').open('w', encoding='utf-8') as f:
         if do_cleanup:
-            file_contents['cards'] = remove_unnecessary_fields(file_contents['cards'])
-            file_contents['tokens'] = remove_unnecessary_fields(file_contents['tokens'])
+            if 'cards' in file_contents:
+                file_contents['cards'] = remove_unnecessary_fields(file_contents['cards'])
+            if 'tokens' in file_contents:
+                file_contents['tokens'] = remove_unnecessary_fields(file_contents['tokens'])
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
         return
 
@@ -656,7 +658,7 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
                     card.pop('artist', None)
                     card.pop('cardHash', None)
                     card.pop('flavor', None)
-                    card.pop('multiverseid', None)
+                    card.pop('multiverseId', None)
                     card.pop('number', None)
                     card.pop('originalText', None)
                     card.pop('originalType', None)
@@ -671,7 +673,7 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
                     card.pop('isOversized', None)
 
                     for foreign in card['foreignData']:
-                        foreign.pop('multiverseid', None)
+                        foreign.pop('multiverseId', None)
 
                     all_cards_data[card['name']] = card
     return all_cards_data
@@ -714,7 +716,10 @@ def main() -> None:
         for set_code in set_list:
             sf_set: List[Dict[str, Any]] = get_scryfall_set(set_code)
             compiled: Dict[str, Any] = build_output_file(sf_set, set_code)
-            write_to_file(set_code.upper(), compiled, do_cleanup=True)
+
+            # If we have at least 1 card, print out to file
+            if len(compiled['cards']) > 0:
+                write_to_file(set_code.upper(), compiled, do_cleanup=True)
 
     if args.compiled_outputs:
         mtgjson4.LOGGER.info('Compiling AllSets and AllCards')
