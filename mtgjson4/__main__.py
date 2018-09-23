@@ -542,13 +542,54 @@ def find_file(name: str, path: pathlib.Path) -> Optional[pathlib.Path]:
     return None
 
 
+def win_os_fix(set_name: str) -> str:
+    """
+    In the Windows OS, there are certain file names that are not allowed.
+    In case we have a set with such a name, we will add a _ to the end to allow its existence
+    on Windows.
+    :param set_name: Set name
+    :return: Set name with a _ if necessary
+    """
+    banned_names: List[str] = [
+        'AUX',
+        'COM0',
+        'COM1',
+        'COM2',
+        'COM3',
+        'COM4',
+        'COM5',
+        'COM6',
+        'COM7',
+        'COM8',
+        'COM9',
+        'CON',
+        'LPT0',
+        'LPT1',
+        'LPT2',
+        'LPT3',
+        'LPT4',
+        'LPT5',
+        'LPT6',
+        'LPT7',
+        'LPT8',
+        'LPT9',
+        'NUL',
+        'PRN',
+    ]
+
+    if set_name in banned_names:
+        return set_name + '_'
+
+    return set_name
+
+
 def write_to_file(set_name: str, file_contents: Dict[str, Any], do_cleanup: bool = False) -> None:
     """
     Write the compiled data to a file with the set's code
     Will ensure the output directory exists first
     """
     mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
-    with pathlib.Path(mtgjson4.COMPILED_OUTPUT_DIR, set_name + '.json').open('w', encoding='utf-8') as f:
+    with pathlib.Path(mtgjson4.COMPILED_OUTPUT_DIR, win_os_fix(set_name) + '.json').open('w', encoding='utf-8') as f:
         if do_cleanup:
             if 'cards' in file_contents:
                 file_contents['cards'] = remove_unnecessary_fields(file_contents['cards'])
@@ -718,7 +759,7 @@ def main() -> None:
             compiled: Dict[str, Any] = build_output_file(sf_set, set_code)
 
             # If we have at least 1 card, print out to file
-            if len(compiled['cards']) > 0:
+            if compiled['cards']:
                 write_to_file(set_code.upper(), compiled, do_cleanup=True)
 
     if args.compiled_outputs:
