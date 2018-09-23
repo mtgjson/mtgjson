@@ -21,7 +21,7 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     Compile the entire XYZ.json file and pass it off to be written out
     :param sf_cards: Scryfall cards
     :param set_code: Set code
-    :return Completed JSON file
+    :return: Completed JSON file
     """
     output_file: Dict[str, Any] = {}
 
@@ -63,7 +63,7 @@ def build_mtgjson_tokens(sf_tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]
     """
     Convert Scryfall tokens to MTGJSON tokens
     :param sf_tokens: All tokens in a set
-    :return List of MTGJSON tokens
+    :return: List of MTGJSON tokens
     """
     token_cards: List[Dict[str, Any]] = []
 
@@ -103,7 +103,7 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     Build a mtgjson card (and all sub pieces of that card)
     :param sf_card: Card to build
     :param sf_card_face: Which part of the card (defaults to 0)
-    :return List of card(s) build (usually 1)
+    :return: List of card(s) build (usually 1)
     """
     mtgjson_cards: List[Dict[str, Any]] = []
     mtgjson_card: Dict[str, Any] = {}
@@ -192,7 +192,7 @@ def scryfall_to_mtgjson(sf_cards: List[Dict[str, Any]]) -> List[Any]:
     """
     Parallel method to build each card in the set
     :param sf_cards: cards to build
-    :return list of cards built
+    :return: list of cards built
     """
     with multiprocessing.Pool(processes=8) as pool:
         results: List[Any] = pool.map(build_mtgjson_card, sf_cards)
@@ -208,7 +208,7 @@ def download_from_scryfall(scryfall_url: str) -> Dict[str, Any]:
     """
     Get the data from Scryfall in JSON format using our secret keys
     :param scryfall_url: URL to download JSON data from
-    :return JSON object of the Scryfall data
+    :return: JSON object of the Scryfall data
     """
 
     header_auth: Dict[str, str] = {}
@@ -233,7 +233,7 @@ def get_scryfall_set(set_code: str) -> List[Dict[str, Any]]:
     Connects to Scryfall API and goes through all redirects to get the
     card data from their several pages via multiple API calls.
     :param set_code: Set to download (Ex: AER, M19)
-    :return List of all card objects
+    :return: List of all card objects
     """
     mtgjson4.LOGGER.info('Downloading set {} information'.format(set_code))
     set_api_json: Dict[str, Any] = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS + set_code)
@@ -272,7 +272,7 @@ def download_from_gatherer(card_mid: str) -> bs4.BeautifulSoup:
     """
     Download a specific card from gatherer
     :param card_mid: card id to download
-    :return HTML soup parser of the resulting page
+    :return: HTML soup parser of the resulting page
     """
     request_data_html: Any = requests.get(
         url=mtgjson4.GATHERER_CARD,
@@ -293,7 +293,7 @@ def parse_card_original_type(soup: bs4.BeautifulSoup, parse_div: str) -> str:
     Take the HTML parser and get the printed type
     :param soup: HTML parser object
     :param parse_div: Div to parse (split cards are weird)
-    :return original type
+    :return: original type
     """
     type_row = soup.find(id=parse_div.format('typeRow'))
     type_row = type_row.findAll('div')[-1]
@@ -306,7 +306,7 @@ def parse_card_original_text(soup: bs4.BeautifulSoup, parse_div: str) -> str:
     Take the HTML parser and get the printed text
     :param soup: HTML parser object
     :param parse_div: Div to parse (split cards are weird)
-    :return original text
+    :return: original text
     """
     text_row = soup.find(id=parse_div.format('textRow'))
     return_text = ''
@@ -329,7 +329,7 @@ def replace_images_with_text(tag: bs4.BeautifulSoup) -> bs4.BeautifulSoup:
     """
     Replaces the img tags of symbols with token representations
     :param tag: Information to modify
-    :return The color symbols found
+    :return: The color symbols found
     """
     tag_copy = copy.copy(tag)
     images = tag_copy.find_all('img')
@@ -345,7 +345,7 @@ def layout_options(soup: bs4.BeautifulSoup) -> str:
     """
     Get the div to parse out (split cards have multiple)
     :param soup: HTML parser object
-    :return div name to parse
+    :return: div name to parse
     """
     number = soup.find_all('script')
     client_id_tags = ''
@@ -364,7 +364,7 @@ def parse_scryfall_rulings(rulings_url: str) -> List[Dict[str, str]]:
     """
     Get the JSON data from Scryfall and convert it to MTGJSON format for rulings
     :param rulings_url: URL to get Scryfall JSON data from
-    :return MTGJSON rulings list
+    :return: MTGJSON rulings list
     """
     rules_api_json: Dict[str, Any] = download_from_scryfall(rulings_url)
     if rules_api_json['object'] == 'error':
@@ -387,7 +387,7 @@ def parse_scryfall_card_types(card_type: str) -> Tuple[List[str], List[str], Lis
     """
     Given a card type string, split it up into its raw components: super, sub, and type
     :param card_type: Card type string to parse
-    :return Tuple (super, type, sub) of the card's attributes
+    :return: Tuple (super, type, sub) of the card's attributes
     """
     sub_types: List[str] = []
     super_types: List[str] = []
@@ -414,7 +414,7 @@ def parse_scryfall_legalities(sf_card_legalities: Dict[str, str]) -> Dict[str, s
     """
     Given a Scryfall legalities dictionary, convert it to MTGJSON format
     :param sf_card_legalities: Scryfall legalities
-    :return MTGJSON legalities
+    :return: MTGJSON legalities
     """
     card_legalities: Dict[str, str] = {}
     for key, value in sf_card_legalities.items():
@@ -429,7 +429,7 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
     Get the foreign printings information for a specific card
     :param sf_prints_url: URL to get prints from
     :param set_name: Set name
-    :return Foreign entries object
+    :return: Foreign entries object
     """
     card_foreign_entries: List[Dict[str, str]] = []
 
@@ -471,7 +471,7 @@ def parse_scryfall_printings(sf_prints_url: str) -> List[str]:
     """
     Given a Scryfall printings URL, extract all sets a card was printed in
     :param sf_prints_url: URL to extract data from
-    :return List of all sets a specific card was printed in
+    :return: List of all sets a specific card was printed in
     """
     card_sets: Set[str] = set()
 
@@ -491,18 +491,6 @@ def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str,
     Remove invalid field entries to shrink JSON output size
     """
 
-    def fix_foreign_entries(values: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        # List of dicts
-        fd_insert_list = []
-        for foreign_info in values:
-            fd_insert_dict = {}
-            for fd_key, fd_value in foreign_info.items():
-                if fd_value is not None:
-                    fd_insert_dict[fd_key] = fd_value
-
-            fd_insert_list.append(fd_insert_dict)
-        return fd_insert_list
-
     fixed_dict: List[Dict[str, Any]] = []
     remove_field_if_false: List[str] = ['reserved', 'isOversized', 'isOnlineOnly', 'timeshifted']
 
@@ -521,6 +509,24 @@ def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str,
         fixed_dict.append(insert_value)
 
     return fixed_dict
+
+
+def fix_foreign_entries(values: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Foreign entries may have bad values, such as missing flavor text. This removes them.
+    :param values: List of foreign entries dicts
+    :return: Pruned foreign entries
+    """
+    # List of dicts
+    fd_insert_list = []
+    for foreign_info in values:
+        fd_insert_dict = {}
+        for fd_key, fd_value in foreign_info.items():
+            if fd_value is not None:
+                fd_insert_dict[fd_key] = fd_value
+
+        fd_insert_list.append(fd_insert_dict)
+    return fd_insert_list
 
 
 def find_file(name: str, path: pathlib.Path) -> Optional[pathlib.Path]:
@@ -554,7 +560,7 @@ def get_all_sets() -> List[str]:
     """
     Grab the set codes (~3 letters) for all sets found
     in the config database.
-    :return List of all set codes found
+    :return: List of all set codes found
     """
     downloaded = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS)
     if downloaded['object'] == 'error':
@@ -574,7 +580,7 @@ def get_compiled_sets() -> List[str]:
     """
     Grab the set codes for all sets that have already been
     compiled and are awaiting use in the set_outputs dir.
-    :return List of all set codes found
+    :return: List of all set codes found
     """
     all_paths: List[pathlib.Path] = list(mtgjson4.COMPILED_OUTPUT_DIR.glob('**/*.json'))
     all_sets_found: List[str] = [str(card_set).split('/')[-1][:-5].lower() for card_set in all_paths]
@@ -589,84 +595,86 @@ def compile_and_write_outputs() -> None:
     # Files that should not be combined into compiled outputs
     files_to_ignore: List[str] = ['AllSets.json', 'AllCards.json']
 
-    def create_all_sets() -> Dict[str, Any]:
-        """
-        This will create the AllSets.json file
-        by pulling the compile data from the
-        compiled sets and combining them into
-        one conglomerate file.
-        """
-        all_sets_data: Dict[str, Any] = {}
-
-        for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob('*.json'):
-            if set_file.name in files_to_ignore:
-                continue
-
-            with set_file.open('r', encoding='utf-8') as f:
-                file_content = json.load(f)
-
-                # Do not add these to the final output
-                file_content.pop('magicRaritiesCode', None)
-                file_content.pop('essentialMagicCode', None)
-                file_content.pop('useMagicRaritiesNumber', None)
-                file_content.pop('code', None)
-                file_content.pop('meta', None)
-                file_content.pop('mkm_id', None)
-                file_content.pop('mkm_name', None)
-                file_content.pop('magicCardsInfoCode', None)
-
-                set_name = set_file.name.split('.')[0]
-                all_sets_data[set_name] = file_content
-        return all_sets_data
-
-    def create_all_cards() -> Dict[str, Any]:
-        """
-        This will create the AllCards.json file
-        by pulling the compile data from the
-        compiled sets and combining them into
-        one conglomerate file.
-        """
-        all_cards_data: Dict[str, Any] = {}
-
-        for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob('*.json'):
-            if set_file.name in files_to_ignore:
-                continue
-
-            with set_file.open('r', encoding='utf-8') as f:
-                file_content = json.load(f)
-
-                for card in file_content['cards']:
-                    if card['name'] not in all_cards_data.keys():
-                        # Since these can vary from printing to printing, we do not include them in the output
-                        card.pop('artist', None)
-                        card.pop('cardHash', None)
-                        card.pop('flavor', None)
-                        card.pop('multiverseid', None)
-                        card.pop('number', None)
-                        card.pop('originalText', None)
-                        card.pop('originalType', None)
-                        card.pop('rarity', None)
-                        card.pop('variations', None)
-                        card.pop('borderColor', None)
-                        card.pop('flavorText', None)
-                        card.pop('frameVersion', None)
-                        card.pop('hasFoil', None)
-                        card.pop('hasNonFoil', None)
-                        card.pop('isOnlineOnly', None)
-                        card.pop('isOversized', None)
-
-                        for foreign in card['foreignData']:
-                            foreign.pop('multiverseid', None)
-
-                        all_cards_data[card['name']] = card
-        return all_cards_data
-
     # Actual compilation process of the method
-    all_sets = create_all_sets()
+    all_sets = create_all_sets(files_to_ignore)
     write_to_file('AllSets', all_sets)
 
-    all_cards = create_all_cards()
+    all_cards = create_all_cards(files_to_ignore)
     write_to_file('AllCards', all_cards)
+
+
+def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
+    """
+    This will create the AllSets.json file
+    by pulling the compile data from the
+    compiled sets and combining them into
+    one conglomerate file.
+    """
+    all_sets_data: Dict[str, Any] = {}
+
+    for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob('*.json'):
+        if set_file.name in files_to_ignore:
+            continue
+
+        with set_file.open('r', encoding='utf-8') as f:
+            file_content = json.load(f)
+
+            # Do not add these to the final output
+            file_content.pop('magicRaritiesCode', None)
+            file_content.pop('essentialMagicCode', None)
+            file_content.pop('useMagicRaritiesNumber', None)
+            file_content.pop('code', None)
+            file_content.pop('meta', None)
+            file_content.pop('mkm_id', None)
+            file_content.pop('mkm_name', None)
+            file_content.pop('magicCardsInfoCode', None)
+
+            set_name = set_file.name.split('.')[0]
+            all_sets_data[set_name] = file_content
+    return all_sets_data
+
+
+def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
+    """
+    This will create the AllCards.json file
+    by pulling the compile data from the
+    compiled sets and combining them into
+    one conglomerate file.
+    """
+    all_cards_data: Dict[str, Any] = {}
+
+    for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob('*.json'):
+        if set_file.name in files_to_ignore:
+            continue
+
+        with set_file.open('r', encoding='utf-8') as f:
+            file_content = json.load(f)
+
+            for card in file_content['cards']:
+                if card['name'] not in all_cards_data.keys():
+                    # Since these can vary from printing to printing, we do not include them in the output
+                    card.pop('artist', None)
+                    card.pop('cardHash', None)
+                    card.pop('flavor', None)
+                    card.pop('multiverseid', None)
+                    card.pop('number', None)
+                    card.pop('originalText', None)
+                    card.pop('originalType', None)
+                    card.pop('rarity', None)
+                    card.pop('variations', None)
+                    card.pop('borderColor', None)
+                    card.pop('flavorText', None)
+                    card.pop('frameVersion', None)
+                    card.pop('hasFoil', None)
+                    card.pop('hasNonFoil', None)
+                    card.pop('isOnlineOnly', None)
+                    card.pop('isOversized', None)
+
+                    for foreign in card['foreignData']:
+                        foreign.pop('multiverseid', None)
+
+                    all_cards_data[card['name']] = card
+    return all_cards_data
 
 
 def main() -> None:
