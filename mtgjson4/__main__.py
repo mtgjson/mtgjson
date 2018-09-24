@@ -179,8 +179,9 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
         original_soup = download_from_gatherer(mtgjson_card['multiverseId'])
         div_name = layout_options(original_soup)
 
-        mtgjson_card['originalText'] = parse_card_original_text(original_soup, div_name)  # str
-        mtgjson_card['originalType'] = parse_card_original_type(original_soup, div_name)  # str
+        if div_name:
+            mtgjson_card['originalText'] = parse_card_original_text(original_soup, div_name)  # str
+            mtgjson_card['originalType'] = parse_card_original_type(original_soup, div_name)  # str
 
         mtgjson4.LOGGER.info('Parsed {0} from {1}'.format(mtgjson_card.get('name'), sf_card.get('set')))
 
@@ -354,9 +355,14 @@ def layout_options(soup: bs4.BeautifulSoup) -> str:
             client_id_tags = script.get_text()
             break
 
+    div_name: str = ''
     # ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{} for single cards or
     # ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_ctl0*_{} for double cards, * being any int
-    div_name = str((client_id_tags.split('ClientIDs.nameRow = \'')[1].split(';')[0])[:-8] + '{}').strip()
+    try:
+        div_name = str((client_id_tags.split('ClientIDs.nameRow = \'')[1].split(';')[0])[:-8] + '{}').strip()
+    except IndexError:
+        mtgjson4.LOGGER.error('Failed to parse out div_name from {}', client_id_tags)
+
     return div_name
 
 
