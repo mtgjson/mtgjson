@@ -123,7 +123,7 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
                 mtgjson_cards += build_mtgjson_card(sf_card, i)
 
     # Characteristics that can are not shared to both sides of flip-type cards
-    mtgjson_card['manaCost'] = face_data.get('mana_cost')  # str
+    mtgjson_card['manaCost'] = face_data.get('mana_cost') if face_data.get('mana_cost') else None  # str
     mtgjson_card['name'] = face_data.get('name')  # str
     mtgjson_card['type'] = face_data.get('type_line')  # str
     mtgjson_card['text'] = face_data.get('oracle_text')  # str
