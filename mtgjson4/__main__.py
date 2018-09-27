@@ -123,7 +123,8 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
                 mtgjson_cards += build_mtgjson_card(sf_card, i)
 
     # Characteristics that can are not shared to both sides of flip-type cards
-    mtgjson_card['manaCost'] = face_data.get('mana_cost') if face_data.get('mana_cost') else None  # str
+    if face_data.get('mana_cost'):
+        mtgjson_card['manaCost'] = face_data.get('mana_cost')  # str
     mtgjson_card['name'] = face_data.get('name')  # str
     mtgjson_card['type'] = face_data.get('type_line')  # str
     mtgjson_card['text'] = face_data.get('oracle_text')  # str
@@ -455,7 +456,7 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
         card_foreign_entry: Dict[str, str] = {
             'name': foreign_card.get('printed_name'),
             'text': foreign_card.get('printed_text'),
-            'flavor': foreign_card.get('flavor_text'),
+            'flavorText': foreign_card.get('flavor_text'),
             'type': foreign_card.get('printed_type_line')
         }
 
@@ -705,7 +706,6 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
                     # Since these can vary from printing to printing, we do not include them in the output
                     card.pop('artist', None)
                     card.pop('cardHash', None)
-                    card.pop('flavor', None)
                     card.pop('multiverseId', None)
                     card.pop('number', None)
                     card.pop('originalText', None)
