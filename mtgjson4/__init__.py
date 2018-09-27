@@ -11,7 +11,7 @@ __VERSION__ = '4.0.0-beta.9'
 __VERSION_DATE__ = '2018-09-27'
 __MAINTAINER__ = 'Zach Halpern (GitHub: @ZeldaZach)'
 __MAINTAINER_EMAIL__ = 'zahalpern+github@gmail.com'
-__REPO_URL__ = 'https://github.com/mtgjson/mtgjson-python'
+__REPO_URL__ = 'https://github.com/mtgjson/mtgjson4'
 
 # Globals
 SCRYFALL_API_SETS: str = 'https://api.scryfall.com/sets/'
