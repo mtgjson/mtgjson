@@ -162,9 +162,10 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     mtgjson_card['rarity'] = sf_card.get('rarity') if not mtgjson_card.get('timeshifted') else 'Special'  # str
 
     # Characteristics that we need custom functions to parse
+    print_search_url: str = sf_card['prints_search_uri'].replace('%22', '')
     mtgjson_card['legalities'] = parse_scryfall_legalities(sf_card['legalities'])  # Dict[str, str]
     mtgjson_card['rulings'] = parse_scryfall_rulings(sf_card['rulings_uri'])  # List[Dict[str, str]]
-    mtgjson_card['printings'] = parse_scryfall_printings(sf_card['prints_search_uri'])  # List[str]
+    mtgjson_card['printings'] = sorted(parse_scryfall_printings(print_search_url))  # List[str]
 
     card_types: Tuple[List[str], List[str], List[str]] = parse_scryfall_card_types(mtgjson_card['type'])
     mtgjson_card['supertypes'] = card_types[0]  # List[str]
@@ -173,7 +174,7 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
 
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for
-    mtgjson_card['foreignData'] = parse_sf_foreign(sf_card['prints_search_uri'], sf_card['set'])  # Dict[str, str]
+    mtgjson_card['foreignData'] = parse_sf_foreign(print_search_url, sf_card['set'])  # Dict[str, str]
 
     if mtgjson_card['multiverseId'] is not None:
         original_soup = download_from_gatherer(mtgjson_card['multiverseId'])
