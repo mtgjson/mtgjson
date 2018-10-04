@@ -165,7 +165,7 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     # Characteristics that we need custom functions to parse
     print_search_url: str = sf_card['prints_search_uri'].replace('%22', '')
     mtgjson_card['legalities'] = parse_scryfall_legalities(sf_card['legalities'])  # Dict[str, str]
-    mtgjson_card['rulings'] = parse_scryfall_rulings(sf_card['rulings_uri'])  # List[Dict[str, str]]
+    mtgjson_card['rulings'] = sorted(parse_scryfall_rulings(sf_card['rulings_uri']), key=lambda ruling: ruling['date'])
     mtgjson_card['printings'] = sorted(parse_scryfall_printings(print_search_url))  # List[str]
 
     card_types: Tuple[List[str], List[str], List[str]] = parse_scryfall_card_types(mtgjson_card['type'])
@@ -175,7 +175,7 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
 
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for
-    mtgjson_card['foreignData'] = parse_sf_foreign(print_search_url, sf_card['set'])  # Dict[str, str]
+    mtgjson_card['foreignData'] = parse_sf_foreign(print_search_url, mtgjson_card['name'], sf_card['set'])
 
     if mtgjson_card['multiverseId'] is not None:
         original_soup = download_from_gatherer(mtgjson_card['multiverseId'])
@@ -363,7 +363,7 @@ def layout_options(soup: bs4.BeautifulSoup) -> str:
     try:
         div_name = str((client_id_tags.split('ClientIDs.nameRow = \'')[1].split(';')[0])[:-8] + '{}').strip()
     except IndexError:
-        mtgjson4.LOGGER.error('Failed to parse out div_name from {}', client_id_tags)
+        mtgjson4.LOGGER.error('Failed to parse out div_name from {}'.format(client_id_tags))
 
     return div_name
 
@@ -432,10 +432,11 @@ def parse_scryfall_legalities(sf_card_legalities: Dict[str, str]) -> Dict[str, s
     return card_legalities
 
 
-def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
+def parse_sf_foreign(sf_prints_url: str, card_name: str, set_name: str) -> List[Dict[str, str]]:
     """
     Get the foreign printings information for a specific card
     :param sf_prints_url: URL to get prints from
+    :param card_name: Card name to parse (needed for double faced)
     :param set_name: Set name
     :return: Foreign entries object
     """
@@ -453,13 +454,7 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
         if set_name != foreign_card['set'] or foreign_card['lang'] == 'en':
             continue
 
-        card_foreign_entry: Dict[str, str] = {
-            'name': foreign_card.get('printed_name'),
-            'text': foreign_card.get('printed_text'),
-            'flavorText': foreign_card.get('flavor_text'),
-            'type': foreign_card.get('printed_type_line')
-        }
-
+        card_foreign_entry: Dict[str, str] = {}
         try:
             card_foreign_entry['language'] = mtgjson4.LANGUAGE_MAP[foreign_card['lang']]
         except IndexError:
@@ -469,6 +464,20 @@ def parse_sf_foreign(sf_prints_url: str, set_name: str) -> List[Dict[str, str]]:
             card_foreign_entry['multiverseId'] = foreign_card['multiverse_ids'][0]
         except IndexError:
             mtgjson4.LOGGER.warning('Error trying to get multiverseId {}'.format(foreign_card))
+
+        if 'card_faces' in foreign_card:
+            if card_name.lower() == foreign_card['name'].split("/")[0].strip().lower():
+                face = 0
+            else:
+                face = 1
+
+            foreign_card = foreign_card['card_faces'][face]
+            mtgjson4.LOGGER.info('Split card found: Using face {0} for {1}'.format(face, card_name))
+
+        card_foreign_entry['name'] = foreign_card.get('printed_name')
+        card_foreign_entry['text'] = foreign_card.get('printed_text')
+        card_foreign_entry['flavorText'] = foreign_card.get('flavor_text')
+        card_foreign_entry['type'] = foreign_card.get('printed_type_line')
 
         card_foreign_entries.append(card_foreign_entry)
 
