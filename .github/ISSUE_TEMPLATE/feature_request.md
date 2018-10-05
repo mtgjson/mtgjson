@@ -1,17 +1,6 @@
 ---
-name: Feature request
-about: Suggest an idea for this project
-
+name: Suggestion
+about: Suggest something for MTGJSONv4
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
-
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
-
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
-
-**Additional context**
-Add any other context or screenshots about the feature request here.
+<!-- Thanks for helping to improve MTGJSONv4! If you have any questions, please don't hesitate to ask! -->
