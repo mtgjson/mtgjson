@@ -630,8 +630,8 @@ def get_all_sets() -> List[str]:
     # Get _ALL_ Scryfall sets
     set_codes: List[str] = [set_obj['code'] for set_obj in downloaded['data']]
 
-    # Remove Scryfall token sets
-    set_codes = [s for s in set_codes if not (len(s) >= 4 and s.startswith('t'))]
+    # Remove Scryfall token sets (but leave extra sets)
+    set_codes = [s for s in set_codes if not (s.startswith('t') and s[1:] in set_codes)]
 
     return set_codes
 
