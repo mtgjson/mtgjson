@@ -255,7 +255,11 @@ def download_from_scryfall(scryfall_url: str) -> Dict[str, Any]:
     else:
         auth_status = 'WITHOUT authentication'
 
-    request_api_json: Dict[str, Any] = requests.get(url=scryfall_url, headers=header_auth).json()
+    request_api_json: Dict[str, Any] = requests.get(
+        url=scryfall_url,
+        headers=header_auth,
+        timeout=5.0,
+    ).json()
 
     mtgjson4.LOGGER.info('Downloaded ({0}) URL: {1}'.format(auth_status, scryfall_url))
 
@@ -314,7 +318,7 @@ def download_from_gatherer(card_mid: str) -> bs4.BeautifulSoup:
             'multiverseid': str(card_mid),
             'printed': 'true',
         },
-        headers={},
+        timeout=5.0,
     )
 
     soup: bs4.BeautifulSoup = bs4.BeautifulSoup(request_data_html.text, 'html.parser')
