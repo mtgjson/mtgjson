@@ -78,7 +78,7 @@ def add_starter_flag(set_code: str, search_url: str, mtgjson_cards: List[Dict[st
     starter_cards = download_from_scryfall(starter_card_url)
 
     if starter_cards['object'] == 'error':
-        mtgjson4.LOGGER.info('All cards in {} are available in boosters', set_code)
+        mtgjson4.LOGGER.info('All cards in {} are available in boosters'.format(set_code))
         return mtgjson_cards
 
     for sf_card in starter_cards['data']:
