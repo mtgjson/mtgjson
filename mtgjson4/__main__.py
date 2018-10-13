@@ -38,6 +38,9 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     output_file['type'] = set_config.get('set_type')
     # output_file['booster'] = ''  # Maybe will re-add
 
+    if set_config.get('block'):
+        output_file['block'] = set_config.get('block')
+
     if set_config.get('digital'):
         output_file['onlineOnly'] = True
 
@@ -48,7 +51,11 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     output_file['meta'] = {'version': mtgjson4.__VERSION__, 'date': mtgjson4.__VERSION_DATE__}
 
     mtgjson4.LOGGER.info('Starting cards for {}'.format(set_code))
-    output_file['cards'] = scryfall_to_mtgjson(sf_cards)
+
+    card_holder = scryfall_to_mtgjson(sf_cards)
+    card_holder = add_starter_flag(set_code, set_config['search_uri'], card_holder)
+    output_file['cards'] = card_holder
+
     mtgjson4.LOGGER.info('Finished cards for {}'.format(set_code))
 
     mtgjson4.LOGGER.info('Starting tokens for {}'.format(set_code))
@@ -57,6 +64,30 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     mtgjson4.LOGGER.info('Finished tokens for {}'.format(set_code))
 
     return output_file
+
+
+def add_starter_flag(set_code: str, search_url: str, mtgjson_cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Since SF doesn't provide individual card notices, we can post-process add the starter flag
+    :param set_code: Set to address
+    :param search_url: URL to fix up to get non-booster cards
+    :param mtgjson_cards: Modify the argument and return it
+    :return: List of cards
+    """
+    starter_card_url = search_url.replace('&unique=', '++not:booster&unique=')
+    starter_cards = download_from_scryfall(starter_card_url)
+
+    if starter_cards['object'] == 'error':
+        mtgjson4.LOGGER.info('All cards in {} are available in boosters', set_code)
+        return mtgjson_cards
+
+    for sf_card in starter_cards['data']:
+        # Each card has a unique UUID, even if they're the same card printed twice
+        card = next(item for item in mtgjson_cards if item['uuid'] == sf_card['id'])
+        if card:
+            card['starter'] = True
+
+    return mtgjson_cards
 
 
 def build_mtgjson_tokens(sf_tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -714,20 +745,23 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
                 if card['name'] not in all_cards_data.keys():
                     # Since these can vary from printing to printing, we do not include them in the output
                     card.pop('artist', None)
-                    card.pop('cardHash', None)
-                    card.pop('multiverseId', None)
-                    card.pop('number', None)
-                    card.pop('originalText', None)
-                    card.pop('originalType', None)
-                    card.pop('rarity', None)
-                    card.pop('variations', None)
                     card.pop('borderColor', None)
+                    card.pop('cardHash', None)
                     card.pop('flavorText', None)
                     card.pop('frameVersion', None)
                     card.pop('hasFoil', None)
                     card.pop('hasNonFoil', None)
                     card.pop('isOnlineOnly', None)
                     card.pop('isOversized', None)
+                    card.pop('multiverseId', None)
+                    card.pop('number', None)
+                    card.pop('originalText', None)
+                    card.pop('originalType', None)
+                    card.pop('rarity', None)
+                    card.pop('reserved', None)
+                    card.pop('timeshifted', None)
+                    card.pop('variations', None)
+                    card.pop('watermark', None)
 
                     for foreign in card['foreignData']:
                         foreign.pop('multiverseId', None)
