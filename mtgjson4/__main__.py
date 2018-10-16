@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import bs4
 import requests
+import requests.adapters
+import urllib3.util
 
 import mtgjson4
 
@@ -42,10 +44,10 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
         output_file['block'] = set_config.get('block')
 
     if set_config.get('digital'):
-        output_file['onlineOnly'] = True
+        output_file['isOnlineOnly'] = True
 
     if set_config.get('foil_only'):
-        output_file['foilOnly'] = True
+        output_file['isFoilOnly'] = True
 
     # Declare the version of the build in the output file
     output_file['meta'] = {'version': mtgjson4.__VERSION__, 'date': mtgjson4.__VERSION_DATE__}
@@ -186,7 +188,7 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     mtgjson_card['isOversized'] = sf_card.get('oversized')  # bool
     mtgjson_card['layout'] = sf_card.get('layout')  # str
     mtgjson_card['number'] = sf_card.get('collector_number')  # str
-    mtgjson_card['reserved'] = sf_card.get('reserved')  # bool
+    mtgjson_card['isReserved'] = sf_card.get('reserved')  # bool
     mtgjson_card['uuid'] = sf_card.get('id')  # str
 
     # Characteristics that we have to format ourselves from provided data
@@ -244,24 +246,12 @@ def download_from_scryfall(scryfall_url: str) -> Dict[str, Any]:
     :param scryfall_url: URL to download JSON data from
     :return: JSON object of the Scryfall data
     """
-
-    header_auth: Dict[str, str] = {}
-    auth_status: str = 'with authentication'
-    if pathlib.Path(mtgjson4.CONFIG_PATH).is_file():
-        # Open and read MTGJSON secret properties
-        config = configparser.RawConfigParser()
-        config.read(mtgjson4.CONFIG_PATH)
-        header_auth = {'Authorization': 'Bearer {}'.format(config.get('Scryfall', 'client_secret'))}
-    else:
-        auth_status = 'WITHOUT authentication'
-
-    request_api_json: Dict[str, Any] = requests.get(
+    request_api_json: Dict[str, Any] = requests_retry_session(session=sf_session).get(
         url=scryfall_url,
-        headers=header_auth,
         timeout=5.0,
     ).json()
 
-    mtgjson4.LOGGER.info('Downloaded ({0}) URL: {1}'.format(auth_status, scryfall_url))
+    mtgjson4.LOGGER.info('Downloaded ({0}) URL: {1}'.format(sf_is_auth, scryfall_url))
 
     return request_api_json
 
@@ -306,13 +296,36 @@ def get_scryfall_set(set_code: str) -> List[Dict[str, Any]]:
     return scryfall_cards
 
 
+def requests_retry_session(retries: int = 5, session: requests.Session = None) -> requests.Session:
+    """
+    Session with requests to allow for re-attempts at downloading missing data
+    :param retries: How many retries to attempt
+    :param session: Session to download with
+    :return: Session that does downloading
+    """
+    session = session or requests.Session()
+
+    retry = urllib3.util.retry.Retry(
+        total=retries,
+        read=retries,
+        connect=retries,
+        backoff_factor=0.3,
+        status_forcelist=(500, 502, 504),
+    )
+
+    adapter = requests.adapters.HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
+
+
 def download_from_gatherer(card_mid: str) -> bs4.BeautifulSoup:
     """
     Download a specific card from gatherer
     :param card_mid: card id to download
     :return: HTML soup parser of the resulting page
     """
-    request_data_html: Any = requests.get(
+    request_data_html: Any = requests_retry_session().get(
         url=mtgjson4.GATHERER_CARD,
         params={
             'multiverseid': str(card_mid),
@@ -655,7 +668,7 @@ def get_all_sets() -> List[str]:
     """
     Grab the set codes (~3 letters) for all sets found
     in the config database.
-    :return: List of all set codes found
+    :return: List of all set codes found, sorted
     """
     downloaded = download_from_scryfall(mtgjson4.SCRYFALL_API_SETS)
     if downloaded['object'] == 'error':
@@ -668,7 +681,7 @@ def get_all_sets() -> List[str]:
     # Remove Scryfall token sets (but leave extra sets)
     set_codes = [s for s in set_codes if not (s.startswith('t') and s[1:] in set_codes)]
 
-    return set_codes
+    return sorted(set_codes)
 
 
 def get_compiled_sets() -> List[str]:
@@ -774,6 +787,31 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
     return all_cards_data
 
 
+def create_scryfall_session() -> Tuple[requests.Session, str]:
+    """
+    The session can be static, so this will be a singleton creation
+    :return: Session and Auth String tuple
+    """
+    session = requests.Session()
+
+    auth_status: str = 'with authentication'
+    if pathlib.Path(mtgjson4.CONFIG_PATH).is_file():
+        # Open and read MTGJSON secret properties
+        config = configparser.RawConfigParser()
+        config.read(mtgjson4.CONFIG_PATH)
+        header_auth: Dict[str, str] = {'Authorization': 'Bearer {}'.format(config.get('Scryfall', 'client_secret'))}
+        session.headers.update(header_auth)
+    else:
+        auth_status = 'WITHOUT authentication'
+
+    return session, auth_status
+
+
+def create_version_file():
+    # TODO
+    return
+
+
 def main() -> None:
     """
     Main Method
@@ -797,6 +835,10 @@ def main() -> None:
             mtgjson4.CONFIG_PATH))
 
     if not args.skip_rebuild:
+        # We'll need this session in the future
+        global sf_session, sf_is_auth
+        sf_session, sf_is_auth = create_scryfall_session()
+
         # Determine sets to build, whether they're passed in as args or all sets in our configs
         set_list: List[str] = get_all_sets() if args.all_sets else args.s
         mtgjson4.LOGGER.info('Sets to compile: {}'.format(set_list))
