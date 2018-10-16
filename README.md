@@ -1,6 +1,6 @@
 # [**MTGJSON**](https://mtgjson.com/)
 
-[![Join the chat at https://gitter.im/mtgjson/mtgjson4](https://badges.gitter.im/mtgjson/mtgjson4.svg)](https://gitter.im/mtgjson/mtgjson4?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/mtgjson/mtgjson4) and/or [![Discord](https://img.shields.io/discord/102860784329052160.svg)](https://discord.gg/74GUQDE)
 
 MTGJSON is an open sourced database creation and distribution tool for [*Magic: The Gathering*](https://magic.wizards.com/en) cards, specifically in [JSON](https://json.org/) format.
 
@@ -38,3 +38,4 @@ $ pip3 install -r requirements.txt
 usage: mtgjson4 [-h] [-s [SET [SET ...]]] [-a] [-c] [--skip-rebuild] [--skip-cached]
 $ python3 -m mtgjson4 
 ```
+
