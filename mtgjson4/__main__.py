@@ -4,6 +4,7 @@ MTGJSON Version 4 Compiler
 import argparse
 import configparser
 import copy
+import hashlib
 import json
 import multiprocessing
 import pathlib
@@ -706,6 +707,22 @@ def win_os_fix(set_name: str) -> str:
     return set_name
 
 
+def get_file_hash(set_name: str) -> str:
+    """
+    Generate the md5sum hash of pre-built set_outputs (if they already exist)
+    This will help determine if a set was rebuilt with changes or not
+    :param set_name: Set to generate hash for
+    :return: md5sum hash of file contents
+    """
+    path_to_output: pathlib.Path = pathlib.Path(mtgjson4.COMPILED_OUTPUT_DIR, win_os_fix(set_name) + '.json')
+
+    if not path_to_output.is_file():
+        return ''
+
+    with path_to_output.open('rb', encoding='utf-8') as f:
+        return hashlib.md5(f.read()).hexdigest()
+
+
 def write_to_file(set_name: str, file_contents: Dict[str, Any], do_cleanup: bool = False) -> None:
     """
     Write the compiled data to a file with the set's code
@@ -865,13 +882,44 @@ def create_scryfall_session() -> Tuple[requests.Session, str]:
     return session, auth_status
 
 
-def create_version_file() -> None:
+def get_built_files(file_hashes: Dict[str, str]) -> List[str]:
     """
-    TODO
-    :return: nothing
+    Go through all files in the set_outputs and see how many of them were rebuilt
+    with changes. Compares the hashes of pre-build to post-build.
+    :param file_hashes: Dict of hashes from pre-build
+    :return: List of modified sets
     """
-    # TODO
-    return
+    all_files: List[pathlib.Path] = list(mtgjson4.COMPILED_OUTPUT_DIR.glob('**/*.json'))
+
+    ret_val: List[str] = []
+    for file in all_files:
+        file_name = file.name[:-5]
+        if (file_name in file_hashes) and (file_hashes[file_name] != get_file_hash(file_name)):
+            ret_val.append(file_name)
+
+    return ret_val
+
+
+def create_version_files(file_hashes: Dict[str, str]) -> None:
+    """
+    Create the version and change history files
+    :param file_hashes: hashes to pass on to inner function
+    """
+    with pathlib.Path(mtgjson4.CHANGE_HISTORY_PATH).open('r', encoding='utf-8') as f:
+        change_history_dict = json.load(f)
+
+    change_history_dict[mtgjson4.__VERSION__] = {
+        'date': mtgjson4.__VERSION_DATE__,
+        'filesModified': get_built_files(file_hashes)
+    }
+
+    with pathlib.Path(mtgjson4.CHANGE_HISTORY_PATH).open('w', encoding='utf-8') as f:
+        json.dump(change_history_dict, f, indent=4, sort_keys=True, ensure_ascii=False)
+
+    # Create the version.json file
+    with pathlib.Path(mtgjson4.VERSION_PATH).open('w', encoding='utf-8') as f:
+        version_dict = {'version': mtgjson4.__VERSION__, 'date': mtgjson4.__VERSION_DATE__}
+        json.dump(version_dict, f, indent=4, sort_keys=True, ensure_ascii=False)
 
 
 def main() -> None:
@@ -912,13 +960,17 @@ def main() -> None:
             mtgjson4.LOGGER.info('Sets to skip compilation for: {}'.format(sets_compiled_already))
             mtgjson4.LOGGER.info('Sets to compile, after cached sets removed: {}'.format(set_list))
 
+        hash_codes = {}
         for set_code in set_list:
+            hash_codes[set_code] = get_file_hash(set_code.upper())  # Used in building changeHistory
             sf_set: List[Dict[str, Any]] = get_scryfall_set(set_code)
             compiled: Dict[str, Any] = build_output_file(sf_set, set_code)
 
             # If we have at least 1 card, print out to file
             if compiled['cards']:
                 write_to_file(set_code.upper(), compiled, do_cleanup=True)
+
+        create_version_files(hash_codes)
 
     if args.compiled_outputs:
         mtgjson4.LOGGER.info('Compiling AllSets and AllCards')

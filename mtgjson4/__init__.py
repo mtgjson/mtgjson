@@ -21,6 +21,8 @@ TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 COMPILED_OUTPUT_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath('set_outputs')
 LOG_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath('logs')
 CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath('mtgjson.properties')
+CHANGE_HISTORY_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath('changeHistory.json')
+VERSION_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath('version.json')
 
 LANGUAGE_MAP: Dict[str, str] = {
     'en': 'English',
