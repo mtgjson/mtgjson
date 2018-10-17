@@ -208,6 +208,11 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     mtgjson_card['loyalty'] = face_data.get('loyalty')  # str
     mtgjson_card['watermark'] = face_data.get('watermark')  # str
 
+    if 'color_indicator' in face_data:
+        mtgjson_card['colorIndicator'] = face_data.get('color_indicator')  # List[str]
+    elif 'color_indicator' in sf_card:
+        mtgjson_card['colorIndicator'] = sf_card.get('color_indicator')  # List[str]
+
     try:
         mtgjson_card['multiverseId'] = sf_card['multiverse_ids'][sf_card_face]  # int
     except IndexError:
