@@ -178,7 +178,7 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
 
         # Prevent duplicate UUIDs for split card halves
         # Remove the last character and replace with the id of the card face
-        mtgjson_card['uuid'] = sf_card.get('id')[:-1] + str(sf_card_face)
+        mtgjson_card['uuid'] = sf_card['id'][:-1] + str(sf_card_face)
 
         # Split cards have this field, flip cards do not
         if 'mana_cost' in sf_card:
@@ -303,12 +303,13 @@ def download_from_scryfall(scryfall_url: str) -> Dict[str, Any]:
     :param scryfall_url: URL to download JSON data from
     :return: JSON object of the Scryfall data
     """
-    request_api_json: Dict[str, Any] = requests_retry_session(session=sf_session).get(
+    global __sf_session__, __sf_authorized__
+    request_api_json: Dict[str, Any] = requests_retry_session(session=__sf_session__).get(
         url=scryfall_url,
         timeout=5.0,
     ).json()
 
-    mtgjson4.LOGGER.info('Downloaded ({0}) URL: {1}'.format(sf_is_auth, scryfall_url))
+    mtgjson4.LOGGER.info('Downloaded ({0}) URL: {1}'.format(__sf_authorized__, scryfall_url))
 
     return request_api_json
 
@@ -864,7 +865,11 @@ def create_scryfall_session() -> Tuple[requests.Session, str]:
     return session, auth_status
 
 
-def create_version_file():
+def create_version_file() -> None:
+    """
+    TODO
+    :return: nothing
+    """
     # TODO
     return
 
@@ -893,8 +898,8 @@ def main() -> None:
 
     if not args.skip_rebuild:
         # We'll need this session in the future
-        global sf_session, sf_is_auth
-        sf_session, sf_is_auth = create_scryfall_session()
+        global __sf_session__, __sf_authorized__
+        __sf_session__, __sf_authorized__ = create_scryfall_session()
 
         # Determine sets to build, whether they're passed in as args or all sets in our configs
         set_list: List[str] = get_all_sets() if args.all_sets else args.s
@@ -920,5 +925,8 @@ def main() -> None:
         compile_and_write_outputs()
 
 
+# GLOBALS -- I know, it's bad. Will look into changing this up soon
+__sf_session__ = None
+__sf_authorized__ = None
 if __name__ == '__main__':
     main()
