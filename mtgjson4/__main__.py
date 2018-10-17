@@ -172,6 +172,9 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     mtgjson_cards: List[Dict[str, Any]] = []
     mtgjson_card: Dict[str, Any] = {}
 
+    # Let us know what card we're trying to parse -- good for debugging :)
+    mtgjson4.LOGGER.info('Parsing {0} from {1}'.format(sf_card.get('name'), sf_card.get('set')))
+
     # If flip-type, go to card_faces for alt attributes
     face_data: Dict[str, Any] = sf_card
 
@@ -183,8 +186,9 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
         # Remove the last character and replace with the id of the card face
         mtgjson_card['uuid'] = sf_card['id'][:-1] + str(sf_card_face)
 
-        # Split cards have this field, flip cards do not
-        if 'mana_cost' in sf_card:
+        # Split cards and rotational cards have this field, flip cards do not.
+        # Remove rotational cards via the additional check
+        if 'mana_cost' in sf_card and '//' in sf_card['mana_cost']:
             mtgjson_card['colors'] = get_card_colors(sf_card['mana_cost'].split(' // ')[sf_card_face])
             mtgjson_card['convertedManaCost'] = get_cmc(sf_card['mana_cost'].split(' // ')[sf_card_face])
 
@@ -277,8 +281,6 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
         if div_name:
             mtgjson_card['originalText'] = parse_card_original_text(original_soup, div_name)  # str
             mtgjson_card['originalType'] = parse_card_original_type(original_soup, div_name)  # str
-
-        mtgjson4.LOGGER.info('Parsed {0} from {1}'.format(mtgjson_card.get('name'), sf_card.get('set')))
 
     mtgjson_cards.append(mtgjson_card)
     return mtgjson_cards
