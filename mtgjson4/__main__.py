@@ -131,6 +131,34 @@ def build_mtgjson_tokens(sf_tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]
     return token_cards
 
 
+def get_card_colors(mana_cost: str) -> List[str]:
+    """
+    For some cards, we may have to manually determine the card's color.
+    :param mana_cost: Mana cost string
+    :return: Colors based on mana cost
+    """
+    color_options: List[str] = ['W', 'U', 'B', 'R', 'G']
+
+    ret_val = []
+    for color in color_options:
+        if color in mana_cost:
+            ret_val.append(color)
+
+    return ret_val
+
+
+def get_cmc(mana_cost: str) -> float:
+    """
+    For some cards, we may have to manually update the converted mana cost.
+    We do this by counting the # of open brackets. This will NOT work for
+    cards that have weird costs, like {2/W}.
+    READDRESS IF NECESSARY LATER
+    :param mana_cost: Mana cost string
+    :return: One sided cmc
+    """
+    return mana_cost.count('{')
+
+
 def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[Dict[str, Any]]:
     """
     Build a mtgjson card (and all sub pieces of that card)
@@ -148,6 +176,15 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
         mtgjson_card['names'] = sf_card['name'].split(' // ')  # List[str]
         face_data = sf_card['card_faces'][sf_card_face]
 
+        # Prevent duplicate UUIDs for split card halves
+        # Remove the last character and replace with the id of the card face
+        mtgjson_card['uuid'] = sf_card['id'][:-1] + str(sf_card_face)
+
+        # Split cards have this field, flip cards do not
+        if 'mana_cost' in sf_card:
+            mtgjson_card['colors'] = get_card_colors(sf_card['mana_cost'].split(' // ')[sf_card_face])
+            mtgjson_card['convertedManaCost'] = get_cmc(sf_card['mana_cost'].split(' // ')[sf_card_face])
+
         # Recursively parse the other cards within this card too
         # Only call recursive if it is the first time we see this card object
         if sf_card_face == 0:
@@ -158,14 +195,23 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     # Characteristics that can are not shared to both sides of flip-type cards
     if face_data.get('mana_cost'):
         mtgjson_card['manaCost'] = face_data.get('mana_cost')  # str
+
+    if 'colors' not in mtgjson_card:
+        mtgjson_card['colors'] = face_data.get('colors')  # List[str]
+
     mtgjson_card['name'] = face_data.get('name')  # str
     mtgjson_card['type'] = face_data.get('type_line')  # str
     mtgjson_card['text'] = face_data.get('oracle_text')  # str
-    mtgjson_card['colors'] = face_data.get('colors')  # List[str]
+
     mtgjson_card['power'] = face_data.get('power')  # str
     mtgjson_card['toughness'] = face_data.get('toughness')  # str
     mtgjson_card['loyalty'] = face_data.get('loyalty')  # str
     mtgjson_card['watermark'] = face_data.get('watermark')  # str
+
+    if 'color_indicator' in face_data:
+        mtgjson_card['colorIndicator'] = face_data.get('color_indicator')  # List[str]
+    elif 'color_indicator' in sf_card:
+        mtgjson_card['colorIndicator'] = sf_card.get('color_indicator')  # List[str]
 
     try:
         mtgjson_card['multiverseId'] = sf_card['multiverse_ids'][sf_card_face]  # int
@@ -179,7 +225,10 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     mtgjson_card['artist'] = sf_card.get('artist')  # str
     mtgjson_card['borderColor'] = sf_card.get('border_color')
     mtgjson_card['colorIdentity'] = sf_card.get('color_identity')  # List[str]
-    mtgjson_card['convertedManaCost'] = sf_card.get('cmc')  # float
+
+    if 'convertedManaCost' not in mtgjson_card:
+        mtgjson_card['convertedManaCost'] = sf_card.get('cmc')  # float
+
     mtgjson_card['flavorText'] = sf_card.get('flavor_text')  # str
     mtgjson_card['frameVersion'] = sf_card.get('frame')  # str
     mtgjson_card['hasFoil'] = sf_card.get('foil')  # bool
@@ -189,7 +238,9 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     mtgjson_card['layout'] = sf_card.get('layout')  # str
     mtgjson_card['number'] = sf_card.get('collector_number')  # str
     mtgjson_card['isReserved'] = sf_card.get('reserved')  # bool
-    mtgjson_card['uuid'] = sf_card.get('id')  # str
+
+    if 'uuid' not in mtgjson_card:
+        mtgjson_card['uuid'] = sf_card.get('id')  # str
 
     # Characteristics that we have to format ourselves from provided data
     mtgjson_card['timeshifted'] = (sf_card.get('timeshifted') or sf_card.get('futureshifted'))  # bool
@@ -205,6 +256,12 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     mtgjson_card['supertypes'] = card_types[0]  # List[str]
     mtgjson_card['types'] = card_types[1]  # List[str]
     mtgjson_card['subtypes'] = card_types[2]  # List[str]
+
+    # Handle meld issues
+    if 'all_parts' in sf_card:
+        mtgjson_card['names'] = []
+        for a_part in sf_card['all_parts']:
+            mtgjson_card['names'].append(a_part.get('name'))
 
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for
@@ -246,12 +303,13 @@ def download_from_scryfall(scryfall_url: str) -> Dict[str, Any]:
     :param scryfall_url: URL to download JSON data from
     :return: JSON object of the Scryfall data
     """
-    request_api_json: Dict[str, Any] = requests_retry_session(session=sf_session).get(
+    global __sf_session__, __sf_authorized__
+    request_api_json: Dict[str, Any] = requests_retry_session(session=__sf_session__).get(
         url=scryfall_url,
         timeout=5.0,
     ).json()
 
-    mtgjson4.LOGGER.info('Downloaded ({0}) URL: {1}'.format(sf_is_auth, scryfall_url))
+    mtgjson4.LOGGER.info('Downloaded ({0}) URL: {1}'.format(__sf_authorized__, scryfall_url))
 
     return request_api_json
 
@@ -807,7 +865,11 @@ def create_scryfall_session() -> Tuple[requests.Session, str]:
     return session, auth_status
 
 
-def create_version_file():
+def create_version_file() -> None:
+    """
+    TODO
+    :return: nothing
+    """
     # TODO
     return
 
@@ -836,8 +898,8 @@ def main() -> None:
 
     if not args.skip_rebuild:
         # We'll need this session in the future
-        global sf_session, sf_is_auth
-        sf_session, sf_is_auth = create_scryfall_session()
+        global __sf_session__, __sf_authorized__
+        __sf_session__, __sf_authorized__ = create_scryfall_session()
 
         # Determine sets to build, whether they're passed in as args or all sets in our configs
         set_list: List[str] = get_all_sets() if args.all_sets else args.s
@@ -863,5 +925,8 @@ def main() -> None:
         compile_and_write_outputs()
 
 
+# GLOBALS -- I know, it's bad. Will look into changing this up soon
+__sf_session__ = None
+__sf_authorized__ = None
 if __name__ == '__main__':
     main()
