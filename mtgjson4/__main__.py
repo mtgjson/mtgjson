@@ -176,6 +176,10 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
         mtgjson_card['names'] = sf_card['name'].split(' // ')  # List[str]
         face_data = sf_card['card_faces'][sf_card_face]
 
+        # Prevent duplicate UUIDs for split card halves
+        # Remove the last character and replace with the id of the card face
+        mtgjson_card['uuid'] = sf_card.get('id')[:-1] + str(sf_card_face)
+
         # Split cards have this field, flip cards do not
         if 'mana_cost' in sf_card:
             mtgjson_card['colors'] = get_card_colors(sf_card['mana_cost'].split(' // ')[sf_card_face])
@@ -229,7 +233,9 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     mtgjson_card['layout'] = sf_card.get('layout')  # str
     mtgjson_card['number'] = sf_card.get('collector_number')  # str
     mtgjson_card['isReserved'] = sf_card.get('reserved')  # bool
-    mtgjson_card['uuid'] = sf_card.get('id')  # str
+
+    if 'uuid' not in mtgjson_card:
+        mtgjson_card['uuid'] = sf_card.get('id')  # str
 
     # Characteristics that we have to format ourselves from provided data
     mtgjson_card['timeshifted'] = (sf_card.get('timeshifted') or sf_card.get('futureshifted'))  # bool
