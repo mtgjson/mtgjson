@@ -3,4 +3,5 @@ mypy
 pylint
 requests
 tox
+urllib3
 yapf

@@ -147,6 +147,18 @@ def get_card_colors(mana_cost: str) -> List[str]:
     return ret_val
 
 
+def get_cmc(mana_cost: str) -> float:
+    """
+    For some cards, we may have to manually update the converted mana cost.
+    We do this by counting the # of open brackets. This will NOT work for
+    cards that have weird costs, like {2/W}.
+    READDRESS IF NECESSARY LATER
+    :param mana_cost: Mana cost string
+    :return: One sided cmc
+    """
+    return mana_cost.count('{')
+
+
 def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[Dict[str, Any]]:
     """
     Build a mtgjson card (and all sub pieces of that card)
@@ -164,7 +176,11 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
         mtgjson_card['names'] = sf_card['name'].split(' // ')  # List[str]
         face_data = sf_card['card_faces'][sf_card_face]
 
-        mtgjson_card['colors'] = get_card_colors(sf_card.get('colors').split(' // ')[sf_card_face])
+        # Split cards have this field, flip cards do not
+        if 'mana_cost' in sf_card:
+            mtgjson_card['colors'] = get_card_colors(sf_card['mana_cost'].split(' // ')[sf_card_face])
+            mtgjson_card['convertedManaCost'] = get_cmc(sf_card['mana_cost'].split(' // ')[sf_card_face])
+
         # Recursively parse the other cards within this card too
         # Only call recursive if it is the first time we see this card object
         if sf_card_face == 0:
@@ -200,7 +216,10 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     mtgjson_card['artist'] = sf_card.get('artist')  # str
     mtgjson_card['borderColor'] = sf_card.get('border_color')
     mtgjson_card['colorIdentity'] = sf_card.get('color_identity')  # List[str]
-    mtgjson_card['convertedManaCost'] = sf_card.get('cmc')  # float
+
+    if 'convertedManaCost' not in mtgjson_card:
+        mtgjson_card['convertedManaCost'] = sf_card.get('cmc')  # float
+
     mtgjson_card['flavorText'] = sf_card.get('flavor_text')  # str
     mtgjson_card['frameVersion'] = sf_card.get('frame')  # str
     mtgjson_card['hasFoil'] = sf_card.get('foil')  # bool
