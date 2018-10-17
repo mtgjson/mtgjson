@@ -131,6 +131,22 @@ def build_mtgjson_tokens(sf_tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]
     return token_cards
 
 
+def get_card_colors(mana_cost: str) -> List[str]:
+    """
+    For some cards, we may have to manually determine the card's color.
+    :param mana_cost: Mana cost string
+    :return: Colors based on mana cost
+    """
+    color_options: List[str] = ['W', 'U', 'B', 'R', 'G']
+
+    ret_val = []
+    for color in color_options:
+        if color in mana_cost:
+            ret_val.append(color)
+
+    return ret_val
+
+
 def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[Dict[str, Any]]:
     """
     Build a mtgjson card (and all sub pieces of that card)
@@ -148,6 +164,7 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
         mtgjson_card['names'] = sf_card['name'].split(' // ')  # List[str]
         face_data = sf_card['card_faces'][sf_card_face]
 
+        mtgjson_card['colors'] = get_card_colors(sf_card.get('colors').split(' // ')[sf_card_face])
         # Recursively parse the other cards within this card too
         # Only call recursive if it is the first time we see this card object
         if sf_card_face == 0:
@@ -158,10 +175,14 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     # Characteristics that can are not shared to both sides of flip-type cards
     if face_data.get('mana_cost'):
         mtgjson_card['manaCost'] = face_data.get('mana_cost')  # str
+
+    if 'colors' not in mtgjson_card:
+        mtgjson_card['colors'] = face_data.get('colors')  # List[str]
+
     mtgjson_card['name'] = face_data.get('name')  # str
     mtgjson_card['type'] = face_data.get('type_line')  # str
     mtgjson_card['text'] = face_data.get('oracle_text')  # str
-    mtgjson_card['colors'] = face_data.get('colors')  # List[str]
+
     mtgjson_card['power'] = face_data.get('power')  # str
     mtgjson_card['toughness'] = face_data.get('toughness')  # str
     mtgjson_card['loyalty'] = face_data.get('loyalty')  # str
@@ -208,9 +229,9 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
 
     # Handle meld issues
     if 'all_parts' in sf_card:
+        mtgjson_card['names'] = []
         for a_part in sf_card['all_parts']:
-            if a_part.get('name') != mtgjson_card.get('name'):
-                mtgjson_card['names'].append(a_part.get('name'))
+            mtgjson_card['names'].append(a_part.get('name'))
 
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for
