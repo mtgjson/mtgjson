@@ -85,9 +85,12 @@ def add_starter_flag(set_code: str, search_url: str, mtgjson_cards: List[Dict[st
 
     for sf_card in starter_cards['data']:
         # Each card has a unique UUID, even if they're the same card printed twice
-        card = next(item for item in mtgjson_cards if item['uuid'] == sf_card['id'])
-        if card:
-            card['starter'] = True
+        try:
+            card = next(item for item in mtgjson_cards if item['uuid'] == sf_card['id'])
+            if card:
+                card['starter'] = True
+        except StopIteration:
+            mtgjson4.LOGGER.warning('Passed on {0} with UUID {1}'.format(sf_card['name'], sf_card['id']))
 
     return mtgjson_cards
 
