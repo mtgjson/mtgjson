@@ -206,6 +206,12 @@ def build_mtgjson_card(sf_card: Dict[str, Any], sf_card_face: int = 0) -> List[D
     mtgjson_card['types'] = card_types[1]  # List[str]
     mtgjson_card['subtypes'] = card_types[2]  # List[str]
 
+    # Handle meld issues
+    if 'all_parts' in sf_card:
+        for a_part in sf_card['all_parts']:
+            if a_part.get('name') != mtgjson_card.get('name'):
+                mtgjson_card['names'].append(a_part.get('name'))
+
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for
     mtgjson_card['foreignData'] = parse_sf_foreign(print_search_url, mtgjson_card['name'], sf_card['set'])
