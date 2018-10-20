@@ -104,4 +104,3 @@ logging.basicConfig(
         ),
     ],
 )
-LOGGER = logging.getLogger()

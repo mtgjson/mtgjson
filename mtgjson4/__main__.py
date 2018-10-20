@@ -6,17 +6,16 @@ import configparser
 import contextvars
 import copy
 import json
-import multiprocessing
+import logging
 import pathlib
 import sys
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
-import bs4
-import requests
-import requests.adapters
-import urllib3.util
 
 import mtgjson4
+from mtgjson4 import compile_mtg
+from mtgjson4 import gatherer
+from mtgjson4 import scryfall
 
 SCRYFALL_SESSION: contextvars.ContextVar = contextvars.ContextVar("SCRYFALL_SESSION")
 SCRYFALL_AUTHORIZED: contextvars.ContextVar = contextvars.ContextVar(
@@ -1024,8 +1023,8 @@ def main() -> None:
             )
 
         for set_code in set_list:
-            sf_set: List[Dict[str, Any]] = get_scryfall_set(set_code)
-            compiled: Dict[str, Any] = build_output_file(sf_set, set_code)
+            sf_set: List[Dict[str, Any]] = scryfall.get_set(set_code)
+            compiled: Dict[str, Any] = compile_mtg.build_output_file(sf_set, set_code)
 
             # If we have at least 1 card, print out to file
             if compiled["cards"]:
