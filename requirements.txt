@@ -1,7 +1,3 @@
 bs4
-mypy
-pylint
 requests
-tox
 urllib3
-yapf

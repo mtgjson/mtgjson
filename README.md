@@ -6,13 +6,13 @@ MTGJSON is an open sourced database creation and distribution tool for [*Magic: 
 
 This repo contains our newest release, version 4. This version relies upon a variety of sources, such as Scryfall and Gatherer for our data.
 
-To provide feedback and/or bug reports, please open a ticket as it is the best way for us to communicate with the public.  
+To provide feedback and/or bug reports, please open a ticket as it is the best way for us to communicate with the public.
 
 If you would like to join or assist the development of the project, you can [join us on Discord](https://discord.gg/Hgyg7GJ) to discuss things further.
 
 # How To Use
 
-**Note:** These are the build directions to compile your own JSON files. If you are looking for pre-compiled JSON files, you can download them at [MTGJSON.com](https://mtgjson.com). 
+**Note:** These are the build directions to compile your own JSON files. If you are looking for pre-compiled JSON files, you can download them at [MTGJSON.com](https://mtgjson.com).
 
 This system was built using Python 3.7, so we can only guarantee proper functionality with this version.
 
@@ -36,6 +36,5 @@ $ pip3 install -r requirements.txt
 3: Run the program, with any flags you'd like, via:
 ```sh
 usage: mtgjson4 [-h] [-s [SET [SET ...]]] [-a] [-c] [--skip-rebuild] [--skip-cached]
-$ python3 -m mtgjson4 
+$ python3 -m mtgjson4
 ```
-

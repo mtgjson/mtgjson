@@ -1,0 +1,30 @@
+repos:
+  - repo: https://github.com/ambv/black
+    rev: stable
+    hooks:
+      - id: black
+        language_version: python3
+  - repo: local
+    hooks:
+      - id: isort
+        name: Check import order
+        language: system
+        entry: isort
+        args: [--apply, --recursive]
+        types: [python]
+      - id: pylint
+        name: Static analysis from pylint
+        language: system
+        entry: pylint
+        types: [python]
+      - id: mypy
+        name: Type checking from mypy
+        language: system
+        entry: mypy
+        types: [python]
+      - id: eclint
+        name: EditorConfig file validation
+        language: node
+        additional_dependencies: [eclint]
+        entry: eclint
+        args: [check]
