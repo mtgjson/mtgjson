@@ -12,8 +12,6 @@ __MAINTAINER_EMAIL__ = "zahalpern+github@gmail.com"
 __REPO_URL__ = "https://github.com/mtgjson/mtgjson4"
 
 # Globals
-SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
-GATHERER_CARD: str = "http://gatherer.wizards.com/Pages/Card/Details.aspx"
 SUPERTYPES: List[str] = ["Basic", "Host", "Legendary", "Ongoing", "Snow", "World"]
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 COMPILED_OUTPUT_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath("set_outputs")
