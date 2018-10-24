@@ -1,12 +1,20 @@
+sudo: true
+dist: xenial
+
 language: python
-python:
-  - "3.7"
+python: "3.7"
 cache: pip
+
+before_install:
+  - pip install -U pip setuptools wheel
+
 install:
-  - travis_retry pip install -r requirements.txt
-  - mkdir test_results
+  - pip install -r requirements.txt -r requirements_test.txt
+
 script:
-  - pytest -s
-notifications:
-    webhooks: https://www.travisbuddy.com/?insertMode=update
-    on_success: never
+  - pytest
+  - black --check --diff .
+  - isort --check-only --diff --recursive
+  - pylint mtgjson4 tests
+  - mypy .
+  - npx eclint check $(git ls-files)

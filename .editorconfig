@@ -1,8 +1,14 @@
-[*]
-trim_trailing_whitespace = true
-insert_final_newline = true
+root = true
 
-[*.py]
-indent_style = space
+[*]
+charset = utf-8
 indent_size = 4
-skip = .tox
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{yml,yaml,json}]
+indent_size = 2
+
+[LICENSE.txt]
+indent_size = none
