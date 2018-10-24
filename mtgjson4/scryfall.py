@@ -15,13 +15,13 @@ from mtgjson4 import compile_mtg, util
 
 LOGGER = logging.getLogger(__name__)
 
-SESSION = contextvars.ContextVar("SESSION")
-AUTH_STATUS = contextvars.ContextVar("AUTH_STATUS")
+SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
+AUTH_STATUS: contextvars.ContextVar = contextvars.ContextVar("AUTH_STATUS")
 
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
 
 
-def attach_session():
+def attach_session() -> None:
     """
     The session can be static, so this will be a singleton creation
     """

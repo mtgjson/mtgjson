@@ -11,12 +11,12 @@ from mtgjson4 import util
 
 LOGGER = logging.getLogger(__name__)
 
-SESSION = contextvars.ContextVar("SESSION")
+SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
 GATHERER_CARD: str = "http://gatherer.wizards.com/Pages/Card/Details.aspx"
 
 
-def attach_session():
+def attach_session() -> None:
     """Attach a session for gatherer."""
     session = requests.Session()
     SESSION.set(session)
