@@ -1,8 +1,8 @@
 """Utility functions."""
 
 import requests
-import urllib3.util.retry
 import requests.adapters
+import urllib3.util.retry
 
 
 def retryable_session(session: requests.Session, retries: int = 5) -> requests.Session:

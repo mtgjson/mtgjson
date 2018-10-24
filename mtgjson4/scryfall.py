@@ -11,8 +11,7 @@ import requests
 import requests.adapters
 
 import mtgjson4
-from mtgjson4 import compile_mtg
-from mtgjson4 import util
+from mtgjson4 import compile_mtg, util
 
 LOGGER = logging.getLogger(__name__)
 

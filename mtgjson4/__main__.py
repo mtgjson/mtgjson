@@ -11,11 +11,8 @@ import pathlib
 import sys
 from typing import Any, Dict, List, Optional
 
-
 import mtgjson4
-from mtgjson4 import compile_mtg
-from mtgjson4 import gatherer
-from mtgjson4 import scryfall
+from mtgjson4 import compile_mtg, gatherer, scryfall
 
 SCRYFALL_SESSION: contextvars.ContextVar = contextvars.ContextVar("SCRYFALL_SESSION")
 SCRYFALL_AUTHORIZED: contextvars.ContextVar = contextvars.ContextVar(

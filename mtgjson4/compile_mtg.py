@@ -7,9 +7,7 @@ from typing import Any, Dict, List, Tuple
 import bs4
 
 import mtgjson4
-from mtgjson4 import gatherer
-from mtgjson4 import scryfall
-
+from mtgjson4 import gatherer, scryfall
 
 LOGGER = logging.getLogger(__name__)
 
