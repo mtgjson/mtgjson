@@ -71,8 +71,8 @@ class GathererCard(NamedTuple):
 
     card_name: str
     original_types: str
-    original_text: str
-    flavor_text: str
+    original_text: Optional[str]
+    flavor_text: Optional[str]
 
 
 def get_cards(multiverse_id: str) -> List[GathererCard]:
@@ -123,8 +123,8 @@ def _parse_column(gatherer_column: bs4.element.Tag) -> GathererCard:
     return GathererCard(
         card_name=card_name,
         original_types=card_types,
-        original_text="\n".join(text_lines).strip(),
-        flavor_text="\n".join(flavor_lines).strip(),
+        original_text="\n".join(text_lines).strip() or None,
+        flavor_text="\n".join(flavor_lines).strip() or None,
     )
 
 

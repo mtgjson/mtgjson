@@ -50,7 +50,7 @@ from mtgjson4.provider import gatherer
                     card_name="One Face",
                     original_types="Card — Single",
                     original_text="I have\none card\nface.",
-                    flavor_text="",
+                    flavor_text=None,
                 )
             ],
             id="normal layout",
@@ -120,14 +120,14 @@ from mtgjson4.provider import gatherer
                 gatherer.GathererCard(
                     card_name="Face One",
                     original_types="Side — One",
-                    original_text="",
+                    original_text=None,
                     flavor_text="First\nface.",
                 ),
                 gatherer.GathererCard(
                     card_name="Face Two",
                     original_types="Side — Two",
                     original_text="Rules\ntwo.",
-                    flavor_text="",
+                    flavor_text=None,
                 ),
             ],
             id="dfc layout",
@@ -171,7 +171,7 @@ from mtgjson4.provider import gatherer
                     card_name="Symbol User",
                     original_types="Card — Fancy",
                     original_text="{T}: Add {G}.",
-                    flavor_text="",
+                    flavor_text=None,
                 )
             ],
             id="symbols",
