@@ -132,6 +132,50 @@ from mtgjson4.provider import gatherer
             ],
             id="dfc layout",
         ),
+        pytest.param(
+            """
+        <html>
+        <table>
+        <tr><td class="rightCol">
+            <div class="row">
+                <div class="label">
+                    Card Name:
+                </div>
+                <div class="value">
+                    Symbol User
+                </div>
+            </div>
+            <div class="row">
+                <div class="label">
+                    Types:
+                </div>
+                <div class="value">
+                    Card — Fancy
+                </div>
+            </div>
+            <div class="row">
+                <div class="label">
+                    Card Text:
+                </div>
+                <div class="value">
+                    <div class="cardtextbox"><img alt="Tap">: Add <img alt="Green">.</div>
+                    <div class="cardtextbox"></div>
+                </div>
+            </div>
+        </td></tr>
+        </table>
+        </html>
+        """,
+            [
+                gatherer.GathererCard(
+                    card_name="Symbol User",
+                    original_types="Card — Fancy",
+                    original_text="{T}: Add {G}.",
+                    flavor_text="",
+                )
+            ],
+            id="symbols",
+        ),
     ],
 )
 def test_parse_cards(html: str, expected: List[gatherer.GathererCard]) -> None:

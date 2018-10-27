@@ -366,9 +366,7 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
 
     if mtgjson_card["multiverseId"] is not None:
         gatherer_cards = gatherer.get_cards(mtgjson_card["multiverseId"])
-        [gatherer_card] = [
-            c for c in gatherer_cards if c.card_name == mtgjson_card["name"]
-        ]
+        gatherer_card = gatherer_cards[sf_card_face]
         mtgjson_card["originalType"] = gatherer_card.original_types or None
         mtgjson_card["originalText"] = gatherer_card.original_text or None
 

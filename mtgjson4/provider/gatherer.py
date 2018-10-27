@@ -108,29 +108,25 @@ def _parse_column(gatherer_column: bs4.element.Tag) -> GathererCard:
     card_name = label_to_values["Card Name"].getText(strip=True)
     card_types = label_to_values["Types"].getText(strip=True)
 
+    flavor_lines = []
     if "Flavor Text" in label_to_values:
-        flavor_text = "\n".join(
-            ft.getText(strip=True)
-            for ft in label_to_values["Flavor Text"].findAll(
-                "div", class_="flavortextbox"
-            )
-        )
-    else:
-        flavor_text = ""
+        for flavorbox in label_to_values["Flavor Text"].findAll(
+            "div", class_="flavortextbox"
+        ):
+            flavor_lines.append(flavorbox.getText(strip=True))
 
+    text_lines = []
     if "Card Text" in label_to_values:
-        card_text = "\n".join(
-            _replace_symbols(ct).getText(strip=True)
-            for ct in label_to_values["Card Text"].findAll("div", class_="cardtextbox")
-        )
-    else:
-        card_text = ""
+        for textbox in label_to_values["Card Text"].findAll(
+            "div", class_="cardtextbox"
+        ):
+            text_lines.append(_replace_symbols(textbox).getText().strip())
 
     return GathererCard(
         card_name=card_name,
         original_types=card_types,
-        original_text=card_text,
-        flavor_text=flavor_text,
+        original_text="\n".join(text_lines).strip(),
+        flavor_text="\n".join(flavor_lines).strip(),
     )
 
 
@@ -141,5 +137,5 @@ def _replace_symbols(tag: bs4.BeautifulSoup) -> bs4.BeautifulSoup:
     for image in images:
         alt = image["alt"]
         symbol = SYMBOL_MAP.get(alt, alt)
-        image.replace_with("{{" + symbol + "}}")
+        image.replace_with("{" + symbol + "}")
     return tag_copy

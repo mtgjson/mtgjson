@@ -9,7 +9,8 @@ import sys
 from typing import Any, Dict, List, Optional
 
 import mtgjson4
-from mtgjson4 import compile_mtg, gatherer, scryfall
+from mtgjson4 import compile_mtg
+from mtgjson4.provider import scryfall
 
 LOGGER = logging.getLogger(__name__)
 
@@ -251,10 +252,6 @@ def main() -> None:
         )
 
     if not args.skip_rebuild:
-        # We'll need this session in the future
-        scryfall.attach_session()
-        gatherer.attach_session()
-
         # Determine sets to build, whether they're passed in as args or all sets in our configs
         set_list: List[str] = get_all_sets() if args.all_sets else args.s
         LOGGER.info("Sets to compile: {}".format(set_list))
