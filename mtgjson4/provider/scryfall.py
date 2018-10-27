@@ -3,7 +3,6 @@
 import configparser
 import contextvars
 import logging
-import multiprocessing
 import pathlib
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -11,36 +10,35 @@ import requests
 import requests.adapters
 
 import mtgjson4
-from mtgjson4 import compile_mtg, util
+from mtgjson4 import util
 
 LOGGER = logging.getLogger(__name__)
-
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
-AUTH_STATUS: contextvars.ContextVar = contextvars.ContextVar("AUTH_STATUS")
 
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
 
 
-def attach_session() -> None:
-    """
-    The session can be static, so this will be a singleton creation
-    """
-    session = requests.Session()
+def get_session() -> requests.Session:
+    """Get or create a requests session for scryfall."""
+    session: Optional[requests.Session] = SESSION.get(None)
+    if session is None:
+        session = requests.Session()
 
-    auth_status: str = "with authentication"
-    if pathlib.Path(mtgjson4.CONFIG_PATH).is_file():
-        # Open and read MTGJSON secret properties
-        config = configparser.RawConfigParser()
-        config.read(mtgjson4.CONFIG_PATH)
-        header_auth: Dict[str, str] = {
-            "Authorization": "Bearer {}".format(config.get("Scryfall", "client_secret"))
-        }
-        session.headers.update(header_auth)
-    else:
-        auth_status = "WITHOUT authentication"
+        if pathlib.Path(mtgjson4.CONFIG_PATH).is_file():
+            # Open and read MTGJSON secret properties
+            config = configparser.RawConfigParser()
+            config.read(mtgjson4.CONFIG_PATH)
+            header_auth = {
+                "Authorization": "Bearer " + config.get("Scryfall", "client_secret")
+            }
+            session.headers.update(header_auth)
+            LOGGER.info("Fetching from Scryfall with authentication")
+        else:
+            LOGGER.warning("Fetching from Scryfall WITHOUT authentication")
 
-    SESSION.set(session)
-    AUTH_STATUS.set(auth_status)
+        session = util.retryable_session(session)
+        SESSION.set(session)
+    return session
 
 
 def download(scryfall_url: str) -> Dict[str, Any]:
@@ -49,29 +47,13 @@ def download(scryfall_url: str) -> Dict[str, Any]:
     :param scryfall_url: URL to download JSON data from
     :return: JSON object of the Scryfall data
     """
-    session = util.retryable_session(SESSION.get())
+    session = get_session()
     response = session.get(url=scryfall_url, timeout=5.0)
     request_api_json: Dict[str, Any] = response.json()
 
     LOGGER.info("Downloaded URL: {0}".format(scryfall_url))
 
     return request_api_json
-
-
-def convert_to_mtgjson(sf_cards: List[Dict[str, Any]]) -> List[Any]:
-    """
-    Parallel method to build each card in the set
-    :param sf_cards: cards to build
-    :return: list of cards built
-    """
-    with multiprocessing.Pool(processes=8) as pool:
-        results: List[Any] = pool.map(compile_mtg.build_mtgjson_card, sf_cards)
-
-        all_cards: List[Dict[str, Any]] = []
-        for cards in results:
-            for card in cards:
-                all_cards.append(card)
-    return all_cards
 
 
 def get_set(set_code: str) -> List[Dict[str, Any]]:

@@ -1,13 +1,11 @@
 """Compile incoming data into the target output format."""
 
-import copy
 import logging
+import multiprocessing
 from typing import Any, Dict, List, Tuple
 
-import bs4
-
 import mtgjson4
-from mtgjson4 import gatherer, scryfall
+from mtgjson4.provider import gatherer, scryfall
 
 LOGGER = logging.getLogger(__name__)
 
@@ -51,7 +49,7 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
 
     LOGGER.info("Starting cards for {}".format(set_code))
 
-    card_holder = scryfall.convert_to_mtgjson(sf_cards)
+    card_holder = convert_to_mtgjson(sf_cards)
     card_holder = add_starter_flag(set_code, set_config["search_uri"], card_holder)
     output_file["cards"] = card_holder
 
@@ -137,83 +135,20 @@ def build_mtgjson_tokens(sf_tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]
     return token_cards
 
 
-def parse_card_original_type(soup: bs4.BeautifulSoup, parse_div: str) -> str:
+def convert_to_mtgjson(sf_cards: List[Dict[str, Any]]) -> List[Any]:
     """
-    Take the HTML parser and get the printed type
-    :param soup: HTML parser object
-    :param parse_div: Div to parse (split cards are weird)
-    :return: original type
+    Parallel method to build each card in the set
+    :param sf_cards: cards to build
+    :return: list of cards built
     """
-    type_row = soup.find(id=parse_div.format("typeRow"))
-    type_row = type_row.findAll("div")[-1]
-    type_row = type_row.get_text(strip=True).replace("  ", " ")
-    return str(type_row)
+    with multiprocessing.Pool(processes=8) as pool:
+        results: List[Any] = pool.map(build_mtgjson_card, sf_cards)
 
-
-def parse_card_original_text(soup: bs4.BeautifulSoup, parse_div: str) -> str:
-    """
-    Take the HTML parser and get the printed text
-    :param soup: HTML parser object
-    :param parse_div: Div to parse (split cards are weird)
-    :return: original text
-    """
-    text_row = soup.find(id=parse_div.format("textRow"))
-    return_text = ""
-
-    if text_row is not None:
-        text_row = text_row.select("div[class^=cardtextbox]")
-
-        return_text = ""
-        for div in text_row:
-            # Start by replacing all images with alternative text
-            div = replace_images_with_text(div)
-            # Next, just add the card text, line by line
-            return_text += div.get_text() + "\n"
-        return_text = return_text.strip()  # Remove last '\n'
-
-    return return_text
-
-
-def replace_images_with_text(tag: bs4.BeautifulSoup) -> bs4.BeautifulSoup:
-    """
-    Replaces the img tags of symbols with token representations
-    :param tag: Information to modify
-    :return: The color symbols found
-    """
-    tag_copy = copy.copy(tag)
-    images = tag_copy.find_all("img")
-    for symbol in images:
-        symbol_value = symbol["alt"]
-        symbol_mapped = mtgjson4.get_symbol_short_name(symbol_value)
-        symbol.replace_with(f"{{{symbol_mapped}}}")
-
-    return tag_copy
-
-
-def layout_options(soup: bs4.BeautifulSoup) -> str:
-    """
-    Get the div to parse out (split cards have multiple)
-    :param soup: HTML parser object
-    :return: div name to parse
-    """
-    number = soup.find_all("script")
-    client_id_tags = ""
-    for script in number:
-        if "ClientIDs" in script.get_text():
-            client_id_tags = script.get_text()
-            break
-
-    div_name: str = ""
-    # ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_{} for single cards or
-    # ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_ctl0*_{} for double cards, * being any int
-    try:
-        div_name = str(
-            (client_id_tags.split("ClientIDs.nameRow = '")[1].split(";")[0])[:-8] + "{}"
-        ).strip()
-    except IndexError:
-        LOGGER.error("Failed to parse out div_name from {}".format(client_id_tags))
-
-    return div_name
+        all_cards: List[Dict[str, Any]] = []
+        for cards in results:
+            for card in cards:
+                all_cards.append(card)
+    return all_cards
 
 
 def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -292,7 +227,7 @@ def get_cmc(mana_cost: str) -> float:
     return mana_cost.count("{")
 
 
-def build_mtgjson_card(
+def build_mtgjson_card(  # pylint: disable=too-many-branches
     sf_card: Dict[str, Any], sf_card_face: int = 0
 ) -> List[Dict[str, Any]]:
     """
@@ -430,16 +365,12 @@ def build_mtgjson_card(
     )
 
     if mtgjson_card["multiverseId"] is not None:
-        original_soup = gatherer.download(mtgjson_card["multiverseId"])
-        div_name = layout_options(original_soup)
-
-        if div_name:
-            mtgjson_card["originalText"] = parse_card_original_text(
-                original_soup, div_name
-            )  # str
-            mtgjson_card["originalType"] = parse_card_original_type(
-                original_soup, div_name
-            )  # str
+        gatherer_cards = gatherer.get_cards(mtgjson_card["multiverseId"])
+        [gatherer_card] = [
+            c for c in gatherer_cards if c.card_name == mtgjson_card["name"]
+        ]
+        mtgjson_card["originalType"] = gatherer_card.original_types or None
+        mtgjson_card["originalText"] = gatherer_card.original_text or None
 
     mtgjson_cards.append(mtgjson_card)
     return mtgjson_cards
