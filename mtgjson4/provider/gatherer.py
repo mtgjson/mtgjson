@@ -2,9 +2,8 @@
 
 import contextvars
 import copy
-from dataclasses import dataclass
 import logging
-from typing import List, Optional
+from typing import List, NamedTuple, Optional
 
 import bs4
 import requests
@@ -67,8 +66,7 @@ def _get_session() -> requests.Session:
     return session
 
 
-@dataclass
-class GathererCard:
+class GathererCard(NamedTuple):
     """Response payload for fetching a card from Gatherer."""
 
     card_name: str
