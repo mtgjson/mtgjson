@@ -228,9 +228,13 @@ def get_cmc(mana_cost: str) -> float:
 
     symbol: List[str] = re.findall(r"{([\s\S]*?)}", mana_cost, re.DOTALL)
     for element in symbol:
-        element = element.split("/")[0]
+        element = element.split("/")[0]  # Address 2/W, G/W, etc as "higher" cost always first
         if isinstance(element, (int, float)):
             total += float(element)
+        elif element in ["X", "Y", "Z"]:  # Placeholder mana
+            continue
+        elif element[0] == "H":  # Half mana
+            total += 0.5
         else:
             total += 1
 
