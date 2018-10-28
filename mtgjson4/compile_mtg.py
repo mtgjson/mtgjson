@@ -2,6 +2,7 @@
 
 import logging
 import multiprocessing
+import re
 from typing import Any, Dict, List, Tuple
 
 import mtgjson4
@@ -218,13 +219,26 @@ def get_card_colors(mana_cost: str) -> List[str]:
 def get_cmc(mana_cost: str) -> float:
     """
     For some cards, we may have to manually update the converted mana cost.
-    We do this by counting the # of open brackets. This will NOT work for
-    cards that have weird costs, like {2/W}.
-    READDRESS IF NECESSARY LATER
+    We do this by reading the inner components of each pair of {} and
+    deciphering what the contents mean. If number, we're good. Otherwise +1.
     :param mana_cost: Mana cost string
     :return: One sided cmc
     """
-    return mana_cost.count("{")
+    total: float = 0
+
+    symbol: List[str] = re.findall(r"{([\s\S]*?)}", mana_cost)
+    for element in symbol:
+        element = element.split("/")[0]  # Address 2/W, G/W, etc as "higher" cost always first
+        if isinstance(element, (int, float)):
+            total += float(element)
+        elif element in ["X", "Y", "Z"]:  # Placeholder mana
+            continue
+        elif element[0] == "H":  # Half mana
+            total += 0.5
+        else:
+            total += 1
+
+    return total
 
 
 def build_mtgjson_card(  # pylint: disable=too-many-branches
@@ -366,9 +380,12 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
 
     if mtgjson_card["multiverseId"] is not None:
         gatherer_cards = gatherer.get_cards(mtgjson_card["multiverseId"])
-        gatherer_card = gatherer_cards[sf_card_face]
-        mtgjson_card["originalType"] = gatherer_card.original_types
-        mtgjson_card["originalText"] = gatherer_card.original_text
+        try:
+            gatherer_card = gatherer_cards[sf_card_face]
+            mtgjson_card["originalType"] = gatherer_card.original_types
+            mtgjson_card["originalText"] = gatherer_card.original_text
+        except IndexError:
+            LOGGER.warning("Unable to parse originals for {}".format(mtgjson_card["name"]))
 
     mtgjson_cards.append(mtgjson_card)
     return mtgjson_cards
