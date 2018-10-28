@@ -157,19 +157,9 @@ def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
 
         with set_file.open("r", encoding="utf-8") as f:
             file_content = json.load(f)
-
-            # Do not add these to the final output
-            file_content.pop("magicRaritiesCode", None)
-            file_content.pop("essentialMagicCode", None)
-            file_content.pop("useMagicRaritiesNumber", None)
-            file_content.pop("code", None)
-            file_content.pop("meta", None)
-            file_content.pop("mkm_id", None)
-            file_content.pop("mkm_name", None)
-            file_content.pop("magicCardsInfoCode", None)
-
             set_name = set_file.name.split(".")[0]
             all_sets_data[set_name] = file_content
+
     return all_sets_data
 
 
