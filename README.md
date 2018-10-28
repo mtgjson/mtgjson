@@ -6,6 +6,8 @@ MTGJSON is an open sourced database creation and distribution tool for [*Magic: 
 
 This repo contains our newest release, version 4. This version relies upon a variety of sources, such as *Scryfall* and *Gatherer* for our data.
 
+You can find our documentation with all properties [here](https://mtgjson.com/v4/docs.html).
+
 To provide feedback and/or bug reports, please [open a ticket](https://github.com/mtgjson/mtgjson4/issues/new/choose) as it is the best way for us to communicate with the public.
 
 If you would like to join or assist the development of the project, you can [join us on Discord](https://discord.gg/Hgyg7GJ) to discuss things further.
