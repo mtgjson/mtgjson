@@ -380,9 +380,12 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
 
     if mtgjson_card["multiverseId"] is not None:
         gatherer_cards = gatherer.get_cards(mtgjson_card["multiverseId"])
-        gatherer_card = gatherer_cards[sf_card_face]
-        mtgjson_card["originalType"] = gatherer_card.original_types
-        mtgjson_card["originalText"] = gatherer_card.original_text
+        try:
+            gatherer_card = gatherer_cards[sf_card_face]
+            mtgjson_card["originalType"] = gatherer_card.original_types
+            mtgjson_card["originalText"] = gatherer_card.original_text
+        except IndexError:
+            LOGGER.warning("Unable to parse originals for {}".format(mtgjson_card["name"]))
 
     mtgjson_cards.append(mtgjson_card)
     return mtgjson_cards
