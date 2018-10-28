@@ -2,6 +2,7 @@
 
 import logging
 import multiprocessing
+import re
 from typing import Any, Dict, List, Tuple
 
 import mtgjson4
@@ -218,13 +219,22 @@ def get_card_colors(mana_cost: str) -> List[str]:
 def get_cmc(mana_cost: str) -> float:
     """
     For some cards, we may have to manually update the converted mana cost.
-    We do this by counting the # of open brackets. This will NOT work for
-    cards that have weird costs, like {2/W}.
-    READDRESS IF NECESSARY LATER
+    We do this by reading the inner components of each pair of {} and
+    deciphering what the contents mean. If number, we're good. Otherwise +1.
     :param mana_cost: Mana cost string
     :return: One sided cmc
     """
-    return mana_cost.count("{")
+    total: float = 0
+
+    symbol: List[str] = re.findall(r"{([\s\S]*?)}", mana_cost, re.DOTALL)
+    for element in symbol:
+        element = element.split("/")[0]
+        if isinstance(element, (int, float)):
+            total += float(element)
+        else:
+            total += 1
+
+    return total
 
 
 def build_mtgjson_card(  # pylint: disable=too-many-branches
