@@ -51,7 +51,12 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     LOGGER.info("Starting cards for {}".format(set_code))
 
     card_holder = convert_to_mtgjson(sf_cards)
-    card_holder = add_starter_flag(set_code, set_config["search_uri"], card_holder)
+    card_holder, non_booster_cards = add_start_flag_and_count_modified(
+        set_code, set_config["search_uri"], card_holder
+    )
+
+    output_file["totalSetSize"] = len(sf_cards)
+    output_file["baseSetSize"] = output_file["totalSetSize"] - non_booster_cards
     output_file["cards"] = card_holder
 
     LOGGER.info("Finished cards for {}".format(set_code))
@@ -64,22 +69,23 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     return output_file
 
 
-def add_starter_flag(
+def add_start_flag_and_count_modified(
     set_code: str, search_url: str, mtgjson_cards: List[Dict[str, Any]]
-) -> List[Dict[str, Any]]:
+) -> Tuple[List[Dict[str, Any]], int]:
     """
     Since SF doesn't provide individual card notices, we can post-process add the starter flag
+    This method will also tell us how many starter cards are in the set
     :param set_code: Set to address
     :param search_url: URL to fix up to get non-booster cards
     :param mtgjson_cards: Modify the argument and return it
-    :return: List of cards
+    :return: List of cards, number of cards modified
     """
     starter_card_url = search_url.replace("&unique=", "++not:booster&unique=")
     starter_cards = scryfall.download(starter_card_url)
 
     if starter_cards["object"] == "error":
         LOGGER.info("All cards in {} are available in boosters".format(set_code))
-        return mtgjson_cards
+        return mtgjson_cards, 0
 
     for sf_card in starter_cards["data"]:
         # Each card has a unique UUID, even if they're the same card printed twice
@@ -92,7 +98,7 @@ def add_starter_flag(
                 "Passed on {0} with UUID {1}".format(sf_card["name"], sf_card["id"])
             )
 
-    return mtgjson_cards
+    return mtgjson_cards, len(starter_cards["data"])
 
 
 def build_mtgjson_tokens(sf_tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

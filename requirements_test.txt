@@ -2,3 +2,4 @@ black
 isort
 mypy
 pylint
+tox
