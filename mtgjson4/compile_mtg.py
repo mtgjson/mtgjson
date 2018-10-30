@@ -234,7 +234,8 @@ def get_cmc(mana_cost: str) -> float:
 
     symbol: List[str] = re.findall(r"{([\s\S]*?)}", mana_cost)
     for element in symbol:
-        element = element.split("/")[0]  # Address 2/W, G/W, etc as "higher" cost always first
+        # Address 2/W, G/W, etc as "higher" cost always first
+        element = element.split("/")[0]
         if isinstance(element, (int, float)):
             total += float(element)
         elif element in ["X", "Y", "Z"]:  # Placeholder mana
@@ -376,6 +377,9 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
     if "all_parts" in sf_card:
         mtgjson_card["names"] = []
         for a_part in sf_card["all_parts"]:
+            if "//" in a_part.get("name"):
+                mtgjson_card["names"] = a_part.get("name").split(" // ")
+                break
             mtgjson_card["names"].append(a_part.get("name"))
 
     # Characteristics that we cannot get from Scryfall
@@ -391,7 +395,9 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
             mtgjson_card["originalType"] = gatherer_card.original_types
             mtgjson_card["originalText"] = gatherer_card.original_text
         except IndexError:
-            LOGGER.warning("Unable to parse originals for {}".format(mtgjson_card["name"]))
+            LOGGER.warning(
+                "Unable to parse originals for {}".format(mtgjson_card["name"])
+            )
 
     mtgjson_cards.append(mtgjson_card)
     return mtgjson_cards
