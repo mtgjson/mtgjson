@@ -132,7 +132,7 @@ def compile_and_write_outputs() -> None:
     of AllSets.json and AllCards.json
     """
     # Files that should not be combined into compiled outputs
-    files_to_ignore: List[str] = ["AllSets.json", "AllCards.json"]
+    files_to_ignore: List[str] = ["AllSets.json", "AllCards.json", "SetCodes.json"]
 
     # Actual compilation process of the method
     all_sets = create_all_sets(files_to_ignore)
@@ -140,6 +140,9 @@ def compile_and_write_outputs() -> None:
 
     all_cards = create_all_cards(files_to_ignore)
     write_to_file("AllCards", all_cards)
+
+    all_set_names = get_all_set_names(files_to_ignore)
+    write_to_file("SetCodes", all_set_names)
 
 
 def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
@@ -208,6 +211,25 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
     return all_cards_data
 
 
+def get_all_set_names(files_to_ignore: List[str]) -> List[str]:
+    """
+    This will create the SetCodes.json file
+    by getting the name of all the files in
+    the set_outputs folder and combining
+    them into a list.
+    :param files_to_ignore: Files to ignore in set_outputs folder
+    :return: List of all set names
+    """
+    all_sets_data: List[str] = []
+
+    for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
+        if set_file.name in files_to_ignore:
+            continue
+        all_sets_data.append(set_file.name.split(".")[0].upper())
+
+    return sorted(all_sets_data)
+
+
 def create_version_file() -> None:
     """
     :return: nothing
@@ -266,7 +288,7 @@ def main() -> None:
                 write_to_file(set_code.upper(), compiled, do_cleanup=True)
 
     if args.compiled_outputs:
-        LOGGER.info("Compiling AllSets and AllCards")
+        LOGGER.info("Compiling AllSets, AllCards, and SetCodes")
         compile_and_write_outputs()
 
 
