@@ -6,7 +6,7 @@ import json
 import logging
 import pathlib
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import mtgjson4
 from mtgjson4 import compile_mtg
@@ -70,7 +70,9 @@ def win_os_fix(set_name: str) -> str:
 
 
 def write_to_file(
-    set_name: str, file_contents: Dict[str, Any], do_cleanup: bool = False
+    set_name: str,
+    file_contents: Union[Dict[str, Any], List[str]],
+    do_cleanup: bool = False,
 ) -> None:
     """
     Write the compiled data to a file with the set's code
@@ -80,7 +82,7 @@ def write_to_file(
     with pathlib.Path(
         mtgjson4.COMPILED_OUTPUT_DIR, win_os_fix(set_name) + ".json"
     ).open("w", encoding="utf-8") as f:
-        if do_cleanup:
+        if do_cleanup and isinstance(file_contents, dict):
             if "cards" in file_contents:
                 file_contents["cards"] = compile_mtg.remove_unnecessary_fields(
                     file_contents["cards"]
