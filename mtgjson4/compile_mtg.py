@@ -370,11 +370,10 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
     # Handle meld issues
     if "all_parts" in sf_card:
         mtgjson_card["names"] = []
-        for a_part in sf_card["all_parts"]:
-            if "//" in a_part.get("name"):
-                mtgjson_card["names"] = a_part.get("name").split(" // ")
-                break
-            mtgjson_card["names"].append(a_part.get("name"))
+        for card_part in sf_card["all_parts"]:
+            mtgjson_card["names"].extend(
+                name.strip() for name in card_part.get("name", "").split("//")
+            )
 
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for
