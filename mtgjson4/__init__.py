@@ -13,6 +13,7 @@ __REPO_URL__ = "https://github.com/mtgjson/mtgjson4"
 
 # Globals
 SUPERTYPES: List[str] = ["Basic", "Host", "Legendary", "Ongoing", "Snow", "World"]
+BASIC_LANDS: List[str] = ["Plains", "Island", "Swamp", "Mountain", "Forest"]
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 COMPILED_OUTPUT_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath("set_outputs")
 LOG_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
