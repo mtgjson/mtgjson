@@ -1,7 +1,8 @@
 """Compile incoming data into the target output format."""
-
+import json
 import logging
 import multiprocessing
+import pathlib
 import re
 from typing import Any, Dict, List, Tuple
 
@@ -31,7 +32,14 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     output_file["mtgoCode"] = set_config.get("mtgo_code")
     output_file["releaseDate"] = set_config.get("released_at")
     output_file["type"] = set_config.get("set_type")
-    # output_file['booster'] = ''  # Maybe will re-add
+
+    # Add booster info based on boosters resource (manually maintained for the time being)
+    with pathlib.Path(mtgjson4.RESOURCE_PATH, "boosters.json").open(
+        "r", encoding="utf-8"
+    ) as f:
+        json_dict: Dict[str, List[Any]] = json.load(f)
+        if output_file["code"].upper() in json_dict.keys():
+            output_file["boosterV3"] = json_dict[output_file["code"].upper()]
 
     if set_config.get("block"):
         output_file["block"] = set_config.get("block")
