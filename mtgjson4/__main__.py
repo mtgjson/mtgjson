@@ -261,7 +261,7 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
                 }
             )
 
-    return sorted(all_sets_data)
+    return sorted(all_sets_data, key=lambda set_info: set_info["name"])
 
 
 def create_version_file() -> None:
