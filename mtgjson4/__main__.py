@@ -134,7 +134,12 @@ def compile_and_write_outputs() -> None:
     of AllSets.json and AllCards.json
     """
     # Files that should not be combined into compiled outputs
-    files_to_ignore: List[str] = ["AllSets.json", "AllCards.json", "SetCodes.json", "SetList.json"]
+    files_to_ignore: List[str] = [
+        "AllSets.json",
+        "AllCards.json",
+        "SetCodes.json",
+        "SetList.json",
+    ]
 
     # Actual compilation process of the method
     all_sets = create_all_sets(files_to_ignore)
@@ -252,7 +257,13 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
 
         with set_file.open("r", encoding="utf-8") as f:
             file_content = json.load(f)
-            all_sets_data.append({"name": file_content["name"], "code": file_content["code"], "releaseDate": file_content["releaseDate"]})
+            all_sets_data.append(
+                {
+                    "name": file_content["name"],
+                    "code": file_content["code"],
+                    "releaseDate": file_content["releaseDate"],
+                }
+            )
 
     return sorted(all_sets_data)
 
