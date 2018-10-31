@@ -6,7 +6,7 @@ import json
 import logging
 import pathlib
 import sys
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import mtgjson4
 from mtgjson4 import compile_mtg
@@ -69,11 +69,7 @@ def win_os_fix(set_name: str) -> str:
     return set_name
 
 
-def write_to_file(
-    set_name: str,
-    file_contents: Union[Dict[str, Any], List[str]],
-    do_cleanup: bool = False,
-) -> None:
+def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -> None:
     """
     Write the compiled data to a file with the set's code
     Will ensure the output directory exists first
@@ -259,9 +255,9 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
             file_content = json.load(f)
             all_sets_data.append(
                 {
-                    "name": file_content["name"],
-                    "code": file_content["code"],
-                    "releaseDate": file_content["releaseDate"],
+                    "name": file_content.get("name", None),
+                    "code": file_content.get("code", None),
+                    "releaseDate": file_content.get("releaseDate", None),
                 }
             )
 
@@ -326,7 +322,7 @@ def main() -> None:
                 write_to_file(set_code.upper(), compiled, do_cleanup=True)
 
     if args.compiled_outputs:
-        LOGGER.info("Compiling AllSets, AllCards, and SetCodes")
+        LOGGER.info("Compiling AllSets, AllCards, SetCodes, and SetList")
         compile_and_write_outputs()
 
 
