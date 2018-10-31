@@ -39,7 +39,7 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     ) as f:
         json_dict: Dict[str, List[Any]] = json.load(f)
         if output_file["code"].upper() in json_dict.keys():
-            output_file["booster_v3"] = json_dict[output_file["code"].upper()]
+            output_file["boosterV3"] = json_dict[output_file["code"].upper()]
 
     if set_config.get("block"):
         output_file["block"] = set_config.get("block")
