@@ -188,32 +188,47 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
         with set_file.open("r", encoding="utf-8") as f:
             file_content = json.load(f)
 
+            duplicate_cards: Dict[str, int] = {}
+
             for card in file_content["cards"]:
-                if card["name"] not in all_cards_data.keys():
-                    # Since these can vary from printing to printing, we do not include them in the output
-                    card.pop("artist", None)
-                    card.pop("borderColor", None)
-                    card.pop("cardHash", None)
-                    card.pop("flavorText", None)
-                    card.pop("frameVersion", None)
-                    card.pop("hasFoil", None)
-                    card.pop("hasNonFoil", None)
-                    card.pop("isOnlineOnly", None)
-                    card.pop("isOversized", None)
-                    card.pop("multiverseId", None)
-                    card.pop("number", None)
-                    card.pop("originalText", None)
-                    card.pop("originalType", None)
-                    card.pop("rarity", None)
-                    card.pop("reserved", None)
-                    card.pop("timeshifted", None)
-                    card.pop("variations", None)
-                    card.pop("watermark", None)
+                if (card["name"] in all_cards_data.keys()) or (card["name"] in duplicate_cards):
+                    if card["name"] in duplicate_cards:
+                        duplicate_cards[card["name"]] += 1
+                    else:
+                        duplicate_cards[card["name"]] = 98  # 'b'
+                        # Replace "Original" => "Original (a)"
+                        all_cards_data["{0} ({1})".format(card["name"], 'a')] = all_cards_data[card["name"]]
+                        del all_cards_data[card["name"]]
 
-                    for foreign in card["foreignData"]:
-                        foreign.pop("multiverseId", None)
+                # Since these can vary from printing to printing, we do not include them in the output
+                card.pop("artist", None)
+                card.pop("borderColor", None)
+                card.pop("cardHash", None)
+                card.pop("flavorText", None)
+                card.pop("frameVersion", None)
+                card.pop("hasFoil", None)
+                card.pop("hasNonFoil", None)
+                card.pop("isOnlineOnly", None)
+                card.pop("isOversized", None)
+                card.pop("multiverseId", None)
+                card.pop("number", None)
+                card.pop("originalText", None)
+                card.pop("originalType", None)
+                card.pop("rarity", None)
+                card.pop("reserved", None)
+                card.pop("timeshifted", None)
+                card.pop("variations", None)
+                card.pop("watermark", None)
 
-                    all_cards_data[card["name"]] = card
+                for foreign in card["foreignData"]:
+                    foreign.pop("multiverseId", None)
+
+                key = card["name"]
+                if duplicate_cards.get(card["name"], 0) > 0:
+                    key += " ({0})".format(chr(duplicate_cards[card["name"]]))
+
+                all_cards_data[key] = card
+
     return all_cards_data
 
 
