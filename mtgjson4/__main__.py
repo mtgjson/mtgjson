@@ -69,9 +69,7 @@ def win_os_fix(set_name: str) -> str:
     return set_name
 
 
-def write_to_file(
-    set_name: str, file_contents: Dict[str, Any], do_cleanup: bool = False
-) -> None:
+def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -> None:
     """
     Write the compiled data to a file with the set's code
     Will ensure the output directory exists first
@@ -80,7 +78,7 @@ def write_to_file(
     with pathlib.Path(
         mtgjson4.COMPILED_OUTPUT_DIR, win_os_fix(set_name) + ".json"
     ).open("w", encoding="utf-8") as f:
-        if do_cleanup:
+        if do_cleanup and isinstance(file_contents, dict):
             if "cards" in file_contents:
                 file_contents["cards"] = compile_mtg.remove_unnecessary_fields(
                     file_contents["cards"]
@@ -132,7 +130,12 @@ def compile_and_write_outputs() -> None:
     of AllSets.json and AllCards.json
     """
     # Files that should not be combined into compiled outputs
-    files_to_ignore: List[str] = ["AllSets.json", "AllCards.json", "SetCodes.json"]
+    files_to_ignore: List[str] = [
+        "AllSets.json",
+        "AllCards.json",
+        "SetCodes.json",
+        "SetList.json",
+    ]
 
     # Actual compilation process of the method
     all_sets = create_all_sets(files_to_ignore)
@@ -143,6 +146,9 @@ def compile_and_write_outputs() -> None:
 
     all_set_names = get_all_set_names(files_to_ignore)
     write_to_file("SetCodes", all_set_names)
+
+    compiled_set_info = get_all_set_list(files_to_ignore)
+    write_to_file("SetList", compiled_set_info)
 
 
 def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
@@ -230,6 +236,34 @@ def get_all_set_names(files_to_ignore: List[str]) -> List[str]:
     return sorted(all_sets_data)
 
 
+def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
+    """
+    This will create the SetList.json file
+    by getting the info from all the files in
+    the set_outputs folder and combining
+    them into the old v3 structure.
+    :param files_to_ignore: Files to ignore in set_outputs folder
+    :return: List of all set dicts
+    """
+    all_sets_data: List[Dict[str, str]] = []
+
+    for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
+        if set_file.name in files_to_ignore:
+            continue
+
+        with set_file.open("r", encoding="utf-8") as f:
+            file_content = json.load(f)
+            all_sets_data.append(
+                {
+                    "name": file_content.get("name", None),
+                    "code": file_content.get("code", None),
+                    "releaseDate": file_content.get("releaseDate", None),
+                }
+            )
+
+    return sorted(all_sets_data)
+
+
 def create_version_file() -> None:
     """
     :return: nothing
@@ -288,7 +322,7 @@ def main() -> None:
                 write_to_file(set_code.upper(), compiled, do_cleanup=True)
 
     if args.compiled_outputs:
-        LOGGER.info("Compiling AllSets, AllCards, and SetCodes")
+        LOGGER.info("Compiling AllSets, AllCards, SetCodes, and SetList")
         compile_and_write_outputs()
 
 
