@@ -195,9 +195,8 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
                     card["name"] in duplicate_cards
                 ):
                     if card["name"] in mtgjson4.BASIC_LANDS:
-                        continue
-
-                    if card["name"] in duplicate_cards:
+                        pass
+                    elif card["name"] in duplicate_cards:
                         duplicate_cards[card["name"]] += 1
                     else:
                         duplicate_cards[card["name"]] = 98  # 'b'
