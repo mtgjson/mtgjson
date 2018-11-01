@@ -6,7 +6,6 @@ import logging
 from typing import List, NamedTuple, Optional
 
 import bs4
-import requests
 
 from mtgjson4 import util
 
@@ -56,16 +55,6 @@ SYMBOL_MAP = {
 }
 
 
-def _get_session() -> requests.Session:
-    """Get or create a requests session for gatherer."""
-    session: Optional[requests.Session] = SESSION.get(None)
-    if session is None:
-        session = requests.Session()
-        session = util.retryable_session(session)
-        SESSION.set(session)
-    return session
-
-
 class GathererCard(NamedTuple):
     """Response payload for fetching a card from Gatherer."""
 
@@ -77,7 +66,7 @@ class GathererCard(NamedTuple):
 
 def get_cards(multiverse_id: str) -> List[GathererCard]:
     """Get card(s) matching a given multiverseId."""
-    session = _get_session()
+    session = util.get_generic_session()
     response = session.get(
         url=GATHERER_CARD,
         params={"multiverseid": multiverse_id, "printed": "true"},
