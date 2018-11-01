@@ -51,7 +51,7 @@ def compile_comp_output() -> Dict[str, List[str]]:
     comp_rules = get_comp_rules()
 
     return {
-        "CardAbilities": get_ability_words(comp_rules),
+        "AbilityWords": get_ability_words(comp_rules),
         "KeywordActions": get_keyword_actions(comp_rules),
         "KeywordAbilities": get_keyword_abilities(comp_rules),
     }
