@@ -1,8 +1,12 @@
 """Utility functions."""
+import contextvars
+from typing import Optional
 
 import requests
 import requests.adapters
 import urllib3.util.retry
+
+SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
 
 def retryable_session(session: requests.Session, retries: int = 5) -> requests.Session:
@@ -23,4 +27,14 @@ def retryable_session(session: requests.Session, retries: int = 5) -> requests.S
     adapter = requests.adapters.HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
+    return session
+
+
+def get_generic_session() -> requests.Session:
+    """Get or create a requests session for gatherer."""
+    session: Optional[requests.Session] = SESSION.get(None)
+    if session is None:
+        session = requests.Session()
+        session = retryable_session(session)
+        SESSION.set(session)
     return session

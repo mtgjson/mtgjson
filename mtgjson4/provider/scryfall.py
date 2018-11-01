@@ -18,7 +18,7 @@ SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
 
 
-def get_session() -> requests.Session:
+def __get_session() -> requests.Session:
     """Get or create a requests session for scryfall."""
     session: Optional[requests.Session] = SESSION.get(None)
     if session is None:
@@ -47,7 +47,7 @@ def download(scryfall_url: str) -> Dict[str, Any]:
     :param scryfall_url: URL to download JSON data from
     :return: JSON object of the Scryfall data
     """
-    session = get_session()
+    session = __get_session()
     response = session.get(url=scryfall_url, timeout=5.0)
     request_api_json: Dict[str, Any] = response.json()
 

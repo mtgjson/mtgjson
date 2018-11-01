@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 
 import mtgjson4
 from mtgjson4 import compile_mtg
-from mtgjson4.provider import scryfall
+from mtgjson4.provider import scryfall, wizards
 
 LOGGER = logging.getLogger(__name__)
 
@@ -133,6 +133,7 @@ def compile_and_write_outputs() -> None:
     files_to_ignore: List[str] = [
         "AllSets.json",
         "AllCards.json",
+        "Keywords.json",
         "SetCodes.json",
         "SetList.json",
     ]
@@ -149,6 +150,9 @@ def compile_and_write_outputs() -> None:
 
     compiled_set_info = get_all_set_list(files_to_ignore)
     write_to_file("SetList", compiled_set_info)
+
+    key_words = wizards.compile_comp_output()
+    write_to_file("Keywords", key_words)
 
 
 def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
