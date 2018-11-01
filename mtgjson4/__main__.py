@@ -140,19 +140,19 @@ def compile_and_write_outputs() -> None:
 
     # Actual compilation process of the method
     all_sets = create_all_sets(files_to_ignore)
-    write_to_file(files_to_ignore[0], all_sets)
+    write_to_file(files_to_ignore[0][:-5], all_sets)
 
     all_cards = create_all_cards(files_to_ignore)
-    write_to_file(files_to_ignore[1], all_cards)
+    write_to_file(files_to_ignore[1][:-5], all_cards)
 
     all_set_codes = get_all_set_names(files_to_ignore)
-    write_to_file(files_to_ignore[2], all_set_codes)
+    write_to_file(files_to_ignore[2][:-5], all_set_codes)
 
     set_list_info = get_all_set_list(files_to_ignore)
-    write_to_file(files_to_ignore[3], set_list_info)
+    write_to_file(files_to_ignore[3][:-5], set_list_info)
 
     key_words = wizards.compile_comp_output()
-    write_to_file(files_to_ignore[4], key_words)
+    write_to_file(files_to_ignore[4][:-5], key_words)
 
 
 def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
@@ -303,7 +303,9 @@ def main() -> None:
 
     if not args.skip_rebuild:
         # Determine sets to build, whether they're passed in as args or all sets in our configs
-        set_list: List[str] = get_all_sets() if args.all_sets else args.s
+        args_s = args.s if args.s else []
+        set_list: List[str] = get_all_sets() if args.all_sets else args_s
+
         LOGGER.info("Sets to compile: {}".format(set_list))
 
         # If we had to kill mid-rebuild, we can skip the sets that already were done
