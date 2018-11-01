@@ -133,26 +133,26 @@ def compile_and_write_outputs() -> None:
     files_to_ignore: List[str] = [
         "AllSets.json",
         "AllCards.json",
-        "Keywords.json",
+        "KeyWords.json",
         "SetCodes.json",
         "SetList.json",
     ]
 
     # Actual compilation process of the method
     all_sets = create_all_sets(files_to_ignore)
-    write_to_file("AllSets", all_sets)
+    write_to_file(files_to_ignore[0], all_sets)
 
     all_cards = create_all_cards(files_to_ignore)
-    write_to_file("AllCards", all_cards)
+    write_to_file(files_to_ignore[1], all_cards)
 
     all_set_names = get_all_set_names(files_to_ignore)
-    write_to_file("SetCodes", all_set_names)
+    write_to_file(files_to_ignore[2], all_set_names)
 
     compiled_set_info = get_all_set_list(files_to_ignore)
-    write_to_file("SetList", compiled_set_info)
+    write_to_file(files_to_ignore[3], compiled_set_info)
 
     key_words = wizards.compile_comp_output()
-    write_to_file("Keywords", key_words)
+    write_to_file(files_to_ignore[4], key_words)
 
 
 def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
