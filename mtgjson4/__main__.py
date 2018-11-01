@@ -131,28 +131,30 @@ def compile_and_write_outputs() -> None:
     """
     # Files that should not be combined into compiled outputs
     files_to_ignore: List[str] = [
-        "AllSets.json",
-        "AllCards.json",
-        "SetCodes.json",
-        "SetList.json",
-        "KeyWords.json",
+        mtgjson4.ALL_SETS_OUTPUT,
+        mtgjson4.ALL_CARDS_OUTPUT,
+        mtgjson4.SET_CODES_OUTPUT,
+        mtgjson4.SET_LIST_OUTPUT,
+        mtgjson4.KEY_WORDS_OUTPUT,
     ]
 
     # Actual compilation process of the method
+    # The ordering _shouldn't necessarily_ matter
+    # but it works as is, so no need to tweak it
     all_sets = create_all_sets(files_to_ignore)
-    write_to_file(files_to_ignore[0][:-5], all_sets)
+    write_to_file(mtgjson4.ALL_SETS_OUTPUT, all_sets)
 
     all_cards = create_all_cards(files_to_ignore)
-    write_to_file(files_to_ignore[1][:-5], all_cards)
+    write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
 
     all_set_codes = get_all_set_names(files_to_ignore)
-    write_to_file(files_to_ignore[2][:-5], all_set_codes)
+    write_to_file(mtgjson4.SET_CODES_OUTPUT, all_set_codes)
 
     set_list_info = get_all_set_list(files_to_ignore)
-    write_to_file(files_to_ignore[3][:-5], set_list_info)
+    write_to_file(mtgjson4.SET_LIST_OUTPUT, set_list_info)
 
     key_words = wizards.compile_comp_output()
-    write_to_file(files_to_ignore[4][:-5], key_words)
+    write_to_file(mtgjson4.KEY_WORDS_OUTPUT, key_words)
 
 
 def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
@@ -165,7 +167,7 @@ def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
     all_sets_data: Dict[str, Any] = {}
 
     for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-        if set_file.name in files_to_ignore:
+        if set_file.name[:-5] in files_to_ignore:
             continue
 
         with set_file.open("r", encoding="utf-8") as f:
@@ -186,7 +188,7 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
     all_cards_data: Dict[str, Any] = {}
 
     for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-        if set_file.name in files_to_ignore:
+        if set_file.name[:-5] in files_to_ignore:
             continue
 
         with set_file.open("r", encoding="utf-8") as f:
@@ -233,7 +235,7 @@ def get_all_set_names(files_to_ignore: List[str]) -> List[str]:
     all_sets_data: List[str] = []
 
     for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-        if set_file.name in files_to_ignore:
+        if set_file.name[:-5] in files_to_ignore:
             continue
         all_sets_data.append(set_file.name.split(".")[0].upper())
 
@@ -252,7 +254,7 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
     all_sets_data: List[Dict[str, str]] = []
 
     for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-        if set_file.name in files_to_ignore:
+        if set_file.name[:-5] in files_to_ignore:
             continue
 
         with set_file.open("r", encoding="utf-8") as f:
