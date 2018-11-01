@@ -3,7 +3,7 @@ import contextvars
 import logging
 import re
 import string
-from typing import List, Dict
+from typing import Dict, List
 
 from mtgjson4 import util
 
