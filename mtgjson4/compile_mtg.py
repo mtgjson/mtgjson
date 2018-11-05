@@ -347,8 +347,14 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
     mtgjson_card["isOnlineOnly"] = sf_card.get("digital")  # bool
     mtgjson_card["isOversized"] = sf_card.get("oversized")  # bool
     mtgjson_card["layout"] = sf_card.get("layout")  # str
-    mtgjson_card["number"] = sf_card.get("collector_number")  # str
     mtgjson_card["isReserved"] = sf_card.get("reserved")  # bool
+
+    # Append a lower-case letter to the number if it's a "split" type card
+    # Will only work for two faced cards (not meld, as they don't need this)
+    mtgjson_num = sf_card.get("collector_number")
+    if "names" in mtgjson_card and len(mtgjson_card["names"]) == 2:
+        mtgjson_num += chr(mtgjson_card["names"].index(mtgjson_card["name"]) + 97)
+    mtgjson_card["number"] = mtgjson_num
 
     if "uuid" not in mtgjson_card:
         mtgjson_card["uuid"] = sf_card.get("id")  # str
