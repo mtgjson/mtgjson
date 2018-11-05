@@ -351,8 +351,9 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
 
     # Append a lower-case letter to the number if it's a "split" type card
     # Will only work for two faced cards (not meld, as they don't need this)
-    mtgjson_num = sf_card.get("collector_number")
+    mtgjson_num: str = sf_card["collector_number"]
     if "names" in mtgjson_card and len(mtgjson_card["names"]) == 2:
+        # chr(97) = 'a', chr(98) = 'b', ...
         mtgjson_num += chr(mtgjson_card["names"].index(mtgjson_card["name"]) + 97)
     mtgjson_card["number"] = mtgjson_num
 
