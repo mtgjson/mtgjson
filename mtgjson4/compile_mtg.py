@@ -390,7 +390,7 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
                 break
 
             # If the card is a token, we are to ignore it. Only real card parts are added.
-            if "/t{}/".format(sf_card.get("set").lower()) not in a_part.get("uri"):
+            if "/t{}/".format(sf_card["set"].lower()) not in a_part.get("uri"):
                 mtgjson_card["names"].append(a_part.get("name"))
 
     # Characteristics that we cannot get from Scryfall
