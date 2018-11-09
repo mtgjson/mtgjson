@@ -6,7 +6,6 @@ import logging
 from typing import List, NamedTuple, Optional
 
 import bs4
-
 from mtgjson4 import util
 
 LOGGER = logging.getLogger(__name__)
