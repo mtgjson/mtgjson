@@ -6,11 +6,10 @@ import logging
 import pathlib
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-import requests
-import requests.adapters
-
 import mtgjson4
 from mtgjson4 import util
+import requests
+import requests.adapters
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
