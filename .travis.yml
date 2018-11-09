@@ -14,7 +14,6 @@ install:
 script:
   - pytest
   - black --check --diff .
-  - isort --check-only --diff --recursive
   - pylint mtgjson4 tests
   - mypy .
   - npx eclint check $(git ls-files)
