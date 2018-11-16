@@ -95,7 +95,10 @@ def get_compiled_sets() -> List[str]:
         str(card_set).split("/")[-1][:-5].lower() for card_set in all_paths
     ]
 
-    all_sets_found = [x[:-1] if x[:-1].upper() in mtgjson4.BANNED_FILE_NAMES else x for x in all_sets_found]
+    all_sets_found = [
+        x[:-1] if x[:-1].upper() in mtgjson4.BANNED_FILE_NAMES else x
+        for x in all_sets_found
+    ]
 
     return all_sets_found
 
