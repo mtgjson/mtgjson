@@ -36,34 +36,7 @@ def win_os_fix(set_name: str) -> str:
     :param set_name: Set name
     :return: Set name with a _ if necessary
     """
-    banned_names: List[str] = [
-        "AUX",
-        "COM0",
-        "COM1",
-        "COM2",
-        "COM3",
-        "COM4",
-        "COM5",
-        "COM6",
-        "COM7",
-        "COM8",
-        "COM9",
-        "CON",
-        "LPT0",
-        "LPT1",
-        "LPT2",
-        "LPT3",
-        "LPT4",
-        "LPT5",
-        "LPT6",
-        "LPT7",
-        "LPT8",
-        "LPT9",
-        "NUL",
-        "PRN",
-    ]
-
-    if set_name in banned_names:
+    if set_name in mtgjson4.BANNED_FILE_NAMES:
         return set_name + "_"
 
     return set_name
@@ -113,7 +86,7 @@ def get_all_sets() -> List[str]:
 
 def get_compiled_sets() -> List[str]:
     """
-    Grab the set codes for all sets that have already been
+    Grab the official set codes for all sets that have already been
     compiled and are awaiting use in the set_outputs dir.
     :return: List of all set codes found
     """
@@ -121,6 +94,9 @@ def get_compiled_sets() -> List[str]:
     all_sets_found: List[str] = [
         str(card_set).split("/")[-1][:-5].lower() for card_set in all_paths
     ]
+
+    all_sets_found = [x[:-1] if x[:-1].upper() in mtgjson4.BANNED_FILE_NAMES else x for x in all_sets_found]
+
     return all_sets_found
 
 

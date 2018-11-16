@@ -24,6 +24,8 @@ def download_from_wizards(url: str) -> str:
     response.encoding = "windows-1252"  # WHYYYY
 
     LOGGER.info("Retrieved: %s", response.url)
+    session.close()
+
     return response.text
 
 
