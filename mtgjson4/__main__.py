@@ -208,7 +208,7 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
                 card.pop("originalType", None)
                 card.pop("rarity", None)
                 card.pop("reserved", None)
-                card.pop("timeshifted", None)
+                card.pop("isTimeshifted", None)
                 card.pop("variations", None)
                 card.pop("watermark", None)
 
