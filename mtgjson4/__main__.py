@@ -151,10 +151,19 @@ def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
 
         with set_file.open("r", encoding="utf-8") as f:
             file_content = json.load(f)
-            set_name = set_file.name.split(".")[0]
+            set_name = get_set_name_from_file_name(set_file.name.split(".")[0])
             all_sets_data[set_name] = file_content
 
     return all_sets_data
+
+
+def get_set_name_from_file_name(set_name: str) -> str:
+    """
+    Some files on Windows break down, such as CON. This is our reverse mapping.
+    :param set_name: File name to convert to MTG format
+    :return: Real MTG set code
+    """
+    return set_name[:-1] if set_name[:-1] in mtgjson4.BANNED_FILE_NAMES else set_name
 
 
 def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
@@ -239,7 +248,7 @@ def get_all_set_names(files_to_ignore: List[str]) -> List[str]:
     for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
         if set_file.name[:-5] in files_to_ignore:
             continue
-        all_sets_data.append(set_file.name.split(".")[0].upper())
+        all_sets_data.append(get_set_name_from_file_name(set_file.name.split(".")[0].upper()))
 
     return sorted(all_sets_data)
 
