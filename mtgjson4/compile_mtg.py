@@ -1,4 +1,5 @@
 """Compile incoming data into the target output format."""
+import copy
 import json
 import logging
 import multiprocessing
@@ -63,6 +64,8 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
         set_code, set_config["search_uri"], card_holder
     )
 
+    card_holder = uniquify_duplicates_in_set(card_holder)
+
     output_file["totalSetSize"] = len(sf_cards)
     output_file["baseSetSize"] = output_file["totalSetSize"] - non_booster_cards
     output_file["cards"] = card_holder
@@ -75,6 +78,37 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     LOGGER.info("Finished tokens for {}".format(set_code))
 
     return output_file
+
+
+def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    For cards with multiple printings in a set, we need to identify
+    them against each other. We will add (a), (b), ... to the end
+    of the card name to do so.
+    :param cards: Cards to check and update for repeats
+    :return: updated cards list
+    """
+    unique_list = []
+    duplicate_cards: Dict[str, int] = {}
+    for card in cards:
+        # Only if a card is duplicated in a set will it get the (a), (b) appended
+        total_same_name_cards = len([item for item in cards if item["name"] == card["name"]])
+
+        new_card = copy.deepcopy(card)
+        if (new_card["name"] not in mtgjson4.BASIC_LANDS) and (new_card["name"] in duplicate_cards or total_same_name_cards > 1):
+            if new_card["name"] in duplicate_cards:
+                duplicate_cards[new_card["name"]] += 1
+            else:
+                duplicate_cards[new_card["name"]] = ord('a')
+
+            # Update the name of the card, and remove its names field (as it's not correct here)
+            new_card["name"] += " ({0})".format(chr(duplicate_cards[new_card["name"]]))
+            new_card.pop("names", None)
+            unique_list.append(new_card)
+        else:
+            unique_list.append(card)
+
+    return unique_list
 
 
 def add_start_flag_and_count_modified(
