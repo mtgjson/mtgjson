@@ -182,26 +182,7 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
         with set_file.open("r", encoding="utf-8") as f:
             file_content = json.load(f)
 
-            duplicate_cards: Dict[str, int] = {}
-
             for card in file_content["cards"]:
-                # Only if a card is duplicated in a set will it get the (a), (b) appended
-                if (
-                    card["name"] in duplicate_cards
-                    or file_content["cards"].count(card["name"]) > 1
-                ):
-                    if card["name"] in mtgjson4.BASIC_LANDS:
-                        pass
-                    elif card["name"] in duplicate_cards:
-                        duplicate_cards[card["name"]] += 1
-                    else:
-                        duplicate_cards[card["name"]] = 98  # 'b'
-                        # Replace "Original" => "Original (a)"
-                        all_cards_data[
-                            "{0} ({1})".format(card["name"], "a")
-                        ] = all_cards_data[card["name"]]
-                        del all_cards_data[card["name"]]
-
                 # Since these can vary from printing to printing, we do not include them in the output
                 card.pop("artist", None)
                 card.pop("borderColor", None)
@@ -225,11 +206,7 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
                 for foreign in card["foreignData"]:
                     foreign.pop("multiverseId", None)
 
-                key = card["name"]
-                if duplicate_cards.get(card["name"], 0) > 0:
-                    key += " ({0})".format(chr(duplicate_cards[card["name"]]))
-
-                all_cards_data[key] = card
+                all_cards_data[card["name"]] = card
 
     return all_cards_data
 
