@@ -176,7 +176,7 @@ def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str,
         "reserved",
         "isOversized",
         "isOnlineOnly",
-        "timeshifted",
+        "isTimeshifted",
     ]
 
     for card_entry in card_list:
@@ -362,12 +362,12 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
         mtgjson_card["uuid"] = sf_card.get("id")  # str
 
     # Characteristics that we have to format ourselves from provided data
-    mtgjson_card["timeshifted"] = sf_card.get("timeshifted") or sf_card.get(
-        "futureshifted"
-    )  # bool
+    mtgjson_card["isTimeshifted"] = (sf_card.get("frame") == "future") or (
+        sf_card.get("set") == "tsb"
+    )
     mtgjson_card["rarity"] = (
-        sf_card.get("rarity") if not mtgjson_card.get("timeshifted") else "Special"
-    )  # str
+        sf_card.get("rarity") if not mtgjson_card.get("isTimeshifted") else "Special"
+    )
 
     # Characteristics that we need custom functions to parse
     print_search_url: str = sf_card["prints_search_uri"].replace("%22", "")
