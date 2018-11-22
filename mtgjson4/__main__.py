@@ -248,7 +248,9 @@ def get_all_set_names(files_to_ignore: List[str]) -> List[str]:
     for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
         if set_file.name[:-5] in files_to_ignore:
             continue
-        all_sets_data.append(get_set_name_from_file_name(set_file.name.split(".")[0].upper()))
+        all_sets_data.append(
+            get_set_name_from_file_name(set_file.name.split(".")[0].upper())
+        )
 
     return sorted(all_sets_data)
 
