@@ -256,7 +256,7 @@ def get_cmc(mana_cost: str) -> float:
     return total
 
 
-def build_mtgjson_card(  # pylint: disable=too-many-branches
+def build_mtgjson_card(
     sf_card: Dict[str, Any], sf_card_face: int = 0
 ) -> List[Dict[str, Any]]:
     """
@@ -305,19 +305,24 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
 
     # Characteristics that can are not shared to both sides of flip-type cards
     if face_data.get("mana_cost"):
-        mtgjson_card["manaCost"] = face_data.get("mana_cost")  # str
+        mtgjson_card["manaCost"] = face_data.get("mana_cost")
 
     if "colors" not in mtgjson_card:
-        mtgjson_card["colors"] = face_data.get("colors")  # List[str]
+        mtgjson_card["colors"] = face_data.get("colors")
 
-    mtgjson_card["name"] = face_data.get("name")  # str
-    mtgjson_card["type"] = face_data.get("type_line")  # str
-    mtgjson_card["text"] = face_data.get("oracle_text")  # str
+    mtgjson_card["name"] = face_data.get("name")
+    mtgjson_card["type"] = face_data.get("type_line")
+    mtgjson_card["text"] = face_data.get("oracle_text")
 
-    mtgjson_card["power"] = face_data.get("power")  # str
-    mtgjson_card["toughness"] = face_data.get("toughness")  # str
-    mtgjson_card["loyalty"] = face_data.get("loyalty")  # str
-    mtgjson_card["watermark"] = face_data.get("watermark")  # str
+    mtgjson_card["power"] = face_data.get("power")
+    mtgjson_card["toughness"] = face_data.get("toughness")
+    mtgjson_card["loyalty"] = face_data.get("loyalty")
+    mtgjson_card["watermark"] = face_data.get("watermark")
+
+    if "flavor_text" in face_data:
+        mtgjson_card["flavorText"] = face_data.get("flavor_text")
+    else:
+        mtgjson_card["flavorText"] = sf_card.get("flavor_text")
 
     if "color_indicator" in face_data:
         mtgjson_card["colorIndicator"] = face_data.get("color_indicator")  # List[str]
@@ -340,7 +345,6 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
     if "convertedManaCost" not in mtgjson_card:
         mtgjson_card["convertedManaCost"] = sf_card.get("cmc")  # float
 
-    mtgjson_card["flavorText"] = sf_card.get("flavor_text")  # str
     mtgjson_card["frameVersion"] = sf_card.get("frame")  # str
     mtgjson_card["hasFoil"] = sf_card.get("foil")  # bool
     mtgjson_card["hasNonFoil"] = sf_card.get("nonfoil")  # bool
