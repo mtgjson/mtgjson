@@ -402,7 +402,10 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
                 mtgjson_card["names"].append(a_part.get("name"))
 
         # If the only entry is the original card, empty the names array
-        if len(mtgjson_card["names"]) == 1 and mtgjson_card["name"] in mtgjson_card["names"]:
+        if (
+            len(mtgjson_card["names"]) == 1
+            and mtgjson_card["name"] in mtgjson_card["names"]
+        ):
             del mtgjson_card["names"]
 
     # Characteristics that we cannot get from Scryfall
