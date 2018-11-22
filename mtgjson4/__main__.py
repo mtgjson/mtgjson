@@ -176,9 +176,10 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
             duplicate_cards: Dict[str, int] = {}
 
             for card in file_content["cards"]:
+                # Only if a card is duplicated in a set will it get the (a), (b) appended
                 if (
-                    card["name"] in all_cards_data.keys()
-                    or card["name"] in duplicate_cards
+                    card["name"] in duplicate_cards
+                    or file_content["cards"].count(card["name"]) > 1
                 ):
                     if card["name"] in mtgjson4.BASIC_LANDS:
                         pass

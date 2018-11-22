@@ -389,17 +389,24 @@ def build_mtgjson_card(  # pylint: disable=too-many-branches
     mtgjson_card["types"] = card_types[1]  # List[str]
     mtgjson_card["subtypes"] = card_types[2]  # List[str]
 
-    # Handle meld issues
+    # Handle meld and all parts tokens issues
     if "all_parts" in sf_card:
         mtgjson_card["names"] = []
         for a_part in sf_card["all_parts"]:
-            if "//" in a_part.get("name"):
-                mtgjson_card["names"] = a_part.get("name").split(" // ")
-                break
-
             # If the card is a token, we are to ignore it. Only real card parts are added.
             if "/t{}/".format(sf_card["set"].lower()) not in a_part.get("uri"):
+                if "//" in a_part.get("name"):
+                    mtgjson_card["names"] = a_part.get("name").split(" // ")
+                    break
+
                 mtgjson_card["names"].append(a_part.get("name"))
+
+        # If the only entry is the original card, empty the names array
+        if (
+            len(mtgjson_card["names"]) == 1
+            and mtgjson_card["name"] in mtgjson_card["names"]
+        ):
+            del mtgjson_card["names"]
 
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for
