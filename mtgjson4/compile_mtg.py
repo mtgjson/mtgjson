@@ -92,16 +92,20 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
     duplicate_cards: Dict[str, int] = {}
     for card in cards:
         # Only if a card is duplicated in a set will it get the (a), (b) appended
-        total_same_name_cards = len([item for item in cards if item["name"] == card["name"]])
+        total_same_name_cards = len(
+            [item for item in cards if item["name"] == card["name"]]
+        )
 
-        new_card = copy.deepcopy(card)
-        if (new_card["name"] not in mtgjson4.BASIC_LANDS) and (new_card["name"] in duplicate_cards or total_same_name_cards > 1):
-            if new_card["name"] in duplicate_cards:
-                duplicate_cards[new_card["name"]] += 1
+        if (card["name"] not in mtgjson4.BASIC_LANDS) and (
+            card["name"] in duplicate_cards or total_same_name_cards > 1
+        ):
+            if card["name"] in duplicate_cards:
+                duplicate_cards[card["name"]] += 1
             else:
-                duplicate_cards[new_card["name"]] = ord('a')
+                duplicate_cards[card["name"]] = ord("a")
 
             # Update the name of the card, and remove its names field (as it's not correct here)
+            new_card = copy.deepcopy(card)
             new_card["name"] += " ({0})".format(chr(duplicate_cards[new_card["name"]]))
             new_card.pop("names", None)
             unique_list.append(new_card)
