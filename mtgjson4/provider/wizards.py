@@ -7,6 +7,8 @@ from typing import Dict, List
 
 from mtgjson4 import util
 
+import unidecode
+
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
@@ -68,7 +70,9 @@ def get_ability_words(comp_rules: str) -> List[str]:
         if "Ability words" in line:
             # Isolate all of the ability words, capitalize the words,
             # and remove the . from the end of the string
-            line = line.split("The ability words are")[1].strip()[:-1]
+            line = unidecode.unidecode(
+                line.split("The ability words are")[1].strip()[:-1]
+            )
             result = [string.capwords(x.strip()) for x in line.split(",")]
             result[-1] = result[-1][4:]  # Address the "and" bit of the last element
             return result
