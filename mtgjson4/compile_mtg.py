@@ -369,9 +369,10 @@ def build_mtgjson_card(
     mtgjson_card["isTimeshifted"] = (sf_card.get("frame") == "future") or (
         sf_card.get("set") == "tsb"
     )
-    mtgjson_card["rarity"] = (
-        sf_card.get("rarity") if not mtgjson_card.get("isTimeshifted") else "Special"
-    )
+
+    mtgjson_card["rarity"] = sf_card.get("rarity")
+    if mtgjson_card.get("isTimeshifted", False):
+        mtgjson_card["rarity"] = "timeshifted " + mtgjson_card["rarity"]
 
     # Characteristics that we need custom functions to parse
     print_search_url: str = sf_card["prints_search_uri"].replace("%22", "")
