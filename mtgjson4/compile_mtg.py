@@ -346,7 +346,10 @@ def build_mtgjson_card(
         mtgjson_card["manaCost"] = face_data.get("mana_cost")
 
     if "colors" not in mtgjson_card:
-        mtgjson_card["colors"] = face_data.get("colors")
+        if "colors" in face_data:
+            mtgjson_card["colors"] = face_data.get("colors")
+        else:
+            mtgjson_card["colors"] = sf_card.get("colors")
 
     mtgjson_card["name"] = face_data.get("name")
     mtgjson_card["type"] = face_data.get("type_line")

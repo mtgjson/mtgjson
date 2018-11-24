@@ -9,6 +9,3 @@ trim_trailing_whitespace = true
 
 [*.{yml,yaml,json}]
 indent_size = 2
-
-[LICENSE.txt]
-indent_size = none
