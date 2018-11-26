@@ -326,17 +326,18 @@ def build_mtgjson_card(
         # Split cards and rotational cards have this field, flip cards do not.
         # Remove rotational cards via the additional check
         if "mana_cost" in sf_card and "//" in sf_card["mana_cost"]:
-                mtgjson_card["colors"] = get_card_colors(
-                    sf_card["mana_cost"].split(" // ")[sf_card_face]
-                )
-                mtgjson_card["faceConvertedManaCost"] = get_cmc(
-                    sf_card["mana_cost"].split("//")[sf_card_face].strip()
-                )
+            mtgjson_card["colors"] = get_card_colors(
+                sf_card["mana_cost"].split(" // ")[sf_card_face]
+            )
+            mtgjson_card["faceConvertedManaCost"] = get_cmc(
+                sf_card["mana_cost"].split("//")[sf_card_face].strip()
+            )
         elif sf_card["layout"] != "normal":
             # Handle non-normal cards, as they'll a face split
             mtgjson_card["faceConvertedManaCost"] = get_cmc(
                 face_data["mana_cost"].strip()
             )
+
         # Recursively parse the other cards within this card too
         # Only call recursive if it is the first time we see this card object
         if sf_card_face == 0:
