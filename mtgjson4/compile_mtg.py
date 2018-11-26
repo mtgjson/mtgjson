@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Tuple
 
 import mtgjson4
 from mtgjson4.provider import gatherer, scryfall
+from mtgjson4.util import is_number
 
 LOGGER = logging.getLogger(__name__)
 
@@ -278,11 +279,13 @@ def get_cmc(mana_cost: str) -> float:
     """
     total: float = 0
 
-    symbol: List[str] = re.findall(r"{([\s\S]*?)}", mana_cost)
+    symbol: List[str] = re.findall(r"{([^{]*)}", mana_cost)
     for element in symbol:
         # Address 2/W, G/W, etc as "higher" cost always first
-        element = element.split("/")[0]
-        if isinstance(element, (int, float)):
+        if "/" in element:
+            element = element.split("/")[0]
+
+        if is_number(element):
             total += float(element)
         elif element in ["X", "Y", "Z"]:  # Placeholder mana
             continue
@@ -327,10 +330,7 @@ def build_mtgjson_card(
                 sf_card["mana_cost"].split(" // ")[sf_card_face]
             )
             mtgjson_card["faceConvertedManaCost"] = get_cmc(
-                sf_card["mana_cost"].split(" // ")[sf_card_face]
-            )
-            mtgjson_card["convertedManaCost"] = get_cmc(
-                sf_card["mana_cost"].replace("//", "").strip()
+                sf_card["mana_cost"].split("//")[sf_card_face].strip()
             )
 
         # Recursively parse the other cards within this card too

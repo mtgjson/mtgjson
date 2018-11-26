@@ -38,3 +38,21 @@ def get_generic_session() -> requests.Session:
         session = retryable_session(session)
         SESSION.set(session)
     return session
+
+
+def is_number(s):
+    """See if a given string is a number (int or float)"""
+    try:
+        float(s)
+        return True
+    except ValueError:
+        pass
+
+    try:
+        import unicodedata
+        unicodedata.numeric(s)
+        return True
+    except (TypeError, ValueError):
+        pass
+
+    return False
