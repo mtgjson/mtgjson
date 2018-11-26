@@ -326,8 +326,11 @@ def build_mtgjson_card(
             mtgjson_card["colors"] = get_card_colors(
                 sf_card["mana_cost"].split(" // ")[sf_card_face]
             )
-            mtgjson_card["convertedManaCost"] = get_cmc(
+            mtgjson_card["faceConvertedManaCost"] = get_cmc(
                 sf_card["mana_cost"].split(" // ")[sf_card_face]
+            )
+            mtgjson_card["convertedManaCost"] = get_cmc(
+                sf_card["mana_cost"].replace("//", "").strip()
             )
 
         # Recursively parse the other cards within this card too
