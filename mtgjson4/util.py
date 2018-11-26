@@ -40,17 +40,18 @@ def get_generic_session() -> requests.Session:
     return session
 
 
-def is_number(s):
+def is_number(string: str) -> bool:
     """See if a given string is a number (int or float)"""
     try:
-        float(s)
+        float(string)
         return True
     except ValueError:
         pass
 
     try:
         import unicodedata
-        unicodedata.numeric(s)
+
+        unicodedata.numeric(string)
         return True
     except (TypeError, ValueError):
         pass
