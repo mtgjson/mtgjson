@@ -335,7 +335,7 @@ def build_mtgjson_card(
         elif sf_card["layout"] in ["split", "flip", "transform"]:
             # Handle non-normal cards, as they'll a face split
             mtgjson_card["faceConvertedManaCost"] = get_cmc(
-                face_data.get("mana_cost", 0).strip()
+                face_data.get("mana_cost", "0").strip()
             )
 
         # Recursively parse the other cards within this card too
