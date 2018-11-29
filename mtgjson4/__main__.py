@@ -115,6 +115,7 @@ def compile_and_write_outputs() -> None:
         mtgjson4.SET_CODES_OUTPUT,
         mtgjson4.SET_LIST_OUTPUT,
         mtgjson4.KEY_WORDS_OUTPUT,
+        mtgjson4.VERSION_OUTPUT,
     ]
 
     # Actual compilation process of the method
@@ -134,6 +135,9 @@ def compile_and_write_outputs() -> None:
 
     key_words = wizards.compile_comp_output()
     write_to_file(mtgjson4.KEY_WORDS_OUTPUT, key_words)
+
+    version_info = {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__}
+    write_to_file(mtgjson4.VERSION_OUTPUT, version_info)
 
 
 def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
