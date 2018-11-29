@@ -26,6 +26,7 @@ ALL_CARDS_OUTPUT: str = "AllCards"
 SET_CODES_OUTPUT: str = "SetCodes"
 SET_LIST_OUTPUT: str = "SetList"
 KEY_WORDS_OUTPUT: str = "Keywords"
+VERSION_OUTPUT: str = "version"
 
 LANGUAGE_MAP: Dict[str, str] = {
     "en": "English",
