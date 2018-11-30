@@ -84,36 +84,54 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
 def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     For cards with multiple printings in a set, we need to identify
-    them against each other. We will add (a), (b), ... to the end
+    them against each other.
+    For silver border sets, we will add (a), (b), ... to the end
     of the card name to do so.
+    For non-silver bordered sets, we will create a "variations"
+    field will be created that has UUID of repeat cards
     :param cards: Cards to check and update for repeats
     :return: updated cards list
     """
-    unique_list = []
-    duplicate_cards: Dict[str, int] = {}
-    for card in cards:
-        # Only if a card is duplicated in a set will it get the (a), (b) appended
-        total_same_name_cards = len(
-            [item for item in cards if item["name"] == card["name"]]
-        )
+    if cards[0].get("borderColor", None) == "silver":
+        unique_list = []
+        duplicate_cards: Dict[str, int] = {}
+        for card in cards:
+            # Only if a card is duplicated in a set will it get the (a), (b) appended
+            total_same_name_cards = len(
+                [item for item in cards if item["name"] == card["name"]]
+            )
 
-        if (card["name"] not in mtgjson4.BASIC_LANDS) and (
-            card["name"] in duplicate_cards or total_same_name_cards > 1
-        ):
-            if card["name"] in duplicate_cards:
-                duplicate_cards[card["name"]] += 1
+            if (card["name"] not in mtgjson4.BASIC_LANDS) and (
+                card["name"] in duplicate_cards or total_same_name_cards > 1
+            ):
+                if card["name"] in duplicate_cards:
+                    duplicate_cards[card["name"]] += 1
+                else:
+                    duplicate_cards[card["name"]] = ord("a")
+
+                # Update the name of the card, and remove its names field (as it's not correct here)
+                new_card = copy.deepcopy(card)
+                new_card["name"] += " ({0})".format(
+                    chr(duplicate_cards[new_card["name"]])
+                )
+                new_card.pop("names", None)
+                unique_list.append(new_card)
             else:
-                duplicate_cards[card["name"]] = ord("a")
-
-            # Update the name of the card, and remove its names field (as it's not correct here)
-            new_card = copy.deepcopy(card)
-            new_card["name"] += " ({0})".format(chr(duplicate_cards[new_card["name"]]))
-            new_card.pop("names", None)
-            unique_list.append(new_card)
-        else:
-            unique_list.append(card)
-
-    return unique_list
+                unique_list.append(card)
+        return unique_list
+    else:
+        for card in cards:
+            repeats_in_set = [
+                item
+                for item in cards
+                if item["name"] == card["name"] and item["uuid"] != card["uuid"]
+            ]
+            variations = []
+            for repeat in repeats_in_set:
+                variations.append(repeat["uuid"])
+            if len(variations) > 0:
+                card["variations"] = variations
+        return cards
 
 
 def add_start_flag_and_count_modified(
