@@ -97,10 +97,11 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
         duplicate_cards: Dict[str, int] = {}
         for card in cards:
             # Only if a card is duplicated in a set will it get the (a), (b) appended
-            total_same_name_cards = len(
-                [item for item in cards if item["name"] == card["name"]]
+            total_same_name_cards = sum(
+                1 for item in cards if item["name"] == card["name"]
             )
 
+            # Ignore basic lands
             if (card["name"] not in mtgjson4.BASIC_LANDS) and (
                 card["name"] in duplicate_cards or total_same_name_cards > 1
             ):
@@ -117,6 +118,7 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
                 new_card.pop("names", None)
                 unique_list.append(new_card)
             else:
+                # Not a duplicate, just put the normal card into the list
                 unique_list.append(card)
 
         return unique_list
@@ -129,10 +131,7 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
             if item["name"] == card["name"] and item["uuid"] != card["uuid"]
         ]
 
-        variations = []
-        for repeat in repeats_in_set:
-            variations.append(repeat["uuid"])
-
+        variations = [r["uuid"] for r in repeats_in_set]
         if variations:
             card["variations"] = variations
 
