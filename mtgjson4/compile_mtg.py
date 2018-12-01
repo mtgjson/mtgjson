@@ -118,20 +118,25 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
                 unique_list.append(new_card)
             else:
                 unique_list.append(card)
+
         return unique_list
-    else:
-        for card in cards:
-            repeats_in_set = [
-                item
-                for item in cards
-                if item["name"] == card["name"] and item["uuid"] != card["uuid"]
-            ]
-            variations = []
-            for repeat in repeats_in_set:
-                variations.append(repeat["uuid"])
-            if len(variations) > 0:
-                card["variations"] = variations
-        return cards
+
+    # Non-silver border sets use "variations"
+    for card in cards:
+        repeats_in_set = [
+            item
+            for item in cards
+            if item["name"] == card["name"] and item["uuid"] != card["uuid"]
+        ]
+
+        variations = []
+        for repeat in repeats_in_set:
+            variations.append(repeat["uuid"])
+
+        if variations:
+            card["variations"] = variations
+
+    return cards
 
 
 def add_start_flag_and_count_modified(
