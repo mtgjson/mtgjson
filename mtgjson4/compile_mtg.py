@@ -85,7 +85,7 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
     """
     For cards with multiple printings in a set, we need to identify
     them against each other.
-    For silver border sets, we will add (a), (b), ... to the end
+    For silver border sets, we will add (b), (c), ... to the end
     of the card name to do so.
     For non-silver bordered sets, we will create a "variations"
     field will be created that has UUID of repeat cards
@@ -112,9 +112,11 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
 
                 # Update the name of the card, and remove its names field (as it's not correct here)
                 new_card = copy.deepcopy(card)
-                new_card["name"] += " ({0})".format(
-                    chr(duplicate_cards[new_card["name"]])
-                )
+                # Only add (b), (c), ... so we have one unique without an altered name
+                if chr(duplicate_cards[new_card["name"]]) != "a":
+                    new_card["name"] += " ({0})".format(
+                        chr(duplicate_cards[new_card["name"]])
+                    )
                 new_card.pop("names", None)
                 unique_list.append(new_card)
             else:
