@@ -101,9 +101,6 @@ def transpose_tokens(
         if card["layout"] == "token"
     ]
 
-    for token in tokens:
-        LOGGER.error(token)
-
     cards = [card for card in cards if card["layout"] != "token"]
 
     return cards, tokens
