@@ -67,6 +67,8 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
 
     card_holder = uniquify_duplicates_in_set(card_holder)
 
+    card_holder, added_tokens = transpose_tokens(card_holder)
+
     output_file["totalSetSize"] = len(sf_cards)
     output_file["baseSetSize"] = output_file["totalSetSize"] - non_booster_cards
     output_file["cards"] = card_holder
@@ -75,10 +77,36 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
 
     LOGGER.info("Starting tokens for {}".format(set_code))
     sf_tokens: List[Dict[str, Any]] = scryfall.get_set("t" + set_code)
-    output_file["tokens"] = build_mtgjson_tokens(sf_tokens)
+    output_file["tokens"] = build_mtgjson_tokens(sf_tokens + added_tokens)
     LOGGER.info("Finished tokens for {}".format(set_code))
 
     return output_file
+
+
+def transpose_tokens(
+    cards: List[Dict[str, Any]]
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    Sometimes, tokens slip through and need to be transplanted
+    back into their appropriate array. This method will allow
+    us to pluck the tokens out and return them home.
+    :param cards: Cards+Tokens to iterate
+    :return: Cards, Tokens as two separate lists
+    """
+    # Order matters with these, as if you do cards first
+    # it will shadow the tokens lookup
+    tokens = [
+        scryfall.download(scryfall.SCRYFALL_API_CARD + card["uuid"])
+        for card in cards
+        if card["layout"] == "token"
+    ]
+
+    for token in tokens:
+        LOGGER.error(token)
+
+    cards = [card for card in cards if card["layout"] != "token"]
+
+    return cards, tokens
 
 
 def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
