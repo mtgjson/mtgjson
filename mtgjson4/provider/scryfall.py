@@ -15,6 +15,7 @@ LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
+SCRYFALL_API_CARD: str = "https://api.scryfall.com/cards/"
 
 
 def __get_session() -> requests.Session:
