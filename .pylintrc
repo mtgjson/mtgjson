@@ -25,7 +25,8 @@ disable=
     too-few-public-methods,
     too-many-statements,
     wrong-import-order,
-    too-many-branches
+    too-many-branches,
+    import-error
 
 
 [REPORTS]

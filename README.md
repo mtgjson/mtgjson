@@ -1,4 +1,4 @@
-# [**MTGJSON**](https://mtgjson.com/v4)
+# [**MTGJSON**](https://mtgjson.com/v4) [![changelog](https://img.shields.io/badge/dynamic/json.svg?label=version&url=https%3A%2F%2Fmtgjson.com%2Fv4%2Fjson%2Fversion.json&query=%24.version&colorB=blue)](https://mtgjson.com/v4/changelog.html) ![](https://img.shields.io/badge/dynamic/json.svg?label=released&url=https%3A%2F%2Fmtgjson.com%2Fv4%2Fjson%2Fversion.json&query=%24.date&colorB=blue)
 
 # Connect With Us
 Discord via [![Discord](https://img.shields.io/discord/224178957103136779.svg)](https://discord.gg/74GUQDE)
