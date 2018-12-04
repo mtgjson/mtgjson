@@ -52,7 +52,6 @@ def download(scryfall_url: str) -> Dict[str, Any]:
 
     LOGGER.info("Downloaded URL: {0}".format(scryfall_url))
 
-    session.close()
     return request_api_json
 
 

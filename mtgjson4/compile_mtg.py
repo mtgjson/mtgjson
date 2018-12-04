@@ -1,4 +1,6 @@
 """Compile incoming data into the target output format."""
+
+import contextvars
 import copy
 import json
 import logging
@@ -8,10 +10,12 @@ import re
 from typing import Any, Dict, List, Tuple
 
 import mtgjson4
-from mtgjson4.provider import gatherer, scryfall
+from mtgjson4.provider import gatherer, scryfall, tcgplayer
 from mtgjson4.util import is_number
 
 LOGGER = logging.getLogger(__name__)
+
+SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
 
 def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str, Any]:
@@ -67,6 +71,10 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
 
     card_holder = uniquify_duplicates_in_set(card_holder)
 
+    # Add TCGPlayer information
+    output_file["tcgplayerGroupId"] = tcgplayer.get_group_id(set_code.upper())
+    card_holder = add_tcgplayer_ids(output_file["tcgplayerGroupId"], card_holder)
+
     output_file["totalSetSize"] = len(sf_cards)
     output_file["baseSetSize"] = output_file["totalSetSize"] - non_booster_cards
     output_file["cards"] = card_holder
@@ -79,6 +87,26 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     LOGGER.info("Finished tokens for {}".format(set_code))
 
     return output_file
+
+
+def add_tcgplayer_ids(
+    group_id: int, cards: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """
+    For each card in the set, we will find its tcgplayer ID
+    and add it to the card if found
+    :param group_id: group to search for the cards
+    :param cards: Cards list to add information to
+    :return: Cards list with new information added
+    """
+    tcg_card_objs = tcgplayer.get_group_id_cards(group_id)
+
+    for card in cards:
+        prod_id = tcgplayer.get_card_id(card["name"], tcg_card_objs)
+        if prod_id > 0:
+            card["tcgplayerProductId"] = prod_id
+
+    return cards
 
 
 def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -219,6 +247,9 @@ def convert_to_mtgjson(sf_cards: List[Dict[str, Any]]) -> List[Any]:
     :param sf_cards: cards to build
     :return: list of cards built
     """
+    # Clear sessions before the fork() to prevent awk issues with urllib3
+    SESSION.set(None)
+
     with multiprocessing.Pool(processes=8) as pool:
         results: List[Any] = pool.map(build_mtgjson_card, sf_cards)
 

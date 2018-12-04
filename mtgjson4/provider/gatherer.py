@@ -1,5 +1,4 @@
 """Card information provider for WotC Gatherer."""
-
 import contextvars
 import copy
 import logging
@@ -73,7 +72,6 @@ def get_cards(multiverse_id: str) -> List[GathererCard]:
     )
     LOGGER.info("Retrieved: %s", response.url)
 
-    session.close()
     return parse_cards(response.text)
 
 
