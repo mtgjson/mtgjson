@@ -71,7 +71,7 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
 
     # Address duplicate printings in a set
     card_holder = uniquify_duplicates_in_set(card_holder)
-    
+
     # Move bogus tokens out
     card_holder, added_tokens = transpose_tokens(card_holder)
 
@@ -92,7 +92,7 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
 
     return output_file
 
- 
+
 def transpose_tokens(
     cards: List[Dict[str, Any]]
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -115,7 +115,7 @@ def transpose_tokens(
 
     return cards, tokens
 
-  
+
 def add_tcgplayer_ids(
     group_id: int, cards: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
