@@ -11,7 +11,7 @@ from mtgjson4 import util
 import unidecode
 
 LOGGER = logging.getLogger(__name__)
-SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
+SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_WIZARDS")
 
 COMP_RULES: str = "https://magic.wizards.com/en/game-info/gameplay/rules-and-formats/rules"
 
@@ -27,7 +27,7 @@ def download_from_wizards(url: str) -> str:
     response.encoding = "windows-1252"  # WHY DO THEY DO THIS
 
     LOGGER.info("Retrieved: %s", response.url)
-
+    session.close()
     return response.text
 
 

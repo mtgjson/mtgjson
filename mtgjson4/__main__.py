@@ -111,11 +111,13 @@ def main() -> None:
 
         for set_code in set_list:
             sf_set: List[Dict[str, Any]] = scryfall.get_set(set_code)
-            compiled: Dict[str, Any] = mtgjson4.compile_mtg.build_output_file(sf_set, set_code)
+            compiled: Dict[str, Any] = compile_mtg.build_output_file(sf_set, set_code)
 
             # If we have at least 1 card, dump to file SET.json
             if compiled["cards"]:
-                mtgjson4.outputter.write_to_file(set_code.upper(), compiled, do_cleanup=True)
+                mtgjson4.outputter.write_to_file(
+                    set_code.upper(), compiled, do_cleanup=True
+                )
 
     if args.compiled_outputs:
         LOGGER.info("Compiling Additional Outputs")

@@ -12,7 +12,7 @@ import requests
 import requests.adapters
 
 LOGGER = logging.getLogger(__name__)
-SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
+SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_SCRYFALL")
 
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
 SCRYFALL_API_CARD: str = "https://api.scryfall.com/cards/"
@@ -52,8 +52,24 @@ def download(scryfall_url: str) -> Dict[str, Any]:
     request_api_json: Dict[str, Any] = response.json()
 
     LOGGER.info("Downloaded URL: {0}".format(scryfall_url))
-
+    session.close()
     return request_api_json
+
+
+def get_set_header(set_name: str) -> Dict[str, Any]:
+    """
+    Get just the header (not card contents) of a set by its name
+    :param set_name:
+    :return:
+    """
+    set_api_json: Dict[str, Any] = download(SCRYFALL_API_SETS + set_name)
+    if set_api_json["object"] == "error":
+        LOGGER.warning(
+            "Set header api download failed for {0}: {1}".format(set_name, set_api_json)
+        )
+        return {}
+
+    return set_api_json
 
 
 def get_set(set_code: str) -> List[Dict[str, Any]]:

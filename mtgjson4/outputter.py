@@ -1,15 +1,21 @@
 """
 Functions used to generate outputs and write out
 """
+import contextvars
+import datetime
 import json
+import logging
 import pathlib
 from typing import Any, Dict, List
 
-import requests
-
 import mtgjson4
-from mtgjson4 import compile_mtg
-from mtgjson4.provider import wizards
+from mtgjson4 import compile_mtg, util
+from mtgjson4.provider import gamepedia, scryfall, wizards
+
+STANDARD_API_URL: str = "https://whatsinstandard.com/api/v5/sets.json"
+
+LOGGER = logging.getLogger(__name__)
+SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
 
 def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -> None:
@@ -180,61 +186,145 @@ def get_version_info() -> Dict[str, str]:
     return {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__}
 
 
-def create_standard_only_output(files_to_ignore: List[str]) -> Dict[str, Any]:
+def create_standard_only_output() -> Dict[str, Any]:
+    """
+    Use whatsinstandard to determine all sets that are legal in
+    the standard format. Return an AllSets version that only
+    has Standard legal sets.
+    :return: AllSets for Standard only
+    """
     standard_data: Dict[str, Any] = {}
 
     # Get all sets currently in standard
-    standard_url_content = requests.get("https://whatsinstandard.com/api/v5/sets.json")
+    standard_url_content = util.get_generic_session().get(STANDARD_API_URL)
     standard_json = [
         set_obj["code"]
-        for set_obj in json.loads(standard_url_content)["sets"]
+        for set_obj in json.loads(standard_url_content.text)["sets"]
+        if str(set_obj["enter_date"])
+        < datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        < str(set_obj["exit_date"])
     ]
 
-    for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-        if set_file.name[:-5] in files_to_ignore:
+    for set_code in standard_json:
+        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(set_code + ".json")
+
+        if not set_file.is_file():
+            LOGGER.warning(
+                "Set {} not found in compiled outputs (Standard)".format(set_code)
+            )
             continue
 
-        if set_file.name[:-5] in standard_json:
-            with set_file.open("r", encoding="utf-8") as f:
-                file_content = json.load(f)
-                set_name = get_set_name_from_file_name(set_file.name.split(".")[0])
-                standard_data[set_name] = file_content
+        with set_file.open("r", encoding="utf-8") as f:
+            file_content = json.load(f)
+            standard_data[set_code] = file_content
 
     return standard_data
+
+
+def create_modern_only_output() -> Dict[str, Any]:
+    """
+    Use gamepedia to determine all sets that are legal in
+    the modern format. Return an AllSets version that only
+    has Modern legal sets.
+    :return: AllSets for Modern only
+    """
+    modern_data: Dict[str, Any] = {}
+
+    for set_code in gamepedia.get_modern_sets():
+        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(set_code + ".json")
+
+        if not set_file.is_file():
+            LOGGER.warning(
+                "Set {} not found in compiled outputs (Modern)".format(set_code)
+            )
+            continue
+
+        with set_file.open("r", encoding="utf-8") as f:
+            file_content = json.load(f)
+            modern_data[set_code] = file_content
+
+    return modern_data
+
+
+def get_funny_sets() -> List[str]:
+    """
+    This will determine all of the "joke" sets and give
+    back a list of their set codes
+    :return: List of joke set codes
+    """
+    return [
+        x["code"].upper()
+        for x in scryfall.download(scryfall.SCRYFALL_API_SETS)["data"]
+        if str(x["set_type"]) == "funny"
+    ]
+
+
+def create_all_sets_no_funny(files_to_ignore: List[str]) -> Dict[str, Any]:
+    """
+    Create all sets, but ignore additional sets
+    :param files_to_ignore: Files to default ignore in the output
+    :return: AllSets without funny
+    """
+    return create_all_sets(files_to_ignore + get_funny_sets())
+
+
+def create_all_cards_no_funny(files_to_ignore: List[str]) -> Dict[str, Any]:
+    """
+    Create all cards, but ignore additional sets
+    :param files_to_ignore: Files to default ignore in the output
+    :return: AllCards without funny
+    """
+    return create_all_cards(files_to_ignore + get_funny_sets())
 
 
 def create_and_write_compiled_outputs() -> None:
     """
     This method class will create the combined output files
-    of AllSets.json and AllCards.json
+    (ex: AllSets.json, AllCards.json, Standard.json)
     """
     # Files that should not be combined into compiled outputs
     files_to_ignore: List[str] = [
         mtgjson4.ALL_SETS_OUTPUT,
         mtgjson4.ALL_CARDS_OUTPUT,
         mtgjson4.SET_CODES_OUTPUT,
-        mtgjson4.SET_LIST_OUTPUT,
         mtgjson4.KEY_WORDS_OUTPUT,
         mtgjson4.VERSION_OUTPUT,
+        mtgjson4.STANDARD_OUTPUT,
+        mtgjson4.MODERN_OUTPUT,
+        mtgjson4.ALL_CARDS_NO_FUN_OUTPUT,
+        mtgjson4.ALL_SETS_NO_FUN_OUTPUT,
     ]
 
-    # Actual compilation process of the method
-    # The ordering _shouldn't necessarily_ matter
-    # but it works as is, so no need to tweak it
+    # AllSets.json
     all_sets = create_all_sets(files_to_ignore)
     write_to_file(mtgjson4.ALL_SETS_OUTPUT, all_sets)
 
+    # AllCards.json
     all_cards = create_all_cards(files_to_ignore)
     write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
 
+    # SetCodes.json
     all_set_codes = get_all_set_names(files_to_ignore)
     write_to_file(mtgjson4.SET_CODES_OUTPUT, all_set_codes)
 
-    set_list_info = get_all_set_list(files_to_ignore)
-    write_to_file(mtgjson4.SET_LIST_OUTPUT, set_list_info)
-
+    # Keywords.json
     key_words = wizards.compile_comp_output()
     write_to_file(mtgjson4.KEY_WORDS_OUTPUT, key_words)
 
+    # version.json
     version_info = get_version_info()
     write_to_file(mtgjson4.VERSION_OUTPUT, version_info)
+
+    # Standard.json
+    write_to_file(mtgjson4.STANDARD_OUTPUT, create_standard_only_output())
+
+    # Modern.json
+    write_to_file(mtgjson4.MODERN_OUTPUT, create_modern_only_output())
+
+    # AllSetsNoUn.json
+    all_sets_no_fun = create_all_sets_no_funny(files_to_ignore)
+    write_to_file(mtgjson4.ALL_SETS_NO_FUN_OUTPUT, all_sets_no_fun)
+
+    # AllCardsNoUn.json
+    all_cards_no_fun = create_all_cards_no_funny(files_to_ignore)
+    write_to_file(mtgjson4.ALL_CARDS_NO_FUN_OUTPUT, all_cards_no_fun)

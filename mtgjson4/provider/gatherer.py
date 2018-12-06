@@ -8,7 +8,7 @@ import bs4
 from mtgjson4 import util
 
 LOGGER = logging.getLogger(__name__)
-SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
+SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_GATHERER")
 
 GATHERER_CARD = "http://gatherer.wizards.com/Pages/Card/Details.aspx"
 
@@ -71,6 +71,7 @@ def get_cards(multiverse_id: str) -> List[GathererCard]:
         timeout=5.0,
     )
     LOGGER.info("Retrieved: %s", response.url)
+    session.close()
 
     return parse_cards(response.text)
 
