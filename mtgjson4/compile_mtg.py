@@ -250,6 +250,7 @@ def build_mtgjson_tokens(
     """
     Convert Scryfall tokens to MTGJSON tokens
     :param sf_tokens: All tokens in a set
+    :param sf_card_face: Faces of the token index
     :return: List of MTGJSON tokens
     """
     token_cards: List[Dict[str, Any]] = []
@@ -584,6 +585,15 @@ def build_mtgjson_card(
             and mtgjson_card["name"] in mtgjson_card["names"]
         ):
             del mtgjson_card["names"]
+
+    # Since we built meld cards later, we will add the "side" attribute now
+    if len(mtgjson_card.get("names", [])) == 3:  # MELD
+        if mtgjson_card["name"] == mtgjson_card["names"][0]:
+            mtgjson_card["side"] = "a"
+        elif mtgjson_card["name"] == mtgjson_card["names"][2]:
+            mtgjson_card["side"] = "b"
+        else:
+            mtgjson_card["side"] = "c"
 
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for
