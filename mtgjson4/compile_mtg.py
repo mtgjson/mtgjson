@@ -7,7 +7,7 @@ import logging
 import multiprocessing
 import pathlib
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 import mtgjson4
 from mtgjson4.provider import gatherer, scryfall, tcgplayer
@@ -105,13 +105,30 @@ def transpose_tokens(
     """
     # Order matters with these, as if you do cards first
     # it will shadow the tokens lookup
+
+    # Single faced tokens are easy
     tokens = [
         scryfall.download(scryfall.SCRYFALL_API_CARD + card["uuid"])
         for card in cards
         if card["layout"] == "token"
     ]
 
-    cards = [card for card in cards if card["layout"] != "token"]
+    # Do not duplicate double faced tokens
+    done_tokens: Set[str] = set()
+    for card in cards:
+        if (
+            card["layout"] == "double_faced_token"
+            and card["uuid"][:-1] not in done_tokens
+        ):
+            tokens.append(
+                scryfall.download(scryfall.SCRYFALL_API_CARD + card["uuid"][:-1])
+            )
+            done_tokens.add(card["uuid"][:-1])
+
+    # Remaining cards, without any kind of token
+    cards = [
+        card for card in cards if card["layout"] not in ["token", "double_faced_token"]
+    ]
 
     return cards, tokens
 
@@ -227,15 +244,40 @@ def add_start_flag_and_count_modified(
     return mtgjson_cards, len(starter_cards["data"])
 
 
-def build_mtgjson_tokens(sf_tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def build_mtgjson_tokens(
+    sf_tokens: List[Dict[str, Any]], sf_card_face: int = 0
+) -> List[Dict[str, Any]]:
     """
     Convert Scryfall tokens to MTGJSON tokens
     :param sf_tokens: All tokens in a set
+    :param sf_card_face: Faces of the token index
     :return: List of MTGJSON tokens
     """
     token_cards: List[Dict[str, Any]] = []
 
     for sf_token in sf_tokens:
+        mtgjson_card = {}
+        if "card_faces" in sf_token:
+            mtgjson_card["names"] = sf_token["name"].split(" // ")  # List[str]
+            face_data = sf_token["card_faces"][sf_card_face]
+
+            # Prevent duplicate UUIDs for split card halves
+            # Remove the last character and replace with the id of the card face
+            mtgjson_card["uuid"] = sf_token["id"] + str(sf_card_face)
+
+            # Recursively parse the other cards within this card too
+            # Only call recursive if it is the first time we see this card object
+            if sf_card_face == 0:
+                for i in range(1, len(sf_token["card_faces"])):
+                    LOGGER.info(
+                        "Parsing additional card {0} face {1}".format(
+                            sf_token.get("name"), i
+                        )
+                    )
+                    token_cards += build_mtgjson_tokens([sf_token], i)
+
+            sf_token = face_data
+
         token_card: Dict[str, Any] = {
             "name": sf_token.get("name"),
             "type": sf_token.get("type_line"),
@@ -403,7 +445,7 @@ def build_mtgjson_card(
 
         # Prevent duplicate UUIDs for split card halves
         # Remove the last character and replace with the id of the card face
-        mtgjson_card["uuid"] = sf_card["id"][:-1] + str(sf_card_face)
+        mtgjson_card["uuid"] = sf_card["id"] + str(sf_card_face)
 
         # Split cards and rotational cards have this field, flip cards do not.
         # Remove rotational cards via the additional check
@@ -543,6 +585,15 @@ def build_mtgjson_card(
             and mtgjson_card["name"] in mtgjson_card["names"]
         ):
             del mtgjson_card["names"]
+
+    # Since we built meld cards later, we will add the "side" attribute now
+    if len(mtgjson_card.get("names", [])) == 3:  # MELD
+        if mtgjson_card["name"] == mtgjson_card["names"][0]:
+            mtgjson_card["side"] = "a"
+        elif mtgjson_card["name"] == mtgjson_card["names"][2]:
+            mtgjson_card["side"] = "b"
+        else:
+            mtgjson_card["side"] = "c"
 
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for

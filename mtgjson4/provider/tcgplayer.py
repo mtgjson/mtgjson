@@ -12,7 +12,7 @@ from mtgjson4 import util
 import requests
 
 LOGGER = logging.getLogger(__name__)
-SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
+SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_TCGPLAYER")
 TCGPLAYER_API_VERSION: contextvars.ContextVar = contextvars.ContextVar("API_TCGPLAYER")
 
 
@@ -84,7 +84,8 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> str:
         timeout=5.0,
     )
 
-    LOGGER.info("Downloaded URL: {0}".format(tcgplayer_url))
+    LOGGER.info("Downloaded URL: {0}".format(response.url))
+    session.close()
 
     if response.status_code != 200:
         LOGGER.warning(
