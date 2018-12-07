@@ -114,7 +114,7 @@ def main() -> None:
             compiled: Dict[str, Any] = compile_mtg.build_output_file(sf_set, set_code)
 
             # If we have at least 1 card, dump to file SET.json
-            if compiled["cards"]:
+            if compiled["cards"] or compiled["tokens"]:
                 mtgjson4.outputter.write_to_file(
                     set_code.upper(), compiled, do_cleanup=True
                 )
