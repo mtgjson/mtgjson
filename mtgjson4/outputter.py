@@ -206,7 +206,7 @@ def create_standard_only_output() -> Dict[str, Any]:
     ]
 
     for set_code in standard_json:
-        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(set_code + ".json")
+        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(win_os_fix(set_code) + ".json")
 
         if not set_file.is_file():
             LOGGER.warning(
@@ -231,7 +231,7 @@ def create_modern_only_output() -> Dict[str, Any]:
     modern_data: Dict[str, Any] = {}
 
     for set_code in gamepedia.get_modern_sets():
-        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(set_code + ".json")
+        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(win_os_fix(set_code) + ".json")
 
         if not set_file.is_file():
             LOGGER.warning(
