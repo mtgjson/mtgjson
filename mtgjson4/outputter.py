@@ -286,7 +286,7 @@ def create_and_write_compiled_outputs() -> None:
     files_to_ignore: List[str] = [
         mtgjson4.ALL_SETS_OUTPUT,
         mtgjson4.ALL_CARDS_OUTPUT,
-        mtgjson4.SET_CODES_OUTPUT,
+        mtgjson4.SET_LIST_OUTPUT,
         mtgjson4.KEY_WORDS_OUTPUT,
         mtgjson4.VERSION_OUTPUT,
         mtgjson4.STANDARD_OUTPUT,
@@ -303,9 +303,9 @@ def create_and_write_compiled_outputs() -> None:
     all_cards = create_all_cards(files_to_ignore)
     write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
 
-    # SetCodes.json
-    all_set_codes = get_all_set_names(files_to_ignore)
-    write_to_file(mtgjson4.SET_CODES_OUTPUT, all_set_codes)
+    # SetList.json
+    set_list_info = get_all_set_list(files_to_ignore)
+    write_to_file(mtgjson4.SET_LIST_OUTPUT, set_list_info)
 
     # Keywords.json
     key_words = wizards.compile_comp_output()

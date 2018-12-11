@@ -23,7 +23,7 @@ RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson4").joinpath("resou
 # Compiled Output Files
 ALL_SETS_OUTPUT: str = "AllSets"
 ALL_CARDS_OUTPUT: str = "AllCards"
-SET_CODES_OUTPUT: str = "SetCodes"
+SET_LIST_OUTPUT: str = "SetList"
 KEY_WORDS_OUTPUT: str = "Keywords"
 VERSION_OUTPUT: str = "version"
 STANDARD_OUTPUT: str = "Standard"
