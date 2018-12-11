@@ -3,7 +3,6 @@
 import contextvars
 import logging
 import re
-import string
 from typing import Dict, List
 
 from mtgjson4 import util
@@ -73,7 +72,7 @@ def get_ability_words(comp_rules: str) -> List[str]:
             line = unidecode.unidecode(
                 line.split("The ability words are")[1].strip()[:-1]
             )
-            result = [string.capwords(x.strip()) for x in line.split(",")]
+            result = [x.strip().lower() for x in line.split(",")]
             result[-1] = result[-1][4:]  # Address the "and" bit of the last element
             return result
 
@@ -107,7 +106,7 @@ def parse_comp_internal(
         # We will want to ignore subset lines like "XXX.#a"
         if "{0}.{1}".format(rule_start, keyword_index) in line:
             # Break the line into "Rule Number | Keyword"
-            keyword = line.split(" ", 1)[1]
+            keyword = line.split(" ", 1)[1].lower()
             return_list.append(keyword)
             # Get next keyword, so we can pass over the non-relevant lines
             keyword_index += 1
