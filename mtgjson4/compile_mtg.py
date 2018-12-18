@@ -2,6 +2,7 @@
 
 import contextvars
 import copy
+import hashlib
 import json
 import logging
 import multiprocessing
@@ -12,6 +13,8 @@ from typing import Any, Dict, List, Set, Tuple
 import mtgjson4
 from mtgjson4.provider import gatherer, scryfall, tcgplayer
 from mtgjson4.util import is_number
+
+from faker import Faker
 
 LOGGER = logging.getLogger(__name__)
 
@@ -90,7 +93,46 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     output_file["tokens"] = build_mtgjson_tokens(sf_tokens + added_tokens)
     LOGGER.info("Finished tokens for {}".format(set_code))
 
+    # Add UUID to each entry
+    add_uuid_to_cards(output_file["cards"], output_file["tokens"], output_file)
+
     return output_file
+
+
+def add_uuid_to_cards(
+    cards: List[Dict[str, Any]], tokens: List[Dict[str, Any]], file_info: Any
+) -> None:
+    """
+    Each entry needs an ID. While we're really doing a hash,
+    we will format it like a UUID for those who choose to
+    consume in that format. Appends in-place to the arrays.
+    :param cards: Cards Array
+    :param tokens: Tokens Array
+    :param file_info: <<CONST>> object for the file
+    """
+    generator = Faker()
+
+    # Only using attributes that _shouldn't_ change over time
+    for card in cards:
+        # Name + Set Code + Scryfall UUID + Printed Text (if applicable)
+        card_hash_code = (
+            card["name"]
+            + file_info["code"]
+            + card["scryfallId"]
+            + str(card.get("originalText", ""))
+        )
+        generator.seed(
+            int(hashlib.sha512(card_hash_code.encode()).hexdigest(), base=16)
+        )
+        card["id"] = generator.uuid4()
+
+    for token in tokens:
+        # Name + SetCode + Scryfall UUID
+        token_hash_code = token["name"] + file_info["code"] + token["scryfallId"]
+        generator.seed(
+            int(hashlib.sha512(token_hash_code.encode()).hexdigest(), base=16)
+        )
+        token["id"] = generator.uuid4()
 
 
 def transpose_tokens(
@@ -108,7 +150,7 @@ def transpose_tokens(
 
     # Single faced tokens are easy
     tokens = [
-        scryfall.download(scryfall.SCRYFALL_API_CARD + card["uuid"])
+        scryfall.download(scryfall.SCRYFALL_API_CARD + card["scryfallId"])
         for card in cards
         if card["layout"] == "token"
     ]
@@ -118,12 +160,12 @@ def transpose_tokens(
     for card in cards:
         if (
             card["layout"] == "double_faced_token"
-            and card["uuid"][:-1] not in done_tokens
+            and card["scryfallId"] not in done_tokens
         ):
             tokens.append(
-                scryfall.download(scryfall.SCRYFALL_API_CARD + card["uuid"][:-1])
+                scryfall.download(scryfall.SCRYFALL_API_CARD + card["scryfallId"])
             )
-            done_tokens.add(card["uuid"][:-1])
+            done_tokens.add(card["scryfallId"])
 
     # Remaining cards, without any kind of token
     cards = [
@@ -202,10 +244,10 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
         repeats_in_set = [
             item
             for item in cards
-            if item["name"] == card["name"] and item["uuid"] != card["uuid"]
+            if item["name"] == card["name"] and item["scryfallId"] != card["scryfallId"]
         ]
 
-        variations = [r["uuid"] for r in repeats_in_set]
+        variations = [r["scryfallId"] for r in repeats_in_set]
         if variations:
             card["variations"] = variations
 
@@ -233,12 +275,16 @@ def add_start_flag_and_count_modified(
     for sf_card in starter_cards["data"]:
         # Each card has a unique UUID, even if they're the same card printed twice
         try:
-            card = next(item for item in mtgjson_cards if item["uuid"] == sf_card["id"])
+            card = next(
+                item for item in mtgjson_cards if item["scryfallId"] == sf_card["id"]
+            )
             if card:
                 card["starter"] = True
         except StopIteration:
             LOGGER.warning(
-                "Passed on {0} with UUID {1}".format(sf_card["name"], sf_card["id"])
+                "Passed on {0} with SF_ID {1}".format(
+                    sf_card["name"], sf_card["scryfallId"]
+                )
             )
 
     return mtgjson_cards, len(starter_cards["data"])
@@ -263,7 +309,7 @@ def build_mtgjson_tokens(
 
             # Prevent duplicate UUIDs for split card halves
             # Remove the last character and replace with the id of the card face
-            mtgjson_card["uuid"] = sf_token["id"] + str(sf_card_face)
+            mtgjson_card["scryfallId"] = sf_token["id"] + str(sf_card_face)
 
             # Recursively parse the other cards within this card too
             # Only call recursive if it is the first time we see this card object
@@ -288,7 +334,7 @@ def build_mtgjson_tokens(
             "toughness": sf_token.get("toughness"),
             "loyalty": sf_token.get("loyalty"),
             "watermark": sf_token.get("watermark"),
-            "uuid": sf_token.get("id"),
+            "scryfallId": sf_token.get("id"),
             "borderColor": sf_token.get("border_color"),
             "artist": sf_token.get("artist"),
             "isOnlineOnly": sf_token.get("digital"),
@@ -336,10 +382,10 @@ def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str,
 
     fixed_dict: List[Dict[str, Any]] = []
     remove_field_if_false: List[str] = [
-        "reserved",
         "isOversized",
         "isOnlineOnly",
         "isTimeshifted",
+        "isReserved",
     ]
 
     for card_entry in card_list:
@@ -445,7 +491,7 @@ def build_mtgjson_card(
 
         # Prevent duplicate UUIDs for split card halves
         # Remove the last character and replace with the id of the card face
-        mtgjson_card["uuid"] = sf_card["id"] + str(sf_card_face)
+        mtgjson_card["scryfallId"] = sf_card["id"]
 
         # Split cards and rotational cards have this field, flip cards do not.
         # Remove rotational cards via the additional check
@@ -535,8 +581,8 @@ def build_mtgjson_card(
             mtgjson_card["names"].index(mtgjson_card["name"]) + 97
         )
 
-    if "uuid" not in mtgjson_card:
-        mtgjson_card["uuid"] = sf_card.get("id")  # str
+    if "scryfallId" not in mtgjson_card:
+        mtgjson_card["scryfallId"] = sf_card.get("id")  # str
 
     # Characteristics that we have to format ourselves from provided data
     mtgjson_card["isTimeshifted"] = (sf_card.get("frame") == "future") or (
