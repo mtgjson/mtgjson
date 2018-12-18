@@ -133,8 +133,8 @@ def add_uuid_to_cards(
         token_hash_code = (
             token["name"]
             + "".join(token.get("colors", ""))
-            + token.get("power", "")
-            + token.get("toughness", "")
+            + str(token.get("power", ""))
+            + str(token.get("toughness", ""))
             + file_info["code"]
             + token["scryfallId"]
         )
@@ -410,6 +410,7 @@ def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str,
         "isOnlineOnly",
         "isTimeshifted",
         "isReserved",
+        "frameEffect",
     ]
 
     for card_entry in card_list:
