@@ -84,6 +84,7 @@ def build_output_file(
         output_file["tcgplayerGroupId"] = tcgplayer.get_group_id(set_code.upper())
         card_holder = add_tcgplayer_ids(output_file["tcgplayerGroupId"], card_holder)
 
+    # Set sizes; BASE SET SIZE WILL BE UPDATED BELOW
     output_file["totalSetSize"] = len(sf_cards)
     output_file["baseSetSize"] = output_file["totalSetSize"] - non_booster_cards
     output_file["cards"] = card_holder
@@ -98,8 +99,11 @@ def build_output_file(
     # Add UUID to each entry
     add_uuid_to_cards(output_file["cards"], output_file["tokens"], output_file)
 
-    # Add Variations to each entry
-    add_variations_field(output_file["cards"])
+    # Add Variations to each entry, as well as mark alternatives
+    alt_count = add_variations_and_alternative_fields(output_file["cards"], output_file)
+
+    # Alternatives don't count towards the base set size
+    output_file["baseSetSize"] -= alt_count
 
     return output_file
 
@@ -245,14 +249,19 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
     return cards
 
 
-def add_variations_field(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def add_variations_and_alternative_fields(
+    cards: List[Dict[str, Any]], file_info: Any
+) -> int:
     """
     For non-silver bordered sets, we will create a "variations"
-    field will be created that has UUID of repeat cards
+    field will be created that has UUID of repeat cards.
+    This will also mark alternative printings within a single set.
     :param cards: Cards to check and update for repeats
-    :return: updated cards list
+    :param file_info: <<CONST>> object for the file
+    :return: How many alternative printings were marked
     """
     # Non-silver border sets use "variations"
+    how_many_alternatives = 0
     if cards[0].get("borderColor", None) != "silver":
         for card in cards:
             repeats_in_set = [
@@ -261,11 +270,38 @@ def add_variations_field(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 if item["name"] == card["name"] and item["uuid"] != card["uuid"]
             ]
 
+            # Add variations field
             variations = [r["uuid"] for r in repeats_in_set]
             if variations:
                 card["variations"] = variations
 
-    return cards
+            # Add alternative tag
+            # Ignore singleton printings in set, as well as basics
+            if not repeats_in_set or card["name"] in mtgjson4.BASIC_LANDS:
+                continue
+
+            # Some hardcoded checking due to inconsistencies upstream
+            if file_info["code"].upper() in ["UNH", "10E"]:
+                # Check for duplicates, mark the foils
+                if (
+                    len(repeats_in_set) >= 1
+                    and card["hasFoil"]
+                    and not card["hasNonFoil"]
+                ):
+                    card["isAlternative"] = True
+                    how_many_alternatives += 1
+            elif file_info["code"].upper() in ["CN2", "BBD"]:
+                # Check for set number > set size
+                if card["number"] > file_info["baseSetSize"]:
+                    card["isAlternative"] = True
+                    how_many_alternatives += 1
+            elif file_info["code"].upper() == "PLS":
+                # Check for a star in the number
+                if chr(9733) in card["number"]:
+                    card["isAlternative"] = True
+                    how_many_alternatives += 1
+
+    return how_many_alternatives
 
 
 def add_start_flag_and_count_modified(
@@ -338,7 +374,6 @@ def build_mtgjson_tokens(
 
             sf_token = face_data
 
-        token_card: Dict[str, Any] = {}
         try:
             token_card = {
                 "name": sf_token.get("name"),
