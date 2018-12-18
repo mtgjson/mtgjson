@@ -418,7 +418,7 @@ def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str,
 
         for key, value in card_entry.items():
             if value is not None:
-                if key in remove_field_if_false and value is False:
+                if (key in remove_field_if_false and value is False) or (value == ""):
                     continue
                 if key == "foreignData":
                     value = fix_foreign_entries(value)
