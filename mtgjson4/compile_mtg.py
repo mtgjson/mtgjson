@@ -72,7 +72,7 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
         set_code, set_config["search_uri"], card_holder
     )
 
-    # Address duplicate printings in a set
+    # Address duplicates in un-sets
     card_holder = uniquify_duplicates_in_set(card_holder)
 
     # Move bogus tokens out
@@ -95,6 +95,9 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
 
     # Add UUID to each entry
     add_uuid_to_cards(output_file["cards"], output_file["tokens"], output_file)
+
+    # Add Variations to each entry
+    add_variations_field(output_file["cards"])
 
     return output_file
 
@@ -209,8 +212,6 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
     them against each other.
     For silver border sets, we will add (b), (c), ... to the end
     of the card name to do so.
-    For non-silver bordered sets, we will create a "variations"
-    field will be created that has UUID of repeat cards
     :param cards: Cards to check and update for repeats
     :return: updated cards list
     """
@@ -246,7 +247,16 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
                 unique_list.append(card)
 
         return unique_list
+    return cards
 
+
+def add_variations_field(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    For non-silver bordered sets, we will create a "variations"
+    field will be created that has UUID of repeat cards
+    :param cards: Cards to check and update for repeats
+    :return: updated cards list
+    """
     # Non-silver border sets use "variations"
     for card in cards:
         repeats_in_set = [
