@@ -133,8 +133,8 @@ def add_uuid_to_cards(
         token_hash_code = (
             token["name"]
             + "".join(token.get("colors", ""))
-            + token.get("power", "")
-            + token.get("toughness", "")
+            + str(token.get("power", ""))
+            + str(token.get("toughness", ""))
             + file_info["code"]
             + token["scryfallId"]
         )
@@ -410,6 +410,7 @@ def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str,
         "isOnlineOnly",
         "isTimeshifted",
         "isReserved",
+        "frameEffect",
     ]
 
     for card_entry in card_list:
@@ -417,7 +418,7 @@ def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str,
 
         for key, value in card_entry.items():
             if value is not None:
-                if key in remove_field_if_false and value is False:
+                if (key in remove_field_if_false and value is False) or (value == ""):
                     continue
                 if key == "foreignData":
                     value = fix_foreign_entries(value)
@@ -588,14 +589,15 @@ def build_mtgjson_card(
     if "convertedManaCost" not in mtgjson_card:
         mtgjson_card["convertedManaCost"] = sf_card.get("cmc")  # float
 
-    mtgjson_card["frameVersion"] = sf_card.get("frame")  # str
-    mtgjson_card["hasFoil"] = sf_card.get("foil")  # bool
-    mtgjson_card["hasNonFoil"] = sf_card.get("nonfoil")  # bool
-    mtgjson_card["isOnlineOnly"] = sf_card.get("digital")  # bool
-    mtgjson_card["isOversized"] = sf_card.get("oversized")  # bool
-    mtgjson_card["layout"] = sf_card.get("layout")  # str
+    mtgjson_card["frameVersion"] = sf_card.get("frame")
+    mtgjson_card["hasFoil"] = sf_card.get("foil")
+    mtgjson_card["hasNonFoil"] = sf_card.get("nonfoil")
+    mtgjson_card["isOnlineOnly"] = sf_card.get("digital")
+    mtgjson_card["isOversized"] = sf_card.get("oversized")
+    mtgjson_card["layout"] = sf_card.get("layout")
     mtgjson_card["number"] = sf_card.get("collector_number")
-    mtgjson_card["isReserved"] = sf_card.get("reserved")  # bool
+    mtgjson_card["isReserved"] = sf_card.get("reserved")
+    mtgjson_card["frameEffect"] = sf_card.get("frame_effect")
 
     # Add a "side" entry for split cards
     # Will only work for two faced cards (not meld, as they don't need this)
@@ -606,7 +608,7 @@ def build_mtgjson_card(
         )
 
     if "scryfallId" not in mtgjson_card:
-        mtgjson_card["scryfallId"] = sf_card.get("id")  # str
+        mtgjson_card["scryfallId"] = sf_card.get("id")
 
     # Characteristics that we have to format ourselves from provided data
     mtgjson_card["isTimeshifted"] = (sf_card.get("frame") == "future") or (
