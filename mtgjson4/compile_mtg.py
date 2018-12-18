@@ -101,7 +101,7 @@ def build_output_file(
     # Add Variations to each entry
     add_variations_field(output_file["cards"])
 
-    if "DD" == set_code[:2]:
+    if set_code[:2] == "DD":
         mark_duel_decks(output_file["cards"])
 
     return output_file
