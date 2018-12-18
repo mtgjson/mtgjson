@@ -88,11 +88,18 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> str:
     session.close()
 
     if response.status_code != 200:
-        LOGGER.warning(
-            "Status Code: {} Failed to download from TCGPlayer with URL: {}, Params: {}".format(
-                response.status_code, tcgplayer_url, params_str
+        if response.status_code == 404:
+            LOGGER.info(
+                "Status Code: {} Failed to download from TCGPlayer with URL: {}, Params: {}".format(
+                    response.status_code, response.url, params_str
+                )
             )
-        )
+        else:
+            LOGGER.warning(
+                "Status Code: {} Failed to download from TCGPlayer with URL: {}, Params: {}".format(
+                    response.status_code, response.url, params_str
+                )
+            )
         return ""
 
     return response.text

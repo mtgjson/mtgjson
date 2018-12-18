@@ -7,6 +7,7 @@ import logging
 import multiprocessing
 import pathlib
 import re
+import uuid
 from typing import Any, Dict, List, Set, Tuple
 
 import mtgjson4
@@ -69,7 +70,7 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
         set_code, set_config["search_uri"], card_holder
     )
 
-    # Address duplicate printings in a set
+    # Address duplicates in un-sets
     card_holder = uniquify_duplicates_in_set(card_holder)
 
     # Move bogus tokens out
@@ -90,7 +91,50 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     output_file["tokens"] = build_mtgjson_tokens(sf_tokens + added_tokens)
     LOGGER.info("Finished tokens for {}".format(set_code))
 
+    # Add UUID to each entry
+    add_uuid_to_cards(output_file["cards"], output_file["tokens"], output_file)
+
+    # Add Variations to each entry
+    add_variations_field(output_file["cards"])
+
     return output_file
+
+
+def add_uuid_to_cards(
+    cards: List[Dict[str, Any]], tokens: List[Dict[str, Any]], file_info: Any
+) -> None:
+    """
+    Each entry needs an ID. While we're really doing a hash,
+    we will format it like a UUID for those who choose to
+    consume in that format. Appends in-place to the arrays.
+    :param cards: Cards Array
+    :param tokens: Tokens Array
+    :param file_info: <<CONST>> object for the file
+    """
+    # Only using attributes that _shouldn't_ change over time
+    for card in cards:
+        # Name + set code + colors (if applicable) + Scryfall UUID + printed text (if applicable)
+        card_hash_code = (
+            card["name"]
+            + file_info["code"]
+            + "".join(card.get("colors", ""))
+            + card["scryfallId"]
+            + str(card.get("originalText", ""))
+        )
+
+        card["uuid"] = str(uuid.uuid5(uuid.NAMESPACE_DNS, card_hash_code))
+
+    for token in tokens:
+        # Name + set code + colors (if applicable) + power (if applicable) + toughness (if applicable) + Scryfall UUID
+        token_hash_code = (
+            token["name"]
+            + "".join(token.get("colors", ""))
+            + token.get("power", "")
+            + token.get("toughness", "")
+            + file_info["code"]
+            + token["scryfallId"]
+        )
+        token["uuid"] = str(uuid.uuid5(uuid.NAMESPACE_DNS, token_hash_code))
 
 
 def transpose_tokens(
@@ -108,7 +152,7 @@ def transpose_tokens(
 
     # Single faced tokens are easy
     tokens = [
-        scryfall.download(scryfall.SCRYFALL_API_CARD + card["uuid"])
+        scryfall.download(scryfall.SCRYFALL_API_CARD + card["scryfallId"])
         for card in cards
         if card["layout"] == "token"
     ]
@@ -118,12 +162,12 @@ def transpose_tokens(
     for card in cards:
         if (
             card["layout"] == "double_faced_token"
-            and card["uuid"][:-1] not in done_tokens
+            and card["scryfallId"] not in done_tokens
         ):
             tokens.append(
-                scryfall.download(scryfall.SCRYFALL_API_CARD + card["uuid"][:-1])
+                scryfall.download(scryfall.SCRYFALL_API_CARD + card["scryfallId"])
             )
-            done_tokens.add(card["uuid"][:-1])
+            done_tokens.add(card["scryfallId"])
 
     # Remaining cards, without any kind of token
     cards = [
@@ -159,8 +203,6 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
     them against each other.
     For silver border sets, we will add (b), (c), ... to the end
     of the card name to do so.
-    For non-silver bordered sets, we will create a "variations"
-    field will be created that has UUID of repeat cards
     :param cards: Cards to check and update for repeats
     :return: updated cards list
     """
@@ -196,18 +238,28 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
                 unique_list.append(card)
 
         return unique_list
+    return cards
 
+
+def add_variations_field(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    For non-silver bordered sets, we will create a "variations"
+    field will be created that has UUID of repeat cards
+    :param cards: Cards to check and update for repeats
+    :return: updated cards list
+    """
     # Non-silver border sets use "variations"
-    for card in cards:
-        repeats_in_set = [
-            item
-            for item in cards
-            if item["name"] == card["name"] and item["uuid"] != card["uuid"]
-        ]
+    if cards[0].get("borderColor", None) != "silver":
+        for card in cards:
+            repeats_in_set = [
+                item
+                for item in cards
+                if item["name"] == card["name"] and item["uuid"] != card["uuid"]
+            ]
 
-        variations = [r["uuid"] for r in repeats_in_set]
-        if variations:
-            card["variations"] = variations
+            variations = [r["uuid"] for r in repeats_in_set]
+            if variations:
+                card["variations"] = variations
 
     return cards
 
@@ -233,12 +285,16 @@ def add_start_flag_and_count_modified(
     for sf_card in starter_cards["data"]:
         # Each card has a unique UUID, even if they're the same card printed twice
         try:
-            card = next(item for item in mtgjson_cards if item["uuid"] == sf_card["id"])
+            card = next(
+                item for item in mtgjson_cards if item["scryfallId"] == sf_card["id"]
+            )
             if card:
                 card["starter"] = True
         except StopIteration:
             LOGGER.warning(
-                "Passed on {0} with UUID {1}".format(sf_card["name"], sf_card["id"])
+                "Passed on {0} with SF_ID {1}".format(
+                    sf_card["name"], sf_card["scryfallId"]
+                )
             )
 
     return mtgjson_cards, len(starter_cards["data"])
@@ -263,7 +319,7 @@ def build_mtgjson_tokens(
 
             # Prevent duplicate UUIDs for split card halves
             # Remove the last character and replace with the id of the card face
-            mtgjson_card["uuid"] = sf_token["id"] + str(sf_card_face)
+            mtgjson_card["scryfallId"] = sf_token["id"] + str(sf_card_face)
 
             # Recursively parse the other cards within this card too
             # Only call recursive if it is the first time we see this card object
@@ -346,10 +402,10 @@ def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str,
 
     fixed_dict: List[Dict[str, Any]] = []
     remove_field_if_false: List[str] = [
-        "reserved",
         "isOversized",
         "isOnlineOnly",
         "isTimeshifted",
+        "isReserved",
     ]
 
     for card_entry in card_list:
@@ -455,7 +511,7 @@ def build_mtgjson_card(
 
         # Prevent duplicate UUIDs for split card halves
         # Remove the last character and replace with the id of the card face
-        mtgjson_card["uuid"] = sf_card["id"] + str(sf_card_face)
+        mtgjson_card["scryfallId"] = sf_card["id"]
 
         # Split cards and rotational cards have this field, flip cards do not.
         # Remove rotational cards via the additional check
@@ -545,8 +601,8 @@ def build_mtgjson_card(
             mtgjson_card["names"].index(mtgjson_card["name"]) + 97
         )
 
-    if "uuid" not in mtgjson_card:
-        mtgjson_card["uuid"] = sf_card.get("id")  # str
+    if "scryfallId" not in mtgjson_card:
+        mtgjson_card["scryfallId"] = sf_card.get("id")  # str
 
     # Characteristics that we have to format ourselves from provided data
     mtgjson_card["isTimeshifted"] = (sf_card.get("frame") == "future") or (
