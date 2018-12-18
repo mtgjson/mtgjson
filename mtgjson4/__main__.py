@@ -93,12 +93,12 @@ def main() -> None:
 
     # Determine set(s) to build
     args_s = args.s if args.s else []
-    set_list: List[str] = get_all_sets() if args.all_sets else args_s
+    set_list: List[str] = get_all_sets() if args.a else args_s
 
     LOGGER.info("Sets to compile: {}".format(set_list))
 
     # If we had to kill mid-build, we can skip the completed set(s)
-    if args.skip_cached:
+    if args.x:
         sets_compiled_already: List[str] = get_compiled_sets()
         set_list = [s for s in set_list if s not in sets_compiled_already]
         LOGGER.info(
@@ -119,7 +119,7 @@ def main() -> None:
                 set_code.upper(), compiled, do_cleanup=True
             )
 
-    if args.compiled_outputs:
+    if args.c:
         LOGGER.info("Compiling Additional Outputs")
         mtgjson4.outputter.create_and_write_compiled_outputs()
 
