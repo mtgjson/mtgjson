@@ -124,7 +124,7 @@ def add_uuid_to_cards(
         generator.seed(
             int(hashlib.sha512(card_hash_code.encode()).hexdigest(), base=16)
         )
-        card["id"] = generator.uuid4()
+        card["uuid"] = generator.uuid4()
 
     for token in tokens:
         # Name + SetCode + Scryfall UUID
@@ -132,7 +132,7 @@ def add_uuid_to_cards(
         generator.seed(
             int(hashlib.sha512(token_hash_code.encode()).hexdigest(), base=16)
         )
-        token["id"] = generator.uuid4()
+        token["uuid"] = generator.uuid4()
 
 
 def transpose_tokens(
@@ -244,10 +244,10 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
         repeats_in_set = [
             item
             for item in cards
-            if item["name"] == card["name"] and item["scryfallId"] != card["scryfallId"]
+            if item["name"] == card["name"] and item["uuid"] != card["uuid"]
         ]
 
-        variations = [r["scryfallId"] for r in repeats_in_set]
+        variations = [r["uuid"] for r in repeats_in_set]
         if variations:
             card["variations"] = variations
 
