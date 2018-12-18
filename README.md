@@ -33,14 +33,13 @@ $ pip3 install -r requirements.txt
 
 2. Select the flag(s) you'd like to run the program with:
 
-| Flags            	| Flag Descriptions                                                                                                                              	|
-|------------------	|------------------------------------------------------------------------------------------------------------------------------------------------	|
-| `-h`             	| Print the help menu and exits.                                                                                                                 	|
-| `-a`             	| Build all sets. This overshadows the `-s` flag.                                                                                                	|
-| `-s SET SET ...` 	| Build set code arguments, provided they exist.                                                                                                 	|
-| `-c`             	| After building any/all sets, create the compiled outputs (ex: AllSets, AllCards).                                                              	|
-| `-x`             	| Skips sets that have already been built (i.e. set files in the output folder), and build the remaining sets. Must be passed with `-a` or `-s`. 	|
-
+| Flags              	| Flag Descriptions                                                                                                                              	|
+|--------------------	|------------------------------------------------------------------------------------------------------------------------------------------------	|
+| `-h`               	| Print the help menu and exits.                                                                                                                 	|
+| `-a`               	| Build all sets. This overshadows the `-s` flag.                                                                                                	|
+| `-s SET [SET ...]` 	| Build set code arguments, provided they exist.                                                                                                 	|
+| `-c`               	| After building any/all sets, create the compiled outputs (ex: AllSets, AllCards).                                                              	|
+| `-x`               	| Skips sets that have already been built (i.e. set files in the output folder), and build the remaining sets. Must be passed with `-a` or `-s`. 	|
 
 3. Run the program, with any flag(s) you'd like, via:
 ```sh
