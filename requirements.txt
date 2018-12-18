@@ -1,5 +1,4 @@
 beautifulsoup4
-Faker
 requests
 unidecode
 urllib3
