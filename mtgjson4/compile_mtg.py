@@ -568,6 +568,7 @@ def build_mtgjson_card(
     mtgjson_card["subtypes"] = card_types[2]  # List[str]
 
     # Handle meld and all parts tokens issues
+    # Will re-address naming if a split card already
     if "all_parts" in sf_card:
         meld_holder = []
         mtgjson_card["names"] = []
