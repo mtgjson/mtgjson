@@ -334,22 +334,32 @@ def build_mtgjson_tokens(
 
             sf_token = face_data
 
-        token_card: Dict[str, Any] = {
-            "name": sf_token.get("name"),
-            "type": sf_token.get("type_line"),
-            "text": sf_token.get("oracle_text"),
-            "power": sf_token.get("power"),
-            "colors": sf_token.get("colors"),
-            "colorIdentity": sf_token.get("color_identity"),
-            "toughness": sf_token.get("toughness"),
-            "loyalty": sf_token.get("loyalty"),
-            "watermark": sf_token.get("watermark"),
-            "scryfallId": sf_token.get("id"),
-            "borderColor": sf_token.get("border_color"),
-            "artist": sf_token.get("artist"),
-            "isOnlineOnly": sf_token.get("digital"),
-            "number": sf_token.get("collector_number"),
-        }
+        token_card: Dict[str, Any] = {}
+        try:
+            token_card = {
+                "name": sf_token.get("name"),
+                "type": sf_token.get("type_line"),
+                "text": sf_token.get("oracle_text"),
+                "power": sf_token.get("power"),
+                "colors": sf_token.get("colors"),
+                "colorIdentity": sf_token.get("color_identity"),
+                "toughness": sf_token.get("toughness"),
+                "loyalty": sf_token.get("loyalty"),
+                "watermark": sf_token.get("watermark"),
+                "uuid": sf_token["id"],
+                "borderColor": sf_token.get("border_color"),
+                "artist": sf_token.get("artist"),
+                "isOnlineOnly": sf_token.get("digital"),
+                "number": sf_token.get("collector_number"),
+            }
+        except KeyError:
+            # Address duplicates, as only the original seems to have a UUID
+            LOGGER.info(
+                "UUID not found in {}. Discarding {}".format(
+                    sf_token.get("name"), sf_token
+                )
+            )
+            continue
 
         reverse_related: List[str] = []
         if "all_parts" in sf_token:
@@ -624,14 +634,18 @@ def build_mtgjson_card(
     mtgjson_card["subtypes"] = card_types[2]  # List[str]
 
     # Handle meld and all parts tokens issues
+    # Will re-address naming if a split card already
     if "all_parts" in sf_card:
+        meld_holder = []
         mtgjson_card["names"] = []
         for a_part in sf_card["all_parts"]:
-            # If the card is a token, we are to ignore it. Only real card parts are added.
-            if "/t{}/".format(sf_card["set"].lower()) not in a_part.get("uri"):
+            if a_part["component"] != "token":
                 if "//" in a_part.get("name"):
                     mtgjson_card["names"] = a_part.get("name").split(" // ")
                     break
+
+                if "meld" in a_part["component"]:
+                    meld_holder.append(a_part["component"])
 
                 mtgjson_card["names"].append(a_part.get("name"))
 
@@ -641,6 +655,13 @@ def build_mtgjson_card(
             and mtgjson_card["name"] in mtgjson_card["names"]
         ):
             del mtgjson_card["names"]
+
+        # Meld cards should be CardA, Meld, CardB. This fixes that via swap
+        if meld_holder and meld_holder[1] != "meld_result":
+            mtgjson_card["names"][1], mtgjson_card["names"][2] = (
+                mtgjson_card["names"][2],
+                mtgjson_card["names"][1],
+            )
 
     # Since we built meld cards later, we will add the "side" attribute now
     if len(mtgjson_card.get("names", [])) == 3:  # MELD
