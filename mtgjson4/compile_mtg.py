@@ -709,10 +709,11 @@ def build_mtgjson_card(
                     mtgjson_card["names"] = a_part.get("name").split(" // ")
                     break
 
+                # This is a meld only-fix, so we ignore tokens/combo pieces
                 if "meld" in a_part["component"]:
                     meld_holder.append(a_part["component"])
 
-                mtgjson_card["names"].append(a_part.get("name"))
+                    mtgjson_card["names"].append(a_part.get("name"))
 
         # If the only entry is the original card, empty the names array
         if (

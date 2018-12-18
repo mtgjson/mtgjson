@@ -217,12 +217,12 @@ def parse_foreign(
         try:
             card_foreign_entry["language"] = mtgjson4.LANGUAGE_MAP[foreign_card["lang"]]
         except IndexError:
-            LOGGER.warning("Error trying to get language {}".format(foreign_card))
+            LOGGER.warning("Unable to get language {}".format(foreign_card))
 
         try:
             card_foreign_entry["multiverseId"] = foreign_card["multiverse_ids"][0]
         except IndexError:
-            LOGGER.warning("Error trying to get multiverseId {}".format(foreign_card))
+            LOGGER.warning("Unable to get multiverseId {}".format(foreign_card))
 
         if "card_faces" in foreign_card:
             if card_name.lower() == foreign_card["name"].split("/")[0].strip().lower():
