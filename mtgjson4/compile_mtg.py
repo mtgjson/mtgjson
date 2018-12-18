@@ -569,13 +569,16 @@ def build_mtgjson_card(
 
     # Handle meld and all parts tokens issues
     if "all_parts" in sf_card:
+        meld_holder = []
         mtgjson_card["names"] = []
         for a_part in sf_card["all_parts"]:
-            # If the card is a token, we are to ignore it. Only real card parts are added.
-            if "/t{}/".format(sf_card["set"].lower()) not in a_part.get("uri"):
+            if a_part["component"] != "token":
                 if "//" in a_part.get("name"):
                     mtgjson_card["names"] = a_part.get("name").split(" // ")
                     break
+
+                if "meld" in a_part["component"]:
+                    meld_holder.append(a_part["component"])
 
                 mtgjson_card["names"].append(a_part.get("name"))
 
@@ -585,6 +588,13 @@ def build_mtgjson_card(
             and mtgjson_card["name"] in mtgjson_card["names"]
         ):
             del mtgjson_card["names"]
+
+        # Meld cards should be CardA, Meld, CardB. This fixes that via swap
+        if meld_holder and meld_holder[1] != "meld_result":
+            mtgjson_card["names"][1], mtgjson_card["names"][2] = (
+                mtgjson_card["names"][2],
+                mtgjson_card["names"][1],
+            )
 
     # Since we built meld cards later, we will add the "side" attribute now
     if len(mtgjson_card.get("names", [])) == 3:  # MELD
