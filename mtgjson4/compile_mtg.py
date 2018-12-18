@@ -295,7 +295,7 @@ def add_variations_and_alternative_fields(
                     how_many_alternatives += 1
             elif file_info["code"].upper() in ["CN2", "BBD"]:
                 # Check for set number > set size
-                if card["number"] > file_info["baseSetSize"]:
+                if int(card["number"].replace(chr(9733), "")) > file_info["baseSetSize"]:
                     card["isAlternative"] = True
                     how_many_alternatives += 1
             elif file_info["code"].upper() == "PLS":
