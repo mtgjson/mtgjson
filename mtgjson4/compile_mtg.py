@@ -249,16 +249,17 @@ def add_variations_field(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     :return: updated cards list
     """
     # Non-silver border sets use "variations"
-    for card in cards:
-        repeats_in_set = [
-            item
-            for item in cards
-            if item["name"] == card["name"] and item["uuid"] != card["uuid"]
-        ]
+    if cards[0].get("borderColor", None) != "silver":
+        for card in cards:
+            repeats_in_set = [
+                item
+                for item in cards
+                if item["name"] == card["name"] and item["uuid"] != card["uuid"]
+            ]
 
-        variations = [r["uuid"] for r in repeats_in_set]
-        if variations:
-            card["variations"] = variations
+            variations = [r["uuid"] for r in repeats_in_set]
+            if variations:
+                card["variations"] = variations
 
     return cards
 
