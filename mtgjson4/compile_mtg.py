@@ -7,8 +7,8 @@ import logging
 import multiprocessing
 import pathlib
 import re
-import uuid
 from typing import Any, Dict, List, Set, Tuple
+import uuid
 
 import mtgjson4
 from mtgjson4.provider import gatherer, scryfall, tcgplayer
@@ -19,9 +19,12 @@ LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
 
-def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str, Any]:
+def build_output_file(
+    sf_cards: List[Dict[str, Any]], set_code: str, skip_tcgplayer: bool
+) -> Dict[str, Any]:
     """
     Compile the entire XYZ.json file and pass it off to be written out
+    :param skip_tcgplayer: Skip building TCGPlayer stuff
     :param sf_cards: Scryfall cards
     :param set_code: Set code
     :return: Completed JSON file
@@ -77,8 +80,9 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     card_holder, added_tokens = transpose_tokens(card_holder)
 
     # Add TCGPlayer information
-    output_file["tcgplayerGroupId"] = tcgplayer.get_group_id(set_code.upper())
-    card_holder = add_tcgplayer_ids(output_file["tcgplayerGroupId"], card_holder)
+    if not skip_tcgplayer:
+        output_file["tcgplayerGroupId"] = tcgplayer.get_group_id(set_code.upper())
+        card_holder = add_tcgplayer_ids(output_file["tcgplayerGroupId"], card_holder)
 
     output_file["totalSetSize"] = len(sf_cards)
     output_file["baseSetSize"] = output_file["totalSetSize"] - non_booster_cards
@@ -346,7 +350,7 @@ def build_mtgjson_tokens(
                 "toughness": sf_token.get("toughness"),
                 "loyalty": sf_token.get("loyalty"),
                 "watermark": sf_token.get("watermark"),
-                "uuid": sf_token["id"],
+                "scryfallId": sf_token["id"],
                 "borderColor": sf_token.get("border_color"),
                 "artist": sf_token.get("artist"),
                 "isOnlineOnly": sf_token.get("digital"),
@@ -355,7 +359,7 @@ def build_mtgjson_tokens(
         except KeyError:
             # Address duplicates, as only the original seems to have a UUID
             LOGGER.info(
-                "UUID not found in {}. Discarding {}".format(
+                "Scryfall_ID not found in {}. Discarding {}".format(
                     sf_token.get("name"), sf_token
                 )
             )
