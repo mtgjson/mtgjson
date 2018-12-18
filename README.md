@@ -44,6 +44,6 @@ $ pip3 install -r requirements.txt
 
 3. Run the program, with any flag(s) you'd like, via:
 ```sh
-usage: mtgjson4 [-h] [-s [SET [SET ...]]] [-a] [-c] [-x] [--skip-tcgplayer]
+usage: mtgjson4 [-h] [-a] [-s [SET [SET ...]]] [-c] [-x] [--skip-tcgplayer]
 $ python3 -m mtgjson4
 ```

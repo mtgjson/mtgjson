@@ -71,8 +71,8 @@ def main() -> None:
     Main Method
     """
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("-s", metavar="SET", nargs="*", type=str)
     parser.add_argument("-a", action="store_true")
+    parser.add_argument("-s", metavar="SET", nargs="*", type=str)
     parser.add_argument("-c", action="store_true")
     parser.add_argument("-x", action="store_true")
     parser.add_argument("--skip-tcgplayer", action="store_true")
