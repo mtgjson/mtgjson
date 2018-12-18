@@ -114,10 +114,11 @@ def add_uuid_to_cards(
 
     # Only using attributes that _shouldn't_ change over time
     for card in cards:
-        # Name + Set Code + Scryfall UUID + Printed Text (if applicable)
+        # Name + set code + colors (if applicable) + Scryfall UUID + printed text (if applicable)
         card_hash_code = (
             card["name"]
             + file_info["code"]
+            + "".join(card.get("colors", ""))
             + card["scryfallId"]
             + str(card.get("originalText", ""))
         )
@@ -127,8 +128,15 @@ def add_uuid_to_cards(
         card["uuid"] = generator.uuid4()
 
     for token in tokens:
-        # Name + SetCode + Scryfall UUID
-        token_hash_code = token["name"] + file_info["code"] + token["scryfallId"]
+        # Name + set code + colors (if applicable) + power (if applicable) + toughness (if applicable) + Scryfall UUID
+        token_hash_code = (
+            token["name"]
+            + "".join(token.get("colors", ""))
+            + token.get("power", "")
+            + token.get("toughness", "")
+            + file_info["code"]
+            + token["scryfallId"]
+        )
         generator.seed(
             int(hashlib.sha512(token_hash_code.encode()).hexdigest(), base=16)
         )
