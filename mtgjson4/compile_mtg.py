@@ -298,7 +298,11 @@ def build_mtgjson_tokens(
             }
         except KeyError:
             # Address duplicates, as only the original seems to have a UUID
-            LOGGER.info("UUID not found in {}. Discarding {}".format(sf_token.get("name"), sf_token))
+            LOGGER.info(
+                "UUID not found in {}. Discarding {}".format(
+                    sf_token.get("name"), sf_token
+                )
+            )
             continue
 
         reverse_related: List[str] = []
