@@ -119,6 +119,7 @@ def main() -> None:
                 set_code.upper(), compiled, do_cleanup=True
             )
 
+    # Compile the additional outputs
     if args.c:
         LOGGER.info("Compiling Additional Outputs")
         mtgjson4.outputter.create_and_write_compiled_outputs()
