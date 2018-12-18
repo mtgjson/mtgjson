@@ -31,19 +31,19 @@ This system was built using *Python 3.7*, so we can only guarantee proper functi
 $ pip3 install -r requirements.txt
 ```
 
-2. Select the flags you'd like to run the program with:
+2. Select the flag(s) you'd like to run the program with:
 
-| Flags                      | Descriptions                                                                                                                                                                                           |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `-h`                       | This prints out the help menu and exits.                                                                                                                                                               |
-| `-a`, `--all-sets`         | This tells the program to build all sets. This supersedes the `-s` flag.                                                                                                                               |
-| `-s SET1 SET2 ...`         | This tells the program to build all set codes passed, provided they exist.                                                                                                                             |
-| `-c`, `--compiled-outputs` | This tells the program to compile AllCards and AllSets, following any additional sets being built. This flag needs to be accompanied by either `-a`, `-s`, or `--skip-rebuild`.                        |
-| `--skip-rebuild`           | This tells the program to build no sets, superseding `-a` and `-s`, and just use what is cached already. This is the equivalent of passing an empty `-s` flag. This is only useful with the `-c` flag. |
-| `--skip-cached`            | This flag, in conjunction with `-a` or `-s`, tells the program to skips sets that have already been built, and build the remaining sets.                                                               |
+| Flags            	| Flag Descriptions                                                                                                                              	|
+|------------------	|------------------------------------------------------------------------------------------------------------------------------------------------	|
+| `-h`             	| Print the help menu and exits.                                                                                                                 	|
+| `-a`             	| Build all sets. This overshadows the `-s` flag.                                                                                                	|
+| `-s SET SET ...` 	| Build set code arguments, provided they exist.                                                                                                 	|
+| `-c`             	| After building any/all sets, create the compiled outputs (ex: AllSets, AllCards).                                                              	|
+| `-x`             	| Skips sets that have already been built (i.e. set files in the output folder), and build the remaining sets. Must be passed with `-a` or `-s`. 	|
 
-3. Run the program, with any flags you'd like, via:
+
+3. Run the program, with any flag(s) you'd like, via:
 ```sh
-usage: mtgjson4 [-h] [-s [SET [SET ...]]] [-a] [-c] [--skip-rebuild] [--skip-cached]
+usage: mtgjson4 [-h] [-s [SET [SET ...]]] [-a] [-c] [-x] [--skip-tcgplayer]
 $ python3 -m mtgjson4
 ```

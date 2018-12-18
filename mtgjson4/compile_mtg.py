@@ -7,8 +7,8 @@ import logging
 import multiprocessing
 import pathlib
 import re
-import uuid
 from typing import Any, Dict, List, Set, Tuple
+import uuid
 
 import mtgjson4
 from mtgjson4.provider import gatherer, scryfall, tcgplayer
@@ -19,7 +19,9 @@ LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
 
-def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str, Any]:
+def build_output_file(
+    sf_cards: List[Dict[str, Any]], set_code: str, build_tcgplayer: bool
+) -> Dict[str, Any]:
     """
     Compile the entire XYZ.json file and pass it off to be written out
     :param sf_cards: Scryfall cards
@@ -77,8 +79,9 @@ def build_output_file(sf_cards: List[Dict[str, Any]], set_code: str) -> Dict[str
     card_holder, added_tokens = transpose_tokens(card_holder)
 
     # Add TCGPlayer information
-    output_file["tcgplayerGroupId"] = tcgplayer.get_group_id(set_code.upper())
-    card_holder = add_tcgplayer_ids(output_file["tcgplayerGroupId"], card_holder)
+    if build_tcgplayer:
+        output_file["tcgplayerGroupId"] = tcgplayer.get_group_id(set_code.upper())
+        card_holder = add_tcgplayer_ids(output_file["tcgplayerGroupId"], card_holder)
 
     output_file["totalSetSize"] = len(sf_cards)
     output_file["baseSetSize"] = output_file["totalSetSize"] - non_booster_cards

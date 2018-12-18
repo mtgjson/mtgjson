@@ -72,10 +72,10 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(description="")
     parser.add_argument("-s", metavar="SET", nargs="*", type=str)
-    parser.add_argument("-a", "--all-sets", action="store_true")
-    parser.add_argument("-c", "--compiled-outputs", action="store_true")
-    parser.add_argument("--skip-rebuild", action="store_true")
-    parser.add_argument("--skip-cached", action="store_true")
+    parser.add_argument("-a", action="store_true")
+    parser.add_argument("-c", action="store_true")
+    parser.add_argument("-x", action="store_true")
+    parser.add_argument("--skip-tcgplayer", action="store_true")
 
     # Ensure there are args
     if len(sys.argv) < 2:
@@ -91,33 +91,33 @@ def main() -> None:
             )
         )
 
-    if not args.skip_rebuild:
-        # Determine sets to build, whether they're passed in as args or all sets in our configs
-        args_s = args.s if args.s else []
-        set_list: List[str] = get_all_sets() if args.all_sets else args_s
+    # Determine set(s) to build
+    args_s = args.s if args.s else []
+    set_list: List[str] = get_all_sets() if args.all_sets else args_s
 
-        LOGGER.info("Sets to compile: {}".format(set_list))
+    LOGGER.info("Sets to compile: {}".format(set_list))
 
-        # If we had to kill mid-rebuild, we can skip the sets that already were done
-        if args.skip_cached:
-            sets_compiled_already: List[str] = get_compiled_sets()
-            set_list = [s for s in set_list if s not in sets_compiled_already]
-            LOGGER.info(
-                "Sets to skip compilation for: {}".format(sets_compiled_already)
+    # If we had to kill mid-build, we can skip the completed set(s)
+    if args.skip_cached:
+        sets_compiled_already: List[str] = get_compiled_sets()
+        set_list = [s for s in set_list if s not in sets_compiled_already]
+        LOGGER.info(
+            "Sets to skip compilation for: {}\n\nSets to compile, after cached sets removed: {}".format(
+                sets_compiled_already, set_list
             )
-            LOGGER.info(
-                "Sets to compile, after cached sets removed: {}".format(set_list)
+        )
+
+    for set_code in set_list:
+        sf_set: List[Dict[str, Any]] = scryfall.get_set(set_code)
+        compiled: Dict[str, Any] = compile_mtg.build_output_file(
+            sf_set, set_code, args.skip_tcgplayer
+        )
+
+        # If we have at least 1 card, dump to file SET.json
+        if compiled["cards"] or compiled["tokens"]:
+            mtgjson4.outputter.write_to_file(
+                set_code.upper(), compiled, do_cleanup=True
             )
-
-        for set_code in set_list:
-            sf_set: List[Dict[str, Any]] = scryfall.get_set(set_code)
-            compiled: Dict[str, Any] = compile_mtg.build_output_file(sf_set, set_code)
-
-            # If we have at least 1 card, dump to file SET.json
-            if compiled["cards"] or compiled["tokens"]:
-                mtgjson4.outputter.write_to_file(
-                    set_code.upper(), compiled, do_cleanup=True
-                )
 
     if args.compiled_outputs:
         LOGGER.info("Compiling Additional Outputs")
