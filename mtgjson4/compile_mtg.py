@@ -278,22 +278,28 @@ def build_mtgjson_tokens(
 
             sf_token = face_data
 
-        token_card: Dict[str, Any] = {
-            "name": sf_token.get("name"),
-            "type": sf_token.get("type_line"),
-            "text": sf_token.get("oracle_text"),
-            "power": sf_token.get("power"),
-            "colors": sf_token.get("colors"),
-            "colorIdentity": sf_token.get("color_identity"),
-            "toughness": sf_token.get("toughness"),
-            "loyalty": sf_token.get("loyalty"),
-            "watermark": sf_token.get("watermark"),
-            "uuid": sf_token.get("id"),
-            "borderColor": sf_token.get("border_color"),
-            "artist": sf_token.get("artist"),
-            "isOnlineOnly": sf_token.get("digital"),
-            "number": sf_token.get("collector_number"),
-        }
+        token_card: Dict[str, Any] = {}
+        try:
+            token_card = {
+                "name": sf_token.get("name"),
+                "type": sf_token.get("type_line"),
+                "text": sf_token.get("oracle_text"),
+                "power": sf_token.get("power"),
+                "colors": sf_token.get("colors"),
+                "colorIdentity": sf_token.get("color_identity"),
+                "toughness": sf_token.get("toughness"),
+                "loyalty": sf_token.get("loyalty"),
+                "watermark": sf_token.get("watermark"),
+                "uuid": sf_token["id"],
+                "borderColor": sf_token.get("border_color"),
+                "artist": sf_token.get("artist"),
+                "isOnlineOnly": sf_token.get("digital"),
+                "number": sf_token.get("collector_number"),
+            }
+        except KeyError:
+            # Address duplicates, as only the original seems to have a UUID
+            LOGGER.info("UUID not found in {}. Discarding {}".format(sf_token.get("name"), sf_token))
+            continue
 
         reverse_related: List[str] = []
         if "all_parts" in sf_token:
