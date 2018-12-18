@@ -105,6 +105,9 @@ def build_output_file(
     # Alternatives don't count towards the base set size
     output_file["baseSetSize"] -= alt_count
 
+    if set_code[:2] == "DD":
+        mark_duel_decks(output_file["cards"])
+
     return output_file
 
 
@@ -525,6 +528,27 @@ def get_cmc(mana_cost: str) -> float:
             total += 1
 
     return total
+
+
+def mark_duel_decks(cards: List[Dict[str, Any]]) -> None:
+    """
+    Duel decks are usually put together where the cards
+    in the first deck are at the beginning, followed
+    by basics, then start the second deck. We exploit
+    this property to mark them as decks "a" and "b"
+    :param cards: Cards in duel deck, sorted by number
+    """
+    basic_land_marked = False
+    side_market = "a"
+
+    for card in cards:
+        if card["name"] in mtgjson4.BASIC_LANDS:
+            basic_land_marked = True
+        elif basic_land_marked:
+            side_market = chr(ord(side_market) + 1)
+            basic_land_marked = False
+
+        card["duelDeck"] = side_market
 
 
 def build_mtgjson_card(
