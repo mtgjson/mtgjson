@@ -33,16 +33,18 @@ $ pip3 install -r requirements.txt
 
 2. Select the flag(s) you'd like to run the program with:
 
-| Flags              	| Flag Descriptions                                                                                                                              	|
-|--------------------	|------------------------------------------------------------------------------------------------------------------------------------------------	|
-| `-h`               	| Print the help menu and exits.                                                                                                                 	|
-| `-a`               	| Build all sets. This overshadows the `-s` flag.                                                                                                	|
-| `-s SET [SET ...]` 	| Build set code arguments, provided they exist.                                                                                                 	|
-| `-c`               	| After building any/all sets, create the compiled outputs (ex: AllSets, AllCards).                                                              	|
-| `-x`               	| Skips sets that have already been built (i.e. set files in the output folder), and build the remaining sets. Must be passed with `-a` or `-s`. 	|
+| Flags                       	| Flag Descriptions                                                                                                                              	|
+|-----------------------------	|------------------------------------------------------------------------------------------------------------------------------------------------	|
+| `-h`                        	| Print the help menu and exits.                                                                                                                 	|
+| `-a`                        	| Build all sets. This overshadows the `-s` flag.                                                                                                	|
+| `-s SET [SET ...]`          	| Build set code arguments, provided they exist.                                                                                                 	|
+| `-c`                        	| After building any/all sets, create the compiled outputs (ex: AllSets, AllCards).                                                              	|
+| `-x`                        	| Skips sets that have already been built (i.e. set files in the output folder), and build the remaining sets. Must be passed with `-a` or `-s`. 	|
+| `--skip-tcgplayer`          	| If you don't have a TCGPlayer API key, you can disable building of TCGPlayer components.                                                       	|
+| `--skip-sets SET [SET ...]` 	| Prevents set code arguments from being built, even if passed in via `-a` or `-s`.                                                              	|
 
 3. Run the program, with any flag(s) you'd like, via:
 ```sh
-usage: mtgjson4 [-h] [-a] [-s [SET [SET ...]]] [-c] [-x] [--skip-tcgplayer]
+usage: mtgjson4 [-h] [-a] [-s [SET [SET ...]]] [-c] [-x] [--skip-tcgplayer] [--skip-sets [SET [SET ...]]]
 $ python3 -m mtgjson4
 ```

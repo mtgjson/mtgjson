@@ -76,6 +76,7 @@ def main() -> None:
     parser.add_argument("-c", action="store_true")
     parser.add_argument("-x", action="store_true")
     parser.add_argument("--skip-tcgplayer", action="store_true")
+    parser.add_argument("--skip-sets", metavar="SET", nargs="*", type=str)
 
     # Ensure there are args
     if len(sys.argv) < 2:
@@ -94,6 +95,10 @@ def main() -> None:
     # Determine set(s) to build
     args_s = args.s if args.s else []
     set_list: List[str] = get_all_sets() if args.a else args_s
+
+    if args.skip_sets:
+        set_list = set(set_list) - set(args.skip_sets)
+        LOGGER.info("Skipping set(s) by request of user: {}".format(args.skip_sets))
 
     LOGGER.info("Sets to compile: {}".format(set_list))
 
