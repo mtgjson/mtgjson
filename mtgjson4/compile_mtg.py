@@ -2,19 +2,17 @@
 
 import contextvars
 import copy
-import hashlib
 import json
 import logging
 import multiprocessing
 import pathlib
 import re
+import uuid
 from typing import Any, Dict, List, Set, Tuple
 
 import mtgjson4
 from mtgjson4.provider import gatherer, scryfall, tcgplayer
 from mtgjson4.util import is_number
-
-from faker import Faker
 
 LOGGER = logging.getLogger(__name__)
 
@@ -113,8 +111,6 @@ def add_uuid_to_cards(
     :param tokens: Tokens Array
     :param file_info: <<CONST>> object for the file
     """
-    generator = Faker()
-
     # Only using attributes that _shouldn't_ change over time
     for card in cards:
         # Name + set code + colors (if applicable) + Scryfall UUID + printed text (if applicable)
@@ -125,10 +121,8 @@ def add_uuid_to_cards(
             + card["scryfallId"]
             + str(card.get("originalText", ""))
         )
-        generator.seed(
-            int(hashlib.sha512(card_hash_code.encode()).hexdigest(), base=16)
-        )
-        card["uuid"] = generator.uuid4()
+
+        card["uuid"] = str(uuid.uuid5(uuid.NAMESPACE_DNS, card_hash_code))
 
     for token in tokens:
         # Name + set code + colors (if applicable) + power (if applicable) + toughness (if applicable) + Scryfall UUID
@@ -140,10 +134,7 @@ def add_uuid_to_cards(
             + file_info["code"]
             + token["scryfallId"]
         )
-        generator.seed(
-            int(hashlib.sha512(token_hash_code.encode()).hexdigest(), base=16)
-        )
-        token["uuid"] = generator.uuid4()
+        token["uuid"] = str(uuid.uuid5(uuid.NAMESPACE_DNS, token_hash_code))
 
 
 def transpose_tokens(
