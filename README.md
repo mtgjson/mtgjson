@@ -1,4 +1,4 @@
-# [**MTGJSON**](https://mtgjson.com/v4) [![changelog](https://img.shields.io/badge/dynamic/json.svg?label=version&url=https%3A%2F%2Fmtgjson.com%2Fv4%2Fjson%2Fversion.json&query=%24.version&colorB=blue)](https://mtgjson.com/v4/changelog.html) ![](https://img.shields.io/badge/dynamic/json.svg?label=released&url=https%3A%2F%2Fmtgjson.com%2Fv4%2Fjson%2Fversion.json&query=%24.date&colorB=blue)
+# [**MTGJSON**](https://mtgjson.com/) [![changelog](https://img.shields.io/badge/dynamic/json.svg?label=version&url=https%3A%2F%2Fmtgjson.com%2Fjson%2Fversion.json&query=%24.version&colorB=blue)](https://mtgjson.com/changelog.html) ![](https://img.shields.io/badge/dynamic/json.svg?label=released&url=https%3A%2F%2Fmtgjson.com%2Fjson%2Fversion.json&query=%24.date&colorB=blue)
 
 # Connect With Us
 Discord via [![Discord](https://img.shields.io/discord/224178957103136779.svg)](https://discord.gg/74GUQDE)
@@ -11,7 +11,7 @@ MTGJSON is an open sourced database creation and distribution tool for [*Magic: 
 
 This repo contains our newest release, version 4. This version relies upon a variety of sources, such as *Scryfall* and *Gatherer* for our data.
 
-You can find our documentation with all properties [here](https://mtgjson.com/v4/docs.html).
+You can find our documentation with all properties [here](https://mtgjson.com/docs.html).
 
 To provide feedback and/or bug reports, please [open a ticket](https://github.com/mtgjson/mtgjson4/issues/new/choose) as it is the best way for us to communicate with the public.
 
@@ -20,7 +20,7 @@ If you would like to join or assist the development of the project, you can [joi
 # How To Use
 
 >**Note:** These are the build directions to compile your own JSON files.<br>
->If you are looking for pre-compiled JSON files, you can download them at [MTGJSON.com](https://mtgjson.com/v4).
+>If you are looking for pre-compiled JSON files, you can download them at [MTGJSON.com](https://mtgjson.com/).
 
 This system was built using *Python 3.7*, so we can only guarantee proper functionality with this version.
 
