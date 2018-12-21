@@ -259,6 +259,6 @@ def parse_printings(sf_prints_url: str) -> List[str]:
         return []
 
     for card in prints_api_json["data"]:
-        card_sets.add(card.get("set").upper())
+        card_sets.add(card.get("set"))
 
     return list(card_sets)
