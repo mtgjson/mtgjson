@@ -661,6 +661,10 @@ def build_mtgjson_card(
     mtgjson_card["isReserved"] = sf_card.get("reserved")
     mtgjson_card["frameEffect"] = sf_card.get("frame_effect")
 
+    # Vanguard fields
+    mtgjson_card["life"] = sf_card.get("life_modifier")
+    mtgjson_card["hand"] = sf_card.get("hand_modifier")
+
     # Add a "side" entry for split cards
     # Will only work for two faced cards (not meld, as they don't need this)
     if "names" in mtgjson_card and len(mtgjson_card["names"]) == 2:
