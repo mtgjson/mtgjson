@@ -35,7 +35,7 @@ def build_output_file(
     set_config = scryfall.download(scryfall.SCRYFALL_API_SETS + set_code)
     if set_config["object"] == "error":
         LOGGER.error("Set Config for {} was not found, skipping...".format(set_code))
-        return {"cards": []}
+        return {"cards": [], "tokens": []}
 
     output_file["name"] = set_config.get("name")
     output_file["code"] = str(set_config.get("code", "")).upper()
