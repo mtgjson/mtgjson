@@ -38,8 +38,8 @@ def build_output_file(
         return {"cards": []}
 
     output_file["name"] = set_config.get("name")
-    output_file["code"] = set_config.get("code").upper()
-    output_file["mtgoCode"] = set_config.get("mtgo_code").upper()
+    output_file["code"] = str(set_config.get("code", "")).upper()
+    output_file["mtgoCode"] = str(set_config.get("mtgo_code", "")).upper()
     output_file["releaseDate"] = set_config.get("released_at")
     output_file["type"] = set_config.get("set_type")
 
