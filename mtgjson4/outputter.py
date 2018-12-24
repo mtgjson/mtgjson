@@ -170,7 +170,7 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
             all_sets_data.append(
                 {
                     "name": file_content.get("name", None),
-                    "code": file_content.get("code", None),
+                    "code": file_content.get("code", None).upper(),
                     "releaseDate": file_content.get("releaseDate", None),
                 }
             )
@@ -198,7 +198,7 @@ def create_standard_only_output() -> Dict[str, Any]:
     # Get all sets currently in standard
     standard_url_content = util.get_generic_session().get(STANDARD_API_URL)
     standard_json = [
-        set_obj["code"]
+        set_obj["code"].upper()
         for set_obj in json.loads(standard_url_content.text)["sets"]
         if str(set_obj["enter_date"])
         < datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
