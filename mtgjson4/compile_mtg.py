@@ -217,7 +217,7 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
     :param cards: Cards to check and update for repeats
     :return: updated cards list
     """
-    if cards[0].get("borderColor", None) == "silver":
+    if cards and cards[0].get("borderColor", None) == "silver":
         unique_list = []
         duplicate_cards: Dict[str, int] = {}
         for card in cards:
@@ -265,7 +265,7 @@ def add_variations_and_alternative_fields(
     """
     # Non-silver border sets use "variations"
     how_many_alternatives = 0
-    if cards[0].get("borderColor", None) != "silver":
+    if cards and cards[0].get("borderColor", None) != "silver":
         for card in cards:
             repeats_in_set = [
                 item
