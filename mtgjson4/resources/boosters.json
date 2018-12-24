@@ -2254,7 +2254,10 @@
     "common"
   ],
   "UST": [
-    "rare",
+    [
+      "mythic rare",
+      "rare"
+    ],
     "uncommon",
     "uncommon",
     "uncommon",
