@@ -682,8 +682,6 @@ def build_mtgjson_card(
     )
 
     mtgjson_card["rarity"] = sf_card.get("rarity")
-    if mtgjson_card.get("isTimeshifted", False):
-        mtgjson_card["rarity"] = "timeshifted " + mtgjson_card["rarity"]
 
     # Characteristics that we need custom functions to parse
     print_search_url: str = sf_card["prints_search_uri"].replace("%22", "")
@@ -730,6 +728,8 @@ def build_mtgjson_card(
             del mtgjson_card["names"]
 
         # Meld cards should be CardA, Meld, CardB. This fixes that via swap
+        # meld_holder
+
         if meld_holder and meld_holder[1] != "meld_result":
             mtgjson_card["names"][1], mtgjson_card["names"][2] = (
                 mtgjson_card["names"][2],
