@@ -52,8 +52,10 @@ def build_output_file(
             output_file["boosterV3"] = json_dict[output_file["code"].upper()]
 
     # Add V3 code for some backwards compatibility
-    with pathlib.Path(mtgjson4.RESOURCE_PATH, "gatherer_set_codes.json").open("r", encoding="utf-8") as f:
-        json_dict: Dict[str, List[Any]] = json.load(f)
+    with pathlib.Path(mtgjson4.RESOURCE_PATH, "gatherer_set_codes.json").open(
+        "r", encoding="utf-8"
+    ) as f:
+        json_dict = json.load(f)
         if output_file["code"].upper() in json_dict.keys():
             output_file["codeV3"] = json_dict[output_file["code"]]
 
