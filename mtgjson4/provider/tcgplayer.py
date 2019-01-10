@@ -105,34 +105,6 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> str:
     return response.text
 
 
-def get_group_id(set_code: str) -> int:
-    """
-    Find the TCGPlayer group ID for a specific set
-    :param set_code: Set to find group ID for
-    :return: Group ID or Not found (-1)
-    """
-    offset = 0
-    # TCGPlayer will only send 100 results at a time, so we need to
-    # page through the data to find the appropriate set
-    while True:
-        tcg_data = json.loads(
-            download(
-                "http://api.tcgplayer.com/[API_VERSION]/catalog/categories/1/groups",
-                {"limit": "100", "offset": offset},
-            )
-        )
-
-        if not tcg_data["results"]:
-            break
-
-        for set_content in tcg_data["results"]:
-            if set_content["abbreviation"] == set_code.upper():
-                return int(set_content.get("groupId", -1))
-
-        offset += len(tcg_data["results"])
-    return -1
-
-
 def get_group_id_cards(group_id: int) -> List[Dict[str, Any]]:
     """
     Given a group_id, get all the cards within that set.
