@@ -1,7 +1,7 @@
 """TCGPlayer retrieval and processing."""
-
 import configparser
 import contextvars
+import hashlib
 import json
 import logging
 import pathlib
@@ -14,6 +14,7 @@ import requests
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_TCGPLAYER")
 TCGPLAYER_API_VERSION: contextvars.ContextVar = contextvars.ContextVar("API_TCGPLAYER")
+TCGP_REDIR_DB: contextvars.ContextVar = contextvars.ContextVar("TCGP_REDIR_DB")
 
 
 def __get_session() -> requests.Session:
@@ -163,3 +164,31 @@ def get_card_property(
 
     LOGGER.warning("Unable to find card {} in TCGPlayer card list".format(card_name))
     return None
+
+
+def url_keygen(prod_id: int) -> str:
+    """
+    Generates a key that MTGJSON will use for redirection
+    :param prod_id: Seed
+    :return: URL Key
+    """
+    return hashlib.sha256(str(prod_id).encode()).hexdigest()[:16]
+
+
+def log_redirection_url(prod_id: int, send_url: str) -> str:
+    """
+    Create the URL that can be accessed to get the TCGPlayer URL.
+    Also builds up the redirection table, that can be called later.
+    :param prod_id: ID of card/object
+    :param send_url: URL to forward to
+    :return: URL that can be used
+    """
+    redirection_dict = TCGP_REDIR_DB.get(None)
+    if not redirection_dict:
+        redirection_dict = {}
+
+    key = url_keygen(prod_id)
+    redirection_dict.update({key: send_url + "?partner=mtgjson"})
+    TCGP_REDIR_DB.set(redirection_dict)
+
+    return "https://mtgjson.com/links/{}".format(key)

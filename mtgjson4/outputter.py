@@ -10,7 +10,7 @@ from typing import Any, Dict, List
 
 import mtgjson4
 from mtgjson4 import compile_mtg, util
-from mtgjson4.provider import gamepedia, scryfall, wizards
+from mtgjson4.provider import gamepedia, scryfall, tcgplayer, wizards
 
 STANDARD_API_URL: str = "https://whatsinstandard.com/api/v5/sets.json"
 
@@ -37,7 +37,6 @@ def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -
                     file_contents["tokens"]
                 )
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
-        return
 
 
 def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
@@ -293,6 +292,7 @@ def create_and_write_compiled_outputs() -> None:
         mtgjson4.MODERN_OUTPUT,
         mtgjson4.ALL_CARDS_NO_FUN_OUTPUT,
         mtgjson4.ALL_SETS_NO_FUN_OUTPUT,
+        mtgjson4.REFERRAL_DB_OUTPUT,
     ]
 
     # AllSets.json
@@ -328,3 +328,11 @@ def create_and_write_compiled_outputs() -> None:
     # AllCardsNoUn.json
     all_cards_no_fun = create_all_cards_no_funny(files_to_ignore)
     write_to_file(mtgjson4.ALL_CARDS_NO_FUN_OUTPUT, all_cards_no_fun)
+
+    # MTGJSONReferrals.json
+    if tcgplayer.TCGP_REDIR_DB.get(None):
+        with pathlib.Path(
+            mtgjson4.COMPILED_OUTPUT_DIR, mtgjson4.REFERRAL_DB_OUTPUT + ".txt"
+        ).open("w") as f:
+            for key, value in tcgplayer.TCGP_REDIR_DB.get().items():
+                f.write("{}\t{}\n".format(key, value))

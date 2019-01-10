@@ -1,5 +1,4 @@
 """Compile incoming data into the target output format."""
-
 import contextvars
 import copy
 import json
@@ -204,10 +203,11 @@ def add_tcgplayer_fields(
         prod_id = tcgplayer.get_card_property(card["name"], tcg_card_objs, "productId")
         prod_url = tcgplayer.get_card_property(card["name"], tcg_card_objs, "url")
 
-        if prod_id:
+        if prod_id and prod_url:
             card["tcgplayerProductId"] = prod_id
-        if prod_url:
-            card["tcgplayerPurchaseUrl"] = prod_url + "?partner=mtgjson"
+            card["tcgplayerPurchaseUrl"] = tcgplayer.log_redirection_url(
+                card["tcgplayerProductId"], prod_url
+            )
 
     return cards
 

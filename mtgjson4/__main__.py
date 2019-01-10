@@ -114,9 +114,7 @@ def main() -> None:
 
     for set_code in set_list:
         sf_set: List[Dict[str, Any]] = scryfall.get_set(set_code)
-        compiled: Dict[str, Any] = compile_mtg.build_output_file(
-            sf_set, set_code, args.skip_tcgplayer
-        )
+        compiled = compile_mtg.build_output_file(sf_set, set_code, args.skip_tcgplayer)
 
         # If we have at least 1 card, dump to file SET.json
         if compiled["cards"] or compiled["tokens"]:
