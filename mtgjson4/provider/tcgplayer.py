@@ -161,4 +161,5 @@ def get_card_property(
         if card_name.lower() == card["name"].lower():
             return card.get(card_field, None)
 
+    LOGGER.warning("Unable to find card {} in TCGPlayer card list".format(card_name))
     return None
