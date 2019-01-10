@@ -174,16 +174,19 @@ def get_group_id_cards(group_id: int) -> List[Dict[str, Any]]:
     return cards
 
 
-def get_card_id(card_name: str, card_list: List[Dict[str, Any]]) -> int:
+def get_card_property(
+    card_name: str, card_list: List[Dict[str, Any]], card_field: str
+) -> Any:
     """
     Go through the passed in card object list to find the matching
-    card from the set and get its ID.
-    :param card_name: Card to find in the list
-    :param card_list: List of card objects from TCGPlayer
-    :return: Card ID or Default (-1)
+    card from the set and get its attribute.
+    :param card_name: Card name to find in the list
+    :param card_list: List of TCGPlayer card objects
+    :param card_field: Field to pull from TCGPlayer card object
+    :return: Value of field
     """
     for card in card_list:
         if card_name.lower() == card["name"].lower():
-            return card.get("productId", -1)
+            return card.get(card_field, None)
 
-    return -1
+    return None
