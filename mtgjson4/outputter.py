@@ -254,7 +254,7 @@ def get_funny_sets() -> List[str]:
     return [
         x["code"].upper()
         for x in scryfall.download(scryfall.SCRYFALL_API_SETS)["data"]
-        if str(x["set_type"]) == "funny"
+        if str(x["set_type"]) in ["funny", "memorabilia"]
     ]
 
 
