@@ -493,11 +493,18 @@ def fix_foreign_entries(values: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     fd_insert_list = []
     for foreign_info in values:
         fd_insert_dict = {}
+
+        name_found: bool = False
         for fd_key, fd_value in foreign_info.items():
             if fd_value is not None:
                 fd_insert_dict[fd_key] = fd_value
 
-        fd_insert_list.append(fd_insert_dict)
+                if fd_key == "name":
+                    name_found = True
+
+        if name_found:
+            fd_insert_list.append(fd_insert_dict)
+
     return fd_insert_list
 
 
