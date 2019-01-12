@@ -1,5 +1,4 @@
 """Compile incoming data into the target output format."""
-
 import contextvars
 import copy
 import json
@@ -88,9 +87,9 @@ def build_output_file(
     card_holder, added_tokens = transpose_tokens(card_holder)
 
     # Add TCGPlayer information
+    output_file["tcgplayerGroupId"] = set_config.get("tcgplayer_id")
     if not skip_tcgplayer:
-        output_file["tcgplayerGroupId"] = tcgplayer.get_group_id(set_code.upper())
-        card_holder = add_tcgplayer_ids(output_file["tcgplayerGroupId"], card_holder)
+        card_holder = add_tcgplayer_fields(output_file["tcgplayerGroupId"], card_holder)
 
     # Set sizes; BASE SET SIZE WILL BE UPDATED BELOW
     output_file["totalSetSize"] = len(sf_cards)
@@ -196,7 +195,7 @@ def transpose_tokens(
     return cards, tokens
 
 
-def add_tcgplayer_ids(
+def add_tcgplayer_fields(
     group_id: int, cards: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     """
@@ -209,9 +208,14 @@ def add_tcgplayer_ids(
     tcg_card_objs = tcgplayer.get_group_id_cards(group_id)
 
     for card in cards:
-        prod_id = tcgplayer.get_card_id(card["name"], tcg_card_objs)
-        if prod_id > 0:
+        prod_id = tcgplayer.get_card_property(card["name"], tcg_card_objs, "productId")
+        prod_url = tcgplayer.get_card_property(card["name"], tcg_card_objs, "url")
+
+        if prod_id and prod_url:
             card["tcgplayerProductId"] = prod_id
+            card["tcgplayerPurchaseUrl"] = tcgplayer.log_redirection_url(
+                card["tcgplayerProductId"], prod_url
+            )
 
     return cards
 

@@ -1,7 +1,7 @@
 """TCGPlayer retrieval and processing."""
-
 import configparser
 import contextvars
+import hashlib
 import json
 import logging
 import pathlib
@@ -14,6 +14,7 @@ import requests
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_TCGPLAYER")
 TCGPLAYER_API_VERSION: contextvars.ContextVar = contextvars.ContextVar("API_TCGPLAYER")
+TCGP_REDIR_DB: contextvars.ContextVar = contextvars.ContextVar("TCGP_REDIR_DB")
 
 
 def __get_session() -> requests.Session:
@@ -105,34 +106,6 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> str:
     return response.text
 
 
-def get_group_id(set_code: str) -> int:
-    """
-    Find the TCGPlayer group ID for a specific set
-    :param set_code: Set to find group ID for
-    :return: Group ID or Not found (-1)
-    """
-    offset = 0
-    # TCGPlayer will only send 100 results at a time, so we need to
-    # page through the data to find the appropriate set
-    while True:
-        tcg_data = json.loads(
-            download(
-                "http://api.tcgplayer.com/[API_VERSION]/catalog/categories/1/groups",
-                {"limit": "100", "offset": offset},
-            )
-        )
-
-        if not tcg_data["results"]:
-            break
-
-        for set_content in tcg_data["results"]:
-            if set_content["abbreviation"] == set_code.upper():
-                return int(set_content.get("groupId", -1))
-
-        offset += len(tcg_data["results"])
-    return -1
-
-
 def get_group_id_cards(group_id: int) -> List[Dict[str, Any]]:
     """
     Given a group_id, get all the cards within that set.
@@ -174,16 +147,48 @@ def get_group_id_cards(group_id: int) -> List[Dict[str, Any]]:
     return cards
 
 
-def get_card_id(card_name: str, card_list: List[Dict[str, Any]]) -> int:
+def get_card_property(
+    card_name: str, card_list: List[Dict[str, Any]], card_field: str
+) -> Any:
     """
     Go through the passed in card object list to find the matching
-    card from the set and get its ID.
-    :param card_name: Card to find in the list
-    :param card_list: List of card objects from TCGPlayer
-    :return: Card ID or Default (-1)
+    card from the set and get its attribute.
+    :param card_name: Card name to find in the list
+    :param card_list: List of TCGPlayer card objects
+    :param card_field: Field to pull from TCGPlayer card object
+    :return: Value of field
     """
     for card in card_list:
         if card_name.lower() == card["name"].lower():
-            return card.get("productId", -1)
+            return card.get(card_field, None)
 
-    return -1
+    LOGGER.warning("Unable to find card {} in TCGPlayer card list".format(card_name))
+    return None
+
+
+def url_keygen(prod_id: int) -> str:
+    """
+    Generates a key that MTGJSON will use for redirection
+    :param prod_id: Seed
+    :return: URL Key
+    """
+    return hashlib.sha256(str(prod_id).encode()).hexdigest()[:16]
+
+
+def log_redirection_url(prod_id: int, send_url: str) -> str:
+    """
+    Create the URL that can be accessed to get the TCGPlayer URL.
+    Also builds up the redirection table, that can be called later.
+    :param prod_id: ID of card/object
+    :param send_url: URL to forward to
+    :return: URL that can be used
+    """
+    redirection_dict = TCGP_REDIR_DB.get(None)
+    if not redirection_dict:
+        redirection_dict = {}
+
+    key = url_keygen(prod_id)
+    redirection_dict.update({key: send_url + "?partner=mtgjson"})
+    TCGP_REDIR_DB.set(redirection_dict)
+
+    return "https://mtgjson.com/links/{}".format(key)
