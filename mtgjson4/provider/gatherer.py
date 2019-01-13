@@ -68,7 +68,7 @@ def get_cards(multiverse_id: str) -> List[GathererCard]:
     response = session.get(
         url=GATHERER_CARD,
         params={"multiverseid": multiverse_id, "printed": "true"},
-        timeout=5.0,
+        timeout=8.0,
     )
     LOGGER.info("Retrieved: %s", response.url)
     session.close()
