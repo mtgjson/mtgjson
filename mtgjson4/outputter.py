@@ -25,7 +25,7 @@ def write_tcgplayer_information(data: Dict[str, str]) -> None:
     """
     mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
     with pathlib.Path(
-        mtgjson4.COMPILED_OUTPUT_DIR, mtgjson4.REFERRAL_DB_OUTPUT + ".txt"
+        mtgjson4.COMPILED_OUTPUT_DIR, mtgjson4.REFERRAL_DB_OUTPUT + ".json"
     ).open("a", encoding="utf-8") as f:
         for key, value in data.items():
             f.write("{}\t{}\n".format(key, value))
