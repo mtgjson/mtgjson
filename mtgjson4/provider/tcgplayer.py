@@ -9,12 +9,12 @@ from typing import Any, Dict, List, Optional
 
 import mtgjson4
 from mtgjson4 import util
+from mtgjson4.outputter import write_tcgplayer_information
 import requests
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_TCGPLAYER")
 TCGPLAYER_API_VERSION: contextvars.ContextVar = contextvars.ContextVar("API_TCGPLAYER")
-TCGP_REDIR_DB: contextvars.ContextVar = contextvars.ContextVar("TCGP_REDIR_DB")
 
 
 def __get_session() -> requests.Session:
@@ -183,12 +183,6 @@ def log_redirection_url(prod_id: int, send_url: str) -> str:
     :param send_url: URL to forward to
     :return: URL that can be used
     """
-    redirection_dict = TCGP_REDIR_DB.get(None)
-    if not redirection_dict:
-        redirection_dict = {}
-
     key = url_keygen(prod_id)
-    redirection_dict.update({key: send_url + "?partner=mtgjson"})
-    TCGP_REDIR_DB.set(redirection_dict)
-
+    write_tcgplayer_information({key: send_url + "?partner=mtgjson"})
     return "https://mtgjson.com/links/{}".format(key)

@@ -90,7 +90,9 @@ def build_output_file(
     if "tcgplayer_id" in set_config:
         output_file["tcgplayerGroupId"] = set_config.get("tcgplayer_id")
         if not skip_tcgplayer:
-            card_holder = add_tcgplayer_fields(output_file["tcgplayerGroupId"], card_holder)
+            card_holder = add_tcgplayer_fields(
+                output_file["tcgplayerGroupId"], card_holder
+            )
 
     # Set sizes; BASE SET SIZE WILL BE UPDATED BELOW
     output_file["totalSetSize"] = len(sf_cards)
@@ -451,62 +453,6 @@ def convert_to_mtgjson(sf_cards: List[Dict[str, Any]]) -> List[Any]:
             for card in cards:
                 all_cards.append(card)
     return all_cards
-
-
-def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Remove invalid field entries to shrink JSON output size
-    """
-
-    fixed_dict: List[Dict[str, Any]] = []
-    remove_field_if_false: List[str] = [
-        "isOversized",
-        "isOnlineOnly",
-        "isTimeshifted",
-        "isReserved",
-        "frameEffect",
-    ]
-
-    for card_entry in card_list:
-        insert_value = {}
-
-        for key, value in card_entry.items():
-            if value is not None:
-                if (key in remove_field_if_false and value is False) or (value == ""):
-                    continue
-                if key == "foreignData":
-                    value = fix_foreign_entries(value)
-
-                insert_value[key] = value
-
-        fixed_dict.append(insert_value)
-
-    return fixed_dict
-
-
-def fix_foreign_entries(values: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Foreign entries may have bad values, such as missing flavor text. This removes them.
-    :param values: List of foreign entries dicts
-    :return: Pruned foreign entries
-    """
-    # List of dicts
-    fd_insert_list = []
-    for foreign_info in values:
-        fd_insert_dict = {}
-
-        name_found: bool = False
-        for fd_key, fd_value in foreign_info.items():
-            if fd_value is not None:
-                fd_insert_dict[fd_key] = fd_value
-
-                if fd_key == "name":
-                    name_found = True
-
-        if name_found:
-            fd_insert_list.append(fd_insert_dict)
-
-    return fd_insert_list
 
 
 def get_card_colors(mana_cost: str) -> List[str]:

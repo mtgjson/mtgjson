@@ -9,13 +9,26 @@ import pathlib
 from typing import Any, Dict, List
 
 import mtgjson4
-from mtgjson4 import compile_mtg, util
-from mtgjson4.provider import gamepedia, scryfall, tcgplayer, wizards
+from mtgjson4 import util
+from mtgjson4.provider import gamepedia, scryfall, wizards
 
 STANDARD_API_URL: str = "https://whatsinstandard.com/api/v5/sets.json"
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
+
+
+def write_tcgplayer_information(data: Dict[str, str]) -> None:
+    """
+    Write out the tcgplayer redirection keys to file
+    :param data: tcg content
+    """
+    mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
+    with pathlib.Path(
+        mtgjson4.COMPILED_OUTPUT_DIR, mtgjson4.REFERRAL_DB_OUTPUT + ".txt"
+    ).open("a", encoding="utf-8") as f:
+        for key, value in data.items():
+            f.write("{}\t{}\n".format(key, value))
 
 
 def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -> None:
@@ -29,14 +42,70 @@ def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -
     ).open("w", encoding="utf-8") as f:
         if do_cleanup and isinstance(file_contents, dict):
             if "cards" in file_contents:
-                file_contents["cards"] = compile_mtg.remove_unnecessary_fields(
+                file_contents["cards"] = remove_unnecessary_fields(
                     file_contents["cards"]
                 )
             if "tokens" in file_contents:
-                file_contents["tokens"] = compile_mtg.remove_unnecessary_fields(
+                file_contents["tokens"] = remove_unnecessary_fields(
                     file_contents["tokens"]
                 )
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
+
+
+def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Remove invalid field entries to shrink JSON output size
+    """
+
+    fixed_dict: List[Dict[str, Any]] = []
+    remove_field_if_false: List[str] = [
+        "isOversized",
+        "isOnlineOnly",
+        "isTimeshifted",
+        "isReserved",
+        "frameEffect",
+    ]
+
+    for card_entry in card_list:
+        insert_value = {}
+
+        for key, value in card_entry.items():
+            if value is not None:
+                if (key in remove_field_if_false and value is False) or (value == ""):
+                    continue
+                if key == "foreignData":
+                    value = fix_foreign_entries(value)
+
+                insert_value[key] = value
+
+        fixed_dict.append(insert_value)
+
+    return fixed_dict
+
+
+def fix_foreign_entries(values: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Foreign entries may have bad values, such as missing flavor text. This removes them.
+    :param values: List of foreign entries dicts
+    :return: Pruned foreign entries
+    """
+    # List of dicts
+    fd_insert_list = []
+    for foreign_info in values:
+        fd_insert_dict = {}
+
+        name_found: bool = False
+        for fd_key, fd_value in foreign_info.items():
+            if fd_value is not None:
+                fd_insert_dict[fd_key] = fd_value
+
+                if fd_key == "name":
+                    name_found = True
+
+        if name_found:
+            fd_insert_list.append(fd_insert_dict)
+
+    return fd_insert_list
 
 
 def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
@@ -328,11 +397,3 @@ def create_and_write_compiled_outputs() -> None:
     # AllCardsNoUn.json
     all_cards_no_fun = create_all_cards_no_funny(files_to_ignore)
     write_to_file(mtgjson4.ALL_CARDS_NO_FUN_OUTPUT, all_cards_no_fun)
-
-    # MTGJSONReferrals.json
-    if tcgplayer.TCGP_REDIR_DB.get(None):
-        with pathlib.Path(
-            mtgjson4.COMPILED_OUTPUT_DIR, mtgjson4.REFERRAL_DB_OUTPUT + ".txt"
-        ).open("w") as f:
-            for key, value in tcgplayer.TCGP_REDIR_DB.get().items():
-                f.write("{}\t{}\n".format(key, value))
