@@ -87,9 +87,10 @@ def build_output_file(
     card_holder, added_tokens = transpose_tokens(card_holder)
 
     # Add TCGPlayer information
-    output_file["tcgplayerGroupId"] = set_config.get("tcgplayer_id")
-    if not skip_tcgplayer:
-        card_holder = add_tcgplayer_fields(output_file["tcgplayerGroupId"], card_holder)
+    if "tcgplayer_id" in set_config:
+        output_file["tcgplayerGroupId"] = set_config.get("tcgplayer_id")
+        if not skip_tcgplayer:
+            card_holder = add_tcgplayer_fields(output_file["tcgplayerGroupId"], card_holder)
 
     # Set sizes; BASE SET SIZE WILL BE UPDATED BELOW
     output_file["totalSetSize"] = len(sf_cards)
