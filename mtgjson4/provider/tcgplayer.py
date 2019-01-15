@@ -184,5 +184,9 @@ def log_redirection_url(prod_id: int, send_url: str) -> str:
     :return: URL that can be used
     """
     key = url_keygen(prod_id)
-    write_tcgplayer_information({key: send_url + "?partner=mtgjson"})
+    partner_string = (
+        "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"
+    )
+
+    write_tcgplayer_information({key: send_url + partner_string})
     return "https://mtgjson.com/links/{}".format(key)
