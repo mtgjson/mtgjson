@@ -380,7 +380,7 @@ def build_mtgjson_tokens(
 
             # Prevent duplicate UUIDs for split card halves
             # Remove the last character and replace with the id of the card face
-            mtgjson_card["scryfallId"] = sf_token["id"] + str(sf_card_face)
+            mtgjson_card["scryfallId"] = sf_token["id"]
 
             # Recursively parse the other cards within this card too
             # Only call recursive if it is the first time we see this card object

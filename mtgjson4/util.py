@@ -9,7 +9,7 @@ import urllib3.util.retry
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
 
-def retryable_session(session: requests.Session, retries: int = 5) -> requests.Session:
+def retryable_session(session: requests.Session, retries: int = 8) -> requests.Session:
     """
     Session with requests to allow for re-attempts at downloading missing data
     :param session: Session to download with
