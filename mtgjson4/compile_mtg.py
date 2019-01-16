@@ -393,9 +393,31 @@ def build_mtgjson_tokens(
                     )
                     token_cards += build_mtgjson_tokens([sf_token], i)
 
-            sf_token = face_data
+            if "id" not in sf_token.keys():
+                LOGGER.info(
+                    "Scryfall_ID not found in {}. Discarding {}".format(
+                        sf_token.get("name"), sf_token
+                    )
+                )
+                continue
 
-        try:
+            token_card = {
+                "name": face_data.get("name"),
+                "type": face_data.get("type_line"),
+                "text": face_data.get("oracle_text"),
+                "power": face_data.get("power"),
+                "colors": face_data.get("colors"),
+                "colorIdentity": face_data.get("color_identity"),
+                "toughness": face_data.get("toughness"),
+                "loyalty": face_data.get("loyalty"),
+                "watermark": face_data.get("watermark"),
+                "scryfallId": sf_token["id"],
+                "borderColor": face_data.get("border_color"),
+                "artist": face_data.get("artist"),
+                "isOnlineOnly": face_data.get("digital"),
+                "number": face_data.get("collector_number"),
+            }
+        else:
             token_card = {
                 "name": sf_token.get("name"),
                 "type": sf_token.get("type_line"),
@@ -412,14 +434,6 @@ def build_mtgjson_tokens(
                 "isOnlineOnly": sf_token.get("digital"),
                 "number": sf_token.get("collector_number"),
             }
-        except KeyError:
-            # Address duplicates, as only the original seems to have a UUID
-            LOGGER.info(
-                "Scryfall_ID not found in {}. Discarding {}".format(
-                    sf_token.get("name"), sf_token
-                )
-            )
-            continue
 
         reverse_related: List[str] = []
         if "all_parts" in sf_token:
