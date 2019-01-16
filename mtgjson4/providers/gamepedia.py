@@ -1,10 +1,10 @@
 """Gamepedia retrieval and processing"""
-import contextvars
 from typing import List
 
 import bs4
+
+from mtgjson4 import util
 from mtgjson4.providers import SCRYFALL
-import requests
 
 
 class Gamepedia:
@@ -13,9 +13,7 @@ class Gamepedia:
     """
 
     def __init__(self) -> None:
-        self.session: contextvars.ContextVar = contextvars.ContextVar(
-            "SESSION_GAMEPEDIA"
-        )
+        self.session = util.get_generic_session()
         self.modern_gamepedia_url = "https://mtg.gamepedia.com/Modern"
 
     @staticmethod
@@ -36,7 +34,7 @@ class Gamepedia:
         to get the sets that are legal in modern
         :return: List of set codes legal in modern
         """
-        modern_page_content = requests.get(self.modern_gamepedia_url)
+        modern_page_content = self.session.get(self.modern_gamepedia_url)
 
         soup = bs4.BeautifulSoup(modern_page_content.text, "html.parser")
         soup = soup.find("div", class_="div-col columns column-width")

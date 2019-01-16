@@ -5,7 +5,7 @@ import hashlib
 import json
 import logging
 import pathlib
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import mtgjson4
 from mtgjson4 import util
@@ -19,25 +19,20 @@ class TCGPlayer:
 
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
-        self.session: contextvars.ContextVar = contextvars.ContextVar(
-            "self.session_TCGPLAYER"
-        )
+        self.session: requests.Session = self.__get_session()
         self.api_version: contextvars.ContextVar = contextvars.ContextVar(
             "API_TCGPLAYER"
         )
 
     def __get_session(self) -> requests.Session:
         """Get or create a requests session for TCGPlayer."""
-        session: Optional[requests.Session] = self.session.get(None)
-        if session is None:
-            session = requests.Session()
-            header_auth = {
-                "Authorization": "Bearer " + self._request_tcgplayer_bearer()
-            }
-            session.headers.update(header_auth)
-            session = util.retryable_session(session)
-            self.session.set(session)
-        return session
+        tmp_session = requests.Session()
+        header_auth = {
+            "Authorization": "Bearer " + self._request_tcgplayer_bearer()
+        }
+        tmp_session.headers.update(header_auth)
+        tmp_session = util.retryable_session(tmp_session)
+        return tmp_session
 
     def _request_tcgplayer_bearer(self) -> str:
         """
@@ -88,16 +83,13 @@ class TCGPlayer:
         if params_str is None:
             params_str = {}
 
-        session = self.__get_session()
-
-        response = session.get(
+        response = self.session.get(
             url=tcgplayer_url.replace("[API_VERSION]", self.api_version.get("")),
             params=params_str,
             timeout=5.0,
         )
 
         self.logger.info("Downloaded URL: {0}".format(response.url))
-        session.close()
 
         if response.status_code != 200:
             if response.status_code == 404:

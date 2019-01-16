@@ -1,7 +1,6 @@
 """Scryfall retrieval and processing."""
 
 import configparser
-import contextvars
 import logging
 import pathlib
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -21,31 +20,26 @@ class Scryfall:
         self.api_sets = "https://api.scryfall.com/sets/"
         self.api_card = "https://api.scryfall.com/cards/"
         self.logger = logging.getLogger(__name__)
-        self.session: contextvars.ContextVar = contextvars.ContextVar(
-            "SESSION_SCRYFALL"
-        )
+        self.session = self.__get_session()
 
     def __get_session(self) -> requests.Session:
         """Get or create a requests session for Scryfall."""
-        session: Optional[requests.Session] = self.session.get(None)
-        if session is None:
-            session = requests.Session()
+        tmp_session = requests.Session()
 
-            if pathlib.Path(mtgjson4.CONFIG_PATH).is_file():
-                # Open and read MTGJSON secret properties
-                config = configparser.RawConfigParser()
-                config.read(mtgjson4.CONFIG_PATH)
-                header_auth = {
-                    "Authorization": "Bearer " + config.get("Scryfall", "client_secret")
-                }
-                session.headers.update(header_auth)
-                self.logger.info("Fetching from Scryfall with authentication")
-            else:
-                self.logger.warning("Fetching from Scryfall WITHOUT authentication")
+        if pathlib.Path(mtgjson4.CONFIG_PATH).is_file():
+            # Open and read MTGJSON secret properties
+            config = configparser.RawConfigParser()
+            config.read(mtgjson4.CONFIG_PATH)
+            header_auth = {
+                "Authorization": "Bearer " + config.get("Scryfall", "client_secret")
+            }
+            tmp_session.headers.update(header_auth)
+            self.logger.info("Fetching from Scryfall with authentication")
+        else:
+            self.logger.warning("Fetching from Scryfall WITHOUT authentication")
 
-            session = util.retryable_session(session)
-            self.session.set(session)
-        return session
+        tmp_session = util.retryable_session(tmp_session)
+        return tmp_session
 
     def download(self, scryfall_url: str) -> Dict[str, Any]:
         """
@@ -53,12 +47,10 @@ class Scryfall:
         :param scryfall_url: URL to download JSON data from
         :return: JSON object of the Scryfall data
         """
-        session = self.__get_session()
-        response = session.get(url=scryfall_url, timeout=5.0)
+        response = self.session.get(url=scryfall_url, timeout=5.0)
         request_api_json: Dict[str, Any] = response.json()
 
         self.logger.info("Downloaded URL: {0}".format(scryfall_url))
-        session.close()
         return request_api_json
 
     def get_set_header(self, set_name: str) -> Dict[str, Any]:

@@ -1,5 +1,4 @@
 """Card information provider for WotC Gatherer."""
-import contextvars
 import copy
 import logging
 from typing import List, NamedTuple, Optional
@@ -26,9 +25,7 @@ class Gatherer:
 
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
-        self.session: contextvars.ContextVar = contextvars.ContextVar(
-            "SESSION_GATHERER"
-        )
+        self.session = util.get_generic_session()
         self.gatherer_card = "http://gatherer.wizards.com/Pages/Card/Details.aspx"
         self.symbol_map = {
             "White": "W",
@@ -72,14 +69,12 @@ class Gatherer:
 
     def get_cards(self, multiverse_id: str) -> List[GathererCard]:
         """Get card(s) matching a given multiverseId."""
-        session = util.get_generic_session()
-        response = session.get(
+        response = self.session.get(
             url=self.gatherer_card,
             params={"multiverseid": multiverse_id, "printed": "true"},
             timeout=8.0,
         )
         self.logger.info("Retrieved: %s", response.url)
-        session.close()
 
         return self.parse_cards(response.text)
 

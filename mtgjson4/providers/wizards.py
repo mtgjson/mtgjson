@@ -1,6 +1,5 @@
 """File information provider for WotC Website."""
 
-import contextvars
 import logging
 import re
 from typing import Dict, List
@@ -17,9 +16,7 @@ class Wizards:
 
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
-        self.session: contextvars.ContextVar = contextvars.ContextVar(
-            "self.session_WIZARDS"
-        )
+        self.session = util.get_generic_session()
         self.comp_rules: str = "https://magic.wizards.com/en/game-info/gameplay/rules-and-formats/rules"
 
     def download_from_wizards(self, url: str) -> str:
@@ -28,12 +25,10 @@ class Wizards:
         :param url: URL to download (prob from Wizards website)
         :return: Text from page
         """
-        session = util.get_generic_session()
-        response = session.get(url=url, timeout=5.0)
+        response = self.session.get(url=url, timeout=5.0)
         response.encoding = "windows-1252"  # WHY DO THEY DO THIS
 
         self.logger.info("Retrieved: %s", response.url)
-        session.close()
         return response.text
 
     def get_comp_rules(self) -> str:
