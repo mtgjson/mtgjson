@@ -10,25 +10,12 @@ from typing import Any, Dict, List
 
 import mtgjson4
 from mtgjson4 import util
-from mtgjson4.provider import gamepedia, scryfall, wizards
+import mtgjson4.providers
 
 STANDARD_API_URL: str = "https://whatsinstandard.com/api/v5/sets.json"
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
-
-
-def write_tcgplayer_information(data: Dict[str, str]) -> None:
-    """
-    Write out the tcgplayer redirection keys to file
-    :param data: tcg content
-    """
-    mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
-    with pathlib.Path(
-        mtgjson4.COMPILED_OUTPUT_DIR, mtgjson4.REFERRAL_DB_OUTPUT + ".json"
-    ).open("a", encoding="utf-8") as f:
-        for key, value in data.items():
-            f.write("{}\t{}\n".format(key, value))
 
 
 def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -> None:
@@ -298,7 +285,7 @@ def create_modern_only_output() -> Dict[str, Any]:
     """
     modern_data: Dict[str, Any] = {}
 
-    for set_code in gamepedia.get_modern_sets():
+    for set_code in mtgjson4.providers.GAMEPEDIA.get_modern_sets():
         set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(win_os_fix(set_code) + ".json")
 
         if not set_file.is_file():
@@ -322,7 +309,9 @@ def get_funny_sets() -> List[str]:
     """
     return [
         x["code"].upper()
-        for x in scryfall.download(scryfall.SCRYFALL_API_SETS)["data"]
+        for x in mtgjson4.providers.SCRYFALL.download(
+            mtgjson4.providers.SCRYFALL.api_sets
+        )["data"]
         if str(x["set_type"]) in ["funny", "memorabilia"]
     ]
 
@@ -377,7 +366,7 @@ def create_and_write_compiled_outputs() -> None:
     write_to_file(mtgjson4.SET_LIST_OUTPUT, set_list_info)
 
     # Keywords.json
-    key_words = wizards.compile_comp_output()
+    key_words = mtgjson4.providers.WIZARDS.compile_comp_output()
     write_to_file(mtgjson4.KEY_WORDS_OUTPUT, key_words)
 
     # version.json

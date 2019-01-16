@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Set, Tuple
 import uuid
 
 import mtgjson4
-from mtgjson4.provider import gatherer, scryfall, tcgplayer
+import mtgjson4.providers
 from mtgjson4.util import is_number
 
 LOGGER = logging.getLogger(__name__)
@@ -31,7 +31,9 @@ def build_output_file(
     output_file: Dict[str, Any] = {}
 
     # Get the set config from ScryFall
-    set_config = scryfall.download(scryfall.SCRYFALL_API_SETS + set_code)
+    set_config = mtgjson4.providers.SCRYFALL.download(
+        mtgjson4.providers.SCRYFALL.api_sets + set_code
+    )
     if set_config["object"] == "error":
         LOGGER.error("Set Config for {} was not found, skipping...".format(set_code))
         return {"cards": [], "tokens": []}
@@ -102,7 +104,9 @@ def build_output_file(
     LOGGER.info("Finished cards for {}".format(set_code))
 
     LOGGER.info("Starting tokens for {}".format(set_code))
-    sf_tokens: List[Dict[str, Any]] = scryfall.get_set("t" + set_code)
+    sf_tokens: List[Dict[str, Any]] = mtgjson4.providers.SCRYFALL.get_set(
+        "t" + set_code
+    )
     output_file["tokens"] = build_mtgjson_tokens(sf_tokens + added_tokens)
     LOGGER.info("Finished tokens for {}".format(set_code))
 
@@ -173,7 +177,9 @@ def transpose_tokens(
 
     # Single faced tokens are easy
     tokens = [
-        scryfall.download(scryfall.SCRYFALL_API_CARD + card["scryfallId"])
+        mtgjson4.providers.SCRYFALL.download(
+            mtgjson4.providers.SCRYFALL.api_card + card["scryfallId"]
+        )
         for card in cards
         if card["layout"] == "token"
     ]
@@ -186,7 +192,9 @@ def transpose_tokens(
             and card["scryfallId"] not in done_tokens
         ):
             tokens.append(
-                scryfall.download(scryfall.SCRYFALL_API_CARD + card["scryfallId"])
+                mtgjson4.providers.SCRYFALL.download(
+                    mtgjson4.providers.SCRYFALL.api_card + card["scryfallId"]
+                )
             )
             done_tokens.add(card["scryfallId"])
 
@@ -208,15 +216,21 @@ def add_tcgplayer_fields(
     :param cards: Cards list to add information to
     :return: Cards list with new information added
     """
-    tcg_card_objs = tcgplayer.get_group_id_cards(group_id)
+    tcg_card_objs = mtgjson4.providers.TCGPLAYER.get_group_id_cards(group_id)
 
     for card in cards:
-        prod_id = tcgplayer.get_card_property(card["name"], tcg_card_objs, "productId")
-        prod_url = tcgplayer.get_card_property(card["name"], tcg_card_objs, "url")
+        prod_id = mtgjson4.providers.TCGPLAYER.get_card_property(
+            card["name"], tcg_card_objs, "productId"
+        )
+        prod_url = mtgjson4.providers.TCGPLAYER.get_card_property(
+            card["name"], tcg_card_objs, "url"
+        )
 
         if prod_id and prod_url:
             card["tcgplayerProductId"] = prod_id
-            card["tcgplayerPurchaseUrl"] = tcgplayer.log_redirection_url(
+            card[
+                "tcgplayerPurchaseUrl"
+            ] = mtgjson4.providers.TCGPLAYER.log_redirection_url(
                 card["tcgplayerProductId"], prod_url
             )
 
@@ -337,7 +351,7 @@ def add_start_flag_and_count_modified(
     :return: List of cards, number of cards modified
     """
     starter_card_url = search_url.replace("&unique=", "++not:booster&unique=")
-    starter_cards = scryfall.download(starter_card_url)
+    starter_cards = mtgjson4.providers.SCRYFALL.download(starter_card_url)
 
     if starter_cards["object"] == "error":
         LOGGER.info("All cards in {} are available in boosters".format(set_code))
@@ -665,20 +679,20 @@ def build_mtgjson_card(
 
     # Characteristics that we need custom functions to parse
     print_search_url: str = sf_card["prints_search_uri"].replace("%22", "")
-    mtgjson_card["legalities"] = scryfall.parse_legalities(
+    mtgjson_card["legalities"] = mtgjson4.providers.SCRYFALL.parse_legalities(
         sf_card["legalities"]
     )  # Dict[str, str]
     mtgjson_card["rulings"] = sorted(
-        scryfall.parse_rulings(sf_card["rulings_uri"]),
+        mtgjson4.providers.SCRYFALL.parse_rulings(sf_card["rulings_uri"]),
         key=lambda ruling: ruling["date"],
     )
     mtgjson_card["printings"] = sorted(
-        scryfall.parse_printings(print_search_url)
+        mtgjson4.providers.SCRYFALL.parse_printings(print_search_url)
     )  # List[str]
 
-    card_types: Tuple[List[str], List[str], List[str]] = scryfall.parse_card_types(
-        mtgjson_card["type"]
-    )
+    card_types: Tuple[
+        List[str], List[str], List[str]
+    ] = mtgjson4.providers.SCRYFALL.parse_card_types(mtgjson_card["type"])
     mtgjson_card["supertypes"] = card_types[0]  # List[str]
     mtgjson_card["types"] = card_types[1]  # List[str]
     mtgjson_card["subtypes"] = card_types[2]  # List[str]
@@ -727,12 +741,14 @@ def build_mtgjson_card(
 
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for
-    mtgjson_card["foreignData"] = scryfall.parse_foreign(
+    mtgjson_card["foreignData"] = mtgjson4.providers.SCRYFALL.parse_foreign(
         print_search_url, mtgjson_card["name"], sf_card["set"]
     )
 
     if mtgjson_card["multiverseId"] is not None:
-        gatherer_cards = gatherer.get_cards(mtgjson_card["multiverseId"])
+        gatherer_cards = mtgjson4.providers.GATHERER.get_cards(
+            mtgjson_card["multiverseId"]
+        )
         try:
             gatherer_card = gatherer_cards[sf_card_face]
             mtgjson_card["originalType"] = gatherer_card.original_types

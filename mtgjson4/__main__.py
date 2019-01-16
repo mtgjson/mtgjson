@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from mtgjson4 import compile_mtg
 import mtgjson4.outputter
-from mtgjson4.provider import scryfall
+import mtgjson4.providers
 
 LOGGER = logging.getLogger(__name__)
 
@@ -33,7 +33,9 @@ def get_all_sets() -> List[str]:
     in the config database.
     :return: List of all set codes found, sorted
     """
-    downloaded = mtgjson4.provider.scryfall.download(scryfall.SCRYFALL_API_SETS)
+    downloaded = mtgjson4.providers.SCRYFALL.download(
+        mtgjson4.providers.SCRYFALL.api_sets
+    )
     if downloaded["object"] == "error":
         LOGGER.error("Downloading Scryfall data failed: {}".format(downloaded))
         return []
@@ -113,7 +115,7 @@ def main() -> None:
         )
 
     for set_code in set_list:
-        sf_set: List[Dict[str, Any]] = scryfall.get_set(set_code)
+        sf_set: List[Dict[str, Any]] = mtgjson4.providers.SCRYFALL.get_set(set_code)
         compiled = compile_mtg.build_output_file(sf_set, set_code, args.skip_tcgplayer)
 
         # If we have at least 1 card, dump to file SET.json
