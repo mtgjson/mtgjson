@@ -3,8 +3,8 @@ from typing import List
 
 import bs4
 
+import mtgjson4
 from mtgjson4 import util
-from mtgjson4.providers import SCRYFALL
 
 
 class Gamepedia:
@@ -40,8 +40,9 @@ class Gamepedia:
         soup = soup.find("div", class_="div-col columns column-width")
         soup = soup.findAll("a")
 
+        scryfall_downloader = mtgjson4.providers.Scryfall()
         modern_legal_sets = [
-            SCRYFALL.get_set_header(self.strip_bad_sf_chars(x.text))
+            scryfall_downloader.get_set_header(self.strip_bad_sf_chars(x.text))
             .get("code", "")
             .upper()
             for x in soup

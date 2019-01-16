@@ -67,7 +67,7 @@ class TCGPlayer:
             )
             return ""
 
-        self.api_version.set(config.get("TCGPlayer", "api_version"))
+        self.api_version = config.get("TCGPlayer", "api_version")
         request_as_json = json.loads(tcg_post.text)
         return str(request_as_json.get("access_token", ""))
 
