@@ -99,7 +99,7 @@ def build_output_file(
     with mtgjson4.RESOURCE_PATH.joinpath("base_set_sizes.json").open(
         "r", encoding="utf-8"
     ) as f:
-        output_file["baseSetSize"] = json.load(f)[set_code.upper()]
+        output_file["baseSetSize"] = json.load(f).get(set_code.upper(), 0)
 
     output_file["cards"] = card_holder
 
