@@ -85,7 +85,7 @@ def main() -> None:
     else:
         args = parser.parse_args()
 
-    if not pathlib.Path(mtgjson4.CONFIG_PATH).is_file():
+    if not mtgjson4.CONFIG_PATH.is_file():
         LOGGER.warning(
             "No properties file found at {}. Will download without authentication".format(
                 mtgjson4.CONFIG_PATH
@@ -129,4 +129,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    mtgjson4.init_logger()
     main()

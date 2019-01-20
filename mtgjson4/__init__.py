@@ -80,19 +80,23 @@ BANNED_FILE_NAMES: List[str] = [
     "PRN",
 ]
 
-# Logging configuration
-LOG_DIR.mkdir(exist_ok=True)
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(levelname)s] %(asctime)s: %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(
-            str(
-                LOG_DIR.joinpath(
-                    "mtgjson_" + str(time.strftime("%Y-%m-%d_%H:%M:%S")) + ".log"
+
+def init_logger() -> None:
+    """
+    Logging configuration
+    """
+    LOG_DIR.mkdir(exist_ok=True)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(levelname)s] %(asctime)s: %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(
+                str(
+                    LOG_DIR.joinpath(
+                        "mtgjson_" + str(time.strftime("%Y-%m-%d_%H:%M:%S")) + ".log"
+                    )
                 )
-            )
-        ),
-    ],
-)
+            ),
+        ],
+    )

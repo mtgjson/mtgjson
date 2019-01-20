@@ -5,7 +5,6 @@ import contextvars
 import datetime
 import json
 import logging
-import pathlib
 from typing import Any, Dict, List
 
 import mtgjson4
@@ -24,8 +23,8 @@ def write_tcgplayer_information(data: Dict[str, str]) -> None:
     :param data: tcg content
     """
     mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
-    with pathlib.Path(
-        mtgjson4.COMPILED_OUTPUT_DIR, mtgjson4.REFERRAL_DB_OUTPUT + ".json"
+    with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
+        mtgjson4.REFERRAL_DB_OUTPUT + ".json"
     ).open("a", encoding="utf-8") as f:
         for key, value in data.items():
             f.write("{}\t{}\n".format(key, value))
@@ -37,9 +36,9 @@ def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -
     Will ensure the output directory exists first
     """
     mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
-    with pathlib.Path(
-        mtgjson4.COMPILED_OUTPUT_DIR, win_os_fix(set_name) + ".json"
-    ).open("w", encoding="utf-8") as f:
+    with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(win_os_fix(set_name) + ".json").open(
+        "w", encoding="utf-8"
+    ) as f:
         if do_cleanup and isinstance(file_contents, dict):
             if "cards" in file_contents:
                 file_contents["cards"] = remove_unnecessary_fields(

@@ -3,7 +3,6 @@
 import configparser
 import contextvars
 import logging
-import pathlib
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import mtgjson4
@@ -24,7 +23,7 @@ def __get_session() -> requests.Session:
     if session is None:
         session = requests.Session()
 
-        if pathlib.Path(mtgjson4.CONFIG_PATH).is_file():
+        if mtgjson4.CONFIG_PATH.is_file():
             # Open and read MTGJSON secret properties
             config = configparser.RawConfigParser()
             config.read(mtgjson4.CONFIG_PATH)
