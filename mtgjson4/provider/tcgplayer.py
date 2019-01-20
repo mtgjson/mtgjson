@@ -4,7 +4,6 @@ import contextvars
 import hashlib
 import json
 import logging
-import pathlib
 from typing import Any, Dict, List, Optional
 
 import mtgjson4
@@ -36,7 +35,7 @@ def _request_tcgplayer_bearer() -> str:
     config to contact the server.
     :return: Empty string or current Bearer token
     """
-    if not pathlib.Path(mtgjson4.CONFIG_PATH).is_file():
+    if not mtgjson4.CONFIG_PATH.is_file():
         LOGGER.error(
             "Unable to import TCGPlayer keys. Config at {} not found".format(
                 mtgjson4.CONFIG_PATH

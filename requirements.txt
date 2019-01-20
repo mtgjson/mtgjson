@@ -1,3 +1,4 @@
+contextvars
 beautifulsoup4
 requests
 unidecode

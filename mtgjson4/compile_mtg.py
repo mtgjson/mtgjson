@@ -4,7 +4,6 @@ import copy
 import json
 import logging
 import multiprocessing
-import pathlib
 import re
 from typing import Any, Dict, List, Set, Tuple
 import uuid
@@ -43,7 +42,7 @@ def build_output_file(
     output_file["type"] = set_config.get("set_type")
 
     # Add booster info based on boosters resource (manually maintained for the time being)
-    with pathlib.Path(mtgjson4.RESOURCE_PATH, "boosters.json").open(
+    with mtgjson4.RESOURCE_PATH.joinpath("boosters.json").open(
         "r", encoding="utf-8"
     ) as f:
         json_dict: Dict[str, List[Any]] = json.load(f)
@@ -51,7 +50,7 @@ def build_output_file(
             output_file["boosterV3"] = json_dict[output_file["code"].upper()]
 
     # Add V3 code for some backwards compatibility
-    with pathlib.Path(mtgjson4.RESOURCE_PATH, "gatherer_set_codes.json").open(
+    with mtgjson4.RESOURCE_PATH.joinpath("gatherer_set_codes.json").open(
         "r", encoding="utf-8"
     ) as f:
         json_dict = json.load(f)
@@ -76,7 +75,7 @@ def build_output_file(
     LOGGER.info("Starting cards for {}".format(set_code))
 
     card_holder = convert_to_mtgjson(sf_cards)
-    card_holder, non_booster_cards = add_start_flag_and_count_modified(
+    card_holder = add_start_flag_and_count_modified(
         set_code, set_config["search_uri"], card_holder
     )
 
@@ -96,7 +95,12 @@ def build_output_file(
 
     # Set sizes; BASE SET SIZE WILL BE UPDATED BELOW
     output_file["totalSetSize"] = len(sf_cards)
-    output_file["baseSetSize"] = output_file["totalSetSize"] - non_booster_cards
+
+    with mtgjson4.RESOURCE_PATH.joinpath("base_set_sizes.json").open(
+        "r", encoding="utf-8"
+    ) as f:
+        output_file["baseSetSize"] = json.load(f)[set_code.upper()]
+
     output_file["cards"] = card_holder
 
     LOGGER.info("Finished cards for {}".format(set_code))
@@ -110,10 +114,7 @@ def build_output_file(
     add_uuid_to_cards(output_file["cards"], output_file["tokens"], output_file)
 
     # Add Variations to each entry, as well as mark alternatives
-    alt_count = add_variations_and_alternative_fields(output_file["cards"], output_file)
-
-    # Alternatives don't count towards the base set size
-    output_file["baseSetSize"] -= alt_count
+    add_variations_and_alternative_fields(output_file["cards"], output_file)
 
     if set_code[:2] == "DD":
         mark_duel_decks(output_file["cards"])
@@ -269,7 +270,7 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
 
 def add_variations_and_alternative_fields(
     cards: List[Dict[str, Any]], file_info: Any
-) -> int:
+) -> None:
     """
     For non-silver bordered sets, we will create a "variations"
     field will be created that has UUID of repeat cards.
@@ -279,7 +280,6 @@ def add_variations_and_alternative_fields(
     :return: How many alternative printings were marked
     """
     # Non-silver border sets use "variations"
-    how_many_alternatives = 0
     if cards and cards[0].get("borderColor", None) != "silver":
         for card in cards:
             repeats_in_set = [
@@ -307,7 +307,6 @@ def add_variations_and_alternative_fields(
                     and not card["hasNonFoil"]
                 ):
                     card["isAlternative"] = True
-                    how_many_alternatives += 1
             elif file_info["code"].upper() in ["CN2", "BBD"]:
                 # Check for set number > set size
                 if (
@@ -315,19 +314,15 @@ def add_variations_and_alternative_fields(
                     > file_info["baseSetSize"]
                 ):
                     card["isAlternative"] = True
-                    how_many_alternatives += 1
             elif file_info["code"].upper() == "PLS":
                 # Check for a star in the number
                 if chr(9733) in card["number"]:
                     card["isAlternative"] = True
-                    how_many_alternatives += 1
-
-    return how_many_alternatives
 
 
 def add_start_flag_and_count_modified(
     set_code: str, search_url: str, mtgjson_cards: List[Dict[str, Any]]
-) -> Tuple[List[Dict[str, Any]], int]:
+) -> List[Dict[str, Any]]:
     """
     Since SF doesn't provide individual card notices, we can post-process add the starter flag
     This method will also tell us how many starter cards are in the set
@@ -341,7 +336,7 @@ def add_start_flag_and_count_modified(
 
     if starter_cards["object"] == "error":
         LOGGER.info("All cards in {} are available in boosters".format(set_code))
-        return mtgjson_cards, 0
+        return mtgjson_cards
 
     for sf_card in starter_cards["data"]:
         # Each card has a unique UUID, even if they're the same card printed twice
@@ -358,7 +353,7 @@ def add_start_flag_and_count_modified(
                 )
             )
 
-    return mtgjson_cards, len(starter_cards["data"])
+    return mtgjson_cards
 
 
 def build_mtgjson_tokens(
