@@ -146,9 +146,44 @@ def get_group_id_cards(group_id: int) -> List[Dict[str, Any]]:
 
     return cards
 
-def get_card_query_name(    card: Dict[str, Any], set_code: str) -> str:    """    Returns the TCGPlayer-compatible query name. Removes diacritical marks.     Appends collector number to basic lands, and to GRN and RNA Guildgates.    :param card: MTGJSON card to find query name for    :param set_code: The code of the set the MTGJSON card belongs to    :return: TCGPlayer-compatible query name    """    unidecoded_name = unidecode.unidecode(card["name"])    if (unidecoded_name == "Plains" or unidecoded_name == "Island" or unidecoded_name == "Swamp"        or unidecoded_name == "Mountain" or unidecoded_name == "Forest"):        return "{} ({})".format(unidecoded_name, card["number"])    elif (set_code == "GRN" or set_code == "RNA") and "Guildgate" in unidecoded_name:        return "{} ({})".format(unidecoded_name, card["number"])    else:        return unidecoded_name
+def get_card_query_name(
+    card: Dict[str, Any], set_code: str
+) -> str:
+    """
+    Returns the TCGPlayer-compatible query name. Removes diacritical marks. 
+    Appends collector number to basic lands, and to GRN and RNA Guildgates.
+    :param card: MTGJSON card to find query name for
+    :param set_code: The code of the set the MTGJSON card belongs to
+    :return: TCGPlayer-compatible query name
+    """
+    unidecoded_name = unidecode.unidecode(card["name"])
+    if (unidecoded_name == "Plains" or unidecoded_name == "Island" or unidecoded_name == "Swamp"
+        or unidecoded_name == "Mountain" or unidecoded_name == "Forest"):
+        return "{} ({})".format(unidecoded_name, card["number"])
+    elif (set_code == "GRN" or set_code == "RNA") and "Guildgate" in unidecoded_name:
+        return "{} ({})".format(unidecoded_name, card["number"])
+    else:
+        return unidecoded_name
 
-def get_card_property(    query_name: str, card_list: List[Dict[str, Any]], card_field: str) -> Any:    """    Go through the passed in card object list to find the matching    card from the set and get its attribute.    :param query_name: TCGPlayer-compatible card name to find in the list    :param card_list: List of TCGPlayer card objects    :param card_field: Field to pull from TCGPlayer card object    :return: Value of field    """    for card in card_list:        # will try to match against Part A for split cards (if applicable)        part_a_name = card["name"].split(" //")[0]         if query_name.lower() == part_a_name.lower():            return card.get(card_field, None)    LOGGER.warning("Unable to find card {} in TCGPlayer card list".format(query_name))    return None
+def get_card_property(
+    query_name: str, card_list: List[Dict[str, Any]], card_field: str
+) -> Any:
+    """
+    Go through the passed in card object list to find the matching
+    card from the set and get its attribute.
+    :param query_name: TCGPlayer-compatible card name to find in the list
+    :param card_list: List of TCGPlayer card objects
+    :param card_field: Field to pull from TCGPlayer card object
+    :return: Value of field
+    """
+    for card in card_list:
+        # will try to match against Part A for split cards (if applicable)
+        part_a_name = card["name"].split(" //")[0] 
+        if query_name.lower() == part_a_name.lower():
+            return card.get(card_field, None)
+
+    LOGGER.warning("Unable to find card {} in TCGPlayer card list".format(query_name))
+    return None
 
 
 def url_keygen(prod_id: int) -> str:
