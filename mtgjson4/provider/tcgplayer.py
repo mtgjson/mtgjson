@@ -150,7 +150,7 @@ def get_card_query_name(
     card: Dict[str, Any], set_code: str
 ) -> str:
     """
-    Returns the TCGPlayer-compatible query name. Removes diacritical marks. 
+    Returns the TCGPlayer-compatible query name. Removes diacritical marks.
     Appends collector number to basic lands, and to GRN and RNA Guildgates.
     :param card: MTGJSON card to find query name for
     :param set_code: The code of the set the MTGJSON card belongs to
