@@ -203,7 +203,7 @@ def add_tcgplayer_fields(
     group_id: int, cards: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     """
-    For each card in the set, we will find its tcgplayer ID
+    For each card in the set, we will find its product URL
     and add it to the card if found
     :param group_id: group to search for the cards
     :param cards: Cards list to add information to
@@ -212,15 +212,14 @@ def add_tcgplayer_fields(
     tcg_card_objs = tcgplayer.get_group_id_cards(group_id)
 
     for card in cards:
-        prod_id = tcgplayer.get_card_property(card["name"], tcg_card_objs, "productId")
+        if not card["tcgplayerProductId"]: # no need to fetch from TCGPlayer if already found in Scryfall
+            card["tcgplayerProductId"] = tcgplayer.get_card_property(card["name"], tcg_card_objs, "productId")
         prod_url = tcgplayer.get_card_property(card["name"], tcg_card_objs, "url")
 
-        if prod_id and prod_url:
-            card["tcgplayerProductId"] = prod_id
+        if card["tcgplayerProductId"] and prod_url:
             card["tcgplayerPurchaseUrl"] = tcgplayer.log_redirection_url(
                 card["tcgplayerProductId"], prod_url
             )
-
     return cards
 
 
@@ -635,6 +634,7 @@ def build_mtgjson_card(
     mtgjson_card["number"] = sf_card.get("collector_number")
     mtgjson_card["isReserved"] = sf_card.get("reserved")
     mtgjson_card["frameEffect"] = sf_card.get("frame_effect")
+    mtgjson_card["tcgplayerProductId"] = sf_card.get("tcgplayer_id")
 
     # Vanguard fields
     mtgjson_card["life"] = sf_card.get("life_modifier")
