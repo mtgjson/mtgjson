@@ -85,13 +85,7 @@ def build_output_file(
     # Move bogus tokens out
     card_holder, added_tokens = transpose_tokens(card_holder)
 
-    # Add TCGPlayer information
-    if "tcgplayer_id" in set_config:
-        output_file["tcgplayerGroupId"] = set_config.get("tcgplayer_id")
-        if not skip_tcgplayer:
-            card_holder = add_tcgplayer_fields(
-                output_file["tcgplayerGroupId"], card_holder
-            )
+    # Add TCGPlayer information    if "tcgplayer_id" in set_config:        output_file["tcgplayerGroupId"] = set_config.get("tcgplayer_id")        if not skip_tcgplayer:            card_holder = add_tcgplayer_fields(                output_file["tcgplayerGroupId"], output_file["code"], card_holder            )
 
     # Set sizes; BASE SET SIZE WILL BE UPDATED BELOW
     output_file["totalSetSize"] = len(sf_cards)
@@ -199,28 +193,7 @@ def transpose_tokens(
     return cards, tokens
 
 
-def add_tcgplayer_fields(
-    group_id: int, cards: List[Dict[str, Any]]
-) -> List[Dict[str, Any]]:
-    """
-    For each card in the set, we will find its tcgplayer ID
-    and add it to the card if found
-    :param group_id: group to search for the cards
-    :param cards: Cards list to add information to
-    :return: Cards list with new information added
-    """
-    tcg_card_objs = tcgplayer.get_group_id_cards(group_id)
-
-    for card in cards:
-        prod_id = tcgplayer.get_card_property(card["name"], tcg_card_objs, "productId")
-        prod_url = tcgplayer.get_card_property(card["name"], tcg_card_objs, "url")
-
-        if prod_id and prod_url:
-            card["tcgplayerProductId"] = prod_id
-            card["tcgplayerPurchaseUrl"] = tcgplayer.log_redirection_url(
-                card["tcgplayerProductId"], prod_url
-            )
-
+def add_tcgplayer_fields(    group_id: int, set_code: str, cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:    """    For each card in the set, we will find its tcgplayer ID    and add it to the card if found    :param group_id: group to search for the cards    :param cards: Cards list to add information to    :return: Cards list with new information added    """    tcg_card_objs = tcgplayer.get_group_id_cards(group_id)    for card in cards:        query_name = tcgplayer.get_card_query_name(card, set_code)        prod_id = tcgplayer.get_card_property(query_name, tcg_card_objs, "productId")        prod_url = tcgplayer.get_card_property(query_name, tcg_card_objs, "url")        if prod_id and prod_url:            card["tcgplayerProductId"] = prod_id            card["tcgplayerPurchaseUrl"] = tcgplayer.log_redirection_url(                card["tcgplayerProductId"], prod_url            )
     return cards
 
 
