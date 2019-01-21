@@ -157,12 +157,12 @@ def get_card_query_name(
     :return: TCGPlayer-compatible query name
     """
     unidecoded_name = unidecode.unidecode(card["name"])
-    if (unidecoded_name in ["Plains","Island","Swamp","Mountain","Forest"]):
+    if unidecoded_name in ["Plains", "Island", "Swamp", "Mountain", "Forest"]:
         return "{} ({})".format(unidecoded_name, card["number"])
-    elif (set_code == "GRN" or set_code == "RNA") and "Guildgate" in unidecoded_name:
+    if set_code in ["GRN", "RNA"] and "Guildgate" in unidecoded_name:
         return "{} ({})".format(unidecoded_name, card["number"])
-    else:
-        return unidecoded_name
+
+    return str(unidecoded_name)
 
 def get_card_property(
     query_name: str, card_list: List[Dict[str, Any]], card_field: str
