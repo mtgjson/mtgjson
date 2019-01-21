@@ -146,9 +146,8 @@ def get_group_id_cards(group_id: int) -> List[Dict[str, Any]]:
 
     return cards
 
-def get_card_query_name(
-    card: Dict[str, Any], set_code: str
-) -> str:
+
+def get_card_query_name(card: Dict[str, Any], set_code: str) -> str:
     """
     Returns the TCGPlayer-compatible query name. Removes diacritical marks.
     Appends collector number to basic lands, and to GRN and RNA Guildgates.
@@ -163,6 +162,7 @@ def get_card_query_name(
         return "{} ({})".format(unidecoded_name, card["number"])
 
     return str(unidecoded_name)
+
 
 def get_card_property(
     query_name: str, card_list: List[Dict[str, Any]], card_field: str
