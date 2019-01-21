@@ -206,6 +206,7 @@ def add_tcgplayer_fields(
     For each card in the set, we will find its tcgplayer ID
     and add it to the card if found
     :param group_id: group to search for the cards
+    :param set_code: the set code associated with the cards
     :param cards: Cards list to add information to
     :return: Cards list with new information added
     """
