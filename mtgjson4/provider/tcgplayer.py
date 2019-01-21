@@ -177,7 +177,7 @@ def get_card_property(
     """
     for card in card_list:
         # will try to match against Part A for split cards (if applicable)
-        part_a_name = card["name"].split(" //")[0] 
+        part_a_name = card["name"].split("//")[0].strip()
         if query_name.lower() == part_a_name.lower():
             return card.get(card_field, None)
 
