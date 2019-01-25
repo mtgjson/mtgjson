@@ -203,7 +203,7 @@ def add_tcgplayer_fields(
     group_id: int, cards: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     """
-    For each card in the set, we will find its product URL
+    For each card in the set, we will find its tcgplayer ID
     and add it to the card if found
     :param group_id: group to search for the cards
     :param cards: Cards list to add information to
