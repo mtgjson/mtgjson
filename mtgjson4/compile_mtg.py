@@ -212,9 +212,8 @@ def add_tcgplayer_fields(
     tcg_card_objs = tcgplayer.get_group_id_cards(group_id)
 
     for card in cards:
-        if not card[
-            "tcgplayerProductId"
-        ]:  # no need to fetch from TCGPlayer if already found in Scryfall
+        # No need to fetch from TCGPlayer if already found in Scryfall
+        if not card["tcgplayerProductId"]:
             card["tcgplayerProductId"] = tcgplayer.get_card_property(
                 card["name"], tcg_card_objs, "productId"
             )
