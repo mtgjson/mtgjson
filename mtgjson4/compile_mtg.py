@@ -214,9 +214,9 @@ def add_tcgplayer_fields(
     for card in cards:
         # No need to fetch from TCGPlayer if already found in Scryfall
         if not card["tcgplayerProductId"]:
-           card["tcgplayerProductId"] = tcgplayer.get_card_property(
-               card["name"], tcg_card_objs, "productId"
-           )
+            card["tcgplayerProductId"] = tcgplayer.get_card_property(
+                card["name"], tcg_card_objs, "productId"
+            )
         prod_url = tcgplayer.get_card_property(card["name"], tcg_card_objs, "url")
 
         if card["tcgplayerProductId"] and prod_url:
