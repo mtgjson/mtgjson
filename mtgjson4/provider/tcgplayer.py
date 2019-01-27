@@ -4,7 +4,6 @@ import contextvars
 import hashlib
 import json
 import logging
-import unidecode
 from typing import Any, Dict, List, Optional
 
 import mtgjson4

@@ -203,7 +203,7 @@ def add_tcgplayer_fields(
     group_id: int, cards: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     """
-    For each card in the set, we will find its product URL
+    For each card in the set, we will find its tcgplayer ID
     and add it to the card if found
     :param group_id: group to search for the cards
     :param cards: Cards list to add information to
@@ -212,9 +212,12 @@ def add_tcgplayer_fields(
     tcg_card_objs = tcgplayer.get_group_id_cards(group_id)
 
     for card in cards:
-        if not card["tcgplayerProductId"]: # no need to fetch from TCGPlayer if already found in Scryfall
+        # no need to fetch from TCGPlayer if already found in Scryfall
+        if not card["tcgplayerProductId"]:
             card["tcgplayerProductId"] = tcgplayer.get_card_property(card["name"], tcg_card_objs, "productId")
-        prod_url = tcgplayer.get_card_property(card["name"], tcg_card_objs, "url")
+        prod_url = tcgplayer.get_card_property(
+            card["name"], tcg_card_objs, "url"
+            )
 
         if card["tcgplayerProductId"] and prod_url:
             card["tcgplayerPurchaseUrl"] = tcgplayer.log_redirection_url(
