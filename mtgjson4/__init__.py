@@ -94,7 +94,7 @@ def init_logger() -> None:
             logging.FileHandler(
                 str(
                     LOG_DIR.joinpath(
-                        "mtgjson_" + str(time.strftime("%Y-%m-%d_%H:%M:%S")) + ".log"
+                        "mtgjson_" + str(time.strftime("%Y-%m-%d_%H.%M.%S")) + ".log"
                     )
                 )
             ),
