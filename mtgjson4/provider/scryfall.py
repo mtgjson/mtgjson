@@ -187,7 +187,7 @@ def parse_legalities(sf_card_legalities: Dict[str, str]) -> Dict[str, str]:
 
 
 def parse_foreign(
-    sf_prints_url: str, card_name: str, set_name: str
+    sf_prints_url: str, card_name: str, card_number: str, set_name: str
 ) -> List[Dict[str, str]]:
     """
     Get the foreign printings information for a specific card
@@ -209,7 +209,11 @@ def parse_foreign(
         return []
 
     for foreign_card in prints_api_json["data"]:
-        if set_name != foreign_card["set"] or foreign_card["lang"] == "en":
+        if (
+            set_name != foreign_card["set"]
+            or card_number != foreign_card["collector_number"]
+            or foreign_card["lang"] == "en"
+        ):
             continue
 
         card_foreign_entry: Dict[str, str] = {}
