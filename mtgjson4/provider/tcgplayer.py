@@ -158,9 +158,10 @@ def get_card_property(
     :return: Value of field
     """
     for card in card_list:
-        # will try to match against Part A for split cards (if applicable)
-        part_a_name = card_name.split("//")[0].strip()
-        if card_name.lower() == part_a_name.lower():
+        input_fix_split = card_name.split("//")[0].strip()
+        list_fix_split = card["name"].split("//")[0].strip()
+
+        if list_fix_split.lower() == input_fix_split.lower():
             return card.get(card_field, None)
 
     LOGGER.warning("Unable to find card {} in TCGPlayer card list".format(card_name))
