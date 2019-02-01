@@ -726,7 +726,7 @@ def build_mtgjson_card(
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for
     mtgjson_card["foreignData"] = scryfall.parse_foreign(
-        print_search_url, mtgjson_card["name"], sf_card["set"]
+        print_search_url, mtgjson_card["name"], mtgjson_card["number"], sf_card["set"]
     )
 
     if mtgjson_card["multiverseId"] is not None:
