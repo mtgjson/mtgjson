@@ -60,8 +60,8 @@ ___
 | `--skip-sets SET [SET ...]` | Prevents set code arguments from being built, even if passed in via `-a` or `-s`.                                                               |
 | `--skip-tcgplayer`          | If you don't have a TCGPlayer API key, you can disable building of TCGPlayer components.                                                        |
 
-> &nbsp;  
-> **Newcomer Note**: Omitting either the `-a` and `-s` flag will yield empty outputted data.  
+> &nbsp;
+> **Newcomer Note**: Omitting either the `-a` and `-s` flag will yield empty outputted data.
 > &nbsp;
 
 &nbsp;
@@ -87,6 +87,6 @@ ___
 
 ## **Notes**
 
-> &nbsp;  
-> These are the build directions to compile your own JSON files but If you are looking for pre-compiled JSON files, you can download them at [MTGJSON.com](https://mtgjson.com/).  
+> &nbsp;
+> These are the build directions to compile your own JSON files but If you are looking for pre-compiled JSON files, you can download them at [MTGJSON.com](https://mtgjson.com/).
 > &nbsp;
