@@ -30,9 +30,9 @@ ___
 ## **Dependencies**
 
 - `Python 3.7`
-  - Can be installed with at the official [Python Website](https://www.python.org/downloads/) or using [Homebrew](https://brew.sh/).
+    - Can be installed with at the official [Python Website](https://www.python.org/downloads/) or using [Homebrew](https://brew.sh/).
 - `pip3`
-  - Installed with `Python 3.7`. For troubleshooting check [here](https://stackoverflow.com/search?q=how+to+install+pip3).
+    - Installed with `Python 3.7`. For troubleshooting check [here](https://stackoverflow.com/search?q=how+to+install+pip3).
 
 &nbsp;
 ___
