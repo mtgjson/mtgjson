@@ -2,4 +2,6 @@ black
 isort
 mypy
 pylint
+pytest
+pytest-cov
 tox
