@@ -12,7 +12,7 @@ install:
   - pip install -r requirements.txt -r requirements_test.txt
 
 script:
-  - pytest
+  - PYTHONPATH=. pytest
   - black --check --diff .
   - pylint mtgjson4 tests
   - mypy .

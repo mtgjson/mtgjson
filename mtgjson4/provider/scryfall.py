@@ -15,6 +15,7 @@ SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_SCRYFALL")
 
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
 SCRYFALL_API_CARD: str = "https://api.scryfall.com/cards/"
+PROVIDER_ID = "sf"
 
 
 def __get_session() -> requests.Session:
