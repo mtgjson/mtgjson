@@ -29,7 +29,7 @@ def build_output_file(
     """
     output_file: Dict[str, Any] = {}
 
-    # Get the set config from ScryFall
+    # Get the set config from Scryfall
     set_config = scryfall.download(scryfall.SCRYFALL_API_SETS + set_code)
     if set_config["object"] == "error":
         LOGGER.error("Set Config for {} was not found, skipping...".format(set_code))
@@ -134,7 +134,7 @@ def add_uuid_to_cards(
     :param file_info: <<CONST>> object for the file
     """
     for card in cards:
-        card["uuid_421"] = get_uuid_421(card, file_info)
+        card["uuidV421"] = get_uuid_421(card, file_info)
         card["uuid"] = get_uuid(card)
 
     for token in tokens:
@@ -164,7 +164,7 @@ def get_uuid(card: Dict[str, Any]) -> str:
 
 def get_uuid_421(card: Dict[str, Any], file_info: Dict[str, Any]) -> str:
     """
-    Get card uuid used in Mtgjson release 4.2.1
+    Get card uuid used in MTGJSON release 4.2.1
     :param card: card face
     :param file_info: <<CONST>> object for the file
     :return: unique card face identifier
