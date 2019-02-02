@@ -18,15 +18,15 @@ from mtgjson4.compile_mtg import get_uuid, get_uuid_421
                     "Gisela, the Broken Blade",
                 ],
                 "originalText": "Flying, first strike, lifelink\nAt the beginning of your end step, if you both own and "
-                                + "control Gisela, the Broken Blade and a creature named Bruna, the Fading Light, "
-                                + "exile them, then meld them into Brisela, Voice of Nightmares.",
+                + "control Gisela, the Broken Blade and a creature named Bruna, the Fading Light, "
+                + "exile them, then meld them into Brisela, Voice of Nightmares.",
                 "originalType": "Legendary Creature — Angel Horror",
                 "scryfallId": "c75c035a-7da9-4b36-982d-fca8220b1797",
                 "side": "b",
             },
-            {"code": "EMN"}
+            {"code": "EMN"},
         )
-    ]
+    ],
 )
 def test_uuid_creation(
     mock_card: Dict[str, Any], mock_file_info: Dict[str, Any]
