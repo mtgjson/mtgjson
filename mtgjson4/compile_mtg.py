@@ -123,7 +123,7 @@ def build_output_file(
 
 
 def add_uuid_to_cards(
-    cards: List[Dict[str, Any]], tokens: List[Dict[str, Any]], file_info: Any
+    cards: List[Dict[str, Any]], tokens: List[Dict[str, Any]], file_info: Dict[str, Any]
 ) -> None:
     """
     Each entry needs an ID. While we're really doing a hash,
@@ -133,18 +133,9 @@ def add_uuid_to_cards(
     :param tokens: Tokens Array
     :param file_info: <<CONST>> object for the file
     """
-    # Only using attributes that _shouldn't_ change over time
     for card in cards:
-        # Name + set code + colors (if applicable) + Scryfall UUID + printed text (if applicable)
-        card_hash_code = (
-            card["name"]
-            + file_info["code"]
-            + "".join(card.get("colors", ""))
-            + card["scryfallId"]
-            + str(card.get("originalText", ""))
-        )
-
-        card["uuid"] = str(uuid.uuid5(uuid.NAMESPACE_DNS, card_hash_code))
+        card["uuid_421"] = get_uuid_421(card, file_info)
+        card["uuid"] = get_uuid(card)
 
     for token in tokens:
         # Name + set code + colors (if applicable) + power (if applicable) + toughness (if applicable) + Scryfall UUID
@@ -157,6 +148,37 @@ def add_uuid_to_cards(
             + token["scryfallId"]
         )
         token["uuid"] = str(uuid.uuid5(uuid.NAMESPACE_DNS, token_hash_code))
+
+
+def get_uuid(card: Dict[str, Any]) -> str:
+    """
+    Get unique card face identifier.
+    :param card: card face to be uniquely identified
+    :return: unique card face identifier
+    """
+    #  As long as all cards have scryfallId (scryfallId, name) is enough to uniquely identify the card face
+    # PROVIDER_ID prevents collision with card IDs from any future card provider
+    id_source = scryfall.PROVIDER_ID + card["scryfallId"] + card["name"]
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
+
+
+def get_uuid_421(card: Dict[str, Any], file_info: Dict[str, Any]) -> str:
+    """
+    Get card uuid used in Mtgjson release 4.2.1
+    :param card: card face
+    :param file_info: <<CONST>> object for the file
+    :return: unique card face identifier
+    """
+    # Use attributes that _shouldn't_ change over time
+    # Name + set code + colors (if applicable) + Scryfall UUID + printed text (if applicable)
+    id_source = (
+        card["name"]
+        + file_info["code"]
+        + "".join(card.get("colors", ""))
+        + card["scryfallId"]
+        + str(card.get("originalText", ""))
+    )
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
 
 
 def transpose_tokens(
