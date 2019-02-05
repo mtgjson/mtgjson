@@ -6,7 +6,6 @@ import re
 from typing import Dict, List
 
 from mtgjson4 import util
-
 import unidecode
 
 LOGGER = logging.getLogger(__name__)

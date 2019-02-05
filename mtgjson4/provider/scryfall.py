@@ -5,10 +5,11 @@ import contextvars
 import logging
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-import mtgjson4
-from mtgjson4 import util
 import requests
 import requests.adapters
+
+import mtgjson4
+from mtgjson4 import util
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_SCRYFALL")

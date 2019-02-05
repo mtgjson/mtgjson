@@ -6,10 +6,11 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
+import requests
+
 import mtgjson4
 from mtgjson4 import util
 from mtgjson4.outputter import write_tcgplayer_information
-import requests
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_TCGPLAYER")

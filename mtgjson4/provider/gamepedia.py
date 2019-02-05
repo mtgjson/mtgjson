@@ -3,8 +3,9 @@ import contextvars
 from typing import List
 
 import bs4
-from mtgjson4.provider import scryfall
 import requests
+
+from mtgjson4.provider import scryfall
 
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_GAMEPEDIA")
 
