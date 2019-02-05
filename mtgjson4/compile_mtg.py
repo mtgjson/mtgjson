@@ -432,7 +432,7 @@ def build_mtgjson_tokens(
                 "watermark": sf_token.get("watermark"),
                 "scryfallId": sf_token["id"],
                 "layout": "double_faced_token",
-                "side": chr(97+sf_card_face),
+                "side": chr(97 + sf_card_face),
                 "borderColor": face_data.get("border_color"),
                 "artist": face_data.get("artist"),
                 "isOnlineOnly": sf_token.get("digital"),
