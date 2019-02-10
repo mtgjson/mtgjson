@@ -76,6 +76,7 @@ def main() -> None:
     parser.add_argument("-c", action="store_true")
     parser.add_argument("-x", action="store_true")
     parser.add_argument("--skip-tcgplayer", action="store_true")
+    parser.add_argument("--skip-prune", action="store_true")
     parser.add_argument("--skip-sets", metavar="SET", nargs="*", type=str)
 
     # Ensure there are args
@@ -119,7 +120,7 @@ def main() -> None:
         # If we have at least 1 card, dump to file SET.json
         if compiled["cards"] or compiled["tokens"]:
             mtgjson4.outputter.write_to_file(
-                set_code.upper(), compiled, do_cleanup=True
+                set_code.upper(), compiled, do_cleanup=(not args.skip_prune)
             )
 
     # Compile the additional outputs
