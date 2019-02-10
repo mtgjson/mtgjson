@@ -50,7 +50,7 @@ ___
 
 ## **Output Flags**
 
-| Flags                       | Flag Descriptions                                                                                                                               | 
+| Flags                       | Flag Descriptions                                                                                                                               |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-h, --help`                | Print the help menu and exits.                                                                                                                  |
 | `-a`                        | Build all sets. This overshadows the `-s` flag.                                                                                                 |
