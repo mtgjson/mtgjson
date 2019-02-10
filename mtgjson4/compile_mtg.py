@@ -369,7 +369,7 @@ def add_start_flag_and_count_modified(
                 item for item in mtgjson_cards if item["scryfallId"] == sf_card["id"]
             )
             if card:
-                card["starter"] = True
+                card["isStarter"] = True
         except StopIteration:
             LOGGER.warning(
                 "Passed on {0} with SF_ID {1}".format(

@@ -28,8 +28,7 @@ KEY_WORDS_OUTPUT: str = "Keywords"
 VERSION_OUTPUT: str = "version"
 STANDARD_OUTPUT: str = "Standard"
 MODERN_OUTPUT: str = "Modern"
-ALL_CARDS_NO_FUN_OUTPUT: str = "AllCardsNoUn"
-ALL_SETS_NO_FUN_OUTPUT: str = "AllSetsNoUn"
+VINTAGE_OUTPUT: str = "Vintage"
 REFERRAL_DB_OUTPUT: str = "ReferralMap"
 
 LANGUAGE_MAP: Dict[str, str] = {

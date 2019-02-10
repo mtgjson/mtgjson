@@ -358,8 +358,7 @@ def create_and_write_compiled_outputs() -> None:
         mtgjson4.VERSION_OUTPUT,
         mtgjson4.STANDARD_OUTPUT,
         mtgjson4.MODERN_OUTPUT,
-        mtgjson4.ALL_CARDS_NO_FUN_OUTPUT,
-        mtgjson4.ALL_SETS_NO_FUN_OUTPUT,
+        mtgjson4.VINTAGE_OUTPUT,
         mtgjson4.REFERRAL_DB_OUTPUT,
     ]
 
@@ -389,10 +388,6 @@ def create_and_write_compiled_outputs() -> None:
     # Modern.json
     write_to_file(mtgjson4.MODERN_OUTPUT, create_modern_only_output())
 
-    # AllSetsNoUn.json
+    # Vintage.json
     all_sets_no_fun = create_all_sets_no_funny(files_to_ignore)
-    write_to_file(mtgjson4.ALL_SETS_NO_FUN_OUTPUT, all_sets_no_fun)
-
-    # AllCardsNoUn.json
-    all_cards_no_fun = create_all_cards_no_funny(files_to_ignore)
-    write_to_file(mtgjson4.ALL_CARDS_NO_FUN_OUTPUT, all_cards_no_fun)
+    write_to_file(mtgjson4.VINTAGE_OUTPUT, all_sets_no_fun)
