@@ -349,7 +349,7 @@ def create_and_write_compiled_outputs() -> None:
     This method class will create the combined output files
     (ex: AllSets.json, AllCards.json, Standard.json)
     """
-    # Files that should not be combined into compiled outputs
+    # Compiled output files
     files_to_ignore: List[str] = [
         mtgjson4.ALL_SETS_OUTPUT,
         mtgjson4.ALL_CARDS_OUTPUT,
@@ -359,20 +359,14 @@ def create_and_write_compiled_outputs() -> None:
         mtgjson4.STANDARD_OUTPUT,
         mtgjson4.MODERN_OUTPUT,
         mtgjson4.VINTAGE_OUTPUT,
-        mtgjson4.REFERRAL_DB_OUTPUT,
+        mtgjson4.COMPILED_LIST_OUTPUT,
     ]
 
-    # AllSets.json
-    all_sets = create_all_sets(files_to_ignore)
-    write_to_file(mtgjson4.ALL_SETS_OUTPUT, all_sets)
+    # CompiledList.json -- do not include ReferralMap
+    write_to_file(mtgjson4.COMPILED_LIST_OUTPUT, sorted(files_to_ignore))
 
-    # AllCards.json
-    all_cards = create_all_cards(files_to_ignore)
-    write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
-
-    # SetList.json
-    set_list_info = get_all_set_list(files_to_ignore)
-    write_to_file(mtgjson4.SET_LIST_OUTPUT, set_list_info)
+    # File that should be also ignored -- must be added AFTER CompiledList.json
+    files_to_ignore.append(mtgjson4.REFERRAL_DB_OUTPUT)
 
     # Keywords.json
     key_words = wizards.compile_comp_output()
@@ -381,6 +375,18 @@ def create_and_write_compiled_outputs() -> None:
     # version.json
     version_info = get_version_info()
     write_to_file(mtgjson4.VERSION_OUTPUT, version_info)
+
+    # SetList.json
+    set_list_info = get_all_set_list(files_to_ignore)
+    write_to_file(mtgjson4.SET_LIST_OUTPUT, set_list_info)
+
+    # AllSets.json
+    all_sets = create_all_sets(files_to_ignore)
+    write_to_file(mtgjson4.ALL_SETS_OUTPUT, all_sets)
+
+    # AllCards.json
+    all_cards = create_all_cards(files_to_ignore)
+    write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
 
     # Standard.json
     write_to_file(mtgjson4.STANDARD_OUTPUT, create_standard_only_output())
