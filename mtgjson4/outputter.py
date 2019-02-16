@@ -351,6 +351,7 @@ def create_and_write_compiled_outputs() -> None:
     """
     # Compiled output files
     files_to_ignore: List[str] = [
+        mtgjson4.ALL_SETS_DIR_OUTPUT,
         mtgjson4.ALL_SETS_OUTPUT,
         mtgjson4.ALL_CARDS_OUTPUT,
         mtgjson4.SET_LIST_OUTPUT,
