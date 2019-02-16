@@ -239,6 +239,7 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
                     "name": file_content.get("name", None),
                     "code": file_content.get("code", None).upper(),
                     "releaseDate": file_content.get("releaseDate", None),
+                    "type": file_content.get("type", None),
                 }
             )
 
