@@ -234,14 +234,18 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
 
         with set_file.open("r", encoding="utf-8") as f:
             file_content = json.load(f)
-            all_sets_data.append(
-                {
-                    "name": file_content.get("name", None),
-                    "code": file_content.get("code", None).upper(),
-                    "releaseDate": file_content.get("releaseDate", None),
-                    "type": file_content.get("type", None),
-                }
-            )
+
+            set_data = {
+                "name": file_content.get("name"),
+                "code": file_content.get("code"),
+                "releaseDate": file_content.get("releaseDate"),
+                "type": file_content.get("type"),
+            }
+
+            if "parentCode" in file_content.keys():
+                set_data["parentCode"] = file_content["parentCode"]
+
+            all_sets_data.append(set_data)
 
     return sorted(all_sets_data, key=lambda set_info: set_info["name"])
 

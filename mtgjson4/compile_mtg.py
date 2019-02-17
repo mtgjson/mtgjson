@@ -35,22 +35,33 @@ def build_output_file(
         LOGGER.error("Set Config for {} was not found, skipping...".format(set_code))
         return {"cards": [], "tokens": []}
 
-    output_file["name"] = set_config.get("name")
-    output_file["code"] = str(set_config.get("code", "")).upper()
-    output_file["mtgoCode"] = str(set_config.get("mtgo_code", "")).upper()
+    output_file["name"] = set_config["name"]
+    output_file["code"] = set_config["code"].upper()
+    output_file["releaseDate"] = set_config["released_at"]
+    output_file["type"] = set_config["set_type"]
+
+    # Add optionals if they exist
+    if "mtgo_code" in set_config.keys():
+        output_file["mtgoCode"] = set_config["mtgo_code"].upper()
 
     if "parent_set_code" in set_config.keys():
-        output_file["parentCode"] = set_config.get("parent_set_code").upper()
+        output_file["parentCode"] = set_config["parent_set_code"].upper()
 
-    output_file["releaseDate"] = set_config.get("released_at")
-    output_file["type"] = set_config.get("set_type")
+    if "block" in set_config.keys():
+        output_file["block"] = set_config["block"]
+
+    if "digital" in set_config.keys():
+        output_file["isOnlineOnly"] = set_config["digital"]
+
+    if "foil_only" in set_config.keys():
+        output_file["isFoilOnly"] = set_config["foil_only"]
 
     # Add booster info based on boosters resource (manually maintained for the time being)
     with mtgjson4.RESOURCE_PATH.joinpath("boosters.json").open(
         "r", encoding="utf-8"
     ) as f:
         json_dict: Dict[str, List[Any]] = json.load(f)
-        if output_file["code"].upper() in json_dict.keys():
+        if output_file["code"] in json_dict.keys():
             output_file["boosterV3"] = json_dict[output_file["code"].upper()]
 
     # Add V3 code for some backwards compatibility
@@ -58,17 +69,8 @@ def build_output_file(
         "r", encoding="utf-8"
     ) as f:
         json_dict = json.load(f)
-        if output_file["code"].upper() in json_dict.keys():
+        if output_file["code"] in json_dict.keys():
             output_file["codeV3"] = json_dict[output_file["code"]]
-
-    if set_config.get("block"):
-        output_file["block"] = set_config.get("block")
-
-    if set_config.get("digital"):
-        output_file["isOnlineOnly"] = True
-
-    if set_config.get("foil_only"):
-        output_file["isFoilOnly"] = True
 
     # Declare the version of the build in the output file
     output_file["meta"] = {
@@ -90,8 +92,8 @@ def build_output_file(
     card_holder, added_tokens = transpose_tokens(card_holder)
 
     # Add TCGPlayer information
-    if "tcgplayer_id" in set_config:
-        output_file["tcgplayerGroupId"] = set_config.get("tcgplayer_id")
+    if "tcgplayer_id" in set_config.keys():
+        output_file["tcgplayerGroupId"] = set_config["tcgplayer_id"]
         if not skip_tcgplayer:
             card_holder = add_tcgplayer_fields(
                 output_file["tcgplayerGroupId"], card_holder
@@ -109,6 +111,7 @@ def build_output_file(
 
     LOGGER.info("Finished cards for {}".format(set_code))
 
+    # Handle tokens
     LOGGER.info("Starting tokens for {}".format(set_code))
     sf_tokens: List[Dict[str, Any]] = scryfall.get_set("t" + set_code)
     output_file["tokens"] = build_mtgjson_tokens(sf_tokens + added_tokens)
@@ -120,6 +123,7 @@ def build_output_file(
     # Add Variations to each entry, as well as mark alternatives
     add_variations_and_alternative_fields(output_file["cards"], output_file)
 
+    # Handle duel deck modifications
     if set_code[:2] == "DD":
         mark_duel_decks(output_file["cards"])
 
