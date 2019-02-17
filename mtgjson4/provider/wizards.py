@@ -3,8 +3,9 @@
 import contextvars
 import logging
 import re
-from typing import Dict, List
+from typing import Any, Dict, List
 
+import mtgjson4
 from mtgjson4 import util
 import unidecode
 
@@ -44,7 +45,7 @@ def get_comp_rules() -> str:
     return response
 
 
-def compile_comp_output() -> Dict[str, List[str]]:
+def compile_comp_output() -> Dict[str, Any]:
     """
     Give a compiled dictionary result of the key phrases that can be
     found in the MTG comprehensive rule book.
@@ -53,9 +54,16 @@ def compile_comp_output() -> Dict[str, List[str]]:
     comp_rules = get_comp_rules()
 
     return {
+        # Deprecation in 4.3, Removal in 4.4
         "AbilityWords": get_ability_words(comp_rules),
+        # Deprecation in 4.3, Removal in 4.4
         "KeywordActions": get_keyword_actions(comp_rules),
+        # Deprecation in 4.3, Removal in 4.4
         "KeywordAbilities": get_keyword_abilities(comp_rules),
+        "abilityWords": get_ability_words(comp_rules),
+        "keywordActions": get_keyword_actions(comp_rules),
+        "keywordAbilities": get_keyword_abilities(comp_rules),
+        "meta": {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__},
     }
 
 

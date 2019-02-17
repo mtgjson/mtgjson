@@ -331,7 +331,7 @@ def get_funny_sets() -> List[str]:
     ]
 
 
-def create_all_sets_no_funny(files_to_ignore: List[str]) -> Dict[str, Any]:
+def create_vintage_only_output(files_to_ignore: List[str]) -> Dict[str, Any]:
     """
     Create all sets, but ignore additional sets
     :param files_to_ignore: Files to default ignore in the output
@@ -340,13 +340,16 @@ def create_all_sets_no_funny(files_to_ignore: List[str]) -> Dict[str, Any]:
     return create_all_sets(files_to_ignore + get_funny_sets())
 
 
-def create_all_cards_no_funny(files_to_ignore: List[str]) -> Dict[str, Any]:
+def create_compiled_list(files_to_add: List[str]) -> Dict[str, Any]:
     """
-    Create all cards, but ignore additional sets
-    :param files_to_ignore: Files to default ignore in the output
-    :return: AllCards without funny
+    Create the compiled list output file
+    :param files_to_add: Files to include in output
+    :return: Dict to write
     """
-    return create_all_cards(files_to_ignore + get_funny_sets())
+    return {
+        "files": files_to_add,
+        "meta": {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__},
+    }
 
 
 def create_and_write_compiled_outputs() -> None:
@@ -369,7 +372,9 @@ def create_and_write_compiled_outputs() -> None:
     ]
 
     # CompiledList.json -- do not include ReferralMap
-    write_to_file(mtgjson4.COMPILED_LIST_OUTPUT, sorted(files_to_ignore))
+    write_to_file(
+        mtgjson4.COMPILED_LIST_OUTPUT, create_compiled_list(sorted(files_to_ignore))
+    )
 
     # File that should be also ignored -- must be added AFTER CompiledList.json
     files_to_ignore.append(mtgjson4.REFERRAL_DB_OUTPUT)
@@ -401,5 +406,5 @@ def create_and_write_compiled_outputs() -> None:
     write_to_file(mtgjson4.MODERN_OUTPUT, create_modern_only_output())
 
     # Vintage.json
-    all_sets_no_fun = create_all_sets_no_funny(files_to_ignore)
+    all_sets_no_fun = create_vintage_only_output(files_to_ignore)
     write_to_file(mtgjson4.VINTAGE_OUTPUT, all_sets_no_fun)
