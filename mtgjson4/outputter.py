@@ -369,6 +369,7 @@ def create_and_write_compiled_outputs() -> None:
         mtgjson4.MODERN_OUTPUT,
         mtgjson4.VINTAGE_OUTPUT,
         mtgjson4.COMPILED_LIST_OUTPUT,
+        mtgjson4.CARD_TYPES_OUTPUT,
     ]
 
     # CompiledList.json -- do not include ReferralMap
@@ -382,6 +383,10 @@ def create_and_write_compiled_outputs() -> None:
     # Keywords.json
     key_words = wizards.compile_comp_output()
     write_to_file(mtgjson4.KEY_WORDS_OUTPUT, key_words)
+
+    # CardTypes.json
+    compiled_types = wizards.compile_comp_types_output()
+    write_to_file(mtgjson4.CARD_TYPES_OUTPUT, compiled_types)
 
     # version.json
     version_info = get_version_info()

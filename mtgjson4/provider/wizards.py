@@ -3,7 +3,7 @@
 import contextvars
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Match, Optional
 
 import mtgjson4
 from mtgjson4 import util
@@ -43,6 +43,16 @@ def get_comp_rules() -> str:
     response = download_from_wizards(comp_rules_url)
 
     return response
+
+
+def compile_comp_types_output() -> Dict[str, Any]:
+    """
+    Give a compiled dictionary result of the super, sub, and types
+    that can be found in the MTG comprehensive rules book.
+    :return: Dict of the different types
+    """
+    comp_rules = get_comp_rules()
+    return get_card_types(comp_rules)
 
 
 def compile_comp_output() -> Dict[str, Any]:
@@ -139,3 +149,82 @@ def get_keyword_abilities(comp_rules: str) -> List[str]:
     return parse_comp_internal(
         comp_rules, "702. Keyword Abilities", "703. Turn-Based Actions", "702"
     )
+
+
+def regex_str_to_list(regex_match: Optional[Match]) -> List[str]:
+    """
+    Take a regex match object and turn a string in
+    format "a, b, c, ..., and z." into [a,b,c,...,z]
+    :param regex_match: Regex match object
+    :return: List of strings
+    """
+    if not regex_match:
+        return []
+
+    # Get only the sentence with the types
+    card_types = regex_match.group(1).split(". ")[0]
+
+    # Split the types by comma
+    card_types_split: List[str] = card_types.split(", ")
+
+    # If there are only two elements, split by " and " instead
+    if len(card_types_split) == 1:
+        card_types_split = card_types.split(" and ")
+    else:
+        # Replace the last one from "and XYZ" to just "XYZ"
+        card_types_split[-1] = card_types_split[-1].split(" ", 1)[1]
+
+    #
+    for index, value in enumerate(card_types_split):
+        card_types_split[index] = value.split(" (")[0].lower()
+
+    return card_types_split
+
+
+def get_card_types(comp_rules: str) -> Dict[str, Any]:
+    """
+    Get all possible card super, sub, and types from the rules.
+    :param comp_rules: Comp rules from method
+    :return: Card types for return_value
+    """
+
+    # Only act on a sub-set of the rules to save time
+    comp_rules = (
+        comp_rules.split("205. Type Line")[2]
+        .split("206. Expansion Symbol")[0]
+        .replace("\r", "")
+    )
+
+    # Different regex searches needed for the data
+    card_types = re.search(r".*The card types are (.*)\.", comp_rules)
+    regex_type = {
+        "artifact": re.search(r".*The artifact types are (.*)\.", comp_rules),
+        "conspiracy": None,
+        "creature": re.search(r".*The creature types are (.*)\.", comp_rules),
+        "enchantment": re.search(r".*The enchantment types are (.*)\.", comp_rules),
+        "instant": re.search(r".*The spell types are (.*)\.", comp_rules),
+        "land": re.search(r".*The land types are (.*)\.", comp_rules),
+        "phenomenon": None,
+        "plane": re.search(r".*The planar types are (.*)\.", comp_rules),
+        "planeswalker": re.search(r".*planeswalker types are (.*)\.", comp_rules),
+        "scheme": None,
+        "sorcery": re.search(r".*The spell types are (.*)\.", comp_rules),
+        "tribal": None,
+        "vanguard": None,
+    }
+
+    super_types = regex_str_to_list(
+        re.search(r".*The supertypes are (.*)\.", comp_rules)
+    )
+
+    types_dict = {}
+    for card_type in regex_str_to_list(card_types):
+        types_dict[card_type] = {
+            "subTypes": regex_str_to_list(regex_type[card_type]),
+            "superTypes": super_types,
+        }
+
+    return {
+        "meta": {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__},
+        "types": types_dict,
+    }
