@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 
 import mtgjson4
 from mtgjson4 import util
-from mtgjson4.provider import gamepedia, scryfall, wizards, magic_precons
+from mtgjson4.provider import gamepedia, magic_precons, scryfall, wizards
 
 STANDARD_API_URL: str = "https://whatsinstandard.com/api/v5/sets.json"
 
@@ -50,9 +50,9 @@ def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -
     Will ensure the output directory exists first
     """
     mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
-    with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(win_os_fix(set_name) + ".json").open(
-        "w", encoding="utf-8"
-    ) as f:
+    with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
+        util.win_os_fix(set_name) + ".json"
+    ).open("w", encoding="utf-8") as f:
         if do_cleanup and isinstance(file_contents, dict):
             if "cards" in file_contents:
                 file_contents["cards"] = remove_unnecessary_fields(
@@ -191,20 +191,6 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
     return all_cards_data
 
 
-def win_os_fix(set_name: str) -> str:
-    """
-    In the Windows OS, there are certain file names that are not allowed.
-    In case we have a set with such a name, we will add a _ to the end to allow its existence
-    on Windows.
-    :param set_name: Set name
-    :return: Set name with a _ if necessary
-    """
-    if set_name in mtgjson4.BANNED_FILE_NAMES:
-        return set_name + "_"
-
-    return set_name
-
-
 def get_all_set_names(files_to_ignore: List[str]) -> List[str]:
     """
     This will create the SetCodes.json file
@@ -296,7 +282,9 @@ def create_standard_only_output() -> Dict[str, Any]:
     ]
 
     for set_code in standard_json:
-        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(win_os_fix(set_code) + ".json")
+        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
+            util.win_os_fix(set_code) + ".json"
+        )
 
         if not set_file.is_file():
             LOGGER.warning(
@@ -321,7 +309,9 @@ def create_modern_only_output() -> Dict[str, Any]:
     modern_data: Dict[str, Any] = {}
 
     for set_code in gamepedia.get_modern_sets():
-        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(win_os_fix(set_code) + ".json")
+        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
+            util.win_os_fix(set_code) + ".json"
+        )
 
         if not set_file.is_file():
             LOGGER.warning(
@@ -433,4 +423,7 @@ def create_and_write_compiled_outputs() -> None:
     write_to_file(mtgjson4.VINTAGE_OUTPUT, all_sets_no_fun)
 
     # decks/*.json
-    magic_precons.build_and_write_decks("/Users/zachary/Downloads/export_decks.json")
+    for deck in magic_precons.build_and_write_decks(
+        "/Users/zachary/Downloads/export_decks.json"
+    ):
+        write_deck_to_file(util.capital_case_without_symbols(deck["name"]), deck)
