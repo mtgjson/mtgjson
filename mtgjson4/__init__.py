@@ -32,7 +32,9 @@ MODERN_OUTPUT: str = "Modern"
 VINTAGE_OUTPUT: str = "Vintage"
 REFERRAL_DB_OUTPUT: str = "ReferralMap"
 ALL_SETS_DIR_OUTPUT: str = "AllSetFiles"
+ALL_DECKS_DIR_OUTPUT: str = "AllDeckFiles"
 CARD_TYPES_OUTPUT: str = "CardTypes"
+DECK_LISTS_OUTPUT: str = "DeckLists"
 
 LANGUAGE_MAP: Dict[str, str] = {
     "en": "English",

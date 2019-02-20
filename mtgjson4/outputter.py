@@ -234,7 +234,6 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
     all_sets_data: List[Dict[str, str]] = []
 
     for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-        print(set_file.stem)
         if set_file.stem in files_to_ignore:
             continue
 
@@ -350,6 +349,18 @@ def create_vintage_only_output(files_to_ignore: List[str]) -> Dict[str, Any]:
     return create_all_sets(files_to_ignore + get_funny_sets())
 
 
+def create_deck_compiled_list(decks_to_add: List[Dict[str, str]]) -> Dict[str, Any]:
+    """
+
+    :param decks_to_add:
+    :return:
+    """
+    return {
+        "decks": decks_to_add,
+        "meta": {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__},
+    }
+
+
 def create_compiled_list(files_to_add: List[str]) -> Dict[str, Any]:
     """
     Create the compiled list output file
@@ -369,17 +380,19 @@ def create_and_write_compiled_outputs() -> None:
     """
     # Compiled output files
     files_to_ignore: List[str] = [
+        mtgjson4.ALL_CARDS_OUTPUT,
+        mtgjson4.ALL_DECKS_DIR_OUTPUT,
         mtgjson4.ALL_SETS_DIR_OUTPUT,
         mtgjson4.ALL_SETS_OUTPUT,
-        mtgjson4.ALL_CARDS_OUTPUT,
-        mtgjson4.SET_LIST_OUTPUT,
-        mtgjson4.KEY_WORDS_OUTPUT,
-        mtgjson4.VERSION_OUTPUT,
-        mtgjson4.STANDARD_OUTPUT,
-        mtgjson4.MODERN_OUTPUT,
-        mtgjson4.VINTAGE_OUTPUT,
-        mtgjson4.COMPILED_LIST_OUTPUT,
         mtgjson4.CARD_TYPES_OUTPUT,
+        mtgjson4.COMPILED_LIST_OUTPUT,
+        mtgjson4.DECK_LISTS_OUTPUT,
+        mtgjson4.KEY_WORDS_OUTPUT,
+        mtgjson4.MODERN_OUTPUT,
+        mtgjson4.SET_LIST_OUTPUT,
+        mtgjson4.STANDARD_OUTPUT,
+        mtgjson4.VERSION_OUTPUT,
+        mtgjson4.VINTAGE_OUTPUT,
     ]
 
     # CompiledList.json -- do not include ReferralMap
@@ -425,5 +438,16 @@ def create_and_write_compiled_outputs() -> None:
     write_to_file(mtgjson4.VINTAGE_OUTPUT, all_sets_no_fun)
 
     # decks/*.json
+    deck_names = []
     for deck in magic_precons.build_and_write_decks(DECKS_URL):
-        write_deck_to_file(util.capital_case_without_symbols(deck["name"]), deck)
+        deck_name = util.capital_case_without_symbols(deck["name"])
+        write_deck_to_file(deck_name, deck)
+        deck_names.append({"deckName": deck_name, "code": deck["code"]})
+
+    # DeckLists.json
+    write_to_file(
+        mtgjson4.DECK_LISTS_OUTPUT,
+        create_deck_compiled_list(
+            sorted(deck_names, key=lambda deck_obj: deck_obj["deckName"])
+        ),
+    )
