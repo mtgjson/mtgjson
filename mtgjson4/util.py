@@ -105,4 +105,4 @@ def get_mtgjson_set_code(set_code: str) -> str:
             if set_code == value:
                 return str(key)
 
-    return win_os_fix(set_code)
+    return set_code
