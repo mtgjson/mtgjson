@@ -442,12 +442,14 @@ def create_and_write_compiled_outputs() -> None:
     for deck in magic_precons.build_and_write_decks(DECKS_URL):
         deck_name = util.capital_case_without_symbols(deck["name"])
         write_deck_to_file(deck_name, deck)
-        deck_names.append({"deckName": deck_name, "code": deck["code"]})
+        deck_names.append(
+            {"fileName": deck_name, "name": deck["name"], "code": deck["code"]}
+        )
 
     # DeckLists.json
     write_to_file(
         mtgjson4.DECK_LISTS_OUTPUT,
         create_deck_compiled_list(
-            sorted(deck_names, key=lambda deck_obj: deck_obj["deckName"])
+            sorted(deck_names, key=lambda deck_obj: deck_obj["name"])
         ),
     )
