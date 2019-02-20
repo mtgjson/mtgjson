@@ -16,6 +16,7 @@ def build_and_write_decks(decks_path: str) -> Iterator[Dict[str, Any]]:
     Given the path to the precons list, this will
     compile them in MTGJSONv4 format and write out
     the decks to the "decks/" folder.
+    :return Each deck completed, one by one
     """
     with pathlib.Path(decks_path).open("r", encoding="utf-8") as f:
         content = json.load(f)
