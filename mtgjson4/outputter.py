@@ -30,6 +30,20 @@ def write_tcgplayer_information(data: Dict[str, str]) -> None:
             f.write("{}\t{}\n".format(key, value))
 
 
+def write_deck_to_file(file_name: str, file_contents: Any) -> None:
+    """
+    Write out the precons to the file system
+    :param file_name: Name to give the deck
+    :param file_contents: Contents of the deck
+    """
+    mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
+    mtgjson4.COMPILED_OUTPUT_DIR.joinpath("decks").mkdir(exist_ok=True)
+    with mtgjson4.COMPILED_OUTPUT_DIR.joinpath("decks", file_name + ".json").open(
+        "w", encoding="utf-8"
+    ) as f:
+        json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
+
+
 def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -> None:
     """
     Write the compiled data to a file with the set's code
