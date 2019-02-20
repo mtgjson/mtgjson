@@ -105,8 +105,3 @@ def build_single_card(precon_card: Dict[str, Any]) -> List[Dict[str, Any]]:
         LOGGER.warning("No match for {}".format(precon_card))
 
     return cards
-
-
-if __name__ == "__main__":
-    mtgjson4.init_logger()
-    build_and_write_decks("/Users/zachary/Downloads/export_decks.json")

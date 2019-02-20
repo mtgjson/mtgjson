@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 
 import mtgjson4
 from mtgjson4 import util
-from mtgjson4.provider import gamepedia, scryfall, wizards
+from mtgjson4.provider import gamepedia, scryfall, wizards, magic_precons
 
 STANDARD_API_URL: str = "https://whatsinstandard.com/api/v5/sets.json"
 
@@ -431,3 +431,6 @@ def create_and_write_compiled_outputs() -> None:
     # Vintage.json
     all_sets_no_fun = create_vintage_only_output(files_to_ignore)
     write_to_file(mtgjson4.VINTAGE_OUTPUT, all_sets_no_fun)
+
+    # decks/*.json
+    magic_precons.build_and_write_decks("/Users/zachary/Downloads/export_decks.json")
