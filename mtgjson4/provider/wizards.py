@@ -25,7 +25,7 @@ def download_from_wizards(url: str) -> str:
     response = session.get(url=url, timeout=5.0)
     response.encoding = "windows-1252"  # WHY DO THEY DO THIS
 
-    LOGGER.info("Retrieved: %s", response.url)
+    LOGGER.info("Downloaded URL: {0}".format(response.url))
     session.close()
     return response.text
 
