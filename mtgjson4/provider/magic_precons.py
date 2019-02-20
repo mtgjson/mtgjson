@@ -3,7 +3,7 @@ import json
 import logging
 import multiprocessing
 import pathlib
-from typing import Any, Dict, Generator, List
+from typing import Any, Dict, Iterator, List
 
 import mtgjson4
 import mtgjson4.util
@@ -11,7 +11,7 @@ import mtgjson4.util
 LOGGER = logging.getLogger(__name__)
 
 
-def build_and_write_decks(decks_path: str) -> Generator[Dict[str, Any], None, None]:
+def build_and_write_decks(decks_path: str) -> Iterator[Dict[str, Any]]:
     """
     Given the path to the precons list, this will
     compile them in MTGJSONv4 format and write out
