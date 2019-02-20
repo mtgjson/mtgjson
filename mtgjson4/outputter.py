@@ -11,6 +11,7 @@ import mtgjson4
 from mtgjson4 import util
 from mtgjson4.provider import gamepedia, magic_precons, scryfall, wizards
 
+DECKS_URL: str = "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks.json"
 STANDARD_API_URL: str = "https://whatsinstandard.com/api/v5/sets.json"
 
 LOGGER = logging.getLogger(__name__)
@@ -131,7 +132,7 @@ def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
     all_sets_data: Dict[str, Any] = {}
 
     for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-        if set_file.name[:-5] in files_to_ignore:
+        if set_file.stem in files_to_ignore:
             continue
 
         with set_file.open("r", encoding="utf-8") as f:
@@ -152,7 +153,7 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
     all_cards_data: Dict[str, Any] = {}
 
     for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-        if set_file.name[:-5] in files_to_ignore:
+        if set_file.stem in files_to_ignore:
             continue
 
         with set_file.open("r", encoding="utf-8") as f:
@@ -203,7 +204,7 @@ def get_all_set_names(files_to_ignore: List[str]) -> List[str]:
     all_sets_data: List[str] = []
 
     for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-        if set_file.name[:-5] in files_to_ignore:
+        if set_file.stem in files_to_ignore:
             continue
         all_sets_data.append(
             get_set_name_from_file_name(set_file.name.split(".")[0].upper())
@@ -233,7 +234,8 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
     all_sets_data: List[Dict[str, str]] = []
 
     for set_file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json"):
-        if set_file.name[:-5] in files_to_ignore:
+        print(set_file.stem)
+        if set_file.stem in files_to_ignore:
             continue
 
         with set_file.open("r", encoding="utf-8") as f:
@@ -423,7 +425,5 @@ def create_and_write_compiled_outputs() -> None:
     write_to_file(mtgjson4.VINTAGE_OUTPUT, all_sets_no_fun)
 
     # decks/*.json
-    for deck in magic_precons.build_and_write_decks(
-        "/Users/zachary/Downloads/export_decks.json"
-    ):
+    for deck in magic_precons.build_and_write_decks(DECKS_URL):
         write_deck_to_file(util.capital_case_without_symbols(deck["name"]), deck)

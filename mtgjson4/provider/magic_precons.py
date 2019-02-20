@@ -2,8 +2,9 @@
 import json
 import logging
 import multiprocessing
-import pathlib
 from typing import Any, Dict, Iterator, List
+
+import requests
 
 import mtgjson4
 import mtgjson4.util
@@ -11,17 +12,17 @@ import mtgjson4.util
 LOGGER = logging.getLogger(__name__)
 
 
-def build_and_write_decks(decks_path: str) -> Iterator[Dict[str, Any]]:
+def build_and_write_decks(decks_url: str) -> Iterator[Dict[str, Any]]:
     """
-    Given the path to the precons list, this will
+    Given the URL to the precons list, this will
     compile them in MTGJSONv4 format and write out
     the decks to the "decks/" folder.
     :return Each deck completed, one by one
     """
-    with pathlib.Path(decks_path).open("r", encoding="utf-8") as f:
-        content = json.load(f)
+    decks_content = requests.get(decks_url).json()
+    LOGGER.info("Downloaded URL: {0}".format(decks_url))
 
-    for deck in content:
+    for deck in decks_content:
         deck_to_output = {
             "name": deck["name"],
             "code": deck["set_code"].upper(),
@@ -47,7 +48,7 @@ def build_and_write_decks(decks_path: str) -> Iterator[Dict[str, Any]]:
                 for card in cards:
                     deck_to_output["sideBoard"].append(card)
 
-        LOGGER.info("Finished set {}".format(deck["name"]))
+        LOGGER.info("Finished deck {}".format(deck["name"]))
         yield deck_to_output
 
 
