@@ -105,7 +105,10 @@ def build_output_file(
     with mtgjson4.RESOURCE_PATH.joinpath("base_set_sizes.json").open(
         "r", encoding="utf-8"
     ) as f:
-        output_file["baseSetSize"] = json.load(f).get(set_code.upper(), 0)
+        # Use the value in the resources file, otherwise use total set size
+        output_file["baseSetSize"] = json.load(f).get(
+            set_code.upper(), output_file["totalSetSize"]
+        )
 
     output_file["cards"] = card_holder
 
@@ -408,6 +411,8 @@ def build_mtgjson_tokens(
             # Prevent duplicate UUIDs for split card halves
             # Remove the last character and replace with the id of the card face
             mtgjson_card["scryfallId"] = sf_token["id"]
+            mtgjson_card["scryfallOracleId"] = sf_token["oracle_id"]
+            mtgjson_card["scryfallIllustrationId"] = sf_token.get("illustration_id")
 
             # Recursively parse the other cards within this card too
             # Only call recursive if it is the first time we see this card object
@@ -439,6 +444,8 @@ def build_mtgjson_tokens(
                 "loyalty": face_data.get("loyalty"),
                 "watermark": sf_token.get("watermark"),
                 "scryfallId": sf_token["id"],
+                "scryfallOracleId": sf_token.get("oracle_id"),
+                "scryfallIllustrationId": sf_token.get("illustration_id"),
                 "layout": "double_faced_token",
                 "side": chr(97 + sf_card_face),
                 "borderColor": face_data.get("border_color"),
@@ -459,6 +466,8 @@ def build_mtgjson_tokens(
                 "layout": "normal",
                 "watermark": sf_token.get("watermark"),
                 "scryfallId": sf_token["id"],
+                "scryfallOracleId": sf_token.get("oracle_id"),
+                "scryfallIllustrationId": sf_token.get("illustration_id"),
                 "borderColor": sf_token.get("border_color"),
                 "artist": sf_token.get("artist"),
                 "isOnlineOnly": sf_token.get("digital"),
@@ -589,6 +598,8 @@ def build_mtgjson_card(
         # Prevent duplicate UUIDs for split card halves
         # Remove the last character and replace with the id of the card face
         mtgjson_card["scryfallId"] = sf_card["id"]
+        mtgjson_card["scryfallOracleId"] = sf_card["oracle_id"]
+        mtgjson_card["scryfallIllustrationId"] = sf_card.get("illustration_id")
 
         # Split cards and rotational cards have this field, flip cards do not.
         # Remove rotational cards via the additional check
@@ -686,6 +697,12 @@ def build_mtgjson_card(
 
     if "scryfallId" not in mtgjson_card:
         mtgjson_card["scryfallId"] = sf_card.get("id")
+
+    if "scryfallOracleId" not in mtgjson_card:
+        mtgjson_card["scryfallOracleId"] = sf_card["oracle_id"]
+
+    if "scryfallIllustrationId" not in mtgjson_card:
+        mtgjson_card["scryfallIllustrationId"] = sf_card.get("illustration_id")
 
     # Characteristics that we have to format ourselves from provided data
     mtgjson_card["isTimeshifted"] = (sf_card.get("frame") == "future") or (
