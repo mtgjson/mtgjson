@@ -146,7 +146,5 @@ def get_mkm_set_ids():
 
 
 if __name__ == "__main__":
-    print(get_mkm_set_ids())
-    exit()
     mtgjson4.init_logger()
     main()
