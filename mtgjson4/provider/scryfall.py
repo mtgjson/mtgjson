@@ -16,6 +16,7 @@ SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_SCRYFALL")
 
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
 SCRYFALL_API_CARD: str = "https://api.scryfall.com/cards/"
+SCRYFALL_VARIATIONS: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}"
 PROVIDER_ID = "sf"
 
 
@@ -88,35 +89,45 @@ def get_set(set_code: str) -> List[Dict[str, Any]]:
         )
         return []
 
-    cards_api_url: Optional[str] = set_api_json.get("search_uri")
-
     # All cards in the set structure
     scryfall_cards: List[Dict[str, Any]] = []
 
-    # For each page, append all the data, go to next page
-    page_downloaded: int = 1
-    while cards_api_url is not None:
-        LOGGER.info(
-            "Downloading page {0} of card data for {1}".format(
-                page_downloaded, set_code
+    # Download both normal card and variations
+    for cards_api_url in [
+        set_api_json.get("search_uri"),
+        SCRYFALL_VARIATIONS.format(set_code),
+    ]:
+        # For each page, append all the data, go to next page
+        page_downloaded: int = 1
+        while cards_api_url:
+            LOGGER.info(
+                "Downloading page {0} of card data for {1}".format(
+                    page_downloaded, set_code
+                )
             )
-        )
-        page_downloaded += 1
+            page_downloaded += 1
 
-        cards_api_json: Dict[str, Any] = download(cards_api_url)
-        if cards_api_json["object"] == "error":
-            LOGGER.error("Error downloading {0}: {1}".format(set_code, cards_api_json))
-            return scryfall_cards
+            cards_api_json: Dict[str, Any] = download(cards_api_url)
+            if cards_api_json["object"] == "error":
+                LOGGER.error(
+                    "Error downloading {0}: {1}".format(set_code, cards_api_json)
+                )
+                break
 
-        for card in cards_api_json["data"]:
-            scryfall_cards.append(card)
+            # Append all cards on this page
+            for card_obj in cards_api_json["data"]:
+                scryfall_cards.append(card_obj)
 
-        if cards_api_json.get("has_more"):
+            # Go to the next page, if it exists
+            if not cards_api_json.get("has_more"):
+                break
+
             cards_api_url = cards_api_json.get("next_page")
-        else:
-            cards_api_url = None
 
-    return scryfall_cards
+    # Return sorted by card name, and by card number if the same name is found
+    return sorted(
+        scryfall_cards, key=lambda card: (card["name"], card["collector_number"])
+    )
 
 
 def parse_rulings(rulings_url: str) -> List[Dict[str, str]]:
@@ -193,6 +204,7 @@ def parse_foreign(
 ) -> List[Dict[str, str]]:
     """
     Get the foreign printings information for a specific card
+    :param card_number: Card's number
     :param sf_prints_url: URL to get prints from
     :param card_name: Card name to parse (needed for double faced)
     :param set_name: Set name
