@@ -2,15 +2,10 @@
 # pylint: disable=too-many-lines
 
 import argparse
-import json
 import logging
 import pathlib
-import re
 import sys
 from typing import Any, Dict, List, Optional
-
-import bs4
-import requests
 
 from mtgjson4 import compile_mtg
 import mtgjson4.outputter
@@ -132,17 +127,6 @@ def main() -> None:
     if args.c:
         LOGGER.info("Compiling Additional Outputs")
         mtgjson4.outputter.create_and_write_compiled_outputs()
-
-
-def get_mkm_set_ids():
-    mkm_page = requests.get("https://www.cardmarket.com/en/Magic/Products/Sets")
-    soup = bs4.BeautifulSoup(mkm_page.text, "html.parser")
-    select = soup.find("select", {"id": re.compile("idExpansion*")})
-    values = select.findAll("option")
-    mkm_codes = {}
-    for val in values:
-        mkm_codes[val.text] = int(val["value"])
-    return json.dumps(mkm_codes)
 
 
 if __name__ == "__main__":
