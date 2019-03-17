@@ -109,7 +109,7 @@ def get_set(set_code: str) -> List[Dict[str, Any]]:
 
             cards_api_json: Dict[str, Any] = download(cards_api_url)
             if cards_api_json["object"] == "error":
-                LOGGER.error(
+                LOGGER.warning(
                     "Error downloading {0}: {1}".format(set_code, cards_api_json)
                 )
                 break
