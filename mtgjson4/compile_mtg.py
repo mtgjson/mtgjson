@@ -4,6 +4,7 @@ import copy
 import json
 import logging
 import multiprocessing
+import pathlib
 import re
 from typing import Any, Dict, List, Set, Tuple
 import uuid
@@ -39,6 +40,9 @@ def build_output_file(
     output_file["code"] = set_config["code"].upper()
     output_file["releaseDate"] = set_config["released_at"]
     output_file["type"] = set_config["set_type"]
+    output_file["keyruneCode"] = (
+        pathlib.Path(set_config["icon_svg_uri"]).name.split(".")[0].upper()
+    )
 
     # Add optionals if they exist
     if "mtgo_code" in set_config.keys():
