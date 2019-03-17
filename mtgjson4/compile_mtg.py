@@ -601,8 +601,8 @@ def clean_up_watermark(
         json_dict: Dict[str, List[Any]] = json.load(f)
 
         for card in json_dict[set_code]:
-            if card["name"] == card_name:
-                return card["watermark"]
+            if card_name in card["name"].split(" // "):
+                return str(card["watermark"])
 
     return watermark
 
@@ -629,8 +629,6 @@ def build_mtgjson_card(
         mtgjson_card["names"] = sf_card["name"].split(" // ")  # List[str]
         face_data = sf_card["card_faces"][sf_card_face]
 
-        # Prevent duplicate UUIDs for split card halves
-        # Remove the last character and replace with the id of the card face
         mtgjson_card["scryfallId"] = sf_card["id"]
         mtgjson_card["scryfallOracleId"] = sf_card["oracle_id"]
         mtgjson_card["scryfallIllustrationId"] = sf_card.get("illustration_id")
@@ -649,6 +647,13 @@ def build_mtgjson_card(
             mtgjson_card["faceConvertedManaCost"] = get_cmc(
                 face_data.get("mana_cost", "0").strip()
             )
+
+        # Watermark is only attributed on the front side, so we'll account for it
+        mtgjson_card["watermark"] = clean_up_watermark(
+            sf_card["set"].upper(),
+            face_data["name"],
+            sf_card["card_faces"][0].get("watermark", ""),
+        )
 
         # Recursively parse the other cards within this card too
         # Only call recursive if it is the first time we see this card object
@@ -678,9 +683,11 @@ def build_mtgjson_card(
     mtgjson_card["power"] = face_data.get("power")
     mtgjson_card["toughness"] = face_data.get("toughness")
     mtgjson_card["loyalty"] = face_data.get("loyalty")
-    mtgjson_card["watermark"] = clean_up_watermark(
-        sf_card.get("set").upper(), mtgjson_card["name"], face_data.get("watermark", "")
-    )
+
+    if "watermark" not in mtgjson_card.keys():
+        mtgjson_card["watermark"] = clean_up_watermark(
+            sf_card["set"].upper(), mtgjson_card["name"], face_data.get("watermark", "")
+        )
 
     if "flavor_text" in face_data:
         mtgjson_card["flavorText"] = face_data.get("flavor_text")
