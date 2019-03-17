@@ -159,6 +159,7 @@ def add_uuid_to_cards(
             + "".join(token.get("colors", ""))
             + str(token.get("power", ""))
             + str(token.get("toughness", ""))
+            + str(token.get("side", ""))
             + file_info["code"]
             + token["scryfallId"]
         )
