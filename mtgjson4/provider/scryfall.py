@@ -7,12 +7,14 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import requests
 import requests.adapters
+import requests_cache
 
 import mtgjson4
 from mtgjson4 import util
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_SCRYFALL")
+SESSION_CACHE_EXIPRE : int = 604800 # seconds - 1 week
 
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
 SCRYFALL_API_CARD: str = "https://api.scryfall.com/cards/"
@@ -22,6 +24,7 @@ PROVIDER_ID = "sf"
 
 def __get_session() -> requests.Session:
     """Get or create a requests session for scryfall."""
+    requests_cache.install_cache('test_cache', backend='sqlite', expire_after=SESSION_CACHE_EXIPRE)
     session: Optional[requests.Session] = SESSION.get(None)
     if session is None:
         session = requests.Session()
@@ -51,8 +54,8 @@ def download(scryfall_url: str) -> Dict[str, Any]:
     """
     session = __get_session()
     response = session.get(url=scryfall_url, timeout=5.0)
+    LOGGER.info("Request Scryfall cached? -> {}".format(str(response.from_cache)))
     request_api_json: Dict[str, Any] = response.json()
-
     LOGGER.info("Downloaded URL: {0}".format(scryfall_url))
     session.close()
     return request_api_json

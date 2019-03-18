@@ -14,11 +14,13 @@ from mtgjson4.outputter import write_tcgplayer_information
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_TCGPLAYER")
+SESSION_CACHE_EXIPRE : int = 604800 # seconds - 1 week
 TCGPLAYER_API_VERSION: contextvars.ContextVar = contextvars.ContextVar("API_TCGPLAYER")
 
 
 def __get_session() -> requests.Session:
     """Get or create a requests session for TCGPlayer."""
+    requests_cache.install_cache('test_cache', backend='sqlite', expire_after=SESSION_CACHE_EXIPRE)
     session: Optional[requests.Session] = SESSION.get(None)
     if session is None:
         session = requests.Session()

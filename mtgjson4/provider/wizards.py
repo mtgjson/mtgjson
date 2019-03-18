@@ -26,6 +26,7 @@ def download_from_wizards(url: str) -> str:
     response.encoding = "windows-1252"  # WHY DO THEY DO THIS
 
     LOGGER.info("Downloaded URL: {0}".format(response.url))
+    LOGGER.info("Request Wizard cached? -> {}".format(str(response.from_cache)))
     session.close()
     return response.text
 

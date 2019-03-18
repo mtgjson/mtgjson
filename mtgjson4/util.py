@@ -6,11 +6,13 @@ from typing import Optional
 
 import requests
 import requests.adapters
+import requests_cache
 import urllib3.util.retry
 
 import mtgjson4
 
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
+SESSION_CACHE_EXIPRE : int = 604800 # seconds - 1 week
 
 
 def retryable_session(session: requests.Session, retries: int = 8) -> requests.Session:
@@ -36,6 +38,7 @@ def retryable_session(session: requests.Session, retries: int = 8) -> requests.S
 
 def get_generic_session() -> requests.Session:
     """Get or create a requests session for gatherer."""
+    requests_cache.install_cache('test_cache', backend='sqlite', expire_after=SESSION_CACHE_EXIPRE)
     session: Optional[requests.Session] = SESSION.get(None)
     if session is None:
         session = requests.Session()

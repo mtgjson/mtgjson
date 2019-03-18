@@ -3,3 +3,4 @@ beautifulsoup4
 requests
 unidecode
 urllib3
+requests-cache

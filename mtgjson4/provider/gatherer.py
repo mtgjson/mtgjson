@@ -72,6 +72,7 @@ def get_cards(multiverse_id: str) -> List[GathererCard]:
         timeout=8.0,
     )
     LOGGER.info("Retrieved: %s", response.url)
+    LOGGER.info("Request GATHERER cached? -> {}".format(str(response.from_cache)))
     session.close()
 
     return parse_cards(response.text)
