@@ -44,6 +44,13 @@ def build_output_file(
         pathlib.Path(set_config["icon_svg_uri"]).name.split(".")[0].upper()
     )
 
+    # Add Card Market information, if it exists
+    with mtgjson4.RESOURCE_PATH.joinpath("mkm_information.json").open("r") as f:
+        mkm = json.load(f)
+        if output_file["code"] in mkm.keys():
+            output_file["magicCardMarketName"] = mkm[output_file["code"]]["mkmName"]
+            output_file["magicCardMarketId"] = mkm[output_file["code"]]["mkmId"]
+
     # Add optionals if they exist
     if "mtgo_code" in set_config.keys():
         output_file["mtgoCode"] = set_config["mtgo_code"].upper()
