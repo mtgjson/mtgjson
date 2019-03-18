@@ -1,822 +1,822 @@
 {
     "pARL": {
-        "mkmName": "Arena League Promos",
-        "mkmId": 89
+        "mcmName": "Arena League Promos",
+        "mcmId": 89
     },
     "pALP": {
-        "mkmName": "APAC Lands",
-        "mkmId": 97
+        "mcmName": "APAC Lands",
+        "mcmId": 97
     },
     "pELP": {
-        "mkmName": "Euro Lands",
-        "mkmId": 81
+        "mcmName": "Euro Lands",
+        "mcmId": 81
     },
     "pGRU": {
-        "mkmName": "Guru Lands",
-        "mkmId": 88
+        "mcmName": "Guru Lands",
+        "mcmId": 88
     },
     "pHHO": {
-        "mkmName": "Happy Holidays Promos",
-        "mkmId": 1247
+        "mcmName": "Happy Holidays Promos",
+        "mcmId": 1247
     },
     "pJGP": {
-        "mkmName": "Judge Rewards Promos",
-        "mkmId": 80
+        "mcmName": "Judge Rewards Promos",
+        "mcmId": 80
     },
     "MPS_AKH": {
-        "mkmName": "Amonkhet Invocations",
-        "mkmId": 1798
+        "mcmName": "Amonkhet Invocations",
+        "mcmId": 1798
     },
     "NMS": {
-        "mkmName": "Nemesis",
-        "mkmId": 32
+        "mcmName": "Nemesis",
+        "mcmId": 32
     },
     "PO2": {
-        "mkmName": "Portal Second Age",
-        "mkmId": 24
+        "mcmName": "Portal Second Age",
+        "mcmId": 24
     },
     "pSUM": {
-        "mkmName": "Summer Magic",
-        "mkmId": 76
+        "mcmName": "Summer Magic",
+        "mcmId": 76
     },
     "FRF_UGIN": {
-        "mkmName": "Ugin's Fate Promos",
-        "mkmId": 1587
+        "mcmName": "Ugin's Fate Promos",
+        "mcmId": 1587
     },
     "VAN": {
-        "mkmName": "Vanguard",
-        "mkmId": 69
+        "mcmName": "Vanguard",
+        "mcmId": 69
     },
     "LEA": {
-        "mkmName": "Alpha",
-        "mkmId": 1
+        "mcmName": "Alpha",
+        "mcmId": 1
     },
     "LEB": {
-        "mkmName": "Beta",
-        "mkmId": 2
+        "mcmName": "Beta",
+        "mcmId": 2
     },
     "2ED": {
-        "mkmName": "Unlimited",
-        "mkmId": 3
+        "mcmName": "Unlimited",
+        "mcmId": 3
     },
     "CEI": {
-        "mkmName": "International Edition",
-        "mkmId": 77
+        "mcmName": "International Edition",
+        "mcmId": 77
     },
     "CED": {
-        "mkmName": "Collectors' Edition",
-        "mkmId": 61
+        "mcmName": "Collectors' Edition",
+        "mcmId": 61
     },
     "ARN": {
-        "mkmName": "Arabian Nights",
-        "mkmId": 4
+        "mcmName": "Arabian Nights",
+        "mcmId": 4
     },
     "ATQ": {
-        "mkmName": "Antiquities",
-        "mkmId": 5
+        "mcmName": "Antiquities",
+        "mcmId": 5
     },
     "3ED": {
-        "mkmName": "Revised",
-        "mkmId": 6
+        "mcmName": "Revised",
+        "mcmId": 6
     },
     "LEG": {
-        "mkmName": "Legends",
-        "mkmId": 7
+        "mcmName": "Legends",
+        "mcmId": 7
     },
     "DRK": {
-        "mkmName": "The Dark",
-        "mkmId": 8
+        "mcmName": "The Dark",
+        "mcmId": 8
     },
     "FEM": {
-        "mkmName": "Fallen Empires",
-        "mkmId": 9
+        "mcmName": "Fallen Empires",
+        "mcmId": 9
     },
     "4ED": {
-        "mkmName": "Fourth Edition",
-        "mkmId": 10
+        "mcmName": "Fourth Edition",
+        "mcmId": 10
     },
     "ICE": {
-        "mkmName": "Ice Age",
-        "mkmId": 11
+        "mcmName": "Ice Age",
+        "mcmId": 11
     },
     "CHR": {
-        "mkmName": "Chronicles",
-        "mkmId": 12
+        "mcmName": "Chronicles",
+        "mcmId": 12
     },
     "HML": {
-        "mkmName": "Homelands",
-        "mkmId": 14
+        "mcmName": "Homelands",
+        "mcmId": 14
     },
     "ALL": {
-        "mkmName": "Alliances",
-        "mkmId": 15
+        "mcmName": "Alliances",
+        "mcmId": 15
     },
     "MIR": {
-        "mkmName": "Mirage",
-        "mkmId": 16
+        "mcmName": "Mirage",
+        "mcmId": 16
     },
     "MGB": {
-        "mkmName": "Multiverse Gift Box",
-        "mkmId": 1519
+        "mcmName": "Multiverse Gift Box",
+        "mcmId": 1519
     },
     "ITP": {
-        "mkmName": "Introductory Two-Player Set",
-        "mkmId": 85
+        "mcmName": "Introductory Two-Player Set",
+        "mcmId": 85
     },
     "VIS": {
-        "mkmName": "Visions",
-        "mkmId": 17
+        "mcmName": "Visions",
+        "mcmId": 17
     },
     "5ED": {
-        "mkmName": "Fifth Edition",
-        "mkmId": 23
+        "mcmName": "Fifth Edition",
+        "mcmId": 23
     },
     "POR": {
-        "mkmName": "Portal",
-        "mkmId": 25
+        "mcmName": "Portal",
+        "mcmId": 25
     },
     "WTH": {
-        "mkmName": "Weatherlight",
-        "mkmId": 18
+        "mcmName": "Weatherlight",
+        "mcmId": 18
     },
     "TMP": {
-        "mkmName": "Tempest",
-        "mkmId": 19
+        "mcmName": "Tempest",
+        "mcmId": 19
     },
     "STH": {
-        "mkmName": "Stronghold",
-        "mkmId": 20
+        "mcmName": "Stronghold",
+        "mcmId": 20
     },
     "EXO": {
-        "mkmName": "Exodus",
-        "mkmId": 21
+        "mcmName": "Exodus",
+        "mcmId": 21
     },
     "UGL": {
-        "mkmName": "Unglued",
-        "mkmId": 22
+        "mcmName": "Unglued",
+        "mcmId": 22
     },
     "USG": {
-        "mkmName": "Urza's Saga",
-        "mkmId": 26
+        "mcmName": "Urza's Saga",
+        "mcmId": 26
     },
     "ATH": {
-        "mkmName": "Anthologies",
-        "mkmId": 75
+        "mcmName": "Anthologies",
+        "mcmId": 75
     },
     "ULG": {
-        "mkmName": "Urza's Legacy",
-        "mkmId": 27
+        "mcmName": "Urza's Legacy",
+        "mcmId": 27
     },
     "6ED": {
-        "mkmName": "Sixth Edition",
-        "mkmId": 29
+        "mcmName": "Sixth Edition",
+        "mcmId": 29
     },
     "PTK": {
-        "mkmName": "Portal Three Kingdoms",
-        "mkmId": 30
+        "mcmName": "Portal Three Kingdoms",
+        "mcmId": 30
     },
     "UDS": {
-        "mkmName": "Urza's Destiny",
-        "mkmId": 28
+        "mcmName": "Urza's Destiny",
+        "mcmId": 28
     },
     "S99": {
-        "mkmName": "Starter 1999",
-        "mkmId": 63
+        "mcmName": "Starter 1999",
+        "mcmId": 63
     },
     "MMQ": {
-        "mkmName": "Mercadian Masques",
-        "mkmId": 31
+        "mcmName": "Mercadian Masques",
+        "mcmId": 31
     },
     "BRB": {
-        "mkmName": "Battle Royale",
-        "mkmId": 64
+        "mcmName": "Battle Royale",
+        "mcmId": 64
     },
     "S00": {
-        "mkmName": "Starter 2000",
-        "mkmId": 65
+        "mcmName": "Starter 2000",
+        "mcmId": 65
     },
     "PCY": {
-        "mkmName": "Prophecy",
-        "mkmId": 33
+        "mcmName": "Prophecy",
+        "mcmId": 33
     },
     "BTD": {
-        "mkmName": "Beatdown",
-        "mkmId": 62
+        "mcmName": "Beatdown",
+        "mcmId": 62
     },
     "INV": {
-        "mkmName": "Invasion",
-        "mkmId": 34
+        "mcmName": "Invasion",
+        "mcmId": 34
     },
     "PLS": {
-        "mkmName": "Planeshift",
-        "mkmId": 35
+        "mcmName": "Planeshift",
+        "mcmId": 35
     },
     "7ED": {
-        "mkmName": "Seventh Edition",
-        "mkmId": 37
+        "mcmName": "Seventh Edition",
+        "mcmId": 37
     },
     "APC": {
-        "mkmName": "Apocalypse",
-        "mkmId": 36
+        "mcmName": "Apocalypse",
+        "mcmId": 36
     },
     "ODY": {
-        "mkmName": "Odyssey",
-        "mkmId": 38
+        "mcmName": "Odyssey",
+        "mcmId": 38
     },
     "DKM": {
-        "mkmName": "Deckmasters",
-        "mkmId": 67
+        "mcmName": "Deckmasters",
+        "mcmId": 67
     },
     "TOR": {
-        "mkmName": "Torment",
-        "mkmId": 39
+        "mcmName": "Torment",
+        "mcmId": 39
     },
     "JUD": {
-        "mkmName": "Judgment",
-        "mkmId": 40
+        "mcmName": "Judgment",
+        "mcmId": 40
     },
     "ONS": {
-        "mkmName": "Onslaught",
-        "mkmId": 41
+        "mcmName": "Onslaught",
+        "mcmId": 41
     },
     "LGN": {
-        "mkmName": "Legions",
-        "mkmId": 42
+        "mcmName": "Legions",
+        "mcmId": 42
     },
     "SCG": {
-        "mkmName": "Scourge",
-        "mkmId": 43
+        "mcmName": "Scourge",
+        "mcmId": 43
     },
     "8ED": {
-        "mkmName": "Eighth Edition",
-        "mkmId": 44
+        "mcmName": "Eighth Edition",
+        "mcmId": 44
     },
     "MRD": {
-        "mkmName": "Mirrodin",
-        "mkmId": 45
+        "mcmName": "Mirrodin",
+        "mcmId": 45
     },
     "DST": {
-        "mkmName": "Darksteel",
-        "mkmId": 46
+        "mcmName": "Darksteel",
+        "mcmId": 46
     },
     "5DN": {
-        "mkmName": "Fifth Dawn",
-        "mkmId": 47
+        "mcmName": "Fifth Dawn",
+        "mcmId": 47
     },
     "CHK": {
-        "mkmName": "Champions of Kamigawa",
-        "mkmId": 48
+        "mcmName": "Champions of Kamigawa",
+        "mcmId": 48
     },
     "UNH": {
-        "mkmName": "Unhinged",
-        "mkmId": 59
+        "mcmName": "Unhinged",
+        "mcmId": 59
     },
     "BOK": {
-        "mkmName": "Betrayers of Kamigawa",
-        "mkmId": 51
+        "mcmName": "Betrayers of Kamigawa",
+        "mcmId": 51
     },
     "SOK": {
-        "mkmName": "Saviors of Kamigawa",
-        "mkmId": 50
+        "mcmName": "Saviors of Kamigawa",
+        "mcmId": 50
     },
     "9ED": {
-        "mkmName": "Ninth Edition",
-        "mkmId": 49
+        "mcmName": "Ninth Edition",
+        "mcmId": 49
     },
     "RAV": {
-        "mkmName": "Ravnica: City of Guilds",
-        "mkmId": 55
+        "mcmName": "Ravnica: City of Guilds",
+        "mcmId": 55
     },
     "GPT": {
-        "mkmName": "Guildpact",
-        "mkmId": 54
+        "mcmName": "Guildpact",
+        "mcmId": 54
     },
     "DIS": {
-        "mkmName": "Dissension",
-        "mkmId": 53
+        "mcmName": "Dissension",
+        "mcmId": 53
     },
     "CST": {
-        "mkmName": "Coldsnap Theme Decks",
-        "mkmId": 82
+        "mcmName": "Coldsnap Theme Decks",
+        "mcmId": 82
     },
     "CSP": {
-        "mkmName": "Coldsnap",
-        "mkmId": 52
+        "mcmName": "Coldsnap",
+        "mcmId": 52
     },
     "TSB": {
-        "mkmName": "Time Spiral",
-        "mkmId": 56
+        "mcmName": "Time Spiral",
+        "mcmId": 56
     },
     "TSP": {
-        "mkmName": "Time Spiral",
-        "mkmId": 56
+        "mcmName": "Time Spiral",
+        "mcmId": 56
     },
     "PLC": {
-        "mkmName": "Planar Chaos",
-        "mkmId": 58
+        "mcmName": "Planar Chaos",
+        "mcmId": 58
     },
     "FUT": {
-        "mkmName": "Future Sight",
-        "mkmId": 70
+        "mcmName": "Future Sight",
+        "mcmId": 70
     },
     "10E": {
-        "mkmName": "Tenth Edition",
-        "mkmId": 74
+        "mcmName": "Tenth Edition",
+        "mcmId": 74
     },
     "LRW": {
-        "mkmName": "Lorwyn",
-        "mkmId": 84
+        "mcmName": "Lorwyn",
+        "mcmId": 84
     },
     "DD1": {
-        "mkmName": "Duel Decks: Elves vs. Goblins",
-        "mkmId": 91
+        "mcmName": "Duel Decks: Elves vs. Goblins",
+        "mcmId": 91
     },
     "MOR": {
-        "mkmName": "Morningtide",
-        "mkmId": 92
+        "mcmName": "Morningtide",
+        "mcmId": 92
     },
     "SHM": {
-        "mkmName": "Shadowmoor",
-        "mkmId": 95
+        "mcmName": "Shadowmoor",
+        "mcmId": 95
     },
     "EVE": {
-        "mkmName": "Eventide",
-        "mkmId": 99
+        "mcmName": "Eventide",
+        "mcmId": 99
     },
     "DRB": {
-        "mkmName": "From the Vault: Dragons",
-        "mkmId": 100
+        "mcmName": "From the Vault: Dragons",
+        "mcmId": 100
     },
     "ALA": {
-        "mkmName": "Shards of Alara",
-        "mkmId": 102
+        "mcmName": "Shards of Alara",
+        "mcmId": 102
     },
     "DD2": {
-        "mkmName": "Duel Decks: Jace vs. Chandra",
-        "mkmId": 104
+        "mcmName": "Duel Decks: Jace vs. Chandra",
+        "mcmId": 104
     },
     "CON": {
-        "mkmName": "Conflux",
-        "mkmId": 106
+        "mcmName": "Conflux",
+        "mcmId": 106
     },
     "DDC": {
-        "mkmName": "Duel Decks: Divine vs. Demonic",
-        "mkmId": 107
+        "mcmName": "Duel Decks: Divine vs. Demonic",
+        "mcmId": 107
     },
     "ARB": {
-        "mkmName": "Alara Reborn",
-        "mkmId": 108
+        "mcmName": "Alara Reborn",
+        "mcmId": 108
     },
     "M10": {
-        "mkmName": "Magic 2010",
-        "mkmId": 109
+        "mcmName": "Magic 2010",
+        "mcmId": 109
     },
     "V09": {
-        "mkmName": "From the Vault: Exiled",
-        "mkmId": 112
+        "mcmName": "From the Vault: Exiled",
+        "mcmId": 112
     },
     "HOP": {
-        "mkmName": "Planechase",
-        "mkmId": 113
+        "mcmName": "Planechase",
+        "mcmId": 113
     },
     "ZEN": {
-        "mkmName": "Zendikar",
-        "mkmId": 114
+        "mcmName": "Zendikar",
+        "mcmId": 114
     },
     "DDD": {
-        "mkmName": "Duel Decks: Garruk vs. Liliana",
-        "mkmId": 115
+        "mcmName": "Duel Decks: Garruk vs. Liliana",
+        "mcmId": 115
     },
     "H09": {
-        "mkmName": "Premium Deck Series: Slivers",
-        "mkmId": 116
+        "mcmName": "Premium Deck Series: Slivers",
+        "mcmId": 116
     },
     "WWK": {
-        "mkmName": "Worldwake",
-        "mkmId": 118
+        "mcmName": "Worldwake",
+        "mcmId": 118
     },
     "DDE": {
-        "mkmName": "Duel Decks: Phyrexia vs. The Coalition",
-        "mkmId": 119
+        "mcmName": "Duel Decks: Phyrexia vs. The Coalition",
+        "mcmId": 119
     },
     "ROE": {
-        "mkmName": "Rise of the Eldrazi",
-        "mkmId": 120
+        "mcmName": "Rise of the Eldrazi",
+        "mcmId": 120
     },
     "DPA": {
-        "mkmName": "Duels of the Planeswalkers Decks",
-        "mkmId": 1193
+        "mcmName": "Duels of the Planeswalkers Decks",
+        "mcmId": 1193
     },
     "ARC": {
-        "mkmName": "Archenemy",
-        "mkmId": 1194
+        "mcmName": "Archenemy",
+        "mcmId": 1194
     },
     "M11": {
-        "mkmName": "Magic 2011",
-        "mkmId": 1197
+        "mcmName": "Magic 2011",
+        "mcmId": 1197
     },
     "V10": {
-        "mkmName": "From the Vault: Relics",
-        "mkmId": 1202
+        "mcmName": "From the Vault: Relics",
+        "mcmId": 1202
     },
     "DDF": {
-        "mkmName": "Duel Decks: Elspeth vs. Tezzeret",
-        "mkmId": 1203
+        "mcmName": "Duel Decks: Elspeth vs. Tezzeret",
+        "mcmId": 1203
     },
     "SOM": {
-        "mkmName": "Scars of Mirrodin",
-        "mkmId": 1206
+        "mcmName": "Scars of Mirrodin",
+        "mcmId": 1206
     },
     "PD2": {
-        "mkmName": "Premium Deck Series: Fire & Lightning",
-        "mkmId": 1218
+        "mcmName": "Premium Deck Series: Fire & Lightning",
+        "mcmId": 1218
     },
     "MBS": {
-        "mkmName": "Mirrodin Besieged",
-        "mkmId": 1253
+        "mcmName": "Mirrodin Besieged",
+        "mcmId": 1253
     },
     "DDG": {
-        "mkmName": "Duel Decks: Knights vs. Dragons",
-        "mkmId": 1261
+        "mcmName": "Duel Decks: Knights vs. Dragons",
+        "mcmId": 1261
     },
     "NPH": {
-        "mkmName": "New Phyrexia",
-        "mkmId": 1262
+        "mcmName": "New Phyrexia",
+        "mcmId": 1262
     },
     "CMD": {
-        "mkmName": "Commander",
-        "mkmId": 1273
+        "mcmName": "Commander",
+        "mcmId": 1273
     },
     "M12": {
-        "mkmName": "Magic 2012",
-        "mkmId": 1280
+        "mcmName": "Magic 2012",
+        "mcmId": 1280
     },
     "V11": {
-        "mkmName": "From the Vault: Legends",
-        "mkmId": 1286
+        "mcmName": "From the Vault: Legends",
+        "mcmId": 1286
     },
     "DDH": {
-        "mkmName": "Duel Decks: Ajani vs. Nicol Bolas",
-        "mkmId": 1288
+        "mcmName": "Duel Decks: Ajani vs. Nicol Bolas",
+        "mcmId": 1288
     },
     "ISD": {
-        "mkmName": "Innistrad",
-        "mkmId": 1327
+        "mcmName": "Innistrad",
+        "mcmId": 1327
     },
     "PD3": {
-        "mkmName": "Premium Deck Series: Graveborn",
-        "mkmId": 1337
+        "mcmName": "Premium Deck Series: Graveborn",
+        "mcmId": 1337
     },
     "DKA": {
-        "mkmName": "Dark Ascension",
-        "mkmId": 1345
+        "mcmName": "Dark Ascension",
+        "mcmId": 1345
     },
     "DDI": {
-        "mkmName": "Duel Decks: Venser vs. Koth",
-        "mkmId": 1350
+        "mcmName": "Duel Decks: Venser vs. Koth",
+        "mcmId": 1350
     },
     "AVR": {
-        "mkmName": "Avacyn Restored",
-        "mkmId": 1358
+        "mcmName": "Avacyn Restored",
+        "mcmId": 1358
     },
     "PC2": {
-        "mkmName": "Planechase 2012",
-        "mkmId": 1369
+        "mcmName": "Planechase 2012",
+        "mcmId": 1369
     },
     "M13": {
-        "mkmName": "Magic 2013",
-        "mkmId": 1388
+        "mcmName": "Magic 2013",
+        "mcmId": 1388
     },
     "V12": {
-        "mkmName": "From the Vault: Realms",
-        "mkmId": 1397
+        "mcmName": "From the Vault: Realms",
+        "mcmId": 1397
     },
     "DDJ": {
-        "mkmName": "Duel Decks: Izzet vs. Golgari",
-        "mkmId": 1398
+        "mcmName": "Duel Decks: Izzet vs. Golgari",
+        "mcmId": 1398
     },
     "RTR": {
-        "mkmName": "Return to Ravnica",
-        "mkmId": 1389
+        "mcmName": "Return to Ravnica",
+        "mcmId": 1389
     },
     "CM1": {
-        "mkmName": "Commander's Arsenal",
-        "mkmId": 1418
+        "mcmName": "Commander's Arsenal",
+        "mcmId": 1418
     },
     "GTC": {
-        "mkmName": "Gatecrash",
-        "mkmId": 1424
+        "mcmName": "Gatecrash",
+        "mcmId": 1424
     },
     "DDK": {
-        "mkmName": "Duel Decks: Sorin vs. Tibalt",
-        "mkmId": 1430
+        "mcmName": "Duel Decks: Sorin vs. Tibalt",
+        "mcmId": 1430
     },
     "DGM": {
-        "mkmName": "Dragon's Maze",
-        "mkmId": 1435
+        "mcmName": "Dragon's Maze",
+        "mcmId": 1435
     },
     "MMA": {
-        "mkmName": "Modern Masters",
-        "mkmId": 1444
+        "mcmName": "Modern Masters",
+        "mcmId": 1444
     },
     "M14": {
-        "mkmName": "Magic 2014",
-        "mkmId": 1449
+        "mcmName": "Magic 2014",
+        "mcmId": 1449
     },
     "V13": {
-        "mkmName": "From the Vault: Twenty",
-        "mkmId": 1455
+        "mcmName": "From the Vault: Twenty",
+        "mcmId": 1455
     },
     "DDL": {
-        "mkmName": "Duel Decks: Heroes vs. Monsters",
-        "mkmId": 1456
+        "mcmName": "Duel Decks: Heroes vs. Monsters",
+        "mcmId": 1456
     },
     "THS": {
-        "mkmName": "Theros",
-        "mkmId": 1457
+        "mcmName": "Theros",
+        "mcmId": 1457
     },
     "C13": {
-        "mkmName": "Commander 2013",
-        "mkmId": 1464
+        "mcmName": "Commander 2013",
+        "mcmId": 1464
     },
     "BNG": {
-        "mkmName": "Born of the Gods",
-        "mkmId": 1469
+        "mcmName": "Born of the Gods",
+        "mcmId": 1469
     },
     "DDM": {
-        "mkmName": "Duel Decks: Jace vs. Vraska",
-        "mkmId": 1477
+        "mcmName": "Duel Decks: Jace vs. Vraska",
+        "mcmId": 1477
     },
     "JOU": {
-        "mkmName": "Journey into Nyx",
-        "mkmId": 1481
+        "mcmName": "Journey into Nyx",
+        "mcmId": 1481
     },
     "MD1": {
-        "mkmName": "Modern Event Deck 2014",
-        "mkmId": 1484
+        "mcmName": "Modern Event Deck 2014",
+        "mcmId": 1484
     },
     "CNS": {
-        "mkmName": "Conspiracy",
-        "mkmId": 1483
+        "mcmName": "Conspiracy",
+        "mcmId": 1483
     },
     "CP1": {
-        "mkmName": "Clash Pack Promos",
-        "mkmId": 1490
+        "mcmName": "Clash Pack Promos",
+        "mcmId": 1490
     },
     "M15": {
-        "mkmName": "Magic 2015",
-        "mkmId": 1485
+        "mcmName": "Magic 2015",
+        "mcmId": 1485
     },
     "V14": {
-        "mkmName": "From the Vault: Annihilation",
-        "mkmId": 1494
+        "mcmName": "From the Vault: Annihilation",
+        "mcmId": 1494
     },
     "DDN": {
-        "mkmName": "Duel Decks: Speed vs. Cunning",
-        "mkmId": 1496
+        "mcmName": "Duel Decks: Speed vs. Cunning",
+        "mcmId": 1496
     },
     "KTK": {
-        "mkmName": "Khans of Tarkir",
-        "mkmId": 1495
+        "mcmName": "Khans of Tarkir",
+        "mcmId": 1495
     },
     "C14": {
-        "mkmName": "Commander 2014",
-        "mkmId": 1513
+        "mcmName": "Commander 2014",
+        "mcmId": 1513
     },
     "GVL": {
-        "mkmName": "Duel Decks: Garruk vs. Liliana",
-        "mkmId": 115
+        "mcmName": "Duel Decks: Garruk vs. Liliana",
+        "mcmId": 115
     },
     "JVC": {
-        "mkmName": "Duel Decks: Jace vs. Chandra",
-        "mkmId": 104
+        "mcmName": "Duel Decks: Jace vs. Chandra",
+        "mcmId": 104
     },
     "DVD": {
-        "mkmName": "Duel Decks: Divine vs. Demonic",
-        "mkmId": 107
+        "mcmName": "Duel Decks: Divine vs. Demonic",
+        "mcmId": 107
     },
     "EVG": {
-        "mkmName": "Duel Decks: Elves vs. Goblins",
-        "mkmId": 91
+        "mcmName": "Duel Decks: Elves vs. Goblins",
+        "mcmId": 91
     },
     "FRF": {
-        "mkmName": "Fate Reforged",
-        "mkmId": 1522
+        "mcmName": "Fate Reforged",
+        "mcmId": 1522
     },
     "CP2": {
-        "mkmName": "Clash Pack Promos",
-        "mkmId": 1490
+        "mcmName": "Clash Pack Promos",
+        "mcmId": 1490
     },
     "DDO": {
-        "mkmName": "Duel Decks: Elspeth vs. Kiora",
-        "mkmId": 1593
+        "mcmName": "Duel Decks: Elspeth vs. Kiora",
+        "mcmId": 1593
     },
     "DTK": {
-        "mkmName": "Dragons of Tarkir",
-        "mkmId": 1601
+        "mcmName": "Dragons of Tarkir",
+        "mcmId": 1601
     },
     "TPR": {
-        "mkmName": "Tempest",
-        "mkmId": 19
+        "mcmName": "Tempest",
+        "mcmId": 19
     },
     "MM2": {
-        "mkmName": "Modern Masters 2015",
-        "mkmId": 1641
+        "mcmName": "Modern Masters 2015",
+        "mcmId": 1641
     },
     "CP3": {
-        "mkmName": "Clash Pack Promos",
-        "mkmId": 1490
+        "mcmName": "Clash Pack Promos",
+        "mcmId": 1490
     },
     "ORI": {
-        "mkmName": "Magic Origins",
-        "mkmId": 1652
+        "mcmName": "Magic Origins",
+        "mcmId": 1652
     },
     "V15": {
-        "mkmName": "From the Vault: Angels",
-        "mkmId": 1661
+        "mcmName": "From the Vault: Angels",
+        "mcmId": 1661
     },
     "DDP": {
-        "mkmName": "Duel Decks: Zendikar vs. Eldrazi",
-        "mkmId": 1663
+        "mcmName": "Duel Decks: Zendikar vs. Eldrazi",
+        "mcmId": 1663
     },
     "BFZ": {
-        "mkmName": "Battle for Zendikar",
-        "mkmId": 1668
+        "mcmName": "Battle for Zendikar",
+        "mcmId": 1668
     },
     "EXP": {
-        "mkmName": "Zendikar Expeditions",
-        "mkmId": 1669
+        "mcmName": "Zendikar Expeditions",
+        "mcmId": 1669
     },
     "C15": {
-        "mkmName": "Commander 2015",
-        "mkmId": 1679
+        "mcmName": "Commander 2015",
+        "mcmId": 1679
     },
     "OGW": {
-        "mkmName": "Oath of the Gatewatch",
-        "mkmId": 1676
+        "mcmName": "Oath of the Gatewatch",
+        "mcmId": 1676
     },
     "DDQ": {
-        "mkmName": "Duel Decks: Blessed vs. Cursed",
-        "mkmId": 1692
+        "mcmName": "Duel Decks: Blessed vs. Cursed",
+        "mcmId": 1692
     },
     "SOI": {
-        "mkmName": "Shadows over Innistrad",
-        "mkmId": 1694
+        "mcmName": "Shadows over Innistrad",
+        "mcmId": 1694
     },
     "W16": {
-        "mkmName": "Welcome Deck 2016",
-        "mkmId": 1710
+        "mcmName": "Welcome Deck 2016",
+        "mcmId": 1710
     },
     "EMA": {
-        "mkmName": "Eternal Masters",
-        "mkmId": 1696
+        "mcmName": "Eternal Masters",
+        "mcmId": 1696
     },
     "EMN": {
-        "mkmName": "Eldritch Moon",
-        "mkmId": 1695
+        "mcmName": "Eldritch Moon",
+        "mcmId": 1695
     },
     "V16": {
-        "mkmName": "From the Vault: Lore",
-        "mkmId": 1703
+        "mcmName": "From the Vault: Lore",
+        "mcmId": 1703
     },
     "CN2": {
-        "mkmName": "Kaladesh Inventions",
-        "mkmId": 1733
+        "mcmName": "Kaladesh Inventions",
+        "mcmId": 1733
     },
     "DDR": {
-        "mkmName": "Duel Decks: Nissa vs. Ob Nixilis",
-        "mkmId": 1720
+        "mcmName": "Duel Decks: Nissa vs. Ob Nixilis",
+        "mcmId": 1720
     },
     "KLD": {
-        "mkmName": "Kaladesh",
-        "mkmId": 1717
+        "mcmName": "Kaladesh",
+        "mcmId": 1717
     },
     "MPS": {
-        "mkmName": "Kaladesh Inventions",
-        "mkmId": 1733
+        "mcmName": "Kaladesh Inventions",
+        "mcmId": 1733
     },
     "C16": {
-        "mkmName": "Commander 2016",
-        "mkmId": 1719
+        "mcmName": "Commander 2016",
+        "mcmId": 1719
     },
     "PCA": {
-        "mkmName": "Planechase Anthology",
-        "mkmId": 1722
+        "mcmName": "Planechase Anthology",
+        "mcmId": 1722
     },
     "AER": {
-        "mkmName": "Aether Revolt",
-        "mkmId": 1718
+        "mcmName": "Aether Revolt",
+        "mcmId": 1718
     },
     "MM3": {
-        "mkmName": "Modern Masters 2017",
-        "mkmId": 1727
+        "mcmName": "Modern Masters 2017",
+        "mcmId": 1727
     },
     "DDS": {
-        "mkmName": "Duel Decks: Mind vs. Might",
-        "mkmId": 1728
+        "mcmName": "Duel Decks: Mind vs. Might",
+        "mcmId": 1728
     },
     "W17": {
-        "mkmName": "Welcome Deck 2017",
-        "mkmId": 1802
+        "mcmName": "Welcome Deck 2017",
+        "mcmId": 1802
     },
     "AKH": {
-        "mkmName": "Amonkhet",
-        "mkmId": 1729
+        "mcmName": "Amonkhet",
+        "mcmId": 1729
     },
     "CMA": {
-        "mkmName": "Commander Anthology",
-        "mkmId": 1732
+        "mcmName": "Commander Anthology",
+        "mcmId": 1732
     },
     "E01": {
-        "mkmName": "Archenemy: Nicol Bolas",
-        "mkmId": 1730
+        "mcmName": "Archenemy: Nicol Bolas",
+        "mcmId": 1730
     },
     "HOU": {
-        "mkmName": "Hour of Devastation",
-        "mkmId": 1731
+        "mcmName": "Hour of Devastation",
+        "mcmId": 1731
     },
     "C17": {
-        "mkmName": "Commander 2017",
-        "mkmId": 1813
+        "mcmName": "Commander 2017",
+        "mcmId": 1813
     },
     "XLN": {
-        "mkmName": "Ixalan",
-        "mkmId": 1812
+        "mcmName": "Ixalan",
+        "mcmId": 1812
     },
     "DDT": {
-        "mkmName": "Duel Decks: Merfolk vs. Goblins",
-        "mkmId": 1818
+        "mcmName": "Duel Decks: Merfolk vs. Goblins",
+        "mcmId": 1818
     },
     "IMA": {
-        "mkmName": "Iconic Masters",
-        "mkmId": 1811
+        "mcmName": "Iconic Masters",
+        "mcmId": 1811
     },
     "V17": {
-        "mkmName": "From the Vault: Transform",
-        "mkmId": 1819
+        "mcmName": "From the Vault: Transform",
+        "mcmId": 1819
     },
     "E02": {
-        "mkmName": "Explorers of Ixalan",
-        "mkmId": 1830
+        "mcmName": "Explorers of Ixalan",
+        "mcmId": 1830
     },
     "UST": {
-        "mkmName": "Unstable",
-        "mkmId": 1821
+        "mcmName": "Unstable",
+        "mcmId": 1821
     },
     "RIX": {
-        "mkmName": "Rivals of Ixalan",
-        "mkmId": 1829
+        "mcmName": "Rivals of Ixalan",
+        "mcmId": 1829
     },
     "A25": {
-        "mkmName": "Masters 25",
-        "mkmId": 1820
+        "mcmName": "Masters 25",
+        "mcmId": 1820
     },
     "DDU": {
-        "mkmName": "Duel Decks: Elves vs. Inventors",
-        "mkmId": 2068
+        "mcmName": "Duel Decks: Elves vs. Inventors",
+        "mcmId": 2068
     },
     "DOM": {
-        "mkmName": "Dominaria",
-        "mkmId": 1822
+        "mcmName": "Dominaria",
+        "mcmId": 1822
     },
     "BBD": {
-        "mkmName": "Battlebond",
-        "mkmId": 2111
+        "mcmName": "Battlebond",
+        "mcmId": 2111
     },
     "CM2": {
-        "mkmName": "Commander Anthology II",
-        "mkmId": 2109
+        "mcmName": "Commander Anthology II",
+        "mcmId": 2109
     },
     "SS1": {
-        "mkmName": "Signature Spellbook: Jace",
-        "mkmId": 2013
+        "mcmName": "Signature Spellbook: Jace",
+        "mcmId": 2013
     },
     "GS1": {
-        "mkmName": "Global Series Jiang Yanggu & Mu Yanling",
-        "mkmId": 2108
+        "mcmName": "Global Series Jiang Yanggu & Mu Yanling",
+        "mcmId": 2108
     },
     "M19": {
-        "mkmName": "Core 2019",
-        "mkmId": 1835
+        "mcmName": "Core 2019",
+        "mcmId": 1835
     },
     "C18": {
-        "mkmName": "Commander 2018",
-        "mkmId": 2110
+        "mcmName": "Commander 2018",
+        "mcmId": 2110
     },
     "MED": {
-        "mkmName": "Guilds of Ravnica: Mythic Edition",
-        "mkmId": 2373
+        "mcmName": "Guilds of Ravnica: Mythic Edition",
+        "mcmId": 2373
     },
     "GRN": {
-        "mkmName": "Guilds of Ravnica",
-        "mkmId": 2348
+        "mcmName": "Guilds of Ravnica",
+        "mcmId": 2348
     },
     "UMA": {
-        "mkmName": "Ultimate Masters",
-        "mkmId": 2397
+        "mcmName": "Ultimate Masters",
+        "mcmId": 2397
     },
     "RNA": {
-        "mkmName": "Ravnica Allegiance",
-        "mkmId": 2411
+        "mcmName": "Ravnica Allegiance",
+        "mcmId": 2411
     }
 }
