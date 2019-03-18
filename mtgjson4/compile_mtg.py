@@ -48,8 +48,8 @@ def build_output_file(
     with mtgjson4.RESOURCE_PATH.joinpath("mkm_information.json").open("r") as f:
         mkm = json.load(f)
         if output_file["code"] in mkm.keys():
-            output_file["magicCardMarketName"] = mkm[output_file["code"]]["mkmName"]
-            output_file["magicCardMarketId"] = mkm[output_file["code"]]["mkmId"]
+            output_file["cardMarketName"] = mkm[output_file["code"]]["mkmName"]
+            output_file["cardMarketId"] = mkm[output_file["code"]]["mkmId"]
 
     # Add optionals if they exist
     if "mtgo_code" in set_config.keys():
