@@ -24,9 +24,7 @@ def build_and_write_decks(decks_url: str) -> Iterator[Dict[str, Any]]:
     :return Each deck completed, one by one
     """
     decks_content: Any = requests.get(decks_url).json()
-    LOGGER.info(
-        "Downloaded: {} (Cache = {})".format(decks_url, decks_content.from_cache)
-    )
+    LOGGER.info("Downloaded: {} (Cache = {})".format(decks_url, False))
 
     # Location of AllSets.json -- Must be compiled before decks!
     all_sets_path: pathlib.Path = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
