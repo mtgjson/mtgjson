@@ -7,10 +7,10 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import requests
 import requests.adapters
-import requests_cache
 
 import mtgjson4
 from mtgjson4 import util
+import requests_cache
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_SCRYFALL")
@@ -23,7 +23,11 @@ PROVIDER_ID = "sf"
 
 def __get_session() -> requests.Session:
     """Get or create a requests session for scryfall."""
-    requests_cache.install_cache('scryfall_cache', backend='sqlite', expire_after=mtgjson4.SESSION_CACHE_EXPIRE_SCRYFALL)
+    requests_cache.install_cache(
+        "scryfall_cache",
+        backend="sqlite",
+        expire_after=mtgjson4.SESSION_CACHE_EXPIRE_SCRYFALL,
+    )
     session: Optional[requests.Session] = SESSION.get(None)
     if session is None:
         session = requests.Session()
@@ -52,10 +56,9 @@ def download(scryfall_url: str) -> Dict[str, Any]:
     :return: JSON object of the Scryfall data
     """
     session = __get_session()
-    response = session.get(url=scryfall_url, timeout=5.0)
-    LOGGER.info("Request Scryfall cached? -> {}".format(str(response.from_cache)))
+    response: Any = session.get(url=scryfall_url, timeout=5.0)
     request_api_json: Dict[str, Any] = response.json()
-    LOGGER.info("Downloaded URL: {0}".format(scryfall_url))
+    LOGGER.info("Downloaded: {} (Cache = {})".format(scryfall_url, response.from_cache))
     session.close()
     return request_api_json
 

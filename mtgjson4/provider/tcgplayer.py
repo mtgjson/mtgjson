@@ -11,6 +11,7 @@ import requests
 import mtgjson4
 from mtgjson4 import util
 from mtgjson4.outputter import write_tcgplayer_information
+import requests_cache
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_TCGPLAYER")
@@ -19,7 +20,9 @@ TCGPLAYER_API_VERSION: contextvars.ContextVar = contextvars.ContextVar("API_TCGP
 
 def __get_session() -> requests.Session:
     """Get or create a requests session for TCGPlayer."""
-    requests_cache.install_cache('tcg_cache', backend='sqlite', expire_after=mtgjson4.SESSION_CACHE_EXPIRE_TCG)
+    requests_cache.install_cache(
+        "tcg_cache", backend="sqlite", expire_after=mtgjson4.SESSION_CACHE_EXPIRE_TCG
+    )
     session: Optional[requests.Session] = SESSION.get(None)
     if session is None:
         session = requests.Session()
@@ -80,13 +83,13 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> str:
 
     session = __get_session()
 
-    response = session.get(
+    response: Any = session.get(
         url=tcgplayer_url.replace("[API_VERSION]", TCGPLAYER_API_VERSION.get("")),
         params=params_str,
         timeout=5.0,
     )
 
-    LOGGER.info("Downloaded URL: {0}".format(response.url))
+    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, response.from_cache))
     session.close()
 
     if response.status_code != 200:
@@ -104,7 +107,7 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> str:
             )
         return ""
 
-    return response.text
+    return str(response.text)
 
 
 def get_group_id_cards(group_id: int) -> List[Dict[str, Any]]:

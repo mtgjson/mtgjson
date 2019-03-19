@@ -122,3 +122,4 @@ compiled_outputs/
 
 .DS_Store
 mtgjson.properties
+*.sqlite
