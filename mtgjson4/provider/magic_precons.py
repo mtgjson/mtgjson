@@ -31,11 +31,17 @@ def build_and_write_decks(decks_url: str) -> Iterator[Dict[str, Any]]:
         mtgjson4.ALL_SETS_OUTPUT + ".json"
     )
 
+    file_loaded: bool = False
+    # Does the file exist
     if all_sets_path.is_file():
-        with all_sets_path.open("r") as f:
-            SET_SESSION.set(json.load(f))
-    else:
-        LOGGER.warning("AllSets must be compiled before decks. Aborting.")
+        # Is the file > 100MB? (Ensure we have all sets in it)
+        if all_sets_path.stat().st_size > 1e8:
+            with all_sets_path.open("r") as f:
+                SET_SESSION.set(json.load(f))
+                file_loaded = True
+
+    if not file_loaded:
+        LOGGER.warning("AllSets must be fully compiled before decks. Aborting.")
         return
 
     with multiprocessing.Pool(processes=8) as pool:
@@ -44,6 +50,7 @@ def build_and_write_decks(decks_url: str) -> Iterator[Dict[str, Any]]:
                 "name": deck["name"],
                 "code": deck["set_code"].upper(),
                 "type": deck["type"],
+                "releaseDate": deck["release_date"],
                 "mainBoard": [],
                 "sideBoard": [],
                 "meta": {
