@@ -22,6 +22,7 @@ RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson4").joinpath("resou
 SESSION_CACHE_EXPIRE_GATHERER: int = 604800  # seconds - 1 week
 SESSION_CACHE_EXPIRE_TCG: int = 604800  # seconds - 1 week
 SESSION_CACHE_EXPIRE_SCRYFALL: int = 604800  # seconds - 1 week
+SESSION_CACHE_EXPIRE_MKM: int = 604800  # seconds - 1 week
 
 
 # Compiled Output Files
