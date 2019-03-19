@@ -42,11 +42,13 @@ def get_generic_session() -> requests.Session:
         backend="sqlite",
         expire_after=mtgjson4.SESSION_CACHE_EXPIRE_GATHERER,
     )
+
     session: Optional[requests.Session] = SESSION.get(None)
-    if session is None:
+    if not session:
         session = requests.Session()
         session = retryable_session(session)
         SESSION.set(session)
+
     return session
 
 

@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Set, Tuple, Union
 import uuid
 
 import mtgjson4
-from mtgjson4.provider import gatherer, scryfall, tcgplayer
+from mtgjson4.provider import gatherer, magic_card_market, scryfall, tcgplayer
 from mtgjson4.util import is_number
 
 LOGGER = logging.getLogger(__name__)
@@ -43,6 +43,12 @@ def build_output_file(
     output_file["keyruneCode"] = (
         pathlib.Path(set_config["icon_svg_uri"]).name.split(".")[0].upper()
     )
+
+    # Add translations to the files
+    try:
+        output_file["translations"] = magic_card_market.get_translations(set_code)
+    except KeyError:
+        LOGGER.warning("Unable to find set translations for {}".format(set_code))
 
     # Add Card Market information, if it exists
     with mtgjson4.RESOURCE_PATH.joinpath("mkm_information.json").open("r") as f:
