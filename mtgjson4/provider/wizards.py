@@ -5,9 +5,10 @@ import logging
 import re
 from typing import Any, Dict, List, Match, Optional
 
+import unidecode
+
 import mtgjson4
 from mtgjson4 import util
-import unidecode
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_WIZARDS")

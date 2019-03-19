@@ -11,6 +11,7 @@ from mtgjson4 import util
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_GATHERER")
 
+
 GATHERER_CARD = "http://gatherer.wizards.com/Pages/Card/Details.aspx"
 
 SYMBOL_MAP = {

@@ -14,7 +14,6 @@ from mtgjson4 import util
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_SCRYFALL")
-SESSION_CACHE_EXIPRE : int = 604800 # seconds - 1 week
 
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
 SCRYFALL_API_CARD: str = "https://api.scryfall.com/cards/"
@@ -24,7 +23,7 @@ PROVIDER_ID = "sf"
 
 def __get_session() -> requests.Session:
     """Get or create a requests session for scryfall."""
-    requests_cache.install_cache('test_cache', backend='sqlite', expire_after=SESSION_CACHE_EXIPRE)
+    requests_cache.install_cache('scryfall_cache', backend='sqlite', expire_after=mtgjson4.SESSION_CACHE_EXPIRE_SCRYFALL)
     session: Optional[requests.Session] = SESSION.get(None)
     if session is None:
         session = requests.Session()
