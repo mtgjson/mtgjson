@@ -1,12 +1,14 @@
 """Gamepedia retrieval and processing"""
 import contextvars
-from typing import List
+import logging
+from typing import Any, List
 
 import bs4
 import requests
 
 from mtgjson4.provider import scryfall
 
+LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_GAMEPEDIA")
 
 MODERN_GAMEPEDIA_URL: str = "https://mtg.gamepedia.com/Modern"
@@ -30,7 +32,12 @@ def get_modern_sets() -> List[str]:
     to get the sets that are legal in modern
     :return: List of set codes legal in modern
     """
-    modern_page_content = requests.get(MODERN_GAMEPEDIA_URL)
+    modern_page_content: Any = requests.get(MODERN_GAMEPEDIA_URL)
+    LOGGER.info(
+        "Downloaded: {} (Cache = {})".format(
+            modern_page_content.url, modern_page_content.from_cache
+        )
+    )
 
     soup = bs4.BeautifulSoup(modern_page_content.text, "html.parser")
     soup = soup.find("div", class_="div-col columns column-width")

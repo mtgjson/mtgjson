@@ -2,7 +2,7 @@
 import contextvars
 import copy
 import logging
-from typing import List, NamedTuple, Optional
+from typing import Any, List, NamedTuple, Optional
 
 import bs4
 
@@ -66,12 +66,12 @@ class GathererCard(NamedTuple):
 def get_cards(multiverse_id: str) -> List[GathererCard]:
     """Get card(s) matching a given multiverseId."""
     session = util.get_generic_session()
-    response = session.get(
+    response: Any = session.get(
         url=GATHERER_CARD,
         params={"multiverseid": multiverse_id, "printed": "true"},
         timeout=8.0,
     )
-    LOGGER.info("Retrieved: %s", response.url)
+    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, response.from_cache))
     session.close()
 
     return parse_cards(response.text)

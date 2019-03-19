@@ -9,6 +9,7 @@ import requests.adapters
 import urllib3.util.retry
 
 import mtgjson4
+import requests_cache
 
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
@@ -36,6 +37,11 @@ def retryable_session(session: requests.Session, retries: int = 8) -> requests.S
 
 def get_generic_session() -> requests.Session:
     """Get or create a requests session for gatherer."""
+    requests_cache.install_cache(
+        "gatherer_cache",
+        backend="sqlite",
+        expire_after=mtgjson4.SESSION_CACHE_EXPIRE_GATHERER,
+    )
     session: Optional[requests.Session] = SESSION.get(None)
     if session is None:
         session = requests.Session()

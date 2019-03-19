@@ -22,12 +22,12 @@ def download_from_wizards(url: str) -> str:
     :return: Text from page
     """
     session = util.get_generic_session()
-    response = session.get(url=url, timeout=5.0)
+    response: Any = session.get(url=url, timeout=5.0)
     response.encoding = "windows-1252"  # WHY DO THEY DO THIS
 
-    LOGGER.info("Downloaded URL: {0}".format(response.url))
+    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, response.from_cache))
     session.close()
-    return response.text
+    return str(response.text)
 
 
 def get_comp_rules() -> str:
