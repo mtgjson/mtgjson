@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Set, Tuple, Union
 import uuid
 
 import mtgjson4
-from mtgjson4.provider import gatherer, magic_card_market, scryfall, tcgplayer
+from mtgjson4.provider import gatherer, scryfall, tcgplayer, translation_sources
 from mtgjson4.util import is_number
 
 LOGGER = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ def build_output_file(
 
     # Add translations to the files
     try:
-        output_file["translations"] = magic_card_market.get_translations(set_code)
+        output_file["translations"] = translation_sources.get_translations(set_code)
     except KeyError:
         LOGGER.warning("Unable to find set translations for {}".format(set_code))
 
