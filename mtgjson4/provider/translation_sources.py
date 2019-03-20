@@ -5,33 +5,39 @@ import json
 import logging
 import pathlib
 import re
+import time
 from typing import Any, Dict, List, Optional
 
 import bs4
 
 import mtgjson4
 from mtgjson4 import util
-
-# The offerings of MKM as of 2019-03-19
 from mtgjson4.provider import gamepedia, scryfall
 
-CARD_MARKET_LANGUAGES: List[Dict[str, str]] = [
+CARD_MARKET_URL: str = "https://www.cardmarket.com/{}/Magic/Expansions"
+JAPANESE_URL: str = "http://www.hareruyamtg.com/jp/default.aspx"
+PORTUGUESE_URL: str = "https://pt.wikipedia.org/wiki/Expans%C3%B5es_de_Magic:_The_Gathering"
+CHINESE_SIMP_URL: str = "http://ig2.cc/sitemap.html"
+
+SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_MKM")
+TRANSLATION_TABLE: contextvars.ContextVar = contextvars.ContextVar("TRANSLATION_TABLE")
+LOGGER = logging.getLogger(__name__)
+
+CARD_MARKET_FIXES = [
     {"code": "en", "lang": "English"},
     {"code": "fr", "lang": "French"},
     {"code": "de", "lang": "German"},
     {"code": "it", "lang": "Italian"},
     {"code": "es", "lang": "Spanish"},
 ]
-
-HARERUYA_SET_TRANSLATION = {
+JAPANESE_FIXES = {
     "UBT": "PUMA",
     "M19_2": "M19",
     "MM2015": "MM2",
     "CHRBB": "CHR",
     "4EDBB": "4ED",
 }
-
-IG2_REPLACEMENTS = {
+CHINESE_SIMP_FIXES = {
     "Magic 2019": "M19",
     "SanDiegoCon": "PS18",
     "Global Series Jiang Yanggu & Mu Yanling": "GS1",
@@ -41,17 +47,7 @@ IG2_REPLACEMENTS = {
     "Commander": "CMD",
     "Friday Night Magic": "F18",
 }
-
-WIKIPEDIA_REPLACEMENTS = {"TSP/TSB": "TSP"}
-
-CARD_MARKET_URL: str = "https://www.cardmarket.com/{}/Magic/Expansions"
-HARERUYA_URL: str = "http://www.hareruyamtg.com/jp/default.aspx"
-WIKIPEDIA_URL: str = "https://pt.wikipedia.org/wiki/Expans%C3%B5es_de_Magic:_The_Gathering"
-IG2_URL: str = "http://ig2.cc/sitemap.html"
-
-SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_MKM")
-TRANSLATION_TABLE: contextvars.ContextVar = contextvars.ContextVar("TRANSLATION_TABLE")
-LOGGER = logging.getLogger(__name__)
+PORTUGUESE_FIXES = {"TSP/TSB": "TSP"}
 
 
 def get_translations(set_code: Optional[str] = None) -> Any:
@@ -64,22 +60,78 @@ def get_translations(set_code: Optional[str] = None) -> Any:
     :return: Translation table
     """
     if not TRANSLATION_TABLE.get(None):
-        build_translation_table()
+        translation_file = mtgjson4.RESOURCE_PATH.joinpath("set_translations.json")
+
+        # If file cache exists and is current, read it from disk
+        # Any other reason, replace the table
+        if translation_file.is_file():
+            if (
+                time.time() - translation_file.stat().st_mtime
+                > mtgjson4.SESSION_CACHE_EXPIRE_GATHERER
+            ):
+                table = build_translation_table()
+                with translation_file.open("w") as f:
+                    json.dump(table, f, indent=4)
+            else:
+                TRANSLATION_TABLE.set(json.load(translation_file.open("r")))
+        else:
+            table = build_translation_table()
+            with translation_file.open("w") as f:
+                json.dump(table, f, indent=4)
 
     if set_code:
         return TRANSLATION_TABLE.get()[set_code]
     return TRANSLATION_TABLE.get()
 
 
-def get_simplified_chinese():
+def download(url: str, encoding: Optional[str] = None) -> str:
+    """
+    Download a file from a specified source using
+    our generic session.
+    :param url: URL to download
+    :param encoding: URL encoding (if necessary)
+    :return: URL content
+    """
     session = util.get_generic_session()
-    response: Any = session.get(IG2_URL)
-    response.encoding = "utf-8"  # Get proper Chinese characters
+    response: Any = session.get(url)
+    if encoding:
+        response.encoding = encoding
     LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, response.from_cache))
+    return str(response.text)
 
+
+def get_russian() -> None:
+    """
+    Get russian language sets
+    :return:
+    """
+    return
+
+
+def get_traditional_chinese() -> None:
+    """
+    Get traditional chinese language sets
+    :return:
+    """
+    return
+
+
+def get_korean() -> None:
+    """
+    Get korean language sets
+    :return:
+    """
+    return
+
+
+def get_simplified_chinese() -> Dict[str, Dict[str, str]]:
+    """
+    Get simplified chinese sets
+    :return:
+    """
     return_list = {}
 
-    soup = bs4.BeautifulSoup(response.text, "html.parser")
+    soup = bs4.BeautifulSoup(download(CHINESE_SIMP_URL, "utf-8"), "html.parser")
     body = soup.find("div", class_="mainlist")
     set_lines = body.find_all("li")
     for set_line in set_lines:
@@ -90,23 +142,23 @@ def get_simplified_chinese():
         set_name_en = set_line.text.split("-")[1].strip().split('"')[0]
         set_name_ch = a_tags.text.strip()
 
-        if set_name_en in IG2_REPLACEMENTS.keys():
-            set_name_en = IG2_REPLACEMENTS[set_name_en]
+        if set_name_en in CHINESE_SIMP_FIXES.keys():
+            set_name_en = CHINESE_SIMP_FIXES[set_name_en]
 
         return_list[set_name_en] = {"Chinese Simplified": set_name_ch}
 
     return return_list
 
 
-def get_portuguese():
-    session = util.get_generic_session()
-    response: Any = session.get(WIKIPEDIA_URL)
-    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, response.from_cache))
-
-    soup = bs4.BeautifulSoup(response.text, "html.parser")
-    tables = soup.find_all("table", class_="wikitable")
-
+def get_portuguese() -> Dict[str, Dict[str, str]]:
+    """
+    Get portuguese sets
+    :return:
+    """
     return_table = {}
+
+    soup = bs4.BeautifulSoup(download(PORTUGUESE_URL), "html.parser")
+    tables = soup.find_all("table", class_="wikitable")
 
     # First table
     rows = tables[0].find_all("tr")
@@ -116,8 +168,8 @@ def get_portuguese():
         set_code = cols[2].text.strip().upper()
         set_name = cols[0].text.strip()
 
-        if set_code in WIKIPEDIA_REPLACEMENTS.keys():
-            set_code = WIKIPEDIA_REPLACEMENTS[set_code]
+        if set_code in PORTUGUESE_FIXES.keys():
+            set_code = PORTUGUESE_FIXES[set_code]
 
         return_table[set_code] = {"Portuguese (Brazil)": set_name}
 
@@ -135,8 +187,8 @@ def get_portuguese():
         if not set_name or set_name == "-" or set_name[0] == '"':
             continue
 
-        if set_code in WIKIPEDIA_REPLACEMENTS.keys():
-            set_code = WIKIPEDIA_REPLACEMENTS[set_code]
+        if set_code in PORTUGUESE_FIXES.keys():
+            set_code = PORTUGUESE_FIXES[set_code]
 
         return_table[set_code] = {"Portuguese (Brazil)": set_name}
 
@@ -144,15 +196,14 @@ def get_portuguese():
     return return_table
 
 
-def get_japanese():
-    session = util.get_generic_session()
-
+def get_japanese() -> Dict[str, Dict[str, str]]:
+    """
+    Get japanese sets
+    :return:
+    """
     translation_dict: Dict[str, Dict[str, str]] = {}
 
-    response: Any = session.get(HARERUYA_URL)
-    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, response.from_cache))
-
-    soup = bs4.BeautifulSoup(response.text, "html.parser")
+    soup = bs4.BeautifulSoup(download(JAPANESE_URL), "html.parser")
     magic_sets_list = soup.find_all("h5")
 
     for magic_set in magic_sets_list:
@@ -175,19 +226,14 @@ def get_mkm_languages() -> List[Dict[str, str]]:
     construct it in a later function.
     :return: List[Dict[str, str]] with language: "set name"
     """
-    session = util.get_generic_session()
     translation_list: List[Dict[str, str]] = []
 
-    for lang_map in CARD_MARKET_LANGUAGES:
+    for lang_map in CARD_MARKET_FIXES:
         mkm_url = CARD_MARKET_URL.format(lang_map["code"])
-        response: Any = session.get(mkm_url)
-        LOGGER.info(
-            "Downloaded: {} (Cache = {})".format(response.url, response.from_cache)
-        )
 
         # Parse the data and pluck all anchor tags with a set URL
         # inside of their href tag.
-        soup = bs4.BeautifulSoup(response.text, "html.parser")
+        soup = bs4.BeautifulSoup(download(mkm_url), "html.parser")
         magic_sets = soup.find_all(
             "a", href=re.compile(r"/{}/Magic/Expansions/.*".format(lang_map["code"]))
         )
@@ -211,10 +257,9 @@ def get_mkm_languages() -> List[Dict[str, str]]:
 
 def build_translation_table() -> Dict[str, Dict[str, str]]:
     """
-    Calls for the pre-building of the table, then goes through
-    the MKM information we have stored in resources and plays
-    match maker to create a simple access dictionary for
-    future insertions.
+    Calls for the building of each language, then goes through
+    and plays match maker to create a simple access dictionary
+    with all of the necessary data.
     :return: {SET_CODE: {LANGUAGE: TRANSLATED_SET, ...}, ...}
     """
     LOGGER.info("Compiling set translations")
@@ -244,8 +289,8 @@ def build_translation_table() -> Dict[str, Dict[str, str]]:
             combined_table[set_code] = value
 
     for key, value in get_japanese().items():
-        if key in HARERUYA_SET_TRANSLATION.keys():
-            key = HARERUYA_SET_TRANSLATION[key]
+        if key in JAPANESE_FIXES.keys():
+            key = JAPANESE_FIXES[key]
 
         if key in combined_table.keys():
             combined_table[key] = {**combined_table[key], **value}
@@ -257,8 +302,6 @@ def build_translation_table() -> Dict[str, Dict[str, str]]:
             combined_table[key] = {**combined_table[key], **value}
         else:
             combined_table[key] = value
-
-    print(json.dumps(combined_table))
 
     TRANSLATION_TABLE.set(combined_table)
     return combined_table
