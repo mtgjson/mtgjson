@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from mtgjson4 import compile_mtg
 import mtgjson4.outputter
-from mtgjson4.provider import scryfall
+from mtgjson4.provider import scryfall, magic_card_market
 
 LOGGER = logging.getLogger(__name__)
 
@@ -131,4 +131,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     mtgjson4.init_logger()
+    magic_card_market.build_translation_table()
+    exit(0)
     main()
