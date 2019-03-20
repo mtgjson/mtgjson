@@ -1,4 +1,4 @@
-"""Magic Card Market retrieval and processing."""
+"""Conglomerate of resources for translation retrieval and processing."""
 
 import contextvars
 import json
@@ -17,7 +17,7 @@ from mtgjson4.provider import gamepedia, scryfall
 CARD_MARKET_URL: str = "https://www.cardmarket.com/{}/Magic/Expansions"
 JAPANESE_URL: str = "http://www.hareruyamtg.com/jp/default.aspx"
 PORTUGUESE_URL: str = "https://pt.wikipedia.org/wiki/Expans%C3%B5es_de_Magic:_The_Gathering"
-CHINESE_SIMP_URL: str = "http://ig2.cc/sitemap.html"
+CHINESE_SIMPLE_URL: str = "http://ig2.cc/sitemap.html"
 
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_MKM")
 TRANSLATION_TABLE: contextvars.ContextVar = contextvars.ContextVar("TRANSLATION_TABLE")
@@ -37,7 +37,7 @@ JAPANESE_FIXES = {
     "CHRBB": "CHR",
     "4EDBB": "4ED",
 }
-CHINESE_SIMP_FIXES = {
+CHINESE_SIMPLE_FIXES = {
     "Magic 2019": "M19",
     "SanDiegoCon": "PS18",
     "Global Series Jiang Yanggu & Mu Yanling": "GS1",
@@ -131,7 +131,7 @@ def get_simplified_chinese() -> Dict[str, Dict[str, str]]:
     """
     return_list = {}
 
-    soup = bs4.BeautifulSoup(download(CHINESE_SIMP_URL, "utf-8"), "html.parser")
+    soup = bs4.BeautifulSoup(download(CHINESE_SIMPLE_URL, "utf-8"), "html.parser")
     body = soup.find("div", class_="mainlist")
     set_lines = body.find_all("li")
     for set_line in set_lines:
@@ -142,8 +142,8 @@ def get_simplified_chinese() -> Dict[str, Dict[str, str]]:
         set_name_en = set_line.text.split("-")[1].strip().split('"')[0]
         set_name_ch = a_tags.text.strip()
 
-        if set_name_en in CHINESE_SIMP_FIXES.keys():
-            set_name_en = CHINESE_SIMP_FIXES[set_name_en]
+        if set_name_en in CHINESE_SIMPLE_FIXES.keys():
+            set_name_en = CHINESE_SIMPLE_FIXES[set_name_en]
 
         return_list[set_name_en] = {"Chinese Simplified": set_name_ch}
 
@@ -270,24 +270,25 @@ def build_translation_table() -> Dict[str, Dict[str, str]]:
     with mtgjson4.RESOURCE_PATH.joinpath("mkm_information.json").open("r") as f:
         mkm_stuff = json.load(f)
 
-    # The Big-O time of this is bad, but there are only a few hundred
-    # elements in each, so not _too_ big a deal here.
+    # English, French, German, Italian, Spanish
+    # NOTE: Refactor as this could be slow
     for set_content in get_mkm_languages():
         for key, value in mkm_stuff.items():
             if value["mcmName"] == set_content["English"]:
                 combined_table[key] = set_content
                 break
 
+    # Chinese
     for word_key, value in get_simplified_chinese().items():
         set_code = scryfall.get_set_header(gamepedia.strip_bad_sf_chars(word_key))[
             "code"
         ].upper()
-
         if set_code in combined_table:
             combined_table[set_code] = {**combined_table[set_code], **value}
         else:
             combined_table[set_code] = value
 
+    # Japanese
     for key, value in get_japanese().items():
         if key in JAPANESE_FIXES.keys():
             key = JAPANESE_FIXES[key]
@@ -297,11 +298,17 @@ def build_translation_table() -> Dict[str, Dict[str, str]]:
         else:
             combined_table[key] = value
 
+    # Portuguese (Brazil)
     for key, value in get_portuguese().items():
         if key in combined_table.keys():
             combined_table[key] = {**combined_table[key], **value}
         else:
             combined_table[key] = value
+
+    # Strip English afterwards (not necessary in the file)
+    for key, value in combined_table.items():
+        if "English" in value.keys():
+            del value["English"]
 
     TRANSLATION_TABLE.set(combined_table)
     return combined_table
