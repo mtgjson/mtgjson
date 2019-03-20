@@ -72,12 +72,14 @@ def get_translations(set_code: Optional[str] = None) -> Any:
                 table = build_translation_table()
                 with translation_file.open("w") as f:
                     json.dump(table, f, indent=4)
+                    f.write("\n")
             else:
                 TRANSLATION_TABLE.set(json.load(translation_file.open("r")))
         else:
             table = build_translation_table()
             with translation_file.open("w") as f:
                 json.dump(table, f, indent=4)
+                f.write("\n")
 
     if set_code:
         return TRANSLATION_TABLE.get()[set_code]
