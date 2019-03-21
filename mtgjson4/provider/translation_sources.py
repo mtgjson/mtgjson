@@ -128,13 +128,15 @@ def get_korean() -> Dict[str, Dict[str, str]]:
     :return:
     """
     # Korean Cache Start
-    with mtgjson4.RESOURCE_PATH.joinpath("ko_set_translations.json").open("r") as f:
+    korean_content_path = mtgjson4.RESOURCE_PATH.joinpath("ko_set_translations.json")
+    with korean_content_path.open("r") as f:
         korean_content = json.load(f)
 
     soup = bs4.BeautifulSoup(download(KOREAN_URL), "html.parser")
     soup = soup.find("div", class_="card-set-archive-table")
     set_lines = soup.find_all("a", href=re.compile(r".*node.*"))
 
+    new_items = False
     for set_line in set_lines:
         set_name = set_line.find("span", class_="nameSet").text.strip()
 
@@ -148,11 +150,13 @@ def get_korean() -> Dict[str, Dict[str, str]]:
                 set_code = re.match(r".*images/magic/([A-Za-z0-9]*)/.*", img_tag["src"])
                 if set_code:
                     korean_content[set_code.group(1).upper()] = set_name
+                    new_items = True
                     break
 
-    with mtgjson4.RESOURCE_PATH.joinpath("ko_set_translations.json").open("w") as f:
-        json.dump(korean_content, f, indent=4)
-        f.write("\n")
+    if new_items:
+        with korean_content_path.open("w") as f:
+            json.dump(korean_content, f, indent=4)
+            f.write("\n")
     # Korean Cache End
 
     # Get the translations now
