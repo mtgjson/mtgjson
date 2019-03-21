@@ -20,7 +20,7 @@ def strip_bad_sf_chars(bad_text: str) -> str:
     have to strip the names to the bare minimums to get a valid result
     back.
     """
-    for bad_char in [" ", ":", "'", "’"]:
+    for bad_char in [" ", ":", "'", "’", "."]:
         bad_text = bad_text.replace(bad_char, "")
 
     return bad_text

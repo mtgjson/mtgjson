@@ -6,7 +6,7 @@ import logging
 import pathlib
 import re
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import bs4
 
@@ -14,43 +14,24 @@ import mtgjson4
 from mtgjson4 import util
 from mtgjson4.provider import gamepedia, scryfall
 
-WIZARDS_URL: str = "https://magic.wizards.com/"
-
-CARD_MARKET_URL: str = "https://www.cardmarket.com/{}/Magic/Expansions"
-JAPANESE_URL: str = "http://www.hareruyamtg.com/jp/default.aspx"
-PORTUGUESE_URL: str = "https://pt.wikipedia.org/wiki/Expans%C3%B5es_de_Magic:_The_Gathering"
-CHINESE_SIMPLE_URL: str = "http://ig2.cc/sitemap.html"
-KOREAN_URL: str = WIZARDS_URL + "ko/products/card-set-archive"
-
-SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_MKM")
+TRANSLATION_URL = "https://magic.wizards.com/{}/products/card-set-archive"
+SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_TRANSLATIONS")
 TRANSLATION_TABLE: contextvars.ContextVar = contextvars.ContextVar("TRANSLATION_TABLE")
 LOGGER = logging.getLogger(__name__)
 
-CARD_MARKET_FIXES = [
-    {"code": "en", "lang": "English"},
-    {"code": "fr", "lang": "French"},
-    {"code": "de", "lang": "German"},
-    {"code": "it", "lang": "Italian"},
-    {"code": "es", "lang": "Spanish"},
+SUPPORTED_LANGUAGES = [
+    ("zh-hans", "Chinese Simplified"),
+    ("zh-hant", "Chinese Traditional"),
+    ("fr", "French"),
+    ("de", "German"),
+    ("it", "Italian"),
+    ("ja", "Japanese"),
+    ("ko", "Korean"),
+    ("pt-br", "Portuguese (Brazil)"),
+    ("ru", "Russian"),
+    ("es", "Spanish"),
+    ("en", "English"),
 ]
-JAPANESE_FIXES = {
-    "UBT": "PUMA",
-    "M19_2": "M19",
-    "MM2015": "MM2",
-    "CHRBB": "CHR",
-    "4EDBB": "4ED",
-}
-CHINESE_SIMPLE_FIXES = {
-    "Magic 2019": "M19",
-    "SanDiegoCon": "PS18",
-    "Global Series Jiang Yanggu & Mu Yanling": "GS1",
-    "Master 25": "A25",
-    "Magic Player Rewards": "P11",
-    "Commander 2013 Edition": "C13",
-    "Commander": "CMD",
-    "Friday Night Magic": "F18",
-}
-PORTUGUESE_FIXES = {"TSP/TSB": "TSP"}
 
 
 def get_translations(set_code: Optional[str] = None) -> Any:
@@ -62,6 +43,9 @@ def get_translations(set_code: Optional[str] = None) -> Any:
     Return value w/  set_code: SET_CODE: {SET_LANG: TRANSLATION, ...}
     :return: Translation table
     """
+    table = build_translation_table()
+    return
+
     if not TRANSLATION_TABLE.get(None):
         translation_file = mtgjson4.RESOURCE_PATH.joinpath("set_translations.json")
 
@@ -105,260 +89,118 @@ def download(url: str, encoding: Optional[str] = None) -> str:
     return str(response.text)
 
 
-def get_russian() -> None:
+def build_single_language(
+    lang: Tuple[str, str], translation_table: Dict[str, Dict[str, str]]
+) -> Dict[str, Dict[str, str]]:
     """
-    Get russian language sets
-    :return:
+    This will take the given language and source the data
+    from the Wizards site to create a new entry in each
+    option.
+    :param translation_table: Partially built table
+    :param lang: Tuple of lang to find on wizards, lang to show in MTGJSON
     """
-    return
+    # Download the localized archive
+    session = util.get_generic_session()
+    soup = bs4.BeautifulSoup(
+        session.get(TRANSLATION_URL.format(lang[0])).text, "html.parser"
+    )
 
-
-def get_traditional_chinese() -> None:
-    """
-    Get traditional chinese language sets
-    :return:
-    """
-    return
-
-
-def get_korean() -> Dict[str, Dict[str, str]]:
-    """
-    Get korean language sets from pre-built and then strip new ones from
-    Wizards website
-    :return:
-    """
-    # Korean Cache Start
-    korean_content_path = mtgjson4.RESOURCE_PATH.joinpath("ko_set_translations.json")
-    with korean_content_path.open("r") as f:
-        korean_content = json.load(f)
-
-    soup = bs4.BeautifulSoup(download(KOREAN_URL), "html.parser")
-    soup = soup.find("div", class_="card-set-archive-table")
-    set_lines = soup.find_all("a", href=re.compile(r".*node.*"))
-
-    new_items = False
+    # Find all nodes, which are table rows
+    set_lines = soup.find_all("a", href=re.compile(".*node.*"))
     for set_line in set_lines:
+        # Pluck out the set icon, as it's how we will link all languages
+        icon = set_line.find("span", class_="icon")
+
+        # Skip if we can't find an icon
+        if not icon or len(icon) == 1:
+            continue
+
+        set_icon_url = icon.find("img")["src"]
         set_name = set_line.find("span", class_="nameSet").text.strip()
 
-        if set_name not in korean_content.values():
-            soup = bs4.BeautifulSoup(
-                download(WIZARDS_URL + set_line["href"]), "html.parser"
-            )
-            soup = soup.find_all("img", attrs={"src": re.compile(r".*media.*")})
+        # Update our global table
+        if set_icon_url in translation_table.keys():
+            translation_table[set_icon_url] = {
+                **translation_table[set_icon_url],
+                **{lang[1]: set_name},
+            }
+        else:
+            translation_table[set_icon_url] = {lang[1]: set_name}
 
-            for img_tag in soup:
-                set_code = re.match(r".*images/magic/([A-Za-z0-9]*)/.*", img_tag["src"])
-                if set_code:
-                    korean_content[set_code.group(1).upper()] = set_name
-                    new_items = True
-                    break
-
-    if new_items:
-        with korean_content_path.open("w") as f:
-            json.dump(korean_content, f, indent=4)
-            f.write("\n")
-    # Korean Cache End
-
-    # Get the translations now
-    return_list = {}
-    for key, value in korean_content.items():
-        return_list[key] = {"Korean": value}
-
-    return return_list
+    return translation_table
 
 
-def get_simplified_chinese() -> Dict[str, Dict[str, str]]:
-    """
-    Get simplified chinese sets
-    :return:
-    """
-    return_list = {}
+def convert_keys_to_set_names(
+    table: Dict[str, Dict[str, str]]
+) -> Dict[str, Dict[str, str]]:
 
-    soup = bs4.BeautifulSoup(download(CHINESE_SIMPLE_URL, "utf-8"), "html.parser")
-    body = soup.find("div", class_="mainlist")
-    set_lines = body.find_all("li")
-    for set_line in set_lines:
-        a_tags = set_line.find("a")
-        if not a_tags:
-            continue
-
-        set_name_en = set_line.text.split("-")[1].strip().split('"')[0]
-        set_name_ch = a_tags.text.strip()
-
-        if set_name_en in CHINESE_SIMPLE_FIXES.keys():
-            set_name_en = CHINESE_SIMPLE_FIXES[set_name_en]
-
-        return_list[set_name_en] = {"Chinese Simplified": set_name_ch}
-
-    return return_list
-
-
-def get_portuguese() -> Dict[str, Dict[str, str]]:
-    """
-    Get portuguese sets
-    :return:
-    """
     return_table = {}
-
-    soup = bs4.BeautifulSoup(download(PORTUGUESE_URL), "html.parser")
-    tables = soup.find_all("table", class_="wikitable")
-
-    # First table
-    rows = tables[0].find_all("tr")
-    for row in rows[2:]:
-        cols = row.find_all("td")
-
-        set_code = cols[2].text.strip().upper()
-        set_name = cols[0].text.strip()
-
-        if set_code in PORTUGUESE_FIXES.keys():
-            set_code = PORTUGUESE_FIXES[set_code]
-
-        return_table[set_code] = {"Portuguese (Brazil)": set_name}
-
-    # Second table
-    rows = tables[1].find_all("tr")
-    for row in rows[2:]:
-        cols = row.find_all("td")
-
-        if len(cols) < 4:
+    for key, value in table.items():
+        if "English" not in value.keys():
+            LOGGER.error("VALUE INCOMPLETE\t{}: {}".format(key, value))
             continue
 
-        set_code = cols[3].text.upper().split("[")[0].strip()
-        set_name = cols[0].text.strip()
+        new_key = value["English"]
+        del value["English"]
+        return_table[new_key] = value
 
-        if not set_name or set_name == "-" or set_name[0] == '"':
-            continue
-
-        if set_code in PORTUGUESE_FIXES.keys():
-            set_code = PORTUGUESE_FIXES[set_code]
-
-        return_table[set_code] = {"Portuguese (Brazil)": set_name}
-
-    # Third table -- Skipped as there's no translations
+    LOGGER.info(json.dumps(return_table))
     return return_table
 
 
-def get_japanese() -> Dict[str, Dict[str, str]]:
-    """
-    Get japanese sets
-    :return:
-    """
-    translation_dict: Dict[str, Dict[str, str]] = {}
-
-    soup = bs4.BeautifulSoup(download(JAPANESE_URL), "html.parser")
-    magic_sets_list = soup.find_all("h5")
-
-    for magic_set in magic_sets_list:
-        img_tag = magic_set.find("img")
-        if not img_tag:
-            continue
-
-        jp_set_code = str(pathlib.Path(img_tag["src"]).name.split(".")[0])
-        translation_dict[jp_set_code] = {"Japanese": magic_set.text}
-
-    return translation_dict
+def remove_and_replace(table, good, bad):
+    table[good] = {**table[bad], **table[good]}
+    del table[bad]
+    return table
 
 
-def get_mkm_languages() -> List[Dict[str, str]]:
-    """
-    Build a table of dicts that contains the translation
-    of each set. Since MKM returns the same order for
-    each page, just translated into a different language,
-    we can exploit this to build an anonymous array and
-    construct it in a later function.
-    :return: List[Dict[str, str]] with language: "set name"
-    """
-    translation_list: List[Dict[str, str]] = []
+def manual_fix_mistakes(table):
+    # Fix dominaria
+    good_dominaria = "https://magic.wizards.com/sites/mtg/files/images/featured/DAR_Logo_Symbol_Common.png"
+    bad_dominaria = "https://magic.wizards.com/sites/mtg/files/images/featured/DAR_CardSetArchive_Symbol.png"
+    table = remove_and_replace(table, good_dominaria, bad_dominaria)
 
-    for lang_map in CARD_MARKET_FIXES:
-        mkm_url = CARD_MARKET_URL.format(lang_map["code"])
+    # Fix tempest remastered
+    good_tempest_remastered = (
+        "https://magic.wizards.com/sites/mtg/files/images/featured/TPR_SetSymbol.png"
+    )
+    bad_tempest_remastered = (
+        "https://magic.wizards.com/sites/mtg/files/images/featured/TPR_SetSymbol.png"
+    )
+    table = remove_and_replace(table, good_tempest_remastered, bad_tempest_remastered)
 
-        # Parse the data and pluck all anchor tags with a set URL
-        # inside of their href tag.
-        soup = bs4.BeautifulSoup(download(mkm_url), "html.parser")
-        magic_sets = soup.find_all(
-            "a", href=re.compile(r"/{}/Magic/Expansions/.*".format(lang_map["code"]))
-        )
+    # Fix archenemy
+    good_archenemy_nb = (
+        "https://magic.wizards.com/sites/mtg/files/images/featured/e01-icon_1.png"
+    )
+    bad_archenemy_nb = (
+        "https://magic.wizards.com/sites/mtg/files/images/featured/e01-icon_0.png"
+    )
+    table = remove_and_replace(table, good_archenemy_nb, bad_archenemy_nb)
 
-        # Pre-fill our table so we can index into it
-        if not translation_list:
-            translation_list = [{}] * len(magic_sets)
+    # Fix planechase
+    good_planechase2012 = (
+        "https://magic.wizards.com/sites/mtg/files/images/featured/PC2_SetSymbol.png"
+    )
+    bad_planechase2012 = (
+        "https://magic.wizards.com/sites/mtg/files/images/featured/PC2_SetIcon.png"
+    )
+    table = remove_and_replace(table, good_planechase2012, bad_planechase2012)
 
-        for index, header in enumerate(magic_sets):
-            if translation_list[index]:
-                # Merge the two dicts
-                translation_list[index] = {
-                    **translation_list[index],
-                    **{lang_map["lang"]: header.text},
-                }
-            else:
-                translation_list[index] = {lang_map["lang"]: header.text}
+    # Fix duel deck
+    good_duel_deck_q = "https://magic.wizards.com/sites/mtg/files/images/featured/EN_DDQ_SET_SYMBOL.jpg"
+    bad_duel_deck_q = "https://magic.wizards.com/sites/mtg/files/images/featured/DDQ_ExpansionSymbol.png"
+    table = remove_and_replace(table, good_duel_deck_q, bad_duel_deck_q)
 
-    return translation_list
+    return table
 
 
 def build_translation_table() -> Dict[str, Dict[str, str]]:
-    """
-    Calls for the building of each language, then goes through
-    and plays match maker to create a simple access dictionary
-    with all of the necessary data.
-    :return: {SET_CODE: {LANGUAGE: TRANSLATED_SET, ...}, ...}
-    """
-    LOGGER.info("Compiling set translations")
+    return_table = {}
 
-    # Final result table
-    combined_table = {}
+    for pair in SUPPORTED_LANGUAGES:
+        return_table = build_single_language(pair, return_table)
 
-    with mtgjson4.RESOURCE_PATH.joinpath("mkm_information.json").open("r") as f:
-        mkm_stuff = json.load(f)
+    return_table = manual_fix_mistakes(return_table)
 
-    # English, French, German, Italian, Spanish
-    # NOTE: Refactor as this could be slow
-    for set_content in get_mkm_languages():
-        for key, value in mkm_stuff.items():
-            if value["mcmName"] == set_content["English"]:
-                combined_table[key] = set_content
-                break
-
-    # Chinese
-    for word_key, value in get_simplified_chinese().items():
-        set_code = scryfall.get_set_header(gamepedia.strip_bad_sf_chars(word_key))[
-            "code"
-        ].upper()
-        if set_code in combined_table:
-            combined_table[set_code] = {**combined_table[set_code], **value}
-        else:
-            combined_table[set_code] = value
-
-    # Japanese
-    for key, value in get_japanese().items():
-        if key in JAPANESE_FIXES.keys():
-            key = JAPANESE_FIXES[key]
-
-        if key in combined_table.keys():
-            combined_table[key] = {**combined_table[key], **value}
-        else:
-            combined_table[key] = value
-
-    # Portuguese (Brazil)
-    for key, value in get_portuguese().items():
-        if key in combined_table.keys():
-            combined_table[key] = {**combined_table[key], **value}
-        else:
-            combined_table[key] = value
-
-    # Korean
-    for key, value in get_korean().items():
-        if key in combined_table.keys():
-            combined_table[key] = {**combined_table[key], **value}
-        else:
-            combined_table[key] = value
-
-    # Strip English afterwards (not necessary in the file)
-    for key, value in combined_table.items():
-        if "English" in value.keys():
-            del value["English"]
-
-    TRANSLATION_TABLE.set(combined_table)
-    return combined_table
+    return convert_keys_to_set_names(return_table)
