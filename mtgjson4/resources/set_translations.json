@@ -6,7 +6,8 @@
         "Spanish": "La lealtad de Ravnica",
         "Chinese Simplified": "\u6548\u5fe0\u62c9\u5c3c\u5361",
         "Japanese": "\u30e9\u30f4\u30cb\u30ab\u306e\u732e\u8eab",
-        "Portuguese (Brazil)": "Alian\u00e7as em Ravnica"
+        "Portuguese (Brazil)": "Alian\u00e7as em Ravnica",
+        "Korean": "\ub77c\ube0c\ub2c8\uce74\uc758 \ucda9\uc131"
     },
     "UMA": {
         "French": "Ultimate Masters",
@@ -23,7 +24,8 @@
         "Spanish": "Gremios de R\u00e1vnica",
         "Chinese Simplified": "\u70fd\u4f1a\u62c9\u5c3c\u5361",
         "Japanese": "\u30e9\u30f4\u30cb\u30ab\u306e\u30ae\u30eb\u30c9",
-        "Portuguese (Brazil)": "Guildas de Ravnica"
+        "Portuguese (Brazil)": "Guildas de Ravnica",
+        "Korean": "\ub77c\ube0c\ub2c8\uce74\uc758 \uae38\ub4dc"
     },
     "MED": {
         "French": "Guilds of Ravnica: Mythic Edition",
@@ -45,7 +47,8 @@
         "Spanish": "Colecci\u00f3n b\u00e1sica 2019",
         "Chinese Simplified": "\u4e07\u667a\u724c2019",
         "Japanese": "\u57fa\u672c\u30bb\u30c3\u30c82019",
-        "Portuguese (Brazil)": "Magic 2019"
+        "Portuguese (Brazil)": "Magic 2019",
+        "Korean": "\ucf54\uc5b4\uc138\ud2b8 2019"
     },
     "GS1": {
         "French": "Global Series Jiang Yanggu & Mu Yanling",
@@ -82,7 +85,8 @@
         "Spanish": "Dominaria",
         "Chinese Simplified": "\u591a\u660e\u7eb3\u91cc\u4e9a",
         "Japanese": "\u30c9\u30df\u30ca\u30ea\u30a2",
-        "Portuguese (Brazil)": "Domin\u00e1ria"
+        "Portuguese (Brazil)": "Domin\u00e1ria",
+        "Korean": "\ub3c4\ubbf8\ub098\ub9ac\uc544"
     },
     "DDU": {
         "French": "Duel Decks: Elves vs. Inventors",
@@ -125,7 +129,8 @@
         "French": "Explorers of Ixalan",
         "German": "Entdecker von Ixalan",
         "Italian": "Explorers of Ixalan",
-        "Spanish": "Explorers of Ixalan"
+        "Spanish": "Explorers of Ixalan",
+        "Korean": "\uc775\uc0b4\ub780\uc758 \uc219\uc801\ub4e4"
     },
     "IMA": {
         "French": "Iconic Masters",
@@ -148,7 +153,8 @@
         "Spanish": "Ixalan",
         "Chinese Simplified": "\u4f9d\u590f\u5170",
         "Japanese": "\u30a4\u30af\u30b5\u30e9\u30f3",
-        "Portuguese (Brazil)": "Ixalan"
+        "Portuguese (Brazil)": "Ixalan",
+        "Korean": "\uc775\uc0b4\ub780"
     },
     "C17": {
         "French": "Commander 2017",
@@ -164,7 +170,8 @@
         "Spanish": "La hora de la devastaci\u00f3n",
         "Chinese Simplified": "\u5e7b\u706d\u65f6\u523b",
         "Japanese": "\u7834\u6ec5\u306e\u523b",
-        "Portuguese (Brazil)": "Hora da Devasta\u00e7\u00e3o"
+        "Portuguese (Brazil)": "Hora da Devasta\u00e7\u00e3o",
+        "Korean": "\ud30c\uba78\uc758 \uc2dc\uac04"
     },
     "E01": {
         "French": "Archenemy: Nicol Bolas",
@@ -192,7 +199,8 @@
         "Spanish": "Amonkhet",
         "Chinese Simplified": "\u963f\u8292\u51ef",
         "Japanese": "\u30a2\u30e2\u30f3\u30b1\u30c3\u30c8",
-        "Portuguese (Brazil)": "Amonkhet"
+        "Portuguese (Brazil)": "Amonkhet",
+        "Korean": "\uc544\ubaac\ucf00\ud2b8"
     },
     "W17": {
         "French": "Welcome Deck 2017",
@@ -221,7 +229,8 @@
         "Spanish": "La revuelta del \u00e9ter",
         "Chinese Simplified": "\u4e59\u592a\u4e4b\u4e71",
         "Japanese": "\u970a\u6c17\u7d1b\u4e89",
-        "Portuguese (Brazil)": "Revolta do \u00c9ter"
+        "Portuguese (Brazil)": "Revolta do \u00c9ter",
+        "Korean": "\uc5d0\ud14c\ub974 \ubd09\uae30"
     },
     "PCA": {
         "French": "Planechase Anthology",
@@ -244,7 +253,8 @@
         "Spanish": "Kaladesh",
         "Chinese Simplified": "\u5361\u62c9\u5fb7\u8bb8",
         "Japanese": "\u30ab\u30e9\u30c7\u30b7\u30e5",
-        "Portuguese (Brazil)": "Kaladesh"
+        "Portuguese (Brazil)": "Kaladesh",
+        "Korean": "\uce7c\ub77c\ub370\uc2dc"
     },
     "CN2": {
         "French": "Inventions de Kaladesh",
@@ -273,7 +283,8 @@
         "Spanish": "Luna de horrores",
         "Chinese Simplified": "\u5f02\u6708\u4f20\u5947",
         "Japanese": "\u7570\u754c\u6708",
-        "Portuguese (Brazil)": "Lua Arcana"
+        "Portuguese (Brazil)": "Lua Arcana",
+        "Korean": "\uc5b4\ub460\uacfc \ub9de\uc11c\ub77c"
     },
     "EMA": {
         "French": "Eternal Masters",
@@ -296,7 +307,8 @@
         "Spanish": "Sombras sobre Innistrad",
         "Chinese Simplified": "\u4f9d\u5c3c\u7fe0\u6697\u5f71",
         "Japanese": "\u30a4\u30cb\u30b9\u30c8\u30e9\u30fc\u30c9\u3092\u8986\u3046\u5f71",
-        "Portuguese (Brazil)": "Sombras em Innistrad"
+        "Portuguese (Brazil)": "Sombras em Innistrad",
+        "Korean": "\uc774\ub2c8\uc2a4\ud2b8\ub77c\ub4dc\uc5d0 \ub4dc\ub9ac\uc6b4 \uadf8\ub9bc\uc790"
     },
     "DDQ": {
         "French": "Duel Decks: Blessed vs. Cursed",
@@ -311,7 +323,8 @@
         "Spanish": "El Juramento de los Guardianes",
         "Chinese Simplified": "\u5b88\u62a4\u8005\u8a93\u7ea6",
         "Japanese": "\u30b2\u30fc\u30c8\u30a6\u30a9\u30c3\u30c1\u306e\u8a93\u3044",
-        "Portuguese (Brazil)": "Juramento das Sentinelas"
+        "Portuguese (Brazil)": "Juramento das Sentinelas",
+        "Korean": "\uad00\ubb38\uc218\ud638\ub300\uc758 \ub9f9\uc138"
     },
     "C15": {
         "French": "Commander 2015",
@@ -327,7 +340,8 @@
         "Spanish": "La batalla por Zendikar",
         "Chinese Simplified": "\u518d\u6218\u8d5e\u8fea\u5361",
         "Japanese": "\u6226\u4e71\u306e\u30bc\u30f3\u30c7\u30a3\u30ab\u30fc",
-        "Portuguese (Brazil)": "Batalha por Zendikar"
+        "Portuguese (Brazil)": "Batalha por Zendikar",
+        "Korean": "\uc820\ub514\uce74\ub974 \uc804\ud22c"
     },
     "EXP": {
         "French": "Zendikar Expeditions",
@@ -356,7 +370,8 @@
         "Spanish": "Magic Or\u00edgenes",
         "Chinese Simplified": "\u4e07\u667a\u724c \u8d77\u6e90",
         "Japanese": "\u30de\u30b8\u30c3\u30af\u30fb\u30aa\u30ea\u30b8\u30f3",
-        "Portuguese (Brazil)": "Magic Origens"
+        "Portuguese (Brazil)": "Magic Origens",
+        "Korean": "\ub9e4\uc9c1\uc758 \uae30\uc6d0"
     },
     "MM2": {
         "French": "Modern Masters 2015",
@@ -373,7 +388,8 @@
         "Spanish": "Dragones de Tarkir",
         "Chinese Simplified": "\u9791\u5951\u9f99\u738b",
         "Japanese": "\u30bf\u30eb\u30ad\u30fc\u30eb\u9f8d\u7d00\u4f1d",
-        "Portuguese (Brazil)": "Drag\u00f5es de Tarkir"
+        "Portuguese (Brazil)": "Drag\u00f5es de Tarkir",
+        "Korean": "\ud0c0\ub974\ucee4\uc758 \uc6a9"
     },
     "DDO": {
         "French": "Duel Decks: Elspeth vs. Kiora",
@@ -388,7 +404,8 @@
         "Spanish": "Fate Reforged",
         "Chinese Simplified": "\u9f99\u547d\u6b8a\u9014",
         "Japanese": "\u904b\u547d\u518d\u7de8",
-        "Portuguese (Brazil)": "Destino Reescrito"
+        "Portuguese (Brazil)": "Destino Reescrito",
+        "Korean": "\uc7ac\ucc3d\uc870\ub41c \uc6b4\uba85"
     },
     "FRF_UGIN": {
         "French": "Ugin's Fate Promos",
@@ -410,7 +427,8 @@
         "Spanish": "Khans of Tarkir",
         "Chinese Simplified": "\u9791\u5951\u53ef\u6c57",
         "Japanese": "\u30bf\u30eb\u30ad\u30fc\u30eb\u8987\u738b\u8b5a",
-        "Portuguese (Brazil)": "Khans de Tarkir"
+        "Portuguese (Brazil)": "Khans de Tarkir",
+        "Korean": "\ud0c0\ub974\ucee4\uc758 \uce78"
     },
     "DDN": {
         "French": "Duel Decks: Speed vs. Cunning",
@@ -431,7 +449,8 @@
         "Spanish": "Magic 2015",
         "Chinese Simplified": "\u4e07\u667a\u724c2015",
         "Japanese": "\u57fa\u672c\u30bb\u30c3\u30c82015",
-        "Portuguese (Brazil)": "Magic 2015"
+        "Portuguese (Brazil)": "Magic 2015",
+        "Korean": "\ub9e4\uc9c1 2015 \ucf54\uc5b4\uc138\ud2b8"
     },
     "CP1": {
         "French": "Clash Pack Promos",
@@ -460,7 +479,8 @@
         "Spanish": "Traves\u00eda de Nyx",
         "Chinese Simplified": "\u5c3c\u65af\u4e4b\u65c5",
         "Japanese": "\u30cb\u30af\u30b9\u3078\u306e\u65c5",
-        "Portuguese (Brazil)": "Jornada pra Nyx"
+        "Portuguese (Brazil)": "Jornada pra Nyx",
+        "Korean": "\ub2c9\uc2a4\ub85c \uac00\ub294 \uae38"
     },
     "DDM": {
         "French": "Duel Decks: Jace vs. Vraska",
@@ -475,7 +495,8 @@
         "Spanish": "Born of the Gods",
         "Chinese Simplified": "\u5929\u795e\u521b\u751f",
         "Japanese": "\u795e\u3005\u306e\u8ecd\u52e2",
-        "Portuguese (Brazil)": "Nascidos dos Deuses"
+        "Portuguese (Brazil)": "Nascidos dos Deuses",
+        "Korean": "\uc2e0\ub4e4\uc758 \ud53c\uc870\ubb3c"
     },
     "C13": {
         "French": "Commander 2013",
@@ -491,7 +512,8 @@
         "Spanish": "Theros",
         "Chinese Simplified": "\u585e\u6d1b\u65af",
         "Japanese": "\u30c6\u30fc\u30ed\u30b9",
-        "Portuguese (Brazil)": "Theros"
+        "Portuguese (Brazil)": "Theros",
+        "Korean": "\ud14c\ub85c\uc2a4"
     },
     "DDL": {
         "French": "Duel Decks: Heroes vs. Monsters",
@@ -512,7 +534,8 @@
         "Spanish": "Magic 2014",
         "Chinese Simplified": "\u4e07\u667a\u724c2014",
         "Japanese": "\u57fa\u672c\u30bb\u30c3\u30c82014",
-        "Portuguese (Brazil)": "Magic 2014"
+        "Portuguese (Brazil)": "Magic 2014",
+        "Korean": "\ub9e4\uc9c1 2014 \ucf54\uc5b4\uc138\ud2b8"
     },
     "MMA": {
         "French": "Modern Masters",
@@ -529,7 +552,8 @@
         "Spanish": "Laberinto del drag\u00f3n",
         "Chinese Simplified": "\u5de8\u9f99\u8ff7\u57ce",
         "Japanese": "\u30c9\u30e9\u30b4\u30f3\u306e\u8ff7\u8def",
-        "Portuguese (Brazil)": "Labririnto do Drag\u00e3o"
+        "Portuguese (Brazil)": "Labririnto do Drag\u00e3o",
+        "Korean": "\uc6a9\uc758 \ubbf8\ub85c"
     },
     "DDK": {
         "French": "Duel Decks: Sorin vs. Tibalt",
@@ -544,7 +568,8 @@
         "Spanish": "Gatecrash",
         "Chinese Simplified": "\u5175\u4e34\u53e4\u57ce",
         "Japanese": "\u30ae\u30eb\u30c9\u9580\u4fb5\u72af",
-        "Portuguese (Brazil)": "Port\u00f5es Violados"
+        "Portuguese (Brazil)": "Port\u00f5es Violados",
+        "Korean": "\ucda9\ub3cc\uc758 \uad00\ubb38"
     },
     "CM1": {
         "French": "Commander's Arsenal",
@@ -559,7 +584,8 @@
         "Spanish": "Vuelta a Ravnica",
         "Chinese Simplified": "\u91cd\u8fd4\u62c9\u5c3c\u5361",
         "Japanese": "\u30e9\u30f4\u30cb\u30ab\u3078\u306e\u56de\u5e30",
-        "Portuguese (Brazil)": "Retorno \u00e0 Ravnica"
+        "Portuguese (Brazil)": "Retorno \u00e0 Ravnica",
+        "Korean": "\ub77c\ube0c\ub098\uce74\ub85c\uc758 \uadc0\ud658"
     },
     "DDJ": {
         "French": "Duel Decks: Izzet vs. Golgari",
@@ -580,7 +606,8 @@
         "Spanish": "Magic 2013",
         "Chinese Simplified": "\u4e07\u667a\u724c2013",
         "Japanese": "\u57fa\u672c\u30bb\u30c3\u30c82013",
-        "Portuguese (Brazil)": "Magic 2013"
+        "Portuguese (Brazil)": "Magic 2013",
+        "Korean": "2013 \ucf54\uc5b4\uc138\ud2b8"
     },
     "PC2": {
         "French": "Planechase 2012",
@@ -595,7 +622,8 @@
         "Spanish": "Avacyn Restored",
         "Chinese Simplified": "\u827e\u7ef4\u6b23\u91cd\u4e34",
         "Japanese": "\u30a2\u30f4\u30a1\u30b7\u30f3\u306e\u5e30\u9084",
-        "Portuguese (Brazil)": "Avacyn Restaurada"
+        "Portuguese (Brazil)": "Avacyn Restaurada",
+        "Korean": "\uc544\ubc14\uc2e0\uc758 \uadc0\ud658"
     },
     "DDI": {
         "French": "Duel Decks: Venser vs. Koth",
@@ -610,7 +638,8 @@
         "Spanish": "Dark Ascension",
         "Chinese Simplified": "\u9ed1\u6697\u7b3c\u7f69",
         "Japanese": "\u95c7\u306e\u9686\u76db",
-        "Portuguese (Brazil)": "Ascens\u00e3o das Trevas"
+        "Portuguese (Brazil)": "Ascens\u00e3o das Trevas",
+        "Korean": "\uc5b4\ub460\uc758 \uac15\ub9bc"
     },
     "PD3": {
         "French": "Premium Deck Series: Graveborn",
@@ -631,7 +660,8 @@
         "Spanish": "Innistrad",
         "Chinese Simplified": "\u4f0a\u5c3c\u7fe0",
         "Japanese": "\u30a4\u30cb\u30b9\u30c8\u30e9\u30fc\u30c9",
-        "Portuguese (Brazil)": "Innistrad"
+        "Portuguese (Brazil)": "Innistrad",
+        "Korean": "\uc774\ub2c8\uc2a4\ud2b8\ub77c\ub4dc"
     },
     "V11": {
         "French": "From the Vault: Legends",
@@ -646,7 +676,8 @@
         "Spanish": "Magic 2012",
         "Chinese Simplified": "\u4e07\u667a\u724c2012",
         "Japanese": "\u57fa\u672c\u30bb\u30c3\u30c82012",
-        "Portuguese (Brazil)": "Magic 2012"
+        "Portuguese (Brazil)": "Magic 2012",
+        "Korean": "2012 \ucf54\uc5b4\uc138\ud2b8"
     },
     "CMD": {
         "French": "Commander",
@@ -1254,7 +1285,8 @@
         "Spanish": "La Saga de Urza",
         "Chinese Simplified": "\u514b\u6492\u4f20",
         "Japanese": "\u30a6\u30eb\u30b6\u30ba\u30fb\u30b5\u30fc\u30ac",
-        "Portuguese (Brazil)": "A Saga de Urza"
+        "Portuguese (Brazil)": "A Saga de Urza",
+        "Korean": "\uc6b0\ub974\uc790 \uc0ac\uac00"
     },
     "UGL": {
         "French": "Unglued",
@@ -1270,7 +1302,8 @@
         "Spanish": "\u00c9xodo",
         "Chinese Simplified": "\u51fa\u745e\u65af\u8bb0",
         "Japanese": "\u30a8\u30af\u30bd\u30c0\u30b9",
-        "Portuguese (Brazil)": "\u00caxodo"
+        "Portuguese (Brazil)": "\u00caxodo",
+        "Korean": "\uc5d1\uc18c\ub354\uc2a4"
     },
     "PO2": {
         "French": "Portal Second Age",
@@ -1286,7 +1319,8 @@
         "Spanish": "Fortaleza",
         "Chinese Simplified": "\u5929\u7f57\u57ce\u585e",
         "Japanese": "\u30b9\u30c8\u30ed\u30f3\u30b0\u30db\u30fc\u30eb\u30c9",
-        "Portuguese (Brazil)": "Fortaleza"
+        "Portuguese (Brazil)": "Fortaleza",
+        "Korean": "\uc2a4\ud2b8\ub871\ud640\ub4dc"
     },
     "TMP": {
         "French": "Temp\u00eate",
@@ -1295,7 +1329,8 @@
         "Spanish": "Tempestad",
         "Chinese Simplified": "\u66b4\u98ce\u96e8",
         "Japanese": "\u30c6\u30f3\u30da\u30b9\u30c8",
-        "Portuguese (Brazil)": "Tempestade"
+        "Portuguese (Brazil)": "Tempestade",
+        "Korean": "\ud15c\ud398\uc2a4\ud2b8"
     },
     "pALP": {
         "French": "APAC Lands",
@@ -1316,7 +1351,8 @@
         "Spanish": "El Vientoligero",
         "Chinese Simplified": "\u6674\u7a7a\u53f7",
         "Japanese": "\u30a6\u30a7\u30b6\u30fc\u30e9\u30a4\u30c8",
-        "Portuguese (Brazil)": "Al\u00edsios"
+        "Portuguese (Brazil)": "Al\u00edsios",
+        "Korean": "\uc6e8\ub354\ub77c\uc774\ud2b8"
     },
     "5ED": {
         "French": "Cinqui\u00e8me Edition",
@@ -1325,7 +1361,8 @@
         "Spanish": "Quinta Edici\u00f3n",
         "Chinese Simplified": "\u4e94\u7248",
         "Japanese": "\u7b2c5\u7248",
-        "Portuguese (Brazil)": "Quinta Edi\u00e7\u00e3o"
+        "Portuguese (Brazil)": "Quinta Edi\u00e7\u00e3o",
+        "Korean": "5\ud310"
     },
     "VIS": {
         "French": "Visions",
@@ -1334,7 +1371,8 @@
         "Spanish": "Visiones",
         "Chinese Simplified": "\u61a7\u61ac",
         "Japanese": "\u30d3\u30b8\u30e7\u30f3\u30ba",
-        "Portuguese (Brazil)": "Vis\u00f5es"
+        "Portuguese (Brazil)": "Vis\u00f5es",
+        "Korean": "\ube44\uc804"
     },
     "POR": {
         "French": "Portal",
@@ -1412,7 +1450,8 @@
         "Spanish": "Cuarta Edici\u00f3n",
         "Chinese Simplified": "\u56db\u7248",
         "Japanese": "\u7b2c4\u7248\u65e5\u672c\u8a9e\u9ed2\u67a0",
-        "Portuguese (Brazil)": "Quarta Edi\u00e7\u00e3o"
+        "Portuguese (Brazil)": "Quarta Edi\u00e7\u00e3o",
+        "Korean": "4\ud310"
     },
     "FEM": {
         "French": "Fallen Empires",
