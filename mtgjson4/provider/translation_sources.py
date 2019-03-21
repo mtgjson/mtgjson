@@ -14,10 +14,13 @@ import mtgjson4
 from mtgjson4 import util
 from mtgjson4.provider import gamepedia, scryfall
 
+WIZARDS_URL: str = "https://magic.wizards.com/"
+
 CARD_MARKET_URL: str = "https://www.cardmarket.com/{}/Magic/Expansions"
 JAPANESE_URL: str = "http://www.hareruyamtg.com/jp/default.aspx"
 PORTUGUESE_URL: str = "https://pt.wikipedia.org/wiki/Expans%C3%B5es_de_Magic:_The_Gathering"
 CHINESE_SIMPLE_URL: str = "http://ig2.cc/sitemap.html"
+KOREAN_URL: str = WIZARDS_URL + "ko/products/card-set-archive"
 
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_MKM")
 TRANSLATION_TABLE: contextvars.ContextVar = contextvars.ContextVar("TRANSLATION_TABLE")
@@ -118,12 +121,46 @@ def get_traditional_chinese() -> None:
     return
 
 
-def get_korean() -> None:
+def get_korean() -> Dict[str, Dict[str, str]]:
     """
-    Get korean language sets
+    Get korean language sets from pre-built and then strip new ones from
+    Wizards website
     :return:
     """
-    return
+    # Korean Cache Start
+    with mtgjson4.RESOURCE_PATH.joinpath("ko_set_translations.json").open("r") as f:
+        korean_content = json.load(f)
+
+    soup = bs4.BeautifulSoup(download(KOREAN_URL), "html.parser")
+    soup = soup.find("div", class_="card-set-archive-table")
+    set_lines = soup.find_all("a", href=re.compile(r".*node.*"))
+
+    for set_line in set_lines:
+        set_name = set_line.find("span", class_="nameSet").text.strip()
+
+        if set_name not in korean_content.values():
+            soup = bs4.BeautifulSoup(
+                download(WIZARDS_URL + set_line["href"]), "html.parser"
+            )
+            soup = soup.find_all("img", attrs={"src": re.compile(r".*media.*")})
+
+            for img_tag in soup:
+                set_code = re.match(r".*images/magic/([A-Za-z0-9]*)/.*", img_tag["src"])
+                if set_code:
+                    korean_content[set_code.group(1).upper()] = set_name
+                    break
+
+    with mtgjson4.RESOURCE_PATH.joinpath("ko_set_translations.json").open("w") as f:
+        json.dump(korean_content, f, indent=4)
+        f.write("\n")
+    # Korean Cache End
+
+    # Get the translations now
+    return_list = {}
+    for key, value in korean_content.items():
+        return_list[key] = {"Korean": value}
+
+    return return_list
 
 
 def get_simplified_chinese() -> Dict[str, Dict[str, str]]:
@@ -302,6 +339,13 @@ def build_translation_table() -> Dict[str, Dict[str, str]]:
 
     # Portuguese (Brazil)
     for key, value in get_portuguese().items():
+        if key in combined_table.keys():
+            combined_table[key] = {**combined_table[key], **value}
+        else:
+            combined_table[key] = value
+
+    # Korean
+    for key, value in get_korean().items():
         if key in combined_table.keys():
             combined_table[key] = {**combined_table[key], **value}
         else:
