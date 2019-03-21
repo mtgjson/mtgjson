@@ -1,18 +1,39 @@
 """File information provider for WotC Website."""
 
 import contextvars
+import json
 import logging
 import re
-from typing import Any, Dict, List, Match, Optional
+import time
+from difflib import SequenceMatcher
+from typing import Any, Dict, List, Match, Optional, Tuple
+
+import bs4
 
 import mtgjson4
 from mtgjson4 import util
 import unidecode
 
-LOGGER = logging.getLogger(__name__)
-SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_WIZARDS")
-
+TRANSLATION_URL: str = "https://magic.wizards.com/{}/products/card-set-archive"
 COMP_RULES: str = "https://magic.wizards.com/en/game-info/gameplay/rules-and-formats/rules"
+
+SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_WIZARDS")
+TRANSLATION_TABLE: contextvars.ContextVar = contextvars.ContextVar("TRANSLATION_TABLE")
+LOGGER = logging.getLogger(__name__)
+
+SUPPORTED_LANGUAGES = [
+    ("zh-hans", "Chinese Simplified"),
+    ("zh-hant", "Chinese Traditional"),
+    ("fr", "French"),
+    ("de", "German"),
+    ("it", "Italian"),
+    ("ja", "Japanese"),
+    ("ko", "Korean"),
+    ("pt-br", "Portuguese (Brazil)"),
+    ("ru", "Russian"),
+    ("es", "Spanish"),
+    ("en", "English"),
+]
 
 
 def download_from_wizards(url: str) -> str:
@@ -228,3 +249,214 @@ def get_card_types(comp_rules: str) -> Dict[str, Any]:
         "meta": {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__},
         "types": types_dict,
     }
+
+
+def get_translations(set_name: Optional[str] = None) -> Any:
+    """
+    Get the translation table that was pre-built OR a specific
+    set from the translation table. Will also build the
+    table if necessary.
+    Return value w/o set_code: {SET_CODE: {SET_LANG: TRANSLATION, ...}, ...}
+    Return value w/  set_code: SET_CODE: {SET_LANG: TRANSLATION, ...}
+    :return: Translation table
+    """
+    if not TRANSLATION_TABLE.get(None):
+        translation_file = mtgjson4.RESOURCE_PATH.joinpath("set_translations.json")
+
+        # If file cache exists and is current, read it from disk
+        # Any other reason, replace the table
+        if translation_file.is_file():
+            if (
+                time.time() - translation_file.stat().st_mtime
+                > mtgjson4.SESSION_CACHE_EXPIRE_GATHERER
+            ):
+                table = build_translation_table()
+                with translation_file.open("w") as f:
+                    json.dump(table, f, indent=4)
+                    f.write("\n")
+            else:
+                TRANSLATION_TABLE.set(json.load(translation_file.open("r")))
+        else:
+            table = build_translation_table()
+            with translation_file.open("w") as f:
+                json.dump(table, f, indent=4)
+                f.write("\n")
+
+    if set_name:
+        # If we have an exact match, return it
+        if set_name in TRANSLATION_TABLE.get().keys():
+            return TRANSLATION_TABLE.get()[set_name]
+
+        # Since they're not perfect translations, we need to
+        # guesstimate. SequenceMatcher seems decent.
+        for key, value in TRANSLATION_TABLE.get().items():
+            if SequenceMatcher(set_name, key).ratio() > 0.9:
+                return TRANSLATION_TABLE.get()[key]
+
+        LOGGER.warning("Unable to find good enough match for {}".format(set_name))
+        return {}
+
+    return TRANSLATION_TABLE.get()
+
+
+def download(url: str, encoding: Optional[str] = None) -> str:
+    """
+    Download a file from a specified source using
+    our generic session.
+    :param url: URL to download
+    :param encoding: URL encoding (if necessary)
+    :return: URL content
+    """
+    session = util.get_generic_session()
+    response: Any = session.get(url)
+    if encoding:
+        response.encoding = encoding
+    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, response.from_cache))
+    return str(response.text)
+
+
+def build_single_language(
+    lang: Tuple[str, str], translation_table: Dict[str, Dict[str, str]]
+) -> Dict[str, Dict[str, str]]:
+    """
+    This will take the given language and source the data
+    from the Wizards site to create a new entry in each
+    option.
+    :param translation_table: Partially built table
+    :param lang: Tuple of lang to find on wizards, lang to show in MTGJSON
+    """
+    # Download the localized archive
+    soup = bs4.BeautifulSoup(download(TRANSLATION_URL.format(lang[0])), "html.parser")
+
+    # Find all nodes, which are table (set) rows
+    set_lines = soup.find_all("a", href=re.compile(".*node.*"))
+    for set_line in set_lines:
+        # Pluck out the set icon, as it's how we will link all languages
+        icon = set_line.find("span", class_="icon")
+
+        # Skip if we can't find an icon
+        if not icon or len(icon) == 1:
+            set_name = set_line.find("span", class_="nameSet")
+            if set_name:
+                LOGGER.warning(
+                    "Unable to find set icon for {}".format(set_name.text.strip())
+                )
+            continue
+
+        # Update our global table
+        set_name = set_line.find("span", class_="nameSet").text.strip()
+        set_icon_url = icon.find("img")["src"]
+        if set_icon_url in translation_table.keys():
+            translation_table[set_icon_url] = {
+                **translation_table[set_icon_url],
+                **{lang[1]: set_name},
+            }
+        else:
+            translation_table[set_icon_url] = {lang[1]: set_name}
+
+    return translation_table
+
+
+def convert_keys_to_set_names(
+    table: Dict[str, Dict[str, str]]
+) -> Dict[str, Dict[str, str]]:
+    """
+    Now that the table is complete, we need to replace the keys
+    that were URLs with actual set names, so we can work with
+    them.
+    :param table: Completed translation table
+    :return: Updated translation table w/ correct keys
+    """
+    return_table = {}
+    for key, value in table.items():
+        if "English" not in value.keys():
+            LOGGER.error("VALUE INCOMPLETE\t{}: {}".format(key, value))
+            continue
+
+        new_key = value["English"]
+        del value["English"]
+        return_table[new_key] = value
+
+    LOGGER.info(json.dumps(return_table))
+    return return_table
+
+
+def remove_and_replace(
+    table: Dict[str, Dict[str, str]], good: str, bad: str
+) -> Dict[str, Dict[str, str]]:
+    """
+    Small helper method to combine two columns and remove
+    the duplicate
+    :param table: Translation table
+    :param good: Key to keep and merge into
+    :param bad: Key to delete after merging
+    :return: Translation table fixed
+    """
+    table[good] = {**table[bad], **table[good]}
+    del table[bad]
+    return table
+
+
+def manual_fix_mistakes(table: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str, str]]:
+    """
+    Wizards has some problems, this corrects them to allow
+    seamless integration of all sets
+    :param table: Translation table needing fixing
+    :return: Corrected translated table
+    """
+    # Fix dominaria
+    good_dominaria = "https://magic.wizards.com/sites/mtg/files/images/featured/DAR_Logo_Symbol_Common.png"
+    bad_dominaria = "https://magic.wizards.com/sites/mtg/files/images/featured/DAR_CardSetArchive_Symbol.png"
+    table = remove_and_replace(table, good_dominaria, bad_dominaria)
+
+    # Fix tempest remastered
+    good_tempest_remastered = (
+        "https://magic.wizards.com/sites/mtg/files/images/featured/TPR_SetSymbol.png"
+    )
+    bad_tempest_remastered = (
+        "https://magic.wizards.com/sites/mtg/files/images/featured/TPR_SetSymbol.png"
+    )
+    table = remove_and_replace(table, good_tempest_remastered, bad_tempest_remastered)
+
+    # Fix archenemy
+    good_archenemy_nb = (
+        "https://magic.wizards.com/sites/mtg/files/images/featured/e01-icon_1.png"
+    )
+    bad_archenemy_nb = (
+        "https://magic.wizards.com/sites/mtg/files/images/featured/e01-icon_0.png"
+    )
+    table = remove_and_replace(table, good_archenemy_nb, bad_archenemy_nb)
+
+    # Fix planechase
+    good_planechase2012 = (
+        "https://magic.wizards.com/sites/mtg/files/images/featured/PC2_SetSymbol.png"
+    )
+    bad_planechase2012 = (
+        "https://magic.wizards.com/sites/mtg/files/images/featured/PC2_SetIcon.png"
+    )
+    table = remove_and_replace(table, good_planechase2012, bad_planechase2012)
+
+    # Fix duel deck
+    good_duel_deck_q = "https://magic.wizards.com/sites/mtg/files/images/featured/EN_DDQ_SET_SYMBOL.jpg"
+    bad_duel_deck_q = "https://magic.wizards.com/sites/mtg/files/images/featured/DDQ_ExpansionSymbol.png"
+    table = remove_and_replace(table, good_duel_deck_q, bad_duel_deck_q)
+
+    return table
+
+
+def build_translation_table() -> Dict[str, Dict[str, str]]:
+    """
+    Helper method to create the translation table for
+    the end user. Should only be called once per week
+    based on how the cache system works.
+    :return: New translation table
+    """
+    translation_table: Dict[str, Dict[str, str]] = {}
+
+    for pair in SUPPORTED_LANGUAGES:
+        translation_table = build_single_language(pair, translation_table)
+
+    # Oh Wizards...
+    translation_table = manual_fix_mistakes(translation_table)
+
+    return convert_keys_to_set_names(translation_table)

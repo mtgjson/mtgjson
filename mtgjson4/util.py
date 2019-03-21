@@ -38,7 +38,7 @@ def retryable_session(session: requests.Session, retries: int = 8) -> requests.S
 def get_generic_session() -> requests.Session:
     """Get or create a requests session for gatherer."""
     requests_cache.install_cache(
-        "gatherer_cache",
+        "general_cache",
         backend="sqlite",
         expire_after=mtgjson4.SESSION_CACHE_EXPIRE_GATHERER,
     )
