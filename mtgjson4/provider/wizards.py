@@ -1,7 +1,6 @@
 """File information provider for WotC Website."""
 
 import contextvars
-import difflib
 import json
 import logging
 import re
@@ -12,9 +11,8 @@ import bs4
 
 import mtgjson4
 from mtgjson4 import util
+from mtgjson4.provider import gamepedia, scryfall
 import unidecode
-
-from mtgjson4.provider import scryfall, gamepedia
 
 TRANSLATION_URL: str = "https://magic.wizards.com/{}/products/card-set-archive"
 COMP_RULES: str = "https://magic.wizards.com/en/game-info/gameplay/rules-and-formats/rules"
