@@ -5,26 +5,13 @@ import argparse
 import logging
 import pathlib
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from mtgjson4 import compile_mtg
 import mtgjson4.outputter
 from mtgjson4.provider import scryfall
 
 LOGGER = logging.getLogger(__name__)
-
-
-def find_file(name: str, path: pathlib.Path) -> Optional[pathlib.Path]:
-    """
-    Function finds where on the path tree a specific file
-    can be found. Useful for set_configs as we use sub
-    directories to better organize data.
-    """
-    for file in path.glob("**/*.json"):
-        if name == file.name:
-            return file
-
-    return None
 
 
 def get_all_sets() -> List[str]:
