@@ -1,5 +1,5 @@
 {
-    "Ravnica Allegiance": {
+    "RNA": {
         "Chinese Simplified": "\u6548\u5fe0\u62c9\u5c3c\u5361",
         "Chinese Traditional": "\u6548\u5fe0\u62c9\u5c3c\u5361",
         "French": "L'all\u00e9geance de Ravnica",
@@ -11,7 +11,7 @@
         "Russian": "\u00ab\u0412\u044b\u0431\u043e\u0440 \u0420\u0430\u0432\u043d\u0438\u043a\u0438\u00bb",
         "Spanish": "La lealtad de R\u00e1vnica"
     },
-    "Guilds of Ravnica": {
+    "GRN": {
         "Chinese Simplified": "\u70fd\u4f1a\u62c9\u5c3c\u5361",
         "Chinese Traditional": "\u70fd\u6703\u62c9\u5c3c\u5361",
         "French": "Les guildes de Ravnica",
@@ -23,7 +23,7 @@
         "Russian": "\u00ab\u0413\u0438\u043b\u044c\u0434\u0438\u0438 \u0420\u0430\u0432\u043d\u0438\u043a\u0438\u00bb",
         "Spanish": "Gremios de R\u00e1vnica"
     },
-    "Core Set 2019": {
+    "M19": {
         "Chinese Simplified": "2019\u6838\u5fc3\u7cfb\u5217",
         "Chinese Traditional": "2019\u6838\u5fc3\u7cfb\u5217",
         "French": "\u00c9dition de base 2019",
@@ -35,7 +35,7 @@
         "Russian": "\u0411\u0410\u0417\u041e\u0412\u042b\u0419 \u0412\u042b\u041f\u0423\u0421\u041a 2019",
         "Spanish": "COLECCI\u00d3N B\u00c1SICA 2019"
     },
-    "Dominaria": {
+    "DOM": {
         "Chinese Simplified": "\u591a\u660e\u7eb3\u91cc\u4e9a",
         "Chinese Traditional": "\u591a\u660e\u7d0d\u91cc\u4e9e",
         "French": "Dominaria",
@@ -47,7 +47,7 @@
         "Russian": "\u0414\u041e\u041c\u0418\u041d\u0410\u0420\u0418\u042f",
         "Spanish": "Dominaria"
     },
-    "RIvals of Ixalan": {
+    "RIX": {
         "Chinese Simplified": "\u51b3\u80dc\u4f0a\u590f\u5170",
         "Chinese Traditional": "\u6c7a\u52dd\u4f9d\u590f\u862d",
         "French": "LES COMBATTANTS D'IXALAN",
@@ -59,7 +59,7 @@
         "Russian": "\u0411\u041e\u0420\u042c\u0411\u0410 \u0417\u0410 \u0418\u041a\u0421\u0410\u041b\u0410\u041d",
         "Spanish": "RIVALES DE IXALAN"
     },
-    "Ixalan": {
+    "XLN": {
         "Chinese Simplified": "\u4f9d\u590f\u5170",
         "Chinese Traditional": "\u4f9d\u590f\u862d",
         "French": "Ixalan",
@@ -71,7 +71,7 @@
         "Russian": "\u0418\u043a\u0441\u0430\u043b\u0430\u043d",
         "Spanish": "Ixalan"
     },
-    "Hour of Devastation": {
+    "HOU": {
         "Chinese Simplified": "\u5e7b\u706d\u65f6\u523b",
         "Chinese Traditional": "\u5e7b\u6ec5\u6642\u523b",
         "French": "L\u2019\u00c2ge de la Destruction",
@@ -83,7 +83,7 @@
         "Russian": "\u00ab\u0427\u0430\u0441 \u0420\u0430\u0437\u0440\u0443\u0448\u0435\u043d\u0438\u044f\u00bb",
         "Spanish": "LA HORA DE LA DEVASTACI\u00d3N"
     },
-    "Amonkhet": {
+    "AKH": {
         "Chinese Simplified": "\u963f\u8292\u51ef",
         "Chinese Traditional": "\u963f\u8292\u51f1",
         "French": "Amonkhet",
@@ -95,7 +95,7 @@
         "Russian": "\u0410\u043c\u043e\u043d\u0445\u0435\u0442",
         "Spanish": "Amonkhet"
     },
-    "Aether Revolt": {
+    "AER": {
         "Chinese Simplified": "\u4e59\u592a\u4e4b\u4e71",
         "Chinese Traditional": "\u4e59\u592a\u4e4b\u4e82",
         "French": "La r\u00e9volte \u00e9th\u00e9rique",
@@ -107,7 +107,7 @@
         "Russian": "\u00ab\u042d\u0444\u0438\u0440\u043d\u044b\u0439 \u0411\u0443\u043d\u0442\u00bb",
         "Spanish": "La revuelta del \u00e9ter"
     },
-    "Kaladesh": {
+    "KLD": {
         "Chinese Simplified": "\u5361\u62c9\u5fb7\u8bb8",
         "Chinese Traditional": "\u5361\u62c9\u5fb7\u8a31",
         "French": "Kaladesh",
@@ -119,7 +119,7 @@
         "Russian": "\u00ab\u041a\u0430\u043b\u0430\u0434\u0435\u0448\u00bb",
         "Spanish": "Kaladesh"
     },
-    "Eldritch Moon": {
+    "EMN": {
         "Chinese Simplified": "\u5f02\u6708\u4f20\u5947",
         "Chinese Traditional": "\u7570\u6708\u50b3\u5947",
         "French": "Confrontez les t\u00e9n\u00e8bres",
@@ -131,7 +131,7 @@
         "Russian": "\u0412\u0441\u0442\u0440\u0435\u0442\u044c\u0442\u0435\u0441\u044c \u0441 \u0442\u044c\u043c\u043e\u0439",
         "Spanish": "Luna de horrores"
     },
-    "Shadows over Innistrad": {
+    "SOI": {
         "Chinese Simplified": "\u4f9d\u5c3c\u7fe0\u6697\u5f71",
         "Chinese Traditional": "\u4f9d\u5c3c\u7fe0\u95c7\u5f71",
         "French": "T\u00e9n\u00e8bres sur Innistrad",
@@ -143,7 +143,7 @@
         "Russian": "\u0422\u0435\u043d\u0438 \u043d\u0430\u0434 \u0418\u043d\u043d\u0438\u0441\u0442\u0440\u0430\u0434\u043e\u043c",
         "Spanish": "Sombras sobre Innistrad"
     },
-    "Oath of the Gatewatch": {
+    "OGW": {
         "Chinese Simplified": "\u5b88\u62a4\u8005\u8a93\u7ea6",
         "Chinese Traditional": "\u5b88\u8b77\u8005\u8a93\u7d04",
         "French": "Le serment des Sentinelles",
@@ -155,7 +155,7 @@
         "Russian": "\u041a\u043b\u044f\u0442\u0432\u0430 \u0421\u0442\u0440\u0430\u0436\u0435\u0439",
         "Spanish": "El juramento de los Guardianes"
     },
-    "Battle For Zendikar": {
+    "BFZ": {
         "Chinese Simplified": "\u518d\u6218\u8d5e\u8fea\u5361",
         "Chinese Traditional": "\u518d\u6230\u8d0a\u8fea\u5361\u200b",
         "French": "La bataille de Zendikar",
@@ -167,7 +167,7 @@
         "Russian": "\u0411\u0438\u0442\u0432\u0430 \u0437\u0430 \u0417\u0435\u043d\u0434\u0438\u043a\u0430\u0440\u200b",
         "Spanish": "La batalla por Zendikar\u200b"
     },
-    "Magic Origins": {
+    "ORI": {
         "Chinese Simplified": "\u4e07\u667a\u724c\uff1a\u8d77\u6e90",
         "Chinese Traditional": "\u9b54\u6cd5\u98a8\u96f2\u6703\uff1a\u8d77\u6e90",
         "French": "Magic Origines",
@@ -179,7 +179,7 @@
         "Russian": "Magic: \u0418\u0441\u0442\u043e\u043a\u0438",
         "Spanish": "Magic Or\u00edgenes"
     },
-    "Dragons of Tarkir": {
+    "DTK": {
         "Chinese Simplified": "\u9791\u5951\u9f99\u738b",
         "Chinese Traditional": "\u97c3\u5951\u9f8d\u738b",
         "French": "Les dragons de Tarkir",
@@ -191,7 +191,7 @@
         "Russian": "\u0414\u0440\u0430\u043a\u043e\u043d\u044b \u0422\u0430\u0440\u043a\u0438\u0440\u0430",
         "Spanish": "Dragones de Tarkir"
     },
-    "Fate Reforged": {
+    "FRF": {
         "Chinese Simplified": "\u9f99\u547d\u6b8a\u9014",
         "Chinese Traditional": "\u9f8d\u547d\u6b8a\u9014",
         "French": "Destin Reforg\u00e9",
@@ -203,7 +203,7 @@
         "Russian": "\u041f\u0435\u0440\u0435\u043a\u043e\u0432\u0430\u043d\u043d\u0430\u044f \u0421\u0443\u0434\u044c\u0431\u0430",
         "Spanish": "Destino Reescrito"
     },
-    "Khans of Tarkir": {
+    "KTK": {
         "Chinese Simplified": "\u9791\u5951\u53ef\u6c57",
         "Chinese Traditional": "\u97c3\u5951\u53ef\u6c57",
         "French": "Les Khans de Tarkir",
@@ -215,7 +215,7 @@
         "Russian": "\u0425\u0430\u043d\u044b \u0422\u0430\u0440\u043a\u0438\u0440\u0430",
         "Spanish": "Kans de Tarkir"
     },
-    "Journey into Nyx": {
+    "JOU": {
         "Chinese Simplified": "\u5c3c\u5179\u4e4b\u65c5",
         "Chinese Traditional": "\u5c3c\u8332\u4e4b\u65c5",
         "French": "Incursion dans Nyx",
@@ -227,7 +227,7 @@
         "Russian": "\u041f\u0443\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0438\u0435 \u0432 \u041d\u0438\u043a\u0441",
         "Spanish": "Traves\u00eda hacia Nyx"
     },
-    "Born of the Gods": {
+    "BNG": {
         "Chinese Simplified": "\u5929\u795e\u521b\u751f",
         "Chinese Traditional": "\u5929\u795e\u5275\u751f",
         "French": "Cr\u00e9ations divines",
@@ -239,7 +239,7 @@
         "Russian": "\u041f\u043e\u0440\u043e\u0436\u0434\u0435\u043d\u0438\u044f \u0411\u043e\u0433\u043e\u0432",
         "Spanish": "Nacidos de los Dioses"
     },
-    "Theros": {
+    "THS": {
         "Chinese Simplified": "\u585e\u6d1b\u65af",
         "Chinese Traditional": "\u585e\u6d1b\u65af",
         "French": "Theros",
@@ -251,7 +251,7 @@
         "Russian": "\u0422\u0435\u0440\u043e\u0441",
         "Spanish": "Theros"
     },
-    "Dragon's Maze": {
+    "DGM": {
         "Chinese Simplified": "\u5de8\u9f99\u8ff7\u57ce",
         "Chinese Traditional": "\u5de8\u9f8d\u8ff7\u57ce",
         "French": "Le labyrinthe du dragon",
@@ -263,7 +263,7 @@
         "Russian": "\u041b\u0430\u0431\u0438\u0440\u0438\u043d\u0442 \u0414\u0440\u0430\u043a\u043e\u043d\u0430",
         "Spanish": "Laberinto del Drag\u00f3n"
     },
-    "Gatecrash": {
+    "GTC": {
         "Chinese Simplified": "\u5175\u4e34\u53e4\u57ce",
         "Chinese Traditional": "\u5175\u81e8\u53e4\u57ce",
         "French": "Insurrection",
@@ -275,7 +275,7 @@
         "Russian": "\u041d\u0435\u0437\u0432\u0430\u043d\u044b\u0435 \u0413\u043e\u0441\u0442\u0438",
         "Spanish": "Intrusi\u00f3n"
     },
-    "Return to Ravnica": {
+    "RTR": {
         "Chinese Simplified": "\u518d\u8bbf\u62c9\u5c3c\u5361",
         "Chinese Traditional": "\u518d\u8a2a\u62c9\u5c3c\u5361",
         "French": "Retour sur Ravnica",
@@ -287,7 +287,7 @@
         "Russian": "\u0412\u043e\u0437\u0432\u0440\u0430\u0449\u0435\u043d\u0438\u0435 \u0432 \u0420\u0430\u0432\u043d\u0438\u043a\u0443",
         "Spanish": "Regreso a R\u00e1vnica"
     },
-    "Avacyn Restored": {
+    "AVR": {
         "Chinese Simplified": "\u827e\u7ef4\u6b23\u91cd\u4e34",
         "Chinese Traditional": "\u827e\u7dad\u6b23\u91cd\u81e8",
         "French": "Avacyn ressuscit\u00e9e",
@@ -299,7 +299,7 @@
         "Russian": "\u0412\u043e\u0437\u0432\u0440\u0430\u0449\u0435\u043d\u0438\u0435 \u0410\u0432\u0430\u0446\u0438\u043d\u044b",
         "Spanish": "Avacyn restituida"
     },
-    "Dark Ascension": {
+    "DKA": {
         "Chinese Simplified": "\u9ed1\u5f71\u7b3c\u7f69",
         "Chinese Traditional": "\u9ed1\u5f71\u7c60\u7f69",
         "French": "Obscure ascension",
@@ -311,7 +311,7 @@
         "Russian": "\u0412\u043e\u0437\u0432\u044b\u0448\u0435\u043d\u0438\u0435 \u041c\u0440\u0430\u043a\u0430",
         "Spanish": "Ascenso siniestro"
     },
-    "Innistrad": {
+    "ISD": {
         "Chinese Simplified": "\u4f9d\u5c3c\u7fe0",
         "Chinese Traditional": "\u4f9d\u5c3c\u7fe0",
         "French": "Innistrad",
@@ -323,7 +323,7 @@
         "Russian": "Innistrad",
         "Spanish": "Innistrad"
     },
-    "New Phyrexia": {
+    "NPH": {
         "Chinese Simplified": "\u65b0\u975e\u745e\u514b\u897f\u4e9a",
         "Chinese Traditional": "\u65b0\u975e\u745e\u514b\u897f\u4e9e",
         "French": "New Phyrexia",
@@ -335,7 +335,7 @@
         "Russian": "\u041d\u043e\u0432\u0430\u044f \u0424\u0438\u0440\u0435\u043a\u0441\u0438\u044f",
         "Spanish": "Nueva Phyrexia"
     },
-    "Mirrodin Besieged": {
+    "MBS": {
         "Chinese Simplified": "\u56f4\u653b\u79d8\u7f57\u5730",
         "Chinese Traditional": "\u570d\u653b\u79d8\u7f85\u5730",
         "French": "Mirrodin Besieged",
@@ -347,7 +347,7 @@
         "Russian": "\u041e\u0441\u0430\u0434\u0430 \u041c\u0438\u0440\u0440\u043e\u0434\u0438\u043d\u0430",
         "Spanish": "Mirrodin sitiado"
     },
-    "Scars of Mirrodin": {
+    "SOM": {
         "Chinese Simplified": "\u79d8\u7f57\u5730\u521b\u75d5",
         "Chinese Traditional": "\u79d8\u7f85\u5730\u5275\u75d5",
         "French": "Scars of Mirrodin",
@@ -359,7 +359,7 @@
         "Russian": "\u0428\u0440\u0430\u043c\u044b \u041c\u0438\u0440\u0440\u043e\u0434\u0438\u043d\u0430",
         "Spanish": "Cicatrices de Mirrodin"
     },
-    "Rise of the Eldrazi": {
+    "ROE": {
         "Chinese Simplified": "\u5965\u672d\u5947\u518d\u8d77",
         "Chinese Traditional": "\u5967\u672d\u5947\u518d\u8d77",
         "French": "L'ascension des Eldrazi",
@@ -371,7 +371,7 @@
         "Russian": "\u0412\u043e\u0437\u0440\u043e\u0436\u0434\u0435\u043d\u0438\u0435 \u042d\u043b\u044c\u0434\u0440\u0430\u0437\u0438",
         "Spanish": "Levantamiento de los Eldrazi"
     },
-    "Worldwake": {
+    "WWK": {
         "Chinese Simplified": "\u5929\u5730\u9192\u8f6c",
         "Chinese Traditional": "\u5929\u5730\u9192\u8f49",
         "French": "Worldwake",
@@ -383,7 +383,7 @@
         "Russian": "\u041f\u0440\u043e\u0431\u0443\u0436\u0434\u0435\u043d\u0438\u0435 \u043c\u0438\u0440\u0430",
         "Spanish": "Despertar del mundo"
     },
-    "Zendikar": {
+    "ZEN": {
         "Chinese Simplified": "\u8d5e\u8fea\u5361",
         "Chinese Traditional": "\u8d0a\u8fea\u5361",
         "French": "Zendikar",
@@ -395,7 +395,7 @@
         "Russian": "Zendikar",
         "Spanish": "Zendikar"
     },
-    "Alara Reborn": {
+    "ARB": {
         "Chinese Simplified": "\u963f\u62c9\u82e5\u65b0\u751f",
         "Chinese Traditional": "\u963f\u62c9\u82e5\u65b0\u751f",
         "French": "La renaissance d'Alara",
@@ -407,7 +407,7 @@
         "Russian": "\u041f\u0435\u0440\u0435\u0440\u043e\u0436\u0434\u0435\u043d\u043d\u0430\u044f \u0410\u043b\u0430\u0440\u0430",
         "Spanish": "Alara renacida"
     },
-    "Conflux": {
+    "CON": {
         "Chinese Simplified": "\u805a\u6d41",
         "Chinese Traditional": "\u805a\u6d41",
         "French": "Conflux",
@@ -419,7 +419,7 @@
         "Russian": "Conflux",
         "Spanish": "Conflux"
     },
-    "Shards of Alara": {
+    "ALA": {
         "Chinese Simplified": "\u963f\u62c9\u82e5\u65ad\u7247",
         "Chinese Traditional": "\u963f\u62c9\u82e5\u65b7\u7247",
         "French": "Les \u00e9clats d'Alara",
@@ -431,7 +431,7 @@
         "Russian": "\u041e\u0441\u043a\u043e\u043b\u043a\u0438 \u0410\u043b\u0430\u0440\u044b",
         "Spanish": "Fragmentos de Alara"
     },
-    "Eventide": {
+    "EVE": {
         "Chinese Simplified": "\u66ae\u5149",
         "Chinese Traditional": "\u66ae\u5149",
         "French": "Coucheciel",
@@ -443,7 +443,7 @@
         "Russian": "\u0421\u0443\u043c\u0435\u0440\u043a\u0438",
         "Spanish": "Crep\u00fasculo"
     },
-    "Shadowmoor": {
+    "SHM": {
         "Chinese Simplified": "\u6697\u5f71\u8352\u539f",
         "Chinese Traditional": "\u95c7\u5f71\u8352\u539f",
         "French": "Sombrelande",
@@ -455,7 +455,7 @@
         "Russian": "\u0428\u044d\u0434\u043e\u0443\u043c\u0443\u0440",
         "Spanish": "P\u00e1ramo Sombr\u00edo"
     },
-    "Morningtide": {
+    "MOR": {
         "Chinese Simplified": "\u6668\u5149",
         "Chinese Traditional": "\u6668\u5149",
         "French": "L\u00e8veciel",
@@ -466,7 +466,7 @@
         "Portuguese (Brazil)": "Alvorecer",
         "Russian": "\u0420\u0430\u0441\u0441\u0432\u0435\u0442"
     },
-    "Lorwyn": {
+    "LRW": {
         "Chinese Simplified": "\u6d1b\u6e29",
         "Chinese Traditional": "\u6d1b\u6eab",
         "French": "Lorwyn",
@@ -478,7 +478,7 @@
         "Russian": "\u041b\u043e\u0440\u0432\u0438\u043d",
         "Spanish": "Lorwyn"
     },
-    "Future Sight": {
+    "FUT": {
         "Chinese Simplified": "\u9884\u77e5\u5c06\u6765",
         "Chinese Traditional": "\u9810\u77e5\u672a\u4f86",
         "French": "Vision de l'avenir",
@@ -490,7 +490,7 @@
         "Russian": "\u0412\u0437\u0433\u043b\u044f\u0434 \u0432 \u0411\u0443\u0434\u0443\u0449\u0435\u0435",
         "Spanish": "Visi\u00f3n del futuro"
     },
-    "Planar Chaos": {
+    "PLC": {
         "Chinese Simplified": "\u65f6\u7a7a\u6df7\u6c8c",
         "Chinese Traditional": "\u6642\u7a7a\u6df7\u6c8c",
         "French": "Chaos planaire",
@@ -502,7 +502,7 @@
         "Russian": "\u0412\u0441\u0435\u043b\u0435\u043d\u0441\u043a\u0438\u0439 \u0425\u0430\u043e\u0441",
         "Spanish": "Caos Planar"
     },
-    "Time Spiral": {
+    "TSP": {
         "Chinese Simplified": "\u65f6\u95f4\u6f29\u6da1",
         "Chinese Traditional": "\u6642\u9593\u6f29\u6e26",
         "French": "Spirale temporelle",
@@ -514,7 +514,7 @@
         "Russian": "\u0421\u043f\u0438\u0440\u0430\u043b\u044c \u0412\u0440\u0435\u043c\u0435\u043d\u0438",
         "Spanish": "Espiral del tiempo"
     },
-    "Coldsnap": {
+    "CSP": {
         "Chinese Simplified": "\u9aa4\u971c",
         "Chinese Traditional": "\u9a5f\u971c",
         "French": "Souffle glaciaire",
@@ -526,7 +526,7 @@
         "Russian": "Coldsnap",
         "Spanish": "Ola de fr\u00edo"
     },
-    "Dissension": {
+    "DIS": {
         "Chinese Simplified": "\u7eb7\u4e89",
         "Chinese Traditional": "\u7d1b\u722d",
         "French": "Discorde",
@@ -538,7 +538,7 @@
         "Russian": "\u0420\u0430\u0441\u043a\u043e\u043b",
         "Spanish": "Discordia"
     },
-    "Guildpact": {
+    "GPT": {
         "Chinese Simplified": "\u5341\u4f1a\u76df",
         "Chinese Traditional": "\u5341\u6703\u76df",
         "French": "Le Pacte des Guildes",
@@ -550,7 +550,7 @@
         "Russian": "\u0414\u043e\u0433\u043e\u0432\u043e\u0440 \u0413\u0438\u043b\u044c\u0434\u0438\u0439",
         "Spanish": "El Pacto entre Gremios"
     },
-    "Ravnica: City of Guilds": {
+    "RAV": {
         "Chinese Simplified": "\u62c9\u5c3c\u5361\u516c\u4f1a\u57ce",
         "Chinese Traditional": "\u62c9\u5c3c\u5361\u516c\u6703\u57ce",
         "French": "Ravnica: la Cit\u00e9 des Guildes",
@@ -562,7 +562,7 @@
         "Russian": "\u0420\u0430\u0432\u043d\u0438\u043a\u0430: \u0413\u043e\u0440\u043e\u0434 \u0413\u0438\u043b\u044c\u0434\u0438\u0439",
         "Spanish": "R\u00e1vnica: Ciudad de gremios"
     },
-    "Saviors of Kamigawa": {
+    "SOK": {
         "Chinese Simplified": "\u795e\u6cb3\u4efb\u4fa0\u4f20",
         "Chinese Traditional": "\u795e\u6cb3\u4efb\u4fe0\u50b3",
         "French": "\u795e\u6cb3\u6551\u6e08",
@@ -574,7 +574,7 @@
         "Russian": "Saviors of Kamigawa",
         "Spanish": "Salvadores de Kamigawa"
     },
-    "Betrayers of Kamigawa": {
+    "BOK": {
         "Chinese Simplified": "\u795e\u6cb3\u53db\u5c06\u8c31",
         "Chinese Traditional": "\u795e\u6cb3\u53db\u5c07\u8b5c",
         "French": "\u795e\u6cb3\u8b00\u53db",
@@ -586,7 +586,7 @@
         "Russian": "Betrayers of Kamigawa",
         "Spanish": "Traidores de Kamigawa"
     },
-    "Champions of Kamigawa": {
+    "CHK": {
         "Chinese Simplified": "\u795e\u6cb3\u7fa4\u82f1\u5f55",
         "Chinese Traditional": "\u795e\u6cb3\u7fa4\u82f1\u9304",
         "French": "\u795e\u6cb3\u7269\u8a9e",
@@ -598,7 +598,7 @@
         "Russian": "Champions of Kamigawa",
         "Spanish": "Campeones de Kamigawa"
     },
-    "Fifth Dawn": {
+    "5DN": {
         "Chinese Simplified": "\u4e94\u8272\u66d9\u5149",
         "Chinese Traditional": "\u4e94\u8272\u66d9\u5149",
         "French": "La cinqui\u00e8me aube",
@@ -610,7 +610,7 @@
         "Russian": "Fifth Dawn",
         "Spanish": "Quinto amanecer"
     },
-    "Darksteel": {
+    "DST": {
         "Chinese Simplified": "\u7384\u94c1",
         "Chinese Traditional": "\u7384\u9435",
         "French": "Sombracier",
@@ -622,7 +622,7 @@
         "Russian": "Darksteel",
         "Spanish": "Darksteel"
     },
-    "Mirrodin": {
+    "MRD": {
         "Chinese Simplified": "\u79d8\u7f57\u5730",
         "Chinese Traditional": "\u79d8\u7f85\u5730",
         "French": "Mirrodin",
@@ -634,7 +634,7 @@
         "Russian": "Mirrodin",
         "Spanish": "Mirrodin"
     },
-    "Judgment": {
+    "JUD": {
         "Chinese Simplified": "\u795e\u8c34",
         "Chinese Traditional": "\u795e\u8b74",
         "French": "Jugement",
@@ -646,7 +646,7 @@
         "Russian": "Judgment",
         "Spanish": "Juicio"
     },
-    "Torment": {
+    "TOR": {
         "Chinese Simplified": "\u7edd\u5883",
         "Chinese Traditional": "\u7d55\u5883",
         "French": "Tourment",
@@ -658,7 +658,7 @@
         "Russian": "Torment",
         "Spanish": "Tormento"
     },
-    "Odyssey": {
+    "ODY": {
         "Chinese Simplified": "\u5965\u5fb7\u8d5b",
         "Chinese Traditional": "\u5967\u5fb7\u8cfd",
         "French": "Odyss\u00e9e",
@@ -670,7 +670,7 @@
         "Russian": "Odyssey",
         "Spanish": "Odisea"
     },
-    "Apocalypse": {
+    "APC": {
         "Chinese Simplified": "\u542f\u793a\u5f55",
         "Chinese Traditional": "\u555f\u793a\u9304",
         "French": "Apocalypse",
@@ -682,7 +682,7 @@
         "Russian": "Apocalypse",
         "Spanish": "Apocalipsis"
     },
-    "Planeshift": {
+    "PLS": {
         "Chinese Simplified": "Planeshift",
         "Chinese Traditional": "Planeshift",
         "French": "Planeshift",
@@ -694,7 +694,7 @@
         "Russian": "Planeshift",
         "Spanish": "Planeshift"
     },
-    "Invasion": {
+    "INV": {
         "Chinese Simplified": "Invasion",
         "Chinese Traditional": "Invasion",
         "French": "Invasion",
@@ -706,7 +706,7 @@
         "Russian": "Invasion",
         "Spanish": "Invasion"
     },
-    "Prophecy": {
+    "PCY": {
         "Chinese Simplified": "Prophecy",
         "Chinese Traditional": "Prophecy",
         "French": "Prophecy",
@@ -718,7 +718,7 @@
         "Russian": "Prophecy",
         "Spanish": "Prophecy"
     },
-    "Nemesis": {
+    "NEM": {
         "Chinese Simplified": "Nemesis",
         "Chinese Traditional": "Nemesis",
         "French": "Nemesis",
@@ -730,7 +730,7 @@
         "Russian": "Nemesis",
         "Spanish": "Nemesis"
     },
-    "Mercadian Masques": {
+    "MMQ": {
         "Chinese Simplified": "Mercadian Masques",
         "Chinese Traditional": "Mercadian Masques",
         "French": "Mercadian Masques",
@@ -742,7 +742,7 @@
         "Russian": "Mercadian Masques",
         "Spanish": "Mercadian Masques"
     },
-    "Urza\u2019s Destiny": {
+    "UDS": {
         "Chinese Simplified": "Urza\u2019s Destiny",
         "Chinese Traditional": "Urza\u2019s Destiny",
         "French": "Urza\u2019s Destiny",
@@ -754,7 +754,7 @@
         "Russian": "Urza\u2019s Destiny",
         "Spanish": "Urza\u2019s Destiny"
     },
-    "Urza\u2019s Legacy": {
+    "ULG": {
         "Chinese Simplified": "Urza\u2019s Legacy",
         "Chinese Traditional": "Urza\u2019s Legacy",
         "French": "Urza\u2019s Legacy",
@@ -766,7 +766,7 @@
         "Russian": "Urza\u2019s Legacy",
         "Spanish": "Urza\u2019s Legacy"
     },
-    "Urza\u2019s Saga": {
+    "USG": {
         "Chinese Simplified": "Urza\u2019s Saga",
         "Chinese Traditional": "Urza\u2019s Saga",
         "French": "Urza\u2019s Saga",
@@ -778,7 +778,7 @@
         "Russian": "Urza\u2019s Saga",
         "Spanish": "Urza\u2019s Saga"
     },
-    "Classic Sixth Edition": {
+    "6ED": {
         "Chinese Simplified": "Classic Sixth Edition",
         "Chinese Traditional": "Classic Sixth Edition",
         "French": "Classic Sixth Edition",
@@ -790,7 +790,7 @@
         "Russian": "Classic Sixth Edition",
         "Spanish": "Classic Sixth Edition"
     },
-    "Exodus": {
+    "EXO": {
         "Chinese Simplified": "Exodus",
         "Chinese Traditional": "Exodus",
         "French": "Exodus",
@@ -802,7 +802,7 @@
         "Russian": "Exodus",
         "Spanish": "Exodus"
     },
-    "Stronghold": {
+    "STH": {
         "Chinese Simplified": "Stronghold",
         "Chinese Traditional": "Stronghold",
         "French": "Stronghold",
@@ -814,7 +814,7 @@
         "Russian": "Stronghold",
         "Spanish": "Stronghold"
     },
-    "Tempest": {
+    "TMP": {
         "Chinese Simplified": "Tempest",
         "Chinese Traditional": "Tempest",
         "French": "Tempest",
@@ -826,7 +826,7 @@
         "Russian": "Tempest",
         "Spanish": "Tempest"
     },
-    "Fifth Edition": {
+    "5ED": {
         "Chinese Simplified": "Core Set Fifth Edition",
         "Chinese Traditional": "Core Set Fifth Edition",
         "French": "Core Set Fifth Edition",
@@ -838,7 +838,7 @@
         "Russian": "Core Set Fifth Edition",
         "Spanish": "Core Set Fifth Edition"
     },
-    "Visions": {
+    "VIS": {
         "Chinese Simplified": "Visions",
         "Chinese Traditional": "Visions",
         "French": "Visions",
@@ -850,7 +850,7 @@
         "Russian": "Visions",
         "Spanish": "Visions"
     },
-    "Weatherlight": {
+    "WTH": {
         "Chinese Simplified": "Weatherlight",
         "Chinese Traditional": "Weatherlight",
         "French": "Weatherlight",
@@ -862,7 +862,7 @@
         "Russian": "Weatherlight",
         "Spanish": "Weatherlight"
     },
-    "Mirage": {
+    "MIR": {
         "Chinese Simplified": "Mirage",
         "Chinese Traditional": "Mirage",
         "French": "Mirage",
@@ -874,7 +874,7 @@
         "Russian": "Mirage",
         "Spanish": "Mirage"
     },
-    "Alliances": {
+    "ALL": {
         "Chinese Simplified": "Alliances",
         "Chinese Traditional": "Alliances",
         "French": "Alliances",
@@ -886,7 +886,7 @@
         "Russian": "Alliances",
         "Spanish": "Alliances"
     },
-    "Homelands": {
+    "HML": {
         "Chinese Simplified": "Homelands",
         "Chinese Traditional": "Homelands",
         "French": "Homelands",
@@ -898,7 +898,7 @@
         "Russian": "Homelands",
         "Spanish": "Homelands"
     },
-    "Ice Age": {
+    "ICE": {
         "Chinese Simplified": "Ice Age",
         "Chinese Traditional": "Ice Age",
         "French": "Ice Age",
@@ -910,7 +910,7 @@
         "Russian": "Ice Age",
         "Spanish": "Ice Age"
     },
-    "Fourth Edition": {
+    "4ED": {
         "Chinese Simplified": "Fourth Edition",
         "Chinese Traditional": "Fourth Edition",
         "French": "Fourth Edition",
@@ -922,7 +922,7 @@
         "Russian": "Fourth Edition",
         "Spanish": "Fourth Edition"
     },
-    "Fallen Empires": {
+    "FEM": {
         "Chinese Simplified": "Fallen Empires",
         "Chinese Traditional": "Fallen Empires",
         "French": "Fallen Empires",
@@ -934,7 +934,7 @@
         "Russian": "Fallen Empires",
         "Spanish": "Fallen Empires"
     },
-    "The Dark": {
+    "DRK": {
         "Chinese Simplified": "The Dark",
         "Chinese Traditional": "The Dark",
         "French": "The Dark",
@@ -946,7 +946,7 @@
         "Russian": "The Dark",
         "Spanish": "The Dark"
     },
-    "Legends": {
+    "LEG": {
         "Chinese Simplified": "Legends",
         "Chinese Traditional": "Legends",
         "French": "Legends",
@@ -958,7 +958,7 @@
         "Russian": "Legends",
         "Spanish": "Legends"
     },
-    "Revised Edition": {
+    "3ED": {
         "Chinese Simplified": "Revised Edition",
         "Chinese Traditional": "Revised Edition",
         "French": "Revised Edition",
@@ -970,7 +970,7 @@
         "Russian": "Revised Edition",
         "Spanish": "Revised Edition"
     },
-    "Antiquities": {
+    "ATQ": {
         "Chinese Simplified": "Antiquities",
         "Chinese Traditional": "Antiquities",
         "French": "Antiquities",
@@ -982,7 +982,7 @@
         "Russian": "Antiquities",
         "Spanish": "Antiquities"
     },
-    "Arabian Nights": {
+    "ARN": {
         "Chinese Simplified": "Arabian Nights",
         "Chinese Traditional": "Arabian Nights",
         "French": "Arabian Nights",
@@ -994,7 +994,7 @@
         "Russian": "Arabian Nights",
         "Spanish": "Arabian Nights"
     },
-    "Commander Anthology Volume II": {
+    "CM2": {
         "Chinese Simplified": "Commander Anthology Volume II",
         "Chinese Traditional": "Commander Anthology Volume II",
         "French": "Commander Anthology Volume II",
@@ -1006,7 +1006,7 @@
         "Russian": "Commander Anthology Volume II",
         "Spanish": "Commander Anthology Volume II"
     },
-    "Commander's Arsenal": {
+    "CM1": {
         "Chinese Simplified": "Commander's Arsenal",
         "Chinese Traditional": "Commander's Arsenal",
         "French": "Commander's Arsenal",
@@ -1018,7 +1018,7 @@
         "Russian": "Commander's Arsenal",
         "Spanish": "Commander's Arsenal"
     },
-    "Duel Decks: Merfolk vs. Goblins": {
+    "DDT": {
         "Chinese Simplified": "Duel Decks: Merfolk vs. Goblins",
         "Chinese Traditional": "Duel Decks: Merfolk vs. Goblins",
         "French": "Duel Decks: Merfolk vs. Goblins",
@@ -1030,7 +1030,7 @@
         "Russian": "Duel Decks: Merfolk vs. Goblins",
         "Spanish": "Duel Decks: Merfolk vs. Goblins"
     },
-    "Nissa vs. Ob Nixilis": {
+    "DDR": {
         "Chinese Simplified": "Nissa vs. Ob Nixilis",
         "Chinese Traditional": "Nissa vs. Ob Nixilis",
         "French": "Nissa vs. Ob Nixilis",
@@ -1042,7 +1042,7 @@
         "Russian": "Nissa vs. Ob Nixilis",
         "Spanish": "Nissa vs. Ob Nixilis"
     },
-    "Zendikar vs. Eldrazi": {
+    "DDP": {
         "Chinese Simplified": "Zendikar vs. Eldrazi",
         "Chinese Traditional": "Zendikar vs. Eldrazi",
         "French": "Zendikar vs. Eldrazi",
@@ -1053,7 +1053,7 @@
         "Russian": "Zendikar vs. Eldrazi",
         "Spanish": "Zendikar vs. Eldrazi"
     },
-    "Elspeth vs. Kiora": {
+    "DDO": {
         "Chinese Simplified": "Elspeth vs. Kiora",
         "Chinese Traditional": "Elspeth vs. Kiora",
         "French": "Elspeth vs. Kiora",
@@ -1065,7 +1065,7 @@
         "Russian": "Elspeth vs. Kiora",
         "Spanish": "Elspeth vs. Kiora"
     },
-    "Speed vs. Cunning": {
+    "DDN": {
         "Chinese Simplified": "Speed vs. Cunning",
         "Chinese Traditional": "Speed vs. Cunning",
         "French": "Speed vs. Cunning",
@@ -1077,7 +1077,7 @@
         "Russian": "Speed vs. Cunning",
         "Spanish": "Speed vs. Cunning"
     },
-    "Jace vs. Vraska": {
+    "DDM": {
         "Chinese Simplified": "Jace vs. Vraska",
         "Chinese Traditional": "Jace vs. Vraska",
         "French": "Jace vs. Vraska",
@@ -1089,7 +1089,7 @@
         "Russian": "Jace vs. Vraska",
         "Spanish": "Jace vs. Vraska"
     },
-    "Heroes vs. Monsters": {
+    "DDL": {
         "Chinese Simplified": "Heroes vs. Monsters",
         "Chinese Traditional": "Heroes vs. Monsters",
         "French": "Heroes vs. Monsters",
@@ -1101,7 +1101,7 @@
         "Russian": "Heroes vs. Monsters",
         "Spanish": "Heroes vs. Monsters"
     },
-    "Sorin vs. Tibalt": {
+    "DDK": {
         "Chinese Simplified": "Sorin vs. Tibalt",
         "Chinese Traditional": "Sorin vs. Tibalt",
         "French": "Sorin vs. Tibalt",
@@ -1113,7 +1113,7 @@
         "Russian": "Sorin vs. Tibalt",
         "Spanish": "Sorin vs. Tibalt"
     },
-    "Izzet vs. Golgari": {
+    "DDJ": {
         "Chinese Simplified": "Izzet vs. Golgari",
         "Chinese Traditional": "Izzet vs. Golgari",
         "French": "Izzet vs. Golgari",
@@ -1125,7 +1125,7 @@
         "Russian": "Izzet vs. Golgari",
         "Spanish": "Izzet vs. Golgari"
     },
-    "Venser vs. Koth": {
+    "DDI": {
         "Chinese Simplified": "Venser vs. Koth",
         "Chinese Traditional": "Venser vs. Koth",
         "French": "Venser vs. Koth",
@@ -1137,7 +1137,7 @@
         "Russian": "Venser vs. Koth",
         "Spanish": "Venser vs. Koth"
     },
-    "Ajani vs. Nicol Bolas": {
+    "DDH": {
         "Chinese Simplified": "Ajani vs. Nicol Bolas",
         "Chinese Traditional": "Ajani vs. Nicol Bolas",
         "French": "Ajani vs. Nicol Bolas",
@@ -1149,7 +1149,7 @@
         "Russian": "Ajani vs. Nicol Bolas",
         "Spanish": "Ajani vs. Nicol Bolas"
     },
-    "Knights vs. Dragons": {
+    "DDG": {
         "Chinese Simplified": "Knights vs. Dragons",
         "Chinese Traditional": "Knights vs. Dragons",
         "French": "Knights vs. Dragons",
@@ -1161,7 +1161,7 @@
         "Russian": "Knights vs. Dragons",
         "Spanish": "Knights vs. Dragons"
     },
-    "Elspeth vs. Tezzeret": {
+    "DDF": {
         "Chinese Simplified": "Elspeth vs. Tezzeret",
         "Chinese Traditional": "Elspeth vs. Tezzeret",
         "French": "Elspeth vs. Tezzeret",
@@ -1173,7 +1173,7 @@
         "Russian": "Elspeth vs. Tezzeret",
         "Spanish": "Elspeth vs. Tezzeret"
     },
-    "Phyrexia vs. The Coalition": {
+    "DDE": {
         "Chinese Simplified": "Phyrexia vs. The Coalition",
         "Chinese Traditional": "Phyrexia vs. The Coalition",
         "French": "Phyrexia vs. The Coalition",
@@ -1185,7 +1185,7 @@
         "Russian": "Phyrexia vs. The Coalition",
         "Spanish": "Phyrexia vs. The Coalition"
     },
-    "Garruk vs. Liliana": {
+    "DDD": {
         "Chinese Simplified": "Garruk vs. Liliana",
         "Chinese Traditional": "Garruk vs. Liliana",
         "French": "Garruk vs. Liliana",
@@ -1197,7 +1197,7 @@
         "Russian": "Garruk vs. Liliana",
         "Spanish": "Garruk vs. Liliana"
     },
-    "Divine vs. Demonic": {
+    "DDC": {
         "Chinese Simplified": "Divine vs. Demonic",
         "Chinese Traditional": "Divine vs. Demonic",
         "French": "Divine vs. Demonic",
@@ -1209,7 +1209,7 @@
         "Russian": "Divine vs. Demonic",
         "Spanish": "Divine vs. Demonic"
     },
-    "Jace vs. Chandra": {
+    "DD2": {
         "Chinese Simplified": "Jace vs. Chandra",
         "Chinese Traditional": "Jace vs. Chandra",
         "French": "Jace vs. Chandra",
@@ -1221,7 +1221,7 @@
         "Russian": "Jace vs. Chandra",
         "Spanish": "Jace vs. Chandra"
     },
-    "Elves vs. Goblins": {
+    "DD1": {
         "Chinese Simplified": "Elves vs. Goblins",
         "Chinese Traditional": "Elves vs. Goblins",
         "French": "Elves vs. Goblins",
@@ -1233,7 +1233,7 @@
         "Russian": "Elves vs. Goblins",
         "Spanish": "Elves vs. Goblins"
     },
-    "From The Vault: Transform": {
+    "V17": {
         "Chinese Simplified": "From The Vault: Transform",
         "Chinese Traditional": "From The Vault: Transform",
         "French": "From The Vault: Transform",
@@ -1245,7 +1245,7 @@
         "Russian": "From The Vault: Transform",
         "Spanish": "From The Vault: Transform"
     },
-    "From The Vault: Lore": {
+    "V16": {
         "Chinese Simplified": "From The Vault: Lore",
         "Chinese Traditional": "From The Vault: Lore",
         "French": "From The Vault: Lore",
@@ -1257,7 +1257,7 @@
         "Russian": "From The Vault: Lore",
         "Spanish": "From The Vault: Lore"
     },
-    "From the Vault: Angels": {
+    "V15": {
         "Chinese Simplified": "From the Vault: Angels",
         "Chinese Traditional": "From the Vault: Angels",
         "French": "From the Vault: Angels",
@@ -1269,7 +1269,7 @@
         "Russian": "From the Vault: Angels",
         "Spanish": "From the Vault: Angels"
     },
-    "From The Vault: Annihilation": {
+    "V14": {
         "Chinese Simplified": "From The Vault: Annihilation",
         "Chinese Traditional": "From The Vault: Annihilation",
         "French": "From The Vault: Annihilation",
@@ -1281,7 +1281,7 @@
         "Russian": "From The Vault: Annihilation",
         "Spanish": "From The Vault: Annihilation"
     },
-    "From The Vault: Twenty": {
+    "V13": {
         "Chinese Simplified": "From The Vault: Twenty",
         "Chinese Traditional": "From The Vault: Twenty",
         "French": "From The Vault: Twenty",
@@ -1293,7 +1293,7 @@
         "Russian": "From The Vault: Twenty",
         "Spanish": "From The Vault: Twenty"
     },
-    "From The Vault: Realms": {
+    "V12": {
         "Chinese Simplified": "From The Vault: Realms",
         "Chinese Traditional": "From The Vault: Realms",
         "French": "From The Vault: Realms",
@@ -1305,7 +1305,7 @@
         "Russian": "From The Vault: Realms",
         "Spanish": "From The Vault: Realms"
     },
-    "From The Vault: Legends": {
+    "V11": {
         "Chinese Simplified": "From The Vault: Legends",
         "Chinese Traditional": "From The Vault: Legends",
         "French": "From The Vault: Legends",
@@ -1317,7 +1317,7 @@
         "Russian": "From The Vault: Legends",
         "Spanish": "From The Vault: Legends"
     },
-    "From The Vault: Relics": {
+    "V10": {
         "Chinese Simplified": "From The Vault: Relics",
         "Chinese Traditional": "From The Vault: Relics",
         "French": "From The Vault: Relics",
@@ -1329,7 +1329,7 @@
         "Russian": "From The Vault: Relics",
         "Spanish": "From The Vault: Relics"
     },
-    "From The Vault: Exiled": {
+    "V09": {
         "Chinese Simplified": "From The Vault: Exiled",
         "Chinese Traditional": "From The Vault: Exiled",
         "French": "From The Vault: Exiled",
@@ -1341,7 +1341,7 @@
         "Russian": "From The Vault: Exiled",
         "Spanish": "From The Vault: Exiled"
     },
-    "Tempest Remastered": {
+    "TPR": {
         "Chinese Simplified": "Tempest Remastered",
         "Chinese Traditional": "Tempest Remastered",
         "French": "Tempest Remastered",
@@ -1353,7 +1353,7 @@
         "Russian": "Tempest Remastered",
         "Spanish": "Tempest Remastered"
     },
-    "Vintage Masters": {
+    "VMA": {
         "Chinese Simplified": "Vintage Masters",
         "Chinese Traditional": "Vintage Masters",
         "French": "Vintage Masters",
@@ -1365,7 +1365,7 @@
         "Russian": "Vintage Masters",
         "Spanish": "Vintage Masters"
     },
-    "Masters Edition IV": {
+    "ME4": {
         "Chinese Simplified": "Masters Edition IV",
         "Chinese Traditional": "Masters Edition IV",
         "French": "Masters Edition IV",
@@ -1377,7 +1377,7 @@
         "Russian": "Masters Edition IV",
         "Spanish": "Masters Edition IV"
     },
-    "Masters Edition III": {
+    "ME3": {
         "Chinese Simplified": "Masters Edition III",
         "Chinese Traditional": "Masters Edition III",
         "French": "Masters Edition III",
@@ -1389,7 +1389,7 @@
         "Russian": "Masters Edition III",
         "Spanish": "Masters Edition III"
     },
-    "Masters Edition II": {
+    "ME2": {
         "Chinese Simplified": "Masters Edition II",
         "Chinese Traditional": "Masters Edition II",
         "French": "Masters Edition II",
@@ -1401,7 +1401,7 @@
         "Russian": "Masters Edition II",
         "Spanish": "Masters Edition II"
     },
-    "Masters Edition": {
+    "ME1": {
         "Chinese Simplified": "Masters Edition",
         "Chinese Traditional": "Masters Edition",
         "French": "Masters Edition",
@@ -1413,7 +1413,7 @@
         "Russian": "Masters Edition",
         "Spanish": "Masters Edition"
     },
-    "Ultimate Masters": {
+    "UMA": {
         "Chinese Simplified": "Ultimate Masters",
         "Chinese Traditional": "Ultimate Masters",
         "French": "Ultimate Masters",
@@ -1425,7 +1425,7 @@
         "Russian": "Ultimate Masters",
         "Spanish": "Ultimate Masters"
     },
-    "Masters 25": {
+    "A25": {
         "Chinese Simplified": "Masters 25",
         "Chinese Traditional": "Masters 25",
         "French": "Masters 25",
@@ -1437,7 +1437,7 @@
         "Russian": "Masters 25",
         "Spanish": "Masters 25"
     },
-    "Iconic Masters": {
+    "IMA": {
         "Chinese Simplified": "Iconic Masters",
         "Chinese Traditional": "Iconic Masters",
         "French": "Iconic Masters",
@@ -1449,7 +1449,7 @@
         "Russian": "Iconic Masters",
         "Spanish": "Iconic Masters"
     },
-    "Eternal Masters": {
+    "EMA": {
         "Chinese Simplified": "Eternal Masters",
         "Chinese Traditional": "Eternal Masters",
         "French": "Eternal Masters",
@@ -1461,7 +1461,7 @@
         "Russian": "Eternal Masters",
         "Spanish": "Eternal Masters"
     },
-    "Modern Masters": {
+    "MMA": {
         "Chinese Simplified": "Modern Masters",
         "Chinese Traditional": "Modern Masters",
         "French": "Modern Masters",
@@ -1473,7 +1473,7 @@
         "Russian": "Modern Masters",
         "Spanish": "Modern Masters"
     },
-    "Unstable": {
+    "UST": {
         "Chinese Simplified": "Unstable",
         "Chinese Traditional": "Unstable",
         "French": "Unstable",
@@ -1485,7 +1485,7 @@
         "Russian": "Unstable",
         "Spanish": "Unstable"
     },
-    "Unhinged": {
+    "UNH": {
         "Chinese Simplified": "Unhinged",
         "Chinese Traditional": "Unhinged",
         "French": "Unhinged",
@@ -1497,7 +1497,7 @@
         "Russian": "Unhinged",
         "Spanish": "Unhinged"
     },
-    "Unglued": {
+    "UGL": {
         "Chinese Simplified": "Unglued",
         "Chinese Traditional": "Unglued",
         "French": "Unglued",
@@ -1509,7 +1509,7 @@
         "Russian": "Unglued",
         "Spanish": "Unglued"
     },
-    "Archenemy: Nicol Bolas": {
+    "E01": {
         "Chinese Simplified": "Archenemy: Nicol Bolas",
         "Chinese Traditional": "Archenemy: Nicol Bolas",
         "French": "Archenemy: Nicol Bolas",
@@ -1521,7 +1521,7 @@
         "Russian": "Archenemy: Nicol Bolas",
         "Spanish": "Archenemy: Nicol Bolas"
     },
-    "Planechase Anthology": {
+    "PCA": {
         "Chinese Simplified": "Planechase Anthology",
         "Chinese Traditional": "Planechase Anthology",
         "French": "Planechase Anthology",
@@ -1533,7 +1533,7 @@
         "Russian": "Planechase Anthology",
         "Spanish": "Planechase Anthology"
     },
-    "Conspiracy: Take the Crown": {
+    "CN2": {
         "Chinese Simplified": "\u8be1\u5c40\uff1a\u738b\u6743\u4e89\u9738",
         "Chinese Traditional": "\u8a6d\u5c40\uff1a\u738b\u6b0a\u722d\u9738",
         "French": "Conspiracy: Take the Crown",
@@ -1545,7 +1545,7 @@
         "Russian": "Conspiracy: Take the Crown",
         "Spanish": "Conspiracy: Take the Crown"
     },
-    "Conspiracy": {
+    "CNS": {
         "Chinese Simplified": "Conspiracy",
         "Chinese Traditional": "Conspiracy",
         "French": "Conspiracy",
@@ -1557,7 +1557,7 @@
         "Russian": "Conspiracy",
         "Spanish": "Conspiracy"
     },
-    "Archenemy": {
+    "ARC": {
         "Chinese Simplified": "Archenemy",
         "Chinese Traditional": "Archenemy",
         "French": "Archenemy",
@@ -1569,7 +1569,7 @@
         "Russian": "Archenemy",
         "Spanish": "Archenemy"
     },
-    "Beatdown": {
+    "BTD": {
         "Chinese Simplified": "Beatdown",
         "Chinese Traditional": "Beatdown",
         "French": "Beatdown",
@@ -1581,7 +1581,7 @@
         "Russian": "Beatdown",
         "Spanish": "Beatdown"
     },
-    "Battle Royale": {
+    "BRB": {
         "Chinese Simplified": "Battle Royale",
         "Chinese Traditional": "Battle Royale",
         "French": "Battle Royale",
@@ -1593,7 +1593,7 @@
         "Russian": "Battle Royale",
         "Spanish": "Battle Royale"
     },
-    "Premium Deck Series: Graveborn": {
+    "PD3": {
         "Chinese Simplified": "Premium Deck Series: Graveborn",
         "Chinese Traditional": "Premium Deck Series: Graveborn",
         "French": "Premium Deck Series: Graveborn",
@@ -1605,7 +1605,7 @@
         "Russian": "Premium Deck Series: Graveborn",
         "Spanish": "Premium Deck Series: Graveborn"
     },
-    "Premium Deck Series: Slivers": {
+    "H09": {
         "Chinese Simplified": "Premium Deck Series: Slivers",
         "Chinese Traditional": "Premium Deck Series: Slivers",
         "French": "Premium Deck Series: Slivers",
@@ -1617,22 +1617,22 @@
         "Russian": "Premium Deck Series: Slivers",
         "Spanish": "Premium Deck Series: Slivers"
     },
-    "Scourge": {
+    "SCG": {
         "French": "Fl\u00e9au",
         "German": "Scourge",
         "Spanish": "Azote"
     },
-    "Legions": {
+    "LGN": {
         "French": "L\u00e9gions",
         "German": "Legions",
         "Spanish": "Legiones"
     },
-    "Onslaught": {
+    "ONS": {
         "French": "Carnage",
         "German": "Onslaught",
         "Spanish": "Embestida"
     },
-    "Blessed vs. Cursed": {
+    "DDQ": {
         "Chinese Simplified": "Blessed vs. Cursed",
         "Chinese Traditional": "Blessed vs. Cursed",
         "French": "Blessed vs. Cursed",
@@ -1644,14 +1644,14 @@
         "Spanish": "Blessed vs. Cursed",
         "Japanese": "\u300e\u30c7\u30e5\u30a8\u30eb\u30c7\u30c3\u30ad\uff1a\u6b63\u3057\u304d\u8005 vs \u5815\u3061\u3057\u8005\u300f\u767a\u8868"
     },
-    "Global Series: Jiang Yanggu & Mu Yanling": {},
-    "Signature Spellbook: Jace": {},
-    "Battlebond": {},
-    "Explorers of Ixalan": {},
-    "Portal Three Kingdoms": {},
-    "Portal Second Age": {},
-    "Portal": {},
-    "Magic 2015": {
+    "GS1": {},
+    "SS1": {},
+    "BBD": {},
+    "E02": {},
+    "PTK": {},
+    "P02": {},
+    "POR": {},
+    "M15": {
         "Chinese Simplified": "\u4e07\u667a\u724c2015 \u6838\u5fc3\u7cfb\u5217",
         "Chinese Traditional": "\u9b54\u6cd5\u98a8\u96f2\u67032015 \u6838\u5fc3\u7cfb\u5217",
         "French": "\u00c9dition de base\u00a0Magic 2015",
@@ -1663,7 +1663,7 @@
         "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a\u00a0Magic 2015",
         "Spanish": "Colecci\u00f3n b\u00e1sica\u00a0Magic 2015"
     },
-    "Magic 2014": {
+    "M14": {
         "Chinese Simplified": "\u4e07\u667a\u724c2014 \u6838\u5fc3\u7cfb\u5217",
         "Chinese Traditional": "\u9b54\u6cd5\u98a8\u96f2\u67032014 \u6838\u5fc3\u7cfb\u5217",
         "French": "\u00c9dition de base\u00a0Magic 2014",
@@ -1675,7 +1675,7 @@
         "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a\u00a0Magic 2014",
         "Spanish": "Colecci\u00f3n b\u00e1sica\u00a0Magic 2014"
     },
-    "Magic 2013": {
+    "M13": {
         "Chinese Simplified": "\u6838\u5fc3\u7cfb\u52172013",
         "Chinese Traditional": "\u6838\u5fc3\u7cfb\u52172013",
         "French": "Colecci\u00f3n b\u00e1sica 2013",
@@ -1687,7 +1687,7 @@
         "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a 2013",
         "Spanish": "Colecci\u00f3n b\u00e1sica 2013"
     },
-    "Magic 2012": {
+    "M12": {
         "Chinese Simplified": "\u6838\u5fc3\u7cfb\u52172012",
         "Chinese Traditional": "\u6838\u5fc3\u7cfb\u52172012",
         "French": "\u00c9dition de base 2012",
@@ -1699,7 +1699,7 @@
         "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a 2012",
         "Spanish": "Colecci\u00f3n b\u00e1sica 2012"
     },
-    "Magic 2011": {
+    "M11": {
         "Chinese Simplified": "\u6838\u5fc3\u7cfb\u52172011",
         "Chinese Traditional": "\u6838\u5fc3\u7cfb\u52172011",
         "French": "\u00c9dition de base 2011",
@@ -1711,7 +1711,7 @@
         "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a 2011",
         "Spanish": "Colecci\u00f3n b\u00e1sica 2011"
     },
-    "Magic 2010": {
+    "M10": {
         "Chinese Simplified": "\u6838\u5fc3\u7cfb\u52172010",
         "Chinese Traditional": "\u6838\u5fc3\u7cfb\u52172010",
         "French": "\u00c9dition de base 2010",
@@ -1723,7 +1723,7 @@
         "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a 2010",
         "Spanish": "Colecci\u00f3n b\u00e1sica 2010"
     },
-    "Tenth Edition": {
+    "10E": {
         "Chinese Simplified": "\u6838\u5fc3\u7cfb\u5217\u7b2c\u5341\u7248",
         "Chinese Traditional": "\u6838\u5fc3\u7cfb\u5217\u7b2c\u5341\u7248",
         "French": "Dixi\u00e8me \u00e9dition",
@@ -1735,7 +1735,7 @@
         "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a \u0414\u0435\u0441\u044f\u0442\u043e\u0435 \u0418\u0437\u0434\u0430\u043d\u0438\u0435",
         "Spanish": "Colecci\u00f3n B\u00e1sica - D\u00e9cima Edici\u00f3n"
     },
-    "Ninth Edition": {
+    "9ED": {
         "Chinese Simplified": "\u6838\u5fc3\u7cfb\u5217 \u7b2c\u4e5d\u7248",
         "Chinese Traditional": "\u6838\u5fc3\u7cfb\u5217 \u7b2c\u4e5d\u7248",
         "French": "Neuvi\u00e8me \u00e9dition",
@@ -1747,7 +1747,7 @@
         "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a \u0414\u0435\u0432\u044f\u0442\u0430\u044f \u0440\u0435\u0434\u0430\u043a\u0446\u0438\u044f",
         "Spanish": "Colecci\u00f3n B\u00e1sica - Novena edici\u00f3n"
     },
-    "Eighth Edition": {
+    "8ED": {
         "Chinese Simplified": "\u6838\u5fc3\u7cfb\u5217\u7b2c\u516b\u7248",
         "Chinese Traditional": "\u6838\u5fc3\u7cfb\u5217\u7b2c\u516b\u7248",
         "French": "Huiti\u00e8me \u00e9dition",
@@ -1759,7 +1759,7 @@
         "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a Eighth Edition",
         "Spanish": "Colecci\u00f3n B\u00e1sica - Octava edici\u00f3n"
     },
-    "Seventh Edition": {
+    "7ED": {
         "Chinese Simplified": "Core Set Seventh Edition",
         "Chinese Traditional": "Core Set Seventh Edition",
         "French": "Core Set Seventh Edition",
@@ -1771,7 +1771,7 @@
         "Russian": "Core Set Seventh Edition",
         "Spanish": "Core Set Seventh Edition"
     },
-    "Commander 2017": {
+    "C17": {
         "Chinese Simplified": "Commander (2017 EDITION)",
         "Chinese Traditional": "Commander (2017 EDITION)",
         "French": "Commander (2017 EDITION)",
@@ -1783,7 +1783,7 @@
         "Russian": "Commander (2017 EDITION)",
         "Spanish": "Commander (2017 EDITION)"
     },
-    "Commander 2016": {
+    "C16": {
         "Chinese Simplified": "Commander (2016 Edition)",
         "Chinese Traditional": "Commander (2016 Edition)",
         "French": "Commander (2016 Edition)",
@@ -1795,7 +1795,7 @@
         "Russian": "Commander (2016 Edition)",
         "Spanish": "Commander (2016 Edition)"
     },
-    "Commander 2015": {
+    "C15": {
         "Chinese Simplified": "Commander (2015 Edition)",
         "Chinese Traditional": "Commander (2015 Edition)",
         "French": "Commander (2015 Edition)",
@@ -1807,7 +1807,7 @@
         "Russian": "Commander (2015 Edition)",
         "Spanish": "Commander (2015 Edition)"
     },
-    "Commander 2014": {
+    "C14": {
         "Chinese Simplified": "Commander (2014 Edition)",
         "Chinese Traditional": "Commander (2014 Edition)",
         "French": "Commander (2014 Edition)",
@@ -1819,7 +1819,7 @@
         "Russian": "Commander (2014 Edition)",
         "Spanish": "Commander (2014 Edition)"
     },
-    "Commander 2013": {
+    "C13": {
         "Chinese Simplified": "Commander (2013 Edition)",
         "Chinese Traditional": "Commander (2013 Edition)",
         "French": "Commander (2013 Edition)",
@@ -1831,7 +1831,7 @@
         "Russian": "Commander (2013 Edition)",
         "Spanish": "Commander (2013 Edition)"
     },
-    "Commander 2011": {
+    "CMD": {
         "Chinese Simplified": "Magic: the Gathering Commander",
         "Chinese Traditional": "Magic: the Gathering Commander",
         "French": "Magic: the Gathering Commander",
@@ -1843,7 +1843,7 @@
         "Russian": "Magic: the Gathering Commander",
         "Spanish": "Magic: the Gathering Commander"
     },
-    "Duel Decks: Elves vs. Inventors": {
+    "DDU": {
         "Chinese Simplified": "Duel Deck: Elves vs. Inventors",
         "Chinese Traditional": "Duel Deck: Elves vs. Inventors",
         "French": "Duel Deck: Elves vs. Inventors",
@@ -1854,7 +1854,7 @@
         "Russian": "Duel Deck: Elves vs. Inventors",
         "Spanish": "Duel Deck: Elves vs. Inventors"
     },
-    "Modern Masters 2015": {
+    "MM2": {
         "Chinese Simplified": "Modern Masters 2015 Edition",
         "Chinese Traditional": "Modern Masters 2015 Edition",
         "French": "Modern Masters 2015 Edition",
@@ -1866,19 +1866,7 @@
         "Russian": "Modern Masters 2015 Edition",
         "Spanish": "Modern Masters 2015 Edition"
     },
-    "": {
-        "Chinese Simplified": "Modern Event Deck",
-        "Chinese Traditional": "Modern Event Deck",
-        "French": "Modern Event Deck",
-        "German": "Modern Event Deck",
-        "Italian": "Modern Event Deck",
-        "Japanese": "Modern Event Deck",
-        "Korean": "Modern Event Deck",
-        "Portuguese (Brazil)": "Modern Event Deck",
-        "Russian": "Modern Event Deck",
-        "Spanish": "Modern Event Deck"
-    },
-    "Chronicles": {
+    "CHR": {
         "Chinese Simplified": "Chronicles / Renaissance",
         "Chinese Traditional": "Chronicles / Renaissance",
         "French": "Chronicles / Renaissance",
@@ -1890,7 +1878,7 @@
         "Russian": "Chronicles / Renaissance",
         "Spanish": "Chronicles / Renaissance"
     },
-    "Planechase 2012": {
+    "PC2": {
         "Chinese Simplified": "Planechase",
         "Chinese Traditional": "Planechase",
         "French": "Planechase",
@@ -1902,7 +1890,7 @@
         "Russian": "Planechase",
         "Spanish": "Planechase"
     },
-    "Deckmasters": {
+    "DKM": {
         "Chinese Simplified": "Deckmasters 2001",
         "Chinese Traditional": "Deckmasters 2001",
         "French": "Deckmasters 2001",
@@ -1914,7 +1902,7 @@
         "Russian": "Deckmasters 2001",
         "Spanish": "Deckmasters 2001"
     },
-    "Premium Deck Series: Fire and Lightning": {
+    "PD2": {
         "Chinese Simplified": "Premium Deck Series: Fire & Lightning",
         "Chinese Traditional": "Premium Deck Series: Fire & Lightning",
         "French": "Premium Deck Series: Fire & Lightning",

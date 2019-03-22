@@ -14,6 +14,8 @@ import mtgjson4
 from mtgjson4 import util
 import unidecode
 
+from mtgjson4.provider import scryfall, gamepedia
+
 TRANSLATION_URL: str = "https://magic.wizards.com/{}/products/card-set-archive"
 COMP_RULES: str = "https://magic.wizards.com/en/game-info/gameplay/rules-and-formats/rules"
 
@@ -251,13 +253,14 @@ def get_card_types(comp_rules: str) -> Dict[str, Any]:
     }
 
 
-def get_translations(set_name: Optional[str] = None) -> Any:
+def get_translations(set_code: Optional[str] = None) -> Any:
     """
     Get the translation table that was pre-built OR a specific
     set from the translation table. Will also build the
     table if necessary.
     Return value w/o set_code: {SET_CODE: {SET_LANG: TRANSLATION, ...}, ...}
     Return value w/  set_code: SET_CODE: {SET_LANG: TRANSLATION, ...}
+    :param set_code Set code for specific entry
     :return: Translation table
     """
     if not TRANSLATION_TABLE.get(None):
@@ -279,20 +282,12 @@ def get_translations(set_name: Optional[str] = None) -> Any:
 
         TRANSLATION_TABLE.set(json.load(translation_file.open("r")))
 
-    if set_name:
+    if set_code:
         # If we have an exact match, return it
-        print(TRANSLATION_TABLE.get().keys())
-        if set_name in TRANSLATION_TABLE.get().keys():
-            return TRANSLATION_TABLE.get()[set_name]
+        if set_code in TRANSLATION_TABLE.get().keys():
+            return TRANSLATION_TABLE.get()[set_code]
 
-        """
-        # Since they're not perfect translations, we need to
-        # guesstimate. SequenceMatcher seems decent.
-        for key, value in TRANSLATION_TABLE.get().items():
-            if difflib.SequenceMatcher(None, set_name, key).ratio() > 0.9:
-                return value
-        """
-        LOGGER.warning("Unable to find good enough match for {}".format(set_name))
+        LOGGER.warning("Unable to find good enough match for {}".format(set_code))
         return {}
 
     return TRANSLATION_TABLE.get()
@@ -434,7 +429,9 @@ def manual_fix_urls(table: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str, str
     return table
 
 
-def manual_fix_set_names(table: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str, str]]:
+def set_names_to_set_codes(
+    table: Dict[str, Dict[str, str]]
+) -> Dict[str, Dict[str, str]]:
     """
     The set names from Wizard's website are slightly incorrect.
     This function will clean them up and make them ready to go
@@ -448,7 +445,14 @@ def manual_fix_set_names(table: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str
         table[value] = table[key]
         del table[key]
 
-    return table
+    # Build new table with set codes instead of set names
+    new_table = {}
+    for key, value in table.items():
+        if key:
+            sf_header = scryfall.get_set_header(gamepedia.strip_bad_sf_chars(key))
+            new_table[sf_header["code"].upper()] = value
+
+    return new_table
 
 
 def build_translation_table() -> Dict[str, Dict[str, str]]:
@@ -466,6 +470,6 @@ def build_translation_table() -> Dict[str, Dict[str, str]]:
     # Oh Wizards...
     translation_table = manual_fix_urls(translation_table)
     translation_table = convert_keys_to_set_names(translation_table)
-    translation_table = manual_fix_set_names(translation_table)
+    translation_table = set_names_to_set_codes(translation_table)
 
     return translation_table
