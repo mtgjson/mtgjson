@@ -1,7 +1,7 @@
 """File information provider for WotC Website."""
 
 import contextvars
-from difflib import SequenceMatcher
+import difflib
 import json
 import logging
 import re
@@ -290,7 +290,7 @@ def get_translations(set_name: Optional[str] = None) -> Any:
         # Since they're not perfect translations, we need to
         # guesstimate. SequenceMatcher seems decent.
         for key, value in TRANSLATION_TABLE.get().items():
-            if SequenceMatcher(None, set_name, key).ratio() > 0.9:
+            if difflib.SequenceMatcher(None, set_name, key).ratio() > 0.9:
                 return value
 
         LOGGER.warning("Unable to find good enough match for {}".format(set_name))
