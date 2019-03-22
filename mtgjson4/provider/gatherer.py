@@ -80,7 +80,7 @@ def get_cards(multiverse_id: str) -> List[GathererCard]:
 def parse_cards(gatherer_data: str) -> List[GathererCard]:
     """Parse all cards from a given gatherer page."""
     soup = bs4.BeautifulSoup(gatherer_data, "html.parser")
-    columns = soup.findAll("td", class_="rightCol")
+    columns = soup.find_all("td", class_="rightCol")
     return [_parse_column(c) for c in columns]
 
 
@@ -90,7 +90,7 @@ def _parse_column(gatherer_column: bs4.element.Tag) -> GathererCard:
         row.find("div", class_="label")
         .getText(strip=True)
         .rstrip(":"): row.find("div", class_="value")
-        for row in gatherer_column.findAll("div", class_="row")
+        for row in gatherer_column.find_all("div", class_="row")
     }
 
     card_name = label_to_values["Card Name"].getText(strip=True)
@@ -98,14 +98,14 @@ def _parse_column(gatherer_column: bs4.element.Tag) -> GathererCard:
 
     flavor_lines = []
     if "Flavor Text" in label_to_values:
-        for flavorbox in label_to_values["Flavor Text"].findAll(
+        for flavorbox in label_to_values["Flavor Text"].find_all(
             "div", class_="flavortextbox"
         ):
             flavor_lines.append(flavorbox.getText(strip=True))
 
     text_lines = []
     if "Card Text" in label_to_values:
-        for textbox in label_to_values["Card Text"].findAll(
+        for textbox in label_to_values["Card Text"].find_all(
             "div", class_="cardtextbox"
         ):
             text_lines.append(_replace_symbols(textbox).getText().strip())

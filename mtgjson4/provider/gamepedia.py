@@ -41,7 +41,7 @@ def get_modern_sets() -> List[str]:
 
     soup = bs4.BeautifulSoup(modern_page_content.text, "html.parser")
     soup = soup.find("div", class_="div-col columns column-width")
-    soup = soup.findAll("a")
+    soup = soup.find_all("a")
 
     modern_legal_sets = [
         scryfall.get_set_header(strip_bad_sf_chars(x.text)).get("code", "").upper()
