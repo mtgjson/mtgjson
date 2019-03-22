@@ -40,7 +40,7 @@ def get_generic_session() -> requests.Session:
     requests_cache.install_cache(
         "general_cache",
         backend="sqlite",
-        expire_after=mtgjson4.SESSION_CACHE_EXPIRE_GATHERER,
+        expire_after=mtgjson4.SESSION_CACHE_EXPIRE_GENERAL,
     )
 
     session: Optional[requests.Session] = SESSION.get(None)
