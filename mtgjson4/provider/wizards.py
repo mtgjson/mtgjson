@@ -263,36 +263,35 @@ def get_translations(set_name: Optional[str] = None) -> Any:
     if not TRANSLATION_TABLE.get(None):
         translation_file = mtgjson4.RESOURCE_PATH.joinpath("set_translations.json")
 
-        # If file cache exists and is current, read it from disk
-        # Any other reason, replace the table
-        if translation_file.is_file():
-            if (
-                time.time() - translation_file.stat().st_mtime
-                > mtgjson4.SESSION_CACHE_EXPIRE_GATHERER
-            ):
-                table = build_translation_table()
-                with translation_file.open("w") as f:
-                    json.dump(table, f, indent=4)
-                    f.write("\n")
-            else:
-                TRANSLATION_TABLE.set(json.load(translation_file.open("r")))
-        else:
+        is_file = translation_file.is_file()
+        cache_expired = (
+            is_file
+            and time.time() - translation_file.stat().st_mtime
+            > mtgjson4.SESSION_CACHE_EXPIRE_GENERAL
+        )
+
+        if (not is_file) or cache_expired:
+            # Rebuild set translations
             table = build_translation_table()
             with translation_file.open("w") as f:
                 json.dump(table, f, indent=4)
                 f.write("\n")
 
+        TRANSLATION_TABLE.set(json.load(translation_file.open("r")))
+
     if set_name:
         # If we have an exact match, return it
+        print(TRANSLATION_TABLE.get().keys())
         if set_name in TRANSLATION_TABLE.get().keys():
             return TRANSLATION_TABLE.get()[set_name]
 
+        """
         # Since they're not perfect translations, we need to
         # guesstimate. SequenceMatcher seems decent.
         for key, value in TRANSLATION_TABLE.get().items():
             if difflib.SequenceMatcher(None, set_name, key).ratio() > 0.9:
                 return value
-
+        """
         LOGGER.warning("Unable to find good enough match for {}".format(set_name))
         return {}
 
@@ -329,7 +328,7 @@ def build_single_language(
     soup = bs4.BeautifulSoup(download(TRANSLATION_URL.format(lang[0])), "html.parser")
 
     # Find all nodes, which are table (set) rows
-    set_lines = soup.find_all("a", href=re.compile(".*node.*"))
+    set_lines = soup.find_all("a", href=re.compile(".*(node|content).*"))
     for set_line in set_lines:
         # Pluck out the set icon, as it's how we will link all languages
         icon = set_line.find("span", class_="icon")
@@ -397,7 +396,7 @@ def remove_and_replace(
     return table
 
 
-def manual_fix_mistakes(table: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str, str]]:
+def manual_fix_urls(table: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str, str]]:
     """
     Wizards has some problems, this corrects them to allow
     seamless integration of all sets
@@ -408,15 +407,6 @@ def manual_fix_mistakes(table: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str,
     good_dominaria = "https://magic.wizards.com/sites/mtg/files/images/featured/DAR_Logo_Symbol_Common.png"
     bad_dominaria = "https://magic.wizards.com/sites/mtg/files/images/featured/DAR_CardSetArchive_Symbol.png"
     table = remove_and_replace(table, good_dominaria, bad_dominaria)
-
-    # Fix tempest remastered
-    good_tempest_remastered = (
-        "https://magic.wizards.com/sites/mtg/files/images/featured/TPR_SetSymbol.png"
-    )
-    bad_tempest_remastered = (
-        "https://magic.wizards.com/sites/mtg/files/images/featured/TPR_SetSymbol.png"
-    )
-    table = remove_and_replace(table, good_tempest_remastered, bad_tempest_remastered)
 
     # Fix archenemy
     good_archenemy_nb = (
@@ -444,6 +434,23 @@ def manual_fix_mistakes(table: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str,
     return table
 
 
+def manual_fix_set_names(table: Dict[str, Dict[str, str]]) -> Dict[str, Dict[str, str]]:
+    """
+    The set names from Wizard's website are slightly incorrect.
+    This function will clean them up and make them ready to go
+    :param table: Translation Table
+    :return: Fixed Translation Table
+    """
+    with mtgjson4.RESOURCE_PATH.joinpath("wizards_set_name_fixes.json").open("r") as f:
+        set_name_fixes = json.load(f)
+
+    for key, value in set_name_fixes.items():
+        table[value] = table[key]
+        del table[key]
+
+    return table
+
+
 def build_translation_table() -> Dict[str, Dict[str, str]]:
     """
     Helper method to create the translation table for
@@ -457,6 +464,8 @@ def build_translation_table() -> Dict[str, Dict[str, str]]:
         translation_table = build_single_language(pair, translation_table)
 
     # Oh Wizards...
-    translation_table = manual_fix_mistakes(translation_table)
+    translation_table = manual_fix_urls(translation_table)
+    translation_table = convert_keys_to_set_names(translation_table)
+    translation_table = manual_fix_set_names(translation_table)
 
-    return convert_keys_to_set_names(translation_table)
+    return translation_table

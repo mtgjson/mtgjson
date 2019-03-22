@@ -131,6 +131,30 @@
         "Russian": "\u0412\u0441\u0442\u0440\u0435\u0442\u044c\u0442\u0435\u0441\u044c \u0441 \u0442\u044c\u043c\u043e\u0439",
         "Spanish": "Luna de horrores"
     },
+    "Shadows over Innistrad": {
+        "Chinese Simplified": "\u4f9d\u5c3c\u7fe0\u6697\u5f71",
+        "Chinese Traditional": "\u4f9d\u5c3c\u7fe0\u95c7\u5f71",
+        "French": "T\u00e9n\u00e8bres sur Innistrad",
+        "German": "Schatten \u00fcber Innistrad",
+        "Italian": "Ombre su Innistrad",
+        "Japanese": "\u300e\u30a4\u30cb\u30b9\u30c8\u30e9\u30fc\u30c9\u3092\u8986\u3046\u5f71\u300f",
+        "Korean": "\uc774\ub2c8\uc2a4\ud2b8\ub77c\ub4dc\uc5d0 \ub4dc\ub9ac\uc6b4 \uadf8\ub9bc\uc790",
+        "Portuguese (Brazil)": "Sombras Em Innistrad",
+        "Russian": "\u0422\u0435\u043d\u0438 \u043d\u0430\u0434 \u0418\u043d\u043d\u0438\u0441\u0442\u0440\u0430\u0434\u043e\u043c",
+        "Spanish": "Sombras sobre Innistrad"
+    },
+    "Oath of the Gatewatch": {
+        "Chinese Simplified": "\u5b88\u62a4\u8005\u8a93\u7ea6",
+        "Chinese Traditional": "\u5b88\u8b77\u8005\u8a93\u7d04",
+        "French": "Le serment des Sentinelles",
+        "German": "Eid der W\u00e4chter",
+        "Italian": "Giuramento dei Guardiani",
+        "Japanese": "\u300e\u30b2\u30fc\u30c8\u30a6\u30a9\u30c3\u30c1\u306e\u8a93\u3044\u300f",
+        "Korean": "\uad00\ubb38\uc218\ud638\ub300\uc758 \ub9f9\uc138",
+        "Portuguese (Brazil)": "Juramento das Sentinelas",
+        "Russian": "\u041a\u043b\u044f\u0442\u0432\u0430 \u0421\u0442\u0440\u0430\u0436\u0435\u0439",
+        "Spanish": "El juramento de los Guardianes"
+    },
     "Battle For Zendikar": {
         "Chinese Simplified": "\u518d\u6218\u8d5e\u8fea\u5361",
         "Chinese Traditional": "\u518d\u6230\u8d0a\u8fea\u5361\u200b",
@@ -149,6 +173,7 @@
         "French": "Magic Origines",
         "German": "Magic Urspr\u00fcnge",
         "Italian": "Magic Origins",
+        "Japanese": "\u300e\u30de\u30b8\u30c3\u30af\u30fb\u30aa\u30ea\u30b8\u30f3\u300f",
         "Korean": "\ub9e4\uc9c1\uc758 \uae30\uc6d0",
         "Portuguese (Brazil)": "Magic \u2013 Origens",
         "Russian": "Magic: \u0418\u0441\u0442\u043e\u043a\u0438",
@@ -190,18 +215,6 @@
         "Russian": "\u0425\u0430\u043d\u044b \u0422\u0430\u0440\u043a\u0438\u0440\u0430",
         "Spanish": "Kans de Tarkir"
     },
-    "Magic 2015 Core Set": {
-        "Chinese Simplified": "\u4e07\u667a\u724c2015 \u6838\u5fc3\u7cfb\u5217",
-        "Chinese Traditional": "\u9b54\u6cd5\u98a8\u96f2\u67032015 \u6838\u5fc3\u7cfb\u5217",
-        "French": "\u00c9dition de base\u00a0Magic 2015",
-        "German": "Hauptset\u00a0Magic 2015",
-        "Italian": "Set Base\u00a0Magic 2015",
-        "Japanese": "\u300e\u30de\u30b8\u30c3\u30af\u57fa\u672c\u30bb\u30c3\u30c82015\u300f",
-        "Korean": "\ub9e4\uc9c1 2015\u00a0\ucf54\uc5b4\uc138\ud2b8",
-        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica de\u00a0Magic 2015",
-        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a\u00a0Magic 2015",
-        "Spanish": "Colecci\u00f3n b\u00e1sica\u00a0Magic 2015"
-    },
     "Journey into Nyx": {
         "Chinese Simplified": "\u5c3c\u5179\u4e4b\u65c5",
         "Chinese Traditional": "\u5c3c\u8332\u4e4b\u65c5",
@@ -237,18 +250,6 @@
         "Portuguese (Brazil)": "Theros",
         "Russian": "\u0422\u0435\u0440\u043e\u0441",
         "Spanish": "Theros"
-    },
-    "Magic 2014 Core Set": {
-        "Chinese Simplified": "\u4e07\u667a\u724c2014 \u6838\u5fc3\u7cfb\u5217",
-        "Chinese Traditional": "\u9b54\u6cd5\u98a8\u96f2\u67032014 \u6838\u5fc3\u7cfb\u5217",
-        "French": "\u00c9dition de base\u00a0Magic 2014",
-        "German": "Hauptset\u00a0Magic 2014",
-        "Italian": "Set Base\u00a0Magic 2014",
-        "Japanese": "\u300e\u30de\u30b8\u30c3\u30af\u57fa\u672c\u30bb\u30c3\u30c82014\u300f",
-        "Korean": "\ub9e4\uc9c1 2014\u00a0\ucf54\uc5b4\uc138\ud2b8",
-        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica de\u00a0Magic 2014",
-        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a\u00a0Magic 2014",
-        "Spanish": "Colecci\u00f3n b\u00e1sica\u00a0Magic 2014"
     },
     "Dragon's Maze": {
         "Chinese Simplified": "\u5de8\u9f99\u8ff7\u57ce",
@@ -286,18 +287,6 @@
         "Russian": "\u0412\u043e\u0437\u0432\u0440\u0430\u0449\u0435\u043d\u0438\u0435 \u0432 \u0420\u0430\u0432\u043d\u0438\u043a\u0443",
         "Spanish": "Regreso a R\u00e1vnica"
     },
-    "Magic 2013 Core Set": {
-        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u52172013",
-        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u52172013",
-        "French": "Colecci\u00f3n b\u00e1sica 2013",
-        "German": "2013 Hauptset",
-        "Italian": "Set Base 2013",
-        "Japanese": "\u300e\u57fa\u672c\u30bb\u30c3\u30c82013\u300f",
-        "Korean": "2013 \ucf54\uc5b4\uc138\ud2b8",
-        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica 2013",
-        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a 2013",
-        "Spanish": "Colecci\u00f3n b\u00e1sica 2013"
-    },
     "Avacyn Restored": {
         "Chinese Simplified": "\u827e\u7ef4\u6b23\u91cd\u4e34",
         "Chinese Traditional": "\u827e\u7dad\u6b23\u91cd\u81e8",
@@ -333,18 +322,6 @@
         "Portuguese (Brazil)": "Innistrad",
         "Russian": "Innistrad",
         "Spanish": "Innistrad"
-    },
-    "Magic 2012 Core Set": {
-        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u52172012",
-        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u52172012",
-        "French": "\u00c9dition de base 2012",
-        "German": "2012 Hauptset",
-        "Italian": "Set Base 2012",
-        "Japanese": "\u57fa\u672c\u30bb\u30c3\u30c82012",
-        "Korean": "2012 \ucf54\uc5b4\uc138\ud2b8",
-        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica 2012",
-        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a 2012",
-        "Spanish": "Colecci\u00f3n b\u00e1sica 2012"
     },
     "New Phyrexia": {
         "Chinese Simplified": "\u65b0\u975e\u745e\u514b\u897f\u4e9a",
@@ -382,18 +359,6 @@
         "Russian": "\u0428\u0440\u0430\u043c\u044b \u041c\u0438\u0440\u0440\u043e\u0434\u0438\u043d\u0430",
         "Spanish": "Cicatrices de Mirrodin"
     },
-    "Magic 2011 Core Set": {
-        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u52172011",
-        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u52172011",
-        "French": "\u00c9dition de base 2011",
-        "German": "2011 Hauptset",
-        "Italian": "Set Base 2011",
-        "Japanese": "\u57fa\u672c\u30bb\u30c3\u30c82011",
-        "Korean": "2011 \ucf54\uc5b4\uc138\ud2b8",
-        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica 2011",
-        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a 2011",
-        "Spanish": "Colecci\u00f3n b\u00e1sica 2011"
-    },
     "Rise of the Eldrazi": {
         "Chinese Simplified": "\u5965\u672d\u5947\u518d\u8d77",
         "Chinese Traditional": "\u5967\u672d\u5947\u518d\u8d77",
@@ -429,18 +394,6 @@
         "Portuguese (Brazil)": "Zendikar",
         "Russian": "Zendikar",
         "Spanish": "Zendikar"
-    },
-    "Magic 2010 Core Set": {
-        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u52172010",
-        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u52172010",
-        "French": "\u00c9dition de base 2010",
-        "German": "2010 Hauptset",
-        "Italian": "Set Base 2010",
-        "Japanese": "\u57fa\u672c\u30bb\u30c3\u30c82010",
-        "Korean": "2010 \ucf54\uc5b4\uc138\ud2b8",
-        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica 2010",
-        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a 2010",
-        "Spanish": "Colecci\u00f3n b\u00e1sica 2010"
     },
     "Alara Reborn": {
         "Chinese Simplified": "\u963f\u62c9\u82e5\u65b0\u751f",
@@ -524,18 +477,6 @@
         "Portuguese (Brazil)": "Lorwyn",
         "Russian": "\u041b\u043e\u0440\u0432\u0438\u043d",
         "Spanish": "Lorwyn"
-    },
-    "Core Set Tenth Edition": {
-        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u5217\u7b2c\u5341\u7248",
-        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u5217\u7b2c\u5341\u7248",
-        "French": "Dixi\u00e8me \u00e9dition",
-        "German": "Hauptset Zehnte Edition",
-        "Italian": "Set Base Decima Edizione",
-        "Japanese": "\u7b2c10\u7248\u57fa\u672c\u30bb\u30c3\u30c8",
-        "Korean": "\ucf54\uc5b4\uc138\ud2b8 10\ud310",
-        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica D\u00e9cima Edi\u00e7\u00e3o",
-        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a \u0414\u0435\u0441\u044f\u0442\u043e\u0435 \u0418\u0437\u0434\u0430\u043d\u0438\u0435",
-        "Spanish": "Colecci\u00f3n B\u00e1sica - D\u00e9cima Edici\u00f3n"
     },
     "Future Sight": {
         "Chinese Simplified": "\u9884\u77e5\u5c06\u6765",
@@ -621,18 +562,6 @@
         "Russian": "\u0420\u0430\u0432\u043d\u0438\u043a\u0430: \u0413\u043e\u0440\u043e\u0434 \u0413\u0438\u043b\u044c\u0434\u0438\u0439",
         "Spanish": "R\u00e1vnica: Ciudad de gremios"
     },
-    "Core Set Ninth Edition": {
-        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u5217 \u7b2c\u4e5d\u7248",
-        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u5217 \u7b2c\u4e5d\u7248",
-        "French": "Neuvi\u00e8me \u00e9dition",
-        "German": "Hauptset Neunte Edition",
-        "Italian": "Set Base Nona Edizione",
-        "Japanese": "\u7b2c\uff19\u7248 \u57fa\u672c\u30bb\u30c3\u30c8",
-        "Korean": "\ucf54\uc5b4\uc138\ud2b8 9\ud310",
-        "Portuguese (Brazil)": "Nona Edi\u00e7\u00e3o",
-        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a \u0414\u0435\u0432\u044f\u0442\u0430\u044f \u0440\u0435\u0434\u0430\u043a\u0446\u0438\u044f",
-        "Spanish": "Colecci\u00f3n B\u00e1sica - Novena edici\u00f3n"
-    },
     "Saviors of Kamigawa": {
         "Chinese Simplified": "\u795e\u6cb3\u4efb\u4fa0\u4f20",
         "Chinese Traditional": "\u795e\u6cb3\u4efb\u4fe0\u50b3",
@@ -648,7 +577,10 @@
     "Betrayers of Kamigawa": {
         "Chinese Simplified": "\u795e\u6cb3\u53db\u5c06\u8c31",
         "Chinese Traditional": "\u795e\u6cb3\u53db\u5c07\u8b5c",
+        "French": "\u795e\u6cb3\u8b00\u53db",
         "German": "Verr\u00e4ter von Kamigawa",
+        "Italian": "Traditori di Kamigawa",
+        "Japanese": "\u795e\u6cb3\u8b00\u53db",
         "Korean": "\uce74\ubbf8\uac00\uc640\uc758 \ubc30\uc2e0\uc790\ub4e4",
         "Portuguese (Brazil)": "Traidores de Kamigawa",
         "Russian": "Betrayers of Kamigawa",
@@ -702,18 +634,6 @@
         "Russian": "Mirrodin",
         "Spanish": "Mirrodin"
     },
-    "Core Set Eighth Edition": {
-        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u5217\u7b2c\u516b\u7248",
-        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u5217\u7b2c\u516b\u7248",
-        "French": "Huiti\u00e8me \u00e9dition",
-        "German": "Hauptset Achte Edition",
-        "Italian": "Set Base Ottava Edizione",
-        "Japanese": "\u7b2c\uff18\u7248 \u57fa\u672c\u30bb\u30c3\u30c8",
-        "Korean": "\ucf54\uc5b4\uc138\ud2b8 8\ud310",
-        "Portuguese (Brazil)": "Oitava Edi\u00e7\u00e3o",
-        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a Eighth Edition",
-        "Spanish": "Colecci\u00f3n B\u00e1sica - Octava edici\u00f3n"
-    },
     "Judgment": {
         "Chinese Simplified": "\u795e\u8c34",
         "Chinese Traditional": "\u795e\u8b74",
@@ -761,18 +681,6 @@
         "Portuguese (Brazil)": "Apocalipse",
         "Russian": "Apocalypse",
         "Spanish": "Apocalipsis"
-    },
-    "Core Set Seventh Edition": {
-        "Chinese Simplified": "Core Set Seventh Edition",
-        "Chinese Traditional": "Core Set Seventh Edition",
-        "French": "Core Set Seventh Edition",
-        "German": "Core Set Seventh Edition",
-        "Italian": "Core Set Seventh Edition",
-        "Japanese": "Core Set Seventh Edition",
-        "Korean": "Core Set Seventh Edition",
-        "Portuguese (Brazil)": "Core Set Seventh Edition",
-        "Russian": "Core Set Seventh Edition",
-        "Spanish": "Core Set Seventh Edition"
     },
     "Planeshift": {
         "Chinese Simplified": "Planeshift",
@@ -1098,66 +1006,6 @@
         "Russian": "Commander Anthology Volume II",
         "Spanish": "Commander Anthology Volume II"
     },
-    "Commander (2017 EDITION)": {
-        "Chinese Simplified": "Commander (2017 EDITION)",
-        "Chinese Traditional": "Commander (2017 EDITION)",
-        "French": "Commander (2017 EDITION)",
-        "German": "Commander (2017 EDITION)",
-        "Italian": "Commander (2017 EDITION)",
-        "Japanese": "Commander (2017 EDITION)",
-        "Korean": "Commander (2017 EDITION)",
-        "Portuguese (Brazil)": "Commander (2017 EDITION)",
-        "Russian": "Commander (2017 EDITION)",
-        "Spanish": "Commander (2017 EDITION)"
-    },
-    "Commander (2016 Edition)": {
-        "Chinese Simplified": "Commander (2016 Edition)",
-        "Chinese Traditional": "Commander (2016 Edition)",
-        "French": "Commander (2016 Edition)",
-        "German": "Commander (2016 Edition)",
-        "Italian": "Commander (2016 Edition)",
-        "Japanese": "Commander (2016 Edition)",
-        "Korean": "Commander (2016 Edition)",
-        "Portuguese (Brazil)": "Commander (2016 Edition)",
-        "Russian": "Commander (2016 Edition)",
-        "Spanish": "Commander (2016 Edition)"
-    },
-    "Commander (2015 Edition)": {
-        "Chinese Simplified": "Commander (2015 Edition)",
-        "Chinese Traditional": "Commander (2015 Edition)",
-        "French": "Commander (2015 Edition)",
-        "German": "Commander (2015 Edition)",
-        "Italian": "Commander (2015 Edition)",
-        "Japanese": "Commander (2015 Edition)",
-        "Korean": "Commander (2015 Edition)",
-        "Portuguese (Brazil)": "Commander (2015 Edition)",
-        "Russian": "Commander (2015 Edition)",
-        "Spanish": "Commander (2015 Edition)"
-    },
-    "Commander (2014 Edition)": {
-        "Chinese Simplified": "Commander (2014 Edition)",
-        "Chinese Traditional": "Commander (2014 Edition)",
-        "French": "Commander (2014 Edition)",
-        "German": "Commander (2014 Edition)",
-        "Italian": "Commander (2014 Edition)",
-        "Japanese": "Commander (2014 Edition)",
-        "Korean": "Commander (2014 Edition)",
-        "Portuguese (Brazil)": "Commander (2014 Edition)",
-        "Russian": "Commander (2014 Edition)",
-        "Spanish": "Commander (2014 Edition)"
-    },
-    "Commander (2013 Edition)": {
-        "Chinese Simplified": "Commander (2013 Edition)",
-        "Chinese Traditional": "Commander (2013 Edition)",
-        "French": "Commander (2013 Edition)",
-        "German": "Commander (2013 Edition)",
-        "Italian": "Commander (2013 Edition)",
-        "Japanese": "Commander (2013 Edition)",
-        "Korean": "Commander (2013 Edition)",
-        "Portuguese (Brazil)": "Commander (2013 Edition)",
-        "Russian": "Commander (2013 Edition)",
-        "Spanish": "Commander (2013 Edition)"
-    },
     "Commander's Arsenal": {
         "Chinese Simplified": "Commander's Arsenal",
         "Chinese Traditional": "Commander's Arsenal",
@@ -1170,29 +1018,6 @@
         "Russian": "Commander's Arsenal",
         "Spanish": "Commander's Arsenal"
     },
-    "Magic: the Gathering Commander": {
-        "Chinese Simplified": "Magic: the Gathering Commander",
-        "Chinese Traditional": "Magic: the Gathering Commander",
-        "French": "Magic: the Gathering Commander",
-        "German": "Magic: the Gathering Commander",
-        "Italian": "Magic: the Gathering Commander",
-        "Japanese": "Magic: the Gathering Commander",
-        "Korean": "Magic: the Gathering Commander",
-        "Portuguese (Brazil)": "Magic: the Gathering Commander",
-        "Russian": "Magic: the Gathering Commander",
-        "Spanish": "Magic: the Gathering Commander"
-    },
-    "Duel Deck: Elves vs. Inventors": {
-        "Chinese Simplified": "Duel Deck: Elves vs. Inventors",
-        "Chinese Traditional": "Duel Deck: Elves vs. Inventors",
-        "French": "Duel Deck: Elves vs. Inventors",
-        "German": "Duel Deck: Elves vs. Inventors",
-        "Italian": "Duel Deck: Elves vs. Inventors",
-        "Korean": "Duel Deck: Elves vs. Inventors",
-        "Portuguese (Brazil)": "Duel Deck: Elves vs. Inventors",
-        "Russian": "Duel Deck: Elves vs. Inventors",
-        "Spanish": "Duel Deck: Elves vs. Inventors"
-    },
     "Duel Decks: Merfolk vs. Goblins": {
         "Chinese Simplified": "Duel Decks: Merfolk vs. Goblins",
         "Chinese Traditional": "Duel Decks: Merfolk vs. Goblins",
@@ -1204,6 +1029,41 @@
         "Portuguese (Brazil)": "Duel Decks: Merfolk vs. Goblins",
         "Russian": "Duel Decks: Merfolk vs. Goblins",
         "Spanish": "Duel Decks: Merfolk vs. Goblins"
+    },
+    "Nissa vs. Ob Nixilis": {
+        "Chinese Simplified": "Nissa vs. Ob Nixilis",
+        "Chinese Traditional": "Nissa vs. Ob Nixilis",
+        "French": "Nissa vs. Ob Nixilis",
+        "German": "Nissa vs. Ob Nixilis",
+        "Italian": "Nissa vs. Ob Nixilis",
+        "Japanese": "\u300e\u30c7\u30e5\u30a8\u30eb\u30c7\u30c3\u30ad\uff1a\u30cb\u30c3\u30b5 VS \u30aa\u30d6\u30fb\u30cb\u30af\u30b7\u30ea\u30b9\u300f",
+        "Korean": "Nissa vs. Ob Nixilis",
+        "Portuguese (Brazil)": "Nissa vs. Ob Nixilis",
+        "Russian": "Nissa vs. Ob Nixilis",
+        "Spanish": "Nissa vs. Ob Nixilis"
+    },
+    "Zendikar vs. Eldrazi": {
+        "Chinese Simplified": "Zendikar vs. Eldrazi",
+        "Chinese Traditional": "Zendikar vs. Eldrazi",
+        "French": "Zendikar vs. Eldrazi",
+        "German": "Zendikar vs. Eldrazi",
+        "Italian": "Zendikar vs. Eldrazi",
+        "Korean": "Zendikar vs. Eldrazi",
+        "Portuguese (Brazil)": "Zendikar vs. Eldrazi",
+        "Russian": "Zendikar vs. Eldrazi",
+        "Spanish": "Zendikar vs. Eldrazi"
+    },
+    "Elspeth vs. Kiora": {
+        "Chinese Simplified": "Elspeth vs. Kiora",
+        "Chinese Traditional": "Elspeth vs. Kiora",
+        "French": "Elspeth vs. Kiora",
+        "German": "Elspeth vs. Kiora",
+        "Italian": "Elspeth vs. Kiora",
+        "Japanese": "\u300e\u30c7\u30e5\u30a8\u30eb\u30c7\u30c3\u30ad: \u30a8\u30eb\u30ba\u30da\u30b9VS\u30ad\u30aa\u30fc\u30e9\u300f",
+        "Korean": "Elspeth vs. Kiora",
+        "Portuguese (Brazil)": "Elspeth vs. Kiora",
+        "Russian": "Elspeth vs. Kiora",
+        "Spanish": "Elspeth vs. Kiora"
     },
     "Speed vs. Cunning": {
         "Chinese Simplified": "Speed vs. Cunning",
@@ -1481,6 +1341,18 @@
         "Russian": "From The Vault: Exiled",
         "Spanish": "From The Vault: Exiled"
     },
+    "Tempest Remastered": {
+        "Chinese Simplified": "Tempest Remastered",
+        "Chinese Traditional": "Tempest Remastered",
+        "French": "Tempest Remastered",
+        "German": "Tempest Remastered",
+        "Italian": "Tempest Remastered",
+        "Japanese": "Tempest Remastered",
+        "Korean": "Tempest Remastered",
+        "Portuguese (Brazil)": "Tempest Remastered",
+        "Russian": "Tempest Remastered",
+        "Spanish": "Tempest Remastered"
+    },
     "Vintage Masters": {
         "Chinese Simplified": "Vintage Masters",
         "Chinese Traditional": "Vintage Masters",
@@ -1589,18 +1461,6 @@
         "Russian": "Eternal Masters",
         "Spanish": "Eternal Masters"
     },
-    "Modern Masters 2015 Edition": {
-        "Chinese Simplified": "Modern Masters 2015 Edition",
-        "Chinese Traditional": "Modern Masters 2015 Edition",
-        "French": "Modern Masters 2015 Edition",
-        "German": "Modern Masters 2015 Edition",
-        "Italian": "Modern Masters 2015 Edition",
-        "Japanese": "Modern Masters 2015 Edition",
-        "Korean": "Modern Masters 2015 Edition",
-        "Portuguese (Brazil)": "Modern Masters 2015 Edition",
-        "Russian": "Modern Masters 2015 Edition",
-        "Spanish": "Modern Masters 2015 Edition"
-    },
     "Modern Masters": {
         "Chinese Simplified": "Modern Masters",
         "Chinese Traditional": "Modern Masters",
@@ -1612,30 +1472,6 @@
         "Portuguese (Brazil)": "Modern Masters",
         "Russian": "Modern Masters",
         "Spanish": "Modern Masters"
-    },
-    "Premium Foil Booster": {
-        "Chinese Simplified": "Premium Foil Booster",
-        "Chinese Traditional": "Premium Foil Booster",
-        "French": "Premium Foil Booster",
-        "German": "Premium Foil Booster",
-        "Italian": "Premium Foil Booster",
-        "Japanese": "Premium Foil Booster",
-        "Korean": "Premium Foil Booster",
-        "Portuguese (Brazil)": "Premium Foil Booster",
-        "Russian": "Premium Foil Booster",
-        "Spanish": "Premium Foil Booster"
-    },
-    "Chronicles / Renaissance": {
-        "Chinese Simplified": "Chronicles / Renaissance",
-        "Chinese Traditional": "Chronicles / Renaissance",
-        "French": "Chronicles / Renaissance",
-        "German": "Chronicles / Renaissance",
-        "Italian": "Chronicles / Renaissance",
-        "Japanese": "Chronicles / Renaissance",
-        "Korean": "Chronicles / Renaissance",
-        "Portuguese (Brazil)": "Chronicles / Renaissance",
-        "Russian": "Chronicles / Renaissance",
-        "Spanish": "Chronicles / Renaissance"
     },
     "Unstable": {
         "Chinese Simplified": "Unstable",
@@ -1733,30 +1569,6 @@
         "Russian": "Archenemy",
         "Spanish": "Archenemy"
     },
-    "Planechase (2012 Edition)": {
-        "Chinese Simplified": "Planechase",
-        "Chinese Traditional": "Planechase",
-        "French": "Planechase",
-        "German": "Planechase",
-        "Italian": "Planechase",
-        "Japanese": "Planechase",
-        "Korean": "Planechase",
-        "Portuguese (Brazil)": "Planechase",
-        "Russian": "Planechase",
-        "Spanish": "Planechase"
-    },
-    "Deckmasters 2001": {
-        "Chinese Simplified": "Deckmasters 2001",
-        "Chinese Traditional": "Deckmasters 2001",
-        "French": "Deckmasters 2001",
-        "German": "Deckmasters 2001",
-        "Italian": "Deckmasters 2001",
-        "Japanese": "Deckmasters 2001",
-        "Korean": "Deckmasters 2001",
-        "Portuguese (Brazil)": "Deckmasters 2001",
-        "Russian": "Deckmasters 2001",
-        "Spanish": "Deckmasters 2001"
-    },
     "Beatdown": {
         "Chinese Simplified": "Beatdown",
         "Chinese Traditional": "Beatdown",
@@ -1781,18 +1593,6 @@
         "Russian": "Battle Royale",
         "Spanish": "Battle Royale"
     },
-    "Modern Event Deck": {
-        "Chinese Simplified": "Modern Event Deck",
-        "Chinese Traditional": "Modern Event Deck",
-        "French": "Modern Event Deck",
-        "German": "Modern Event Deck",
-        "Italian": "Modern Event Deck",
-        "Japanese": "Modern Event Deck",
-        "Korean": "Modern Event Deck",
-        "Portuguese (Brazil)": "Modern Event Deck",
-        "Russian": "Modern Event Deck",
-        "Spanish": "Modern Event Deck"
-    },
     "Premium Deck Series: Graveborn": {
         "Chinese Simplified": "Premium Deck Series: Graveborn",
         "Chinese Traditional": "Premium Deck Series: Graveborn",
@@ -1804,18 +1604,6 @@
         "Portuguese (Brazil)": "Premium Deck Series: Graveborn",
         "Russian": "Premium Deck Series: Graveborn",
         "Spanish": "Premium Deck Series: Graveborn"
-    },
-    "Premium Deck Series: Fire & Lightning": {
-        "Chinese Simplified": "Premium Deck Series: Fire & Lightning",
-        "Chinese Traditional": "Premium Deck Series: Fire & Lightning",
-        "French": "Premium Deck Series: Fire & Lightning",
-        "German": "Premium Deck Series: Fire & Lightning",
-        "Italian": "Premium Deck Series: Fire & Lightning",
-        "Japanese": "Premium Deck Series: Fire & Lightning",
-        "Korean": "Premium Deck Series: Fire & Lightning",
-        "Portuguese (Brazil)": "Premium Deck Series: Fire & Lightning",
-        "Russian": "Premium Deck Series: Fire & Lightning",
-        "Spanish": "Premium Deck Series: Fire & Lightning"
     },
     "Premium Deck Series: Slivers": {
         "Chinese Simplified": "Premium Deck Series: Slivers",
@@ -1844,17 +1632,17 @@
         "German": "Onslaught",
         "Spanish": "Embestida"
     },
-    "Shadows over Innistrad": {
-        "German": "Schatten \u00fcber Innistrad"
-    },
-    "Nissa vs. Ob Nixilis": {
-        "Japanese": "\u300e\u30c7\u30e5\u30a8\u30eb\u30c7\u30c3\u30ad\uff1a\u30cb\u30c3\u30b5 VS \u30aa\u30d6\u30fb\u30cb\u30af\u30b7\u30ea\u30b9\u300f"
-    },
     "Blessed vs. Cursed": {
+        "Chinese Simplified": "Blessed vs. Cursed",
+        "Chinese Traditional": "Blessed vs. Cursed",
+        "French": "Blessed vs. Cursed",
+        "German": "Blessed vs. Cursed",
+        "Italian": "Blessed vs. Cursed",
+        "Korean": "Blessed vs. Cursed",
+        "Portuguese (Brazil)": "Blessed vs. Cursed",
+        "Russian": "Blessed vs. Cursed",
+        "Spanish": "Blessed vs. Cursed",
         "Japanese": "\u300e\u30c7\u30e5\u30a8\u30eb\u30c7\u30c3\u30ad\uff1a\u6b63\u3057\u304d\u8005 vs \u5815\u3061\u3057\u8005\u300f\u767a\u8868"
-    },
-    "Elspeth vs. Kiora": {
-        "Japanese": "\u300e\u30c7\u30e5\u30a8\u30eb\u30c7\u30c3\u30ad: \u30a8\u30eb\u30ba\u30da\u30b9VS\u30ad\u30aa\u30fc\u30e9\u300f"
     },
     "Global Series: Jiang Yanggu & Mu Yanling": {},
     "Signature Spellbook: Jace": {},
@@ -1862,5 +1650,280 @@
     "Explorers of Ixalan": {},
     "Portal Three Kingdoms": {},
     "Portal Second Age": {},
-    "Portal": {}
+    "Portal": {},
+    "Magic 2015": {
+        "Chinese Simplified": "\u4e07\u667a\u724c2015 \u6838\u5fc3\u7cfb\u5217",
+        "Chinese Traditional": "\u9b54\u6cd5\u98a8\u96f2\u67032015 \u6838\u5fc3\u7cfb\u5217",
+        "French": "\u00c9dition de base\u00a0Magic 2015",
+        "German": "Hauptset\u00a0Magic 2015",
+        "Italian": "Set Base\u00a0Magic 2015",
+        "Japanese": "\u300e\u30de\u30b8\u30c3\u30af\u57fa\u672c\u30bb\u30c3\u30c82015\u300f",
+        "Korean": "\ub9e4\uc9c1 2015\u00a0\ucf54\uc5b4\uc138\ud2b8",
+        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica de\u00a0Magic 2015",
+        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a\u00a0Magic 2015",
+        "Spanish": "Colecci\u00f3n b\u00e1sica\u00a0Magic 2015"
+    },
+    "Magic 2014": {
+        "Chinese Simplified": "\u4e07\u667a\u724c2014 \u6838\u5fc3\u7cfb\u5217",
+        "Chinese Traditional": "\u9b54\u6cd5\u98a8\u96f2\u67032014 \u6838\u5fc3\u7cfb\u5217",
+        "French": "\u00c9dition de base\u00a0Magic 2014",
+        "German": "Hauptset\u00a0Magic 2014",
+        "Italian": "Set Base\u00a0Magic 2014",
+        "Japanese": "\u300e\u30de\u30b8\u30c3\u30af\u57fa\u672c\u30bb\u30c3\u30c82014\u300f",
+        "Korean": "\ub9e4\uc9c1 2014\u00a0\ucf54\uc5b4\uc138\ud2b8",
+        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica de\u00a0Magic 2014",
+        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a\u00a0Magic 2014",
+        "Spanish": "Colecci\u00f3n b\u00e1sica\u00a0Magic 2014"
+    },
+    "Magic 2013": {
+        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u52172013",
+        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u52172013",
+        "French": "Colecci\u00f3n b\u00e1sica 2013",
+        "German": "2013 Hauptset",
+        "Italian": "Set Base 2013",
+        "Japanese": "\u300e\u57fa\u672c\u30bb\u30c3\u30c82013\u300f",
+        "Korean": "2013 \ucf54\uc5b4\uc138\ud2b8",
+        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica 2013",
+        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a 2013",
+        "Spanish": "Colecci\u00f3n b\u00e1sica 2013"
+    },
+    "Magic 2012": {
+        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u52172012",
+        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u52172012",
+        "French": "\u00c9dition de base 2012",
+        "German": "2012 Hauptset",
+        "Italian": "Set Base 2012",
+        "Japanese": "\u57fa\u672c\u30bb\u30c3\u30c82012",
+        "Korean": "2012 \ucf54\uc5b4\uc138\ud2b8",
+        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica 2012",
+        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a 2012",
+        "Spanish": "Colecci\u00f3n b\u00e1sica 2012"
+    },
+    "Magic 2011": {
+        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u52172011",
+        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u52172011",
+        "French": "\u00c9dition de base 2011",
+        "German": "2011 Hauptset",
+        "Italian": "Set Base 2011",
+        "Japanese": "\u57fa\u672c\u30bb\u30c3\u30c82011",
+        "Korean": "2011 \ucf54\uc5b4\uc138\ud2b8",
+        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica 2011",
+        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a 2011",
+        "Spanish": "Colecci\u00f3n b\u00e1sica 2011"
+    },
+    "Magic 2010": {
+        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u52172010",
+        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u52172010",
+        "French": "\u00c9dition de base 2010",
+        "German": "2010 Hauptset",
+        "Italian": "Set Base 2010",
+        "Japanese": "\u57fa\u672c\u30bb\u30c3\u30c82010",
+        "Korean": "2010 \ucf54\uc5b4\uc138\ud2b8",
+        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica 2010",
+        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a 2010",
+        "Spanish": "Colecci\u00f3n b\u00e1sica 2010"
+    },
+    "Tenth Edition": {
+        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u5217\u7b2c\u5341\u7248",
+        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u5217\u7b2c\u5341\u7248",
+        "French": "Dixi\u00e8me \u00e9dition",
+        "German": "Hauptset Zehnte Edition",
+        "Italian": "Set Base Decima Edizione",
+        "Japanese": "\u7b2c10\u7248\u57fa\u672c\u30bb\u30c3\u30c8",
+        "Korean": "\ucf54\uc5b4\uc138\ud2b8 10\ud310",
+        "Portuguese (Brazil)": "Cole\u00e7\u00e3o B\u00e1sica D\u00e9cima Edi\u00e7\u00e3o",
+        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a \u0414\u0435\u0441\u044f\u0442\u043e\u0435 \u0418\u0437\u0434\u0430\u043d\u0438\u0435",
+        "Spanish": "Colecci\u00f3n B\u00e1sica - D\u00e9cima Edici\u00f3n"
+    },
+    "Ninth Edition": {
+        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u5217 \u7b2c\u4e5d\u7248",
+        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u5217 \u7b2c\u4e5d\u7248",
+        "French": "Neuvi\u00e8me \u00e9dition",
+        "German": "Hauptset Neunte Edition",
+        "Italian": "Set Base Nona Edizione",
+        "Japanese": "\u7b2c\uff19\u7248 \u57fa\u672c\u30bb\u30c3\u30c8",
+        "Korean": "\ucf54\uc5b4\uc138\ud2b8 9\ud310",
+        "Portuguese (Brazil)": "Nona Edi\u00e7\u00e3o",
+        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a \u0414\u0435\u0432\u044f\u0442\u0430\u044f \u0440\u0435\u0434\u0430\u043a\u0446\u0438\u044f",
+        "Spanish": "Colecci\u00f3n B\u00e1sica - Novena edici\u00f3n"
+    },
+    "Eighth Edition": {
+        "Chinese Simplified": "\u6838\u5fc3\u7cfb\u5217\u7b2c\u516b\u7248",
+        "Chinese Traditional": "\u6838\u5fc3\u7cfb\u5217\u7b2c\u516b\u7248",
+        "French": "Huiti\u00e8me \u00e9dition",
+        "German": "Hauptset Achte Edition",
+        "Italian": "Set Base Ottava Edizione",
+        "Japanese": "\u7b2c\uff18\u7248 \u57fa\u672c\u30bb\u30c3\u30c8",
+        "Korean": "\ucf54\uc5b4\uc138\ud2b8 8\ud310",
+        "Portuguese (Brazil)": "Oitava Edi\u00e7\u00e3o",
+        "Russian": "\u0411\u0430\u0437\u043e\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a Eighth Edition",
+        "Spanish": "Colecci\u00f3n B\u00e1sica - Octava edici\u00f3n"
+    },
+    "Seventh Edition": {
+        "Chinese Simplified": "Core Set Seventh Edition",
+        "Chinese Traditional": "Core Set Seventh Edition",
+        "French": "Core Set Seventh Edition",
+        "German": "Core Set Seventh Edition",
+        "Italian": "Core Set Seventh Edition",
+        "Japanese": "Core Set Seventh Edition",
+        "Korean": "Core Set Seventh Edition",
+        "Portuguese (Brazil)": "Core Set Seventh Edition",
+        "Russian": "Core Set Seventh Edition",
+        "Spanish": "Core Set Seventh Edition"
+    },
+    "Commander 2017": {
+        "Chinese Simplified": "Commander (2017 EDITION)",
+        "Chinese Traditional": "Commander (2017 EDITION)",
+        "French": "Commander (2017 EDITION)",
+        "German": "Commander (2017 EDITION)",
+        "Italian": "Commander (2017 EDITION)",
+        "Japanese": "Commander (2017 EDITION)",
+        "Korean": "Commander (2017 EDITION)",
+        "Portuguese (Brazil)": "Commander (2017 EDITION)",
+        "Russian": "Commander (2017 EDITION)",
+        "Spanish": "Commander (2017 EDITION)"
+    },
+    "Commander 2016": {
+        "Chinese Simplified": "Commander (2016 Edition)",
+        "Chinese Traditional": "Commander (2016 Edition)",
+        "French": "Commander (2016 Edition)",
+        "German": "Commander (2016 Edition)",
+        "Italian": "Commander (2016 Edition)",
+        "Japanese": "Commander (2016 Edition)",
+        "Korean": "Commander (2016 Edition)",
+        "Portuguese (Brazil)": "Commander (2016 Edition)",
+        "Russian": "Commander (2016 Edition)",
+        "Spanish": "Commander (2016 Edition)"
+    },
+    "Commander 2015": {
+        "Chinese Simplified": "Commander (2015 Edition)",
+        "Chinese Traditional": "Commander (2015 Edition)",
+        "French": "Commander (2015 Edition)",
+        "German": "Commander (2015 Edition)",
+        "Italian": "Commander (2015 Edition)",
+        "Japanese": "Commander (2015 Edition)",
+        "Korean": "Commander (2015 Edition)",
+        "Portuguese (Brazil)": "Commander (2015 Edition)",
+        "Russian": "Commander (2015 Edition)",
+        "Spanish": "Commander (2015 Edition)"
+    },
+    "Commander 2014": {
+        "Chinese Simplified": "Commander (2014 Edition)",
+        "Chinese Traditional": "Commander (2014 Edition)",
+        "French": "Commander (2014 Edition)",
+        "German": "Commander (2014 Edition)",
+        "Italian": "Commander (2014 Edition)",
+        "Japanese": "Commander (2014 Edition)",
+        "Korean": "Commander (2014 Edition)",
+        "Portuguese (Brazil)": "Commander (2014 Edition)",
+        "Russian": "Commander (2014 Edition)",
+        "Spanish": "Commander (2014 Edition)"
+    },
+    "Commander 2013": {
+        "Chinese Simplified": "Commander (2013 Edition)",
+        "Chinese Traditional": "Commander (2013 Edition)",
+        "French": "Commander (2013 Edition)",
+        "German": "Commander (2013 Edition)",
+        "Italian": "Commander (2013 Edition)",
+        "Japanese": "Commander (2013 Edition)",
+        "Korean": "Commander (2013 Edition)",
+        "Portuguese (Brazil)": "Commander (2013 Edition)",
+        "Russian": "Commander (2013 Edition)",
+        "Spanish": "Commander (2013 Edition)"
+    },
+    "Commander 2011": {
+        "Chinese Simplified": "Magic: the Gathering Commander",
+        "Chinese Traditional": "Magic: the Gathering Commander",
+        "French": "Magic: the Gathering Commander",
+        "German": "Magic: the Gathering Commander",
+        "Italian": "Magic: the Gathering Commander",
+        "Japanese": "Magic: the Gathering Commander",
+        "Korean": "Magic: the Gathering Commander",
+        "Portuguese (Brazil)": "Magic: the Gathering Commander",
+        "Russian": "Magic: the Gathering Commander",
+        "Spanish": "Magic: the Gathering Commander"
+    },
+    "Duel Decks: Elves vs. Inventors": {
+        "Chinese Simplified": "Duel Deck: Elves vs. Inventors",
+        "Chinese Traditional": "Duel Deck: Elves vs. Inventors",
+        "French": "Duel Deck: Elves vs. Inventors",
+        "German": "Duel Deck: Elves vs. Inventors",
+        "Italian": "Duel Deck: Elves vs. Inventors",
+        "Korean": "Duel Deck: Elves vs. Inventors",
+        "Portuguese (Brazil)": "Duel Deck: Elves vs. Inventors",
+        "Russian": "Duel Deck: Elves vs. Inventors",
+        "Spanish": "Duel Deck: Elves vs. Inventors"
+    },
+    "Modern Masters 2015": {
+        "Chinese Simplified": "Modern Masters 2015 Edition",
+        "Chinese Traditional": "Modern Masters 2015 Edition",
+        "French": "Modern Masters 2015 Edition",
+        "German": "Modern Masters 2015 Edition",
+        "Italian": "Modern Masters 2015 Edition",
+        "Japanese": "Modern Masters 2015 Edition",
+        "Korean": "Modern Masters 2015 Edition",
+        "Portuguese (Brazil)": "Modern Masters 2015 Edition",
+        "Russian": "Modern Masters 2015 Edition",
+        "Spanish": "Modern Masters 2015 Edition"
+    },
+    "": {
+        "Chinese Simplified": "Modern Event Deck",
+        "Chinese Traditional": "Modern Event Deck",
+        "French": "Modern Event Deck",
+        "German": "Modern Event Deck",
+        "Italian": "Modern Event Deck",
+        "Japanese": "Modern Event Deck",
+        "Korean": "Modern Event Deck",
+        "Portuguese (Brazil)": "Modern Event Deck",
+        "Russian": "Modern Event Deck",
+        "Spanish": "Modern Event Deck"
+    },
+    "Chronicles": {
+        "Chinese Simplified": "Chronicles / Renaissance",
+        "Chinese Traditional": "Chronicles / Renaissance",
+        "French": "Chronicles / Renaissance",
+        "German": "Chronicles / Renaissance",
+        "Italian": "Chronicles / Renaissance",
+        "Japanese": "Chronicles / Renaissance",
+        "Korean": "Chronicles / Renaissance",
+        "Portuguese (Brazil)": "Chronicles / Renaissance",
+        "Russian": "Chronicles / Renaissance",
+        "Spanish": "Chronicles / Renaissance"
+    },
+    "Planechase 2012": {
+        "Chinese Simplified": "Planechase",
+        "Chinese Traditional": "Planechase",
+        "French": "Planechase",
+        "German": "Planechase",
+        "Italian": "Planechase",
+        "Japanese": "Planechase",
+        "Korean": "Planechase",
+        "Portuguese (Brazil)": "Planechase",
+        "Russian": "Planechase",
+        "Spanish": "Planechase"
+    },
+    "Deckmasters": {
+        "Chinese Simplified": "Deckmasters 2001",
+        "Chinese Traditional": "Deckmasters 2001",
+        "French": "Deckmasters 2001",
+        "German": "Deckmasters 2001",
+        "Italian": "Deckmasters 2001",
+        "Japanese": "Deckmasters 2001",
+        "Korean": "Deckmasters 2001",
+        "Portuguese (Brazil)": "Deckmasters 2001",
+        "Russian": "Deckmasters 2001",
+        "Spanish": "Deckmasters 2001"
+    },
+    "Premium Deck Series: Fire and Lightning": {
+        "Chinese Simplified": "Premium Deck Series: Fire & Lightning",
+        "Chinese Traditional": "Premium Deck Series: Fire & Lightning",
+        "French": "Premium Deck Series: Fire & Lightning",
+        "German": "Premium Deck Series: Fire & Lightning",
+        "Italian": "Premium Deck Series: Fire & Lightning",
+        "Japanese": "Premium Deck Series: Fire & Lightning",
+        "Korean": "Premium Deck Series: Fire & Lightning",
+        "Portuguese (Brazil)": "Premium Deck Series: Fire & Lightning",
+        "Russian": "Premium Deck Series: Fire & Lightning",
+        "Spanish": "Premium Deck Series: Fire & Lightning"
+    }
 }
