@@ -8,11 +8,11 @@ import time
 from typing import Any, Dict, List, Match, Optional, Tuple
 
 import bs4
+import unidecode
 
 import mtgjson4
 from mtgjson4 import util
 from mtgjson4.provider import gamepedia, scryfall
-import unidecode
 
 TRANSLATION_URL: str = "https://magic.wizards.com/{}/products/card-set-archive"
 COMP_RULES: str = "https://magic.wizards.com/en/game-info/gameplay/rules-and-formats/rules"

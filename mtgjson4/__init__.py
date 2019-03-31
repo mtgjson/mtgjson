@@ -5,8 +5,8 @@ import time
 from typing import Dict, List
 
 # Maintenance variables
-__VERSION__ = "4.3.1"
-__VERSION_DATE__ = "2019-03-04"
+__VERSION__ = "4.3.2"
+__VERSION_DATE__ = "2019-03-31"
 __MAINTAINER__ = "Zach Halpern (GitHub: @ZeldaZach)"
 __MAINTAINER_EMAIL__ = "zahalpern+github@gmail.com"
 __REPO_URL__ = "https://github.com/mtgjson/mtgjson4"

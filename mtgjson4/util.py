@@ -6,10 +6,10 @@ from typing import Optional
 
 import requests
 import requests.adapters
+import requests_cache
 import urllib3.util.retry
 
 import mtgjson4
-import requests_cache
 
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 

@@ -7,10 +7,10 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import requests
 import requests.adapters
+import requests_cache
 
 import mtgjson4
 from mtgjson4 import util
-import requests_cache
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_SCRYFALL")
