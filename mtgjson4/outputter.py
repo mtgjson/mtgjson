@@ -56,10 +56,9 @@ def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -
         util.win_os_fix(set_name) + ".json"
     ).open("w", encoding="utf-8") as f:
         if do_cleanup and isinstance(file_contents, dict):
-            if "tokens" in file_contents:
-                file_contents["tokens"] = remove_unnecessary_fields(
-                    file_contents["tokens"]
-                )
+            pass
+
+        file_contents["tokens"] = mtgjson_to_dict(file_contents["tokens"])
         file_contents["cards"] = mtgjson_to_dict(file_contents["cards"])
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
 
@@ -125,7 +124,7 @@ def mtgjson_to_dict(cards: List[MTGJSONCard]) -> List[Dict[str, Any]]:
     :param cards: List of MTGJSON cards
     :return: List of MTGJSON cards as dicts
     """
-    return [c.get_internal_dict() for c in cards]
+    return [c.get_all() for c in cards]
 
 
 def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:

@@ -110,7 +110,7 @@ def main() -> None:
         if compiled["cards"] or compiled["tokens"]:
             if not args.skip_tcgplayer:
                 for card in compiled["cards"]:
-                    key = tcgplayer.url_keygen(card.get_attribute("tcgplayerProductId"))
+                    key = tcgplayer.url_keygen(card.get("tcgplayerProductId"))
                     outputter.write_tcgplayer_information(
                         {key: card.get_tcgplayer_url()}
                     )

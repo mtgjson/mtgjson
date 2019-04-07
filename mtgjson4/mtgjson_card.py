@@ -38,7 +38,7 @@ class MTGJSONCard:
     def clear(self):
         self.card_attributes.clear()
 
-    def set_attribute(
+    def set(
         self, attribute_name: str, attribute_value: Any, special_action: Callable = None
     ) -> None:
         """
@@ -50,15 +50,15 @@ class MTGJSONCard:
         if special_action:
             attribute_value = special_action(attribute_value)
 
-        self.get_internal_dict()[attribute_name] = attribute_value
+        self.get_all()[attribute_name] = attribute_value
 
-    def set_attributes(self, attribute_dict: Dict[str, Any]) -> None:
+    def set_all(self, attribute_dict: Dict[str, Any]) -> None:
         """
         Given a dict of attributes, add them to ours
         :param attribute_dict: Dict of attributes
         """
         for key, value in attribute_dict.items():
-            self.set_attribute(key, value)
+            self.set(key, value)
 
     def get_tcgplayer_url(self) -> str:
         """
@@ -67,39 +67,53 @@ class MTGJSONCard:
         """
         return str(self.tcgplayer_url) + TCGPLAYER_REFERRAL
 
-    def get_attribute(self, attribute_name: str, default_value: Any = None) -> Any:
+    def get(self, attribute_name: str, default_value: Any = None) -> Any:
         """
         Given an attribute, return value if found in internal dictionary
         :param attribute_name: Key
         :param default_value: Value if key not in dict
         :return: Value or default_value
         """
-        if attribute_name in self.get_internal_dict():
-            return self.get_internal_dict()[attribute_name]
+        if attribute_name in self.get_all():
+            return self.get_all()[attribute_name]
         return default_value
 
-    def get_internal_dict(self) -> Dict[str, Any]:
+    def get_all(self) -> Dict[str, Any]:
         """
         Return internal dictionary
         :return: Internal dictionary
         """
         return self.card_attributes
 
-    def get_uuid(self) -> str:
+    def __get_uuid(self, is_card: bool = True) -> str:
         """
         Get unique card face identifier.
         :return: unique card face identifier
         """
-        #  As long as all cards have scryfallId (scryfallId, name) is enough to uniquely identify the card face
-        # PROVIDER_ID prevents collision with card IDs from any future card provider
-        id_source = (
-            mtgjson4.SCRYFALL_PROVIDER_ID
-            + self.get_attribute("scryfallId")
-            + self.get_attribute("name")
-        )
+        if is_card:
+            #  As long as all cards have scryfallId (scryfallId, name) is enough to uniquely identify the card face
+            # PROVIDER_ID prevents collision with card IDs from any future card provider
+            id_source = (
+                mtgjson4.SCRYFALL_PROVIDER_ID
+                + self.get("scryfallId")
+                + self.get("name")
+            )
+        else:
+            id_source = (
+                self.get("name")
+                + "".join(self.get("colors", ""))
+                + str(self.get("power", ""))
+                + str(self.get("toughness", ""))
+                + str(self.get("side", ""))
+                + self.set_code[1:]  # Token sets start with a "T"
+                + self.get("scryfallId")
+            )
+
+            LOGGER.info("MINE {}".format(id_source))
+
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
 
-    def get_uuid_421(self) -> str:
+    def __get_uuid_421(self) -> str:
         """
         Get card uuid used in MTGJSON release 4.2.1
         :return: unique card face identifier
@@ -107,11 +121,11 @@ class MTGJSONCard:
         # Use attributes that _shouldn't_ change over time
         # Name + set code + colors (if applicable) + Scryfall UUID + printed text (if applicable)
         id_source = (
-            self.get_attribute("name")
+            self.get("name")
             + self.set_code
-            + "".join(self.get_attribute("colors", ""))
-            + self.get_attribute("scryfallId")
-            + str(self.get_attribute("originalText", ""))
+            + "".join(self.get("colors", ""))
+            + self.get("scryfallId")
+            + str(self.get("originalText", ""))
         )
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
 
@@ -120,38 +134,38 @@ class MTGJSONCard:
         Return internal dictionary keys
         :return: Keys
         """
-        return self.get_internal_dict().keys()
+        return self.get_all().keys()
 
-    def how_many_names(self, how_many_expected: int = 0) -> bool:
+    def names_count(self, how_many_expected: int = 0) -> bool:
         """
         Check if there are a certain number of names to a card
         :param how_many_expected: How many use expects
         :return: Match requirements of user input
         """
-        return how_many_expected == len(self.get_attribute("names", []))
+        return how_many_expected == len(self.get("names", []))
 
-    def append_attribute(self, attribute_name: str, attribute_value: Any) -> None:
+    def append(self, attribute_name: str, attribute_value: Any) -> None:
         """
         If key exists, append value to old value. Otherwise, add to internal dict
         :param attribute_name: Key
         :param attribute_value: Value
         """
         if attribute_name in self.keys():
-            if isinstance(self.get_internal_dict()[attribute_name], list):
-                self.get_internal_dict()[attribute_name].append(attribute_value)
+            if isinstance(self.get_all()[attribute_name], list):
+                self.get_all()[attribute_name].append(attribute_value)
             else:
-                self.get_internal_dict()[attribute_name] += attribute_value
+                self.get_all()[attribute_name] += attribute_value
         else:
-            self.set_attribute(attribute_name, attribute_value)
+            self.set(attribute_name, attribute_value)
 
-    def remove_attribute(self, attribute_name: str) -> bool:
+    def remove(self, attribute_name: str) -> bool:
         """
         Delete an attribute from internal dict
         :param attribute_name: Key
         :return: Deleted successfully
         """
         if attribute_name in self.keys():
-            del self.get_internal_dict()[attribute_name]
+            del self.get_all()[attribute_name]
             return True
         return False
 
@@ -161,33 +175,31 @@ class MTGJSONCard:
         :return: Iterator of item pairs
         """
         for key in self.keys():
-            yield key, self.get_attribute(key)
+            yield key, self.get(key)
 
     def add_tcgplayer_fields(self, tcg_card_objs: List[Dict[str, Any]]) -> None:
         """
         Add the tcgplayer fields to the internal dict
         :param tcg_card_objs: Attributes to handle
         """
-        if not self.get_attribute("tcgplayerProductId"):
-            self.set_attribute(
+        if not self.get("tcgplayerProductId"):
+            self.set(
                 "tcgplayerProductId",
                 tcgplayer.get_card_property(
-                    self.get_attribute("name"), tcg_card_objs, "productId"
+                    self.get("name"), tcg_card_objs, "productId"
                 ),
             )
 
-        prod_url = tcgplayer.get_card_property(
-            self.get_attribute("name"), tcg_card_objs, "url"
-        )
+        prod_url = tcgplayer.get_card_property(self.get("name"), tcg_card_objs, "url")
 
-        if self.get_attribute("tcgplayerProductId") and prod_url:
-            self.set_attribute(
+        if self.get("tcgplayerProductId") and prod_url:
+            self.set(
                 "tcgplayerPurchaseUrl",
-                tcgplayer.log_redirection_url(self.get_attribute("tcgplayerProductId")),
+                tcgplayer.log_redirection_url(self.get("tcgplayerProductId")),
             )
 
         self.tcgplayer_url = tcgplayer.get_card_property(
-            self.get_attribute("name"), tcg_card_objs, "url"
+            self.get("name"), tcg_card_objs, "url"
         )
 
     def clean_up_watermark(self, watermark: Optional[str]) -> Optional[str]:
@@ -208,14 +220,14 @@ class MTGJSONCard:
                 json_dict: Dict[str, List[Any]] = json.load(f)
 
                 for card in json_dict[self.set_code]:
-                    if self.get_attribute("name") in card["name"].split(" // "):
+                    if self.get("name") in card["name"].split(" // "):
                         return str(card["watermark"])
 
         return watermark
 
-    def final_card_cleanup(self) -> None:
-        self.set_attribute("uuid", self.get_uuid())
-        self.set_attribute("uuidV421", self.get_uuid_421())
+    def final_card_cleanup(self, is_card: bool = True) -> None:
+        self.set("uuid", self.__get_uuid(is_card))
+        self.set("uuidV421", self.__get_uuid_421())
 
         if self.set_code.startswith("DD"):
             self.__mark_duel_decks()
@@ -229,13 +241,13 @@ class MTGJSONCard:
         by basics, then start the second deck. We exploit
         this property to mark them as decks "a" and "b"
         """
-        if self.get_attribute("name") in mtgjson4.BASIC_LANDS:
+        if self.get("name") in mtgjson4.BASIC_LANDS:
             DUEL_DECK_LAND_MARKED.set(True)
         elif DUEL_DECK_LAND_MARKED.get():
             DUEL_DECK_SIDE_COMP.set(chr(ord(DUEL_DECK_SIDE_COMP.get()) + 1))
             DUEL_DECK_LAND_MARKED.set(False)
 
-        self.set_attribute("duelDeck", DUEL_DECK_SIDE_COMP.get())
+        self.set("duelDeck", DUEL_DECK_SIDE_COMP.get())
 
     def __remove_unnecessary_fields(self):
         """
@@ -260,7 +272,7 @@ class MTGJSONCard:
                 insert_value[key] = value
 
         self.clear()
-        self.set_attributes(insert_value)
+        self.set_all(insert_value)
 
     @staticmethod
     def __fix_foreign_entries(values: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
