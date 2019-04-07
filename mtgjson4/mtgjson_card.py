@@ -1,23 +1,60 @@
-from typing import Any, Dict, Iterator, KeysView, Tuple
+"""
+MTGJSON Card Class Container
+"""
+from typing import Any, Dict, Iterator, KeysView, List, Tuple
 import uuid
 
-from mtgjson4.provider import scryfall
+import mtgjson4
+from mtgjson4.provider import tcgplayer
+
+TCGPLAYER_REFERRAL: str = "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"
 
 
 class MTGJSONCard:
+    """
+    MTGJSON Card Class
+    """
+
     def __init__(self, set_code: str) -> None:
+        """
+        Initializer
+        :param set_code: Set Code this card is found in
+        """
         self.card_attributes: Dict[str, Any] = {}
-        self.set_code = set_code.upper()
+        self.set_code: str = set_code.upper()
+        self.tcgplayer_url: str = ""
 
     def set_attribute(self, attribute_name: str, attribute_value: Any) -> None:
-        self.get_attributes()[attribute_name] = attribute_value
+        """
+        Given an attribute, add it to our internal dictionary
+        :param attribute_name: Key
+        :param attribute_value: Value
+        """
+        self.__get_attributes()[attribute_name] = attribute_value
+
+    def get_tcgplayer_url(self) -> str:
+        """
+        Get TCGPlayer with affiliate code
+        :return:
+        """
+        return str(self.tcgplayer_url) + TCGPLAYER_REFERRAL
 
     def get_attribute(self, attribute_name: str, default_value: Any = None) -> Any:
-        if attribute_name in self.get_attributes():
-            return self.get_attributes()[attribute_name]
+        """
+        Given an attribute, return value if found in internal dictionary
+        :param attribute_name: Key
+        :param default_value: Value if key not in dict
+        :return: Value or default_value
+        """
+        if attribute_name in self.__get_attributes():
+            return self.__get_attributes()[attribute_name]
         return default_value
 
-    def get_attributes(self) -> Dict[str, Any]:
+    def __get_attributes(self) -> Dict[str, Any]:
+        """
+        Return internal dictionary
+        :return: Internal dictionary
+        """
         return self.card_attributes
 
     def get_uuid(self) -> str:
@@ -28,7 +65,7 @@ class MTGJSONCard:
         #  As long as all cards have scryfallId (scryfallId, name) is enough to uniquely identify the card face
         # PROVIDER_ID prevents collision with card IDs from any future card provider
         id_source = (
-            scryfall.PROVIDER_ID
+            mtgjson4.SCRYFALL_PROVIDER_ID
             + self.get_attribute("scryfallId")
             + self.get_attribute("name")
         )
@@ -51,23 +88,73 @@ class MTGJSONCard:
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
 
     def keys(self) -> KeysView:
-        return self.get_attributes().keys()
+        """
+        Return internal dictionary keys
+        :return: Keys
+        """
+        return self.__get_attributes().keys()
 
     def how_many_names(self, how_many_expected: int = 0) -> bool:
+        """
+        Check if there are a certain number of names to a card
+        :param how_many_expected: How many use expects
+        :return: Match requirements of user input
+        """
         return how_many_expected == len(self.get_attribute("names", []))
 
     def append_attribute(self, attribute_name: str, attribute_value: Any) -> None:
+        """
+        If key exists, append value to old value. Otherwise, add to internal dict
+        :param attribute_name: Key
+        :param attribute_value: Value
+        """
         if attribute_name in self.keys():
-            self.get_attributes()[attribute_name].append(attribute_value)
+            self.__get_attributes()[attribute_name].append(attribute_value)
         else:
             self.set_attribute(attribute_name, attribute_value)
 
     def remove_attribute(self, attribute_name: str) -> bool:
+        """
+        Delete an attribute from internal dict
+        :param attribute_name: Key
+        :return: Deleted successfully
+        """
         if attribute_name in self.keys():
-            del self.get_attributes()[attribute_name]
+            del self.__get_attributes()[attribute_name]
             return True
         return False
 
     def items(self) -> Iterator[Tuple[str, Any]]:
+        """
+        Reimplementation of dict.items()
+        :return: Iterator of item pairs
+        """
         for key in self.keys():
             yield key, self.get_attribute(key)
+
+    def add_tcgplayer_fields(self, tcg_card_objs: List[Dict[str, Any]]) -> None:
+        """
+        Add the tcgplayer fields to the internal dict
+        :param tcg_card_objs: Attributes to handle
+        """
+        if not self.get_attribute("tcgplayerProductId"):
+            self.set_attribute(
+                "tcgplayerProductId",
+                tcgplayer.get_card_property(
+                    self.get_attribute("name"), tcg_card_objs, "productId"
+                ),
+            )
+
+        prod_url = tcgplayer.get_card_property(
+            self.get_attribute("name"), tcg_card_objs, "url"
+        )
+
+        if self.get_attribute("tcgplayerProductId") and prod_url:
+            self.set_attribute(
+                "tcgplayerPurchaseUrl",
+                tcgplayer.log_redirection_url(self.get_attribute("tcgplayerProductId")),
+            )
+
+        self.tcgplayer_url = tcgplayer.get_card_property(
+            self.get_attribute("name"), tcg_card_objs, "url"
+        )

@@ -1,15 +1,13 @@
 """MTGJSON Version 4 Compiler"""
-# pylint: disable=too-many-lines
-
 import argparse
 import logging
 import pathlib
 import sys
 from typing import Any, Dict, List
 
-from mtgjson4 import compile_mtg
-import mtgjson4.outputter
-from mtgjson4.provider import scryfall
+import mtgjson4
+from mtgjson4 import compile_mtg, outputter
+from mtgjson4.provider import scryfall, tcgplayer
 
 LOGGER = logging.getLogger(__name__)
 
@@ -108,7 +106,15 @@ def main() -> None:
         compiled = compile_mtg.build_output_file(sf_set, set_code, args.skip_tcgplayer)
 
         # If we have at least 1 card, dump to file SET.json
+        # but first add them to ReferralMap.json
         if compiled["cards"] or compiled["tokens"]:
+            if not args.skip_tcgplayer:
+                for card in compiled["cards"]:
+                    key = tcgplayer.url_keygen(card.get_attribute("tcgplayerProductId"))
+                    outputter.write_tcgplayer_information(
+                        {key: card.get_tcgplayer_url()}
+                    )
+
             mtgjson4.outputter.write_to_file(
                 set_code.upper(), compiled, do_cleanup=(not args.skip_prune)
             )

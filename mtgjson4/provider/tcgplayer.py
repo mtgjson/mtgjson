@@ -11,7 +11,6 @@ import requests_cache
 
 import mtgjson4
 from mtgjson4 import util
-from mtgjson4.outputter import write_tcgplayer_information
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_TCGPLAYER")
@@ -93,10 +92,7 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> str:
         timeout=5.0,
     )
 
-    cache_result: bool = response.from_cache if hasattr(
-        response, "from_cache"
-    ) else False
-    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, cache_result))
+    util.print_download_status(response)
     session.close()
 
     if response.status_code != 200:
@@ -189,18 +185,11 @@ def url_keygen(prod_id: int) -> str:
     return hashlib.sha256(str(prod_id).encode()).hexdigest()[:16]
 
 
-def log_redirection_url(prod_id: int, send_url: str) -> str:
+def log_redirection_url(prod_id: int) -> str:
     """
     Create the URL that can be accessed to get the TCGPlayer URL.
     Also builds up the redirection table, that can be called later.
     :param prod_id: ID of card/object
-    :param send_url: URL to forward to
     :return: URL that can be used
     """
-    key = url_keygen(prod_id)
-    partner_string = (
-        "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"
-    )
-
-    write_tcgplayer_information({key: send_url + partner_string})
-    return "https://mtgjson.com/links/{}".format(key)
+    return "https://mtgjson.com/links/{}".format(url_keygen(prod_id))

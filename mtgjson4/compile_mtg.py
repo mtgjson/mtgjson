@@ -98,7 +98,7 @@ def build_output_file(
 
     LOGGER.info("Starting cards for {}".format(set_code))
 
-    card_holder = convert_to_mtgjson(sf_cards)
+    card_holder: List[MTGJSONCard] = convert_to_mtgjson(sf_cards)
     card_holder = add_start_flag_and_count_modified(
         set_code, set_config["search_uri"], card_holder
     )
@@ -113,9 +113,7 @@ def build_output_file(
     if "tcgplayer_id" in set_config.keys():
         output_file["tcgplayerGroupId"] = set_config["tcgplayer_id"]
         if not skip_tcgplayer:
-            card_holder = add_tcgplayer_fields(
-                output_file["tcgplayerGroupId"], card_holder
-            )
+            add_tcgplayer_fields(output_file["tcgplayerGroupId"], card_holder)
 
     # Set sizes; BASE SET SIZE WILL BE UPDATED BELOW
     output_file["totalSetSize"] = len(sf_cards)
@@ -224,38 +222,16 @@ def transpose_tokens(
     return cards, tokens
 
 
-def add_tcgplayer_fields(group_id: int, cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
+def add_tcgplayer_fields(group_id: int, cards: List[MTGJSONCard]) -> None:
     """
     For each card in the set, we will find its tcgplayer ID
     and add it to the card if found
     :param group_id: group to search for the cards
     :param cards: Cards list to add information to
-    :return: Cards list with new information added
     """
     tcg_card_objs = tcgplayer.get_group_id_cards(group_id)
-
     for card in cards:
-        # No need to fetch from TCGPlayer if already found in Scryfall
-        if not card.get_attribute("tcgplayerProductId"):
-            card.set_attribute(
-                "tcgplayerProductId",
-                tcgplayer.get_card_property(
-                    card.get_attribute("name"), tcg_card_objs, "productId"
-                ),
-            )
-
-        prod_url = tcgplayer.get_card_property(
-            card.get_attribute("name"), tcg_card_objs, "url"
-        )
-
-        if card.get_attribute("tcgplayerProductId") and prod_url:
-            card.set_attribute(
-                "tcgplayerPurchaseUrl",
-                tcgplayer.log_redirection_url(
-                    card.get_attribute("tcgplayerProductId"), prod_url
-                ),
-            )
-    return cards
+        card.add_tcgplayer_fields(tcg_card_objs)
 
 
 def uniquify_duplicates_in_set(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
@@ -562,7 +538,7 @@ def get_cmc(mana_cost: str) -> float:
     return total
 
 
-def mark_duel_decks(cards: List[Dict[str, Any]]) -> None:
+def mark_duel_decks(cards: List[MTGJSONCard]) -> None:
     """
     Duel decks are usually put together where the cards
     in the first deck are at the beginning, followed
@@ -574,13 +550,13 @@ def mark_duel_decks(cards: List[Dict[str, Any]]) -> None:
     side_market = "a"
 
     for card in cards:
-        if card["name"] in mtgjson4.BASIC_LANDS:
+        if card.get_attribute("name") in mtgjson4.BASIC_LANDS:
             basic_land_marked = True
         elif basic_land_marked:
             side_market = chr(ord(side_market) + 1)
             basic_land_marked = False
 
-        card["duelDeck"] = side_market
+        card.set_attribute("duelDeck", side_market)
 
 
 def clean_up_watermark(

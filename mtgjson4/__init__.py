@@ -44,6 +44,9 @@ ALL_DECKS_DIR_OUTPUT: str = "AllDeckFiles"
 CARD_TYPES_OUTPUT: str = "CardTypes"
 DECK_LISTS_OUTPUT: str = "DeckLists"
 
+# Provider tags
+SCRYFALL_PROVIDER_ID = "sf"
+
 LANGUAGE_MAP: Dict[str, str] = {
     "en": "English",
     "es": "Spanish",

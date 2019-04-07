@@ -19,7 +19,6 @@ SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_SCRYFALL")
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
 SCRYFALL_API_CARD: str = "https://api.scryfall.com/cards/"
 SCRYFALL_VARIATIONS: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}"
-PROVIDER_ID = "sf"
 
 
 def __get_session() -> requests.Session:
@@ -61,11 +60,7 @@ def download(scryfall_url: str) -> Dict[str, Any]:
     session = __get_session()
     response: Any = session.get(url=scryfall_url, timeout=5.0)
     request_api_json: Dict[str, Any] = response.json()
-
-    cache_result: bool = response.from_cache if hasattr(
-        response, "from_cache"
-    ) else False
-    LOGGER.info("Downloaded: {} (Cache = {})".format(scryfall_url, cache_result))
+    util.print_download_status(response)
     session.close()
     return request_api_json
 

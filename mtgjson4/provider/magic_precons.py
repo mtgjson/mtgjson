@@ -6,10 +6,8 @@ import multiprocessing
 import pathlib
 from typing import Any, Dict, Iterator, List
 
-import requests
-
 import mtgjson4
-import mtgjson4.util
+from mtgjson4 import util
 
 LOGGER = logging.getLogger(__name__)
 
@@ -23,8 +21,9 @@ def build_and_write_decks(decks_url: str) -> Iterator[Dict[str, Any]]:
     the decks to the "decks/" folder.
     :return Each deck completed, one by one
     """
-    decks_content: Any = requests.get(decks_url).json()
-    LOGGER.info("Downloaded: {} (Cache = {})".format(decks_url, False))
+    session = util.get_generic_session()
+    response: Any = session.get(url=decks_url, timeout=5.0)
+    util.print_download_status(response)
 
     # Location of AllSets.json -- Must be compiled before decks!
     all_sets_path: pathlib.Path = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
@@ -45,7 +44,7 @@ def build_and_write_decks(decks_url: str) -> Iterator[Dict[str, Any]]:
         return
 
     with multiprocessing.Pool(processes=8) as pool:
-        for deck in decks_content:
+        for deck in response.json():
             deck_to_output = {
                 "name": deck["name"],
                 "code": deck["set_code"].upper(),
