@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Set, Tuple
 import uuid
 
 import mtgjson4
+from mtgjson4 import mtgjson_card
 from mtgjson4.mtgjson_card import MTGJSONCard
 from mtgjson4.provider import gatherer, scryfall, tcgplayer, wizards
 from mtgjson4.util import is_number
@@ -137,19 +138,20 @@ def build_output_file(
     LOGGER.info("Finished tokens for {}".format(set_code))
 
     # Add UUID to each entry
-    add_uuid_to_cards(output_file["cards"], output_file["tokens"], output_file)
+    add_uuid_to_tokens(output_file["tokens"], output_file)
 
     # Add Variations to each entry, as well as mark alternatives
     add_variations_and_alternative_fields(output_file["cards"], output_file)
 
-    # Handle duel deck modifications
-    if set_code[:2] == "DD":
-        mark_duel_decks(output_file["cards"])
+    mtgjson_card.DUEL_DECK_LAND_MARKED.set(False)
+    mtgjson_card.DUEL_DECK_SIDE_COMP.set("a")
+    for card in output_file["cards"]:
+        card.add_remaining_idk()
 
     return output_file
 
 
-def add_uuid_to_cards(
+def add_uuid_to_tokens(
     cards: List[MTGJSONCard], tokens: List[Dict[str, Any]], file_info: Dict[str, Any]
 ) -> None:
     """
@@ -160,10 +162,6 @@ def add_uuid_to_cards(
     :param tokens: Tokens Array
     :param file_info: <<CONST>> object for the file
     """
-    for card in cards:
-        card.set_attribute("uuidV421", card.get_uuid_421())
-        card.set_attribute("uuid", card.get_uuid())
-
     for token in tokens:
         # Name + set code + colors (if applicable) + power (if applicable) + toughness (if applicable) + Scryfall UUID
         token_hash_code = (
@@ -536,27 +534,6 @@ def get_cmc(mana_cost: str) -> float:
             total += 1
 
     return total
-
-
-def mark_duel_decks(cards: List[MTGJSONCard]) -> None:
-    """
-    Duel decks are usually put together where the cards
-    in the first deck are at the beginning, followed
-    by basics, then start the second deck. We exploit
-    this property to mark them as decks "a" and "b"
-    :param cards: Cards in duel deck, sorted by number
-    """
-    basic_land_marked = False
-    side_market = "a"
-
-    for card in cards:
-        if card.get_attribute("name") in mtgjson4.BASIC_LANDS:
-            basic_land_marked = True
-        elif basic_land_marked:
-            side_market = chr(ord(side_market) + 1)
-            basic_land_marked = False
-
-        card.set_attribute("duelDeck", side_market)
 
 
 def build_mtgjson_card(
