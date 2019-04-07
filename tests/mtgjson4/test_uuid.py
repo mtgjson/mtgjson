@@ -2,7 +2,6 @@ from typing import Dict, Any
 
 import pytest
 
-# from mtgjson4.compile_mtg import __get_uuid, __get_uuid_421
 from mtgjson4.mtgjson_card import MTGJSONCard
 
 
@@ -29,15 +28,20 @@ from mtgjson4.mtgjson_card import MTGJSONCard
         )
     ],
 )
-def test_uuid_creation(mock_card: MTGJSONCard, mock_file_info: Dict[str, Any]) -> None:
+def test_uuid_creation(
+    mock_card: Dict[str, Any], mock_file_info: Dict[str, Any]
+) -> None:
     """
     Tests to ensure UUIDs don't regress
     :param mock_card:
     :param mock_file_info:
     :return:
     """
-    uuid_new = mock_card.__get_uuid()
-    uuid_old = mock_card.__get_uuid_421()
+    card = MTGJSONCard(mock_file_info["code"])
+    card.set_all(mock_card)
+
+    uuid_old = card.get_uuid_421()
+    uuid_new = card.get_uuid()
 
     assert uuid_old == "3d5e8a9a-d922-5abd-86bc-04ad363641dd"
     assert uuid_new == "4b560297-2f1e-5f65-b118-289c21bdf887"

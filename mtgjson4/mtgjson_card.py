@@ -194,33 +194,15 @@ class MTGJSONCard:
         on other values
         :param is_card: Card or token
         """
-        self.set("uuid", self.__get_uuid(is_card))
-        self.set("uuidV421", self.__get_uuid_421())
+        self.set("uuid", self.get_uuid(is_card))
+        self.set("uuidV421", self.get_uuid_421())
 
         if self.set_code.startswith("DD"):
             self.__mark_duel_decks()
 
         self.__remove_unnecessary_fields()
 
-    # -----------------------
-    # Private functions below
-    # -----------------------
-    def __mark_duel_decks(self) -> None:
-        """
-        Duel decks are usually put together where the cards
-        in the first deck are at the beginning, followed
-        by basics, then start the second deck. We exploit
-        this property to mark them as decks "a" and "b"
-        """
-        if self.get("name") in mtgjson4.BASIC_LANDS:
-            DUEL_DECK_LAND_MARKED.set(True)
-        elif DUEL_DECK_LAND_MARKED.get():
-            DUEL_DECK_SIDE_COMP.set(chr(ord(DUEL_DECK_SIDE_COMP.get()) + 1))
-            DUEL_DECK_LAND_MARKED.set(False)
-
-        self.set("duelDeck", DUEL_DECK_SIDE_COMP.get())
-
-    def __get_uuid(self, is_card: bool = True) -> str:
+    def get_uuid(self, is_card: bool = True) -> str:
         """
         Get unique card face identifier.
         :return: unique card face identifier
@@ -246,7 +228,7 @@ class MTGJSONCard:
 
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
 
-    def __get_uuid_421(self) -> str:
+    def get_uuid_421(self) -> str:
         """
         Get card uuid used in MTGJSON release 4.2.1
         :return: unique card face identifier
@@ -261,6 +243,24 @@ class MTGJSONCard:
             + str(self.get("originalText", ""))
         )
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
+
+    # -----------------------
+    # Private functions below
+    # -----------------------
+    def __mark_duel_decks(self) -> None:
+        """
+        Duel decks are usually put together where the cards
+        in the first deck are at the beginning, followed
+        by basics, then start the second deck. We exploit
+        this property to mark them as decks "a" and "b"
+        """
+        if self.get("name") in mtgjson4.BASIC_LANDS:
+            DUEL_DECK_LAND_MARKED.set(True)
+        elif DUEL_DECK_LAND_MARKED.get():
+            DUEL_DECK_SIDE_COMP.set(chr(ord(DUEL_DECK_SIDE_COMP.get()) + 1))
+            DUEL_DECK_LAND_MARKED.set(False)
+
+        self.set("duelDeck", DUEL_DECK_SIDE_COMP.get())
 
     def __remove_unnecessary_fields(self) -> None:
         """
