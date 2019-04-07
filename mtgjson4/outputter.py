@@ -68,10 +68,6 @@ def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -
         """
 
         file_contents["cards"] = mtgjson_to_dict(file_contents["cards"])
-        LOGGER.error(json.dumps(file_contents["cards"]))
-        LOGGER.error(json.dumps(file_contents["cards"], sort_keys=True))
-
-        return
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
 
 
@@ -81,10 +77,7 @@ def mtgjson_to_dict(cards: List[MTGJSONCard]) -> List[Dict[str, Any]]:
     :param cards: List of MTGJSON cards
     :return: List of MTGJSON cards as dicts
     """
-    tmp = []
-    for c in cards:
-        tmp.append(c.get_internal_dict())
-    return tmp
+    return [c.get_internal_dict() for c in cards]
 
 
 def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:

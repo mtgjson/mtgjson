@@ -45,7 +45,7 @@ class MTGJSONCard:
         :param special_action: Function to run on value before inserting
         """
         if special_action:
-            attribute_name = special_action(attribute_value)
+            attribute_value = special_action(attribute_value)
 
         self.get_internal_dict()[attribute_name] = attribute_value
 
