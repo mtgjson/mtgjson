@@ -12,7 +12,7 @@ from mtgjson4.provider import tcgplayer
 
 TCGPLAYER_REFERRAL: str = "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"
 DUEL_DECK_LAND_MARKED: contextvars.ContextVar = contextvars.ContextVar("DD_R1")
-DUEL_DECK_SIDE_COMP:  contextvars.ContextVar = contextvars.ContextVar("DD_R2")
+DUEL_DECK_SIDE_COMP: contextvars.ContextVar = contextvars.ContextVar("DD_R2")
 
 
 class MTGJSONCard:
@@ -29,6 +29,12 @@ class MTGJSONCard:
         self.set_code: str = set_code.upper()
         self.tcgplayer_url: str = ""
 
+    def __str__(self):
+        return str(self.card_attributes)
+
+    def clear(self):
+        self.card_attributes.clear()
+
     def set_attribute(
         self, attribute_name: str, attribute_value: Any, special_action: Callable = None
     ) -> None:
@@ -41,7 +47,7 @@ class MTGJSONCard:
         if special_action:
             attribute_name = special_action(attribute_value)
 
-        self.__get_attributes()[attribute_name] = attribute_value
+        self.get_internal_dict()[attribute_name] = attribute_value
 
     def set_attributes(self, attribute_dict: Dict[str, Any]) -> None:
         """
@@ -65,11 +71,11 @@ class MTGJSONCard:
         :param default_value: Value if key not in dict
         :return: Value or default_value
         """
-        if attribute_name in self.__get_attributes():
-            return self.__get_attributes()[attribute_name]
+        if attribute_name in self.get_internal_dict():
+            return self.get_internal_dict()[attribute_name]
         return default_value
 
-    def __get_attributes(self) -> Dict[str, Any]:
+    def get_internal_dict(self) -> Dict[str, Any]:
         """
         Return internal dictionary
         :return: Internal dictionary
@@ -111,7 +117,7 @@ class MTGJSONCard:
         Return internal dictionary keys
         :return: Keys
         """
-        return self.__get_attributes().keys()
+        return self.get_internal_dict().keys()
 
     def how_many_names(self, how_many_expected: int = 0) -> bool:
         """
@@ -128,7 +134,10 @@ class MTGJSONCard:
         :param attribute_value: Value
         """
         if attribute_name in self.keys():
-            self.__get_attributes()[attribute_name].append(attribute_value)
+            if isinstance(self.get_internal_dict()[attribute_name], list):
+                self.get_internal_dict()[attribute_name].append(attribute_value)
+            else:
+                self.get_internal_dict()[attribute_name] += attribute_value
         else:
             self.set_attribute(attribute_name, attribute_value)
 
@@ -139,7 +148,7 @@ class MTGJSONCard:
         :return: Deleted successfully
         """
         if attribute_name in self.keys():
-            del self.__get_attributes()[attribute_name]
+            del self.get_internal_dict()[attribute_name]
             return True
         return False
 
@@ -200,12 +209,14 @@ class MTGJSONCard:
 
         self.set_attribute("watermark", watermark)
 
-    def add_remaining_idk(self) -> None:
+    def final_card_cleanup(self) -> None:
         self.set_attribute("uuid", self.get_uuid())
         self.set_attribute("uuidV421", self.get_uuid_421())
 
         if self.set_code.startswith("DD"):
             self.__mark_duel_decks()
+
+        self.__remove_unnecessary_fields()
 
     def __mark_duel_decks(self) -> None:
         """
@@ -221,3 +232,53 @@ class MTGJSONCard:
             DUEL_DECK_LAND_MARKED.set(False)
 
         self.set_attribute("duelDeck", DUEL_DECK_SIDE_COMP.get())
+
+    def __remove_unnecessary_fields(self):
+        """
+        Remove invalid field entries to shrink JSON output size
+        """
+        remove_field_if_false: List[str] = [
+            "isOversized",
+            "isOnlineOnly",
+            "isTimeshifted",
+            "isReserved",
+            "frameEffect",
+        ]
+
+        insert_value = {}
+
+        for key, value in self.items():
+            if value is not None:
+                if (key in remove_field_if_false and value is False) or (value == ""):
+                    continue
+                if key == "foreignData":
+                    value = self.__fix_foreign_entries(value)
+                insert_value[key] = value
+
+        self.clear()
+        self.set_attributes(insert_value)
+
+    @staticmethod
+    def __fix_foreign_entries(values: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Foreign entries may have bad values, such as missing flavor text. This removes them.
+        :param values: List of foreign entries dicts
+        :return: Pruned foreign entries
+        """
+        # List of dicts
+        fd_insert_list = []
+        for foreign_info in values:
+            fd_insert_dict = {}
+
+            name_found: bool = False
+            for fd_key, fd_value in foreign_info.items():
+                if fd_value is not None:
+                    fd_insert_dict[fd_key] = fd_value
+
+                    if fd_key == "name":
+                        name_found = True
+
+            if name_found:
+                fd_insert_list.append(fd_insert_dict)
+
+        return fd_insert_list

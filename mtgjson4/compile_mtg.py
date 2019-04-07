@@ -146,14 +146,12 @@ def build_output_file(
     mtgjson_card.DUEL_DECK_LAND_MARKED.set(False)
     mtgjson_card.DUEL_DECK_SIDE_COMP.set("a")
     for card in output_file["cards"]:
-        card.add_remaining_idk()
+        card.final_card_cleanup()
 
     return output_file
 
 
-def add_uuid_to_tokens(
-    cards: List[MTGJSONCard], tokens: List[Dict[str, Any]], file_info: Dict[str, Any]
-) -> None:
+def add_uuid_to_tokens(tokens: List[Dict[str, Any]], file_info: Dict[str, Any]) -> None:
     """
     Each entry needs an ID. While we're really doing a hash,
     we will format it like a UUID for those who choose to
