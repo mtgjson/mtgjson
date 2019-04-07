@@ -38,35 +38,6 @@ class MTGJSONCard:
     def clear(self):
         self.card_attributes.clear()
 
-    def set(
-        self, attribute_name: str, attribute_value: Any, special_action: Callable = None
-    ) -> None:
-        """
-        Given an attribute, add it to our internal dictionary
-        :param attribute_name: Key
-        :param attribute_value: Value
-        :param special_action: Function to run on value before inserting
-        """
-        if special_action:
-            attribute_value = special_action(attribute_value)
-
-        self.get_all()[attribute_name] = attribute_value
-
-    def set_all(self, attribute_dict: Dict[str, Any]) -> None:
-        """
-        Given a dict of attributes, add them to ours
-        :param attribute_dict: Dict of attributes
-        """
-        for key, value in attribute_dict.items():
-            self.set(key, value)
-
-    def get_tcgplayer_url(self) -> str:
-        """
-        Get TCGPlayer with affiliate code
-        :return:
-        """
-        return str(self.tcgplayer_url) + TCGPLAYER_REFERRAL
-
     def get(self, attribute_name: str, default_value: Any = None) -> Any:
         """
         Given an attribute, return value if found in internal dictionary
@@ -85,49 +56,34 @@ class MTGJSONCard:
         """
         return self.card_attributes
 
-    def __get_uuid(self, is_card: bool = True) -> str:
+    def set(
+        self, attribute_name: str, attribute_value: Any, value_function: Callable = None
+    ) -> None:
         """
-        Get unique card face identifier.
-        :return: unique card face identifier
+        Given an attribute, add it to our internal dictionary
+        :param attribute_name: Key
+        :param attribute_value: Value
+        :param value_function: Function to run on value before inserting
         """
-        if is_card:
-            #  As long as all cards have scryfallId (scryfallId, name) is enough to uniquely identify the card face
-            # PROVIDER_ID prevents collision with card IDs from any future card provider
-            id_source = (
-                mtgjson4.SCRYFALL_PROVIDER_ID
-                + self.get("scryfallId")
-                + self.get("name")
-            )
-        else:
-            id_source = (
-                self.get("name")
-                + "".join(self.get("colors", ""))
-                + str(self.get("power", ""))
-                + str(self.get("toughness", ""))
-                + str(self.get("side", ""))
-                + self.set_code[1:]  # Token sets start with a "T"
-                + self.get("scryfallId")
-            )
+        if value_function:
+            attribute_value = value_function(attribute_value)
 
-            LOGGER.info("MINE {}".format(id_source))
+        self.get_all()[attribute_name] = attribute_value
 
-        return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
+    def set_all(self, attribute_dict: Dict[str, Any]) -> None:
+        """
+        Given a dict of attributes, add them to ours
+        :param attribute_dict: Dict of attributes
+        """
+        for key, value in attribute_dict.items():
+            self.set(key, value)
 
-    def __get_uuid_421(self) -> str:
+    def get_tcgplayer_url(self) -> str:
         """
-        Get card uuid used in MTGJSON release 4.2.1
-        :return: unique card face identifier
+        Get TCGPlayer with affiliate code
+        :return:
         """
-        # Use attributes that _shouldn't_ change over time
-        # Name + set code + colors (if applicable) + Scryfall UUID + printed text (if applicable)
-        id_source = (
-            self.get("name")
-            + self.set_code
-            + "".join(self.get("colors", ""))
-            + self.get("scryfallId")
-            + str(self.get("originalText", ""))
-        )
-        return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
+        return str(self.tcgplayer_url) + TCGPLAYER_REFERRAL
 
     def keys(self) -> KeysView:
         """
@@ -234,6 +190,9 @@ class MTGJSONCard:
 
         self.__remove_unnecessary_fields()
 
+    # -----------------------
+    # Private functions below
+    # -----------------------
     def __mark_duel_decks(self) -> None:
         """
         Duel decks are usually put together where the cards
@@ -248,6 +207,48 @@ class MTGJSONCard:
             DUEL_DECK_LAND_MARKED.set(False)
 
         self.set("duelDeck", DUEL_DECK_SIDE_COMP.get())
+
+    def __get_uuid(self, is_card: bool = True) -> str:
+        """
+        Get unique card face identifier.
+        :return: unique card face identifier
+        """
+        if is_card:
+            #  As long as all cards have scryfallId (scryfallId, name) is enough to uniquely identify the card face
+            # PROVIDER_ID prevents collision with card IDs from any future card provider
+            id_source = (
+                mtgjson4.SCRYFALL_PROVIDER_ID
+                + self.get("scryfallId")
+                + self.get("name")
+            )
+        else:
+            id_source = (
+                self.get("name")
+                + "".join(self.get("colors", ""))
+                + str(self.get("power", ""))
+                + str(self.get("toughness", ""))
+                + str(self.get("side", ""))
+                + self.set_code[1:]  # Token sets start with a "T"
+                + self.get("scryfallId")
+            )
+
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
+
+    def __get_uuid_421(self) -> str:
+        """
+        Get card uuid used in MTGJSON release 4.2.1
+        :return: unique card face identifier
+        """
+        # Use attributes that _shouldn't_ change over time
+        # Name + set code + colors (if applicable) + Scryfall UUID + printed text (if applicable)
+        id_source = (
+            self.get("name")
+            + self.set_code
+            + "".join(self.get("colors", ""))
+            + self.get("scryfallId")
+            + str(self.get("originalText", ""))
+        )
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
 
     def __remove_unnecessary_fields(self):
         """
@@ -269,6 +270,9 @@ class MTGJSONCard:
                     continue
                 if key == "foreignData":
                     value = self.__fix_foreign_entries(value)
+                elif key == "names":
+                    if len(value) != len(set(value)):
+                        continue
                 insert_value[key] = value
 
         self.clear()
