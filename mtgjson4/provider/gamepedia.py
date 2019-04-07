@@ -33,10 +33,12 @@ def get_modern_sets() -> List[str]:
     :return: List of set codes legal in modern
     """
     modern_page_content: Any = requests.get(MODERN_GAMEPEDIA_URL)
+
+    cache_result: bool = modern_page_content.from_cache if hasattr(
+        modern_page_content, "from_cache"
+    ) else False
     LOGGER.info(
-        "Downloaded: {} (Cache = {})".format(
-            modern_page_content.url, modern_page_content.from_cache
-        )
+        "Downloaded: {} (Cache = {})".format(modern_page_content.url, cache_result)
     )
 
     soup = bs4.BeautifulSoup(modern_page_content.text, "html.parser")
