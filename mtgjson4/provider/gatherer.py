@@ -71,7 +71,11 @@ def get_cards(multiverse_id: str) -> List[GathererCard]:
         params={"multiverseid": multiverse_id, "printed": "true"},
         timeout=8.0,
     )
-    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, response.from_cache))
+
+    cache_result: bool = response.from_cache if hasattr(
+        response, "from_cache"
+    ) else False
+    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, cache_result))
     session.close()
 
     return parse_cards(response.text)

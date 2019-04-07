@@ -1,4 +1,5 @@
 """MTGJSON Version 4 Initializer"""
+import contextvars
 import logging
 import pathlib
 import time
@@ -6,7 +7,7 @@ from typing import Dict, List
 
 # Maintenance variables
 __VERSION__ = "4.3.2"
-__VERSION_DATE__ = "2019-03-31"
+__VERSION_DATE__ = "2019-04-06"
 __MAINTAINER__ = "Zach Halpern (GitHub: @ZeldaZach)"
 __MAINTAINER_EMAIL__ = "zahalpern+github@gmail.com"
 __REPO_URL__ = "https://github.com/mtgjson/mtgjson4"
@@ -23,6 +24,8 @@ SESSION_CACHE_EXPIRE_GENERAL: int = 604800  # seconds - 1 week
 SESSION_CACHE_EXPIRE_TCG: int = 604800  # seconds - 1 week
 SESSION_CACHE_EXPIRE_SCRYFALL: int = 604800  # seconds - 1 week
 SESSION_CACHE_EXPIRE_MKM: int = 604800  # seconds - 1 week
+
+USE_CACHE: contextvars.ContextVar = contextvars.ContextVar("USE_CACHE")
 
 
 # Compiled Output Files

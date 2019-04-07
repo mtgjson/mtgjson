@@ -46,7 +46,10 @@ def download_from_wizards(url: str) -> str:
     response: Any = session.get(url=url, timeout=5.0)
     response.encoding = "windows-1252"  # WHY DO THEY DO THIS
 
-    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, response.from_cache))
+    cache_result: bool = response.from_cache if hasattr(
+        response, "from_cache"
+    ) else False
+    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, cache_result))
     session.close()
     return str(response.text)
 
@@ -303,7 +306,11 @@ def download(url: str, encoding: Optional[str] = None) -> str:
     response: Any = session.get(url)
     if encoding:
         response.encoding = encoding
-    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, response.from_cache))
+
+    cache_result: bool = response.from_cache if hasattr(
+        response, "from_cache"
+    ) else False
+    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, cache_result))
     return str(response.text)
 
 

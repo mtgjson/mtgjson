@@ -20,9 +20,13 @@ TCGPLAYER_API_VERSION: contextvars.ContextVar = contextvars.ContextVar("API_TCGP
 
 def __get_session() -> requests.Session:
     """Get or create a requests session for TCGPlayer."""
-    requests_cache.install_cache(
-        "tcg_cache", backend="sqlite", expire_after=mtgjson4.SESSION_CACHE_EXPIRE_TCG
-    )
+    if mtgjson4.USE_CACHE.get():
+        requests_cache.install_cache(
+            "tcg_cache",
+            backend="sqlite",
+            expire_after=mtgjson4.SESSION_CACHE_EXPIRE_TCG,
+        )
+
     session: Optional[requests.Session] = SESSION.get(None)
     if session is None:
         session = requests.Session()
@@ -89,7 +93,10 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> str:
         timeout=5.0,
     )
 
-    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, response.from_cache))
+    cache_result: bool = response.from_cache if hasattr(
+        response, "from_cache"
+    ) else False
+    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, cache_result))
     session.close()
 
     if response.status_code != 200:

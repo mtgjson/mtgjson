@@ -15,6 +15,7 @@ from mtgjson4 import util
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_SCRYFALL")
 
+
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
 SCRYFALL_API_CARD: str = "https://api.scryfall.com/cards/"
 SCRYFALL_VARIATIONS: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}"
@@ -23,11 +24,13 @@ PROVIDER_ID = "sf"
 
 def __get_session() -> requests.Session:
     """Get or create a requests session for scryfall."""
-    requests_cache.install_cache(
-        "scryfall_cache",
-        backend="sqlite",
-        expire_after=mtgjson4.SESSION_CACHE_EXPIRE_SCRYFALL,
-    )
+    if mtgjson4.USE_CACHE.get():
+        requests_cache.install_cache(
+            "scryfall_cache",
+            backend="sqlite",
+            expire_after=mtgjson4.SESSION_CACHE_EXPIRE_SCRYFALL,
+        )
+
     session: Optional[requests.Session] = SESSION.get(None)
     if session is None:
         session = requests.Session()
@@ -58,7 +61,11 @@ def download(scryfall_url: str) -> Dict[str, Any]:
     session = __get_session()
     response: Any = session.get(url=scryfall_url, timeout=5.0)
     request_api_json: Dict[str, Any] = response.json()
-    LOGGER.info("Downloaded: {} (Cache = {})".format(scryfall_url, response.from_cache))
+
+    cache_result: bool = response.from_cache if hasattr(
+        response, "from_cache"
+    ) else False
+    LOGGER.info("Downloaded: {} (Cache = {})".format(scryfall_url, cache_result))
     session.close()
     return request_api_json
 
