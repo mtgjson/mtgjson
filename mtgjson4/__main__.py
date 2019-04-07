@@ -7,7 +7,6 @@ import pathlib
 import sys
 from typing import Any, Dict, List
 
-
 from mtgjson4 import compile_mtg
 import mtgjson4.outputter
 from mtgjson4.provider import scryfall

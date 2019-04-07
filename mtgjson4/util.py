@@ -110,7 +110,7 @@ def get_mtgjson_set_code(set_code: str) -> str:
         "r", encoding="utf-8"
     ) as f:
         json_dict = json.load(f)
-        for key, value in json_dict.items():
+        for key, value in json_dict.get_attributes():
             if set_code == value:
                 return str(key)
 

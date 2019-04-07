@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 
 import mtgjson4
 from mtgjson4 import util
+from mtgjson4.mtgjson_card import MTGJSONCard
 from mtgjson4.provider import gamepedia, magic_precons, scryfall, wizards
 
 DECKS_URL: str = "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks.json"
@@ -66,7 +67,7 @@ def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
 
 
-def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def remove_unnecessary_fields(card_list: List[MTGJSONCard]) -> List[Dict[str, Any]]:
     """
     Remove invalid field entries to shrink JSON output size
     """
