@@ -7,7 +7,6 @@ import multiprocessing
 import pathlib
 import re
 from typing import Any, Dict, List, Set, Tuple
-import uuid
 
 import mtgjson4
 from mtgjson4 import mtgjson_card
@@ -517,7 +516,7 @@ def build_mtgjson_card(
     :return: List of card(s) build (usually 1)
     """
     mtgjson_cards: List[MTGJSONCard] = []
-    mtgjson_card = MTGJSONCard(sf_card["set"])
+    single_card = MTGJSONCard(sf_card["set"])
 
     # Let us know what card we're trying to parse -- good for debugging :)
     LOGGER.info("Parsing {0} from {1}".format(sf_card.get("name"), sf_card.get("set")))
@@ -526,7 +525,7 @@ def build_mtgjson_card(
     face_data: Dict[str, Any] = sf_card
 
     if "card_faces" in sf_card:
-        mtgjson_card.set_all(
+        single_card.set_all(
             {
                 "names": sf_card["name"].split(" // "),
                 "scryfallId": sf_card["id"],
@@ -539,26 +538,26 @@ def build_mtgjson_card(
         # Split cards and rotational cards have this field, flip cards do not.
         # Remove rotational cards via the additional check
         if "mana_cost" in sf_card and "//" in sf_card["mana_cost"]:
-            mtgjson_card.set(
+            single_card.set(
                 "colors",
                 get_card_colors(sf_card["mana_cost"].split(" // ")[sf_card_face]),
             )
-            mtgjson_card.set(
+            single_card.set(
                 "faceConvertedManaCost",
                 get_cmc(sf_card["mana_cost"].split("//")[sf_card_face].strip()),
             )
         elif sf_card["layout"] in ["split", "flip", "transform"]:
             # Handle non-normal cards, as they'll a face split
-            mtgjson_card.set(
+            single_card.set(
                 "faceConvertedManaCost",
                 get_cmc(face_data.get("mana_cost", "0").strip()),
             )
 
         # Watermark is only attributed on the front side, so we'll account for it
-        mtgjson_card.set(
+        single_card.set(
             "watermark",
             sf_card["card_faces"][0].get("watermark", None),
-            mtgjson_card.clean_up_watermark,
+            single_card.clean_up_watermark,
         )
 
         # Recursively parse the other cards within this card too
@@ -572,7 +571,7 @@ def build_mtgjson_card(
                 )
                 mtgjson_cards += build_mtgjson_card(sf_card, i)
     else:
-        mtgjson_card.set_all(
+        single_card.set_all(
             {
                 "scryfallId": sf_card.get("id"),
                 "scryfallOracleId": sf_card["oracle_id"],
@@ -582,15 +581,15 @@ def build_mtgjson_card(
 
     # Characteristics that can are not shared to both sides of flip-type cards
     if face_data.get("mana_cost"):
-        mtgjson_card.set("manaCost", face_data.get("mana_cost"))
+        single_card.set("manaCost", face_data.get("mana_cost"))
 
-    if "colors" not in mtgjson_card.keys():
+    if "colors" not in single_card.keys():
         if "colors" in face_data:
-            mtgjson_card.set("colors", face_data.get("colors"))
+            single_card.set("colors", face_data.get("colors"))
         else:
-            mtgjson_card.set("colors", sf_card.get("colors"))
+            single_card.set("colors", sf_card.get("colors"))
 
-    mtgjson_card.set_all(
+    single_card.set_all(
         {
             "name": face_data.get("name"),
             "type": face_data.get("type_line"),
@@ -617,129 +616,129 @@ def build_mtgjson_card(
         }
     )
 
-    if "watermark" not in mtgjson_card.keys():
-        mtgjson_card.set(
+    if "watermark" not in single_card.keys():
+        single_card.set(
             "watermark",
             face_data.get("watermark", None),
-            mtgjson_card.clean_up_watermark,
+            single_card.clean_up_watermark,
         )
 
     if "flavor_text" in face_data:
-        mtgjson_card.set("flavorText", face_data.get("flavor_text"))
+        single_card.set("flavorText", face_data.get("flavor_text"))
     else:
-        mtgjson_card.set("flavorText", sf_card.get("flavor_text"))
+        single_card.set("flavorText", sf_card.get("flavor_text"))
 
     if "color_indicator" in face_data:
-        mtgjson_card.set("colorIndicator", face_data.get("color_indicator"))
+        single_card.set("colorIndicator", face_data.get("color_indicator"))
     elif "color_indicator" in sf_card:
-        mtgjson_card.set("colorIndicator", sf_card.get("color_indicator"))
+        single_card.set("colorIndicator", sf_card.get("color_indicator"))
 
     try:
-        mtgjson_card.set("multiverseId", sf_card["multiverse_ids"][sf_card_face])
+        single_card.set("multiverseId", sf_card["multiverse_ids"][sf_card_face])
     except IndexError:
         try:
-            mtgjson_card.set("multiverseId", sf_card["multiverse_ids"][0])
+            single_card.set("multiverseId", sf_card["multiverse_ids"][0])
         except IndexError:
-            mtgjson_card.set("multiverseId", None)
+            single_card.set("multiverseId", None)
 
     # Add a "side" entry for split cards
     # Will only work for two faced cards (not meld, as they don't need this)
-    if "names" in mtgjson_card.keys() and mtgjson_card.names_count(2):
+    if "names" in single_card.keys() and single_card.names_count(2):
         # chr(97) = 'a', chr(98) = 'b', ...
-        mtgjson_card.set(
-            "side", chr(mtgjson_card.get("names").index(mtgjson_card.get("name")) + 97)
+        single_card.set(
+            "side", chr(single_card.get("names").index(single_card.get("name")) + 97)
         )
 
     # Characteristics that we have to format ourselves from provided data
-    mtgjson_card.set(
+    single_card.set(
         "isTimeshifted",
         (sf_card.get("frame") == "future") or (sf_card.get("set") == "tsb"),
     )
 
-    mtgjson_card.set("rarity", sf_card.get("rarity"))
+    single_card.set("rarity", sf_card.get("rarity"))
 
     # Characteristics that we need custom functions to parse
     print_search_url: str = sf_card["prints_search_uri"].replace("%22", "")
-    mtgjson_card.set("legalities", scryfall.parse_legalities(sf_card["legalities"]))
-    mtgjson_card.set(
+    single_card.set("legalities", scryfall.parse_legalities(sf_card["legalities"]))
+    single_card.set(
         "rulings",
         sorted(
             scryfall.parse_rulings(sf_card["rulings_uri"]),
             key=lambda ruling: ruling["date"],
         ),
     )
-    mtgjson_card.set("printings", sorted(scryfall.parse_printings(print_search_url)))
+    single_card.set("printings", sorted(scryfall.parse_printings(print_search_url)))
 
     card_types: Tuple[List[str], List[str], List[str]] = scryfall.parse_card_types(
-        mtgjson_card.get("type")
+        single_card.get("type")
     )
-    mtgjson_card.set("supertypes", card_types[0])
-    mtgjson_card.set("types", card_types[1])
-    mtgjson_card.set("subtypes", card_types[2])
+    single_card.set("supertypes", card_types[0])
+    single_card.set("types", card_types[1])
+    single_card.set("subtypes", card_types[2])
 
     # Handle meld and all parts tokens issues
     # Will re-address naming if a split card already
     if "all_parts" in sf_card:
         meld_holder = []
-        mtgjson_card.set("names", [])
+        single_card.set("names", [])
         for a_part in sf_card["all_parts"]:
             if a_part["component"] != "token":
                 if "//" in a_part.get("name"):
-                    mtgjson_card.set("names", a_part.get("name").split(" // "))
+                    single_card.set("names", a_part.get("name").split(" // "))
                     break
 
                 # This is a meld only-fix, so we ignore tokens/combo pieces
                 if "meld" in a_part["component"]:
                     meld_holder.append(a_part["component"])
 
-                    mtgjson_card.append("names", a_part.get("name"))
+                    single_card.append("names", a_part.get("name"))
 
         # If the only entry is the original card, empty the names array
-        if mtgjson_card.names_count(1) and mtgjson_card.get("name") in mtgjson_card.get(
+        if single_card.names_count(1) and single_card.get("name") in single_card.get(
             "names"
         ):
-            mtgjson_card.remove("names")
+            single_card.remove("names")
 
         # Meld cards should be CardA, Meld, CardB. This fixes that via swap
         # meld_holder
 
         if meld_holder and meld_holder[1] != "meld_result":
-            mtgjson_card.get("names")[1], mtgjson_card.get("names")[2] = (
-                mtgjson_card.get("names")[2],
-                mtgjson_card.get("names")[1],
+            single_card.get("names")[1], single_card.get("names")[2] = (
+                single_card.get("names")[2],
+                single_card.get("names")[1],
             )
 
     # Since we built meld cards later, we will add the "side" attribute now
-    if mtgjson_card.names_count(3):  # MELD
-        if mtgjson_card.get("name") == mtgjson_card.get("names")[0]:
-            mtgjson_card.set("side", "a")
-        elif mtgjson_card.get("name") == mtgjson_card.get("names")[2]:
-            mtgjson_card.set("side", "b")
+    if single_card.names_count(3):  # MELD
+        if single_card.get("name") == single_card.get("names")[0]:
+            single_card.set("side", "a")
+        elif single_card.get("name") == single_card.get("names")[2]:
+            single_card.set("side", "b")
         else:
-            mtgjson_card.set("side", "c")
+            single_card.set("side", "c")
 
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for
-    mtgjson_card.set(
+    single_card.set(
         "foreignData",
         scryfall.parse_foreign(
             print_search_url,
-            mtgjson_card.get("name"),
-            mtgjson_card.get("number"),
+            single_card.get("name"),
+            single_card.get("number"),
             sf_card["set"],
         ),
     )
 
-    if mtgjson_card.get("multiverseId") is not None:
-        gatherer_cards = gatherer.get_cards(mtgjson_card.get("multiverseId"))
+    if single_card.get("multiverseId") is not None:
+        gatherer_cards = gatherer.get_cards(single_card.get("multiverseId"))
         try:
             gatherer_card = gatherer_cards[sf_card_face]
-            mtgjson_card.set("originalType", gatherer_card.original_types)
-            mtgjson_card.set("originalText", gatherer_card.original_text)
+            single_card.set("originalType", gatherer_card.original_types)
+            single_card.set("originalText", gatherer_card.original_text)
         except IndexError:
             LOGGER.warning(
-                "Unable to parse originals for {}".format(mtgjson_card.get("name"))
+                "Unable to parse originals for {}".format(single_card.get("name"))
             )
 
-    mtgjson_cards.append(mtgjson_card)
+    mtgjson_cards.append(single_card)
     return mtgjson_cards

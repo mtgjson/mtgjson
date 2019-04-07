@@ -1,12 +1,11 @@
 """
 MTGJSON Card Class Container
 """
+import contextvars
 import json
 import logging
 from typing import Any, Callable, Dict, Iterator, KeysView, List, Optional, Tuple
 import uuid
-
-import contextvars
 
 import mtgjson4
 from mtgjson4.provider import tcgplayer
@@ -32,10 +31,18 @@ class MTGJSONCard:
         self.set_code: str = set_code.upper()
         self.tcgplayer_url: str = ""
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        String representation of class
+        :return: String of attributes
+        """
         return str(self.card_attributes)
 
-    def clear(self):
+    def clear(self) -> None:
+        """
+        Clear all attributes on the card
+        :return:
+        """
         self.card_attributes.clear()
 
     def get(self, attribute_name: str, default_value: Any = None) -> Any:
@@ -182,6 +189,11 @@ class MTGJSONCard:
         return watermark
 
     def final_card_cleanup(self, is_card: bool = True) -> None:
+        """
+        Re-add and cleanup content from cards that are dependent
+        on other values
+        :param is_card: Card or token
+        """
         self.set("uuid", self.__get_uuid(is_card))
         self.set("uuidV421", self.__get_uuid_421())
 
@@ -250,7 +262,7 @@ class MTGJSONCard:
         )
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
 
-    def __remove_unnecessary_fields(self):
+    def __remove_unnecessary_fields(self) -> None:
         """
         Remove invalid field entries to shrink JSON output size
         """
