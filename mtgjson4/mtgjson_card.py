@@ -1,7 +1,8 @@
 """
 MTGJSON Card Class Container
 """
-from typing import Any, Dict, Iterator, KeysView, List, Tuple
+import json
+from typing import Any, Callable, Dict, Iterator, KeysView, List, Optional, Tuple
 import uuid
 
 import mtgjson4
@@ -24,13 +25,27 @@ class MTGJSONCard:
         self.set_code: str = set_code.upper()
         self.tcgplayer_url: str = ""
 
-    def set_attribute(self, attribute_name: str, attribute_value: Any) -> None:
+    def set_attribute(
+        self, attribute_name: str, attribute_value: Any, special_action: Callable = None
+    ) -> None:
         """
         Given an attribute, add it to our internal dictionary
         :param attribute_name: Key
         :param attribute_value: Value
+        :param special_action: Function to run on value before inserting
         """
+        if special_action:
+            attribute_name = special_action(attribute_value)
+
         self.__get_attributes()[attribute_name] = attribute_value
+
+    def set_attributes(self, attribute_dict: Dict[str, Any]) -> None:
+        """
+        Given a dict of attributes, add them to ours
+        :param attribute_dict: Dict of attributes
+        """
+        for key, value in attribute_dict.items():
+            self.set_attribute(key, value)
 
     def get_tcgplayer_url(self) -> str:
         """
@@ -158,3 +173,28 @@ class MTGJSONCard:
         self.tcgplayer_url = tcgplayer.get_card_property(
             self.get_attribute("name"), tcg_card_objs, "url"
         )
+
+    def clean_up_watermark(self, watermark: Optional[str]) -> Optional[str]:
+        """
+        Scryfall (currently) doesn't provide what set watermarks
+        are of, only "set" so we will add it ourselves using
+        a resources file MTGJSON generated offline
+        :param watermark: Current watermark
+        :return: Appropriate watermark (or None)
+        """
+        if not watermark:
+            return None
+
+        if watermark != "set":
+            return watermark
+
+        with mtgjson4.RESOURCE_PATH.joinpath("set_code_watermarks.json").open(
+            "r", encoding="utf-8"
+        ) as f:
+            json_dict: Dict[str, List[Any]] = json.load(f)
+
+            for card in json_dict[self.set_code]:
+                if self.get_attribute("name") in card["name"].split(" // "):
+                    return str(card["watermark"])
+
+        return watermark

@@ -6,7 +6,7 @@ import logging
 import multiprocessing
 import pathlib
 import re
-from typing import Any, Dict, List, Set, Tuple, Union
+from typing import Any, Dict, List, Set, Tuple
 import uuid
 
 import mtgjson4
@@ -559,36 +559,6 @@ def mark_duel_decks(cards: List[MTGJSONCard]) -> None:
         card.set_attribute("duelDeck", side_market)
 
 
-def clean_up_watermark(
-    set_code: str, card_name: str, watermark: str
-) -> Union[str, None]:
-    """
-    Scryfall (currently) doesn't provide what set watermarks
-    are of, only "set" so we will add it ourselves using
-    a resources file MTGJSON generated offline
-    :param set_code: Set to search
-    :param card_name: Card name to find
-    :param watermark: Current watermark
-    :return: Appropriate watermark (or None)
-    """
-    if not watermark:
-        return None
-
-    if watermark != "set":
-        return watermark
-
-    with mtgjson4.RESOURCE_PATH.joinpath("set_code_watermarks.json").open(
-        "r", encoding="utf-8"
-    ) as f:
-        json_dict: Dict[str, List[Any]] = json.load(f)
-
-        for card in json_dict[set_code]:
-            if card_name in card["name"].split(" // "):
-                return str(card["watermark"])
-
-    return watermark
-
-
 def build_mtgjson_card(
     sf_card: Dict[str, Any], sf_card_face: int = 0
 ) -> List[MTGJSONCard]:
@@ -608,14 +578,15 @@ def build_mtgjson_card(
     face_data: Dict[str, Any] = sf_card
 
     if "card_faces" in sf_card:
-        mtgjson_card.set_attribute("names", sf_card["name"].split(" // "))  # List[str])
-        face_data = sf_card["card_faces"][sf_card_face]
-
-        mtgjson_card.set_attribute("scryfallId", sf_card["id"])
-        mtgjson_card.set_attribute("scryfallOracleId", sf_card["oracle_id"])
-        mtgjson_card.set_attribute(
-            "scryfallIllustrationId", sf_card.get("illustration_id")
+        mtgjson_card.set_attributes(
+            {
+                "names": sf_card["name"].split(" // "),
+                "scryfallId": sf_card["id"],
+                "scryfallOracleId": sf_card["oracle_id"],
+                "scryfallIllustrationId": sf_card.get("illustration_id"),
+            }
         )
+        face_data = sf_card["card_faces"][sf_card_face]
 
         # Split cards and rotational cards have this field, flip cards do not.
         # Remove rotational cards via the additional check
@@ -638,11 +609,8 @@ def build_mtgjson_card(
         # Watermark is only attributed on the front side, so we'll account for it
         mtgjson_card.set_attribute(
             "watermark",
-            clean_up_watermark(
-                sf_card["set"].upper(),
-                face_data["name"],
-                sf_card["card_faces"][0].get("watermark", ""),
-            ),
+            sf_card["card_faces"][0].get("watermark"),
+            mtgjson_card.clean_up_watermark,
         )
 
         # Recursively parse the other cards within this card too
@@ -655,6 +623,14 @@ def build_mtgjson_card(
                     )
                 )
                 mtgjson_cards += build_mtgjson_card(sf_card, i)
+    else:
+        mtgjson_card.set_attributes(
+            {
+                "scryfallId": sf_card.get("id"),
+                "scryfallOracleId": sf_card["oracle_id"],
+                "scryfallIllustrationId": sf_card.get("illustration_id"),
+            }
+        )
 
     # Characteristics that can are not shared to both sides of flip-type cards
     if face_data.get("mana_cost"):
@@ -666,22 +642,36 @@ def build_mtgjson_card(
         else:
             mtgjson_card.set_attribute("colors", sf_card.get("colors"))
 
-    mtgjson_card.set_attribute("name", face_data.get("name"))
-    mtgjson_card.set_attribute("type", face_data.get("type_line"))
-    mtgjson_card.set_attribute("text", face_data.get("oracle_text"))
-
-    mtgjson_card.set_attribute("power", face_data.get("power"))
-    mtgjson_card.set_attribute("toughness", face_data.get("toughness"))
-    mtgjson_card.set_attribute("loyalty", face_data.get("loyalty"))
+    mtgjson_card.set_attributes(
+        {
+            "name": face_data.get("name"),
+            "type": face_data.get("type_line"),
+            "text": face_data.get("oracle_text"),
+            "power": face_data.get("power"),
+            "toughness": face_data.get("toughness"),
+            "loyalty": face_data.get("loyalty"),
+            "artist": sf_card.get("artist"),
+            "borderColor": sf_card.get("border_color"),
+            "colorIdentity": sf_card.get("color_identity"),
+            "frameVersion": sf_card.get("frame"),
+            "hasFoil": sf_card.get("foil"),
+            "hasNonFoil": sf_card.get("nonfoil"),
+            "isOnlineOnly": sf_card.get("digital"),
+            "isOversized": sf_card.get("oversized"),
+            "layout": sf_card.get("layout"),
+            "number": sf_card.get("collector_number"),
+            "isReserved": sf_card.get("reserved"),
+            "frameEffect": sf_card.get("frame_effect"),
+            "tcgplayerProductId": sf_card.get("tcgplayer_id"),
+            "life": sf_card.get("life_modifier"),
+            "hand": sf_card.get("hand_modifier"),
+            "convertedManaCost": sf_card.get("cmc"),
+        }
+    )
 
     if "watermark" not in mtgjson_card.keys():
         mtgjson_card.set_attribute(
-            "watermark",
-            clean_up_watermark(
-                sf_card["set"].upper(),
-                mtgjson_card.get_attribute("name"),
-                face_data.get("watermark", ""),
-            ),
+            "watermark", face_data.get("watermark"), mtgjson_card.clean_up_watermark
         )
 
     if "flavor_text" in face_data:
@@ -704,29 +694,6 @@ def build_mtgjson_card(
         except IndexError:
             mtgjson_card.set_attribute("multiverseId", None)
 
-    # Characteristics that are shared to all sides of flip-type cards, that we don't have to modify
-    mtgjson_card.set_attribute("artist", sf_card.get("artist"))
-    mtgjson_card.set_attribute("borderColor", sf_card.get("border_color"))
-    mtgjson_card.set_attribute("colorIdentity", sf_card.get("color_identity"))
-
-    if "convertedManaCost" not in mtgjson_card.keys():
-        mtgjson_card.set_attribute("convertedManaCost", sf_card.get("cmc"))
-
-    mtgjson_card.set_attribute("frameVersion", sf_card.get("frame"))
-    mtgjson_card.set_attribute("hasFoil", sf_card.get("foil"))
-    mtgjson_card.set_attribute("hasNonFoil", sf_card.get("nonfoil"))
-    mtgjson_card.set_attribute("isOnlineOnly", sf_card.get("digital"))
-    mtgjson_card.set_attribute("isOversized", sf_card.get("oversized"))
-    mtgjson_card.set_attribute("layout", sf_card.get("layout"))
-    mtgjson_card.set_attribute("number", sf_card.get("collector_number"))
-    mtgjson_card.set_attribute("isReserved", sf_card.get("reserved"))
-    mtgjson_card.set_attribute("frameEffect", sf_card.get("frame_effect"))
-    mtgjson_card.set_attribute("tcgplayerProductId", sf_card.get("tcgplayer_id"))
-
-    # Vanguard fields
-    mtgjson_card.set_attribute("life", sf_card.get("life_modifier"))
-    mtgjson_card.set_attribute("hand", sf_card.get("hand_modifier"))
-
     # Add a "side" entry for split cards
     # Will only work for two faced cards (not meld, as they don't need this)
     if "names" in mtgjson_card.keys() and mtgjson_card.how_many_names(2):
@@ -739,17 +706,6 @@ def build_mtgjson_card(
                 )
                 + 97
             ),
-        )
-
-    if "scryfallId" not in mtgjson_card.keys():
-        mtgjson_card.set_attribute("scryfallId", sf_card.get("id"))
-
-    if "scryfallOracleId" not in mtgjson_card.keys():
-        mtgjson_card.set_attribute("scryfallOracleId", sf_card["oracle_id"])
-
-    if "scryfallIllustrationId" not in mtgjson_card.keys():
-        mtgjson_card.set_attribute(
-            "scryfallIllustrationId", sf_card.get("illustration_id")
         )
 
     # Characteristics that we have to format ourselves from provided data
