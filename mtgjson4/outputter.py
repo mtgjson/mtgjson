@@ -55,20 +55,68 @@ def write_to_file(set_name: str, file_contents: Any, do_cleanup: bool = False) -
     with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
         util.win_os_fix(set_name) + ".json"
     ).open("w", encoding="utf-8") as f:
-        """
-        if False and do_cleanup and isinstance(file_contents, dict):
-            if "cards" in file_contents:
-                file_contents["cards"] = remove_unnecessary_fields(
-                    file_contents["cards"]
-                )
+        if do_cleanup and isinstance(file_contents, dict):
             if "tokens" in file_contents:
                 file_contents["tokens"] = remove_unnecessary_fields(
                     file_contents["tokens"]
                 )
-        """
-
         file_contents["cards"] = mtgjson_to_dict(file_contents["cards"])
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
+
+
+def remove_unnecessary_fields(card_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Remove invalid field entries to shrink JSON output size
+    """
+
+    fixed_dict: List[Dict[str, Any]] = []
+    remove_field_if_false: List[str] = [
+        "isOversized",
+        "isOnlineOnly",
+        "isTimeshifted",
+        "isReserved",
+        "frameEffect",
+    ]
+
+    for card_entry in card_list:
+        insert_value = {}
+
+        for key, value in card_entry.items():
+            if value is not None:
+                if (key in remove_field_if_false and value is False) or (value == ""):
+                    continue
+                if key == "foreignData":
+                    value = fix_foreign_entries(value)
+
+                insert_value[key] = value
+        fixed_dict.append(insert_value)
+
+    return fixed_dict
+
+
+def fix_foreign_entries(values: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Foreign entries may have bad values, such as missing flavor text. This removes them.
+    :param values: List of foreign entries dicts
+    :return: Pruned foreign entries
+    """
+    # List of dicts
+    fd_insert_list = []
+    for foreign_info in values:
+        fd_insert_dict = {}
+
+        name_found: bool = False
+        for fd_key, fd_value in foreign_info.items():
+            if fd_value is not None:
+                fd_insert_dict[fd_key] = fd_value
+
+                if fd_key == "name":
+                    name_found = True
+
+        if name_found:
+            fd_insert_list.append(fd_insert_dict)
+
+    return fd_insert_list
 
 
 def mtgjson_to_dict(cards: List[MTGJSONCard]) -> List[Dict[str, Any]]:

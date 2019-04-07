@@ -2,6 +2,7 @@
 MTGJSON Card Class Container
 """
 import json
+import logging
 from typing import Any, Callable, Dict, Iterator, KeysView, List, Optional, Tuple
 import uuid
 
@@ -13,6 +14,8 @@ from mtgjson4.provider import tcgplayer
 TCGPLAYER_REFERRAL: str = "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"
 DUEL_DECK_LAND_MARKED: contextvars.ContextVar = contextvars.ContextVar("DD_R1")
 DUEL_DECK_SIDE_COMP: contextvars.ContextVar = contextvars.ContextVar("DD_R2")
+
+LOGGER = logging.getLogger(__name__)
 
 
 class MTGJSONCard:
@@ -187,27 +190,28 @@ class MTGJSONCard:
             self.get_attribute("name"), tcg_card_objs, "url"
         )
 
-    def clean_up_watermark(self, watermark: Optional[str]) -> None:
+    def clean_up_watermark(self, watermark: Optional[str]) -> Optional[str]:
         """
         Scryfall (currently) doesn't provide what set watermarks
         are of, only "set" so we will add it ourselves using
         a resources file MTGJSON generated offline
         :param watermark: Current watermark
+        :return optional value
         """
-        if not watermark or watermark != "set":
-            return
+        if not watermark:
+            return None
 
-        with mtgjson4.RESOURCE_PATH.joinpath("set_code_watermarks.json").open(
-            "r", encoding="utf-8"
-        ) as f:
-            json_dict: Dict[str, List[Any]] = json.load(f)
+        if watermark == "set":
+            with mtgjson4.RESOURCE_PATH.joinpath("set_code_watermarks.json").open(
+                "r", encoding="utf-8"
+            ) as f:
+                json_dict: Dict[str, List[Any]] = json.load(f)
 
-            for card in json_dict[self.set_code]:
-                if self.get_attribute("name") in card["name"].split(" // "):
-                    self.set_attribute("watermark", str(card["watermark"]))
-                    return
+                for card in json_dict[self.set_code]:
+                    if self.get_attribute("name") in card["name"].split(" // "):
+                        return str(card["watermark"])
 
-        self.set_attribute("watermark", watermark)
+        return watermark
 
     def final_card_cleanup(self) -> None:
         self.set_attribute("uuid", self.get_uuid())

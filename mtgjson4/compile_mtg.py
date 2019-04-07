@@ -140,13 +140,13 @@ def build_output_file(
     # Add UUID to each entry
     add_uuid_to_tokens(output_file["tokens"], output_file)
 
-    # Add Variations to each entry, as well as mark alternatives
-    add_variations_and_alternative_fields(output_file["cards"], output_file)
-
     mtgjson_card.DUEL_DECK_LAND_MARKED.set(False)
     mtgjson_card.DUEL_DECK_SIDE_COMP.set("a")
     for card in output_file["cards"]:
         card.final_card_cleanup()
+
+    # Add Variations to each entry, as well as mark alternatives
+    add_variations_and_alternative_fields(output_file["cards"], output_file)
 
     return output_file
 
@@ -584,7 +584,7 @@ def build_mtgjson_card(
         # Watermark is only attributed on the front side, so we'll account for it
         mtgjson_card.set_attribute(
             "watermark",
-            sf_card["card_faces"][0].get("watermark"),
+            sf_card["card_faces"][0].get("watermark", None),
             mtgjson_card.clean_up_watermark,
         )
 
@@ -646,7 +646,9 @@ def build_mtgjson_card(
 
     if "watermark" not in mtgjson_card.keys():
         mtgjson_card.set_attribute(
-            "watermark", face_data.get("watermark"), mtgjson_card.clean_up_watermark
+            "watermark",
+            face_data.get("watermark", None),
+            mtgjson_card.clean_up_watermark,
         )
 
     if "flavor_text" in face_data:
