@@ -72,10 +72,7 @@ def get_cards(multiverse_id: str) -> List[GathererCard]:
         timeout=8.0,
     )
 
-    cache_result: bool = response.from_cache if hasattr(
-        response, "from_cache"
-    ) else False
-    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, cache_result))
+    util.print_download_status(response)
     session.close()
 
     return parse_cards(response.text)

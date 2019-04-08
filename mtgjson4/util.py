@@ -1,8 +1,9 @@
 """Utility functions."""
 import contextvars
 import json
+import logging
 import re
-from typing import Optional
+from typing import Any, Optional
 
 import requests
 import requests.adapters
@@ -11,6 +12,7 @@ import urllib3.util.retry
 
 import mtgjson4
 
+LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
 
@@ -115,3 +117,14 @@ def get_mtgjson_set_code(set_code: str) -> str:
                 return str(key)
 
     return set_code
+
+
+def print_download_status(response: Any) -> None:
+    """
+    When a file is downloaded, this will log that response
+    :param response: Response
+    """
+    cache_result: bool = response.from_cache if hasattr(
+        response, "from_cache"
+    ) else False
+    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, cache_result))

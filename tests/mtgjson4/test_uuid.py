@@ -2,7 +2,7 @@ from typing import Dict, Any
 
 import pytest
 
-from mtgjson4.compile_mtg import get_uuid, get_uuid_421
+from mtgjson4.mtgjson_card import MTGJSONCard
 
 
 @pytest.mark.parametrize(
@@ -37,8 +37,11 @@ def test_uuid_creation(
     :param mock_file_info:
     :return:
     """
-    uuid_new = get_uuid(mock_card)
-    uuid_old = get_uuid_421(mock_card, mock_file_info)
+    card = MTGJSONCard(mock_file_info["code"])
+    card.set_all(mock_card)
+
+    uuid_old = card.get_uuid_421()
+    uuid_new = card.get_uuid()
 
     assert uuid_old == "3d5e8a9a-d922-5abd-86bc-04ad363641dd"
     assert uuid_new == "4b560297-2f1e-5f65-b118-289c21bdf887"

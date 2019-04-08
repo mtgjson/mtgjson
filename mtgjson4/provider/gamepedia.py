@@ -4,8 +4,8 @@ import logging
 from typing import Any, List
 
 import bs4
-import requests
 
+from mtgjson4 import util
 from mtgjson4.provider import scryfall
 
 LOGGER = logging.getLogger(__name__)
@@ -32,16 +32,11 @@ def get_modern_sets() -> List[str]:
     to get the sets that are legal in modern
     :return: List of set codes legal in modern
     """
-    modern_page_content: Any = requests.get(MODERN_GAMEPEDIA_URL)
+    session = util.get_generic_session()
+    response: Any = session.get(url=MODERN_GAMEPEDIA_URL, timeout=5.0)
+    util.print_download_status(response)
 
-    cache_result: bool = modern_page_content.from_cache if hasattr(
-        modern_page_content, "from_cache"
-    ) else False
-    LOGGER.info(
-        "Downloaded: {} (Cache = {})".format(modern_page_content.url, cache_result)
-    )
-
-    soup = bs4.BeautifulSoup(modern_page_content.text, "html.parser")
+    soup = bs4.BeautifulSoup(response.text, "html.parser")
     soup = soup.find("div", class_="div-col columns column-width")
     soup = soup.find_all("a")
 

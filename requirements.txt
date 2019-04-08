@@ -1,6 +1,6 @@
 contextvars
 beautifulsoup4
 requests
-requests-cache
+requests_cache
 unidecode
 urllib3

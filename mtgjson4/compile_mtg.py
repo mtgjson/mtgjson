@@ -6,10 +6,11 @@ import logging
 import multiprocessing
 import pathlib
 import re
-from typing import Any, Dict, List, Set, Tuple, Union
-import uuid
+from typing import Any, Dict, List, Set, Tuple
 
 import mtgjson4
+from mtgjson4 import mtgjson_card
+from mtgjson4.mtgjson_card import MTGJSONCard
 from mtgjson4.provider import gatherer, scryfall, tcgplayer, wizards
 from mtgjson4.util import is_number
 
@@ -97,7 +98,7 @@ def build_output_file(
 
     LOGGER.info("Starting cards for {}".format(set_code))
 
-    card_holder = convert_to_mtgjson(sf_cards)
+    card_holder: List[MTGJSONCard] = convert_to_mtgjson(sf_cards)
     card_holder = add_start_flag_and_count_modified(
         set_code, set_config["search_uri"], card_holder
     )
@@ -112,9 +113,7 @@ def build_output_file(
     if "tcgplayer_id" in set_config.keys():
         output_file["tcgplayerGroupId"] = set_config["tcgplayer_id"]
         if not skip_tcgplayer:
-            card_holder = add_tcgplayer_fields(
-                output_file["tcgplayerGroupId"], card_holder
-            )
+            add_tcgplayer_fields(output_file["tcgplayerGroupId"], card_holder)
 
     # Set sizes; BASE SET SIZE WILL BE UPDATED BELOW
     output_file["totalSetSize"] = len(sf_cards)
@@ -137,82 +136,23 @@ def build_output_file(
     output_file["tokens"] = build_mtgjson_tokens(sf_tokens + added_tokens)
     LOGGER.info("Finished tokens for {}".format(set_code))
 
-    # Add UUID to each entry
-    add_uuid_to_cards(output_file["cards"], output_file["tokens"], output_file)
+    # Cleanups and UUIDs
+    mtgjson_card.DUEL_DECK_LAND_MARKED.set(False)
+    mtgjson_card.DUEL_DECK_SIDE_COMP.set("a")
+    for card in output_file["cards"]:
+        card.final_card_cleanup()
+    for token in output_file["tokens"]:
+        token.final_card_cleanup(is_card=False)
 
     # Add Variations to each entry, as well as mark alternatives
     add_variations_and_alternative_fields(output_file["cards"], output_file)
 
-    # Handle duel deck modifications
-    if set_code[:2] == "DD":
-        mark_duel_decks(output_file["cards"])
-
     return output_file
 
 
-def add_uuid_to_cards(
-    cards: List[Dict[str, Any]], tokens: List[Dict[str, Any]], file_info: Dict[str, Any]
-) -> None:
-    """
-    Each entry needs an ID. While we're really doing a hash,
-    we will format it like a UUID for those who choose to
-    consume in that format. Appends in-place to the arrays.
-    :param cards: Cards Array
-    :param tokens: Tokens Array
-    :param file_info: <<CONST>> object for the file
-    """
-    for card in cards:
-        card["uuidV421"] = get_uuid_421(card, file_info)
-        card["uuid"] = get_uuid(card)
-
-    for token in tokens:
-        # Name + set code + colors (if applicable) + power (if applicable) + toughness (if applicable) + Scryfall UUID
-        token_hash_code = (
-            token["name"]
-            + "".join(token.get("colors", ""))
-            + str(token.get("power", ""))
-            + str(token.get("toughness", ""))
-            + str(token.get("side", ""))
-            + file_info["code"]
-            + token["scryfallId"]
-        )
-        token["uuid"] = str(uuid.uuid5(uuid.NAMESPACE_DNS, token_hash_code))
-
-
-def get_uuid(card: Dict[str, Any]) -> str:
-    """
-    Get unique card face identifier.
-    :param card: card face to be uniquely identified
-    :return: unique card face identifier
-    """
-    #  As long as all cards have scryfallId (scryfallId, name) is enough to uniquely identify the card face
-    # PROVIDER_ID prevents collision with card IDs from any future card provider
-    id_source = scryfall.PROVIDER_ID + card["scryfallId"] + card["name"]
-    return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
-
-
-def get_uuid_421(card: Dict[str, Any], file_info: Dict[str, Any]) -> str:
-    """
-    Get card uuid used in MTGJSON release 4.2.1
-    :param card: card face
-    :param file_info: <<CONST>> object for the file
-    :return: unique card face identifier
-    """
-    # Use attributes that _shouldn't_ change over time
-    # Name + set code + colors (if applicable) + Scryfall UUID + printed text (if applicable)
-    id_source = (
-        card["name"]
-        + file_info["code"]
-        + "".join(card.get("colors", ""))
-        + card["scryfallId"]
-        + str(card.get("originalText", ""))
-    )
-    return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
-
-
 def transpose_tokens(
-    cards: List[Dict[str, Any]]
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    cards: List[MTGJSONCard]
+) -> Tuple[List[MTGJSONCard], List[Dict[str, Any]]]:
     """
     Sometimes, tokens slip through and need to be transplanted
     back into their appropriate array. This method will allow
@@ -225,59 +165,46 @@ def transpose_tokens(
 
     # Single faced tokens are easy
     tokens = [
-        scryfall.download(scryfall.SCRYFALL_API_CARD + card["scryfallId"])
+        scryfall.download(scryfall.SCRYFALL_API_CARD + card.get("scryfallId"))
         for card in cards
-        if card["layout"] == "token"
+        if card.get("layout") == "token"
     ]
 
     # Do not duplicate double faced tokens
     done_tokens: Set[str] = set()
     for card in cards:
         if (
-            card["layout"] == "double_faced_token"
-            and card["scryfallId"] not in done_tokens
+            card.get("layout") == "double_faced_token"
+            and card.get("scryfallId") not in done_tokens
         ):
             tokens.append(
-                scryfall.download(scryfall.SCRYFALL_API_CARD + card["scryfallId"])
+                scryfall.download(scryfall.SCRYFALL_API_CARD + card.get("scryfallId"))
             )
-            done_tokens.add(card["scryfallId"])
+            done_tokens.add(card.get("scryfallId"))
 
     # Remaining cards, without any kind of token
     cards = [
-        card for card in cards if card["layout"] not in ["token", "double_faced_token"]
+        card
+        for card in cards
+        if card.get("layout") not in ["token", "double_faced_token"]
     ]
 
     return cards, tokens
 
 
-def add_tcgplayer_fields(
-    group_id: int, cards: List[Dict[str, Any]]
-) -> List[Dict[str, Any]]:
+def add_tcgplayer_fields(group_id: int, cards: List[MTGJSONCard]) -> None:
     """
     For each card in the set, we will find its tcgplayer ID
     and add it to the card if found
     :param group_id: group to search for the cards
     :param cards: Cards list to add information to
-    :return: Cards list with new information added
     """
     tcg_card_objs = tcgplayer.get_group_id_cards(group_id)
-
     for card in cards:
-        # No need to fetch from TCGPlayer if already found in Scryfall
-        if not card["tcgplayerProductId"]:
-            card["tcgplayerProductId"] = tcgplayer.get_card_property(
-                card["name"], tcg_card_objs, "productId"
-            )
-        prod_url = tcgplayer.get_card_property(card["name"], tcg_card_objs, "url")
-
-        if card["tcgplayerProductId"] and prod_url:
-            card["tcgplayerPurchaseUrl"] = tcgplayer.log_redirection_url(
-                card["tcgplayerProductId"], prod_url
-            )
-    return cards
+        card.add_tcgplayer_fields(tcg_card_objs)
 
 
-def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def uniquify_duplicates_in_set(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
     """
     For cards with multiple printings in a set, we need to identify
     them against each other.
@@ -292,26 +219,27 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
         for card in cards:
             # Only if a card is duplicated in a set will it get the (a), (b) appended
             total_same_name_cards = sum(
-                1 for item in cards if item["name"] == card["name"]
+                1 for item in cards if item.get("name") == card.get("name")
             )
 
             # Ignore basic lands
-            if (card["name"] not in mtgjson4.BASIC_LANDS) and (
-                card["name"] in duplicate_cards or total_same_name_cards > 1
+            if (card.get("name") not in mtgjson4.BASIC_LANDS) and (
+                card.get("name") in duplicate_cards or total_same_name_cards > 1
             ):
-                if card["name"] in duplicate_cards:
-                    duplicate_cards[card["name"]] += 1
+                if card.get("name") in duplicate_cards:
+                    duplicate_cards[card.get("name")] += 1
                 else:
-                    duplicate_cards[card["name"]] = ord("a")
+                    duplicate_cards[card.get("name")] = ord("a")
 
                 # Update the name of the card, and remove its names field (as it's not correct here)
                 new_card = copy.deepcopy(card)
                 # Only add (b), (c), ... so we have one unique without an altered name
-                if chr(duplicate_cards[new_card["name"]]) != "a":
-                    new_card["name"] += " ({0})".format(
-                        chr(duplicate_cards[new_card["name"]])
+                if chr(duplicate_cards[new_card.get("name")]) != "a":
+                    new_card.append(
+                        "name",
+                        " ({0})".format(chr(duplicate_cards[new_card.get("name")])),
                     )
-                new_card.pop("names", None)
+                new_card.remove("names")
                 unique_list.append(new_card)
             else:
                 # Not a duplicate, just put the normal card into the list
@@ -322,7 +250,7 @@ def uniquify_duplicates_in_set(cards: List[Dict[str, Any]]) -> List[Dict[str, An
 
 
 def add_variations_and_alternative_fields(
-    cards: List[Dict[str, Any]], file_info: Any
+    cards: List[MTGJSONCard], file_info: Any
 ) -> None:
     """
     For non-silver bordered sets, we will create a "variations"
@@ -333,22 +261,23 @@ def add_variations_and_alternative_fields(
     :return: How many alternative printings were marked
     """
     # Non-silver border sets use "variations"
-    if cards and cards[0].get("borderColor", None) != "silver":
+    if cards and cards[0].get("borderColor") != "silver":
         for card in cards:
             repeats_in_set = [
                 item
                 for item in cards
-                if item["name"] == card["name"] and item["uuid"] != card["uuid"]
+                if item.get("name") == card.get("name")
+                and item.get("uuid") != card.get("uuid")
             ]
 
             # Add variations field
-            variations = [r["uuid"] for r in repeats_in_set]
+            variations = [r.get("uuid") for r in repeats_in_set]
             if variations:
-                card["variations"] = variations
+                card.set("variations", variations)
 
             # Add alternative tag
             # Ignore singleton printings in set, as well as basics
-            if not repeats_in_set or card["name"] in mtgjson4.BASIC_LANDS:
+            if not repeats_in_set or card.get("name") in mtgjson4.BASIC_LANDS:
                 continue
 
             # Some hardcoded checking due to inconsistencies upstream
@@ -356,26 +285,26 @@ def add_variations_and_alternative_fields(
                 # Check for duplicates, mark the foils
                 if (
                     len(repeats_in_set) >= 1
-                    and card["hasFoil"]
-                    and not card["hasNonFoil"]
+                    and card.get("hasFoil")
+                    and not card.get("hasNonFoil")
                 ):
-                    card["isAlternative"] = True
+                    card.set("isAlternative", True)
             elif file_info["code"].upper() in ["CN2", "BBD"]:
                 # Check for set number > set size
                 if (
-                    int(card["number"].replace(chr(9733), ""))
+                    int(card.get("number").replace(chr(9733), ""))
                     > file_info["baseSetSize"]
                 ):
-                    card["isAlternative"] = True
+                    card.set("isAlternative", True)
             elif file_info["code"].upper() == "PLS":
                 # Check for a star in the number
-                if chr(9733) in card["number"]:
-                    card["isAlternative"] = True
+                if chr(9733) in card.get("number"):
+                    card.set("isAlternative", True)
 
 
 def add_start_flag_and_count_modified(
-    set_code: str, search_url: str, mtgjson_cards: List[Dict[str, Any]]
-) -> List[Dict[str, Any]]:
+    set_code: str, search_url: str, mtgjson_cards: List[MTGJSONCard]
+) -> List[MTGJSONCard]:
     """
     Since SF doesn't provide individual card notices, we can post-process add the starter flag
     This method will also tell us how many starter cards are in the set
@@ -395,10 +324,12 @@ def add_start_flag_and_count_modified(
         # Each card has a unique UUID, even if they're the same card printed twice
         try:
             card = next(
-                item for item in mtgjson_cards if item["scryfallId"] == sf_card["id"]
+                item
+                for item in mtgjson_cards
+                if item.get("scryfallId") == sf_card["id"]
             )
             if card:
-                card["isStarter"] = True
+                card.set("isStarter", True)
         except StopIteration:
             LOGGER.warning(
                 "Passed on {0} with SF_ID {1}".format(
@@ -411,26 +342,27 @@ def add_start_flag_and_count_modified(
 
 def build_mtgjson_tokens(
     sf_tokens: List[Dict[str, Any]], sf_card_face: int = 0
-) -> List[Dict[str, Any]]:
+) -> List[MTGJSONCard]:
     """
     Convert Scryfall tokens to MTGJSON tokens
     :param sf_tokens: All tokens in a set
     :param sf_card_face: Faces of the token index
     :return: List of MTGJSON tokens
     """
-    token_cards: List[Dict[str, Any]] = []
+    token_cards: List[MTGJSONCard] = []
 
     for sf_token in sf_tokens:
-        mtgjson_card = {}
+        token_card = MTGJSONCard(sf_token["set"])
+
         if "card_faces" in sf_token:
-            mtgjson_card["names"] = sf_token["name"].split(" // ")  # List[str]
+            token_card.set("names", sf_token["name"].split(" // "))
             face_data = sf_token["card_faces"][sf_card_face]
 
             # Prevent duplicate UUIDs for split card halves
             # Remove the last character and replace with the id of the card face
-            mtgjson_card["scryfallId"] = sf_token["id"]
-            mtgjson_card["scryfallOracleId"] = sf_token["oracle_id"]
-            mtgjson_card["scryfallIllustrationId"] = sf_token.get("illustration_id")
+            token_card.set("scryfallId", sf_token["id"])
+            token_card.set("scryfallOracleId", sf_token["oracle_id"])
+            token_card.set("scryfallIllustrationId", sf_token.get("illustration_id"))
 
             # Recursively parse the other cards within this card too
             # Only call recursive if it is the first time we see this card object
@@ -451,53 +383,57 @@ def build_mtgjson_tokens(
                 )
                 continue
 
-            token_card = {
-                "name": face_data.get("name"),
-                "type": face_data.get("type_line"),
-                "text": face_data.get("oracle_text"),
-                "power": face_data.get("power"),
-                "colors": face_data.get("colors"),
-                "colorIdentity": sf_token.get("color_identity"),
-                "toughness": face_data.get("toughness"),
-                "loyalty": face_data.get("loyalty"),
-                "watermark": sf_token.get("watermark"),
-                "scryfallId": sf_token["id"],
-                "scryfallOracleId": sf_token.get("oracle_id"),
-                "scryfallIllustrationId": sf_token.get("illustration_id"),
-                "layout": "double_faced_token",
-                "side": chr(97 + sf_card_face),
-                "borderColor": face_data.get("border_color"),
-                "artist": face_data.get("artist"),
-                "isOnlineOnly": sf_token.get("digital"),
-                "number": sf_token.get("collector_number"),
-            }
+            token_card.set_all(
+                {
+                    "name": face_data.get("name"),
+                    "type": face_data.get("type_line"),
+                    "text": face_data.get("oracle_text"),
+                    "power": face_data.get("power"),
+                    "colors": face_data.get("colors"),
+                    "colorIdentity": sf_token.get("color_identity"),
+                    "toughness": face_data.get("toughness"),
+                    "loyalty": face_data.get("loyalty"),
+                    "watermark": sf_token.get("watermark"),
+                    "scryfallId": sf_token["id"],
+                    "scryfallOracleId": sf_token.get("oracle_id"),
+                    "scryfallIllustrationId": sf_token.get("illustration_id"),
+                    "layout": "double_faced_token",
+                    "side": chr(97 + sf_card_face),
+                    "borderColor": face_data.get("border_color"),
+                    "artist": face_data.get("artist"),
+                    "isOnlineOnly": sf_token.get("digital"),
+                    "number": sf_token.get("collector_number"),
+                }
+            )
         else:
-            token_card = {
-                "name": sf_token.get("name"),
-                "type": sf_token.get("type_line"),
-                "text": sf_token.get("oracle_text"),
-                "power": sf_token.get("power"),
-                "colors": sf_token.get("colors"),
-                "colorIdentity": sf_token.get("color_identity"),
-                "toughness": sf_token.get("toughness"),
-                "loyalty": sf_token.get("loyalty"),
-                "layout": "normal",
-                "watermark": sf_token.get("watermark"),
-                "scryfallId": sf_token["id"],
-                "scryfallOracleId": sf_token.get("oracle_id"),
-                "scryfallIllustrationId": sf_token.get("illustration_id"),
-                "borderColor": sf_token.get("border_color"),
-                "artist": sf_token.get("artist"),
-                "isOnlineOnly": sf_token.get("digital"),
-                "number": sf_token.get("collector_number"),
-            }
+            token_card.set_all(
+                {
+                    "name": sf_token.get("name"),
+                    "type": sf_token.get("type_line"),
+                    "text": sf_token.get("oracle_text"),
+                    "power": sf_token.get("power"),
+                    "colors": sf_token.get("colors"),
+                    "colorIdentity": sf_token.get("color_identity"),
+                    "toughness": sf_token.get("toughness"),
+                    "loyalty": sf_token.get("loyalty"),
+                    "layout": "normal",
+                    "watermark": sf_token.get("watermark"),
+                    "scryfallId": sf_token["id"],
+                    "scryfallOracleId": sf_token.get("oracle_id"),
+                    "scryfallIllustrationId": sf_token.get("illustration_id"),
+                    "borderColor": sf_token.get("border_color"),
+                    "artist": sf_token.get("artist"),
+                    "isOnlineOnly": sf_token.get("digital"),
+                    "number": sf_token.get("collector_number"),
+                }
+            )
 
         reverse_related: List[str] = []
         if "all_parts" in sf_token:
             for a_part in sf_token["all_parts"]:
                 if a_part.get("name") != token_card.get("name"):
                     reverse_related.append(a_part.get("name"))
-        token_card["reverseRelated"] = reverse_related
+        token_card.set("reverseRelated", reverse_related)
 
         LOGGER.info(
             "Parsed {0} from {1}".format(token_card.get("name"), sf_token.get("set"))
@@ -507,7 +443,7 @@ def build_mtgjson_tokens(
     return token_cards
 
 
-def convert_to_mtgjson(sf_cards: List[Dict[str, Any]]) -> List[Any]:
+def convert_to_mtgjson(sf_cards: List[Dict[str, Any]]) -> List[MTGJSONCard]:
     """
     Parallel method to build each card in the set
     :param sf_cards: cards to build
@@ -519,7 +455,7 @@ def convert_to_mtgjson(sf_cards: List[Dict[str, Any]]) -> List[Any]:
     with multiprocessing.Pool(processes=8) as pool:
         results: List[Any] = pool.map(build_mtgjson_card, sf_cards)
 
-        all_cards: List[Dict[str, Any]] = []
+        all_cards: List[MTGJSONCard] = []
         for cards in results:
             for card in cards:
                 all_cards.append(card)
@@ -570,68 +506,17 @@ def get_cmc(mana_cost: str) -> float:
     return total
 
 
-def mark_duel_decks(cards: List[Dict[str, Any]]) -> None:
-    """
-    Duel decks are usually put together where the cards
-    in the first deck are at the beginning, followed
-    by basics, then start the second deck. We exploit
-    this property to mark them as decks "a" and "b"
-    :param cards: Cards in duel deck, sorted by number
-    """
-    basic_land_marked = False
-    side_market = "a"
-
-    for card in cards:
-        if card["name"] in mtgjson4.BASIC_LANDS:
-            basic_land_marked = True
-        elif basic_land_marked:
-            side_market = chr(ord(side_market) + 1)
-            basic_land_marked = False
-
-        card["duelDeck"] = side_market
-
-
-def clean_up_watermark(
-    set_code: str, card_name: str, watermark: str
-) -> Union[str, None]:
-    """
-    Scryfall (currently) doesn't provide what set watermarks
-    are of, only "set" so we will add it ourselves using
-    a resources file MTGJSON generated offline
-    :param set_code: Set to search
-    :param card_name: Card name to find
-    :param watermark: Current watermark
-    :return: Appropriate watermark (or None)
-    """
-    if not watermark:
-        return None
-
-    if watermark != "set":
-        return watermark
-
-    with mtgjson4.RESOURCE_PATH.joinpath("set_code_watermarks.json").open(
-        "r", encoding="utf-8"
-    ) as f:
-        json_dict: Dict[str, List[Any]] = json.load(f)
-
-        for card in json_dict[set_code]:
-            if card_name in card["name"].split(" // "):
-                return str(card["watermark"])
-
-    return watermark
-
-
 def build_mtgjson_card(
     sf_card: Dict[str, Any], sf_card_face: int = 0
-) -> List[Dict[str, Any]]:
+) -> List[MTGJSONCard]:
     """
     Build a mtgjson card (and all sub pieces of that card)
     :param sf_card: Card to build
     :param sf_card_face: Which part of the card (defaults to 0)
     :return: List of card(s) build (usually 1)
     """
-    mtgjson_cards: List[Dict[str, Any]] = []
-    mtgjson_card: Dict[str, Any] = {}
+    mtgjson_cards: List[MTGJSONCard] = []
+    single_card = MTGJSONCard(sf_card["set"])
 
     # Let us know what card we're trying to parse -- good for debugging :)
     LOGGER.info("Parsing {0} from {1}".format(sf_card.get("name"), sf_card.get("set")))
@@ -640,33 +525,39 @@ def build_mtgjson_card(
     face_data: Dict[str, Any] = sf_card
 
     if "card_faces" in sf_card:
-        mtgjson_card["names"] = sf_card["name"].split(" // ")  # List[str]
+        single_card.set_all(
+            {
+                "names": sf_card["name"].split(" // "),
+                "scryfallId": sf_card["id"],
+                "scryfallOracleId": sf_card["oracle_id"],
+                "scryfallIllustrationId": sf_card.get("illustration_id"),
+            }
+        )
         face_data = sf_card["card_faces"][sf_card_face]
-
-        mtgjson_card["scryfallId"] = sf_card["id"]
-        mtgjson_card["scryfallOracleId"] = sf_card["oracle_id"]
-        mtgjson_card["scryfallIllustrationId"] = sf_card.get("illustration_id")
 
         # Split cards and rotational cards have this field, flip cards do not.
         # Remove rotational cards via the additional check
         if "mana_cost" in sf_card and "//" in sf_card["mana_cost"]:
-            mtgjson_card["colors"] = get_card_colors(
-                sf_card["mana_cost"].split(" // ")[sf_card_face]
+            single_card.set(
+                "colors",
+                get_card_colors(sf_card["mana_cost"].split(" // ")[sf_card_face]),
             )
-            mtgjson_card["faceConvertedManaCost"] = get_cmc(
-                sf_card["mana_cost"].split("//")[sf_card_face].strip()
+            single_card.set(
+                "faceConvertedManaCost",
+                get_cmc(sf_card["mana_cost"].split("//")[sf_card_face].strip()),
             )
         elif sf_card["layout"] in ["split", "flip", "transform"]:
             # Handle non-normal cards, as they'll a face split
-            mtgjson_card["faceConvertedManaCost"] = get_cmc(
-                face_data.get("mana_cost", "0").strip()
+            single_card.set(
+                "faceConvertedManaCost",
+                get_cmc(face_data.get("mana_cost", "0").strip()),
             )
 
         # Watermark is only attributed on the front side, so we'll account for it
-        mtgjson_card["watermark"] = clean_up_watermark(
-            sf_card["set"].upper(),
-            face_data["name"],
-            sf_card["card_faces"][0].get("watermark", ""),
+        single_card.set(
+            "watermark",
+            sf_card["card_faces"][0].get("watermark", None),
+            single_card.clean_up_watermark,
         )
 
         # Recursively parse the other cards within this card too
@@ -679,173 +570,175 @@ def build_mtgjson_card(
                     )
                 )
                 mtgjson_cards += build_mtgjson_card(sf_card, i)
+    else:
+        single_card.set_all(
+            {
+                "scryfallId": sf_card.get("id"),
+                "scryfallOracleId": sf_card["oracle_id"],
+                "scryfallIllustrationId": sf_card.get("illustration_id"),
+            }
+        )
 
     # Characteristics that can are not shared to both sides of flip-type cards
     if face_data.get("mana_cost"):
-        mtgjson_card["manaCost"] = face_data.get("mana_cost")
+        single_card.set("manaCost", face_data.get("mana_cost"))
 
-    if "colors" not in mtgjson_card:
+    if "colors" not in single_card.keys():
         if "colors" in face_data:
-            mtgjson_card["colors"] = face_data.get("colors")
+            single_card.set("colors", face_data.get("colors"))
         else:
-            mtgjson_card["colors"] = sf_card.get("colors")
+            single_card.set("colors", sf_card.get("colors"))
 
-    mtgjson_card["name"] = face_data.get("name")
-    mtgjson_card["type"] = face_data.get("type_line")
-    mtgjson_card["text"] = face_data.get("oracle_text")
+    single_card.set_all(
+        {
+            "name": face_data.get("name"),
+            "type": face_data.get("type_line"),
+            "text": face_data.get("oracle_text"),
+            "power": face_data.get("power"),
+            "toughness": face_data.get("toughness"),
+            "loyalty": face_data.get("loyalty"),
+            "artist": sf_card.get("artist"),
+            "borderColor": sf_card.get("border_color"),
+            "colorIdentity": sf_card.get("color_identity"),
+            "frameVersion": sf_card.get("frame"),
+            "hasFoil": sf_card.get("foil"),
+            "hasNonFoil": sf_card.get("nonfoil"),
+            "isOnlineOnly": sf_card.get("digital"),
+            "isOversized": sf_card.get("oversized"),
+            "layout": sf_card.get("layout"),
+            "number": sf_card.get("collector_number"),
+            "isReserved": sf_card.get("reserved"),
+            "frameEffect": sf_card.get("frame_effect"),
+            "tcgplayerProductId": sf_card.get("tcgplayer_id"),
+            "life": sf_card.get("life_modifier"),
+            "hand": sf_card.get("hand_modifier"),
+            "convertedManaCost": sf_card.get("cmc"),
+        }
+    )
 
-    mtgjson_card["power"] = face_data.get("power")
-    mtgjson_card["toughness"] = face_data.get("toughness")
-    mtgjson_card["loyalty"] = face_data.get("loyalty")
-
-    if "watermark" not in mtgjson_card.keys():
-        mtgjson_card["watermark"] = clean_up_watermark(
-            sf_card["set"].upper(), mtgjson_card["name"], face_data.get("watermark", "")
+    if "watermark" not in single_card.keys():
+        single_card.set(
+            "watermark",
+            face_data.get("watermark", None),
+            single_card.clean_up_watermark,
         )
 
     if "flavor_text" in face_data:
-        mtgjson_card["flavorText"] = face_data.get("flavor_text")
+        single_card.set("flavorText", face_data.get("flavor_text"))
     else:
-        mtgjson_card["flavorText"] = sf_card.get("flavor_text")
+        single_card.set("flavorText", sf_card.get("flavor_text"))
 
     if "color_indicator" in face_data:
-        mtgjson_card["colorIndicator"] = face_data.get("color_indicator")  # List[str]
+        single_card.set("colorIndicator", face_data.get("color_indicator"))
     elif "color_indicator" in sf_card:
-        mtgjson_card["colorIndicator"] = sf_card.get("color_indicator")  # List[str]
+        single_card.set("colorIndicator", sf_card.get("color_indicator"))
 
     try:
-        mtgjson_card["multiverseId"] = sf_card["multiverse_ids"][sf_card_face]  # int
+        single_card.set("multiverseId", sf_card["multiverse_ids"][sf_card_face])
     except IndexError:
         try:
-            mtgjson_card["multiverseId"] = sf_card["multiverse_ids"][0]  # int
+            single_card.set("multiverseId", sf_card["multiverse_ids"][0])
         except IndexError:
-            mtgjson_card["multiverseId"] = None  # int
-
-    # Characteristics that are shared to all sides of flip-type cards, that we don't have to modify
-    mtgjson_card["artist"] = sf_card.get("artist")  # str
-    mtgjson_card["borderColor"] = sf_card.get("border_color")
-    mtgjson_card["colorIdentity"] = sf_card.get("color_identity")  # List[str]
-
-    if "convertedManaCost" not in mtgjson_card:
-        mtgjson_card["convertedManaCost"] = sf_card.get("cmc")  # float
-
-    mtgjson_card["frameVersion"] = sf_card.get("frame")
-    mtgjson_card["hasFoil"] = sf_card.get("foil")
-    mtgjson_card["hasNonFoil"] = sf_card.get("nonfoil")
-    mtgjson_card["isOnlineOnly"] = sf_card.get("digital")
-    mtgjson_card["isOversized"] = sf_card.get("oversized")
-    mtgjson_card["layout"] = sf_card.get("layout")
-    mtgjson_card["number"] = sf_card.get("collector_number")
-    mtgjson_card["isReserved"] = sf_card.get("reserved")
-    mtgjson_card["frameEffect"] = sf_card.get("frame_effect")
-    mtgjson_card["tcgplayerProductId"] = sf_card.get("tcgplayer_id")
-
-    # Vanguard fields
-    mtgjson_card["life"] = sf_card.get("life_modifier")
-    mtgjson_card["hand"] = sf_card.get("hand_modifier")
+            single_card.set("multiverseId", None)
 
     # Add a "side" entry for split cards
     # Will only work for two faced cards (not meld, as they don't need this)
-    if "names" in mtgjson_card and len(mtgjson_card["names"]) == 2:
+    if "names" in single_card.keys() and single_card.names_count(2):
         # chr(97) = 'a', chr(98) = 'b', ...
-        mtgjson_card["side"] = chr(
-            mtgjson_card["names"].index(mtgjson_card["name"]) + 97
+        single_card.set(
+            "side", chr(single_card.get("names").index(single_card.get("name")) + 97)
         )
 
-    if "scryfallId" not in mtgjson_card:
-        mtgjson_card["scryfallId"] = sf_card.get("id")
-
-    if "scryfallOracleId" not in mtgjson_card:
-        mtgjson_card["scryfallOracleId"] = sf_card["oracle_id"]
-
-    if "scryfallIllustrationId" not in mtgjson_card:
-        mtgjson_card["scryfallIllustrationId"] = sf_card.get("illustration_id")
-
     # Characteristics that we have to format ourselves from provided data
-    mtgjson_card["isTimeshifted"] = (sf_card.get("frame") == "future") or (
-        sf_card.get("set") == "tsb"
+    single_card.set(
+        "isTimeshifted",
+        (sf_card.get("frame") == "future") or (sf_card.get("set") == "tsb"),
     )
 
-    mtgjson_card["rarity"] = sf_card.get("rarity")
+    single_card.set("rarity", sf_card.get("rarity"))
 
     # Characteristics that we need custom functions to parse
     print_search_url: str = sf_card["prints_search_uri"].replace("%22", "")
-    mtgjson_card["legalities"] = scryfall.parse_legalities(
-        sf_card["legalities"]
-    )  # Dict[str, str]
-    mtgjson_card["rulings"] = sorted(
-        scryfall.parse_rulings(sf_card["rulings_uri"]),
-        key=lambda ruling: ruling["date"],
+    single_card.set("legalities", scryfall.parse_legalities(sf_card["legalities"]))
+    single_card.set(
+        "rulings",
+        sorted(
+            scryfall.parse_rulings(sf_card["rulings_uri"]),
+            key=lambda ruling: ruling["date"],
+        ),
     )
-    mtgjson_card["printings"] = sorted(
-        scryfall.parse_printings(print_search_url)
-    )  # List[str]
+    single_card.set("printings", sorted(scryfall.parse_printings(print_search_url)))
 
     card_types: Tuple[List[str], List[str], List[str]] = scryfall.parse_card_types(
-        mtgjson_card["type"]
+        single_card.get("type")
     )
-    mtgjson_card["supertypes"] = card_types[0]  # List[str]
-    mtgjson_card["types"] = card_types[1]  # List[str]
-    mtgjson_card["subtypes"] = card_types[2]  # List[str]
+    single_card.set("supertypes", card_types[0])
+    single_card.set("types", card_types[1])
+    single_card.set("subtypes", card_types[2])
 
     # Handle meld and all parts tokens issues
     # Will re-address naming if a split card already
     if "all_parts" in sf_card:
         meld_holder = []
-        mtgjson_card["names"] = []
+        single_card.set("names", [])
         for a_part in sf_card["all_parts"]:
             if a_part["component"] != "token":
                 if "//" in a_part.get("name"):
-                    mtgjson_card["names"] = a_part.get("name").split(" // ")
+                    single_card.set("names", a_part.get("name").split(" // "))
                     break
 
                 # This is a meld only-fix, so we ignore tokens/combo pieces
                 if "meld" in a_part["component"]:
                     meld_holder.append(a_part["component"])
 
-                    mtgjson_card["names"].append(a_part.get("name"))
+                    single_card.append("names", a_part.get("name"))
 
         # If the only entry is the original card, empty the names array
-        if (
-            len(mtgjson_card["names"]) == 1
-            and mtgjson_card["name"] in mtgjson_card["names"]
+        if single_card.names_count(1) and single_card.get("name") in single_card.get(
+            "names"
         ):
-            del mtgjson_card["names"]
+            single_card.remove("names")
 
         # Meld cards should be CardA, Meld, CardB. This fixes that via swap
         # meld_holder
 
         if meld_holder and meld_holder[1] != "meld_result":
-            mtgjson_card["names"][1], mtgjson_card["names"][2] = (
-                mtgjson_card["names"][2],
-                mtgjson_card["names"][1],
+            single_card.get("names")[1], single_card.get("names")[2] = (
+                single_card.get("names")[2],
+                single_card.get("names")[1],
             )
 
     # Since we built meld cards later, we will add the "side" attribute now
-    if len(mtgjson_card.get("names", [])) == 3:  # MELD
-        if mtgjson_card["name"] == mtgjson_card["names"][0]:
-            mtgjson_card["side"] = "a"
-        elif mtgjson_card["name"] == mtgjson_card["names"][2]:
-            mtgjson_card["side"] = "b"
+    if single_card.names_count(3):  # MELD
+        if single_card.get("name") == single_card.get("names")[0]:
+            single_card.set("side", "a")
+        elif single_card.get("name") == single_card.get("names")[2]:
+            single_card.set("side", "b")
         else:
-            mtgjson_card["side"] = "c"
+            single_card.set("side", "c")
 
     # Characteristics that we cannot get from Scryfall
     # Characteristics we have to do further API calls for
-    mtgjson_card["foreignData"] = scryfall.parse_foreign(
-        print_search_url, mtgjson_card["name"], mtgjson_card["number"], sf_card["set"]
+    single_card.set(
+        "foreignData",
+        scryfall.parse_foreign(
+            print_search_url,
+            single_card.get("name"),
+            single_card.get("number"),
+            sf_card["set"],
+        ),
     )
 
-    if mtgjson_card["multiverseId"] is not None:
-        gatherer_cards = gatherer.get_cards(mtgjson_card["multiverseId"])
+    if single_card.get("multiverseId") is not None:
+        gatherer_cards = gatherer.get_cards(single_card.get("multiverseId"))
         try:
             gatherer_card = gatherer_cards[sf_card_face]
-            mtgjson_card["originalType"] = gatherer_card.original_types
-            mtgjson_card["originalText"] = gatherer_card.original_text
+            single_card.set("originalType", gatherer_card.original_types)
+            single_card.set("originalText", gatherer_card.original_text)
         except IndexError:
             LOGGER.warning(
-                "Unable to parse originals for {}".format(mtgjson_card["name"])
+                "Unable to parse originals for {}".format(single_card.get("name"))
             )
 
-    mtgjson_cards.append(mtgjson_card)
+    mtgjson_cards.append(single_card)
     return mtgjson_cards
