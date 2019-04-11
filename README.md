@@ -59,7 +59,7 @@ ___
 | `-s SET [SET ...]`          | Build set code arguments, provided they exist.                                                                                                  |
 | `--skip-sets SET [SET ...]` | Prevents set code arguments from being built, even if passed in via `-a` or `-s`.                                                               |
 | `--skip-tcgplayer`          | If you don't have a TCGPlayer API key, you can disable building of TCGPlayer components.                                                        |
-| `--skip-prune`              | If you'd rather keep null/false fields and not trim the output.                                                                                 |
+|
 
 > &nbsp;
 > **Newcomer Note**: Omitting either the `-a` and `-s` flag will yield empty outputted data.
@@ -73,7 +73,7 @@ ___
 Run the program, with any flag(s) you'd like, via:
 
 ```sh
-python3 -m mtgjson4 [-h] [-acx] [-s [SET [SET ...]]] [--skip-tcgplayer] [--skip-prune] [--skip-sets [SET [SET ...]]]
+python3 -m mtgjson4 [-h] [-acx] [-s [SET [SET ...]]] [--skip-tcgplayer] [--skip-sets [SET [SET ...]]]
 ```
 
 Example:
