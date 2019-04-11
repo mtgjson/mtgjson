@@ -62,7 +62,7 @@ def main() -> None:
     parser.add_argument("-x", action="store_true")
     parser.add_argument("--skip-tcgplayer", action="store_true")
     parser.add_argument("--skip-sets", metavar="SET", nargs="*", type=str)
-    parser.add_argument("--no-cache", action="store_true")
+    parser.add_argument("--skip-cache", action="store_true")
 
     # Ensure there are args
     if len(sys.argv) < 2:
@@ -78,7 +78,7 @@ def main() -> None:
             )
         )
 
-    mtgjson4.USE_CACHE.set(not args.no_cache)
+    mtgjson4.USE_CACHE.set(not args.skip_cache)
 
     # Determine set(s) to build
     args_s = args.s if args.s else []
