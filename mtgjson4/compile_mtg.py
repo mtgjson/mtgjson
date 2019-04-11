@@ -167,7 +167,7 @@ def transpose_tokens(
     tokens = [
         scryfall.download(scryfall.SCRYFALL_API_CARD + card.get("scryfallId"))
         for card in cards
-        if card.get("layout") == "token"
+        if card.get("layout") in ["token", "emblem"]
     ]
 
     # Do not duplicate double faced tokens
