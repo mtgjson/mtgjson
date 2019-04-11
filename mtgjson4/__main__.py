@@ -114,7 +114,7 @@ def main() -> None:
                         {key: card.get_tcgplayer_url()}
                     )
 
-            mtgjson4.outputter.write_to_file(set_code.upper(), compiled)
+            mtgjson4.outputter.write_to_file(set_code.upper(), compiled, set_file=True)
 
     # Compile the additional outputs
     if args.c:

@@ -46,7 +46,7 @@ def write_deck_to_file(file_name: str, file_contents: Any) -> None:
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
 
 
-def write_to_file(set_name: str, file_contents: Any) -> None:
+def write_to_file(set_name: str, file_contents: Any, set_file: bool = False) -> None:
     """
     Write the compiled data to a file with the set's code
     Will ensure the output directory exists first
@@ -55,8 +55,10 @@ def write_to_file(set_name: str, file_contents: Any) -> None:
     with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
         util.win_os_fix(set_name) + ".json"
     ).open("w", encoding="utf-8") as f:
-        file_contents["tokens"] = mtgjson_to_dict(file_contents["tokens"])
-        file_contents["cards"] = mtgjson_to_dict(file_contents["cards"])
+        # Only do this for set files, not everything
+        if set_file:
+            file_contents["tokens"] = mtgjson_to_dict(file_contents.get("tokens", []))
+            file_contents["cards"] = mtgjson_to_dict(file_contents.get("cards", []))
         json.dump(file_contents, f, indent=4, sort_keys=True, ensure_ascii=False)
 
 
