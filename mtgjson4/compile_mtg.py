@@ -563,6 +563,8 @@ def build_mtgjson_card(
         if sf_card["card_faces"][-1]["oracle_text"].startswith("Aftermath"):
             single_card.set("layout", "aftermath")
 
+        single_card.set("artist", sf_card["card_faces"][sf_card_face]["artist"])
+
         # Recursively parse the other cards within this card too
         # Only call recursive if it is the first time we see this card object
         if sf_card_face == 0:
@@ -600,7 +602,6 @@ def build_mtgjson_card(
             "power": face_data.get("power"),
             "toughness": face_data.get("toughness"),
             "loyalty": face_data.get("loyalty"),
-            "artist": sf_card.get("artist"),  # TODO
             "borderColor": sf_card.get("border_color"),
             "colorIdentity": sf_card.get("color_identity"),
             "frameVersion": sf_card.get("frame"),
@@ -617,6 +618,9 @@ def build_mtgjson_card(
             "convertedManaCost": sf_card.get("cmc"),
         }
     )
+
+    if "artist" not in single_card.keys():
+        single_card.set("artist", sf_card.get("artist"))
 
     if "layout" not in single_card.keys():
         single_card.set("layout", sf_card.get("layout"))
