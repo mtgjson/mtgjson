@@ -546,7 +546,7 @@ def build_mtgjson_card(
                 "faceConvertedManaCost",
                 get_cmc(sf_card["mana_cost"].split("//")[sf_card_face].strip()),
             )
-        elif sf_card["layout"] in ["split", "flip", "transform"]:
+        elif sf_card["layout"] in ["split", "flip", "transform", "aftermath"]:
             # Handle non-normal cards, as they'll a face split
             single_card.set(
                 "faceConvertedManaCost",
@@ -559,6 +559,9 @@ def build_mtgjson_card(
             sf_card["card_faces"][0].get("watermark", None),
             single_card.clean_up_watermark,
         )
+
+        if sf_card["card_faces"][-1]["oracle_text"].startswith("Aftermath"):
+            single_card.set("layout", "aftermath")
 
         # Recursively parse the other cards within this card too
         # Only call recursive if it is the first time we see this card object
@@ -597,7 +600,7 @@ def build_mtgjson_card(
             "power": face_data.get("power"),
             "toughness": face_data.get("toughness"),
             "loyalty": face_data.get("loyalty"),
-            "artist": sf_card.get("artist"),
+            "artist": sf_card.get("artist"),  # TODO
             "borderColor": sf_card.get("border_color"),
             "colorIdentity": sf_card.get("color_identity"),
             "frameVersion": sf_card.get("frame"),
@@ -605,7 +608,6 @@ def build_mtgjson_card(
             "hasNonFoil": sf_card.get("nonfoil"),
             "isOnlineOnly": sf_card.get("digital"),
             "isOversized": sf_card.get("oversized"),
-            "layout": sf_card.get("layout"),
             "number": sf_card.get("collector_number"),
             "isReserved": sf_card.get("reserved"),
             "frameEffect": sf_card.get("frame_effect"),
@@ -615,6 +617,9 @@ def build_mtgjson_card(
             "convertedManaCost": sf_card.get("cmc"),
         }
     )
+
+    if "layout" not in single_card.keys():
+        single_card.set("layout", sf_card.get("layout"))
 
     if "watermark" not in single_card.keys():
         single_card.set(
