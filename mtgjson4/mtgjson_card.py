@@ -11,6 +11,8 @@ import mtgjson4
 from mtgjson4.provider import tcgplayer
 
 TCGPLAYER_REFERRAL: str = "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"
+CARD_MARKET_REFERRAL: str = "?utm_campaign=card_prices&utm_medium=text&utm_source=mtgjson"
+
 DUEL_DECK_LAND_MARKED: contextvars.ContextVar = contextvars.ContextVar("DD_R1")
 DUEL_DECK_SIDE_COMP: contextvars.ContextVar = contextvars.ContextVar("DD_R2")
 
@@ -30,6 +32,7 @@ class MTGJSONCard:
         self.card_attributes: Dict[str, Any] = {}
         self.set_code: str = set_code.upper()
         self.tcgplayer_url: str = ""
+        self.card_market_url: str = ""
 
     def __str__(self) -> str:
         """
@@ -85,12 +88,29 @@ class MTGJSONCard:
         for key, value in attribute_dict.items():
             self.set(key, value)
 
+    def set_mkm_url(self, url: str) -> None:
+        """
+        Set the MKM Url from external calls
+        :param url: URL part
+        """
+        while url.startswith("/"):
+            url = url[1:]
+
+        self.card_market_url = "https://www.cardmarket.com/{}".format(url)
+
     def get_tcgplayer_url(self) -> str:
         """
         Get TCGPlayer with affiliate code
-        :return:
+        :return: URL
         """
         return str(self.tcgplayer_url) + TCGPLAYER_REFERRAL
+
+    def get_card_market_url(self) -> str:
+        """
+        Get CardMarket with affiliate code
+        :return: URL
+        """
+        return str(self.card_market_url) + CARD_MARKET_REFERRAL
 
     def keys(self) -> KeysView:
         """
@@ -156,10 +176,25 @@ class MTGJSONCard:
         if self.get("tcgplayerProductId") and prod_url:
             self.set(
                 "tcgplayerPurchaseUrl",
-                tcgplayer.log_redirection_url(self.get("tcgplayerProductId")),
+                tcgplayer.get_redirection_url(self.get("tcgplayerProductId")),
             )
 
         self.tcgplayer_url = self.get_tcgplayer_card_property(tcg_card_objs, "url")
+
+    def set_card_market_fields(self) -> None:
+        """
+        Set the cardmarket purchase fields
+        """
+        self.set(
+            "cardMarketPurchaseUrl",
+            tcgplayer.get_redirection_url(
+                int(
+                    str(self.get("mcmId"))
+                    + "10101"  # Buffer to distinguish from each other & TCGPlayer
+                    + str(self.get("mcmMetaId"))
+                )
+            ),
+        )
 
     def clean_up_watermark(self, watermark: Optional[str]) -> Optional[str]:
         """

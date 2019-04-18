@@ -19,10 +19,10 @@ LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
 
-def write_tcgplayer_information(data: Dict[str, str]) -> None:
+def write_referral_url_information(data: Dict[str, str]) -> None:
     """
-    Write out the tcgplayer redirection keys to file
-    :param data: tcg content
+    Write out the URL redirection keys to file
+    :param data: content
     """
     mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
     with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(

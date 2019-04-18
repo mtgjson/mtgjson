@@ -129,7 +129,7 @@ def build_output_file(
     if "tcgplayer_id" in set_config.keys():
         output_file["tcgplayerGroupId"] = set_config["tcgplayer_id"]
         if not skip_tcgplayer:
-            add_tcgplayer_fields(output_file["tcgplayerGroupId"], card_holder)
+            add_purchase_fields(output_file["tcgplayerGroupId"], card_holder)
 
     # Set sizes; BASE SET SIZE WILL BE UPDATED BELOW
     output_file["totalSetSize"] = len(sf_cards)
@@ -237,7 +237,7 @@ def transpose_tokens(
     return cards, tokens
 
 
-def add_tcgplayer_fields(group_id: int, cards: List[MTGJSONCard]) -> None:
+def add_purchase_fields(group_id: int, cards: List[MTGJSONCard]) -> None:
     """
     For each card in the set, we will find its tcgplayer ID
     and add it to the card if found
@@ -247,6 +247,7 @@ def add_tcgplayer_fields(group_id: int, cards: List[MTGJSONCard]) -> None:
     tcg_card_objs = tcgplayer.get_group_id_cards(group_id)
     for card in cards:
         card.add_tcgplayer_fields(tcg_card_objs)
+        card.set_card_market_fields()
 
 
 def uniquify_duplicates_in_set(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
@@ -676,6 +677,7 @@ def build_mtgjson_card(
             single_card.set_all(
                 {"mcmId": mkm_obj["idProduct"], "mcmMetaId": mkm_obj["idMetaproduct"]}
             )
+            single_card.set_mkm_url(mkm_obj["website"])
             mkm_card_found = True
             break
 

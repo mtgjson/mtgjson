@@ -163,7 +163,7 @@ def url_keygen(prod_id: int) -> str:
     return hashlib.sha256(str(prod_id).encode()).hexdigest()[:16]
 
 
-def log_redirection_url(prod_id: int) -> str:
+def get_redirection_url(prod_id: int) -> str:
     """
     Create the URL that can be accessed to get the TCGPlayer URL.
     Also builds up the redirection table, that can be called later.
