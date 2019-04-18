@@ -1,5 +1,6 @@
 """Utility functions."""
 import contextvars
+import hashlib
 import json
 import logging
 import re
@@ -128,3 +129,12 @@ def print_download_status(response: Any) -> None:
         response, "from_cache"
     ) else False
     LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, cache_result))
+
+
+def url_keygen(prod_id: int) -> str:
+    """
+    Generates a key that MTGJSON will use for redirection
+    :param prod_id: Seed
+    :return: URL Key
+    """
+    return hashlib.sha256(str(prod_id).encode()).hexdigest()[:16]

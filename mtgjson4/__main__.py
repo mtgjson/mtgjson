@@ -9,7 +9,8 @@ from typing import Any, Dict, List
 
 import mtgjson4
 from mtgjson4 import compile_mtg, outputter
-from mtgjson4.provider import scryfall, tcgplayer
+from mtgjson4.provider import scryfall
+import mtgjson4.util
 
 LOGGER = logging.getLogger(__name__)
 
@@ -126,9 +127,9 @@ def main() -> None:
             if not args.skip_tcgplayer:
                 for card in compiled["cards"]:
                     # ReferralMap TCGPlayer
-                    key_tcg = tcgplayer.url_keygen(card.get("tcgplayerProductId"))
+                    key_tcg = mtgjson4.util.url_keygen(card.get("tcgplayerProductId"))
                     # ReferralMap CardMarket
-                    key_mkm = tcgplayer.url_keygen(
+                    key_mkm = mtgjson4.util.url_keygen(
                         int(
                             str(card.get("mcmId"))
                             + "10101"  # Buffer to distinguish from each other & TCGPlayer

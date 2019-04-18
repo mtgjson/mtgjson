@@ -1,7 +1,6 @@
 """TCGPlayer retrieval and processing."""
 import configparser
 import contextvars
-import hashlib
 import json
 import logging
 from typing import Any, Dict, List, Optional
@@ -11,6 +10,7 @@ import requests_cache
 
 import mtgjson4
 from mtgjson4 import util
+from mtgjson4.util import url_keygen
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_TCGPLAYER")
@@ -152,15 +152,6 @@ def get_group_id_cards(group_id: int) -> List[Dict[str, Any]]:
         offset += len(tcg_data["results"])
 
     return cards
-
-
-def url_keygen(prod_id: int) -> str:
-    """
-    Generates a key that MTGJSON will use for redirection
-    :param prod_id: Seed
-    :return: URL Key
-    """
-    return hashlib.sha256(str(prod_id).encode()).hexdigest()[:16]
 
 
 def get_redirection_url(prod_id: int) -> str:
