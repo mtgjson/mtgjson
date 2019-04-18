@@ -58,11 +58,15 @@ def build_output_file(
         LOGGER.error("Unable to download MKM correctly: {}".format(mkm_resp))
     else:
         for set_content in mkm_resp.json()["expansion"]:
-            if set_content["enName"].lower() == output_file["name"].lower():
+            if (
+                set_content["enName"].lower() == output_file["name"].lower()
+                or set_content["abbreviation"].lower() == output_file["code"].lower()
+            ):
                 output_file["mcmId"] = set_content["idExpansion"]
                 output_file["mcmName"] = set_content["enName"]
                 break
-    initialize_mkm_set_cards(output_file["mcmId"])
+
+    initialize_mkm_set_cards(output_file.get("mcmId", None))
 
     # Add translations to the files
     try:
@@ -177,7 +181,7 @@ def initialize_mkm_set_cards(mcm_id: Optional[str]) -> None:
     dict_by_set_num = {}
     for set_content in mkm_resp.json()["single"]:
         if not set_content["number"]:
-            continue
+            set_content["number"] = ""
 
         # Remove leading zeroes
         while set_content["number"].startswith("0"):
@@ -189,7 +193,6 @@ def initialize_mkm_set_cards(mcm_id: Optional[str]) -> None:
             dict_by_set_num[name_no_special_chars] = set_content
 
     MKM_SET_CARDS.set(dict_by_set_num)
-    LOGGER.error(json.dumps(MKM_SET_CARDS.get()))
 
 
 def transpose_tokens(
@@ -682,6 +685,7 @@ def build_mtgjson_card(
                 single_card.get("number"), single_card.get("name")
             )
         )
+        LOGGER.error(json.dumps(MKM_SET_CARDS.get()))
 
     if "artist" not in single_card.keys():
         single_card.set("artist", sf_card.get("artist"))

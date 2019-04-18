@@ -298,16 +298,22 @@ class MTGJSONCard:
         :return: Value of field
         """
         for card in card_list:
+            name_list = []
             if self.get("names", None):
-                name1_check = self.get("names")[0].lower()
-                name2_check = self.get("names")[1].lower()
+                # Split card names
+                name_list.append(self.get("names")[0].lower())
+                name_list.append(self.get("names")[1].lower())
             else:
-                name1_check = self.get("name").lower()
-                # Lands are "Forest (269)"
-                name2_check = name1_check + " ({})".format(self.get("number"))
+                card_name = self.get("name").lower()
+                # Normal card name
+                name_list.append(card_name)
+                # Lands are "Forest (269)" or "Forest (A)"
+                name_list.append("{} ({})".format(card_name, self.get("number")))
+                # Un-cards are "Amateur Auteur (A)"
+                name_list.append("{} ({})".format(card_name, self.get("number")[-1]))
 
             list_fix_split = card["name"].split("//")[0].strip()
-            if list_fix_split.lower() in [name1_check, name2_check]:
+            if list_fix_split.lower() in name_list:
                 return card.get(card_field, None)
 
         LOGGER.warning(
