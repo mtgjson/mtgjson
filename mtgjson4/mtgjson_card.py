@@ -356,6 +356,7 @@ class MTGJSONCard:
             if list_fix_split.lower() in name_list:
                 return card.get(card_field, None)
 
+        # TODO: Handle basics that might be "Forest (A)"
         LOGGER.warning(
             "Unable to find card {} in TCGPlayer card list".format(self.get("name"))
         )
