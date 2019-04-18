@@ -71,8 +71,19 @@ def build_output_file(
         # {SetNum: Object, ... }
         dict_by_set_num = {}
         for set_content in mkm_resp.json()["single"]:
-            dict_by_set_num[set_content["number"]] = set_content
+            if not set_content["number"]:
+                continue
+
+            # Remove leading zeroes
+            while set_content["number"].startswith("0"):
+                set_content["number"] = set_content["number"][1:]
+
+            # Split cards get two entries
+            for name in set_content["enName"].split("//"):
+                dict_by_set_num[name.strip().lower()] = set_content
+
         MKM_SET_CARDS.set(dict_by_set_num)
+        LOGGER.error(json.dumps(MKM_SET_CARDS.get()))
 
     # Add translations to the files
     try:
@@ -642,14 +653,25 @@ def build_mtgjson_card(
     )
 
     # Set MKM IDs if it exists
-    if single_card.get("number") in MKM_SET_CARDS.get().keys():
-        entity = MKM_SET_CARDS.get()[single_card.get("number")]
-        single_card.set_all(
-            {"mcmId": entity["idProduct"], "mcmMetaId": entity["idMetaproduct"]}
-        )
-    else:
+    mkm_card_found = False
+    for key, mkm_obj in MKM_SET_CARDS.get().items():
+        if key != single_card.get("name").lower():
+            continue
+
+        if "number" not in mkm_obj.keys() or (
+            single_card.get("number") == mkm_obj.get("number")
+        ):
+            single_card.set_all(
+                {"mcmId": mkm_obj["idProduct"], "mcmMetaId": mkm_obj["idMetaproduct"]}
+            )
+            mkm_card_found = True
+            break
+
+    if not mkm_card_found:
         LOGGER.warning(
-            "Unable to find MKM information for {}".format(single_card.get("name"))
+            "Unable to find MKM information for #{} {}".format(
+                single_card.get("number"), single_card.get("name")
+            )
         )
 
     if "artist" not in single_card.keys():
