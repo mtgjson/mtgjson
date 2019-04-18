@@ -6,7 +6,7 @@ import logging
 import multiprocessing
 import pathlib
 import re
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
@@ -62,29 +62,7 @@ def build_output_file(
                 output_file["mcmId"] = set_content["idExpansion"]
                 output_file["mcmName"] = set_content["enName"]
                 break
-
-    MKM_SET_CARDS.set({})
-    if "mcmId" in output_file.keys():
-        mkm_resp = MKM_API.get().market_place.expansion_singles(
-            1, expansion=output_file["mcmId"]
-        )
-        # {SetNum: Object, ... }
-        dict_by_set_num = {}
-        for set_content in mkm_resp.json()["single"]:
-            if not set_content["number"]:
-                continue
-
-            # Remove leading zeroes
-            while set_content["number"].startswith("0"):
-                set_content["number"] = set_content["number"][1:]
-
-            # Split cards get two entries
-            for name in set_content["enName"].split("//"):
-                name_no_special_chars = name.strip().lower()
-                dict_by_set_num[name_no_special_chars] = set_content
-
-        MKM_SET_CARDS.set(dict_by_set_num)
-        LOGGER.error(json.dumps(MKM_SET_CARDS.get()))
+    initialize_mkm_set_cards(output_file["mcmId"])
 
     # Add translations to the files
     try:
@@ -182,6 +160,36 @@ def build_output_file(
     add_variations_and_alternative_fields(output_file["cards"], output_file)
 
     return output_file
+
+
+def initialize_mkm_set_cards(mcm_id: Optional[str]) -> None:
+    """
+    Initialize the MKM global with the cards found in the set
+    :param mcm_id: Set's ID, if possible
+    """
+    if mcm_id is None:
+        MKM_SET_CARDS.set({})
+        return
+
+    mkm_resp = MKM_API.get().market_place.expansion_singles(1, expansion=mcm_id)
+
+    # {SetNum: Object, ... }
+    dict_by_set_num = {}
+    for set_content in mkm_resp.json()["single"]:
+        if not set_content["number"]:
+            continue
+
+        # Remove leading zeroes
+        while set_content["number"].startswith("0"):
+            set_content["number"] = set_content["number"][1:]
+
+        # Split cards get two entries
+        for name in set_content["enName"].split("//"):
+            name_no_special_chars = name.strip().lower()
+            dict_by_set_num[name_no_special_chars] = set_content
+
+    MKM_SET_CARDS.set(dict_by_set_num)
+    LOGGER.error(json.dumps(MKM_SET_CARDS.get()))
 
 
 def transpose_tokens(
