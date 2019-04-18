@@ -80,7 +80,8 @@ def build_output_file(
 
             # Split cards get two entries
             for name in set_content["enName"].split("//"):
-                dict_by_set_num[name.strip().lower()] = set_content
+                name_no_special_chars = name.strip().lower()
+                dict_by_set_num[name_no_special_chars] = set_content
 
         MKM_SET_CARDS.set(dict_by_set_num)
         LOGGER.error(json.dumps(MKM_SET_CARDS.get()))
@@ -655,11 +656,11 @@ def build_mtgjson_card(
     # Set MKM IDs if it exists
     mkm_card_found = False
     for key, mkm_obj in MKM_SET_CARDS.get().items():
-        if key != single_card.get("name").lower():
+        if single_card.get("name").lower() not in key:
             continue
 
         if "number" not in mkm_obj.keys() or (
-            single_card.get("number") == mkm_obj.get("number")
+            mkm_obj.get("number") in single_card.get("number")
         ):
             single_card.set_all(
                 {"mcmId": mkm_obj["idProduct"], "mcmMetaId": mkm_obj["idMetaproduct"]}
