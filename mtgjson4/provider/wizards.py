@@ -284,7 +284,11 @@ def get_translations(set_code: Optional[str] = None) -> Any:
         if set_code in TRANSLATION_TABLE.get().keys():
             return TRANSLATION_TABLE.get()[set_code]
 
-        LOGGER.warning("Unable to find good enough match for {}".format(set_code))
+        LOGGER.warning(
+            "(Wizards) Unable to find good enough translation match for {}".format(
+                set_code
+            )
+        )
         return {}
 
     return TRANSLATION_TABLE.get()

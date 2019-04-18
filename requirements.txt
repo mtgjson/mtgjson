@@ -1,5 +1,6 @@
 contextvars
 beautifulsoup4
+mkmsdk
 requests
 requests_cache
 unidecode

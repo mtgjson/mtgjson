@@ -148,12 +148,10 @@ class MTGJSONCard:
         if not self.get("tcgplayerProductId"):
             self.set(
                 "tcgplayerProductId",
-                tcgplayer.get_card_property(
-                    self.get("name"), tcg_card_objs, "productId"
-                ),
+                self.get_tcgplayer_card_property(tcg_card_objs, "productId"),
             )
 
-        prod_url = tcgplayer.get_card_property(self.get("name"), tcg_card_objs, "url")
+        prod_url = self.get_tcgplayer_card_property(tcg_card_objs, "url")
 
         if self.get("tcgplayerProductId") and prod_url:
             self.set(
@@ -161,9 +159,7 @@ class MTGJSONCard:
                 tcgplayer.log_redirection_url(self.get("tcgplayerProductId")),
             )
 
-        self.tcgplayer_url = tcgplayer.get_card_property(
-            self.get("name"), tcg_card_objs, "url"
-        )
+        self.tcgplayer_url = self.get_tcgplayer_card_property(tcg_card_objs, "url")
 
     def clean_up_watermark(self, watermark: Optional[str]) -> Optional[str]:
         """
@@ -289,6 +285,35 @@ class MTGJSONCard:
 
         self.clear()
         self.set_all(insert_value)
+
+    def get_tcgplayer_card_property(
+        self, card_list: List[Dict[str, Any]], card_field: str
+    ) -> Any:
+        """
+        Go through the passed in card object list to find the matching
+        card from the set and get its attribute.
+        :param self: Card object
+        :param card_list: List of TCGPlayer card objects
+        :param card_field: Field to pull from TCGPlayer card object
+        :return: Value of field
+        """
+        for card in card_list:
+            if self.get("names", None):
+                name1_check = self.get("names")[0].lower()
+                name2_check = self.get("names")[1].lower()
+            else:
+                name1_check = self.get("name").lower()
+                # Lands are "Forest (269)"
+                name2_check = name1_check + " ({})".format(self.get("number"))
+
+            list_fix_split = card["name"].split("//")[0].strip()
+            if list_fix_split.lower() in [name1_check, name2_check]:
+                return card.get(card_field, None)
+
+        LOGGER.warning(
+            "Unable to find card {} in TCGPlayer card list".format(self.get("name"))
+        )
+        return None
 
     @staticmethod
     def __fix_foreign_entries(values: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

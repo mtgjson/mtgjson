@@ -91,9 +91,10 @@ def get_set(set_code: str) -> List[Dict[str, Any]]:
     LOGGER.info("Downloading set {} information".format(set_code))
     set_api_json: Dict[str, Any] = download(SCRYFALL_API_SETS + set_code)
     if set_api_json["object"] == "error":
-        LOGGER.warning(
-            "Set api download failed for {0}: {1}".format(set_code, set_api_json)
-        )
+        if not set_api_json["details"].startswith("No Magic set found"):
+            LOGGER.warning(
+                "Set api download failed for {0}: {1}".format(set_code, set_api_json)
+            )
         return []
 
     # All cards in the set structure
@@ -116,9 +117,10 @@ def get_set(set_code: str) -> List[Dict[str, Any]]:
 
             cards_api_json: Dict[str, Any] = download(cards_api_url)
             if cards_api_json["object"] == "error":
-                LOGGER.warning(
-                    "Error downloading {0}: {1}".format(set_code, cards_api_json)
-                )
+                if not cards_api_json["details"].startswith("Your query didn’t match"):
+                    LOGGER.warning(
+                        "Error downloading {0}: {1}".format(set_code, cards_api_json)
+                    )
                 break
 
             # Append all cards on this page

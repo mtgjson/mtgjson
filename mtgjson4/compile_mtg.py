@@ -8,6 +8,9 @@ import pathlib
 import re
 from typing import Any, Dict, List, Set, Tuple
 
+from mkmsdk.api_map import _API_MAP
+from mkmsdk.mkm import Mkm
+
 import mtgjson4
 from mtgjson4 import mtgjson_card
 from mtgjson4.mtgjson_card import MTGJSONCard
@@ -17,6 +20,8 @@ from mtgjson4.util import is_number
 LOGGER = logging.getLogger(__name__)
 
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
+MKM_SET_CARDS: contextvars.ContextVar = contextvars.ContextVar("MKM_SET_CARDS")
+MKM_API: contextvars.ContextVar = contextvars.ContextVar("MKM_API")
 
 
 def build_output_file(
@@ -29,6 +34,7 @@ def build_output_file(
     :param set_code: Set code
     :return: Completed JSON file
     """
+    MKM_API.set(Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"]))
     output_file: Dict[str, Any] = {}
 
     # Get the set config from Scryfall
@@ -45,18 +51,34 @@ def build_output_file(
         pathlib.Path(set_config["icon_svg_uri"]).name.split(".")[0].upper()
     )
 
+    # Try adding MKM Set Name
+    # Then store the card data for future pulling
+    mkm_resp = MKM_API.get().market_place.expansions(game=1)
+    if mkm_resp.status_code != 200:
+        LOGGER.error("Unable to download MKM correctly: {}".format(mkm_resp))
+    else:
+        for set_content in mkm_resp.json()["expansion"]:
+            if set_content["enName"].lower() == output_file["name"].lower():
+                output_file["mcmId"] = set_content["idExpansion"]
+                output_file["mcmName"] = set_content["enName"]
+                break
+
+    MKM_SET_CARDS.set({})
+    if "mcmId" in output_file.keys():
+        mkm_resp = MKM_API.get().market_place.expansion_singles(
+            1, expansion=output_file["mcmId"]
+        )
+        # {SetNum: Object, ... }
+        dict_by_set_num = {}
+        for set_content in mkm_resp.json()["single"]:
+            dict_by_set_num[set_content["number"]] = set_content
+        MKM_SET_CARDS.set(dict_by_set_num)
+
     # Add translations to the files
     try:
-        output_file["translations"] = wizards.get_translations(output_file["name"])
+        output_file["translations"] = wizards.get_translations(output_file["code"])
     except KeyError:
         LOGGER.warning("Unable to find set translations for {}".format(set_code))
-
-    # Add Card Market information, if it exists
-    with mtgjson4.RESOURCE_PATH.joinpath("mkm_information.json").open("r") as f:
-        mcm_json = json.load(f)
-        if output_file["code"] in mcm_json.keys():
-            output_file["mcmName"] = mcm_json[output_file["code"]]["mcmName"]
-            output_file["mcmId"] = mcm_json[output_file["code"]]["mcmId"]
 
     # Add optionals if they exist
     if "mtgo_code" in set_config.keys():
@@ -618,6 +640,17 @@ def build_mtgjson_card(
             "convertedManaCost": sf_card.get("cmc"),
         }
     )
+
+    # Set MKM IDs if it exists
+    if single_card.get("number") in MKM_SET_CARDS.get().keys():
+        entity = MKM_SET_CARDS.get()[single_card.get("number")]
+        single_card.set_all(
+            {"mcmId": entity["idProduct"], "mcmMetaId": entity["idMetaproduct"]}
+        )
+    else:
+        LOGGER.warning(
+            "Unable to find MKM information for {}".format(single_card.get("name"))
+        )
 
     if "artist" not in single_card.keys():
         single_card.set("artist", sf_card.get("artist"))

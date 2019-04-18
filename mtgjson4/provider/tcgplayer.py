@@ -154,28 +154,6 @@ def get_group_id_cards(group_id: int) -> List[Dict[str, Any]]:
     return cards
 
 
-def get_card_property(
-    card_name: str, card_list: List[Dict[str, Any]], card_field: str
-) -> Any:
-    """
-    Go through the passed in card object list to find the matching
-    card from the set and get its attribute.
-    :param card_name: Card name to find in the list
-    :param card_list: List of TCGPlayer card objects
-    :param card_field: Field to pull from TCGPlayer card object
-    :return: Value of field
-    """
-    for card in card_list:
-        input_fix_split = card_name.split("//")[0].strip()
-        list_fix_split = card["name"].split("//")[0].strip()
-
-        if list_fix_split.lower() == input_fix_split.lower():
-            return card.get(card_field, None)
-
-    LOGGER.warning("Unable to find card {} in TCGPlayer card list".format(card_name))
-    return None
-
-
 def url_keygen(prod_id: int) -> str:
     """
     Generates a key that MTGJSON will use for redirection
