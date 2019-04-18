@@ -160,10 +160,11 @@ class MTGJSONCard:
         for key in self.keys():
             yield key, self.get(key)
 
-    def add_tcgplayer_fields(self, tcg_card_objs: List[Dict[str, Any]]) -> None:
+    def add_tcgplayer_fields(self, tcg_card_objs: List[Dict[str, Any]]) -> str:
         """
         Add the tcgplayer fields to the internal dict
         :param tcg_card_objs: Attributes to handle
+        :return Get the purchase URL after doing something
         """
         if not self.get("tcgplayerProductId"):
             self.set(
@@ -171,29 +172,33 @@ class MTGJSONCard:
                 self.get_tcgplayer_card_property(tcg_card_objs, "productId"),
             )
 
-        prod_url = self.get_tcgplayer_card_property(tcg_card_objs, "url")
-
-        if self.get("tcgplayerProductId") and prod_url:
+        # TODO: REMOVE IN 4.5.0
+        if self.get("tcgplayerProductId"):
             self.set(
                 "tcgplayerPurchaseUrl",
                 tcgplayer.get_redirection_url(self.get("tcgplayerProductId")),
             )
 
         self.tcgplayer_url = self.get_tcgplayer_card_property(tcg_card_objs, "url")
+        return (
+            tcgplayer.get_redirection_url(self.get("tcgplayerProductId"))
+            if self.get("tcgplayerProductId")
+            else ""
+        )
 
-    def set_card_market_fields(self) -> None:
+    def set_card_market_fields(self) -> str:
         """
-        Set the cardmarket purchase fields
+        Get the cardmarket purchase fields
+        :return Get the purchase URL after doing something
         """
-        self.set(
-            "cardMarketPurchaseUrl",
+        return str(
             tcgplayer.get_redirection_url(
                 int(
                     str(self.get("mcmId"))
                     + "10101"  # Buffer to distinguish from each other & TCGPlayer
                     + str(self.get("mcmMetaId"))
                 )
-            ),
+            )
         )
 
     def clean_up_watermark(self, watermark: Optional[str]) -> Optional[str]:

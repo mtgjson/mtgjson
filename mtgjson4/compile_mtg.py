@@ -246,8 +246,13 @@ def add_purchase_fields(group_id: int, cards: List[MTGJSONCard]) -> None:
     """
     tcg_card_objs = tcgplayer.get_group_id_cards(group_id)
     for card in cards:
-        card.add_tcgplayer_fields(tcg_card_objs)
-        card.set_card_market_fields()
+        card.set(
+            "purchaseUrls",
+            {
+                "tcgplayer": card.add_tcgplayer_fields(tcg_card_objs),
+                "cardmarket": card.set_card_market_fields(),
+            },
+        )
 
 
 def uniquify_duplicates_in_set(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
