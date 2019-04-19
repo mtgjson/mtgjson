@@ -692,7 +692,6 @@ def build_mtgjson_card(
                 single_card.get("number"), single_card.get("name")
             )
         )
-        LOGGER.error(json.dumps(MKM_SET_CARDS.get()))
 
     if "artist" not in single_card.keys():
         single_card.set("artist", sf_card.get("artist"))
