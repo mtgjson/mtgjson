@@ -11,6 +11,8 @@ import mtgjson4
 from mtgjson4.provider import tcgplayer
 
 TCGPLAYER_REFERRAL: str = "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"
+CARD_MARKET_REFERRAL: str = "?utm_campaign=card_prices&utm_medium=text&utm_source=mtgjson"
+
 DUEL_DECK_LAND_MARKED: contextvars.ContextVar = contextvars.ContextVar("DD_R1")
 DUEL_DECK_SIDE_COMP: contextvars.ContextVar = contextvars.ContextVar("DD_R2")
 
@@ -30,6 +32,7 @@ class MTGJSONCard:
         self.card_attributes: Dict[str, Any] = {}
         self.set_code: str = set_code.upper()
         self.tcgplayer_url: str = ""
+        self.card_market_url: str = ""
 
     def __str__(self) -> str:
         """
@@ -85,12 +88,29 @@ class MTGJSONCard:
         for key, value in attribute_dict.items():
             self.set(key, value)
 
+    def set_mkm_url(self, url: str) -> None:
+        """
+        Set the MKM Url from external calls
+        :param url: URL part
+        """
+        while url.startswith("/"):
+            url = url[1:]
+
+        self.card_market_url = "https://www.cardmarket.com/{}".format(url)
+
     def get_tcgplayer_url(self) -> str:
         """
         Get TCGPlayer with affiliate code
-        :return:
+        :return: URL
         """
         return str(self.tcgplayer_url) + TCGPLAYER_REFERRAL
+
+    def get_card_market_url(self) -> str:
+        """
+        Get CardMarket with affiliate code
+        :return: URL
+        """
+        return str(self.card_market_url) + CARD_MARKET_REFERRAL
 
     def keys(self) -> KeysView:
         """
@@ -140,29 +160,45 @@ class MTGJSONCard:
         for key in self.keys():
             yield key, self.get(key)
 
-    def add_tcgplayer_fields(self, tcg_card_objs: List[Dict[str, Any]]) -> None:
+    def add_tcgplayer_fields(self, tcg_card_objs: List[Dict[str, Any]]) -> str:
         """
         Add the tcgplayer fields to the internal dict
         :param tcg_card_objs: Attributes to handle
+        :return Get the purchase URL after doing something
         """
         if not self.get("tcgplayerProductId"):
             self.set(
                 "tcgplayerProductId",
-                tcgplayer.get_card_property(
-                    self.get("name"), tcg_card_objs, "productId"
-                ),
+                self.get_tcgplayer_card_property(tcg_card_objs, "productId"),
             )
 
-        prod_url = tcgplayer.get_card_property(self.get("name"), tcg_card_objs, "url")
-
-        if self.get("tcgplayerProductId") and prod_url:
+        # TODO: REMOVE IN 4.5.0
+        if self.get("tcgplayerProductId"):
             self.set(
                 "tcgplayerPurchaseUrl",
-                tcgplayer.log_redirection_url(self.get("tcgplayerProductId")),
+                tcgplayer.get_redirection_url(self.get("tcgplayerProductId")),
             )
 
-        self.tcgplayer_url = tcgplayer.get_card_property(
-            self.get("name"), tcg_card_objs, "url"
+        self.tcgplayer_url = self.get_tcgplayer_card_property(tcg_card_objs, "url")
+        return (
+            tcgplayer.get_redirection_url(self.get("tcgplayerProductId"))
+            if self.get("tcgplayerProductId")
+            else ""
+        )
+
+    def set_card_market_fields(self) -> str:
+        """
+        Get the cardmarket purchase fields
+        :return Get the purchase URL after doing something
+        """
+        return str(
+            tcgplayer.get_redirection_url(
+                int(
+                    str(self.get("mcmId"))
+                    + "10101"  # Buffer to distinguish from each other & TCGPlayer
+                    + str(self.get("mcmMetaId"))
+                )
+            )
         )
 
     def clean_up_watermark(self, watermark: Optional[str]) -> Optional[str]:
@@ -289,6 +325,42 @@ class MTGJSONCard:
 
         self.clear()
         self.set_all(insert_value)
+
+    def get_tcgplayer_card_property(
+        self, card_list: List[Dict[str, Any]], card_field: str
+    ) -> Any:
+        """
+        Go through the passed in card object list to find the matching
+        card from the set and get its attribute.
+        :param self: Card object
+        :param card_list: List of TCGPlayer card objects
+        :param card_field: Field to pull from TCGPlayer card object
+        :return: Value of field
+        """
+        for card in card_list:
+            name_list = []
+            if self.get("names", None):
+                # Split card names
+                name_list.append(self.get("names")[0].lower())
+                name_list.append(self.get("names")[1].lower())
+            else:
+                card_name = self.get("name").lower()
+                # Normal card name
+                name_list.append(card_name)
+                # Lands are "Forest (269)" or "Forest (A)"
+                name_list.append("{} ({})".format(card_name, self.get("number")))
+                # Un-cards are "Amateur Auteur (A)"
+                name_list.append("{} ({})".format(card_name, self.get("number")[-1]))
+
+            list_fix_split = card["name"].split("//")[0].strip()
+            if list_fix_split.lower() in name_list:
+                return card.get(card_field, None)
+
+        # TODO: Handle basics that might be "Forest (A)"
+        LOGGER.warning(
+            "Unable to find card {} in TCGPlayer card list".format(self.get("name"))
+        )
+        return None
 
     @staticmethod
     def __fix_foreign_entries(values: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

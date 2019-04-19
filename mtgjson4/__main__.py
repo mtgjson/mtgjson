@@ -1,13 +1,16 @@
 """MTGJSON Version 4 Compiler"""
 import argparse
+import configparser
 import logging
+import os
 import pathlib
 import sys
 from typing import Any, Dict, List
 
 import mtgjson4
 from mtgjson4 import compile_mtg, outputter
-from mtgjson4.provider import scryfall, tcgplayer
+from mtgjson4.provider import scryfall
+import mtgjson4.util
 
 LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +52,20 @@ def get_compiled_sets() -> List[str]:
     ]
 
     return all_sets_found
+
+
+def init_mkm_const() -> None:
+    """
+    MKM SDK requires global variables, so this sets them
+    up before we start the system
+    """
+    # MKM Globals
+    if mtgjson4.CONFIG_PATH.is_file():
+        # Open and read MTGJSON secret properties
+        config = configparser.RawConfigParser()
+        config.read(mtgjson4.CONFIG_PATH)
+        os.environ["MKM_APP_TOKEN"] = config.get("CardMarket", "app_token")
+        os.environ["MKM_APP_SECRET"] = config.get("CardMarket", "app_secret")
 
 
 def main() -> None:
@@ -109,9 +126,22 @@ def main() -> None:
         if compiled["cards"] or compiled["tokens"]:
             if not args.skip_tcgplayer:
                 for card in compiled["cards"]:
-                    key = tcgplayer.url_keygen(card.get("tcgplayerProductId"))
-                    outputter.write_tcgplayer_information(
-                        {key: card.get_tcgplayer_url()}
+                    # ReferralMap TCGPlayer
+                    key_tcg = mtgjson4.util.url_keygen(card.get("tcgplayerProductId"))
+                    # ReferralMap CardMarket
+                    key_mkm = mtgjson4.util.url_keygen(
+                        int(
+                            str(card.get("mcmId"))
+                            + "10101"  # Buffer to distinguish from each other & TCGPlayer
+                            + str(card.get("mcmMetaId"))
+                        )
+                    )
+
+                    outputter.write_referral_url_information(
+                        {
+                            key_mkm: card.get_card_market_url(),
+                            key_tcg: card.get_tcgplayer_url(),
+                        }
                     )
 
             mtgjson4.outputter.write_to_file(set_code.upper(), compiled, set_file=True)
@@ -124,4 +154,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     mtgjson4.init_logger()
+    init_mkm_const()
     main()

@@ -1,12 +1,13 @@
 """MTGJSON Version 4 Initializer"""
 import contextvars
 import logging
+import os
 import pathlib
 import time
 from typing import Dict, List
 
 # Maintenance variables
-__VERSION__ = "4.3.2"
+__VERSION__ = "4.3.3"
 __VERSION_DATE__ = "2019-04-06"
 __MAINTAINER__ = "Zach Halpern (GitHub: @ZeldaZach)"
 __MAINTAINER_EMAIL__ = "zahalpern+github@gmail.com"
@@ -16,7 +17,7 @@ __REPO_URL__ = "https://github.com/mtgjson/mtgjson4"
 SUPERTYPES: List[str] = ["Basic", "Host", "Legendary", "Ongoing", "Snow", "World"]
 BASIC_LANDS: List[str] = ["Plains", "Island", "Swamp", "Mountain", "Forest"]
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
-COMPILED_OUTPUT_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath("set_outputs")
+COMPILED_OUTPUT_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath("json_" + __VERSION__)
 LOG_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
 CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson.properties")
 RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson4").joinpath("resources")
@@ -27,6 +28,11 @@ SESSION_CACHE_EXPIRE_MKM: int = 604800  # seconds - 1 week
 
 USE_CACHE: contextvars.ContextVar = contextvars.ContextVar("USE_CACHE")
 
+# MKM Globals
+os.environ["MKM_APP_TOKEN"] = ""
+os.environ["MKM_APP_SECRET"] = ""
+os.environ["MKM_ACCESS_TOKEN"] = ""
+os.environ["MKM_ACCESS_TOKEN_SECRET"] = ""
 
 # Compiled Output Files
 ALL_SETS_OUTPUT: str = "AllSets"
