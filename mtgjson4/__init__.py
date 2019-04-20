@@ -8,10 +8,10 @@ from typing import Dict, List
 
 # Maintenance variables
 __VERSION__ = "4.3.3"
-__VERSION_DATE__ = "2019-04-06"
+__VERSION_DATE__ = "2019-04-20"
 __MAINTAINER__ = "Zach Halpern (GitHub: @ZeldaZach)"
 __MAINTAINER_EMAIL__ = "zahalpern+github@gmail.com"
-__REPO_URL__ = "https://github.com/mtgjson/mtgjson4"
+__REPO_URL__ = "https://github.com/mtgjson/mtgjson"
 
 # Globals
 SUPERTYPES: List[str] = ["Basic", "Host", "Legendary", "Ongoing", "Snow", "World"]
