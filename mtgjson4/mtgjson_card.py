@@ -191,6 +191,9 @@ class MTGJSONCard:
         Get the cardmarket purchase fields
         :return Get the purchase URL after doing something
         """
+        if not self.get("mcmId", None):
+            return ""
+
         return str(
             tcgplayer.get_redirection_url(
                 int(
