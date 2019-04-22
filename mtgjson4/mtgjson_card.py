@@ -160,7 +160,9 @@ class MTGJSONCard:
         for key in self.keys():
             yield key, self.get(key)
 
-    def add_tcgplayer_fields(self, tcg_card_objs: List[Dict[str, Any]]) -> str:
+    def add_tcgplayer_fields(
+        self, tcg_card_objs: List[Dict[str, Any]]
+    ) -> Optional[str]:
         """
         Add the tcgplayer fields to the internal dict
         :param tcg_card_objs: Attributes to handle
@@ -183,16 +185,16 @@ class MTGJSONCard:
         return (
             tcgplayer.get_redirection_url(self.get("tcgplayerProductId"))
             if self.get("tcgplayerProductId")
-            else ""
+            else None
         )
 
-    def set_card_market_fields(self) -> str:
+    def set_card_market_fields(self) -> Optional[str]:
         """
         Get the cardmarket purchase fields
         :return Get the purchase URL after doing something
         """
         if not self.get("mcmId", None):
-            return ""
+            return None
 
         return str(
             tcgplayer.get_redirection_url(

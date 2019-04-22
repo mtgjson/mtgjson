@@ -4,6 +4,7 @@ import copy
 import json
 import logging
 import multiprocessing
+import os
 import pathlib
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -35,6 +36,7 @@ def build_output_file(
     :return: Completed JSON file
     """
     MKM_API.set(Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"]))
+
     output_file: Dict[str, Any] = {}
 
     # Get the set config from Scryfall
@@ -238,14 +240,21 @@ def add_purchase_fields(group_id: int, cards: List[MTGJSONCard]) -> None:
     :param cards: Cards list to add information to
     """
     tcg_card_objs = tcgplayer.get_group_id_cards(group_id)
+
     for card in cards:
-        card.set(
-            "purchaseUrls",
-            {
-                "tcgplayer": card.add_tcgplayer_fields(tcg_card_objs),
-                "cardmarket": card.set_card_market_fields(),
-            },
-        )
+        merge_dict = {}
+
+        if tcg_card_objs:
+            tcgplayer_value = card.add_tcgplayer_fields(tcg_card_objs)
+            if tcgplayer_value:
+                merge_dict["tcgplayer"] = tcgplayer_value
+
+        if os.environ["MKM_APP_TOKEN"] and os.environ["MKM_APP_SECRET"]:
+            cardmarket_value = card.set_card_market_fields()
+            if cardmarket_value:
+                merge_dict["cardmarket"] = cardmarket_value
+
+        card.set("purchaseUrls", merge_dict)
 
 
 def uniquify_duplicates_in_set(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:

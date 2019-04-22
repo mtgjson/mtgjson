@@ -64,13 +64,17 @@ def init_mkm_const() -> None:
         # Open and read MTGJSON secret properties
         config = configparser.RawConfigParser()
         config.read(mtgjson4.CONFIG_PATH)
-        os.environ["MKM_APP_TOKEN"] = config.get("CardMarket", "app_token")
-        os.environ["MKM_APP_SECRET"] = config.get("CardMarket", "app_secret")
+        try:
+            os.environ["MKM_APP_TOKEN"] = config.get("CardMarket", "app_token")
+            os.environ["MKM_APP_SECRET"] = config.get("CardMarket", "app_secret")
+        except configparser.NoOptionError:
+            LOGGER.warning("Card Market keys not found, skipping properties")
 
 
-def main() -> None:
+def parse_args() -> argparse.Namespace:
     """
-    Main Method
+    Parse program arguments
+    :return: Parser values
     """
     parser = argparse.ArgumentParser(description="")
     parser.add_argument("-a", action="store_true")
@@ -85,8 +89,15 @@ def main() -> None:
     if len(sys.argv) < 2:
         parser.print_usage()
         sys.exit(1)
-    else:
-        args = parser.parse_args()
+
+    return parser.parse_args()
+
+
+def main() -> None:
+    """
+    Main Method
+    """
+    args: argparse.Namespace = parse_args()
 
     if not mtgjson4.CONFIG_PATH.is_file():
         LOGGER.warning(
@@ -94,7 +105,6 @@ def main() -> None:
                 mtgjson4.CONFIG_PATH
             )
         )
-
     mtgjson4.USE_CACHE.set(not args.skip_cache)
 
     # Determine set(s) to build

@@ -72,7 +72,7 @@ def _request_tcgplayer_bearer() -> str:
     return str(request_as_json.get("access_token", ""))
 
 
-def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> str:
+def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> Optional[str]:
     """
     Download content from TCGPlayer with a given URL that
     can include a wildcard for default API version, as well
@@ -84,7 +84,10 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> str:
     if params_str is None:
         params_str = {}
 
-    session = __get_session()
+    try:
+        session = __get_session()
+    except configparser.NoOptionError:
+        return None
 
     response: Any = session.get(
         url=tcgplayer_url.replace("[API_VERSION]", TCGPLAYER_API_VERSION.get("")),
@@ -108,7 +111,7 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> str:
                     response.status_code, response.url, params_str
                 )
             )
-        return ""
+        return None
 
     return str(response.text)
 
