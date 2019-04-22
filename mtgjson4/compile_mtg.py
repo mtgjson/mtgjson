@@ -131,16 +131,9 @@ def build_output_file(
         if not skip_tcgplayer:
             add_purchase_fields(output_file["tcgplayerGroupId"], card_holder)
 
-    # Set sizes; BASE SET SIZE WILL BE UPDATED BELOW
+    # Set Sizes
+    output_file["baseSetSize"] = scryfall.get_base_set_size(set_code.upper())
     output_file["totalSetSize"] = len(sf_cards)
-
-    with mtgjson4.RESOURCE_PATH.joinpath("base_set_sizes.json").open(
-        "r", encoding="utf-8"
-    ) as f:
-        # Use the value in the resources file, otherwise use total set size
-        output_file["baseSetSize"] = json.load(f).get(
-            set_code.upper(), output_file["totalSetSize"]
-        )
 
     output_file["cards"] = card_holder
 

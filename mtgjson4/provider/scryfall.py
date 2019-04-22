@@ -2,6 +2,7 @@
 
 import configparser
 import contextvars
+import json
 import logging
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -19,6 +20,11 @@ SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_SCRYFALL")
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
 SCRYFALL_API_CARD: str = "https://api.scryfall.com/cards/"
 SCRYFALL_VARIATIONS: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}"
+SCRYFALL_SET_SIZE: str = "https://api.scryfall.com/cards/search?order=set&q=set:{0}%20is:booster%20unique:prints"
+
+BASE_SET_FILE_CACHE: contextvars.ContextVar = contextvars.ContextVar(
+    "BASE_SET_FILE_CACHE"
+)
 
 
 def __get_session() -> requests.Session:
@@ -49,6 +55,32 @@ def __get_session() -> requests.Session:
         session = util.retryable_session(session)
         SESSION.set(session)
     return session
+
+
+def get_base_set_size(set_code: str) -> int:
+    """
+    Get the size of a set from scryfall or corrections file
+    :param set_code: Set code, upper case
+    :return: Amount of cards in set
+    """
+    # Load cache if not loaded
+    if not BASE_SET_FILE_CACHE.get(None):
+        with mtgjson4.RESOURCE_PATH.joinpath("base_set_sizes.json").open(
+            "r", encoding="utf-8"
+        ) as f:
+            BASE_SET_FILE_CACHE.set(json.load(f))
+
+    # Manual correction
+    if set_code in BASE_SET_FILE_CACHE.get().keys():
+        return int(BASE_SET_FILE_CACHE.get()[set_code])
+
+    # Download on the fly
+    content = download(SCRYFALL_SET_SIZE.format(set_code))
+    if content["object"] == "error":
+        LOGGER.warning("Unable to get set size for {}".format(set_code))
+        return 0
+
+    return int(content["total_cards"])
 
 
 def download(scryfall_url: str) -> Dict[str, Any]:
