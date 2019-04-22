@@ -124,3 +124,4 @@ compiled_outputs/
 .DS_Store
 mtgjson.properties
 *.sqlite
+set_translations.json
