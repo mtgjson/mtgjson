@@ -236,7 +236,6 @@ class MTGJSONCard:
         :param is_card: Card or token
         """
         self.set("uuid", self.get_uuid(is_card))
-        self.set("uuidV421", self.get_uuid_421())
 
         if self.set_code.startswith("DD"):
             self.__mark_duel_decks()
@@ -267,22 +266,6 @@ class MTGJSONCard:
                 + self.get("scryfallId")
             )
 
-        return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
-
-    def get_uuid_421(self) -> str:
-        """
-        Get card uuid used in MTGJSON release 4.2.1
-        :return: unique card face identifier
-        """
-        # Use attributes that _shouldn't_ change over time
-        # Name + set code + colors (if applicable) + Scryfall UUID + printed text (if applicable)
-        id_source = (
-            self.get("name")
-            + self.set_code
-            + "".join(self.get("colors", ""))
-            + self.get("scryfallId")
-            + str(self.get("originalText", ""))
-        )
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
 
     # -----------------------
