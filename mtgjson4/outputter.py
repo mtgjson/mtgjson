@@ -393,7 +393,12 @@ def create_and_write_compiled_outputs() -> None:
         deck_name = util.capital_case_without_symbols(deck["name"])
         write_deck_to_file(deck_name, deck)
         deck_names.append(
-            {"fileName": deck_name, "name": deck["name"], "code": deck["code"]}
+            {
+                "code": deck["code"],
+                "fileName": deck_name,
+                "name": deck["name"],
+                "releaseDate": deck["releaseDate"],
+            }
         )
 
     # DeckLists.json
