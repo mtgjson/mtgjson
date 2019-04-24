@@ -202,7 +202,6 @@ def add_stocks_data(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
     for card in cards:
         if card.get("tcgplayerProductId"):
             stocks_data = mtgstocks.get_card_data(card.get("tcgplayerProductId"))
-            LOGGER.warning(stocks_data)
             if stocks_data:
                 card.set_all(
                     {

@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 
 import mtgjson4
 from mtgjson4 import compile_mtg, outputter
+from mtgjson4.mtgjson_card import MTGJSONCard
 from mtgjson4.provider import scryfall
 import mtgjson4.util
 
@@ -93,6 +94,37 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def add_card_to_referral_map(card: MTGJSONCard) -> None:
+    """
+    Given a card, add it to MTGJSON proprietary referral map
+    :param card: Card to add to map
+    """
+    # TCGPlayer
+    if card.get("tcgplayerProductId", None):
+        key_tcg = mtgjson4.util.url_keygen(card.get("tcgplayerProductId"))
+        outputter.write_referral_url_information({key_tcg: card.get_tcgplayer_url()})
+
+    # MTGStocks
+    if card.get("mtgstocksId", None):
+        key_stocks = mtgjson4.util.url_keygen(
+            int(str(card.get("mtgstocksId")) + mtgjson4.MTGSTOCKS_BUFFER)
+        )
+        outputter.write_referral_url_information(
+            {key_stocks: card.get_mtg_stocks_url()}
+        )
+
+    # CardMarket
+    if card.get("mcmId", None):
+        key_mkm = mtgjson4.util.url_keygen(
+            int(
+                str(card.get("mcmId"))
+                + mtgjson4.CARD_MARKET_BUFFER
+                + str(card.get("mcmMetaId"))
+            )
+        )
+        outputter.write_referral_url_information({key_mkm: card.get_card_market_url()})
+
+
 def main() -> None:
     """
     Main Method
@@ -136,40 +168,7 @@ def main() -> None:
         if compiled["cards"] or compiled["tokens"]:
             if not args.skip_tcgplayer:
                 for card in compiled["cards"]:
-                    # ReferralMap Contents
-
-                    # TCGPlayer
-                    if card.get("tcgplayerProductId", None):
-                        key_tcg = mtgjson4.util.url_keygen(
-                            card.get("tcgplayerProductId")
-                        )
-                        outputter.write_referral_url_information(
-                            {key_tcg: card.get_tcgplayer_url()}
-                        )
-
-                    # MTGStocks
-                    if card.get("mtgstocksId", None):
-                        key_stocks = mtgjson4.util.url_keygen(
-                            int(
-                                str(card.get("mtgstocksId")) + mtgjson4.MTGSTOCKS_BUFFER
-                            )
-                        )
-                        outputter.write_referral_url_information(
-                            {key_stocks: card.get_mtg_stocks_url()}
-                        )
-
-                    # CardMarket
-                    if card.get("mcmId", None):
-                        key_mkm = mtgjson4.util.url_keygen(
-                            int(
-                                str(card.get("mcmId"))
-                                + mtgjson4.CARD_MARKET_BUFFER
-                                + str(card.get("mcmMetaId"))
-                            )
-                        )
-                        outputter.write_referral_url_information(
-                            {key_mkm: card.get_card_market_url()}
-                        )
+                    add_card_to_referral_map(card)
 
             mtgjson4.outputter.write_to_file(set_code.upper(), compiled, set_file=True)
 
