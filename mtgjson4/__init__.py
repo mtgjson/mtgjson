@@ -7,7 +7,7 @@ import time
 from typing import Dict, List
 
 # Maintenance variables
-__VERSION__ = "4.3.3"
+__VERSION__ = "4.4.0"
 __VERSION_DATE__ = "2019-04-20"
 __MAINTAINER__ = "Zach Halpern (GitHub: @ZeldaZach)"
 __MAINTAINER_EMAIL__ = "zahalpern+github@gmail.com"
@@ -25,6 +25,7 @@ SESSION_CACHE_EXPIRE_GENERAL: int = 604800  # seconds - 1 week
 SESSION_CACHE_EXPIRE_TCG: int = 604800  # seconds - 1 week
 SESSION_CACHE_EXPIRE_SCRYFALL: int = 604800  # seconds - 1 week
 SESSION_CACHE_EXPIRE_MKM: int = 604800  # seconds - 1 week
+SESSION_CACHE_EXPIRE_STOCKS: int = 604800  # seconds - 1 week
 
 USE_CACHE: contextvars.ContextVar = contextvars.ContextVar("USE_CACHE")
 
@@ -33,6 +34,9 @@ os.environ["MKM_APP_TOKEN"] = ""
 os.environ["MKM_APP_SECRET"] = ""
 os.environ["MKM_ACCESS_TOKEN"] = ""
 os.environ["MKM_ACCESS_TOKEN_SECRET"] = ""
+
+MTGSTOCKS_BUFFER: str = "20202"
+CARD_MARKET_BUFFER: str = "10101"
 
 # Compiled Output Files
 ALL_SETS_OUTPUT: str = "AllSets"

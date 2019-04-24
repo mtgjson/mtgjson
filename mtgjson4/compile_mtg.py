@@ -15,7 +15,7 @@ from mkmsdk.mkm import Mkm
 import mtgjson4
 from mtgjson4 import mtgjson_card
 from mtgjson4.mtgjson_card import MTGJSONCard
-from mtgjson4.provider import gatherer, scryfall, tcgplayer, wizards
+from mtgjson4.provider import gatherer, mtgstocks, scryfall, tcgplayer, wizards
 from mtgjson4.util import is_number
 
 LOGGER = logging.getLogger(__name__)
@@ -127,6 +127,9 @@ def build_output_file(
     # Move bogus tokens out
     card_holder, added_tokens = transpose_tokens(card_holder)
 
+    # Add MTGStocks data in
+    card_holder = add_stocks_data(card_holder)
+
     # Add TCGPlayer information
     if "tcgplayer_id" in set_config.keys():
         output_file["tcgplayerGroupId"] = set_config["tcgplayer_id"]
@@ -190,6 +193,29 @@ def initialize_mkm_set_cards(mcm_id: Optional[str]) -> None:
     MKM_SET_CARDS.set(dict_by_set_num)
 
 
+def add_stocks_data(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
+    """
+    Add the MTGStocks content to the card
+    :param cards:
+    :return:
+    """
+    for card in cards:
+        if card.get("tcgplayerProductId"):
+            stocks_data = mtgstocks.get_card_data(card.get("tcgplayerProductId"))
+            if stocks_data:
+                card.set_all(
+                    {
+                        "mtgstocksId": stocks_data["id"],
+                        "prices": {"paper": stocks_data["prices"]},
+                        # Future additions may include: "mtgo", "paper_foil", and "mtga"
+                    }
+                )
+        else:
+            LOGGER.warning("No TCGPlayer ID Found for {}".format(card.get("name")))
+
+    return cards
+
+
 def transpose_tokens(
     cards: List[MTGJSONCard]
 ) -> Tuple[List[MTGJSONCard], List[Dict[str, Any]]]:
@@ -250,9 +276,13 @@ def add_purchase_fields(group_id: int, cards: List[MTGJSONCard]) -> None:
                 merge_dict["tcgplayer"] = tcgplayer_value
 
         if os.environ["MKM_APP_TOKEN"] and os.environ["MKM_APP_SECRET"]:
-            cardmarket_value = card.set_card_market_fields()
+            cardmarket_value = card.get_card_market_link()
             if cardmarket_value:
                 merge_dict["cardmarket"] = cardmarket_value
+
+        stocks_value = card.get_mtgstocks_link()
+        if stocks_value:
+            merge_dict["mtgstocks"] = stocks_value
 
         card.set("purchaseUrls", merge_dict)
 

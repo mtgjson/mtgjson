@@ -125,3 +125,4 @@ compiled_outputs/
 mtgjson.properties
 *.sqlite
 set_translations.json
+stocks_data.json
