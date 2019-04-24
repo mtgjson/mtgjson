@@ -26,7 +26,9 @@ disable=
     too-many-statements,
     wrong-import-order,
     too-many-branches,
-    import-error
+    import-error,
+    too-many-public-methods,
+    duplicate-code
 
 
 [REPORTS]

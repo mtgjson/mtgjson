@@ -8,10 +8,11 @@ from typing import Any, Callable, Dict, Iterator, KeysView, List, Optional, Tupl
 import uuid
 
 import mtgjson4
-from mtgjson4.provider import tcgplayer
+from mtgjson4.provider import mtgstocks, tcgplayer
 
 TCGPLAYER_REFERRAL: str = "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"
 CARD_MARKET_REFERRAL: str = "?utm_campaign=card_prices&utm_medium=text&utm_source=mtgjson"
+MTG_STOCKS_REFERRAL: str = "?utm_campaign=mtgjson&utm_medium=mtgjson&utm_source=mtgjson"
 
 DUEL_DECK_LAND_MARKED: contextvars.ContextVar = contextvars.ContextVar("DD_R1")
 DUEL_DECK_SIDE_COMP: contextvars.ContextVar = contextvars.ContextVar("DD_R2")
@@ -112,6 +113,16 @@ class MTGJSONCard:
         """
         return str(self.card_market_url) + CARD_MARKET_REFERRAL
 
+    def get_mtg_stocks_url(self) -> str:
+        """
+        Get MTGStocks with affiliate code
+        :return: URL
+        """
+        return (
+            mtgstocks.MTG_STOCKS_REFERRAL_URL.format(self.get("mtgstocksId"))
+            + MTG_STOCKS_REFERRAL
+        )
+
     def keys(self) -> KeysView:
         """
         Return internal dictionary keys
@@ -188,7 +199,7 @@ class MTGJSONCard:
             else None
         )
 
-    def set_card_market_fields(self) -> Optional[str]:
+    def get_card_market_link(self) -> Optional[str]:
         """
         Get the cardmarket purchase fields
         :return Get the purchase URL after doing something
@@ -200,9 +211,23 @@ class MTGJSONCard:
             tcgplayer.get_redirection_url(
                 int(
                     str(self.get("mcmId"))
-                    + "10101"  # Buffer to distinguish from each other & TCGPlayer
+                    + mtgjson4.CARD_MARKET_BUFFER
                     + str(self.get("mcmMetaId"))
                 )
+            )
+        )
+
+    def get_mtgstocks_link(self) -> Optional[str]:
+        """
+        Get the mtgstocks purchase fields
+        :return: Purchase URL
+        """
+        if not self.get("mtgstocksId"):
+            return None
+
+        return str(
+            tcgplayer.get_redirection_url(
+                int(str(self.get("mtgstocksId")) + mtgjson4.MTGSTOCKS_BUFFER)
             )
         )
 

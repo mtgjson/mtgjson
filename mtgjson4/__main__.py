@@ -136,7 +136,9 @@ def main() -> None:
         if compiled["cards"] or compiled["tokens"]:
             if not args.skip_tcgplayer:
                 for card in compiled["cards"]:
-                    # ReferralMap TCGPlayer
+                    # ReferralMap Contents
+
+                    # TCGPlayer
                     if card.get("tcgplayerProductId", None):
                         key_tcg = mtgjson4.util.url_keygen(
                             card.get("tcgplayerProductId")
@@ -145,12 +147,23 @@ def main() -> None:
                             {key_tcg: card.get_tcgplayer_url()}
                         )
 
-                    # ReferralMap CardMarket
+                    # MTGStocks
+                    if card.get("mtgstocksId", None):
+                        key_stocks = mtgjson4.util.url_keygen(
+                            int(
+                                str(card.get("mtgstocksId")) + mtgjson4.MTGSTOCKS_BUFFER
+                            )
+                        )
+                        outputter.write_referral_url_information(
+                            {key_stocks: card.get_mtg_stocks_url()}
+                        )
+
+                    # CardMarket
                     if card.get("mcmId", None):
                         key_mkm = mtgjson4.util.url_keygen(
                             int(
                                 str(card.get("mcmId"))
-                                + "10101"  # Buffer to distinguish from each other & TCGPlayer
+                                + mtgjson4.CARD_MARKET_BUFFER
                                 + str(card.get("mcmMetaId"))
                             )
                         )
