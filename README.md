@@ -60,11 +60,11 @@ ___
 | `-a`                        | Build all sets. This overshadows the `-s` flag.                                                                                                 |
 | `-c`                        | After building any/all sets, create the compiled outputs (ex: AllSets, AllCards).                                                               |
 | `-x`                        | Skips sets that have already been built (i.e. set files in the output folder), and build the remaining sets. Must be passed with `-a` or `-s`.  |
+| `-z`                        | Compress the outputs directory contents                                                                                                         |
 | `-s SET [SET ...]`          | Build set code arguments, provided they exist.                                                                                                  |
-| `--skip-sets SET [SET ...]` | Prevents set code arguments from being built, even if passed in via `-a` or `-s`.                                                               |
 | `--skip-tcgplayer`          | If you don't have a TCGPlayer API key, you can disable building of TCGPlayer components.                                                        |
+| `--skip-sets SET [SET ...]` | Prevents set code arguments from being built, even if passed in via `-a` or `-s`.                                                               |
 | `--skip-cache`              | Disables the reading and writing of cached content                                                                                              |
-|
 
 > &nbsp;
 > **Newcomer Note**: Omitting either the `-a` and `-s` flag will yield empty outputted data.
@@ -78,7 +78,9 @@ ___
 Run the program, with any flag(s) you'd like, via:
 
 ```sh
-python3 -m mtgjson4 [-h] [-acx] [-s [SET [SET ...]]] [--skip-tcgplayer] [--skip-cache] [--skip-sets [SET [SET ...]]]
+python3 -m mtgjson4 [-h] [-a] [-c] [-x] [-z] [-s [SET [SET ...]]]
+                    [--skip-tcgplayer] [--skip-sets [SET [SET ...]]]
+                    [--skip-cache]
 ```
 
 Example:

@@ -79,13 +79,13 @@ def parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description="")
     parser.add_argument("-a", action="store_true")
-    parser.add_argument("-s", metavar="SET", nargs="*", type=str)
     parser.add_argument("-c", action="store_true")
     parser.add_argument("-x", action="store_true")
+    parser.add_argument("-z", action="store_true")
+    parser.add_argument("-s", metavar="SET", nargs="*", type=str)
     parser.add_argument("--skip-tcgplayer", action="store_true")
     parser.add_argument("--skip-sets", metavar="SET", nargs="*", type=str)
     parser.add_argument("--skip-cache", action="store_true")
-    parser.add_argument("-z", action="store_true")
 
     # Ensure there are args
     if len(sys.argv) < 2:
