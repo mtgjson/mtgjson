@@ -318,7 +318,7 @@ def create_compiled_list(files_to_add: List[str]) -> Dict[str, Any]:
     :return: Dict to write
     """
     return {
-        "files": files_to_add,
+        "files": sorted(files_to_add),
         "meta": {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__},
     }
 
@@ -329,29 +329,14 @@ def create_and_write_compiled_outputs() -> None:
     (ex: AllSets.json, AllCards.json, Standard.json)
     """
     # Compiled output files
-    files_to_ignore: List[str] = [
-        mtgjson4.ALL_CARDS_OUTPUT,
-        mtgjson4.ALL_DECKS_DIR_OUTPUT,
-        mtgjson4.ALL_SETS_DIR_OUTPUT,
-        mtgjson4.ALL_SETS_OUTPUT,
-        mtgjson4.CARD_TYPES_OUTPUT,
-        mtgjson4.COMPILED_LIST_OUTPUT,
-        mtgjson4.DECK_LISTS_OUTPUT,
-        mtgjson4.KEY_WORDS_OUTPUT,
-        mtgjson4.MODERN_OUTPUT,
-        mtgjson4.SET_LIST_OUTPUT,
-        mtgjson4.STANDARD_OUTPUT,
-        mtgjson4.VERSION_OUTPUT,
-        mtgjson4.VINTAGE_OUTPUT,
-    ]
 
     # CompiledList.json -- do not include ReferralMap
     write_to_file(
-        mtgjson4.COMPILED_LIST_OUTPUT, create_compiled_list(sorted(files_to_ignore))
+        mtgjson4.COMPILED_LIST_OUTPUT,
+        create_compiled_list(
+            list(set(mtgjson4.OUTPUT_FILES) - {mtgjson4.REFERRAL_DB_OUTPUT})
+        ),
     )
-
-    # File that should be also ignored -- must be added AFTER CompiledList.json
-    files_to_ignore.append(mtgjson4.REFERRAL_DB_OUTPUT)
 
     # Keywords.json
     key_words = wizards.compile_comp_output()
@@ -366,15 +351,15 @@ def create_and_write_compiled_outputs() -> None:
     write_to_file(mtgjson4.VERSION_OUTPUT, version_info)
 
     # SetList.json
-    set_list_info = get_all_set_list(files_to_ignore)
+    set_list_info = get_all_set_list(mtgjson4.OUTPUT_FILES)
     write_to_file(mtgjson4.SET_LIST_OUTPUT, set_list_info)
 
     # AllSets.json
-    all_sets = create_all_sets(files_to_ignore)
+    all_sets = create_all_sets(mtgjson4.OUTPUT_FILES)
     write_to_file(mtgjson4.ALL_SETS_OUTPUT, all_sets)
 
     # AllCards.json
-    all_cards = create_all_cards(files_to_ignore)
+    all_cards = create_all_cards(mtgjson4.OUTPUT_FILES)
     write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
 
     # Standard.json
@@ -384,7 +369,7 @@ def create_and_write_compiled_outputs() -> None:
     write_to_file(mtgjson4.MODERN_OUTPUT, create_modern_only_output())
 
     # Vintage.json
-    all_sets_no_fun = create_vintage_only_output(files_to_ignore)
+    all_sets_no_fun = create_vintage_only_output(mtgjson4.OUTPUT_FILES)
     write_to_file(mtgjson4.VINTAGE_OUTPUT, all_sets_no_fun)
 
     # decks/*.json

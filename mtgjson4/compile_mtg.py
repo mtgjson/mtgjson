@@ -535,7 +535,7 @@ def convert_to_mtgjson(sf_cards: List[Dict[str, Any]]) -> List[MTGJSONCard]:
     # Clear sessions before the fork() to prevent awk issues with urllib3
     SESSION.set(None)
 
-    with multiprocessing.Pool(processes=8) as pool:
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         results: List[Any] = pool.map(build_mtgjson_card, sf_cards)
 
         all_cards: List[MTGJSONCard] = []

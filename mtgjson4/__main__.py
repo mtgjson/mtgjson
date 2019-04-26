@@ -8,7 +8,7 @@ import sys
 from typing import Any, Dict, List
 
 import mtgjson4
-from mtgjson4 import compile_mtg, outputter
+from mtgjson4 import compile_mtg, compressor, outputter
 from mtgjson4.mtgjson_card import MTGJSONCard
 from mtgjson4.provider import scryfall
 import mtgjson4.util
@@ -85,6 +85,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-tcgplayer", action="store_true")
     parser.add_argument("--skip-sets", metavar="SET", nargs="*", type=str)
     parser.add_argument("--skip-cache", action="store_true")
+    parser.add_argument("-z", action="store_true")
 
     # Ensure there are args
     if len(sys.argv) < 2:
@@ -130,6 +131,7 @@ def main() -> None:
     Main Method
     """
     args: argparse.Namespace = parse_args()
+    mtgjson4.USE_CACHE.set(not args.skip_cache)
 
     if not mtgjson4.CONFIG_PATH.is_file():
         LOGGER.warning(
@@ -137,7 +139,6 @@ def main() -> None:
                 mtgjson4.CONFIG_PATH
             )
         )
-    mtgjson4.USE_CACHE.set(not args.skip_cache)
 
     # Determine set(s) to build
     args_s = args.s if args.s else []
@@ -174,8 +175,14 @@ def main() -> None:
 
     # Compile the additional outputs
     if args.c:
-        LOGGER.info("Compiling Additional Outputs")
+        LOGGER.info("Compiling additional outputs")
         mtgjson4.outputter.create_and_write_compiled_outputs()
+
+    # Compress the output folder
+    if args.z:
+        LOGGER.info("Start compressing for production")
+        compressor.compress_output_folder()
+        LOGGER.info("Finished compressing for production")
 
 
 if __name__ == "__main__":
