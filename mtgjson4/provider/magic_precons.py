@@ -55,6 +55,7 @@ def build_and_write_decks(decks_url: str) -> Iterator[Dict[str, Any]]:
                 "meta": {
                     "version": mtgjson4.__VERSION__,
                     "date": mtgjson4.__VERSION_DATE__,
+                    "pricesDate": mtgjson4.__PRICE_UPDATE_DATE__,
                 },
             }
 

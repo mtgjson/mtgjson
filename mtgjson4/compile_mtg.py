@@ -112,6 +112,7 @@ def build_output_file(
     output_file["meta"] = {
         "version": mtgjson4.__VERSION__,
         "date": mtgjson4.__VERSION_DATE__,
+        "pricesDate": mtgjson4.__PRICE_UPDATE_DATE__,
     }
 
     LOGGER.info("Starting cards for {}".format(set_code))

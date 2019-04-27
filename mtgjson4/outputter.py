@@ -312,7 +312,11 @@ def create_deck_compiled_list(decks_to_add: List[Dict[str, str]]) -> Dict[str, A
     """
     return {
         "decks": decks_to_add,
-        "meta": {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__},
+        "meta": {
+            "version": mtgjson4.__VERSION__,
+            "date": mtgjson4.__VERSION_DATE__,
+            "pricesDate": mtgjson4.__PRICE_UPDATE_DATE__,
+        },
     }
 
 
@@ -324,7 +328,11 @@ def create_compiled_list(files_to_add: List[str]) -> Dict[str, Any]:
     """
     return {
         "files": sorted(files_to_add),
-        "meta": {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__},
+        "meta": {
+            "version": mtgjson4.__VERSION__,
+            "date": mtgjson4.__VERSION_DATE__,
+            "pricesDate": mtgjson4.__PRICE_UPDATE_DATE__,
+        },
     }
 
 
