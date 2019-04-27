@@ -1,10 +1,10 @@
 # [**MTGJSON**](https://mtgjson.com/)
 
-[![changelog](https://img.shields.io/badge/dynamic/json.svg?label=Version&url=https%3A%2F%2Fmtgjson.com%2Fjson%2Fversion.json&query=%24.version&colorB=blue)](https://mtgjson.com/changelog.html) ![Current Release Date](https://img.shields.io/badge/dynamic/json.svg?label=Released&url=https%3A%2F%2Fmtgjson.com%2Fjson%2Fversion.json&query=%24.date&colorB=blue)
+[![Changelog](https://img.shields.io/badge/dynamic/json.svg?label=Version&url=https%3A%2F%2Fmtgjson.com%2Fjson%2Fversion.json&query=%24.version&colorB=blue)](https://mtgjson.com/changelog/) [![Current Release Date](https://img.shields.io/badge/dynamic/json.svg?label=Released&url=https%3A%2F%2Fmtgjson.com%2Fjson%2Fversion.json&query=%24.date&colorB=blue)](https://mtgjson.com/changelog/)
 
 [![PayPal](https://img.shields.io/static/v1.svg?label=PayPal&message=Support%20MTGJSON&color=Blue&logo=paypal)](https://paypal.me/zachhalpern)
 
-[![Patreon](https://img.shields.io/static/v1.svg?label=Patreon&message=Support%20MTGJSON&color=Orange&logo=patreon)](https://patreon.com/mtgjson)
+[![Patreon](https://img.shields.io/static/v1.svg?label=Patreon&message=Support%20MTGJSON&color=Orange&logo=patreon)](https://patreon.com/mtgjson) 
 
 MTGJSON is an open sourced database creation and distribution tool for [_Magic: The Gathering_](https://magic.wizards.com/) cards, specifically in [JSON](https://json.org/) format.
 &nbsp;
