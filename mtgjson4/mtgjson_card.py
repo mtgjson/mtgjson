@@ -248,7 +248,7 @@ class MTGJSONCard:
             ) as f:
                 json_dict: Dict[str, List[Any]] = json.load(f)
 
-                for card in json_dict[self.set_code]:
+                for card in json_dict.get(self.set_code, []):
                     if self.get("name") in card["name"].split(" // "):
                         return str(card["watermark"])
 
