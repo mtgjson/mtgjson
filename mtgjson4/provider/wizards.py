@@ -93,7 +93,11 @@ def compile_comp_output() -> Dict[str, Any]:
         "abilityWords": get_ability_words(comp_rules),
         "keywordActions": get_keyword_actions(comp_rules),
         "keywordAbilities": get_keyword_abilities(comp_rules),
-        "meta": {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__},
+        "meta": {
+            "version": mtgjson4.__VERSION__,
+            "date": mtgjson4.__VERSION_DATE__,
+            "pricesDate": mtgjson4.__PRICE_UPDATE_DATE__,
+        },
     }
 
 
@@ -245,7 +249,11 @@ def get_card_types(comp_rules: str) -> Dict[str, Any]:
         }
 
     return {
-        "meta": {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__},
+        "meta": {
+            "version": mtgjson4.__VERSION__,
+            "date": mtgjson4.__VERSION_DATE__,
+            "pricesDate": mtgjson4.__PRICE_UPDATE_DATE__,
+        },
         "types": types_dict,
     }
 
