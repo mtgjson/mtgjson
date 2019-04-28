@@ -83,7 +83,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-x", action="store_true")
     parser.add_argument("-z", action="store_true")
     parser.add_argument("-s", metavar="SET", nargs="*", type=str)
-    parser.add_argument("--skip-tcgplayer", action="store_true")
+    parser.add_argument("--skip-keys", action="store_true")
     parser.add_argument("--skip-sets", metavar="SET", nargs="*", type=str)
     parser.add_argument("--skip-cache", action="store_true")
 
@@ -162,12 +162,12 @@ def main() -> None:
 
     for set_code in set_list:
         sf_set: List[Dict[str, Any]] = scryfall.get_set(set_code)
-        compiled = compile_mtg.build_output_file(sf_set, set_code, args.skip_tcgplayer)
+        compiled = compile_mtg.build_output_file(sf_set, set_code, args.skip_keys)
 
         # If we have at least 1 card, dump to file SET.json
         # but first add them to ReferralMap.json
         if compiled["cards"] or compiled["tokens"]:
-            if not args.skip_tcgplayer:
+            if not args.skip_keys:
                 for card in compiled["cards"]:
                     add_card_to_referral_map(card)
 

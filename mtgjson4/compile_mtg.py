@@ -35,7 +35,8 @@ def build_output_file(
     :param set_code: Set code
     :return: Completed JSON file
     """
-    MKM_API.set(Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"]))
+    if not skip_tcgplayer:
+        MKM_API.set(Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"]))
 
     output_file: Dict[str, Any] = {}
 
@@ -55,20 +56,22 @@ def build_output_file(
 
     # Try adding MKM Set Name
     # Then store the card data for future pulling
-    mkm_resp = MKM_API.get().market_place.expansions(game=1)
-    if mkm_resp.status_code != 200:
-        LOGGER.error("Unable to download MKM correctly: {}".format(mkm_resp))
-    else:
-        for set_content in mkm_resp.json()["expansion"]:
-            if (
-                set_content["enName"].lower() == output_file["name"].lower()
-                or set_content["abbreviation"].lower() == output_file["code"].lower()
-            ):
-                output_file["mcmId"] = set_content["idExpansion"]
-                output_file["mcmName"] = set_content["enName"]
-                break
+    if MKM_API.get(None):
+        mkm_resp = MKM_API.get().market_place.expansions(game=1)
+        if mkm_resp.status_code != 200:
+            LOGGER.error("Unable to download MKM correctly: {}".format(mkm_resp))
+        else:
+            for set_content in mkm_resp.json()["expansion"]:
+                if (
+                    set_content["enName"].lower() == output_file["name"].lower()
+                    or set_content["abbreviation"].lower()
+                    == output_file["code"].lower()
+                ):
+                    output_file["mcmId"] = set_content["idExpansion"]
+                    output_file["mcmName"] = set_content["enName"]
+                    break
 
-    initialize_mkm_set_cards(output_file.get("mcmId", None))
+        initialize_mkm_set_cards(output_file.get("mcmId", None))
 
     # Add translations to the files
     try:
@@ -170,7 +173,7 @@ def initialize_mkm_set_cards(mcm_id: Optional[str]) -> None:
     Initialize the MKM global with the cards found in the set
     :param mcm_id: Set's ID, if possible
     """
-    if mcm_id is None:
+    if mcm_id is None or MKM_API.get(None) is None:
         MKM_SET_CARDS.set({})
         return
 
@@ -704,27 +707,31 @@ def build_mtgjson_card(
     )
 
     # Set MKM IDs if it exists
-    mkm_card_found = False
-    for key, mkm_obj in MKM_SET_CARDS.get().items():
-        if single_card.get("name").lower() not in key:
-            continue
+    if MKM_API.get(None):
+        mkm_card_found = False
+        for key, mkm_obj in MKM_SET_CARDS.get().items():
+            if single_card.get("name").lower() not in key:
+                continue
 
-        if "number" not in mkm_obj.keys() or (
-            mkm_obj.get("number") in single_card.get("number")
-        ):
-            single_card.set_all(
-                {"mcmId": mkm_obj["idProduct"], "mcmMetaId": mkm_obj["idMetaproduct"]}
-            )
-            single_card.set_mkm_url(mkm_obj["website"])
-            mkm_card_found = True
-            break
+            if "number" not in mkm_obj.keys() or (
+                mkm_obj.get("number") in single_card.get("number")
+            ):
+                single_card.set_all(
+                    {
+                        "mcmId": mkm_obj["idProduct"],
+                        "mcmMetaId": mkm_obj["idMetaproduct"],
+                    }
+                )
+                single_card.set_mkm_url(mkm_obj["website"])
+                mkm_card_found = True
+                break
 
-    if not mkm_card_found:
-        LOGGER.warning(
-            "Unable to find MKM information for #{} {}".format(
-                single_card.get("number"), single_card.get("name")
+        if not mkm_card_found:
+            LOGGER.warning(
+                "Unable to find MKM information for #{} {}".format(
+                    single_card.get("number"), single_card.get("name")
+                )
             )
-        )
 
     if "artist" not in single_card.keys():
         single_card.set("artist", sf_card.get("artist"))
