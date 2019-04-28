@@ -4,7 +4,7 @@
 
 [![PayPal](https://img.shields.io/static/v1.svg?label=PayPal&message=Support%20MTGJSON&color=Blue&logo=paypal)](https://paypal.me/zachhalpern)
 
-[![Patreon](https://img.shields.io/static/v1.svg?label=Patreon&message=Support%20MTGJSON&color=Orange&logo=patreon)](https://patreon.com/mtgjson) 
+[![Patreon](https://img.shields.io/static/v1.svg?label=Patreon&message=Support%20MTGJSON&color=Orange&logo=patreon)](https://patreon.com/mtgjson)
 
 MTGJSON is an open sourced database creation and distribution tool for [_Magic: The Gathering_](https://magic.wizards.com/) cards, specifically in [JSON](https://json.org/) format.
 &nbsp;
