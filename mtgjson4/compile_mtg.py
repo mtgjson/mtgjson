@@ -650,7 +650,7 @@ def build_mtgjson_card(
         if sf_card["card_faces"][-1]["oracle_text"].startswith("Aftermath"):
             single_card.set("layout", "aftermath")
 
-        single_card.set("artist", sf_card["card_faces"][sf_card_face]["artist"])
+        single_card.set("artist", sf_card["card_faces"][sf_card_face].get("artist", ""))
 
         # Recursively parse the other cards within this card too
         # Only call recursive if it is the first time we see this card object
