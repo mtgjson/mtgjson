@@ -62,7 +62,7 @@ ___
 | `-x`                        | Skips sets that have already been built (i.e. set files in the output folder), and build the remaining sets. Must be passed with `-a` or `-s`.  |
 | `-z`                        | Compress the outputs directory contents                                                                                                         |
 | `-s SET [SET ...]`          | Build set code arguments, provided they exist.                                                                                                  |
-| `--skip-tcgplayer`          | If you don't have a TCGPlayer API key, you can disable building of TCGPlayer components.                                                        |
+| `--skip-keys`               | If you don't have all required API keys (TCGPlayer & MKM), you can disable the building of these components.                                    |
 | `--skip-sets SET [SET ...]` | Prevents set code arguments from being built, even if passed in via `-a` or `-s`.                                                               |
 | `--skip-cache`              | Disables the reading and writing of cached content                                                                                              |
 
