@@ -26,16 +26,16 @@ MKM_API: contextvars.ContextVar = contextvars.ContextVar("MKM_API")
 
 
 def build_output_file(
-    sf_cards: List[Dict[str, Any]], set_code: str, skip_tcgplayer: bool
+    sf_cards: List[Dict[str, Any]], set_code: str, skip_keys: bool
 ) -> Dict[str, Any]:
     """
     Compile the entire XYZ.json file and pass it off to be written out
-    :param skip_tcgplayer: Skip building TCGPlayer stuff
+    :param skip_keys: Skip building TCGPlayer & MKM components
     :param sf_cards: Scryfall cards
     :param set_code: Set code
     :return: Completed JSON file
     """
-    if not skip_tcgplayer:
+    if not skip_keys:
         MKM_API.set(Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"]))
 
     output_file: Dict[str, Any] = {}
@@ -137,7 +137,7 @@ def build_output_file(
     # Add TCGPlayer information
     if "tcgplayer_id" in set_config.keys():
         output_file["tcgplayerGroupId"] = set_config["tcgplayer_id"]
-        if not skip_tcgplayer:
+        if not skip_keys:
             add_purchase_fields(output_file["tcgplayerGroupId"], card_holder)
 
     # Set Sizes
