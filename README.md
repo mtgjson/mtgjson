@@ -20,7 +20,7 @@ ___
 
 This repo contains our newest release, version `4.x`. This version relies upon a variety of sources, such as _Scryfall_ and _Gatherer_ for our data.
 
-You can find our documentation with all properties [here](https://mtgjson.com/docs.html).
+You can find our documentation with all properties [here](https://mtgjson.com/files/all-sets/).
 
 To provide feedback :information_desk_person: and/or bug reports :bug:, please [open a ticket](https://github.com/mtgjson/mtgjson4/issues/new/choose) :ticket: as it is the best way for us to communicate with the public.
 
@@ -86,9 +86,9 @@ python3 -m mtgjson4 [-h] [-a] [-c] [-x] [-z] [-s [SET [SET ...]]]
 Example:
 
 ```sh
-$ python3 -m mtgjson4 -ac
+$ python3 -m mtgjson4 -acz
 
-> all outputted json files
+> all outputted json files, then compress them
 ```
 
 ___
