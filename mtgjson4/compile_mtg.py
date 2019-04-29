@@ -131,8 +131,9 @@ def build_output_file(
     # Move bogus tokens out
     card_holder, added_tokens = transpose_tokens(card_holder)
 
-    # Add MTGStocks data in
-    card_holder = add_stocks_data(card_holder)
+    if not skip_keys:
+        # Add MTGStocks data in
+        card_holder = add_stocks_data(card_holder)
 
     # Add TCGPlayer information
     if "tcgplayer_id" in set_config.keys():
