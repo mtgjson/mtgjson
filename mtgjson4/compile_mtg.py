@@ -384,7 +384,7 @@ def add_variations_and_alternative_fields(
                     > file_info["baseSetSize"]
                 ):
                     card.set("isAlternative", True)
-            elif file_info["code"].upper() == "PLS":
+            else:
                 # Check for a star in the number
                 if chr(9733) in card.get("number"):
                     card.set("isAlternative", True)
