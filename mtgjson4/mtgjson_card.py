@@ -56,7 +56,10 @@ class MTGJSONCard:
         :param other: Other card
         :return: Less than or greater than
         """
-        return int(self.get("number")) < int(other.get("number"))
+        try:
+            return int(self.get("number")) < int(other.get("number"))
+        except ValueError:
+            return self.get("number") < other.get("number")
 
     def clear(self) -> None:
         """
