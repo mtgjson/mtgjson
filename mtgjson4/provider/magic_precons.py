@@ -95,6 +95,11 @@ def build_single_card(deck_card: Dict[str, Any]) -> List[Dict[str, Any]]:
             mtgjson_card["isFoil"] = deck_card["foil"]
             cards.append(mtgjson_card)
 
+        if mtgjson_card.get("multiverseId", "zNone") == deck_card.get("multiverseid"):
+            mtgjson_card["count"] = deck_card["count"]
+            mtgjson_card["isFoil"] = deck_card["foil"]
+            cards.append(mtgjson_card)
+
     if not cards:
         LOGGER.warning("No match for {}".format(deck_card))
 
