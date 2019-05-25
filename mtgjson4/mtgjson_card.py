@@ -42,6 +42,22 @@ class MTGJSONCard:
         """
         return str(self.card_attributes)
 
+    def __eq__(self, other: Any) -> bool:
+        """
+        Determine if two cards are the same
+        :param other: Other card
+        :return: Same card or not
+        """
+        return bool(self.get("number") == other.get("number"))
+
+    def __lt__(self, other: Any) -> bool:
+        """
+        Determine if this card is less than another
+        :param other: Other card
+        :return: Less than or greater than
+        """
+        return int(self.get("number")) < int(other.get("number"))
+
     def clear(self) -> None:
         """
         Clear all attributes on the card

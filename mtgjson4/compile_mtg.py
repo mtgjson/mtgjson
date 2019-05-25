@@ -158,7 +158,8 @@ def build_output_file(
     # Cleanups and UUIDs
     mtgjson_card.DUEL_DECK_LAND_MARKED.set(False)
     mtgjson_card.DUEL_DECK_SIDE_COMP.set("a")
-    for card in output_file["cards"]:
+
+    for card in sorted(output_file["cards"]):
         card.final_card_cleanup()
     for token in output_file["tokens"]:
         token.final_card_cleanup(is_card=False)
