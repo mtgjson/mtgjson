@@ -130,6 +130,7 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
                 card.pop("number", None)
                 card.pop("originalText", None)
                 card.pop("originalType", None)
+                card.pop("prices", None)
                 card.pop("rarity", None)
                 card.pop("scryfallId", None)
                 card.pop("scryfallIllustrationId", None)
