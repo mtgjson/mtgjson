@@ -126,6 +126,26 @@ BANNED_FILE_NAMES: List[str] = [
     "PRN",
 ]
 
+# Globals -- non-english sets
+NON_ENGLISH_SETS: List[str] = [
+    "PMPS11",
+    "PS11",
+    "PMPS10",
+    "PMPS09",
+    "PMPS08",
+    "PMPS07",
+    "PMPS06",
+    "PSA1",
+    "PMPS",
+    "PJJT",
+    "PHJ",
+    "PRED",
+    "REN",
+    "RIN",
+    "4BB",
+    "FBB",
+]
+
 
 def init_logger() -> None:
     """

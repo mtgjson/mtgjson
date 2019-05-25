@@ -95,6 +95,9 @@ def build_output_file(
     if "foil_only" in set_config.keys():
         output_file["isFoilOnly"] = set_config["foil_only"]
 
+    if set_code.upper() in mtgjson4.NON_ENGLISH_SETS:
+        output_file["isForeignOnly"] = True
+
     # Add booster info based on boosters resource (manually maintained for the time being)
     with mtgjson4.RESOURCE_PATH.joinpath("boosters.json").open(
         "r", encoding="utf-8"
