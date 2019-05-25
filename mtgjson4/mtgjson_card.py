@@ -59,7 +59,7 @@ class MTGJSONCard:
         try:
             return int(self.get("number")) < int(other.get("number"))
         except ValueError:
-            return self.get("number") < other.get("number")
+            return bool(self.get("number") < other.get("number"))
 
     def clear(self) -> None:
         """
