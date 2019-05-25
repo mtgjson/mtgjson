@@ -44,7 +44,6 @@ def download_from_wizards(url: str) -> str:
     """
     session = util.get_generic_session()
     response: Any = session.get(url=url, timeout=5.0)
-    response.encoding = "windows-1252"  # WHY DO THEY DO THIS
     util.print_download_status(response)
     session.close()
     return str(response.text)
@@ -216,7 +215,7 @@ def get_card_types(comp_rules: str) -> Dict[str, Any]:
     comp_rules = (
         comp_rules.split("205. Type Line")[2]
         .split("206. Expansion Symbol")[0]
-        .replace("\r", "")
+        .replace("\r", "\n")
     )
 
     # Different regex searches needed for the data
