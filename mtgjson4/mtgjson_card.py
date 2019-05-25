@@ -262,7 +262,7 @@ class MTGJSONCard:
         """
         self.set("uuid", self.get_uuid(is_card))
 
-        if self.set_code.startswith("DD"):
+        if self.set_code.startswith("DD") or self.set_code in ["GS1"]:
             self.__mark_duel_decks()
 
         self.__remove_unnecessary_fields()
