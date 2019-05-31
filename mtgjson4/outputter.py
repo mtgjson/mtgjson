@@ -174,7 +174,7 @@ def get_set_name_from_file_name(set_name: str) -> str:
     :param set_name: File name to convert to MTG format
     :return: Real MTG set code
     """
-    return set_name[:-1] if set_name[:-1] in mtgjson4.BANNED_FILE_NAMES else set_name
+    return set_name[:-1] if set_name in mtgjson4.BANNED_FILE_NAMES else set_name
 
 
 def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
