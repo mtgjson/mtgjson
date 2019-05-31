@@ -213,7 +213,13 @@ def parse_card_types(card_type: str) -> Tuple[List[str], List[str], List[str]]:
         split_type: List[str] = card_type.split("—")
         supertypes_and_types: str = split_type[0]
         subtypes: str = split_type[1]
-        sub_types = [x for x in subtypes.split(" ") if x]
+
+        # Planes are an entire sub-type, whereas normal cards
+        # are split by spaces
+        if card_type.startswith("Plane"):
+            sub_types = [subtypes.strip()]
+        else:
+            sub_types = [x.strip() for x in subtypes.split(" ") if x]
     else:
         supertypes_and_types = card_type
 
