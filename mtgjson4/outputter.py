@@ -396,7 +396,7 @@ def create_and_write_compiled_outputs() -> None:
     deck_names = []
     for deck in magic_precons.build_and_write_decks(DECKS_URL):
         deck_name = util.capital_case_without_symbols(deck["name"])
-        write_deck_to_file(deck_name, deck)
+        write_deck_to_file("{}_{}".format(deck_name, deck["code"]), deck)
         deck_names.append(
             {
                 "code": deck["code"],
