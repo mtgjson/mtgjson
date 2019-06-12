@@ -305,7 +305,11 @@ def uniquify_duplicates_in_set(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
     :param cards: Cards to check and update for repeats
     :return: updated cards list
     """
-    if cards and cards[0].get("borderColor", None) == "silver":
+    if (
+        cards
+        and cards[0].get("borderColor", None) == "silver"
+        and cards[0].set_code not in ["HHO"]
+    ):
         unique_list = []
         duplicate_cards: Dict[str, int] = {}
         for card in cards:
@@ -353,7 +357,9 @@ def add_variations_and_alternative_fields(
     :return: How many alternative printings were marked
     """
     # Non-silver border sets use "variations"
-    if cards and cards[0].get("borderColor") != "silver":
+    if cards and (
+        cards[0].get("borderColor") != "silver" or cards[0].set_code in ["HHO"]
+    ):
         for card in cards:
             repeats_in_set = [
                 item
