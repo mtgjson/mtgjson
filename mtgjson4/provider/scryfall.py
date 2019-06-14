@@ -44,11 +44,15 @@ def __get_session() -> requests.Session:
             # Open and read MTGJSON secret properties
             config = configparser.RawConfigParser()
             config.read(mtgjson4.CONFIG_PATH)
-            header_auth = {
-                "Authorization": "Bearer " + config.get("Scryfall", "client_secret")
-            }
-            session.headers.update(header_auth)
-            LOGGER.info("Fetching from Scryfall with authentication")
+
+            if config.get("Scryfall", "client_secret"):
+                header_auth = {
+                    "Authorization": "Bearer " + config.get("Scryfall", "client_secret")
+                }
+                session.headers.update(header_auth)
+                LOGGER.info("Fetching from Scryfall with authentication")
+            else:
+                LOGGER.warning("Fetching from Scryfall WITHOUT authentication")
         else:
             LOGGER.warning("Fetching from Scryfall WITHOUT authentication")
 

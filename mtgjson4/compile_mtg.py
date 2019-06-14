@@ -35,7 +35,7 @@ def build_output_file(
     :param set_code: Set code
     :return: Completed JSON file
     """
-    if not skip_keys:
+    if not skip_keys and os.environ["MKM_APP_TOKEN"] and os.environ["MKM_APP_SECRET"]:
         MKM_API.set(Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"]))
 
     output_file: Dict[str, Any] = {}
