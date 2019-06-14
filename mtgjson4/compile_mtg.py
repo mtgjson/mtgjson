@@ -261,7 +261,7 @@ def transpose_tokens(
     cards = [
         card
         for card in cards
-        if card.get("layout") not in ["token", "double_faced_token"]
+        if card.get("layout") not in ["token", "double_faced_token", "emblem"]
     ]
 
     return cards, tokens
@@ -514,7 +514,6 @@ def build_mtgjson_tokens(
                     "colorIdentity": sf_token.get("color_identity"),
                     "toughness": sf_token.get("toughness"),
                     "loyalty": sf_token.get("loyalty"),
-                    "layout": "normal",
                     "watermark": sf_token.get("watermark"),
                     "scryfallId": sf_token["id"],
                     "scryfallOracleId": sf_token.get("oracle_id"),
@@ -525,6 +524,11 @@ def build_mtgjson_tokens(
                     "number": sf_token.get("collector_number"),
                 }
             )
+
+            if sf_token.get("layout") == "token":
+                token_card.set("layout", "normal")
+            else:
+                token_card.set("layout", sf_token.get("layout"))
 
         reverse_related: List[str] = []
         if "all_parts" in sf_token:
