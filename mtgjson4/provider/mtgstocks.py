@@ -69,6 +69,10 @@ def __get_stocks_data() -> Dict[str, Any]:
         if (not is_file) or cache_expired:
             # Rebuild set translations
             session = __get_session()
+            if not SESSION_TOKEN.get(""):
+                LOGGER.warning("No MTGStocks token found, skipping...")
+                return {}
+
             response: Any = session.get(
                 url=MTG_STOCKS_API_URL.format(SESSION_TOKEN.get("")), timeout=5.0
             )
