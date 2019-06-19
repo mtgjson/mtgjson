@@ -217,7 +217,7 @@ def add_stocks_data(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
                         "mtgstocksId": stocks_data["id"],
                         "prices": {
                             "paper": stocks_data["paper"],
-                            "paper_foil": stocks_data["foil"],
+                            "paperFoil": stocks_data["foil"],
                         },
                         # Future additions may include: "mtgo", "mtgo_foil", and "mtga"
                     }
