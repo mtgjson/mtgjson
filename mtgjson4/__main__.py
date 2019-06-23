@@ -145,7 +145,7 @@ def main() -> None:
     set_list: List[str] = get_all_sets() if args.a else args_s
 
     if args.skip_sets:
-        set_list = list(set(set_list) - set(args.skip_sets))
+        set_list = sorted(list(set(set_list) - set(args.skip_sets)))
         LOGGER.info("Skipping set(s) by request of user: {}".format(args.skip_sets))
 
     LOGGER.info("Sets to compile: {}".format(set_list))
