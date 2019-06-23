@@ -868,7 +868,9 @@ def build_mtgjson_card(
     )
 
     if single_card.get("multiverseId") is not None:
-        gatherer_cards = gatherer.get_cards(single_card.get("multiverseId"))
+        gatherer_cards = gatherer.get_cards(
+            single_card.get("multiverseId"), single_card.set_code
+        )
         try:
             gatherer_card = gatherer_cards[sf_card_face]
             single_card.set("originalType", gatherer_card.original_types)
