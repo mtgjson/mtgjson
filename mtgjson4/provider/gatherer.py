@@ -119,7 +119,7 @@ def _parse_column(
             text_lines.append(_replace_symbols(textbox).getText().strip())
 
     original_text: Optional[str] = "\n".join(text_lines).strip() or None
-    if original_text and strip_parentheses:
+    if strip_parentheses and original_text:
         original_text = strip_parentheses_from_text(original_text)
 
     return GathererCard(
