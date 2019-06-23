@@ -2,6 +2,7 @@
 import contextvars
 import copy
 import logging
+import re
 from typing import Any, List, NamedTuple, Optional
 
 import bs4
@@ -53,6 +54,8 @@ SYMBOL_MAP = {
     "Infinite": "∞",
 }
 
+SETS_TO_REMOVE_PARENTHESES = ["10E"]
+
 
 class GathererCard(NamedTuple):
     """Response payload for fetching a card from Gatherer."""
@@ -63,7 +66,7 @@ class GathererCard(NamedTuple):
     flavor_text: Optional[str]
 
 
-def get_cards(multiverse_id: str) -> List[GathererCard]:
+def get_cards(multiverse_id: str, set_code: str = "") -> List[GathererCard]:
     """Get card(s) matching a given multiverseId."""
     session = util.get_generic_session()
     response: Any = session.get(
@@ -75,17 +78,21 @@ def get_cards(multiverse_id: str) -> List[GathererCard]:
     util.print_download_status(response)
     session.close()
 
-    return parse_cards(response.text)
+    return parse_cards(response.text, set_code in SETS_TO_REMOVE_PARENTHESES)
 
 
-def parse_cards(gatherer_data: str) -> List[GathererCard]:
+def parse_cards(
+    gatherer_data: str, strip_parentheses: bool = False
+) -> List[GathererCard]:
     """Parse all cards from a given gatherer page."""
     soup = bs4.BeautifulSoup(gatherer_data, "html.parser")
     columns = soup.find_all("td", class_="rightCol")
-    return [_parse_column(c) for c in columns]
+    return [_parse_column(c, strip_parentheses) for c in columns]
 
 
-def _parse_column(gatherer_column: bs4.element.Tag) -> GathererCard:
+def _parse_column(
+    gatherer_column: bs4.element.Tag, strip_parentheses: bool
+) -> GathererCard:
     """Parse a single gatherer page 'rightCol' entry."""
     label_to_values = {
         row.find("div", class_="label")
@@ -111,10 +118,14 @@ def _parse_column(gatherer_column: bs4.element.Tag) -> GathererCard:
         ):
             text_lines.append(_replace_symbols(textbox).getText().strip())
 
+    original_text: Optional[str] = "\n".join(text_lines).strip() or None
+    if original_text and strip_parentheses:
+        original_text = strip_parentheses_from_text(original_text)
+
     return GathererCard(
         card_name=card_name,
         original_types=card_types,
-        original_text="\n".join(text_lines).strip() or None,
+        original_text=original_text,
         flavor_text="\n".join(flavor_lines).strip() or None,
     )
 
@@ -128,3 +139,13 @@ def _replace_symbols(tag: bs4.BeautifulSoup) -> bs4.BeautifulSoup:
         symbol = SYMBOL_MAP.get(alt, alt)
         image.replace_with("{" + symbol + "}")
     return tag_copy
+
+
+def strip_parentheses_from_text(text: str) -> str:
+    """
+    Remove all text within parentheses from a card, along with
+    extra spaces.
+    :param text: Text to modify
+    :return: Stripped text
+    """
+    return re.sub(r" \([^)]*\)", "", text).replace("  ", " ").strip()
