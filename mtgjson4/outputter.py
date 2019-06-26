@@ -138,6 +138,14 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
                 card.pop("tcgplayerPurchaseUrl", None)
                 card.pop("variations", None)
                 card.pop("watermark", None)
+                card.pop("isFullArt", None)
+                card.pop("isTextless", None)
+                card.pop("isStorySpotlight", None)
+                card.pop("isReprint", None)
+                card.pop("isPromo", None)
+                card.pop("isPaper", None)
+                card.pop("isMtgo", None)
+                card.pop("isArena", None)
 
                 for foreign in card["foreignData"]:
                     foreign.pop("multiverseId", None)
