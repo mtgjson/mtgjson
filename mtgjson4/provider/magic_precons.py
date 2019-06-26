@@ -90,12 +90,9 @@ def build_single_card(deck_card: Dict[str, Any]) -> List[Dict[str, Any]]:
             if deck_card["number"][-1].isalpha():
                 deck_card["number"] = deck_card["number"][:-1]
 
-        if mtgjson_card["number"] == deck_card["number"]:
-            mtgjson_card["count"] = deck_card["count"]
-            mtgjson_card["isFoil"] = deck_card["foil"]
-            cards.append(mtgjson_card)
-
-        if mtgjson_card.get("multiverseId", "zNone") == deck_card.get("multiverseid"):
+        if (mtgjson_card["number"] == deck_card["number"]) or (
+            mtgjson_card.get("multiverseId", "zNone") == deck_card.get("multiverseid")
+        ):
             mtgjson_card["count"] = deck_card["count"]
             mtgjson_card["isFoil"] = deck_card["foil"]
             cards.append(mtgjson_card)
