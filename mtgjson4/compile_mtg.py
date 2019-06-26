@@ -770,7 +770,7 @@ def build_mtgjson_card(
         )
 
     # "isPaper", "isMtgo", "isArena"
-    for game_mode in sf_card.get("games"):
+    for game_mode in sf_card.get("games", []):
         single_card.set("is{}".format(game_mode.capitalize()), True)
 
     if "flavor_text" in face_data:
