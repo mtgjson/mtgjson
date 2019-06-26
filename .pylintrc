@@ -28,7 +28,8 @@ disable=
     too-many-branches,
     import-error,
     too-many-public-methods,
-    duplicate-code
+    duplicate-code,
+    too-many-locals
 
 
 [REPORTS]
