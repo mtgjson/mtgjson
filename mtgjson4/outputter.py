@@ -230,7 +230,11 @@ def get_version_info() -> Dict[str, str]:
     Create a version file for updating purposes
     :return: Version file
     """
-    return {"version": mtgjson4.__VERSION__, "date": mtgjson4.__VERSION_DATE__}
+    return {
+        "version": mtgjson4.__VERSION__,
+        "date": mtgjson4.__VERSION_DATE__,
+        "pricesDate": mtgjson4.__PRICE_UPDATE_DATE__,
+    }
 
 
 def create_standard_only_output() -> Dict[str, Any]:
