@@ -56,7 +56,7 @@ def build_mtgjson_set(
 
     mtgjson_set_file["releaseDate"] = set_config["released_at"]
     if datetime.datetime.today().strftime("%Y-%m-%d") < mtgjson_set_file["releaseDate"]:
-        mtgjson_set_file["isPartialSpoiler"] = True
+        mtgjson_set_file["isPartialPreview"] = True
 
     # Try adding MKM Set Name
     # Then store the card data for future pulling
