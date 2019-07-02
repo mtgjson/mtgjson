@@ -44,7 +44,7 @@ def build_mtgjson_set(
     # Get the set config from Scryfall
     set_config = scryfall.download(scryfall.SCRYFALL_API_SETS + set_code)
     if set_config["object"] == "error":
-        LOGGER.error("Set Config for {} was not found, skipping...".format(set_code))
+        LOGGER.error(f"Set Config for {set_code} was not found, skipping...")
         return {"cards": [], "tokens": []}
 
     mtgjson_set_file["name"] = set_config["name"]
@@ -63,7 +63,7 @@ def build_mtgjson_set(
     if MKM_API.get(None):
         mkm_resp = MKM_API.get().market_place.expansions(game=1)
         if mkm_resp.status_code != 200:
-            LOGGER.error("Unable to download MKM correctly: {}".format(mkm_resp))
+            LOGGER.error(f"Unable to download MKM correctly: {mkm_resp}")
         else:
             for set_content in mkm_resp.json()["expansion"]:
                 if (
@@ -83,7 +83,7 @@ def build_mtgjson_set(
             mtgjson_set_file["code"]
         )
     except KeyError:
-        LOGGER.warning("Unable to find set translations for {}".format(set_code))
+        LOGGER.warning(f"Unable to find set translations for {set_code}")
 
     # Add optionals if they exist
     if "mtgo_code" in set_config.keys():
@@ -127,7 +127,7 @@ def build_mtgjson_set(
         "pricesDate": mtgjson4.__PRICE_UPDATE_DATE__,
     }
 
-    LOGGER.info("Starting cards for {}".format(set_code))
+    LOGGER.info(f"Starting cards for {set_code}")
 
     card_holder: List[MTGJSONCard] = convert_to_mtgjson(sf_cards)
     card_holder = add_start_flag_and_count_modified(
@@ -156,13 +156,13 @@ def build_mtgjson_set(
 
     mtgjson_set_file["cards"] = card_holder
 
-    LOGGER.info("Finished cards for {}".format(set_code))
+    LOGGER.info(f"Finished cards for {set_code}")
 
     # Handle tokens
-    LOGGER.info("Starting tokens for {}".format(set_code))
+    LOGGER.info(f"Starting tokens for {set_code}")
     sf_tokens: List[Dict[str, Any]] = scryfall.get_set("t" + set_code)
     mtgjson_set_file["tokens"] = build_mtgjson_tokens(sf_tokens + added_tokens)
-    LOGGER.info("Finished tokens for {}".format(set_code))
+    LOGGER.info(f"Finished tokens for {set_code}")
 
     # Cleanups and UUIDs
     mtgjson_card.DUEL_DECK_LAND_MARKED.set(False)
@@ -229,7 +229,7 @@ def add_stocks_data(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
                     }
                 )
         else:
-            LOGGER.warning("No TCGPlayer ID Found for {}".format(card.get("name")))
+            LOGGER.warning(f"No TCGPlayer ID Found for {card.get('name')}")
 
     return cards
 
@@ -343,7 +343,7 @@ def uniquify_duplicates_in_set(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
                 if chr(duplicate_cards[new_card.get("name")]) != "a":
                     new_card.append(
                         "name",
-                        " ({0})".format(chr(duplicate_cards[new_card.get("name")])),
+                        f"({chr(duplicate_cards[new_card.get("name")])})"
                     )
                 new_card.remove("names")
                 unique_list.append(new_card)
@@ -424,7 +424,7 @@ def add_start_flag_and_count_modified(
     starter_cards = scryfall.download(starter_card_url)
 
     if starter_cards["object"] == "error":
-        LOGGER.info("All cards in {} are available in boosters".format(set_code))
+        LOGGER.info(f"All cards in {set_code} are available in boosters")
         return mtgjson_cards
 
     for sf_card in starter_cards["data"]:
@@ -438,11 +438,7 @@ def add_start_flag_and_count_modified(
             if card:
                 card.set("isStarter", True)
         except StopIteration:
-            LOGGER.warning(
-                "Passed on {0} with SF_ID {1}".format(
-                    sf_card["name"], sf_card["scryfallId"]
-                )
-            )
+            LOGGER.warning(f"Passed on {sf_card['name']} with SF_ID {sf_card['scryfallId']}")
 
     return mtgjson_cards
 
@@ -475,19 +471,11 @@ def build_mtgjson_tokens(
             # Only call recursive if it is the first time we see this card object
             if sf_card_face == 0:
                 for i in range(1, len(sf_token["card_faces"])):
-                    LOGGER.info(
-                        "Parsing additional card {0} face {1}".format(
-                            sf_token.get("name"), i
-                        )
-                    )
+                    LOGGER.info(f"Parsing additional card {sf_token.get('name')} face {i}")
                     token_cards += build_mtgjson_tokens([sf_token], i)
 
             if "id" not in sf_token.keys():
-                LOGGER.info(
-                    "Scryfall_ID not found in {}. Discarding {}".format(
-                        sf_token.get("name"), sf_token
-                    )
-                )
+                LOGGER.info(f"Scryfall_ID not found in {sf_token.get('name')}. Discarding {sf_token}")
                 continue
 
             token_card.set_all(
@@ -546,9 +534,7 @@ def build_mtgjson_tokens(
                     reverse_related.append(a_part.get("name"))
         token_card.set("reverseRelated", reverse_related)
 
-        LOGGER.info(
-            "Parsed {0} from {1}".format(token_card.get("name"), sf_token.get("set"))
-        )
+        LOGGER.info(f"Parsed {token_card.get('name')} from {sf_token.get('set')}")
         token_cards.append(token_card)
 
     return token_cards
@@ -630,7 +616,7 @@ def build_mtgjson_card(
     single_card = MTGJSONCard(sf_card["set"])
 
     # Let us know what card we're trying to parse -- good for debugging :)
-    LOGGER.info("Parsing {0} from {1}".format(sf_card.get("name"), sf_card.get("set")))
+    LOGGER.info(f"Parsing {sf_card.get('name')} from {sf_card.get('set')}")
 
     # If flip-type, go to card_faces for alt attributes
     face_data: Dict[str, Any] = sf_card
@@ -683,11 +669,7 @@ def build_mtgjson_card(
         # Only call recursive if it is the first time we see this card object
         if sf_card_face == 0:
             for i in range(1, len(sf_card["card_faces"])):
-                LOGGER.info(
-                    "Parsing additional card {0} face {1}".format(
-                        sf_card.get("name"), i
-                    )
-                )
+                LOGGER.info(f"Parsing additional card {sf_card.get("name")} face {i}")
                 mtgjson_cards += build_mtgjson_card(sf_card, i)
     else:
         single_card.set_all(
