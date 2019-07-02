@@ -4,6 +4,7 @@ MTGJSON Card Class Container
 import contextvars
 import json
 import logging
+import re
 from typing import Any, Callable, Dict, Iterator, KeysView, List, Optional, Tuple
 import uuid
 
@@ -250,7 +251,19 @@ class MTGJSONCard:
             )
         )
 
-    def clean_up_watermark(self, watermark: Optional[str]) -> Optional[str]:
+    @staticmethod
+    def cleanup_planeswalker_costs(card_text: str) -> str:
+        """
+        Planeswalker abilities have a cost. We distinguish this
+        cost via [COST]: to give the end user a better breakdown
+        of what the card is doing. Ex: "-2:" becomes "[-2]:"
+        :param card_text: Un-formatted text
+        :return: Re-formatted text for planeswalkers
+        """
+        # Most PWs use the correct dash, but include minus just in case
+        return re.sub(r"([+−-]?[0-9]+):", r"[\1]:", card_text)
+
+    def cleanup_watermark(self, watermark: str) -> Optional[str]:
         """
         Scryfall (currently) doesn't provide what set watermarks
         are of, only "set" so we will add it ourselves using
