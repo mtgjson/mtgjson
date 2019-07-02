@@ -29,7 +29,8 @@ disable=
     import-error,
     too-many-public-methods,
     duplicate-code,
-    too-many-locals
+    too-many-locals,
+    logging-fstring-interpolation
 
 
 [REPORTS]
