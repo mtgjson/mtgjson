@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
-
 import mtgjson4
 from mtgjson4 import mtgjson_card
 from mtgjson4.mtgjson_card import MTGJSONCard
@@ -667,8 +666,8 @@ def build_mtgjson_card(
         # Watermark is only attributed on the front side, so we'll account for it
         single_card.set(
             "watermark",
-            sf_card["card_faces"][0].get("watermark", None),
-            single_card.clean_up_watermark,
+            sf_card["card_faces"][0].get("watermark", ""),
+            single_card.cleanup_watermark,
         )
 
         if sf_card["card_faces"][-1]["oracle_text"].startswith("Aftermath"):
@@ -773,9 +772,7 @@ def build_mtgjson_card(
 
     if "watermark" not in single_card.keys():
         single_card.set(
-            "watermark",
-            face_data.get("watermark", None),
-            single_card.clean_up_watermark,
+            "watermark", face_data.get("watermark", ""), single_card.cleanup_watermark
         )
 
     # "isPaper", "isMtgo", "isArena"
@@ -834,6 +831,12 @@ def build_mtgjson_card(
     single_card.set("supertypes", card_types[0])
     single_card.set("types", card_types[1])
     single_card.set("subtypes", card_types[2])
+
+    # Add brackets around Planeswalker loyalty abilities
+    if "Planeswalker" in single_card.get("types"):
+        single_card.set(
+            "text", single_card.get("text"), single_card.cleanup_planeswalker_costs
+        )
 
     # Handle meld and all parts tokens issues
     # Will re-address naming if a split card already
