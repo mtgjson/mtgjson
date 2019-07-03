@@ -116,7 +116,7 @@ class MTGJSONCard:
         while url.startswith("/"):
             url = url[1:]
 
-        self.card_market_url = "https://www.cardmarket.com/{}".format(url)
+        self.card_market_url = f"https://www.cardmarket.com/{url}"
 
     def get_tcgplayer_url(self) -> str:
         """
@@ -385,18 +385,16 @@ class MTGJSONCard:
                 # Normal card name
                 name_list.append(card_name)
                 # Lands are "Forest (269)" or "Forest (A)"
-                name_list.append("{} ({})".format(card_name, self.get("number")))
+                name_list.append(f"{card_name} ({self.get('number')})")
                 # Un-cards are "Amateur Auteur (A)"
-                name_list.append("{} ({})".format(card_name, self.get("number")[-1]))
+                name_list.append(f"{card_name} ({self.get("number")[-1]})")
 
             list_fix_split = card["name"].split("//")[0].strip()
             if list_fix_split.lower() in name_list:
                 return card.get(card_field, None)
 
         # TODO: Handle basics that might be "Forest (A)"
-        LOGGER.warning(
-            "Unable to find card {} in TCGPlayer card list".format(self.get("name"))
-        )
+        LOGGER.warning(f"Unable to find card {self.get('name')} in TCGPlayer card list")
         return None
 
     @staticmethod

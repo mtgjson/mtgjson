@@ -741,11 +741,7 @@ def build_mtgjson_card(
                 break
 
         if not mkm_card_found:
-            LOGGER.warning(
-                "Unable to find MKM information for #{} {}".format(
-                    single_card.get("number"), single_card.get("name")
-                )
-            )
+            LOGGER.warning(f"Unable to find MKM information for #{single_card.get('number')} {single_card.get('name')}")
 
     if "artist" not in single_card.keys():
         single_card.set("artist", sf_card.get("artist"))
@@ -762,7 +758,7 @@ def build_mtgjson_card(
 
     # "isPaper", "isMtgo", "isArena"
     for game_mode in sf_card.get("games", []):
-        single_card.set("is{}".format(game_mode.capitalize()), True)
+        single_card.set(f"is{game_mode.capitalize()}", True)
 
     if "flavor_text" in face_data:
         single_card.set("flavorText", face_data.get("flavor_text"))
@@ -879,9 +875,7 @@ def build_mtgjson_card(
             single_card.set("originalType", gatherer_card.original_types)
             single_card.set("originalText", gatherer_card.original_text)
         except IndexError:
-            LOGGER.warning(
-                "Unable to parse originals for {}".format(single_card.get("name"))
-            )
+            LOGGER.warning(f"Unable to parse originals for {single_card.get('name')}")
 
     mtgjson_cards.append(single_card)
     return mtgjson_cards

@@ -71,7 +71,7 @@ def build_and_write_decks(decks_url: str) -> Iterator[Dict[str, Any]]:
                 for card in cards:
                     deck_to_output["sideBoard"].append(card)
 
-            LOGGER.info("Finished deck {}".format(deck["name"]))
+            LOGGER.info(f"Finished deck {deck['name']}")
             yield deck_to_output
 
 
@@ -98,6 +98,6 @@ def build_single_card(deck_card: Dict[str, Any]) -> List[Dict[str, Any]]:
             cards.append(mtgjson_card)
 
     if not cards:
-        LOGGER.warning("No match for {}".format(deck_card))
+        LOGGER.warning(f"No match for {deck_card}")
 
     return cards

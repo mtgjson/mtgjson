@@ -144,7 +144,7 @@ def parse_comp_internal(
     for line in valid_line_segments:
         # Keywords are defined as "XXX.# Name"
         # We will want to ignore subset lines like "XXX.#a"
-        if "{0}.{1}".format(rule_start, keyword_index) in line:
+        if f"{rule_start}.{key_word_index}" in line:
             # Break the line into "Rule Number | Keyword"
             keyword = line.split(" ", 1)[1].lower()
             return_list.append(keyword)
@@ -291,11 +291,7 @@ def get_translations(set_code: Optional[str] = None) -> Any:
         if set_code in TRANSLATION_TABLE.get().keys():
             return TRANSLATION_TABLE.get()[set_code]
 
-        LOGGER.warning(
-            "(Wizards) Unable to find good enough translation match for {}".format(
-                set_code
-            )
-        )
+        LOGGER.warning(f"(Wizards) Unable to find good enough translation match for {set_code}")
         return {}
 
     return TRANSLATION_TABLE.get()
@@ -341,9 +337,7 @@ def build_single_language(
         if not icon or len(icon) == 1:
             set_name = set_line.find("span", class_="nameSet")
             if set_name:
-                LOGGER.warning(
-                    "Unable to find set icon for {}".format(set_name.text.strip())
-                )
+                LOGGER.warning(f"Unable to find set icon for {set_name.text.strip()}")
             continue
 
         # Update our global table
@@ -373,7 +367,7 @@ def convert_keys_to_set_names(
     return_table = {}
     for key, value in table.items():
         if "English" not in value.keys():
-            LOGGER.error("VALUE INCOMPLETE\t{}: {}".format(key, value))
+            LOGGER.error(f"VALUE INCOMPLETE\t{key}: {value}")
             continue
 
         new_key = value["English"]
