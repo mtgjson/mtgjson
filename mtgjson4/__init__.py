@@ -24,6 +24,7 @@ COMPILED_OUTPUT_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath("json_" + __VERSION__
 LOG_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
 CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson.properties")
 RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson4").joinpath("resources")
+PROJECT_CACHE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(".mtgjson_cache")
 
 # Globals -- caches
 SESSION_CACHE_EXPIRE_GENERAL: int = 604800  # seconds - 1 week
@@ -151,6 +152,7 @@ def init_logger() -> None:
     """
     Logging configuration
     """
+    PROJECT_CACHE_PATH.mkdir(exist_ok=True)
     LOG_DIR.mkdir(exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,

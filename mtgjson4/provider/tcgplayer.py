@@ -21,8 +21,7 @@ def __get_session() -> requests.Session:
     """Get or create a requests session for TCGPlayer."""
     if mtgjson4.USE_CACHE.get():
         requests_cache.install_cache(
-            "tcg_cache",
-            backend="sqlite",
+            str(mtgjson4.PROJECT_CACHE_PATH.joinpath("tcgplayer_cache")),
             expire_after=mtgjson4.SESSION_CACHE_EXPIRE_TCG,
         )
 

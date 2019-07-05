@@ -268,7 +268,7 @@ def get_translations(set_code: Optional[str] = None) -> Any:
     :return: Translation table
     """
     if not TRANSLATION_TABLE.get(None):
-        translation_file = mtgjson4.RESOURCE_PATH.joinpath("set_translations.json")
+        translation_file = mtgjson4.PROJECT_CACHE_PATH.joinpath("set_translations.json")
 
         is_file = translation_file.is_file()
         cache_expired = (

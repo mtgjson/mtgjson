@@ -31,8 +31,7 @@ def __get_session() -> requests.Session:
     """
     if mtgjson4.USE_CACHE.get():
         requests_cache.install_cache(
-            "stocks_cache",
-            backend="sqlite",
+            str(mtgjson4.PROJECT_CACHE_PATH.joinpath("mtgstocks_cache")),
             expire_after=mtgjson4.SESSION_CACHE_EXPIRE_STOCKS,
         )
 
@@ -57,7 +56,7 @@ def __get_stocks_data() -> Dict[str, Any]:
     :return: All stocks data
     """
     if not STOCKS_DATA.get(None):
-        stocks_file = mtgjson4.RESOURCE_PATH.joinpath("stocks_data.json")
+        stocks_file = mtgjson4.PROJECT_CACHE_PATH.joinpath("stocks_data.json")
 
         is_file = stocks_file.is_file()
         cache_expired = (

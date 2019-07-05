@@ -31,8 +31,7 @@ def __get_session() -> requests.Session:
     """Get or create a requests session for scryfall."""
     if mtgjson4.USE_CACHE.get():
         requests_cache.install_cache(
-            "scryfall_cache",
-            backend="sqlite",
+            str(mtgjson4.PROJECT_CACHE_PATH.joinpath("scryfall_cache")),
             expire_after=mtgjson4.SESSION_CACHE_EXPIRE_SCRYFALL,
         )
 
