@@ -29,7 +29,7 @@ def write_referral_url_information(data: Dict[str, str]) -> None:
         mtgjson4.REFERRAL_DB_OUTPUT + ".json"
     ).open("a", encoding="utf-8") as f:
         for key, value in data.items():
-            f.write("{}\t{}\n".format(key, value))
+            f.write(f"{key}\t{value}\n")
 
 
 def write_deck_to_file(file_name: str, file_contents: Any) -> None:
@@ -262,9 +262,7 @@ def create_standard_only_output() -> Dict[str, Any]:
         )
 
         if not set_file.is_file():
-            LOGGER.warning(
-                "Set {} not found in compiled outputs (Standard)".format(set_code)
-            )
+            LOGGER.warning(f"Set {set_code} not found in compiled outputs (Standard)")
             continue
 
         with set_file.open("r", encoding="utf-8") as f:
@@ -289,9 +287,7 @@ def create_modern_only_output() -> Dict[str, Any]:
         )
 
         if not set_file.is_file():
-            LOGGER.warning(
-                "Set {} not found in compiled outputs (Modern)".format(set_code)
-            )
+            LOGGER.warning(f"Set {set_code} not found in compiled outputs (Modern)")
             continue
 
         with set_file.open("r", encoding="utf-8") as f:
@@ -408,7 +404,7 @@ def create_and_write_compiled_outputs() -> None:
     deck_names = []
     for deck in magic_precons.build_and_write_decks(DECKS_URL):
         deck_name = util.capital_case_without_symbols(deck["name"])
-        write_deck_to_file("{}_{}".format(deck_name, deck["code"]), deck)
+        write_deck_to_file(f"{deck_name}_{deck['code']}", deck)
         deck_names.append(
             {
                 "code": deck["code"],

@@ -24,7 +24,7 @@ def get_all_sets() -> List[str]:
     """
     downloaded = mtgjson4.provider.scryfall.download(scryfall.SCRYFALL_API_SETS)
     if downloaded["object"] == "error":
-        LOGGER.error("Downloading Scryfall data failed: {}".format(downloaded))
+        LOGGER.error(f"Downloading Scryfall data failed: {downloaded}")
         return []
 
     # Get _ALL_ Scryfall sets
@@ -135,9 +135,7 @@ def main() -> None:
 
     if not mtgjson4.CONFIG_PATH.is_file():
         LOGGER.warning(
-            "No properties file found at {}. Will download without authentication".format(
-                mtgjson4.CONFIG_PATH
-            )
+            f"No properties file found at {mtgjson4.CONFIG_PATH}. Will download without authentication"
         )
 
     # Determine set(s) to build
@@ -146,18 +144,16 @@ def main() -> None:
 
     if args.skip_sets:
         set_list = sorted(list(set(set_list) - set(args.skip_sets)))
-        LOGGER.info("Skipping set(s) by request of user: {}".format(args.skip_sets))
+        LOGGER.info(f"Skipping set(s) by request of user: {args.skip_sets}")
 
-    LOGGER.info("Sets to compile: {}".format(set_list))
+    LOGGER.info(f"Sets to compile: {set_list}")
 
     # If we had to kill mid-build, we can skip the completed set(s)
     if args.x:
         sets_compiled_already: List[str] = get_compiled_sets()
         set_list = [s for s in set_list if s not in sets_compiled_already]
         LOGGER.info(
-            "Sets to skip compilation for: {}\n\nSets to compile, after cached sets removed: {}".format(
-                sets_compiled_already, set_list
-            )
+            f"Sets to skip compilation for: {sets_compiled_already}\n\nSets to compile, after cached sets removed: {set_list}"
         )
 
     for set_code in set_list:

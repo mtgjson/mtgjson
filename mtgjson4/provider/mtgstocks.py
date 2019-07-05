@@ -81,7 +81,8 @@ def __get_stocks_data() -> Dict[str, Any]:
 
             save_dictionary = {}
             for row in request_api_json:
-                save_dictionary[row["tcg_id"]] = row
+                if row:
+                    save_dictionary[row["tcg_id"]] = row
 
             with stocks_file.open("w") as f:
                 json.dump(save_dictionary, f, indent=4)

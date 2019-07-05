@@ -45,9 +45,7 @@ def _request_tcgplayer_bearer() -> str:
     """
     if not mtgjson4.CONFIG_PATH.is_file():
         LOGGER.error(
-            "Unable to import TCGPlayer keys. Config at {} not found".format(
-                mtgjson4.CONFIG_PATH
-            )
+            f"Unable to import TCGPlayer keys. Config at {mtgjson4.CONFIG_PATH} not found"
         )
         return ""
 
@@ -64,7 +62,7 @@ def _request_tcgplayer_bearer() -> str:
     )
 
     if tcg_post.status_code != 200:
-        LOGGER.error("Unable to contact TCGPlayer. Reason: {}".format(tcg_post.reason))
+        LOGGER.error(f"Unable to contact TCGPlayer. Reason: {tcg_post.reason}")
         return ""
 
     TCGPLAYER_API_VERSION.set(config.get("TCGPlayer", "api_version"))
@@ -101,15 +99,11 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> Optional[
     if response.status_code != 200:
         if response.status_code == 404:
             LOGGER.info(
-                "Status Code: {} Failed to download from TCGPlayer with URL: {}, Params: {}".format(
-                    response.status_code, response.url, params_str
-                )
+                "Status Code: {response.status_code} Failed to download from TCGPlayer with URL: {response.url}, Params: {params_str}"
             )
         else:
             LOGGER.warning(
-                "Status Code: {} Failed to download from TCGPlayer with URL: {}, Params: {}".format(
-                    response.status_code, response.url, params_str
-                )
+                f"Status Code: {response.status_code} Failed to download from TCGPlayer with URL: {response.url}, Params: {params_str}"
             )
         return None
 
@@ -123,9 +117,7 @@ def get_group_id_cards(group_id: int) -> List[Dict[str, Any]]:
     :return: List of card objects
     """
     if group_id < 0:
-        LOGGER.error(
-            "Unable to get cards from a negative group_id: {}".format(group_id)
-        )
+        LOGGER.error(f"Unable to get cards from a negative group_id: {group_id}")
         return []
 
     cards: List[Dict[str, Any]] = []
@@ -164,4 +156,4 @@ def get_redirection_url(prod_id: int) -> str:
     :param prod_id: ID of card/object
     :return: URL that can be used
     """
-    return "https://mtgjson.com/links/{}".format(url_keygen(prod_id))
+    return f"https://mtgjson.com/links/{url_keygen(prod_id)}"

@@ -56,13 +56,13 @@ def compress_directory(files_to_compress: List[pathlib.Path], output_name: str) 
     temp_dir = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(output_name)
 
     # Copy files to temporary folder
-    LOGGER.info("Creating temporary directory for {}".format(output_name))
+    LOGGER.info(f"Creating temporary directory for {output_name}")
     temp_dir.mkdir(parents=True, exist_ok=True)
     for file in files_to_compress:
         shutil.copy(str(file), str(temp_dir))
 
     # Compress the archives
-    LOGGER.info("Compressing {}".format(temp_dir.name))
+    LOGGER.info(f"Compressing {temp_dir.name}")
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         # Compression methods
         pool.apply_async(shutil.make_archive, (temp_dir, "bztar", str(temp_dir)))
@@ -75,7 +75,7 @@ def compress_directory(files_to_compress: List[pathlib.Path], output_name: str) 
         pool.join()
 
     # Delete the temporary folder
-    LOGGER.info("Removing temporary directory for {}".format(output_name))
+    LOGGER.info(f"Removing temporary directory for {output_name}")
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
@@ -84,7 +84,7 @@ def compress_file(file_path: pathlib.Path) -> None:
     Compress a single file using all supported compression methods
     :param file_path: Path of file to compress
     """
-    LOGGER.info("Compressing {}".format(file_path.name))
+    LOGGER.info(f"Compressing {file_path.name}")
     __generic_compressor(file_path, ".bz2", bz2.compress)
     __generic_compressor(file_path, ".gz", gzip.compress)
     __generic_compressor(file_path, ".xz", lzma.compress)

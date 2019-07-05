@@ -81,7 +81,7 @@ def get_base_set_size(set_code: str) -> int:
     # Download on the fly
     content = download(SCRYFALL_SET_SIZE.format(set_code))
     if content["object"] == "error":
-        LOGGER.warning("Unable to get set size for {}".format(set_code))
+        LOGGER.warning(f"Unable to get set size for {set_code}")
         return 0
 
     return int(content["total_cards"])
@@ -109,9 +109,7 @@ def get_set_header(set_name: str) -> Dict[str, Any]:
     """
     set_api_json: Dict[str, Any] = download(SCRYFALL_API_SETS + set_name)
     if set_api_json["object"] == "error":
-        LOGGER.warning(
-            "Set header api download failed for {0}: {1}".format(set_name, set_api_json)
-        )
+        LOGGER.warning(f"Set header api download failed for {set_name}: {set_api_json}")
         return {}
 
     return set_api_json
@@ -124,13 +122,11 @@ def get_set(set_code: str) -> List[Dict[str, Any]]:
     :param set_code: Set to download (Ex: AER, M19)
     :return: List of all card objects
     """
-    LOGGER.info("Downloading set {} information".format(set_code))
+    LOGGER.info(f"Downloading set {set_code} information")
     set_api_json: Dict[str, Any] = download(SCRYFALL_API_SETS + set_code)
     if set_api_json["object"] == "error":
         if not set_api_json["details"].startswith("No Magic set found"):
-            LOGGER.warning(
-                "Set api download failed for {0}: {1}".format(set_code, set_api_json)
-            )
+            LOGGER.warning(f"Set api download failed for {set_code}: {set_api_json}")
         return []
 
     # All cards in the set structure
@@ -145,18 +141,14 @@ def get_set(set_code: str) -> List[Dict[str, Any]]:
         page_downloaded: int = 1
         while cards_api_url:
             LOGGER.info(
-                "Downloading page {0} of card data for {1}".format(
-                    page_downloaded, set_code
-                )
+                f"Downloading page {page_downloaded} of card data for {set_code}"
             )
             page_downloaded += 1
 
             cards_api_json: Dict[str, Any] = download(cards_api_url)
             if cards_api_json["object"] == "error":
                 if not cards_api_json["details"].startswith("Your query didn’t match"):
-                    LOGGER.warning(
-                        "Error downloading {0}: {1}".format(set_code, cards_api_json)
-                    )
+                    LOGGER.warning(f"Error downloading {set_code}: {cards_api_json}")
                 break
 
             # Append all cards on this page
@@ -183,9 +175,7 @@ def parse_rulings(rulings_url: str) -> List[Dict[str, str]]:
     """
     rules_api_json: Dict[str, Any] = download(rulings_url)
     if rules_api_json["object"] == "error":
-        LOGGER.error(
-            "Error downloading URL {0}: {1}".format(rulings_url, rules_api_json)
-        )
+        LOGGER.error(f"Error downloading URL {rulings_url}: {rules_api_json}")
 
     sf_rules: List[Dict[str, str]] = []
     mtgjson_rules: List[Dict[str, str]] = []
@@ -268,9 +258,7 @@ def parse_foreign(
 
     prints_api_json: Dict[str, Any] = download(sf_prints_url)
     if prints_api_json["object"] == "error":
-        LOGGER.error(
-            "No data found for {0}: {1}".format(sf_prints_url, prints_api_json)
-        )
+        LOGGER.error(f"No data found for {sf_prints_url}: {prints_api_json}")
         return []
 
     for foreign_card in prints_api_json["data"]:
@@ -285,12 +273,12 @@ def parse_foreign(
         try:
             card_foreign_entry["language"] = mtgjson4.LANGUAGE_MAP[foreign_card["lang"]]
         except IndexError:
-            LOGGER.warning("Unable to get language {}".format(foreign_card))
+            LOGGER.warning(f"Unable to get language {foreign_card}")
 
         try:
             card_foreign_entry["multiverseId"] = foreign_card["multiverse_ids"][0]
         except IndexError:
-            LOGGER.warning("Unable to get multiverseId {}".format(foreign_card["name"]))
+            LOGGER.warning(f"Unable to get multiverseId {foreign_card['name']}")
 
         if "card_faces" in foreign_card:
             if card_name.lower() == foreign_card["name"].split("/")[0].strip().lower():
@@ -299,9 +287,7 @@ def parse_foreign(
                 face = 1
 
             foreign_card = foreign_card["card_faces"][face]
-            LOGGER.info(
-                "Split card found: Using face {0} for {1}".format(face, card_name)
-            )
+            LOGGER.info(f"Split card found: Using face {face} for {card_name}")
 
         card_foreign_entry["name"] = foreign_card.get("printed_name")
         card_foreign_entry["text"] = foreign_card.get("printed_text")
@@ -323,7 +309,7 @@ def parse_printings(sf_prints_url: str) -> List[str]:
 
     prints_api_json: Dict[str, Any] = download(sf_prints_url)
     if prints_api_json["object"] == "error":
-        LOGGER.error("Bad download: {}".format(sf_prints_url))
+        LOGGER.error(f"Bad download: {sf_prints_url}")
         return []
 
     for card in prints_api_json["data"]:

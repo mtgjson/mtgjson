@@ -128,7 +128,7 @@ def print_download_status(response: Any) -> None:
     cache_result: bool = response.from_cache if hasattr(
         response, "from_cache"
     ) else False
-    LOGGER.info("Downloaded: {} (Cache = {})".format(response.url, cache_result))
+    LOGGER.info(f"Downloaded: {response.url} (Cache = {cache_result})")
 
 
 def url_keygen(prod_id: int) -> str:
