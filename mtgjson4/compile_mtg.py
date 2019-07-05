@@ -341,7 +341,7 @@ def uniquify_duplicates_in_set(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
                 # Only add (b), (c), ... so we have one unique without an altered name
                 if chr(duplicate_cards[new_card.get("name")]) != "a":
                     new_card.append(
-                        "name", f"({chr(duplicate_cards[new_card.get('name')])})"
+                        "name", f" ({chr(duplicate_cards[new_card.get('name')])})"
                     )
                 new_card.remove("names")
                 unique_list.append(new_card)
