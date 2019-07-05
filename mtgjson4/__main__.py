@@ -134,7 +134,9 @@ def main() -> None:
     mtgjson4.USE_CACHE.set(not args.skip_cache)
 
     if not mtgjson4.CONFIG_PATH.is_file():
-        LOGGER.warning(f"No properties file found at {mtgjson4.CONFIG_PATH}. Will download without authentication")
+        LOGGER.warning(
+            f"No properties file found at {mtgjson4.CONFIG_PATH}. Will download without authentication"
+        )
 
     # Determine set(s) to build
     args_s = args.s if args.s else []
@@ -150,7 +152,9 @@ def main() -> None:
     if args.x:
         sets_compiled_already: List[str] = get_compiled_sets()
         set_list = [s for s in set_list if s not in sets_compiled_already]
-        LOGGER.info(f"Sets to skip compilation for: {sets_compiled_already}\n\nSets to compile, after cached sets removed: {set_list}")
+        LOGGER.info(
+            f"Sets to skip compilation for: {sets_compiled_already}\n\nSets to compile, after cached sets removed: {set_list}"
+        )
 
     for set_code in set_list:
         sf_set: List[Dict[str, Any]] = scryfall.get_set(set_code)

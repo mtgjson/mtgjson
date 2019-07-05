@@ -8,11 +8,11 @@ import time
 from typing import Any, Dict, List, Match, Optional, Tuple
 
 import bs4
-import unidecode
 
 import mtgjson4
 from mtgjson4 import util
 from mtgjson4.provider import gamepedia, scryfall
+import unidecode
 
 TRANSLATION_URL: str = "https://magic.wizards.com/{}/products/card-set-archive"
 COMP_RULES: str = "https://magic.wizards.com/en/game-info/gameplay/rules-and-formats/rules"
@@ -144,7 +144,7 @@ def parse_comp_internal(
     for line in valid_line_segments:
         # Keywords are defined as "XXX.# Name"
         # We will want to ignore subset lines like "XXX.#a"
-        if f"{rule_start}.{key_word_index}" in line:
+        if f"{rule_start}.{keyword_index}" in line:
             # Break the line into "Rule Number | Keyword"
             keyword = line.split(" ", 1)[1].lower()
             return_list.append(keyword)
@@ -291,7 +291,9 @@ def get_translations(set_code: Optional[str] = None) -> Any:
         if set_code in TRANSLATION_TABLE.get().keys():
             return TRANSLATION_TABLE.get()[set_code]
 
-        LOGGER.warning(f"(Wizards) Unable to find good enough translation match for {set_code}")
+        LOGGER.warning(
+            f"(Wizards) Unable to find good enough translation match for {set_code}"
+        )
         return {}
 
     return TRANSLATION_TABLE.get()

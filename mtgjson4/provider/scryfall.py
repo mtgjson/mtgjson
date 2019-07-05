@@ -140,7 +140,9 @@ def get_set(set_code: str) -> List[Dict[str, Any]]:
         # For each page, append all the data, go to next page
         page_downloaded: int = 1
         while cards_api_url:
-            LOGGER.info(f"Downloading page {page_downloaded} of card data for {set_code}")
+            LOGGER.info(
+                f"Downloading page {page_downloaded} of card data for {set_code}"
+            )
             page_downloaded += 1
 
             cards_api_json: Dict[str, Any] = download(cards_api_url)

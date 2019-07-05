@@ -387,7 +387,7 @@ class MTGJSONCard:
                 # Lands are "Forest (269)" or "Forest (A)"
                 name_list.append(f"{card_name} ({self.get('number')})")
                 # Un-cards are "Amateur Auteur (A)"
-                name_list.append(f"{card_name} ({self.get("number")[-1]})")
+                name_list.append(f"{card_name} ({self.get('number')[-1]})")
 
             list_fix_split = card["name"].split("//")[0].strip()
             if list_fix_split.lower() in name_list:

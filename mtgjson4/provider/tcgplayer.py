@@ -44,7 +44,9 @@ def _request_tcgplayer_bearer() -> str:
     :return: Empty string or current Bearer token
     """
     if not mtgjson4.CONFIG_PATH.is_file():
-        LOGGER.error(f"Unable to import TCGPlayer keys. Config at {mtgjson4.CONFIG_PATH} not found")
+        LOGGER.error(
+            f"Unable to import TCGPlayer keys. Config at {mtgjson4.CONFIG_PATH} not found"
+        )
         return ""
 
     config = configparser.RawConfigParser()
@@ -96,9 +98,13 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> Optional[
 
     if response.status_code != 200:
         if response.status_code == 404:
-            LOGGER.info("Status Code: {response.status_code} Failed to download from TCGPlayer with URL: {response.url}, Params: {params_str}")
+            LOGGER.info(
+                "Status Code: {response.status_code} Failed to download from TCGPlayer with URL: {response.url}, Params: {params_str}"
+            )
         else:
-            LOGGER.warning(f"Status Code: {response.status_code} Failed to download from TCGPlayer with URL: {response.url}, Params: {params_str}")
+            LOGGER.warning(
+                f"Status Code: {response.status_code} Failed to download from TCGPlayer with URL: {response.url}, Params: {params_str}"
+            )
         return None
 
     return str(response.text)

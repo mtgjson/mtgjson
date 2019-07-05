@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
-
 import mtgjson4
 from mtgjson4 import mtgjson_card
 from mtgjson4.mtgjson_card import MTGJSONCard
@@ -342,8 +341,7 @@ def uniquify_duplicates_in_set(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
                 # Only add (b), (c), ... so we have one unique without an altered name
                 if chr(duplicate_cards[new_card.get("name")]) != "a":
                     new_card.append(
-                        "name",
-                        f"({chr(duplicate_cards[new_card.get("name")])})"
+                        "name", f"({chr(duplicate_cards[new_card.get('name')])})"
                     )
                 new_card.remove("names")
                 unique_list.append(new_card)
@@ -438,7 +436,9 @@ def add_start_flag_and_count_modified(
             if card:
                 card.set("isStarter", True)
         except StopIteration:
-            LOGGER.warning(f"Passed on {sf_card['name']} with SF_ID {sf_card['scryfallId']}")
+            LOGGER.warning(
+                f"Passed on {sf_card['name']} with SF_ID {sf_card['scryfallId']}"
+            )
 
     return mtgjson_cards
 
@@ -471,11 +471,15 @@ def build_mtgjson_tokens(
             # Only call recursive if it is the first time we see this card object
             if sf_card_face == 0:
                 for i in range(1, len(sf_token["card_faces"])):
-                    LOGGER.info(f"Parsing additional card {sf_token.get('name')} face {i}")
+                    LOGGER.info(
+                        f"Parsing additional card {sf_token.get('name')} face {i}"
+                    )
                     token_cards += build_mtgjson_tokens([sf_token], i)
 
             if "id" not in sf_token.keys():
-                LOGGER.info(f"Scryfall_ID not found in {sf_token.get('name')}. Discarding {sf_token}")
+                LOGGER.info(
+                    f"Scryfall_ID not found in {sf_token.get('name')}. Discarding {sf_token}"
+                )
                 continue
 
             token_card.set_all(
@@ -669,7 +673,7 @@ def build_mtgjson_card(
         # Only call recursive if it is the first time we see this card object
         if sf_card_face == 0:
             for i in range(1, len(sf_card["card_faces"])):
-                LOGGER.info(f"Parsing additional card {sf_card.get("name")} face {i}")
+                LOGGER.info(f"Parsing additional card {sf_card.get('name')} face {i}")
                 mtgjson_cards += build_mtgjson_card(sf_card, i)
     else:
         single_card.set_all(
@@ -741,7 +745,9 @@ def build_mtgjson_card(
                 break
 
         if not mkm_card_found:
-            LOGGER.warning(f"Unable to find MKM information for #{single_card.get('number')} {single_card.get('name')}")
+            LOGGER.warning(
+                f"Unable to find MKM information for #{single_card.get('number')} {single_card.get('name')}"
+            )
 
     if "artist" not in single_card.keys():
         single_card.set("artist", sf_card.get("artist"))
