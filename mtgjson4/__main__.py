@@ -151,7 +151,7 @@ def main() -> None:
     # If we had to kill mid-build, we can skip the completed set(s)
     if args.x:
         sets_compiled_already: List[str] = get_compiled_sets()
-        set_list = [s for s in set_list if s not in sets_compiled_already]
+        set_list = [s for s in set_list if s.lower() not in sets_compiled_already]
         LOGGER.info(
             f"Sets to skip compilation for: {sets_compiled_already}\n\nSets to compile, after cached sets removed: {set_list}"
         )
