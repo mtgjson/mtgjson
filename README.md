@@ -78,9 +78,9 @@ ___
 Run the program, with any flag(s) you'd like, via:
 
 ```sh
-python3 -m mtgjson4 [-h] [-a] [-c] [-x] [-z] [-s [SET [SET ...]]]
-                    [--skip-tcgplayer] [--skip-sets [SET [SET ...]]]
-                    [--skip-cache]
+python3 -m mtgjson4 [-h] [-a] [-c] [-x] [-z] [-s [SET [SET ...]]] [--skip-keys]
+                    [--skip-sets [SET [SET ...]]] [--skip-cache]
+
 ```
 
 Example:
