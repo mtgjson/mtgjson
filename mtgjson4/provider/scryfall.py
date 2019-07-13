@@ -306,12 +306,18 @@ def parse_printings(sf_prints_url: str) -> List[str]:
     """
     card_sets: Set[str] = set()
 
-    prints_api_json: Dict[str, Any] = download(sf_prints_url)
-    if prints_api_json["object"] == "error":
-        LOGGER.error(f"Bad download: {sf_prints_url}")
-        return []
+    while sf_prints_url:
+        prints_api_json: Dict[str, Any] = download(sf_prints_url)
+        if prints_api_json["object"] == "error":
+            LOGGER.error(f"Bad download: {sf_prints_url}")
+            break
 
-    for card in prints_api_json["data"]:
-        card_sets.add(card.get("set").upper())
+        for card in prints_api_json["data"]:
+            card_sets.add(card.get("set").upper())
+
+        if not prints_api_json.get("has_more"):
+            break
+
+        sf_prints_url = prints_api_json.get("next_page", "")
 
     return list(card_sets)
