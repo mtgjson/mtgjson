@@ -318,6 +318,6 @@ def parse_printings(sf_prints_url: str) -> List[str]:
         if not prints_api_json.get("has_more"):
             break
 
-        sf_prints_url = prints_api_json.get("next_page")
+        sf_prints_url = prints_api_json.get("next_page", "")
 
     return list(card_sets)
