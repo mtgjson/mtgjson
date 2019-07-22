@@ -93,7 +93,7 @@ def download(scryfall_url: str) -> Dict[str, Any]:
     :return: JSON object of the Scryfall data
     """
     session = __get_session()
-    response: Any = session.get(url=scryfall_url, timeout=5.0)
+    response: Any = session.get(url=scryfall_url, timeout=8.0)
     request_api_json: Dict[str, Any] = response.json()
     util.print_download_status(response)
     session.close()

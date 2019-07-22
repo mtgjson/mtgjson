@@ -35,6 +35,8 @@ def build_mtgjson_set(
     :param set_code: Set code
     :return: Completed JSON file
     """
+    LOGGER.info(f"> BUILDING {set_code}.json <")
+
     if not skip_keys and os.environ["MKM_APP_TOKEN"] and os.environ["MKM_APP_SECRET"]:
         MKM_API.set(Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"]))
 
