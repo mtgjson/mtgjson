@@ -536,8 +536,8 @@ def build_mtgjson_tokens(
         reverse_related: List[str] = []
         if "all_parts" in sf_token:
             for a_part in sf_token["all_parts"]:
-                if a_part.get("name") != token_card.get("name"):
-                    reverse_related.append(a_part.get("name"))
+                if a_part.get("uuid") != token_card.get("uuid"):
+                    reverse_related.append(a_part.get("uuid"))
         token_card.set("reverseRelated", reverse_related)
 
         LOGGER.info(f"Parsed {token_card.get('name')} from {sf_token.get('set')}")
