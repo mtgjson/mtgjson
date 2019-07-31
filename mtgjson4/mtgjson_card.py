@@ -224,7 +224,7 @@ class MTGJSONCard:
         Get the cardmarket purchase fields
         :return Get the purchase URL after doing something
         """
-        if not self.get("mcmId", None):
+        if not self.get("mcmId"):
             return None
 
         return str(
@@ -276,7 +276,7 @@ class MTGJSONCard:
 
         if watermark == "set":
             with mtgjson4.RESOURCE_PATH.joinpath("set_code_watermarks.json").open(
-                "r", encoding="utf-8"
+                encoding="utf-8"
             ) as f:
                 json_dict: Dict[str, List[Any]] = json.load(f)
 
@@ -392,7 +392,7 @@ class MTGJSONCard:
         """
         for card in card_list:
             name_list = []
-            if self.get("names", None):
+            if self.get("names"):
                 # Split card names
                 name_list.append(self.get("names")[0].lower())
                 name_list.append(self.get("names")[1].lower())

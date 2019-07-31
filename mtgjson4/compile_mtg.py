@@ -106,16 +106,14 @@ def build_mtgjson_set(
         mtgjson_set_file["isForeignOnly"] = True
 
     # Add booster info based on boosters resource (manually maintained for the time being)
-    with mtgjson4.RESOURCE_PATH.joinpath("boosters.json").open(
-        "r", encoding="utf-8"
-    ) as f:
+    with mtgjson4.RESOURCE_PATH.joinpath("boosters.json").open(encoding="utf-8") as f:
         json_dict: Dict[str, List[Any]] = json.load(f)
         if mtgjson_set_file["code"] in json_dict.keys():
             mtgjson_set_file["boosterV3"] = json_dict[mtgjson_set_file["code"].upper()]
 
     # Add V3 code for some backwards compatibility
     with mtgjson4.RESOURCE_PATH.joinpath("gatherer_set_codes.json").open(
-        "r", encoding="utf-8"
+        encoding="utf-8"
     ) as f:
         json_dict = json.load(f)
         if mtgjson_set_file["code"] in json_dict.keys():
@@ -316,11 +314,7 @@ def uniquify_duplicates_in_set(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
     :return: updated cards list
     """
     override_border_color: bool = bool(cards) and cards[0].set_code in ["HHO", "UNH"]
-    if (
-        cards
-        and cards[0].get("borderColor", None) == "silver"
-        and not override_border_color
-    ):
+    if cards and cards[0].get("borderColor") == "silver" and not override_border_color:
         unique_list = []
         duplicate_cards: Dict[str, int] = {}
         for card in cards:

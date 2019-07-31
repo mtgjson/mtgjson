@@ -272,5 +272,8 @@
   ],
   "MH1": [
     ["rare", "mythic rare"], "uncommon", "uncommon", "uncommon", "common", "common", "common", "common", "common", "common", "common", "common", "common", "common", "snow land", "token", "full art print"
+  ],
+  "M20": [
+    ["rare", "mythic rare"], "uncommon", "uncommon", "uncommon", "common", "common", "common", "common", "common", "common", "common", "common", "common", "common", "land", "token"
   ]
 }

@@ -284,7 +284,7 @@ def get_translations(set_code: Optional[str] = None) -> Any:
                 json.dump(table, f, indent=4)
                 f.write("\n")
 
-        TRANSLATION_TABLE.set(json.load(translation_file.open("r")))
+        TRANSLATION_TABLE.set(json.load(translation_file.open()))
 
     if set_code:
         # If we have an exact match, return it
@@ -443,7 +443,7 @@ def set_names_to_set_codes(
     :param table: Translation Table
     :return: Fixed Translation Table
     """
-    with mtgjson4.RESOURCE_PATH.joinpath("wizards_set_name_fixes.json").open("r") as f:
+    with mtgjson4.RESOURCE_PATH.joinpath("wizards_set_name_fixes.json").open() as f:
         set_name_fixes = json.load(f)
 
     for key, value in set_name_fixes.items():

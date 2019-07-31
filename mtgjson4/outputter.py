@@ -84,7 +84,7 @@ def create_all_sets(files_to_ignore: List[str]) -> Dict[str, Any]:
         if set_file.stem in files_to_ignore:
             continue
 
-        with set_file.open("r", encoding="utf-8") as f:
+        with set_file.open(encoding="utf-8") as f:
             file_content = json.load(f)
             set_name = get_set_name_from_file_name(set_file.name.split(".")[0])
             all_sets_data[set_name] = file_content
@@ -105,7 +105,7 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
         if set_file.stem in files_to_ignore:
             continue
 
-        with set_file.open("r", encoding="utf-8") as f:
+        with set_file.open(encoding="utf-8") as f:
             file_content = json.load(f)
 
             for card in file_content["cards"]:
@@ -206,7 +206,7 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
         if set_file.stem in files_to_ignore:
             continue
 
-        with set_file.open("r", encoding="utf-8") as f:
+        with set_file.open(encoding="utf-8") as f:
             file_content = json.load(f)
 
             set_data = {
@@ -244,8 +244,6 @@ def create_standard_only_output() -> Dict[str, Any]:
     has Standard legal sets.
     :return: AllSets for Standard only
     """
-    standard_data: Dict[str, Any] = {}
-
     # Get all sets currently in standard
     standard_url_content = util.get_generic_session().get(STANDARD_API_URL)
     standard_json = [
@@ -256,20 +254,7 @@ def create_standard_only_output() -> Dict[str, Any]:
         < str(set_obj["exit_date"])
     ]
 
-    for set_code in standard_json:
-        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
-            util.win_os_fix(set_code) + ".json"
-        )
-
-        if not set_file.is_file():
-            LOGGER.warning(f"Set {set_code} not found in compiled outputs (Standard)")
-            continue
-
-        with set_file.open("r", encoding="utf-8") as f:
-            file_content = json.load(f)
-            standard_data[set_code] = file_content
-
-    return standard_data
+    return __handle_compiling_sets(standard_json, "Standard")
 
 
 def create_modern_only_output() -> Dict[str, Any]:
@@ -279,22 +264,7 @@ def create_modern_only_output() -> Dict[str, Any]:
     has Modern legal sets.
     :return: AllSets for Modern only
     """
-    modern_data: Dict[str, Any] = {}
-
-    for set_code in gamepedia.get_modern_sets():
-        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
-            util.win_os_fix(set_code) + ".json"
-        )
-
-        if not set_file.is_file():
-            LOGGER.warning(f"Set {set_code} not found in compiled outputs (Modern)")
-            continue
-
-        with set_file.open("r", encoding="utf-8") as f:
-            file_content = json.load(f)
-            modern_data[set_code] = file_content
-
-    return modern_data
+    return __handle_compiling_sets(gamepedia.get_modern_sets(), "Modern")
 
 
 def get_funny_sets() -> List[str]:
@@ -397,8 +367,9 @@ def create_and_write_compiled_outputs() -> None:
     write_to_file(mtgjson4.MODERN_OUTPUT, create_modern_only_output())
 
     # Vintage.json
-    all_sets_no_fun = create_vintage_only_output(mtgjson4.OUTPUT_FILES)
-    write_to_file(mtgjson4.VINTAGE_OUTPUT, all_sets_no_fun)
+    write_to_file(
+        mtgjson4.VINTAGE_OUTPUT, create_vintage_only_output(mtgjson4.OUTPUT_FILES)
+    )
 
     # decks/*.json
     deck_names = []
@@ -421,3 +392,30 @@ def create_and_write_compiled_outputs() -> None:
             sorted(deck_names, key=lambda deck_obj: deck_obj["name"])
         ),
     )
+
+
+def __handle_compiling_sets(set_codes: List[str], build_type: str) -> Dict[str, Any]:
+    """
+    Given a list of sets, compile them into an output file
+    (Modern.json, Standard.json, etc)
+    :param set_codes: List of sets to include
+    :param build_type: String to show on display
+    :return: Compiled output
+    """
+    return_data = {}
+    for set_code in set_codes:
+        set_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
+            util.win_os_fix(set_code) + ".json"
+        )
+
+        if not set_file.is_file():
+            LOGGER.warning(
+                f"Set {set_code} not found in compiled outputs ({build_type})"
+            )
+            continue
+
+        with set_file.open(encoding="utf-8") as f:
+            file_content = json.load(f)
+            return_data[set_code] = file_content
+
+    return return_data

@@ -101,12 +101,12 @@ def add_card_to_referral_map(card: MTGJSONCard) -> None:
     :param card: Card to add to map
     """
     # TCGPlayer
-    if card.get("tcgplayerProductId", None):
+    if card.get("tcgplayerProductId"):
         key_tcg = mtgjson4.util.url_keygen(card.get("tcgplayerProductId"))
         outputter.write_referral_url_information({key_tcg: card.get_tcgplayer_url()})
 
     # MTGStocks
-    if card.get("mtgstocksId", None):
+    if card.get("mtgstocksId"):
         key_stocks = mtgjson4.util.url_keygen(
             int(str(card.get("mtgstocksId")) + mtgjson4.MTGSTOCKS_BUFFER)
         )
@@ -115,7 +115,7 @@ def add_card_to_referral_map(card: MTGJSONCard) -> None:
         )
 
     # CardMarket
-    if card.get("mcmId", None):
+    if card.get("mcmId"):
         key_mkm = mtgjson4.util.url_keygen(
             int(
                 str(card.get("mcmId"))

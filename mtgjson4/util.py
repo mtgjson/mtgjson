@@ -109,7 +109,7 @@ def get_mtgjson_set_code(set_code: str) -> str:
     :return: Sanitized set code
     """
     with mtgjson4.RESOURCE_PATH.joinpath("gatherer_set_codes.json").open(
-        "r", encoding="utf-8"
+        encoding="utf-8"
     ) as f:
         json_dict = json.load(f)
         for key, value in json_dict.items():
