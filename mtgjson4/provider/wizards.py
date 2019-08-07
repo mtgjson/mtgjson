@@ -4,6 +4,7 @@ import contextvars
 import json
 import logging
 import re
+import string
 import time
 from typing import Any, Dict, List, Match, Optional, Tuple
 
@@ -44,6 +45,7 @@ def download_from_wizards(url: str) -> str:
     """
     session = util.get_generic_session()
     response: Any = session.get(url=url, timeout=5.0)
+    response.encoding = "windows-1252"  # WHY DO THEY DO THIS
     util.print_download_status(response)
     session.close()
     return str(response.text)
@@ -59,7 +61,7 @@ def get_comp_rules() -> str:
     # Get the comp rules from the website (as it changes often)
     # Also split up the regex find so we only have the URL
     comp_rules_url: str = re.findall(r"href=\".*\.txt\"", response)[0][6:-1]
-    response = download_from_wizards(comp_rules_url)
+    response = download_from_wizards(comp_rules_url).replace("â€™", "'")
 
     return response
 
@@ -83,12 +85,6 @@ def compile_comp_output() -> Dict[str, Any]:
     comp_rules = get_comp_rules()
 
     return {
-        # Deprecation in 4.3, Removal in 4.4
-        "AbilityWords": get_ability_words(comp_rules),
-        # Deprecation in 4.3, Removal in 4.4
-        "KeywordActions": get_keyword_actions(comp_rules),
-        # Deprecation in 4.3, Removal in 4.4
-        "KeywordAbilities": get_keyword_abilities(comp_rules),
         "abilityWords": get_ability_words(comp_rules),
         "keywordActions": get_keyword_actions(comp_rules),
         "keywordAbilities": get_keyword_abilities(comp_rules),
@@ -197,9 +193,8 @@ def regex_str_to_list(regex_match: Optional[Match]) -> List[str]:
         # Replace the last one from "and XYZ" to just "XYZ"
         card_types_split[-1] = card_types_split[-1].split(" ", 1)[1]
 
-    #
     for index, value in enumerate(card_types_split):
-        card_types_split[index] = value.split(" (")[0].lower()
+        card_types_split[index] = string.capwords(value.split(" (")[0])
 
     return card_types_split
 
@@ -218,34 +213,27 @@ def get_card_types(comp_rules: str) -> Dict[str, Any]:
         .replace("\r", "\n")
     )
 
-    # Different regex searches needed for the data
-    card_types = re.search(r".*The card types are (.*)\.", comp_rules)
-    regex_type = {
-        "artifact": re.search(r".*The artifact types are (.*)\.", comp_rules),
-        "conspiracy": None,
-        "creature": re.search(r".*The creature types are (.*)\.", comp_rules),
-        "enchantment": re.search(r".*The enchantment types are (.*)\.", comp_rules),
-        "instant": re.search(r".*The spell types are (.*)\.", comp_rules),
-        "land": re.search(r".*The land types are (.*)\.", comp_rules),
-        "phenomenon": None,
-        "plane": re.search(r".*The planar types are (.*)\.", comp_rules),
-        "planeswalker": re.search(r".*planeswalker types are (.*)\.", comp_rules),
-        "scheme": None,
-        "sorcery": re.search(r".*The spell types are (.*)\.", comp_rules),
-        "tribal": None,
-        "vanguard": None,
+    card_types = {
+        "artifact": scryfall.get_catalog("artifact"),
+        "conspiracy": [],
+        "creature": scryfall.get_catalog("creature"),
+        "enchantment": scryfall.get_catalog("enchantment"),
+        "instant": scryfall.get_catalog("spell"),
+        "land": scryfall.get_catalog("land"),
+        "phenomenon": [],
+        "plane": regex_str_to_list(re.search(r".*planar types are (.*)\.", comp_rules)),
+        "planeswalker": scryfall.get_catalog("planeswalker"),
+        "scheme": [],
+        "sorcery": scryfall.get_catalog("spell"),
+        "tribal": [],
+        "vanguard": [],
     }
 
-    super_types = regex_str_to_list(
-        re.search(r".*The supertypes are (.*)\.", comp_rules)
-    )
+    super_types = regex_str_to_list(re.search(r".*supertypes are (.*)\.", comp_rules))
 
     types_dict = {}
-    for card_type in regex_str_to_list(card_types):
-        types_dict[card_type] = {
-            "subTypes": regex_str_to_list(regex_type[card_type]),
-            "superTypes": super_types,
-        }
+    for key, value in card_types.items():
+        types_dict[key] = {"subTypes": value, "superTypes": super_types}
 
     return {
         "meta": {

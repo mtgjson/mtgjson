@@ -19,6 +19,7 @@ SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_SCRYFALL")
 
 SCRYFALL_API_SETS: str = "https://api.scryfall.com/sets/"
 SCRYFALL_API_CARD: str = "https://api.scryfall.com/cards/"
+SCRYFALL_API_CATALOG: str = "https://api.scryfall.com/catalog/{0}-types"
 SCRYFALL_VARIATIONS: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}&unique=prints"
 SCRYFALL_SET_SIZE: str = "https://api.scryfall.com/cards/search?order=set&q=set:{0}%20is:booster%20unique:prints"
 
@@ -321,3 +322,12 @@ def parse_printings(sf_prints_url: str) -> List[str]:
         sf_prints_url = prints_api_json.get("next_page", "")
 
     return list(card_sets)
+
+
+def get_catalog(key: str) -> List[str]:
+    """
+    Grab the Scryfall catalog of appropriate types
+    :param key: Type to find
+    :return: List of values found
+    """
+    return list(download(SCRYFALL_API_CATALOG.format(key))["data"])
