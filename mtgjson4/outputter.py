@@ -210,11 +210,13 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
             file_content = json.load(f)
 
             set_data = {
-                "name": file_content.get("name"),
+                "baseSetSize": file_content.get("baseSetSize"),
                 "code": file_content.get("code"),
-                "releaseDate": file_content.get("releaseDate"),
-                "type": file_content.get("type"),
                 "meta": file_content.get("meta"),
+                "name": file_content.get("name"),
+                "releaseDate": file_content.get("releaseDate"),
+                "totalSetSize": file_content.get("totalSetSize"),
+                "type": file_content.get("type"),
             }
 
             if "parentCode" in file_content.keys():
