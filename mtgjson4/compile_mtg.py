@@ -695,6 +695,7 @@ def build_mtgjson_card(
             "borderColor": sf_card.get("border_color"),
             "colorIdentity": sf_card.get("color_identity"),
             "convertedManaCost": sf_card.get("cmc"),
+            "edhrecRank": sf_card.get("edhrec_rank"),
             "frameEffect": sf_card.get("frame_effect"),
             "frameVersion": sf_card.get("frame"),
             "hand": sf_card.get("hand_modifier"),
