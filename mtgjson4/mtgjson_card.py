@@ -205,13 +205,6 @@ class MTGJSONCard:
                 self.get_tcgplayer_card_property(tcg_card_objs, "productId"),
             )
 
-        # TODO: REMOVE IN 4.5.0
-        if self.get("tcgplayerProductId"):
-            self.set(
-                "tcgplayerPurchaseUrl",
-                tcgplayer.get_redirection_url(self.get("tcgplayerProductId")),
-            )
-
         self.tcgplayer_url = self.get_tcgplayer_card_property(tcg_card_objs, "url")
         return (
             tcgplayer.get_redirection_url(self.get("tcgplayerProductId"))

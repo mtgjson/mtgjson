@@ -135,7 +135,6 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
                 card.pop("scryfallId", None)
                 card.pop("scryfallIllustrationId", None)
                 card.pop("tcgplayerProductId", None)
-                card.pop("tcgplayerPurchaseUrl", None)
                 card.pop("variations", None)
                 card.pop("watermark", None)
                 card.pop("isFullArt", None)
