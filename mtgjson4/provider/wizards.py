@@ -101,7 +101,7 @@ def get_ability_words(comp_rules: str) -> List[str]:
     Go through the ability words and put them into a list
     :return: List of abilities, sorted
     """
-    for line in comp_rules.split("\r\n"):
+    for line in comp_rules.split("\r\r"):
         if "Ability words" in line:
             # Isolate all of the ability words, capitalize the words,
             # and remove the . from the end of the string
@@ -130,7 +130,7 @@ def parse_comp_internal(
     comp_rules = comp_rules.split(top_delim)[2].split(bottom_delim)[0]
 
     # Windows line endings... yuck
-    valid_line_segments = comp_rules.split("\r\n")
+    valid_line_segments = comp_rules.split("\r\r")
 
     # XXX.1 is just a description of what rule XXX includes.
     # XXX.2 starts the action for _most_ sections
