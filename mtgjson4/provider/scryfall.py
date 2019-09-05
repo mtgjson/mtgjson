@@ -340,9 +340,4 @@ def get_cards_without_limit() -> Set[str]:
     in a deck as the player wants
     :return: Set of valid cards
     """
-    return {
-        card["name"]
-        for card in download(
-            "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named%20or%20t:basic)"
-        )["data"]
-    }
+    return {card["name"] for card in download(SCRYFALL_API_SEARCH)["data"]}
