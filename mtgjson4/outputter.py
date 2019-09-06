@@ -2,7 +2,6 @@
 Functions used to generate outputs and write out
 """
 import contextvars
-import datetime
 import json
 import logging
 from typing import Any, Dict, List
@@ -13,7 +12,6 @@ from mtgjson4.mtgjson_card import MTGJSONCard
 from mtgjson4.provider import gamepedia, magic_precons, scryfall, wizards
 
 DECKS_URL: str = "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks.json"
-STANDARD_API_URL: str = "https://whatsinstandard.com/api/v5/sets.json"
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
@@ -245,17 +243,7 @@ def create_standard_only_output() -> Dict[str, Any]:
     has Standard legal sets.
     :return: AllSets for Standard only
     """
-    # Get all sets currently in standard
-    standard_url_content = util.get_generic_session().get(STANDARD_API_URL)
-    standard_json = [
-        set_obj["code"].upper()
-        for set_obj in json.loads(standard_url_content.text)["sets"]
-        if str(set_obj["enter_date"])
-        < datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        < str(set_obj["exit_date"])
-    ]
-
-    return __handle_compiling_sets(standard_json, "Standard")
+    return __handle_compiling_sets(util.get_standard_sets(), "Standard")
 
 
 def create_modern_only_output() -> Dict[str, Any]:

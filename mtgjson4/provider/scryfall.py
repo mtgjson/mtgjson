@@ -22,6 +22,7 @@ SCRYFALL_API_CARD: str = "https://api.scryfall.com/cards/"
 SCRYFALL_API_CATALOG: str = "https://api.scryfall.com/catalog/{0}-types"
 SCRYFALL_VARIATIONS: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}&unique=prints"
 SCRYFALL_SET_SIZE: str = "https://api.scryfall.com/cards/search?order=set&q=set:{0}%20is:booster%20unique:prints"
+SCRYFALL_API_SEARCH: str = "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named)"
 
 BASE_SET_FILE_CACHE: contextvars.ContextVar = contextvars.ContextVar(
     "BASE_SET_FILE_CACHE"
@@ -331,3 +332,12 @@ def get_catalog(key: str) -> List[str]:
     :return: List of values found
     """
     return list(download(SCRYFALL_API_CATALOG.format(key))["data"])
+
+
+def get_cards_without_limit() -> Set[str]:
+    """
+    Grab all cards that can have as many copies
+    in a deck as the player wants
+    :return: Set of valid cards
+    """
+    return {card["name"] for card in download(SCRYFALL_API_SEARCH)["data"]}

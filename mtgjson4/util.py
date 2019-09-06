@@ -1,10 +1,11 @@
 """Utility functions."""
 import contextvars
+import datetime
 import hashlib
 import json
 import logging
 import re
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 import requests
 import requests.adapters
@@ -15,6 +16,9 @@ import mtgjson4
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
+STANDARD_SETS: contextvars.ContextVar = contextvars.ContextVar("STANDARD_SETS")
+
+STANDARD_API_URL: str = "https://whatsinstandard.com/api/v5/sets.json"
 
 
 def retryable_session(session: requests.Session, retries: int = 8) -> requests.Session:
@@ -137,3 +141,24 @@ def url_keygen(prod_id: int) -> str:
     :return: URL Key
     """
     return hashlib.sha256(str(prod_id).encode()).hexdigest()[:16]
+
+
+def get_standard_sets() -> List[str]:
+    """
+    Use whatsinstandard to determine all sets that are legal in
+    the standard format.
+    :return: Standard legal set codes
+    """
+    if not STANDARD_SETS.get(None):
+        # Get all sets currently in standard
+        standard_url_content = get_generic_session().get(STANDARD_API_URL)
+        standard_json = [
+            set_obj["code"].upper()
+            for set_obj in json.loads(standard_url_content.text)["sets"]
+            if str(set_obj["enter_date"])
+            < datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            < str(set_obj["exit_date"])
+        ]
+        STANDARD_SETS.set(standard_json)
+
+    return list(STANDARD_SETS.get())

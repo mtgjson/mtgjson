@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
 import mtgjson4
-from mtgjson4 import mtgjson_card
+from mtgjson4 import mtgjson_card, util
 from mtgjson4.mtgjson_card import MTGJSONCard
 from mtgjson4.provider import gatherer, mtgstocks, scryfall, tcgplayer, wizards
 from mtgjson4.util import is_number
@@ -138,6 +138,9 @@ def build_mtgjson_set(
 
     # Move bogus tokens out
     card_holder, added_tokens = transpose_tokens(card_holder)
+
+    # Add extra flags that are related to cards
+    card_holder = mtgjson_custom_fields(card_holder)
 
     if not skip_keys:
         # Add MTGStocks data in
@@ -889,3 +892,43 @@ def build_mtgjson_card(
 
     mtgjson_cards.append(single_card)
     return mtgjson_cards
+
+
+def mtgjson_custom_fields(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
+    """
+    There are several field we generate independently.
+    This is one of my helper functions.
+    :param cards: Card list
+    :return: New improved card list
+    """
+    cards_with_no_deck_limit = scryfall.get_cards_without_limit()
+
+    for card in cards:
+        # Relentless type cards
+        if card.get("name") in cards_with_no_deck_limit:
+            card.set("hasNoDeckLimit", True)
+
+        # Cards that can be your traditional commander
+        is_commander = (
+            "Legendary" in card.get("type") and "Creature" in card.get("type")
+        ) or "can be your commander" in card.get("text")
+
+        # Cards that can be your oathbreaker commander
+        is_oathbreaker = "Planeswalker" in card.get("type")
+
+        # Cards that can be your brawl commander
+        is_brawl = card.get("set") in util.get_standard_sets() and (
+            is_oathbreaker or is_commander
+        )
+
+        if is_commander or is_oathbreaker or is_brawl:
+            card.set(
+                "hasLeadershipSkills",
+                {
+                    "brawl": is_brawl,
+                    "commander": is_commander,
+                    "oathbreaker": is_oathbreaker,
+                },
+            )
+
+    return cards
