@@ -923,7 +923,7 @@ def mtgjson_custom_fields(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
 
         if is_commander or is_oathbreaker or is_brawl:
             card.set(
-                "hasLeadershipSkills",
+                "leadershipSkills",
                 {
                     "brawl": is_brawl,
                     "commander": is_commander,
