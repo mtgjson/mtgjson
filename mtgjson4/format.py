@@ -37,19 +37,19 @@ def find_formats_for_sets(all_sets_path):
     try:
         with open(all_sets_path, encoding='utf-8', mode='r') as all_sets_json:
             all_sets = json.load(all_sets_json)
-            set_fmts = {}
+            set_formats = {}
 
             for code, data in all_sets.items():
-                possible_fmts = set(FORMATS)
+                possible_formats = set(FORMATS)
                 cards = data.get('cards')
 
                 for card in cards:
-                    card_fmts = set(card.get('legalities').keys())
-                    possible_fmts &= card_fmts
+                    card_formats = set(card.get('legalities').keys())
+                    possible_formats &= card_formats
 
-                set_fmts[code] = possible_fmts
+                set_formats[code] = possible_formats
 
-            return set_fmts
+            return set_formats
 
     except IOError:
         logger.exception("Could not open {}.".format(all_sets_path))
@@ -58,3 +58,23 @@ def find_formats_for_sets(all_sets_path):
     except json.JSONDecodeError:
         logger.exception("Could not decode JSON from {}.".format(all_sets_path))
         raise  # TODO: Handle this properly.
+
+
+def build_format_subset(target_format, format_map):
+    """
+    Given a format and a format mapping, produce a subset of sets that are legal in this format.
+
+    :param target_format: The format to find sets for
+    :type target_format: str
+    :param format_map: Mapping between set codes and formats in which they are legal
+    :type format_map: dict
+
+    :return: List of set codes that are legal in the specified format
+    :rtype: [str]
+    """
+    return list(
+        filter(
+            lambda code: target_format in format_map[code],
+            format_map.keys()
+        )
+    )
