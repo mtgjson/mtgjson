@@ -23,15 +23,17 @@ class UnrecognizedFormatException(Exception):
     pass  # TODO: Define MTGJSON exception hierarchy.
 
 
-def build_format_map(all_sets_path):
+def build_format_map(all_sets_path, regular=True):
     """
     For each set in the specified JSON file, determine its legal sets and return a dictionary mapping set code to
     a list of legal formats.
 
     :param all_sets_path: Path to AllSets.json file
     :type all_sets_path: str
+    :param regular: If this is True, then only expansions, core and draft innovation sets shall be included.
+    :type regular: bool
 
-    :return: Dictionary of the form { code: [formats] }
+    :return: Dictionary of the form { format: [codes] }
     :rtype: dict
     """
     try:
@@ -40,6 +42,9 @@ def build_format_map(all_sets_path):
             formats = {fmt: [] for fmt in FORMATS}
 
             for code, data in all_sets.items():
+                if regular and data['type'] not in ['expansion', 'core', 'draft_innovation']:
+                    continue
+
                 possible_formats = set(FORMATS)
                 cards = data.get('cards')
 
