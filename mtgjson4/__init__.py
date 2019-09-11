@@ -58,6 +58,8 @@ SET_LIST_OUTPUT: str = "SetList"
 STANDARD_OUTPUT: str = "Standard"
 VERSION_OUTPUT: str = "version"
 VINTAGE_OUTPUT: str = "Vintage"
+LEGACY_OUTPUT: str = "Legacy"
+COMMANDER_OUTPUT: str = "Commander"
 
 OUTPUT_FILES: List[str] = [
     ALL_CARDS_OUTPUT,

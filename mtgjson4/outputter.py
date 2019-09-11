@@ -10,6 +10,7 @@ import mtgjson4
 from mtgjson4 import util
 from mtgjson4.mtgjson_card import MTGJSONCard
 from mtgjson4.provider import gamepedia, magic_precons, scryfall, wizards
+from mtgjson4.format import build_format_map
 
 DECKS_URL: str = "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks.json"
 
@@ -236,26 +237,6 @@ def get_version_info() -> Dict[str, str]:
     }
 
 
-def create_standard_only_output() -> Dict[str, Any]:
-    """
-    Use whatsinstandard to determine all sets that are legal in
-    the standard format. Return an AllSets version that only
-    has Standard legal sets.
-    :return: AllSets for Standard only
-    """
-    return __handle_compiling_sets(util.get_standard_sets(), "Standard")
-
-
-def create_modern_only_output() -> Dict[str, Any]:
-    """
-    Use gamepedia to determine all sets that are legal in
-    the modern format. Return an AllSets version that only
-    has Modern legal sets.
-    :return: AllSets for Modern only
-    """
-    return __handle_compiling_sets(gamepedia.get_modern_sets(), "Modern")
-
-
 def get_funny_sets() -> List[str]:
     """
     This will determine all of the "joke" sets and give
@@ -349,11 +330,20 @@ def create_and_write_compiled_outputs() -> None:
     all_cards = create_all_cards(mtgjson4.OUTPUT_FILES)
     write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
 
+    # Compute format map from all_sets
+    format_map = build_format_map(all_sets)
+
     # Standard.json
-    write_to_file(mtgjson4.STANDARD_OUTPUT, create_standard_only_output())
+    write_to_file(mtgjson4.STANDARD_OUTPUT, __handle_compiling_sets(format_map['standard'], "Standard"))
 
     # Modern.json
-    write_to_file(mtgjson4.MODERN_OUTPUT, create_modern_only_output())
+    write_to_file(mtgjson4.MODERN_OUTPUT, __handle_compiling_sets(format_map['modern'], "Modern"))
+
+    # Legacy.json
+    write_to_file(mtgjson4.LEGACY_OUTPUT, __handle_compiling_sets(format_map['legacy'], "Legacy"))
+
+    # Commander.json
+    write_to_file(mtgjson4.COMMANDER_OUTPUT, __handle_compiling_sets(format_map['commander'], "Commander"))
 
     # Vintage.json
     write_to_file(
