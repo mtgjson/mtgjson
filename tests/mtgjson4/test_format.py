@@ -4,17 +4,17 @@ from mtgjson4.format import build_format_map
 
 
 NULL_OUTPUT = {
-    'standard': [],
-    'future': [],
-    'modern': [],
-    'legacy': [],
-    'vintage': [],
-    'commander': [],
-    'brawl': [],
-    'pauper': [],
-    'penny': [],
-    'oldschool': [],
-    'duel': []
+    "standard": [],
+    "future": [],
+    "modern": [],
+    "legacy": [],
+    "vintage": [],
+    "commander": [],
+    "brawl": [],
+    "pauper": [],
+    "penny": [],
+    "oldschool": [],
+    "duel": []
 }
 
 
@@ -24,37 +24,37 @@ NULL_OUTPUT = {
         pytest.param({}, NULL_OUTPUT),
         pytest.param(
             {
-                'TS1': {
-                    'cards': [
-                        {'legalities': {'standard': 'Legal'}}
+                "TS1": {
+                    "cards": [
+                        {"legalities": {"standard": "Legal"}}
                     ]
                 },
-                'TS2': {
-                    'cards': [
-                        {'legalities': {'standard': 'Legal'}},
-                        {'legalities': {'standard': 'Legal', 'modern': 'Legal'}}
+                "TS2": {
+                    "cards": [
+                        {"legalities": {"standard": "Legal"}},
+                        {"legalities": {"standard": "Legal", "modern": "Legal"}}
                     ]
                 },
-                'TS3': {
-                    'cards': [
-                        {'legalities': {'modern': 'Legal', 'standard': 'Legal'}},
-                        {'legalities': {'modern': 'Legal'}}
+                "TS3": {
+                    "cards": [
+                        {"legalities": {"modern": "Legal", "standard": "Legal"}},
+                        {"legalities": {"modern": "Legal"}}
                     ]
                 },
-                'TS4': {
-                    'cards': [
-                        {'legalities': {'vintage': 'Restricted', 'legacy': 'Legal', 'modern': 'Legal', 'standard': 'Legal'}},
-                        {'legalities': {'vintage': 'Legal', 'legacy': 'Legal', 'modern': 'Legal', 'standard': 'Banned'}}
+                "TS4": {
+                    "cards": [
+                        {"legalities": {"vintage": "Restricted", "legacy": "Legal", "modern": "Legal", "standard": "Legal"}},
+                        {"legalities": {"vintage": "Legal", "legacy": "Legal", "modern": "Legal", "standard": "Banned"}}
                     ]
                 }
             },
             {
                 **NULL_OUTPUT,
                 **{
-                    'standard': ['TS1', 'TS2', 'TS4'],
-                    'modern': ['TS3', 'TS4'],
-                    'legacy': ['TS4'],
-                    'vintage': ['TS4']
+                    "standard": ["TS1", "TS2", "TS4"],
+                    "modern": ["TS3", "TS4"],
+                    "legacy": ["TS4"],
+                    "vintage": ["TS4"]
                 }
             }
         )

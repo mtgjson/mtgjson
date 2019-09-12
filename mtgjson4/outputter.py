@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 import mtgjson4
 from mtgjson4 import util
 from mtgjson4.mtgjson_card import MTGJSONCard
-from mtgjson4.provider import gamepedia, magic_precons, scryfall, wizards
+from mtgjson4.provider import magic_precons, scryfall, wizards
 from mtgjson4.format import build_format_map
 
 DECKS_URL: str = "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks.json"
@@ -334,19 +334,19 @@ def create_and_write_compiled_outputs() -> None:
     format_map = build_format_map(all_sets)
 
     # Standard.json
-    write_to_file(mtgjson4.STANDARD_OUTPUT, __handle_compiling_sets(format_map['standard'], "Standard"))
+    write_to_file(mtgjson4.STANDARD_OUTPUT, __handle_compiling_sets(format_map["standard"], "Standard"))
 
     # Future.json
-    write_to_file(mtgjson4.FUTURE_OUTPUT, __handle_compiling_sets(format_map['future'], "Future"))
+    write_to_file(mtgjson4.FUTURE_OUTPUT, __handle_compiling_sets(format_map["future"], "Future"))
 
     # Modern.json
-    write_to_file(mtgjson4.MODERN_OUTPUT, __handle_compiling_sets(format_map['modern'], "Modern"))
+    write_to_file(mtgjson4.MODERN_OUTPUT, __handle_compiling_sets(format_map["modern"], "Modern"))
 
     # Legacy.json
-    write_to_file(mtgjson4.LEGACY_OUTPUT, __handle_compiling_sets(format_map['legacy'], "Legacy"))
+    write_to_file(mtgjson4.LEGACY_OUTPUT, __handle_compiling_sets(format_map["legacy"], "Legacy"))
 
     # Commander.json
-    write_to_file(mtgjson4.COMMANDER_OUTPUT, __handle_compiling_sets(format_map['commander'], "Commander"))
+    write_to_file(mtgjson4.COMMANDER_OUTPUT, __handle_compiling_sets(format_map["commander"], "Commander"))
 
     # Vintage.json
     write_to_file(
