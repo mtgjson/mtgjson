@@ -336,6 +336,9 @@ def create_and_write_compiled_outputs() -> None:
     # Standard.json
     write_to_file(mtgjson4.STANDARD_OUTPUT, __handle_compiling_sets(format_map['standard'], "Standard"))
 
+    # Future.json
+    write_to_file(mtgjson4.FUTURE_OUTPUT, __handle_compiling_sets(format_map['future'], "Future"))
+
     # Modern.json
     write_to_file(mtgjson4.MODERN_OUTPUT, __handle_compiling_sets(format_map['modern'], "Modern"))
 
