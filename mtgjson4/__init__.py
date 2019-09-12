@@ -60,6 +60,7 @@ VERSION_OUTPUT: str = "version"
 VINTAGE_OUTPUT: str = "Vintage"
 LEGACY_OUTPUT: str = "Legacy"
 COMMANDER_OUTPUT: str = "Commander"
+FUTURE_OUTPUT: str = "Future"
 
 OUTPUT_FILES: List[str] = [
     ALL_CARDS_OUTPUT,
