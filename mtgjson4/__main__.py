@@ -86,6 +86,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-keys", action="store_true")
     parser.add_argument("--skip-sets", metavar="SET", nargs="*", type=str)
     parser.add_argument("--skip-cache", action="store_true")
+    parser.add_argument("-p", "--pretty-output", action="store_true")
 
     # Ensure there are args
     if len(sys.argv) < 2:
@@ -132,6 +133,7 @@ def main() -> None:
     """
     args: argparse.Namespace = parse_args()
     mtgjson4.USE_CACHE.set(not args.skip_cache)
+    mtgjson4.PRETTY_OUTPUT.set(4 if args.pretty_output else None)
 
     if not mtgjson4.CONFIG_PATH.is_file():
         LOGGER.warning(
