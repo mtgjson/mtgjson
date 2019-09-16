@@ -194,7 +194,9 @@ def parse_rulings(rulings_url: str) -> List[Dict[str, str]]:
     return mtgjson_rules
 
 
-def parse_card_types(card_type: str) -> Tuple[List[str], List[str], List[str]]:
+def parse_card_types(
+    card_type: Optional[str]
+) -> Tuple[List[str], List[str], List[str]]:
     """
     Given a card type string, split it up into its raw components: super, sub, and type
     :param card_type: Card type string to parse
@@ -203,6 +205,9 @@ def parse_card_types(card_type: str) -> Tuple[List[str], List[str], List[str]]:
     sub_types: List[str] = []
     super_types: List[str] = []
     types: List[str] = []
+
+    if card_type is None:
+        return super_types, types, sub_types
 
     if "—" in card_type:
         split_type: List[str] = card_type.split("—")

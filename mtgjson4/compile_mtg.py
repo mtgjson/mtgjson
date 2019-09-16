@@ -904,6 +904,9 @@ def mtgjson_custom_fields(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
     cards_with_no_deck_limit = scryfall.get_cards_without_limit()
 
     for card in cards:
+        if card.get("type") is None:
+            continue
+
         # Relentless type cards
         if card.get("name") in cards_with_no_deck_limit:
             card.set("hasNoDeckLimit", True)
