@@ -52,15 +52,18 @@ CARD_TYPES_OUTPUT: str = "CardTypes"
 COMPILED_LIST_OUTPUT: str = "CompiledList"
 DECK_LISTS_OUTPUT: str = "DeckLists"
 KEY_WORDS_OUTPUT: str = "Keywords"
-MODERN_OUTPUT: str = "Modern"
 REFERRAL_DB_OUTPUT: str = "ReferralMap"
 SET_LIST_OUTPUT: str = "SetList"
-STANDARD_OUTPUT: str = "Standard"
 VERSION_OUTPUT: str = "version"
+
+STANDARD_OUTPUT: str = "Standard"
+MODERN_OUTPUT: str = "Modern"
 VINTAGE_OUTPUT: str = "Vintage"
 LEGACY_OUTPUT: str = "Legacy"
 COMMANDER_OUTPUT: str = "Commander"
-FUTURE_OUTPUT: str = "Future"
+FUTURE_OUTPUT: str = "FutureStandard"
+
+CARDS_OUTPUT_FORMAT: str = "{}Cards"
 
 OUTPUT_FILES: List[str] = [
     ALL_CARDS_OUTPUT,
