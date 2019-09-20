@@ -1,9 +1,9 @@
 """
 Functions and constants used to help build the format map
 """
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Set
 
-FORMATS = (
+FORMATS: Set[str] = {
     "standard",
     "future",
     "modern",
@@ -15,7 +15,15 @@ FORMATS = (
     "penny",
     "oldschool",
     "duel"
-)
+}
+
+NORMAL_SETS = [
+    "expansion",
+    "core",
+    "draft_innovation",
+    "commander",
+    "masters"
+]
 
 
 def build_format_map(all_sets: Dict[str, Any], regular: bool = True) -> Dict[str, List[str]]:
@@ -31,18 +39,18 @@ def build_format_map(all_sets: Dict[str, Any], regular: bool = True) -> Dict[str
     :return: Dictionary of the form { format: [codes] }
     :rtype: dict
     """
-    formats: Dict[str, List[str]] = {fmt: [] for fmt in FORMATS}
+    formats = {fmt: [] for fmt in FORMATS}
 
     for code, data in all_sets.items():
-        if regular and data["type"] not in ["expansion", "core", "draft_innovation", "commander", "masters"]:
+        if regular and data["type"] not in NORMAL_SETS:
             continue
 
         possible_formats = set(FORMATS)
-        cards = data.get("cards")
 
-        for card in cards:
+        for card in data.get("cards"):
+            # The legalities dictionary only has keys for formats where the card is legal, banned or restricted.
             card_formats = set(card.get("legalities").keys())
-            possible_formats &= card_formats
+            possible_formats = possible_formats.intersection(card_formats)
 
         for fmt in possible_formats:
             formats[fmt].append(code)
