@@ -11,8 +11,9 @@ from typing import Any, Dict, List, Match, Optional, Tuple
 import bs4
 
 import mtgjson4
+import mtgjson4.util
 from mtgjson4 import util
-from mtgjson4.provider import gamepedia, scryfall
+from mtgjson4.provider import scryfall
 import unidecode
 
 TRANSLATION_URL: str = "https://magic.wizards.com/{}/products/card-set-archive"
@@ -442,7 +443,7 @@ def set_names_to_set_codes(
     new_table = {}
     for key, value in table.items():
         if key:
-            sf_header = scryfall.get_set_header(gamepedia.strip_bad_sf_chars(key))
+            sf_header = scryfall.get_set_header(mtgjson4.util.strip_bad_sf_chars(key))
             new_table[sf_header["code"].upper()] = value
 
     return new_table
