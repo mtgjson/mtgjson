@@ -4,13 +4,13 @@ Functions used to generate outputs and write out
 import contextvars
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 import mtgjson4
 from mtgjson4 import util
 from mtgjson4.mtgjson_card import MTGJSONCard
 from mtgjson4.provider import magic_precons, scryfall, wizards
-from mtgjson4.format import build_format_map
+from mtgjson4.format import build_format_map, FORMATS
 
 DECKS_URL: str = "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks.json"
 
@@ -151,6 +151,27 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
                 all_cards_data[card["name"]] = card
 
     return all_cards_data
+
+
+def create_all_cards_subsets(
+    cards: Dict[str, Any], target_formats: Set
+) -> Dict[str, Any]:
+    """
+    For each format in target_formats, a dictionary is created containing only cards legal in that format. Legal
+    includes cards on the restricted list, but not those which are banned.
+
+    :param cards: The card data to be filtered (should be AllCards)
+    :param target_formats: The set of formats to create subsets for.
+
+    :return: Dictionary of dictionaries, mapping format name -> all_cards subset.
+    """
+    subsets: Dict[str, Dict[str, Any]] = {fmt: {} for fmt in target_formats}
+    for name, data in cards.items():
+        for fmt in target_formats:
+            if data["legalities"].get(fmt) in ("Legal", "Restricted"):
+                subsets[fmt][name] = data
+
+    return subsets
 
 
 def get_all_set_names(files_to_ignore: List[str]) -> List[str]:
@@ -326,31 +347,82 @@ def create_and_write_compiled_outputs() -> None:
     all_sets = create_all_sets(mtgjson4.OUTPUT_FILES)
     write_to_file(mtgjson4.ALL_SETS_OUTPUT, all_sets)
 
-    # AllCards.json
-    all_cards = create_all_cards(mtgjson4.OUTPUT_FILES)
-    write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
-
     # Compute format map from all_sets
     format_map = build_format_map(all_sets)
 
     # Standard.json
-    write_to_file(mtgjson4.STANDARD_OUTPUT, __handle_compiling_sets(format_map["standard"], "Standard"))
+    write_to_file(
+        mtgjson4.STANDARD_OUTPUT,
+        __handle_compiling_sets(format_map["standard"], "Standard"),
+    )
 
     # Future.json
-    write_to_file(mtgjson4.FUTURE_OUTPUT, __handle_compiling_sets(format_map["future"], "Future"))
+    write_to_file(
+        mtgjson4.FUTURE_OUTPUT, __handle_compiling_sets(format_map["future"], "Future")
+    )
 
     # Modern.json
-    write_to_file(mtgjson4.MODERN_OUTPUT, __handle_compiling_sets(format_map["modern"], "Modern"))
+    write_to_file(
+        mtgjson4.MODERN_OUTPUT, __handle_compiling_sets(format_map["modern"], "Modern")
+    )
 
     # Legacy.json
-    write_to_file(mtgjson4.LEGACY_OUTPUT, __handle_compiling_sets(format_map["legacy"], "Legacy"))
+    write_to_file(
+        mtgjson4.LEGACY_OUTPUT, __handle_compiling_sets(format_map["legacy"], "Legacy")
+    )
 
     # Commander.json
-    write_to_file(mtgjson4.COMMANDER_OUTPUT, __handle_compiling_sets(format_map["commander"], "Commander"))
+    write_to_file(
+        mtgjson4.COMMANDER_OUTPUT,
+        __handle_compiling_sets(format_map["commander"], "Commander"),
+    )
 
     # Vintage.json
     write_to_file(
         mtgjson4.VINTAGE_OUTPUT, create_vintage_only_output(mtgjson4.OUTPUT_FILES)
+    )
+
+    # AllCards.json
+    all_cards = create_all_cards(mtgjson4.OUTPUT_FILES)
+    write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
+
+    # Create format-specific subsets of AllCards.json
+    all_cards_subsets = create_all_cards_subsets(all_cards, FORMATS)
+
+    # StandardCards.json
+    write_to_file(
+        mtgjson4.CARDS_OUTPUT_FORMAT.format(mtgjson4.STANDARD_OUTPUT),
+        all_cards_subsets.get("standard"),
+    )
+
+    # ModernCards.json
+    write_to_file(
+        mtgjson4.CARDS_OUTPUT_FORMAT.format(mtgjson4.MODERN_OUTPUT),
+        all_cards_subsets.get("modern"),
+    )
+
+    # VintageCards.json
+    write_to_file(
+        mtgjson4.CARDS_OUTPUT_FORMAT.format(mtgjson4.VINTAGE_OUTPUT),
+        all_cards_subsets.get("vintage"),
+    )
+
+    # LegacyCards.json
+    write_to_file(
+        mtgjson4.CARDS_OUTPUT_FORMAT.format(mtgjson4.LEGACY_OUTPUT),
+        all_cards_subsets.get("legacy"),
+    )
+
+    # CommanderCards.json
+    write_to_file(
+        mtgjson4.CARDS_OUTPUT_FORMAT.format(mtgjson4.COMMANDER_OUTPUT),
+        all_cards_subsets.get("commander"),
+    )
+
+    # FutureStandardCards.json
+    write_to_file(
+        mtgjson4.CARDS_OUTPUT_FORMAT.format(mtgjson4.FUTURE_OUTPUT),
+        all_cards_subsets.get("future"),
     )
 
     # decks/*.json

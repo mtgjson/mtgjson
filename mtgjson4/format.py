@@ -14,19 +14,21 @@ FORMATS: Set[str] = {
     "pauper",
     "penny",
     "oldschool",
-    "duel"
+    "duel",
 }
 
-NORMAL_SETS = [
+NORMAL_SETS: Set[str] = {
     "expansion",
     "core",
     "draft_innovation",
     "commander",
-    "masters"
-]
+    "masters",
+}
 
 
-def build_format_map(all_sets: Dict[str, Any], regular: bool = True) -> Dict[str, List[str]]:
+def build_format_map(
+    all_sets: Dict[str, Any], regular: bool = True
+) -> Dict[str, List[str]]:
     """
     For each set in the specified JSON file, determine its legal sets and return a dictionary mapping set code to
     a list of legal formats.
@@ -39,7 +41,7 @@ def build_format_map(all_sets: Dict[str, Any], regular: bool = True) -> Dict[str
     :return: Dictionary of the form { format: [codes] }
     :rtype: dict
     """
-    formats = {fmt: [] for fmt in FORMATS}
+    formats: Dict[str, List[Any]] = {fmt: [] for fmt in FORMATS}
 
     for code, data in all_sets.items():
         if regular and data["type"] not in NORMAL_SETS:
