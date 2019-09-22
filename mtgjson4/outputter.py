@@ -7,10 +7,10 @@ import logging
 from typing import Any, Dict, List, Set
 
 import mtgjson4
-from mtgjson4 import util
+from mtgjson4 import util, SUPPORTED_FORMAT_OUTPUTS
 from mtgjson4.mtgjson_card import MTGJSONCard
 from mtgjson4.provider import magic_precons, scryfall, wizards
-from mtgjson4.format import build_format_map, FORMATS
+from mtgjson4.format import build_format_map
 
 DECKS_URL: str = "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks.json"
 
@@ -347,8 +347,44 @@ def create_and_write_compiled_outputs() -> None:
     all_sets = create_all_sets(mtgjson4.OUTPUT_FILES)
     write_to_file(mtgjson4.ALL_SETS_OUTPUT, all_sets)
 
+    create_set_centric_outputs(all_sets)
+
+    # AllCards.json
+    all_cards = create_all_cards(mtgjson4.OUTPUT_FILES)
+    write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
+
+    create_card_centric_outputs(all_cards)
+
+    # decks/*.json
+    deck_names = []
+    for deck in magic_precons.build_and_write_decks(DECKS_URL):
+        deck_name = util.capital_case_without_symbols(deck["name"])
+        write_deck_to_file(f"{deck_name}_{deck['code']}", deck)
+        deck_names.append(
+            {
+                "code": deck["code"],
+                "fileName": deck_name,
+                "name": deck["name"],
+                "releaseDate": deck["releaseDate"],
+            }
+        )
+
+    # DeckLists.json
+    write_to_file(
+        mtgjson4.DECK_LISTS_OUTPUT,
+        create_deck_compiled_list(
+            sorted(deck_names, key=lambda deck_obj: deck_obj["name"])
+        ),
+    )
+
+
+def create_set_centric_outputs(sets: Dict[str, Any]) -> None:
+    """
+    Create JSON output files on a per-format basis. The outputs will be set-centric.
+    :param sets: Dictionary mapping name -> card data. Should be AllSets.
+    """
     # Compute format map from all_sets
-    format_map = build_format_map(all_sets)
+    format_map = build_format_map(sets)
 
     # Standard.json
     write_to_file(
@@ -382,70 +418,35 @@ def create_and_write_compiled_outputs() -> None:
         mtgjson4.VINTAGE_OUTPUT, create_vintage_only_output(mtgjson4.OUTPUT_FILES)
     )
 
-    # AllCards.json
-    all_cards = create_all_cards(mtgjson4.OUTPUT_FILES)
-    write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
 
+def create_card_centric_outputs(cards: Dict[str, Any]) -> None:
+    """
+    Create JSON output files on a per-format basis. The outputs will be card-centric.
+    :param cards: Dictionary mapping name -> card data. Should be AllCards.
+    """
     # Create format-specific subsets of AllCards.json
-    all_cards_subsets = create_all_cards_subsets(all_cards, FORMATS)
+    all_cards_subsets = create_all_cards_subsets(cards, SUPPORTED_FORMAT_OUTPUTS)
 
     # StandardCards.json
-    write_to_file(
-        mtgjson4.CARDS_OUTPUT_FORMAT.format(mtgjson4.STANDARD_OUTPUT),
-        all_cards_subsets.get("standard"),
-    )
+    write_to_file(mtgjson4.STANDARD_OUTPUT, all_cards_subsets.get("standard"))
 
     # ModernCards.json
-    write_to_file(
-        mtgjson4.CARDS_OUTPUT_FORMAT.format(mtgjson4.MODERN_OUTPUT),
-        all_cards_subsets.get("modern"),
-    )
+    write_to_file(mtgjson4.MODERN_OUTPUT, all_cards_subsets.get("modern"))
 
     # VintageCards.json
-    write_to_file(
-        mtgjson4.CARDS_OUTPUT_FORMAT.format(mtgjson4.VINTAGE_OUTPUT),
-        all_cards_subsets.get("vintage"),
-    )
+    write_to_file(mtgjson4.VINTAGE_OUTPUT, all_cards_subsets.get("vintage"))
 
     # LegacyCards.json
-    write_to_file(
-        mtgjson4.CARDS_OUTPUT_FORMAT.format(mtgjson4.LEGACY_OUTPUT),
-        all_cards_subsets.get("legacy"),
-    )
+    write_to_file(mtgjson4.LEGACY_OUTPUT, all_cards_subsets.get("legacy"))
 
     # CommanderCards.json
-    write_to_file(
-        mtgjson4.CARDS_OUTPUT_FORMAT.format(mtgjson4.COMMANDER_OUTPUT),
-        all_cards_subsets.get("commander"),
-    )
+    write_to_file(mtgjson4.COMMANDER_OUTPUT, all_cards_subsets.get("commander"))
 
     # FutureStandardCards.json
-    write_to_file(
-        mtgjson4.CARDS_OUTPUT_FORMAT.format(mtgjson4.FUTURE_OUTPUT),
-        all_cards_subsets.get("future"),
-    )
+    write_to_file(mtgjson4.FUTURE_OUTPUT, all_cards_subsets.get("future"))
 
-    # decks/*.json
-    deck_names = []
-    for deck in magic_precons.build_and_write_decks(DECKS_URL):
-        deck_name = util.capital_case_without_symbols(deck["name"])
-        write_deck_to_file(f"{deck_name}_{deck['code']}", deck)
-        deck_names.append(
-            {
-                "code": deck["code"],
-                "fileName": deck_name,
-                "name": deck["name"],
-                "releaseDate": deck["releaseDate"],
-            }
-        )
-
-    # DeckLists.json
-    write_to_file(
-        mtgjson4.DECK_LISTS_OUTPUT,
-        create_deck_compiled_list(
-            sorted(deck_names, key=lambda deck_obj: deck_obj["name"])
-        ),
-    )
+    # PauperCards.json
+    write_to_file(mtgjson4.PAUPER_CARDS_OUTPUT, all_cards_subsets.get("pauper"))
 
 
 def __handle_compiling_sets(set_codes: List[str], build_type: str) -> Dict[str, Any]:

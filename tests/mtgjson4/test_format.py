@@ -10,11 +10,7 @@ NULL_OUTPUT = {
     "legacy": [],
     "vintage": [],
     "commander": [],
-    "brawl": [],
     "pauper": [],
-    "penny": [],
-    "oldschool": [],
-    "duel": [],
 }
 
 

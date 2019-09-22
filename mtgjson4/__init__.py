@@ -4,7 +4,7 @@ import logging
 import os
 import pathlib
 import time
-from typing import Dict, List
+from typing import Dict, List, Set
 
 # Maintenance variables
 __VERSION__ = "4.5.0"
@@ -63,7 +63,23 @@ LEGACY_OUTPUT: str = "Legacy"
 COMMANDER_OUTPUT: str = "Commander"
 FUTURE_OUTPUT: str = "FutureStandard"
 
-CARDS_OUTPUT_FORMAT: str = "{}Cards"
+STANDARD_CARDS_OUTPUT: str = "StandardCards"
+MODERN_CARDS_OUTPUT: str = "ModernCards"
+VINTAGE_CARDS_OUTPUT: str = "VintageCards"
+LEGACY_CARDS_OUTPUT: str = "LegacyCards"
+COMMANDER_CARDS_OUTPUT: str = "CommanderCards"
+FUTURE_CARDS_OUTPUT: str = "FutureStandardCards"
+PAUPER_CARDS_OUTPUT: str = "PauperCards"
+
+SUPPORTED_FORMAT_OUTPUTS: Set[str] = {
+    "standard",
+    "future",
+    "modern",
+    "legacy",
+    "vintage",
+    "commander",
+    "pauper",
+}
 
 OUTPUT_FILES: List[str] = [
     ALL_CARDS_OUTPUT,
@@ -77,9 +93,20 @@ OUTPUT_FILES: List[str] = [
     MODERN_OUTPUT,
     REFERRAL_DB_OUTPUT,
     SET_LIST_OUTPUT,
-    STANDARD_OUTPUT,
     VERSION_OUTPUT,
+    STANDARD_OUTPUT,
+    MODERN_OUTPUT,
     VINTAGE_OUTPUT,
+    LEGACY_OUTPUT,
+    COMMANDER_OUTPUT,
+    FUTURE_OUTPUT,
+    STANDARD_CARDS_OUTPUT,
+    MODERN_CARDS_OUTPUT,
+    VINTAGE_CARDS_OUTPUT,
+    LEGACY_CARDS_OUTPUT,
+    COMMANDER_CARDS_OUTPUT,
+    FUTURE_CARDS_OUTPUT,
+    PAUPER_CARDS_OUTPUT,
 ]
 
 # Provider tags

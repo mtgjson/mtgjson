@@ -3,19 +3,7 @@ Functions and constants used to help build the format map
 """
 from typing import List, Dict, Any, Set
 
-FORMATS: Set[str] = {
-    "standard",
-    "future",
-    "modern",
-    "legacy",
-    "vintage",
-    "commander",
-    "brawl",
-    "pauper",
-    "penny",
-    "oldschool",
-    "duel",
-}
+from mtgjson4 import SUPPORTED_FORMAT_OUTPUTS
 
 NORMAL_SETS: Set[str] = {
     "expansion",
@@ -41,13 +29,13 @@ def build_format_map(
     :return: Dictionary of the form { format: [codes] }
     :rtype: dict
     """
-    formats: Dict[str, List[Any]] = {fmt: [] for fmt in FORMATS}
+    formats: Dict[str, List[Any]] = {fmt: [] for fmt in SUPPORTED_FORMAT_OUTPUTS}
 
     for code, data in all_sets.items():
         if regular and data["type"] not in NORMAL_SETS:
             continue
 
-        possible_formats = set(FORMATS)
+        possible_formats = set(SUPPORTED_FORMAT_OUTPUTS)
 
         for card in data.get("cards"):
             # The legalities dictionary only has keys for formats where the card is legal, banned or restricted.
