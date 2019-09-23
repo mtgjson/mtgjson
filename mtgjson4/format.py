@@ -1,7 +1,7 @@
 """
 Functions and constants used to help build the format map
 """
-from typing import List, Dict, Any, Set
+from typing import Any, Dict, List, Set
 
 from mtgjson4 import SUPPORTED_FORMAT_OUTPUTS
 
@@ -20,14 +20,9 @@ def build_format_map(
     """
     For each set in the specified JSON file, determine its legal sets and return a dictionary mapping set code to
     a list of legal formats.
-
     :param all_sets: AllSets content
-    :type all_sets: dict
     :param regular: If this is True, then unusual sets will be excluded.
-    :type regular: bool
-
     :return: Dictionary of the form { format: [codes] }
-    :rtype: dict
     """
     formats: Dict[str, List[Any]] = {fmt: [] for fmt in SUPPORTED_FORMAT_OUTPUTS}
 
@@ -35,7 +30,7 @@ def build_format_map(
         if regular and data["type"] not in NORMAL_SETS:
             continue
 
-        possible_formats = set(SUPPORTED_FORMAT_OUTPUTS)
+        possible_formats = SUPPORTED_FORMAT_OUTPUTS
 
         for card in data.get("cards"):
             # The legalities dictionary only has keys for formats where the card is legal, banned or restricted.

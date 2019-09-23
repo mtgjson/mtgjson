@@ -7,9 +7,9 @@ import time
 from typing import Dict, List, Set
 
 # Maintenance variables
-__VERSION__ = "4.5.0"
-__VERSION_DATE__ = "2019-08-11"
-__PRICE_UPDATE_DATE__ = "2019-08-11"
+__VERSION__ = "4.5.1"
+__VERSION_DATE__ = "2019-08-13"
+__PRICE_UPDATE_DATE__ = "2019-08-23"
 __MAINTAINER__ = "Zach Halpern (GitHub: @ZeldaZach)"
 __MAINTAINER_EMAIL__ = "zahalpern+github@gmail.com"
 __REPO_URL__ = "https://github.com/mtgjson/mtgjson"
@@ -63,6 +63,7 @@ VINTAGE_OUTPUT: str = "Vintage"
 LEGACY_OUTPUT: str = "Legacy"
 COMMANDER_OUTPUT: str = "Commander"
 FUTURE_OUTPUT: str = "FutureStandard"
+PAUPER_OUTPUT: str = "Pauper"
 
 STANDARD_CARDS_OUTPUT: str = "StandardCards"
 MODERN_CARDS_OUTPUT: str = "ModernCards"
@@ -108,6 +109,7 @@ OUTPUT_FILES: List[str] = [
     COMMANDER_CARDS_OUTPUT,
     FUTURE_CARDS_OUTPUT,
     PAUPER_CARDS_OUTPUT,
+    PAUPER_OUTPUT,
 ]
 
 # Provider tags
