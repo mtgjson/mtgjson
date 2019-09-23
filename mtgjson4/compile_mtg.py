@@ -256,11 +256,11 @@ def transpose_tokens(
         if card.get("layout") in ["token", "emblem"]
     ]
 
-    # Do not duplicate double faced tokens
+    # Do not duplicate double faced tokens or art cards
     done_tokens: Set[str] = set()
     for card in cards:
         if (
-            card.get("layout") == "double_faced_token"
+            card.get("layout") in ["double_faced_token", "art_series"]
             and card.get("scryfallId") not in done_tokens
         ):
             tokens.append(
@@ -272,7 +272,8 @@ def transpose_tokens(
     cards = [
         card
         for card in cards
-        if card.get("layout") not in ["token", "double_faced_token", "emblem"]
+        if card.get("layout")
+        not in ["token", "double_faced_token", "emblem", "art_series"]
     ]
 
     return cards, tokens
@@ -484,7 +485,7 @@ def build_mtgjson_tokens(
             token_card.set_all(
                 {
                     "name": face_data.get("name"),
-                    "type": face_data.get("type_line"),
+                    "type": face_data.get("type_line", "Card"),
                     "text": face_data.get("oracle_text"),
                     "power": face_data.get("power"),
                     "colors": face_data.get("colors"),
@@ -507,7 +508,7 @@ def build_mtgjson_tokens(
             token_card.set_all(
                 {
                     "name": sf_token.get("name"),
-                    "type": sf_token.get("type_line"),
+                    "type": sf_token.get("type_line", "Card"),
                     "text": sf_token.get("oracle_text"),
                     "power": sf_token.get("power"),
                     "colors": sf_token.get("colors"),
@@ -646,7 +647,7 @@ def build_mtgjson_card(
                 "faceConvertedManaCost",
                 get_cmc(sf_card["mana_cost"].split("//")[sf_card_face].strip()),
             )
-        elif sf_card["layout"] in ["split", "transform", "aftermath"]:
+        elif sf_card["layout"] in ["split", "transform", "aftermath", "adventure"]:
             # Handle non-normal cards, as they'll a face split
             single_card.set(
                 "faceConvertedManaCost",
@@ -723,7 +724,7 @@ def build_mtgjson_card(
             "tcgplayerProductId": sf_card.get("tcgplayer_id"),
             "text": face_data.get("oracle_text"),
             "toughness": face_data.get("toughness"),
-            "type": face_data.get("type_line"),
+            "type": face_data.get("type_line", "Card"),
         }
     )
 
@@ -923,7 +924,7 @@ def mtgjson_custom_fields(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
 
         if is_commander or is_oathbreaker or is_brawl:
             card.set(
-                "hasLeadershipSkills",
+                "leadershipSkills",
                 {
                     "brawl": is_brawl,
                     "commander": is_commander,
