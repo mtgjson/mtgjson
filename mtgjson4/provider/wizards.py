@@ -364,7 +364,6 @@ def convert_keys_to_set_names(
         del value["English"]
         return_table[new_key] = value
 
-    LOGGER.info(json.dumps(return_table))
     return return_table
 
 
@@ -443,7 +442,8 @@ def set_names_to_set_codes(
     for key, value in table.items():
         if key:
             sf_header = scryfall.get_set_header(gamepedia.strip_bad_sf_chars(key))
-            new_table[sf_header["code"].upper()] = value
+            if sf_header:
+                new_table[sf_header["code"].upper()] = value
 
     return new_table
 
