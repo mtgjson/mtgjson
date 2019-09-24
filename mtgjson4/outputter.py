@@ -367,7 +367,7 @@ def create_and_write_compiled_outputs() -> None:
     write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
 
     create_card_centric_outputs(all_cards)
-    return
+
     # decks/*.json
     deck_names = []
     for deck in magic_precons.build_and_write_decks(DECKS_URL):
@@ -406,11 +406,6 @@ def create_set_centric_outputs(sets: Dict[str, Any]) -> None:
         __handle_compiling_sets(format_map["standard"], "Standard"),
     )
 
-    # Future.json
-    write_to_file(
-        mtgjson4.FUTURE_OUTPUT, __handle_compiling_sets(format_map["future"], "Future")
-    )
-
     # Modern.json
     write_to_file(
         mtgjson4.MODERN_OUTPUT, __handle_compiling_sets(format_map["modern"], "Modern")
@@ -419,17 +414,6 @@ def create_set_centric_outputs(sets: Dict[str, Any]) -> None:
     # Legacy.json
     write_to_file(
         mtgjson4.LEGACY_OUTPUT, __handle_compiling_sets(format_map["legacy"], "Legacy")
-    )
-
-    # Pauper.json
-    write_to_file(
-        mtgjson4.PAUPER_OUTPUT, __handle_compiling_sets(format_map["pauper"], "Pauper")
-    )
-
-    # Commander.json
-    write_to_file(
-        mtgjson4.COMMANDER_OUTPUT,
-        __handle_compiling_sets(format_map["commander"], "Commander"),
     )
 
     # Vintage.json
@@ -457,12 +441,6 @@ def create_card_centric_outputs(cards: Dict[str, Any]) -> None:
 
     # LegacyCards.json
     write_to_file(mtgjson4.LEGACY_CARDS_OUTPUT, all_cards_subsets.get("legacy"))
-
-    # CommanderCards.json
-    write_to_file(mtgjson4.COMMANDER_CARDS_OUTPUT, all_cards_subsets.get("commander"))
-
-    # FutureStandardCards.json
-    write_to_file(mtgjson4.FUTURE_CARDS_OUTPUT, all_cards_subsets.get("future"))
 
     # PauperCards.json
     write_to_file(mtgjson4.PAUPER_CARDS_OUTPUT, all_cards_subsets.get("pauper"))

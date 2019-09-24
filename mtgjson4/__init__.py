@@ -61,25 +61,18 @@ STANDARD_OUTPUT: str = "Standard"
 MODERN_OUTPUT: str = "Modern"
 VINTAGE_OUTPUT: str = "Vintage"
 LEGACY_OUTPUT: str = "Legacy"
-COMMANDER_OUTPUT: str = "Commander"
-FUTURE_OUTPUT: str = "FutureStandard"
-PAUPER_OUTPUT: str = "Pauper"
 
 STANDARD_CARDS_OUTPUT: str = "StandardCards"
 MODERN_CARDS_OUTPUT: str = "ModernCards"
 VINTAGE_CARDS_OUTPUT: str = "VintageCards"
 LEGACY_CARDS_OUTPUT: str = "LegacyCards"
-COMMANDER_CARDS_OUTPUT: str = "CommanderCards"
-FUTURE_CARDS_OUTPUT: str = "FutureStandardCards"
 PAUPER_CARDS_OUTPUT: str = "PauperCards"
 
 SUPPORTED_FORMAT_OUTPUTS: Set[str] = {
     "standard",
-    "future",
     "modern",
     "legacy",
     "vintage",
-    "commander",
     "pauper",
 }
 
@@ -100,16 +93,11 @@ OUTPUT_FILES: List[str] = [
     MODERN_OUTPUT,
     VINTAGE_OUTPUT,
     LEGACY_OUTPUT,
-    COMMANDER_OUTPUT,
-    FUTURE_OUTPUT,
     STANDARD_CARDS_OUTPUT,
     MODERN_CARDS_OUTPUT,
     VINTAGE_CARDS_OUTPUT,
     LEGACY_CARDS_OUTPUT,
-    COMMANDER_CARDS_OUTPUT,
-    FUTURE_CARDS_OUTPUT,
     PAUPER_CARDS_OUTPUT,
-    PAUPER_OUTPUT,
 ]
 
 # Provider tags

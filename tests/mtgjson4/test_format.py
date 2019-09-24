@@ -3,15 +3,7 @@ import pytest
 from mtgjson4.format import build_format_map
 
 
-NULL_OUTPUT = {
-    "standard": [],
-    "future": [],
-    "modern": [],
-    "legacy": [],
-    "vintage": [],
-    "commander": [],
-    "pauper": [],
-}
+NULL_OUTPUT = {"standard": [], "modern": [], "legacy": [], "vintage": [], "pauper": []}
 
 
 @pytest.mark.parametrize(
