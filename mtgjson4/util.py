@@ -6,6 +6,7 @@ import json
 import logging
 import re
 from typing import Any, List, Optional
+import unicodedata
 
 import requests
 import requests.adapters
@@ -68,8 +69,6 @@ def is_number(string: str) -> bool:
         pass
 
     try:
-        import unicodedata
-
         unicodedata.numeric(string)
         return True
     except (TypeError, ValueError):
