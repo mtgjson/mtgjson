@@ -65,7 +65,7 @@ def __get_stocks_data() -> Dict[str, Any]:
             > mtgjson4.SESSION_CACHE_EXPIRE_GENERAL
         )
 
-        if (not is_file) or cache_expired:
+        if (not mtgjson4.USE_CACHE) or (not is_file) or cache_expired:
             # Rebuild set translations
             session = __get_session()
             if not SESSION_TOKEN.get(""):
@@ -87,7 +87,7 @@ def __get_stocks_data() -> Dict[str, Any]:
                 json.dump(save_dictionary, f, indent=4)
                 f.write("\n")
 
-        STOCKS_DATA.set(json.load(stocks_file.open("r")))
+        STOCKS_DATA.set(json.load(stocks_file.open()))
 
     return dict(STOCKS_DATA.get())
 

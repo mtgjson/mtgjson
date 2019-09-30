@@ -265,7 +265,7 @@ def get_translations(set_code: Optional[str] = None) -> Any:
             > mtgjson4.SESSION_CACHE_EXPIRE_GENERAL
         )
 
-        if (not is_file) or cache_expired:
+        if (not mtgjson4.USE_CACHE.get()) or (not is_file) or cache_expired:
             # Rebuild set translations
             table = build_translation_table()
             with translation_file.open("w") as f:
