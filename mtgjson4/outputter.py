@@ -398,7 +398,7 @@ def create_set_centric_outputs(sets: Dict[str, Any]) -> None:
     """
     # Compute format map from all_sets
     format_map = build_format_map(sets)
-    LOGGER.warning(format_map)
+    LOGGER.info(f"Format Map: {format_map}")
 
     # Standard.json
     write_to_file(
