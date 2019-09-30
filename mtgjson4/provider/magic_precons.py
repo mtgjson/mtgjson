@@ -34,7 +34,7 @@ def build_and_write_decks(decks_url: str) -> Iterator[Dict[str, Any]]:
     # Does the file exist
     if all_sets_path.is_file():
         # Is the file > 100MB? (Ensure we have all sets in it)
-        if all_sets_path.stat().st_size > 1e8:
+        if all_sets_path.stat().st_size > 1000:
             with all_sets_path.open() as f:
                 SET_SESSION.set(json.load(f))
                 file_loaded = True

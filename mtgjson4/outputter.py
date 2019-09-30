@@ -4,12 +4,13 @@ Functions used to generate outputs and write out
 import contextvars
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 import mtgjson4
-from mtgjson4 import util
+from mtgjson4 import SUPPORTED_FORMAT_OUTPUTS, util
+from mtgjson4.format import build_format_map
 from mtgjson4.mtgjson_card import MTGJSONCard
-from mtgjson4.provider import gamepedia, magic_precons, scryfall, wizards
+from mtgjson4.provider import magic_precons, scryfall, wizards
 
 DECKS_URL: str = "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks.json"
 
@@ -165,6 +166,27 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
     return all_cards_data
 
 
+def create_all_cards_subsets(
+    cards: Dict[str, Any], target_formats: Set
+) -> Dict[str, Any]:
+    """
+    For each format in target_formats, a dictionary is created containing only cards legal in that format. Legal
+    includes cards on the restricted list, but not those which are banned.
+
+    :param cards: The card data to be filtered (should be AllCards)
+    :param target_formats: The set of formats to create subsets for.
+
+    :return: Dictionary of dictionaries, mapping format name -> all_cards subset.
+    """
+    subsets: Dict[str, Dict[str, Any]] = {fmt: {} for fmt in target_formats}
+    for name, data in cards.items():
+        for fmt in target_formats:
+            if data["legalities"].get(fmt) in ("Legal", "Restricted"):
+                subsets[fmt][name] = data
+
+    return subsets
+
+
 def get_all_set_names(files_to_ignore: List[str]) -> List[str]:
     """
     This will create the SetCodes.json file
@@ -247,26 +269,6 @@ def get_version_info() -> Dict[str, str]:
         "date": mtgjson4.__VERSION_DATE__,
         "pricesDate": mtgjson4.__PRICE_UPDATE_DATE__,
     }
-
-
-def create_standard_only_output() -> Dict[str, Any]:
-    """
-    Use whatsinstandard to determine all sets that are legal in
-    the standard format. Return an AllSets version that only
-    has Standard legal sets.
-    :return: AllSets for Standard only
-    """
-    return __handle_compiling_sets(util.get_standard_sets(), "Standard")
-
-
-def create_modern_only_output() -> Dict[str, Any]:
-    """
-    Use gamepedia to determine all sets that are legal in
-    the modern format. Return an AllSets version that only
-    has Modern legal sets.
-    :return: AllSets for Modern only
-    """
-    return __handle_compiling_sets(gamepedia.get_modern_sets(), "Modern")
 
 
 def get_funny_sets() -> List[str]:
@@ -358,20 +360,13 @@ def create_and_write_compiled_outputs() -> None:
     all_sets = create_all_sets(mtgjson4.OUTPUT_FILES)
     write_to_file(mtgjson4.ALL_SETS_OUTPUT, all_sets)
 
+    create_set_centric_outputs(all_sets)
+
     # AllCards.json
     all_cards = create_all_cards(mtgjson4.OUTPUT_FILES)
     write_to_file(mtgjson4.ALL_CARDS_OUTPUT, all_cards)
 
-    # Standard.json
-    write_to_file(mtgjson4.STANDARD_OUTPUT, create_standard_only_output())
-
-    # Modern.json
-    write_to_file(mtgjson4.MODERN_OUTPUT, create_modern_only_output())
-
-    # Vintage.json
-    write_to_file(
-        mtgjson4.VINTAGE_OUTPUT, create_vintage_only_output(mtgjson4.OUTPUT_FILES)
-    )
+    create_card_centric_outputs(all_cards)
 
     # decks/*.json
     deck_names = []
@@ -394,6 +389,61 @@ def create_and_write_compiled_outputs() -> None:
             sorted(deck_names, key=lambda deck_obj: deck_obj["name"])
         ),
     )
+
+
+def create_set_centric_outputs(sets: Dict[str, Any]) -> None:
+    """
+    Create JSON output files on a per-format basis. The outputs will be set-centric.
+    :param sets: Dictionary mapping name -> card data. Should be AllSets.
+    """
+    # Compute format map from all_sets
+    format_map = build_format_map(sets)
+    LOGGER.info(f"Format Map: {format_map}")
+
+    # Standard.json
+    write_to_file(
+        mtgjson4.STANDARD_OUTPUT,
+        __handle_compiling_sets(format_map["standard"], "Standard"),
+    )
+
+    # Modern.json
+    write_to_file(
+        mtgjson4.MODERN_OUTPUT, __handle_compiling_sets(format_map["modern"], "Modern")
+    )
+
+    # Legacy.json
+    write_to_file(
+        mtgjson4.LEGACY_OUTPUT, __handle_compiling_sets(format_map["legacy"], "Legacy")
+    )
+
+    # Vintage.json
+    write_to_file(
+        mtgjson4.VINTAGE_OUTPUT, create_vintage_only_output(mtgjson4.OUTPUT_FILES)
+    )
+
+
+def create_card_centric_outputs(cards: Dict[str, Any]) -> None:
+    """
+    Create JSON output files on a per-format basis. The outputs will be card-centric.
+    :param cards: Dictionary mapping name -> card data. Should be AllCards.
+    """
+    # Create format-specific subsets of AllCards.json
+    all_cards_subsets = create_all_cards_subsets(cards, SUPPORTED_FORMAT_OUTPUTS)
+
+    # StandardCards.json
+    write_to_file(mtgjson4.STANDARD_CARDS_OUTPUT, all_cards_subsets.get("standard"))
+
+    # ModernCards.json
+    write_to_file(mtgjson4.MODERN_CARDS_OUTPUT, all_cards_subsets.get("modern"))
+
+    # VintageCards.json
+    write_to_file(mtgjson4.VINTAGE_CARDS_OUTPUT, all_cards_subsets.get("vintage"))
+
+    # LegacyCards.json
+    write_to_file(mtgjson4.LEGACY_CARDS_OUTPUT, all_cards_subsets.get("legacy"))
+
+    # PauperCards.json
+    write_to_file(mtgjson4.PAUPER_CARDS_OUTPUT, all_cards_subsets.get("pauper"))
 
 
 def __handle_compiling_sets(set_codes: List[str], build_type: str) -> Dict[str, Any]:

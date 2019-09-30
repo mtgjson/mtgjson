@@ -4,12 +4,12 @@ import logging
 import os
 import pathlib
 import time
-from typing import Dict, List
+from typing import Dict, List, Set
 
 # Maintenance variables
-__VERSION__ = "4.5.0"
-__VERSION_DATE__ = "2019-08-11"
-__PRICE_UPDATE_DATE__ = "2019-08-11"
+__VERSION__ = "4.5.1"
+__VERSION_DATE__ = "2019-09-23"
+__PRICE_UPDATE_DATE__ = "2019-09-23"
 __MAINTAINER__ = "Zach Halpern (GitHub: @ZeldaZach)"
 __MAINTAINER_EMAIL__ = "zahalpern+github@gmail.com"
 __REPO_URL__ = "https://github.com/mtgjson/mtgjson"
@@ -53,12 +53,28 @@ CARD_TYPES_OUTPUT: str = "CardTypes"
 COMPILED_LIST_OUTPUT: str = "CompiledList"
 DECK_LISTS_OUTPUT: str = "DeckLists"
 KEY_WORDS_OUTPUT: str = "Keywords"
-MODERN_OUTPUT: str = "Modern"
 REFERRAL_DB_OUTPUT: str = "ReferralMap"
 SET_LIST_OUTPUT: str = "SetList"
-STANDARD_OUTPUT: str = "Standard"
 VERSION_OUTPUT: str = "version"
+
+STANDARD_OUTPUT: str = "Standard"
+MODERN_OUTPUT: str = "Modern"
 VINTAGE_OUTPUT: str = "Vintage"
+LEGACY_OUTPUT: str = "Legacy"
+
+STANDARD_CARDS_OUTPUT: str = "StandardCards"
+MODERN_CARDS_OUTPUT: str = "ModernCards"
+VINTAGE_CARDS_OUTPUT: str = "VintageCards"
+LEGACY_CARDS_OUTPUT: str = "LegacyCards"
+PAUPER_CARDS_OUTPUT: str = "PauperCards"
+
+SUPPORTED_FORMAT_OUTPUTS: Set[str] = {
+    "standard",
+    "modern",
+    "legacy",
+    "vintage",
+    "pauper",
+}
 
 OUTPUT_FILES: List[str] = [
     ALL_CARDS_OUTPUT,
@@ -72,9 +88,16 @@ OUTPUT_FILES: List[str] = [
     MODERN_OUTPUT,
     REFERRAL_DB_OUTPUT,
     SET_LIST_OUTPUT,
-    STANDARD_OUTPUT,
     VERSION_OUTPUT,
+    STANDARD_OUTPUT,
+    MODERN_OUTPUT,
     VINTAGE_OUTPUT,
+    LEGACY_OUTPUT,
+    STANDARD_CARDS_OUTPUT,
+    MODERN_CARDS_OUTPUT,
+    VINTAGE_CARDS_OUTPUT,
+    LEGACY_CARDS_OUTPUT,
+    PAUPER_CARDS_OUTPUT,
 ]
 
 # Provider tags

@@ -161,3 +161,15 @@ def get_standard_sets() -> List[str]:
         STANDARD_SETS.set(standard_json)
 
     return list(STANDARD_SETS.get())
+
+
+def strip_bad_sf_chars(bad_text: str) -> str:
+    """
+    Since we're searching Scryfall via name and not set code, we will
+    have to strip the names to the bare minimums to get a valid result
+    back.
+    """
+    for bad_char in [" ", ":", "'", "’", ".", "&"]:
+        bad_text = bad_text.replace(bad_char, "")
+
+    return bad_text
