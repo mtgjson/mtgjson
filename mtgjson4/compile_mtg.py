@@ -538,6 +538,20 @@ def build_mtgjson_tokens(
                     reverse_related.append(a_part.get("name"))
         token_card.set("reverseRelated", reverse_related)
 
+        # Add super/sub/types
+        card_types: Tuple[List[str], List[str], List[str]] = scryfall.parse_card_types(
+            token_card.get("type")
+        )
+        token_card.set("supertypes", card_types[0])
+        token_card.set("types", card_types[1])
+        token_card.set("subtypes", card_types[2])
+
+        # Add brackets around Planeswalker loyalty abilities
+        if "Planeswalker" in token_card.get("types"):
+            token_card.set(
+                "text", token_card.get("text"), token_card.cleanup_planeswalker_costs
+            )
+
         LOGGER.info(f"Parsed {token_card.get('name')} from {sf_token.get('set')}")
         token_cards.append(token_card)
 
