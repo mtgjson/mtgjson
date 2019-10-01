@@ -275,5 +275,8 @@
   ],
   "M20": [
     ["rare", "mythic rare"], "uncommon", "uncommon", "uncommon", "common", "common", "common", "common", "common", "common", "common", "common", "common", "common", "land", "token"
+  ],
+  "ELD": [
+    ["rare", "mythic rare"], "uncommon", "uncommon", "uncommon", "common", "common", "common", "common", "common", "common", "common", "common", "common", "common", "land", "token"
   ]
 }
