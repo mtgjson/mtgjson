@@ -1,7 +1,8 @@
-python-dateutil
 contextvars
 beautifulsoup4
+GitPython
 mkmsdk
+python-dateutil
 requests
 requests_cache
 unidecode
