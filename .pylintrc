@@ -30,7 +30,8 @@ disable=
     too-many-public-methods,
     duplicate-code,
     too-many-locals,
-    logging-fstring-interpolation
+    logging-fstring-interpolation,
+    global-statement
 
 
 [REPORTS]

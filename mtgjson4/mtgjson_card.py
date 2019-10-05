@@ -279,14 +279,11 @@ class MTGJSONCard:
 
         return watermark
 
-    def final_card_cleanup(self, is_card: bool = True) -> None:
+    def final_card_cleanup(self) -> None:
         """
         Re-add and cleanup content from cards that are dependent
         on other values
-        :param is_card: Card or token
         """
-        self.set("uuid", self.get_uuid(is_card))
-
         if self.set_code.startswith("DD") or self.set_code in ["GS1"]:
             self.__mark_duel_decks()
 
