@@ -224,7 +224,7 @@ def set_gist_json_file(
         origin = repo.remote()
         origin.push()
         LOGGER.info("Committing changes to CH database")
-    except git.exc.GitCommandError:
+    except git.GitCommandError:
         LOGGER.warning(f"No changes to CH database detected")
 
     LOGGER.info("Removing local CH database")
