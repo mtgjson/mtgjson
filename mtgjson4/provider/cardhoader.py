@@ -48,8 +48,8 @@ def __get_session() -> requests.Session:
             GH_API_USER = config.get("CardHoarder", "gh_api_user")
             GH_API_KEY = config.get("CardHoarder", "gh_api_key")
             GH_DB_KEY = config.get("CardHoarder", "gh_db_key")
-            GH_DB_URL = f"https://gist.github.com/{GH_DB_KEY}"
             GH_DB_FILE = config.get("CardHoarder", "gh_db_file")
+            GH_DB_URL = f"https://gist.github.com/{GH_DB_KEY}"
 
         session = util.retryable_session(session)
         SESSION.set(session)
@@ -81,8 +81,10 @@ def __get_ch_data() -> Dict[str, Dict[str, str]]:
 
         for key, value in normal_cards.items():
             if key not in db_contents.keys():
-                db_contents[key] = {}
-            db_contents[key][today_date] = [value, foil_cards.get(key)]
+                db_contents[key] = {"mtgo": {}, "mtgoFoil": {}}
+            # db_contents[key][today_date] = [value, foil_cards.get(key)]
+            db_contents[key]["mtgo"][today_date] = value
+            db_contents[key]["mtgoFoil"][today_date] = foil_cards.get(key)
 
         # Save new database to cache
         util.set_gist_json_file(
@@ -130,6 +132,6 @@ def get_card_data(mtgjson_uuid: str) -> Dict[str, Optional[Dict[str, str]]]:
     :return: Price history
     """
     return {
-        "mtgo": __get_ch_data().get(mtgjson_uuid, None),
-        "mtgoFoil": __get_ch_data().get(mtgjson_uuid, None),
+        "mtgo": __get_ch_data().get(mtgjson_uuid, {}).get("mtgo", None),
+        "mtgoFoil": __get_ch_data().get(mtgjson_uuid, {}).get("mtgoFoil", None),
     }

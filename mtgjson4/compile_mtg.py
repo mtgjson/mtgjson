@@ -151,7 +151,7 @@ def build_mtgjson_set(
 
     if not skip_keys:
         # Add MTGStocks & CardHoarder price data in
-        card_holder = add_stocks_data(card_holder)
+        card_holder = add_price_data(card_holder)
 
     # Add TCGPlayer information
     if "tcgplayer_id" in set_config.keys():
@@ -217,32 +217,32 @@ def initialize_mkm_set_cards(mcm_id: Optional[str]) -> None:
     MKM_SET_CARDS.set(dict_by_set_num)
 
 
-def add_stocks_data(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
+def add_price_data(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
     """
-    Add the MTGStocks content to the card
+    Add the MTGStocks and CardHoarder content to the card
     :param cards: Output cards
     :return: Enriched output
     """
     for card in cards:
-        if card.get("tcgplayerProductId"):
-            stocks_data = mtgstocks.get_card_data(card.get("tcgplayerProductId"))
-            LOGGER.warning(card.get("uuid"))
-            ch_data = cardhoader.get_card_data(card.get("uuid"))
-
-            if stocks_data:
-                card.set_all(
-                    {
-                        "mtgstocksId": stocks_data["id"],
-                        "prices": {
-                            "paper": stocks_data["paper"],
-                            "paperFoil": stocks_data["foil"],
-                            "mtgo": ch_data["mtgo"],
-                            "mtgoFoil": ch_data["mtgoFoil"],
-                        },
-                    }
-                )
-        else:
+        if not card.get("tcgplayerProductId"):
             LOGGER.warning(f"No TCGPlayer ID Found for {card.get('name')}")
+            continue
+
+        stocks_data = mtgstocks.get_card_data(card.get("tcgplayerProductId"))
+        ch_data = cardhoader.get_card_data(card.get("uuid"))
+
+        if stocks_data or ch_data:
+            card.set_all(
+                {
+                    "mtgstocksId": stocks_data.get("id"),
+                    "prices": {
+                        "paper": stocks_data.get("paper"),
+                        "paperFoil": stocks_data.get("foil"),
+                        "mtgo": ch_data.get("mtgo"),
+                        "mtgoFoil": ch_data.get("mtgoFoil"),
+                    },
+                }
+            )
 
     return cards
 
