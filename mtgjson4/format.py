@@ -2,6 +2,7 @@
 Functions and constants used to help build the format map
 """
 from typing import Any, Dict, List, Set
+
 from mtgjson4 import SUPPORTED_FORMAT_OUTPUTS
 
 NORMAL_SETS: Set[str] = {

@@ -92,10 +92,10 @@ def __get_stocks_data() -> Dict[str, Any]:
     return dict(STOCKS_DATA.get())
 
 
-def get_card_data(tcgplayer_id: int) -> Optional[Dict[str, Any]]:
+def get_card_data(tcgplayer_id: int) -> Dict[str, Any]:
     """
     Get MTGStocks data for a specific card, identified by TCGPlayer ID
     :param tcgplayer_id: ID to find card by
     :return: MTGStocks map
     """
-    return __get_stocks_data().get(str(tcgplayer_id), None)
+    return __get_stocks_data().get(str(tcgplayer_id), {})

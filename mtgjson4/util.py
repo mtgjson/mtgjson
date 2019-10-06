@@ -4,7 +4,10 @@ import datetime
 import hashlib
 import json
 import logging
+import pathlib
 import re
+import shutil
+import tempfile
 from typing import Any, List, Optional
 import unicodedata
 
@@ -13,11 +16,14 @@ import requests.adapters
 import requests_cache
 import urllib3.util.retry
 
+import git
 import mtgjson4
 
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 STANDARD_SETS: contextvars.ContextVar = contextvars.ContextVar("STANDARD_SETS")
+
+temp_working_dir: pathlib.Path = pathlib.Path(str(tempfile.mkdtemp(prefix="mtgjson_")))
 
 STANDARD_API_URL: str = "https://whatsinstandard.com/api/v5/sets.json"
 
@@ -173,3 +179,53 @@ def strip_bad_sf_chars(bad_text: str) -> str:
         bad_text = bad_text.replace(bad_char, "")
 
     return bad_text
+
+
+def get_gist_json_file(db_url: str, file_name: str) -> Any:
+    """
+    Grab the contents from a gist file
+    :param db_url: Database URL
+    :param file_name: File to open from Gist
+    :return: File content
+    """
+    LOGGER.info("Cloning gist database")
+    git_sh = git.cmd.Git()
+    git_sh.clone(db_url, temp_working_dir)
+
+    with temp_working_dir.joinpath(file_name).open() as f:
+        return json.load(f)
+
+
+def set_gist_json_file(
+    username: str, api_token: str, repo_key: str, file_name: str, content: Any
+) -> None:
+    """
+    Update a gist file and push it live
+    :param username: GH api username
+    :param api_token: GH api token
+    :param repo_key: GH repo key
+    :param file_name: File name
+    :param content: New file content
+    """
+    with temp_working_dir.joinpath(file_name).open("w") as f:
+        json.dump(content, f)
+
+    try:
+        repo = git.Repo(temp_working_dir)
+
+        # Update remote to allow pushing
+        repo.git.remote(
+            "set-url",
+            "origin",
+            f"https://{username}:{api_token}@gist.github.com/{repo_key}.git",
+        )
+
+        repo.git.commit("-am", "auto-push")
+        origin = repo.remote()
+        origin.push()
+        LOGGER.info("Committing changes to CH database")
+    except git.GitCommandError:
+        LOGGER.warning(f"No changes to CH database detected")
+
+    LOGGER.info("Removing local CH database")
+    shutil.rmtree(temp_working_dir)

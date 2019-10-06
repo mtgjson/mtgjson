@@ -32,6 +32,7 @@ SESSION_CACHE_EXPIRE_TCG: int = 604800  # seconds - 1 week
 SESSION_CACHE_EXPIRE_SCRYFALL: int = 604800  # seconds - 1 week
 SESSION_CACHE_EXPIRE_MKM: int = 604800  # seconds - 1 week
 SESSION_CACHE_EXPIRE_STOCKS: int = 604800  # seconds - 1 week
+SESSION_CACHE_EXPIRE_CH: int = 43200  # seconds - 1 day
 USE_CACHE: contextvars.ContextVar = contextvars.ContextVar("USE_CACHE")
 PRETTY_OUTPUT: contextvars.ContextVar = contextvars.ContextVar("PRETTY_OUTPUT")
 

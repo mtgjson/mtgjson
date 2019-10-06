@@ -15,7 +15,14 @@ from mkmsdk.mkm import Mkm
 import mtgjson4
 from mtgjson4 import mtgjson_card, util
 from mtgjson4.mtgjson_card import MTGJSONCard
-from mtgjson4.provider import gatherer, mtgstocks, scryfall, tcgplayer, wizards
+from mtgjson4.provider import (
+    cardhoader,
+    gatherer,
+    mtgstocks,
+    scryfall,
+    tcgplayer,
+    wizards,
+)
 from mtgjson4.util import is_number
 
 LOGGER = logging.getLogger(__name__)
@@ -143,8 +150,8 @@ def build_mtgjson_set(
     card_holder = mtgjson_custom_fields(card_holder)
 
     if not skip_keys:
-        # Add MTGStocks data in
-        card_holder = add_stocks_data(card_holder)
+        # Add MTGStocks & CardHoarder price data in
+        card_holder = add_price_data(card_holder)
 
     # Add TCGPlayer information
     if "tcgplayer_id" in set_config.keys():
@@ -173,7 +180,7 @@ def build_mtgjson_set(
     for card in sorted(mtgjson_set_file["cards"]):
         card.final_card_cleanup()
     for token in mtgjson_set_file["tokens"]:
-        token.final_card_cleanup(is_card=False)
+        token.final_card_cleanup()
 
     # Add Variations to each entry, as well as mark alternatives
     add_variations_and_alternative_fields(mtgjson_set_file["cards"], mtgjson_set_file)
@@ -210,28 +217,32 @@ def initialize_mkm_set_cards(mcm_id: Optional[str]) -> None:
     MKM_SET_CARDS.set(dict_by_set_num)
 
 
-def add_stocks_data(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
+def add_price_data(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
     """
-    Add the MTGStocks content to the card
-    :param cards:
-    :return:
+    Add the MTGStocks and CardHoarder content to the card
+    :param cards: Output cards
+    :return: Enriched output
     """
     for card in cards:
-        if card.get("tcgplayerProductId"):
-            stocks_data = mtgstocks.get_card_data(card.get("tcgplayerProductId"))
-            if stocks_data:
-                card.set_all(
-                    {
-                        "mtgstocksId": stocks_data["id"],
-                        "prices": {
-                            "paper": stocks_data["paper"],
-                            "paperFoil": stocks_data["foil"],
-                        },
-                        # Future additions may include: "mtgo", "mtgo_foil", and "mtga"
-                    }
-                )
-        else:
+        if not card.get("tcgplayerProductId"):
             LOGGER.warning(f"No TCGPlayer ID Found for {card.get('name')}")
+            continue
+
+        stocks_data = mtgstocks.get_card_data(card.get("tcgplayerProductId"))
+        ch_data = cardhoader.get_card_data(card.get("uuid"))
+
+        if stocks_data or ch_data:
+            card.set_all(
+                {
+                    "mtgstocksId": stocks_data.get("id"),
+                    "prices": {
+                        "paper": stocks_data.get("paper"),
+                        "paperFoil": stocks_data.get("foil"),
+                        "mtgo": ch_data.get("mtgo"),
+                        "mtgoFoil": ch_data.get("mtgoFoil"),
+                    },
+                }
+            )
 
     return cards
 
@@ -919,6 +930,9 @@ def mtgjson_custom_fields(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
     cards_with_no_deck_limit = scryfall.get_cards_without_limit()
 
     for card in cards:
+        # Set UUID field now
+        card.set("uuid", card.get_uuid())
+
         # Relentless type cards
         if card.get("name") in cards_with_no_deck_limit:
             card.set("hasNoDeckLimit", True)
