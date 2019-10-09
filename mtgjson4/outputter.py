@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Set
 
 import mtgjson4
 from mtgjson4 import SUPPORTED_FORMAT_OUTPUTS, util
-from mtgjson4.format import build_format_map
 from mtgjson4.mtgjson_card import MTGJSONCard
 from mtgjson4.provider import magic_precons, scryfall, wizards
 
@@ -397,7 +396,7 @@ def create_set_centric_outputs(sets: Dict[str, Any]) -> None:
     :param sets: Dictionary mapping name -> card data. Should be AllSets.
     """
     # Compute format map from all_sets
-    format_map = build_format_map(sets)
+    format_map = util.build_format_map(sets)
     LOGGER.info(f"Format Map: {format_map}")
 
     # Standard.json

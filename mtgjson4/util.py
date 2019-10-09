@@ -8,7 +8,7 @@ import pathlib
 import re
 import shutil
 import tempfile
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional, Set
 import unicodedata
 
 import requests
@@ -26,6 +26,14 @@ STANDARD_SETS: contextvars.ContextVar = contextvars.ContextVar("STANDARD_SETS")
 temp_working_dir: pathlib.Path = pathlib.Path(str(tempfile.mkdtemp(prefix="mtgjson_")))
 
 STANDARD_API_URL: str = "https://whatsinstandard.com/api/v5/sets.json"
+
+NORMAL_SETS: Set[str] = {
+    "expansion",
+    "core",
+    "draft_innovation",
+    "commander",
+    "masters",
+}
 
 
 def retryable_session(session: requests.Session, retries: int = 8) -> requests.Session:
@@ -229,3 +237,34 @@ def set_gist_json_file(
 
     LOGGER.info("Removing local CH database")
     shutil.rmtree(temp_working_dir)
+
+
+def build_format_map(
+    all_sets: Dict[str, Any], regular: bool = True
+) -> Dict[str, List[str]]:
+    """
+    For each set in the specified JSON file, determine its legal sets and return a dictionary mapping set code to
+    a list of legal formats.
+    :param all_sets: AllSets content
+    :param regular: If this is True, then unusual sets will be excluded.
+    :return: Dictionary of the form { format: [codes] }
+    """
+    formats: Dict[str, List[Any]] = {
+        fmt: [] for fmt in mtgjson4.SUPPORTED_FORMAT_OUTPUTS
+    }
+
+    for code, data in all_sets.items():
+        if regular and data["type"] not in NORMAL_SETS:
+            continue
+
+        possible_formats = mtgjson4.SUPPORTED_FORMAT_OUTPUTS
+
+        for card in data.get("cards"):
+            # The legalities dictionary only has keys for formats where the card is legal, banned or restricted.
+            card_formats = set(card.get("legalities").keys())
+            possible_formats = possible_formats.intersection(card_formats)
+
+        for fmt in possible_formats:
+            formats[fmt].append(code)
+
+    return formats

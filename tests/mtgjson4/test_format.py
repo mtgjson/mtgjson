@@ -1,6 +1,6 @@
 import pytest
 
-from mtgjson4.format import build_format_map
+from mtgjson4.util import build_format_map
 
 
 NULL_OUTPUT = {"standard": [], "modern": [], "legacy": [], "vintage": [], "pauper": []}
