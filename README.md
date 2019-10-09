@@ -11,7 +11,7 @@ MTGJSON is an open sourced database creation and distribution tool for [_Magic: 
 
 ## **Connect With Us**
 
-[![Discord](https://img.shields.io/discord/224178957103136779?label=Discord&logo=discord&logoColor=white&style=for-the-badge)](https://discord.gg/74GUQDE)
+[![Discord](https://img.shields.io/discord/224178957103136779?label=Discord&logo=discord&logoColor=white&style=for-the-badge)](https://mtgjson.com/discord)
 ___
 
 ## **About Us**
