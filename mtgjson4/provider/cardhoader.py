@@ -93,7 +93,8 @@ def __get_ch_data() -> Dict[str, Dict[str, str]]:
         __get_session()
         if not SESSION_TOKEN.get(""):
             LOGGER.warning("No CardHoarder token found, skipping...")
-            return {}
+            CH_PRICE_DATA = {"Empty": {}}
+            return CH_PRICE_DATA
 
         today_date = datetime.datetime.today().strftime("%Y-%m-%d")
 

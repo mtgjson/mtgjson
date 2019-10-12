@@ -9,8 +9,9 @@ from typing import Any, Dict, List
 
 import mtgjson4
 from mtgjson4 import compile_mtg, compressor, outputter
+from mtgjson4.compile_prices import MtgjsonPrice
 from mtgjson4.mtgjson_card import MTGJSONCard
-from mtgjson4.provider import scryfall
+from mtgjson4.provider import scryfall, mtgstocks
 import mtgjson4.util
 
 LOGGER = logging.getLogger(__name__)
@@ -87,6 +88,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-sets", metavar="SET", nargs="*", type=str)
     parser.add_argument("--skip-cache", action="store_true")
     parser.add_argument("-p", "--pretty-output", action="store_true")
+    parser.add_argument("--pricing", action="store_true")
 
     # Ensure there are args
     if len(sys.argv) < 2:
@@ -139,6 +141,16 @@ def main() -> None:
         LOGGER.warning(
             f"No properties file found at {mtgjson4.CONFIG_PATH}. Will download without authentication"
         )
+
+    # Are we only rebuilding pricing?
+    if args.pricing:
+        mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
+        LOGGER.info(f"Rebuilding price data for {mtgjson4.COMPILED_OUTPUT_DIR.name}")
+        prices = MtgjsonPrice(
+            mtgjson4.COMPILED_OUTPUT_DIR.joinpath(mtgjson4.ALL_SETS_OUTPUT + ".json")
+        )
+        outputter.output_price_file(prices)
+        return
 
     # Determine set(s) to build
     args_s = args.s if args.s else []

@@ -70,7 +70,8 @@ def __get_stocks_data() -> Dict[str, Any]:
             session = __get_session()
             if not SESSION_TOKEN.get(""):
                 LOGGER.warning("No MTGStocks token found, skipping...")
-                return {}
+                STOCKS_DATA.set({})
+                return dict(STOCKS_DATA.get())
 
             response: Any = session.get(
                 url=MTG_STOCKS_API_URL.format(SESSION_TOKEN.get("")), timeout=5.0
@@ -99,3 +100,22 @@ def get_card_data(tcgplayer_id: int) -> Dict[str, Any]:
     :return: MTGStocks map
     """
     return __get_stocks_data().get(str(tcgplayer_id), {})
+
+
+def get_latest_card_data(tcgplayer_id: int) -> Dict[str, Any]:
+    """
+    Only get the last value from the card data (should be last date)
+    :param tcgplayer_id: ID to find card by
+    :return: MTGStocks map w/ 1 entry max
+    """
+    full_data = get_card_data(tcgplayer_id)
+    if full_data:
+        if full_data["paper"]:
+            resp = max(full_data["paper"].items(), key=lambda x: x[0])
+            full_data["paper"] = {resp[0]: resp[1]}
+
+        if full_data["foil"]:
+            resp = max(full_data["foil"].items(), key=lambda x: x[0])
+            full_data["foil"] = {resp[0]: resp[1]}
+
+    return full_data

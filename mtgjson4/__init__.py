@@ -54,6 +54,7 @@ CARD_TYPES_OUTPUT: str = "CardTypes"
 COMPILED_LIST_OUTPUT: str = "CompiledList"
 DECK_LISTS_OUTPUT: str = "DeckLists"
 KEY_WORDS_OUTPUT: str = "Keywords"
+PRICES_OUTPUT: str = "Prices"
 REFERRAL_DB_OUTPUT: str = "ReferralMap"
 SET_LIST_OUTPUT: str = "SetList"
 VERSION_OUTPUT: str = "version"
@@ -99,6 +100,7 @@ OUTPUT_FILES: List[str] = [
     VINTAGE_CARDS_OUTPUT,
     LEGACY_CARDS_OUTPUT,
     PAUPER_CARDS_OUTPUT,
+    PRICES_OUTPUT,
 ]
 
 # Provider tags
