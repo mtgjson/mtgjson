@@ -11,7 +11,7 @@ import mtgjson4
 from mtgjson4 import compile_mtg, compressor, outputter
 from mtgjson4.compile_prices import MtgjsonPrice
 from mtgjson4.mtgjson_card import MTGJSONCard
-from mtgjson4.provider import scryfall, mtgstocks
+from mtgjson4.provider import scryfall
 import mtgjson4.util
 
 LOGGER = logging.getLogger(__name__)
