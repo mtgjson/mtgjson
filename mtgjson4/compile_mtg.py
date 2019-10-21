@@ -563,6 +563,7 @@ def build_mtgjson_tokens(
                 "text", token_card.get("text"), token_card.cleanup_planeswalker_costs
             )
 
+        token_card.set("uuid", token_card.get_uuid())
         LOGGER.info(f"Parsed {token_card.get('name')} from {sf_token.get('set')}")
         token_cards.append(token_card)
 
