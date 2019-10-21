@@ -725,7 +725,8 @@ def build_mtgjson_card(
             "colorIdentity": sf_card.get("color_identity"),
             "convertedManaCost": sf_card.get("cmc"),
             "edhrecRank": sf_card.get("edhrec_rank"),
-            "frameEffect": sf_card.get("frame_effect"),
+            "frameEffect": sf_card.get("frame_effects", [""])[0],  # REMOVE IN 4.7.0
+            "frameEffects": sf_card.get("frame_effects"),
             "frameVersion": sf_card.get("frame"),
             "hand": sf_card.get("hand_modifier"),
             "hasFoil": sf_card.get("foil"),
