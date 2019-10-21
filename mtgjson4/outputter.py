@@ -125,7 +125,8 @@ def create_all_cards(files_to_ignore: List[str]) -> Dict[str, Any]:
                 card.pop("borderColor", None)
                 card.pop("duelDeck", None)
                 card.pop("flavorText", None)
-                card.pop("frameEffect", None)
+                card.pop("frameEffect", None)  # REMOVE IN 4.7.0
+                card.pop("frameEffects", None)
                 card.pop("frameVersion", None)
                 card.pop("hasFoil", None)
                 card.pop("hasNonFoil", None)

@@ -341,7 +341,8 @@ class MTGJSONCard:
         Remove invalid field entries to shrink JSON output size
         """
         remove_field_if_false: List[str] = [
-            "frameEffect",
+            "frameEffect",  # REMOVE IN 4.7.0
+            "frameEffects",
             "isFullArt",
             "isOnlineOnly",
             "isOversized",
