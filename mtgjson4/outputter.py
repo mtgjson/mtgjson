@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Set
 
 import mtgjson4
 from mtgjson4 import SUPPORTED_FORMAT_OUTPUTS, util
+from mtgjson4.compile_prices import MtgjsonPrice
 from mtgjson4.mtgjson_card import MTGJSONCard
 from mtgjson4.provider import magic_precons, scryfall, wizards
 
@@ -420,6 +421,24 @@ def create_set_centric_outputs(sets: Dict[str, Any]) -> None:
     write_to_file(
         mtgjson4.VINTAGE_OUTPUT, create_vintage_only_output(mtgjson4.OUTPUT_FILES)
     )
+
+    # Prices.json
+    output_price_file(
+        MtgjsonPrice(mtgjson4.COMPILED_OUTPUT_DIR.joinpath(mtgjson4.ALL_SETS_OUTPUT))
+    )
+
+
+def output_price_file(pricing_data: MtgjsonPrice) -> None:
+    """
+    Write out MTGJSON price data
+    :param pricing_data: Data object to dump
+    :return:
+    """
+    if pricing_data:
+        with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
+            mtgjson4.PRICES_OUTPUT + ".json"
+        ).open("w", encoding="utf-8") as f:
+            f.write(pricing_data.get_price_database())
 
 
 def create_card_centric_outputs(cards: Dict[str, Any]) -> None:
