@@ -104,12 +104,14 @@ def get_ability_words(comp_rules: str) -> List[str]:
     for line in comp_rules.split("\r\r"):
         if "Ability words" in line:
             # Isolate all of the ability words, capitalize the words,
-            # and remove the . from the end of the string
             line = unidecode.unidecode(
-                line.split("The ability words are")[1].strip()[:-1]
-            )
+                line.split("The ability words are")[1].strip()
+            ).split("\r\n")[0]
+
             result = [x.strip().lower() for x in line.split(",")]
-            result[-1] = result[-1][4:]  # Address the "and" bit of the last element
+
+            # Address the "and" bit of the last element, and the period
+            result[-1] = result[-1][4:-1]
             return result
 
     return []
@@ -130,7 +132,7 @@ def parse_comp_internal(
     comp_rules = comp_rules.split(top_delim)[2].split(bottom_delim)[0]
 
     # Windows line endings... yuck
-    valid_line_segments = comp_rules.split("\r\r")
+    valid_line_segments = comp_rules.split("\r\n")
 
     # XXX.1 is just a description of what rule XXX includes.
     # XXX.2 starts the action for _most_ sections
@@ -140,10 +142,10 @@ def parse_comp_internal(
     for line in valid_line_segments:
         # Keywords are defined as "XXX.# Name"
         # We will want to ignore subset lines like "XXX.#a"
-        if f"{rule_start}.{keyword_index}" in line:
+        regex_search = re.findall(f"{rule_start}.{keyword_index}. (.*)", line)
+        if regex_search:
             # Break the line into "Rule Number | Keyword"
-            keyword = line.split(" ", 1)[1].lower()
-            return_list.append(keyword)
+            return_list.append(regex_search[0].lower())
             # Get next keyword, so we can pass over the non-relevant lines
             keyword_index += 1
 

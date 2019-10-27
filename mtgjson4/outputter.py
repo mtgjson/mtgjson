@@ -424,7 +424,9 @@ def create_set_centric_outputs(sets: Dict[str, Any]) -> None:
 
     # Prices.json
     output_price_file(
-        MtgjsonPrice(mtgjson4.COMPILED_OUTPUT_DIR.joinpath(mtgjson4.ALL_SETS_OUTPUT + ".json"))
+        MtgjsonPrice(
+            mtgjson4.COMPILED_OUTPUT_DIR.joinpath(mtgjson4.ALL_SETS_OUTPUT + ".json")
+        )
     )
 
 
