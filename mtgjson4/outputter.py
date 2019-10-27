@@ -401,30 +401,38 @@ def create_set_centric_outputs(sets: Dict[str, Any]) -> None:
     format_map = util.build_format_map(sets)
     LOGGER.info(f"Format Map: {format_map}")
 
-    # Standard.json
+    # Standard
     write_to_file(
         mtgjson4.STANDARD_OUTPUT,
         __handle_compiling_sets(format_map["standard"], "Standard"),
     )
 
-    # Modern.json
+    # Pioneer
+    write_to_file(
+        mtgjson4.PIONEER_OUTPUT,
+        __handle_compiling_sets(format_map["pioneer"], "Pioneer"),
+    )
+
+    # Modern
     write_to_file(
         mtgjson4.MODERN_OUTPUT, __handle_compiling_sets(format_map["modern"], "Modern")
     )
 
-    # Legacy.json
+    # Legacy
     write_to_file(
         mtgjson4.LEGACY_OUTPUT, __handle_compiling_sets(format_map["legacy"], "Legacy")
     )
 
-    # Vintage.json
+    # Vintage
     write_to_file(
         mtgjson4.VINTAGE_OUTPUT, create_vintage_only_output(mtgjson4.OUTPUT_FILES)
     )
 
-    # Prices.json
+    # Prices
     output_price_file(
-        MtgjsonPrice(mtgjson4.COMPILED_OUTPUT_DIR.joinpath(mtgjson4.ALL_SETS_OUTPUT + ".json"))
+        MtgjsonPrice(
+            mtgjson4.COMPILED_OUTPUT_DIR.joinpath(mtgjson4.ALL_SETS_OUTPUT + ".json")
+        )
     )
 
 
@@ -449,19 +457,22 @@ def create_card_centric_outputs(cards: Dict[str, Any]) -> None:
     # Create format-specific subsets of AllCards.json
     all_cards_subsets = create_all_cards_subsets(cards, SUPPORTED_FORMAT_OUTPUTS)
 
-    # StandardCards.json
+    # StandardCards
     write_to_file(mtgjson4.STANDARD_CARDS_OUTPUT, all_cards_subsets.get("standard"))
 
-    # ModernCards.json
+    # PioneerCards
+    write_to_file(mtgjson4.PIONEER_CARDS_OUTPUT, all_cards_subsets.get("pioneer"))
+
+    # ModernCards
     write_to_file(mtgjson4.MODERN_CARDS_OUTPUT, all_cards_subsets.get("modern"))
 
-    # VintageCards.json
+    # VintageCards
     write_to_file(mtgjson4.VINTAGE_CARDS_OUTPUT, all_cards_subsets.get("vintage"))
 
-    # LegacyCards.json
+    # LegacyCards
     write_to_file(mtgjson4.LEGACY_CARDS_OUTPUT, all_cards_subsets.get("legacy"))
 
-    # PauperCards.json
+    # PauperCards
     write_to_file(mtgjson4.PAUPER_CARDS_OUTPUT, all_cards_subsets.get("pauper"))
 
 
