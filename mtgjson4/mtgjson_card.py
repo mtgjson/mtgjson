@@ -327,7 +327,7 @@ class MTGJSONCard:
         """
         if self.get("name") in mtgjson4.BASIC_LANDS:
             DUEL_DECK_LAND_MARKED.set(True)
-        elif str(self.get("type")).startswith("Token"):
+        elif re.match(r"^(Token|Emblem).*$", self.get("type")):
             # Tokens are too abstract in ordering, can't be accurate right now
             return
         elif DUEL_DECK_LAND_MARKED.get():
