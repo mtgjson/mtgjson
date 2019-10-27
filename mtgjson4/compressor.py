@@ -19,13 +19,17 @@ def compress_output_folder() -> None:
     Compress all files within the output folder, to prepare for
     uploads to production
     """
-    sql_files = list(mtgjson4.COMPILED_OUTPUT_DIR.glob("*.sqlite"))
-
     set_files = [
         file
         for file in mtgjson4.COMPILED_OUTPUT_DIR.glob("*.json")
         if file.stem not in mtgjson4.OUTPUT_FILES
     ]
+
+    deck_files = list(mtgjson4.COMPILED_OUTPUT_DIR.joinpath("decks").glob("*.json"))
+
+    sql_files = list(mtgjson4.COMPILED_OUTPUT_DIR.glob("*.sql*"))
+
+    csv_files = list(mtgjson4.COMPILED_OUTPUT_DIR.joinpath("csv").glob("*.csv"))
 
     compiled_files = [
         file
@@ -33,12 +37,13 @@ def compress_output_folder() -> None:
         if file.stem in mtgjson4.OUTPUT_FILES
     ]
 
-    deck_files = list(mtgjson4.COMPILED_OUTPUT_DIR.joinpath("decks").glob("*.json"))
-
     # Compress individual files
     LOGGER.info("Compressing individual files")
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-        pool.map(compress_file, sql_files + compiled_files + set_files + deck_files)
+        pool.map(
+            compress_file,
+            set_files + deck_files + sql_files + csv_files + compiled_files,
+        )
 
     # Compress folders for each set file, and each deck file
     compress_directory(set_files, "AllSetFiles")
