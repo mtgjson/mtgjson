@@ -49,7 +49,7 @@ CARD_MARKET_BUFFER: str = "10101"
 ALL_CARDS_OUTPUT: str = "AllCards"
 ALL_DECKS_DIR_OUTPUT: str = "AllDeckFiles"
 ALL_SETS_DIR_OUTPUT: str = "AllSetFiles"
-ALL_SETS_OUTPUT: str = "AllSets"
+ALL_SETS_OUTPUT: str = "AllPrintings"
 CARD_TYPES_OUTPUT: str = "CardTypes"
 COMPILED_LIST_OUTPUT: str = "CompiledList"
 DECK_LISTS_OUTPUT: str = "DeckLists"
@@ -59,12 +59,14 @@ REFERRAL_DB_OUTPUT: str = "ReferralMap"
 SET_LIST_OUTPUT: str = "SetList"
 VERSION_OUTPUT: str = "version"
 
-STANDARD_OUTPUT: str = "Standard"
-MODERN_OUTPUT: str = "Modern"
-VINTAGE_OUTPUT: str = "Vintage"
-LEGACY_OUTPUT: str = "Legacy"
+STANDARD_OUTPUT: str = "StandardPrintings"
+PIONEER_OUTPUT: str = "PioneerPrintings"
+MODERN_OUTPUT: str = "ModernPrintings"
+VINTAGE_OUTPUT: str = "VintagePrintings"
+LEGACY_OUTPUT: str = "LegacyPrintings"
 
 STANDARD_CARDS_OUTPUT: str = "StandardCards"
+PIONEER_CARDS_OUTPUT: str = "PioneerCards"
 MODERN_CARDS_OUTPUT: str = "ModernCards"
 VINTAGE_CARDS_OUTPUT: str = "VintageCards"
 LEGACY_CARDS_OUTPUT: str = "LegacyCards"
@@ -72,6 +74,7 @@ PAUPER_CARDS_OUTPUT: str = "PauperCards"
 
 SUPPORTED_FORMAT_OUTPUTS: Set[str] = {
     "standard",
+    "pioneer",
     "modern",
     "legacy",
     "vintage",
@@ -92,10 +95,12 @@ OUTPUT_FILES: List[str] = [
     SET_LIST_OUTPUT,
     VERSION_OUTPUT,
     STANDARD_OUTPUT,
+    PIONEER_OUTPUT,
     MODERN_OUTPUT,
     VINTAGE_OUTPUT,
     LEGACY_OUTPUT,
     STANDARD_CARDS_OUTPUT,
+    PIONEER_CARDS_OUTPUT,
     MODERN_CARDS_OUTPUT,
     VINTAGE_CARDS_OUTPUT,
     LEGACY_CARDS_OUTPUT,

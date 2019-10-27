@@ -15,5 +15,4 @@ script:
   - PYTHONPATH=. pytest
   - black --check --diff .
   - pylint mtgjson4 tests
-  - mypy .
   - npx eclint check $(git ls-files)
