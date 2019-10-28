@@ -48,6 +48,7 @@ def compress_output_folder() -> None:
     # Compress folders for each set file, and each deck file
     compress_directory(set_files, "AllSetFiles")
     compress_directory(deck_files, "AllDeckFiles")
+    compress_directory(csv_files, "AllPrintingsCSVFiles")
 
 
 def compress_directory(files_to_compress: List[pathlib.Path], output_name: str) -> None:
