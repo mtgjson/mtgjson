@@ -1,9 +1,12 @@
 """TCGPlayer retrieval and processing."""
+import collections
 import configparser
 import contextvars
+import datetime
 import json
 import logging
-from typing import Any, Dict, List, Optional
+import multiprocessing
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 import requests_cache
@@ -15,11 +18,23 @@ from mtgjson4.util import url_keygen
 LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION_TCGPLAYER")
 TCGPLAYER_API_VERSION: contextvars.ContextVar = contextvars.ContextVar("API_TCGPLAYER")
+TCGPLAYER_TO_MTGJSON_MAP: contextvars.ContextVar = contextvars.ContextVar(
+    "TCGPLAYER2MTGJSON"
+)
+
+# TODO: Make global MTGJSON Class so we don't have redefinitions...
+GH_API_USER = ""
+GH_API_KEY = ""
+GH_DB_KEY = ""
+GH_DB_URL = ""
+GH_DB_FILE = ""
 
 
 def __get_session() -> requests.Session:
     """Get or create a requests session for TCGPlayer."""
-    if mtgjson4.USE_CACHE.get():
+    global GH_DB_URL, GH_DB_KEY, GH_API_KEY, GH_API_USER, GH_DB_FILE
+
+    if mtgjson4.USE_CACHE.get(False):
         requests_cache.install_cache(
             str(mtgjson4.PROJECT_CACHE_PATH.joinpath("tcgplayer_cache")),
             expire_after=mtgjson4.SESSION_CACHE_EXPIRE_TCG,
@@ -29,6 +44,16 @@ def __get_session() -> requests.Session:
     if session is None:
         session = requests.Session()
         header_auth = {"Authorization": "Bearer " + _request_tcgplayer_bearer()}
+
+        # Open and read MTGJSON secret properties
+        config = configparser.RawConfigParser()
+        config.read(mtgjson4.CONFIG_PATH)
+        GH_API_USER = config.get("CardHoarder", "gh_api_user")
+        GH_API_KEY = config.get("CardHoarder", "gh_api_key")
+        GH_DB_KEY = config.get("CardHoarder", "gh_db_key")
+        GH_DB_FILE = config.get("CardHoarder", "gh_db_file")
+        GH_DB_URL = f"https://gist.github.com/{GH_DB_KEY}"
+
         session.headers.update(header_auth)
         session = util.retryable_session(session)
         SESSION.set(session)
@@ -98,7 +123,7 @@ def download(tcgplayer_url: str, params_str: Dict[str, Any] = None) -> Optional[
     if response.status_code != 200:
         if response.status_code == 404:
             LOGGER.info(
-                "Status Code: {response.status_code} Failed to download from TCGPlayer with URL: {response.url}, Params: {params_str}"
+                f"Status Code: {response.status_code} Failed to download from TCGPlayer with URL: {response.url}, Params: {params_str}"
             )
         else:
             LOGGER.warning(
@@ -123,7 +148,7 @@ def get_group_id_cards(group_id: int) -> List[Dict[str, Any]]:
     offset = 0
 
     while True:
-        response = download(
+        content = download(
             "http://api.tcgplayer.com/[API_VERSION]/catalog/products",
             {
                 "categoryId": "1",  # MTG
@@ -133,11 +158,10 @@ def get_group_id_cards(group_id: int) -> List[Dict[str, Any]]:
                 "offset": offset,
             },
         )
-
-        if not response:
+        if not content:
             break
 
-        tcg_data = json.loads(response)
+        tcg_data = json.loads(content)
 
         if not tcg_data["results"]:
             break
@@ -156,3 +180,91 @@ def get_redirection_url(prod_id: int) -> str:
     :return: URL that can be used
     """
     return f"https://mtgjson.com/links/{url_keygen(prod_id)}"
+
+
+def get_magic_group_ids() -> List[Tuple[str, str]]:
+    """
+    Grab all TCGPlayer Group IDs for Magic
+    :return: List of tuples of group id and group name
+    """
+    group_ids = []
+    offset = 0
+
+    while True:
+        response_str = download(
+            "https://api.tcgplayer.com/[API_VERSION]/catalog/categories/1/groups",
+            {"offset": offset},
+        )
+        if not response_str:
+            break
+
+        response = json.loads(response_str)
+        if not response["results"]:
+            break
+
+        for set_obj in response["results"]:
+            group_ids.append((set_obj["groupId"], set_obj["name"]))
+
+        offset += len(response["results"])
+
+    return group_ids
+
+
+def build_price_map(group_id_and_name: Tuple[str, str]) -> Dict[str, Any]:
+    """
+    Construct the prices
+    :param group_id_and_name:
+    :return:
+    """
+    today_date = datetime.datetime.today().strftime("%Y-%m-%d")
+
+    group_str = download(
+        f"https://api.tcgplayer.com/[API_VERSION]/pricing/group/{group_id_and_name[0]}"
+    )
+
+    if not group_str:
+        return {}
+
+    response = json.loads(group_str)
+
+    db_contents: Dict[str, Any] = {}
+    for tcg_obj in response["results"]:
+        key = TCGPLAYER_TO_MTGJSON_MAP.get().get(tcg_obj["productId"], 0)
+        if not key:
+            continue
+
+        is_normal = tcg_obj["subTypeName"] == "Normal"
+        value = tcg_obj["marketPrice"]
+
+        if key not in db_contents.keys():
+            db_contents[key] = {"paper": {}, "paperFoil": {}}
+
+        db_contents[key]["paper" if is_normal else "paperFoil"][today_date] = value
+
+    LOGGER.info(f"Finished {group_id_and_name[1]}")
+    return db_contents
+
+
+def generate_and_store_tcgplayer_prices(path_to_sqlite: str) -> None:
+    """
+    Downloads the TCGPlayer API for Pricing and adds it to the current
+    database online.
+    """
+    TCGPLAYER_TO_MTGJSON_MAP.set(util.get_tcgplayer_to_mtgjson_map(path_to_sqlite))
+
+    ids_and_names = get_magic_group_ids()
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+        results = pool.map(build_price_map, ids_and_names)
+
+    # Merge today's entries with current database
+    new_database = dict(
+        util.deep_merge_dicts(
+            dict(collections.ChainMap(*results)),
+            util.get_gist_json_file(GH_DB_URL, GH_DB_FILE),
+        )
+    )
+
+    # Update Gist
+    util.set_gist_json_file(
+        GH_API_USER, GH_API_KEY, GH_DB_KEY, GH_DB_FILE, new_database
+    )

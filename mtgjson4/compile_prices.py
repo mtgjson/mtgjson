@@ -8,7 +8,7 @@ import pathlib
 from typing import Any, Dict, List, Tuple, Union
 
 import mtgjson4
-from mtgjson4.provider import cardhoader, mtgstocks
+from mtgjson4.provider import cardhoader, tcgplayer
 
 LOGGER = logging.getLogger(__name__)
 
@@ -20,20 +20,7 @@ def build_price_data(card: Dict[str, Any]) -> Tuple[str, Dict[str, Dict[str, str
     :return Card object
     """
     LOGGER.info(f"Building price for {card['name']}")
-    paper_pricing = mtgstocks.get_card_data(card.get("tcgplayerProductId", -1))
-    digital_pricing = cardhoader.get_card_data(card["uuid"])
-
-    return (
-        card["uuid"],
-        {
-            "prices": {
-                "paper": paper_pricing.get("paper", {}),
-                "paperFoil": paper_pricing.get("foil", {}),
-                "mtgo": digital_pricing.get("mtgo", {}),
-                "mtgoFoil": digital_pricing.get("mtgoFoil", {}),
-            }
-        },
-    )
+    return card["uuid"], {"prices": cardhoader.get_card_data(card["uuid"])}
 
 
 class MtgjsonPrice:
@@ -41,17 +28,30 @@ class MtgjsonPrice:
     Class to construct MTGJSON Pricing data for additional download files.
     """
 
-    def __init__(self, all_sets_path: Union[str, pathlib.Path]) -> None:
+    def __init__(self, all_printings_path: Union[str, pathlib.Path]) -> None:
         """
         Initializer to load in cards and establish pricing database
-        :param all_sets_path: Path to AllSets.json
+        :param all_printings_path: Path to AllPrintings, without ending (needs JSON and SQLITE there)
         """
         self.mtgjson_cards: List[Dict[str, Any]] = []
         self.prices_output: Dict[str, Dict[str, Dict[str, str]]] = {}
 
-        self.all_sets_path = pathlib.Path(all_sets_path).expanduser()
-        if not self.all_sets_path.exists():
-            LOGGER.error(f"Pricing can't find AllSets at {self.all_sets_path}")
+        self.all_printings_path = (
+            pathlib.Path(all_printings_path).expanduser().with_suffix(".json")
+        )
+        if not self.all_printings_path.exists():
+            LOGGER.error(
+                f"Pricing can't find AllPrintings.json at {self.all_printings_path}"
+            )
+            return
+
+        self.all_printings_sqlite_path = (
+            pathlib.Path(all_printings_path).expanduser().with_suffix(".sqlite")
+        )
+        if not self.all_printings_path.exists():
+            LOGGER.error(
+                f"Pricing can't find AllPrintings.sqlite at {self.all_printings_path}"
+            )
             return
 
         self.__load_mtgjson_cards_from_file()
@@ -75,20 +75,22 @@ class MtgjsonPrice:
 
     def __load_mtgjson_cards_from_file(self) -> None:
         """
-        Load in all MTGJSON cards from AllSets.json file
+        Load in all MTGJSON cards from AllPrintings.json file
         """
-        with self.all_sets_path.expanduser().open() as file:
+        with self.all_printings_path.expanduser().open() as file:
             all_sets = json.load(file)
 
         for set_content in all_sets.values():
             self.mtgjson_cards.extend(set_content.get("cards", []))
 
-    @staticmethod
-    def __prime_databases() -> None:
+    def __prime_databases(self) -> None:
         """
         Prime price databases before multiprocessing iterations
+        This adds values from _now_ to the database
         """
-        mtgstocks.get_card_data(0)
+        tcgplayer.generate_and_store_tcgplayer_prices(
+            str(self.all_printings_sqlite_path)
+        )
         cardhoader.get_card_data("")
 
     def __collate_pricing(self) -> None:
@@ -100,9 +102,7 @@ class MtgjsonPrice:
 
         LOGGER.info("Starting Pool")
         with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-            futures = pool.map_async(build_price_data, self.mtgjson_cards)
-            pool.close()
-            pool.join()
+            futures = pool.map(build_price_data, self.mtgjson_cards)
 
-        for card_price in futures.get():
+        for card_price in futures:
             self.prices_output[card_price[0]] = card_price[1]

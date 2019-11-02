@@ -147,7 +147,7 @@ def main() -> None:
         mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
         LOGGER.info(f"Rebuilding price data for {mtgjson4.COMPILED_OUTPUT_DIR.name}")
         prices = MtgjsonPrice(
-            mtgjson4.COMPILED_OUTPUT_DIR.joinpath(mtgjson4.ALL_SETS_OUTPUT + ".json")
+            mtgjson4.COMPILED_OUTPUT_DIR.joinpath(mtgjson4.ALL_SETS_OUTPUT)
         )
         outputter.output_price_file(prices)
         return

@@ -7,6 +7,7 @@ import logging
 import pathlib
 import re
 import shutil
+import sqlite3
 import tempfile
 from typing import Any, Dict, List, Optional, Set
 import unicodedata
@@ -268,3 +269,48 @@ def build_format_map(
             formats[fmt].append(code)
 
     return formats
+
+
+def deep_merge_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Any:
+    """
+    Merge two dicts together, recursively
+    :param dict1: Dict 1
+    :param dict2: Dict 2
+    :return: New Dict
+    """
+    for k in set(dict1.keys()).union(dict2.keys()):
+        if k in dict1 and k in dict2:
+            if isinstance(dict1[k], dict) and isinstance(dict2[k], dict):
+                yield (k, dict(deep_merge_dicts(dict1[k], dict2[k])))
+            else:
+                yield (k, dict2[k])
+        elif k in dict1:
+            yield (k, dict1[k])
+        else:
+            yield (k, dict2[k])
+
+
+def get_tcgplayer_to_mtgjson_map(all_printings_sqlite_path: str) -> Dict[str, str]:
+    """
+    Generate a TCGPlayerID -> MTGJSON UUID map that can be used
+    across the system.
+    :param all_printings_sqlite_path: Path to SQLITE compiled version
+    :return: Map of TCGPlayerID -> MTGJSON UUID
+    """
+    conn = sqlite3.connect(all_printings_sqlite_path)
+    cursor = conn.cursor()
+
+    cursor.execute(f"SELECT tcgplayerProductId, uuid FROM cards")
+
+    dump_map = {}
+    while True:
+        results = cursor.fetchmany(2000)
+        if not results:
+            break
+
+        for result in results:
+            dump_map[result[0]] = result[1]
+
+    cursor.close()
+    conn.close()
+    return dump_map
