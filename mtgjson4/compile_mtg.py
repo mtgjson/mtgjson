@@ -248,7 +248,7 @@ def add_price_data(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
 
 
 def transpose_tokens(
-    cards: List[MTGJSONCard]
+    cards: List[MTGJSONCard],
 ) -> Tuple[List[MTGJSONCard], List[Dict[str, Any]]]:
     """
     Sometimes, tokens slip through and need to be transplanted

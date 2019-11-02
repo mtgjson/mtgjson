@@ -110,7 +110,13 @@ def __get_ch_data() -> Dict[str, Dict[str, str]]:
 
         for key, value in normal_cards.items():
             if key not in db_contents.keys():
-                db_contents[key] = {"mtgo": {}, "mtgoFoil": {}}
+                db_contents[key] = {
+                    "mtgo": {},
+                    "mtgoFoil": {},
+                    "paper": {},
+                    "paperFoil": {},
+                }
+
             db_contents[key]["mtgo"][today_date] = value
             db_contents[key]["mtgoFoil"][today_date] = foil_cards.get(key)
 
@@ -155,11 +161,9 @@ def construct_ch_price_dict(url_to_parse: str) -> Dict[str, float]:
 
 def get_card_data(mtgjson_uuid: str) -> Dict[str, Any]:
     """
-    Get digital price history of a specific card
+    Get full price history of a specific card
     :param mtgjson_uuid: Card to get price history of
     :return: Price history
     """
-    return {
-        "mtgo": __get_ch_data().get(mtgjson_uuid, {}).get("mtgo", None),
-        "mtgoFoil": __get_ch_data().get(mtgjson_uuid, {}).get("mtgoFoil", None),
-    }
+    return_value = __get_ch_data().get(mtgjson_uuid)
+    return return_value if return_value else {}
