@@ -6,6 +6,7 @@ import datetime
 import json
 import logging
 import multiprocessing
+import pathlib
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -245,12 +246,13 @@ def build_price_map(group_id_and_name: Tuple[str, str]) -> Dict[str, Any]:
     return db_contents
 
 
-def generate_and_store_tcgplayer_prices(path_to_sqlite: str) -> None:
+def generate_and_store_tcgplayer_prices(all_printings_path: pathlib.Path) -> None:
     """
     Downloads the TCGPlayer API for Pricing and adds it to the current
     database online.
+    :param all_printings_path Path to AllPrintings.json
     """
-    TCGPLAYER_TO_MTGJSON_MAP.set(util.get_tcgplayer_to_mtgjson_map(path_to_sqlite))
+    TCGPLAYER_TO_MTGJSON_MAP.set(util.get_tcgplayer_to_mtgjson_map(all_printings_path))
 
     ids_and_names = get_magic_group_ids()
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
