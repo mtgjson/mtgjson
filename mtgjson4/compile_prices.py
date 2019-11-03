@@ -45,15 +45,6 @@ class MtgjsonPrice:
             )
             return
 
-        self.all_printings_sqlite_path = (
-            pathlib.Path(all_printings_path).expanduser().with_suffix(".sqlite")
-        )
-        if not self.all_printings_path.exists():
-            LOGGER.error(
-                f"Pricing can't find AllPrintings.sqlite at {self.all_printings_path}"
-            )
-            return
-
         self.__load_mtgjson_cards_from_file()
         self.__collate_pricing()
 
@@ -88,9 +79,7 @@ class MtgjsonPrice:
         Prime price databases before multiprocessing iterations
         This adds values from _now_ to the database
         """
-        tcgplayer.generate_and_store_tcgplayer_prices(
-            str(self.all_printings_sqlite_path)
-        )
+        tcgplayer.generate_and_store_tcgplayer_prices(self.all_printings_path)
         cardhoader.get_card_data("")
 
     def __collate_pricing(self) -> None:
