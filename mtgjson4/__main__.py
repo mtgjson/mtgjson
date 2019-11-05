@@ -142,7 +142,7 @@ def main() -> None:
             f"No properties file found at {mtgjson4.CONFIG_PATH}. Will download without authentication"
         )
 
-    # Are we only rebuilding pricing?
+    # Are we only rebuilding pricing? (& version)
     if args.pricing:
         mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
         LOGGER.info(f"Rebuilding price data for {mtgjson4.COMPILED_OUTPUT_DIR.name}")
@@ -150,6 +150,7 @@ def main() -> None:
             mtgjson4.COMPILED_OUTPUT_DIR.joinpath(mtgjson4.ALL_SETS_OUTPUT)
         )
         outputter.output_price_file(prices)
+        outputter.write_to_file(mtgjson4.VERSION_OUTPUT, outputter.get_version_info())
         return
 
     # Determine set(s) to build
