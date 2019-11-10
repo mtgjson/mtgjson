@@ -15,14 +15,7 @@ from mkmsdk.mkm import Mkm
 import mtgjson4
 from mtgjson4 import mtgjson_card, util
 from mtgjson4.mtgjson_card import MTGJSONCard
-from mtgjson4.provider import (
-    cardhoader,
-    gatherer,
-    mtgstocks,
-    scryfall,
-    tcgplayer,
-    wizards,
-)
+from mtgjson4.provider import cardhoader, gatherer, scryfall, tcgplayer, wizards
 from mtgjson4.util import is_number
 
 LOGGER = logging.getLogger(__name__)
@@ -150,7 +143,7 @@ def build_mtgjson_set(
     card_holder = mtgjson_custom_fields(card_holder)
 
     if not skip_keys:
-        # Add MTGStocks & CardHoarder price data in
+        # Add CardHoarder price data in
         card_holder = add_price_data(card_holder)
 
     # Add TCGPlayer information
@@ -219,7 +212,7 @@ def initialize_mkm_set_cards(mcm_id: Optional[str]) -> None:
 
 def add_price_data(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
     """
-    Add the MTGStocks and CardHoarder content to the card
+    Add the CardHoarder content to the card
     :param cards: Output cards
     :return: Enriched output
     """
@@ -228,21 +221,9 @@ def add_price_data(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
             LOGGER.warning(f"No TCGPlayer ID Found for {card.get('name')}")
             continue
 
-        stocks_data = mtgstocks.get_card_data(card.get("tcgplayerProductId"))
-        ch_data = cardhoader.get_card_data(card.get("uuid"))
-
-        if stocks_data or ch_data:
-            card.set_all(
-                {
-                    "mtgstocksId": stocks_data.get("id"),
-                    "prices": {
-                        "paper": stocks_data.get("paper"),
-                        "paperFoil": stocks_data.get("foil"),
-                        "mtgo": ch_data.get("mtgo"),
-                        "mtgoFoil": ch_data.get("mtgoFoil"),
-                    },
-                }
-            )
+        card.set_all(
+            {"prices": cardhoader.get_card_data(card.get("uuid"), limited=True)}
+        )
 
     return cards
 
@@ -311,10 +292,6 @@ def add_purchase_fields(group_id: int, cards: List[MTGJSONCard]) -> None:
             cardmarket_value = card.get_card_market_link()
             if cardmarket_value:
                 merge_dict["cardmarket"] = cardmarket_value
-
-        stocks_value = card.get_mtgstocks_link()
-        if stocks_value:
-            merge_dict["mtgstocks"] = stocks_value
 
         card.set("purchaseUrls", merge_dict)
 
