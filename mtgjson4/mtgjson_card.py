@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Iterator, KeysView, List, Optional, Tupl
 import uuid
 
 import mtgjson4
-from mtgjson4.provider import mtgstocks, tcgplayer
+from mtgjson4.provider import tcgplayer
 
 TCGPLAYER_REFERRAL: str = "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"
 CARD_MARKET_REFERRAL: str = "?utm_campaign=card_prices&utm_medium=text&utm_source=mtgjson"
@@ -133,16 +133,6 @@ class MTGJSONCard:
         """
         return str(self.card_market_url) + CARD_MARKET_REFERRAL
 
-    def get_mtg_stocks_url(self) -> str:
-        """
-        Get MTGStocks with affiliate code
-        :return: URL
-        """
-        return (
-            mtgstocks.MTG_STOCKS_REFERRAL_URL.format(self.get("mtgstocksId"))
-            + MTG_STOCKS_REFERRAL
-        )
-
     def keys(self) -> KeysView:
         """
         Return internal dictionary keys
@@ -227,20 +217,6 @@ class MTGJSONCard:
                     + mtgjson4.CARD_MARKET_BUFFER
                     + str(self.get("mcmMetaId"))
                 )
-            )
-        )
-
-    def get_mtgstocks_link(self) -> Optional[str]:
-        """
-        Get the mtgstocks purchase fields
-        :return: Purchase URL
-        """
-        if not self.get("mtgstocksId"):
-            return None
-
-        return str(
-            tcgplayer.get_redirection_url(
-                int(str(self.get("mtgstocksId")) + mtgjson4.MTGSTOCKS_BUFFER)
             )
         )
 

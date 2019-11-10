@@ -25,6 +25,8 @@ GH_DB_KEY = ""
 GH_DB_URL = ""
 GH_DB_FILE = ""
 
+TODAY_DATE = datetime.datetime.today().strftime("%Y-%m-%d")
+
 
 def __get_session() -> requests.Session:
     """
@@ -96,8 +98,6 @@ def __get_ch_data() -> Dict[str, Dict[str, str]]:
             CH_PRICE_DATA = {"Empty": {}}
             return CH_PRICE_DATA
 
-        today_date = datetime.datetime.today().strftime("%Y-%m-%d")
-
         # Load cached database
         db_contents = util.get_gist_json_file(GH_DB_URL, GH_DB_FILE)
 
@@ -117,8 +117,8 @@ def __get_ch_data() -> Dict[str, Dict[str, str]]:
                     "paperFoil": {},
                 }
 
-            db_contents[key]["mtgo"][today_date] = value
-            db_contents[key]["mtgoFoil"][today_date] = foil_cards.get(key)
+            db_contents[key]["mtgo"][TODAY_DATE] = value
+            db_contents[key]["mtgoFoil"][TODAY_DATE] = foil_cards.get(key)
 
         # Save new database to cache
         util.set_gist_json_file(
@@ -159,11 +159,19 @@ def construct_ch_price_dict(url_to_parse: str) -> Dict[str, float]:
     return mtgjson_to_price
 
 
-def get_card_data(mtgjson_uuid: str) -> Dict[str, Any]:
+def get_card_data(mtgjson_uuid: str, limited: bool = False) -> Dict[str, Any]:
     """
     Get full price history of a specific card
     :param mtgjson_uuid: Card to get price history of
+    :param limited: Should only return latest value
     :return: Price history
     """
-    return_value = __get_ch_data().get(mtgjson_uuid)
+    return_value: Dict[str, Any] = __get_ch_data().get(mtgjson_uuid)
+
+    if limited:
+        for key, value in return_value.items():
+            if value:
+                max_value = max(value)
+                return_value[key] = {max_value: value[max_value]}
+
     return return_value if return_value else {}

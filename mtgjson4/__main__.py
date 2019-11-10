@@ -108,15 +108,6 @@ def add_card_to_referral_map(card: MTGJSONCard) -> None:
         key_tcg = mtgjson4.util.url_keygen(card.get("tcgplayerProductId"))
         outputter.write_referral_url_information({key_tcg: card.get_tcgplayer_url()})
 
-    # MTGStocks
-    if card.get("mtgstocksId"):
-        key_stocks = mtgjson4.util.url_keygen(
-            int(str(card.get("mtgstocksId")) + mtgjson4.MTGSTOCKS_BUFFER)
-        )
-        outputter.write_referral_url_information(
-            {key_stocks: card.get_mtg_stocks_url()}
-        )
-
     # CardMarket
     if card.get("mcmId"):
         key_mkm = mtgjson4.util.url_keygen(
