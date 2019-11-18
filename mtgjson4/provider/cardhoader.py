@@ -166,7 +166,7 @@ def get_card_data(mtgjson_uuid: str, limited: bool = False) -> Dict[str, Any]:
     :param limited: Should only return latest value
     :return: Price history
     """
-    return_value: Dict[str, Any] = __get_ch_data().get(mtgjson_uuid)
+    return_value: Dict[str, Any] = __get_ch_data().get(mtgjson_uuid, {})
 
     if limited:
         for key, value in return_value.items():
@@ -174,4 +174,4 @@ def get_card_data(mtgjson_uuid: str, limited: bool = False) -> Dict[str, Any]:
                 max_value = max(value)
                 return_value[key] = {max_value: value[max_value]}
 
-    return return_value if return_value else {}
+    return return_value
