@@ -1,3 +1,4 @@
+singleton
 contextvars
 beautifulsoup4
 GitPython

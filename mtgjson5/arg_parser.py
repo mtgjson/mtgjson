@@ -15,7 +15,13 @@ def parse_args() -> argparse.Namespace:
     # What set(s) to build
     sets_group = parser.add_mutually_exclusive_group(required=False)
     sets_group.add_argument(
-        "-s", "--sets", type=str, nargs="*", metavar="SET", help="What set(s) to build"
+        "-s",
+        "--sets",
+        type=str.upper,
+        nargs="*",
+        metavar="SET",
+        default=[],
+        help="What set(s) to build",
     )
     sets_group.add_argument(
         "-a", "--all-sets", action="store_true", help="Alias to build all sets"
@@ -52,9 +58,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--skip-sets",
         "--no-sets",
-        type=str,
-        metavar="SET",
+        type=str.upper,
         nargs="*",
+        metavar="SET",
+        default=[],
         help="Purposely exclude sets from the build that may have been set using '--sets' or '--all'",
     )
     parser.add_argument(
