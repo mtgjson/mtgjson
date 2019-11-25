@@ -258,12 +258,12 @@ def build_mtgjson_card(
     :param face_id: What face to build for (set internally)
     :return: List of card objects that were constructed
     """
-    logging.info(f"Building {scryfall_object['name']} from {scryfall_object['set']}")
+    logging.info(f"Building {scryfall_object['name']}")
 
     mtgjson_cards = []
 
     mtgjson_card = MtgjsonCardObject()
-    mtgjson_card.set_code = scryfall_object["set"]
+    mtgjson_card._set_code = scryfall_object["set"]
     mtgjson_card.scryfall_id = scryfall_object["id"]
     mtgjson_card.scryfall_oracle_id = scryfall_object["oracle_id"]
     mtgjson_card.scryfall_illustration_id = scryfall_object.get("illustration_id")
@@ -383,7 +383,7 @@ def build_mtgjson_card(
 
     # Implicit Variables
     mtgjson_card.is_timeshifted = (
-        scryfall_object.get("frame") == "future" or mtgjson_card.set_code == "TSB"
+        scryfall_object.get("frame") == "future" or mtgjson_card._set_code == "TSB"
     )
     mtgjson_card.printings = parse_printings(scryfall_object["prints_search_uri"])
     mtgjson_card.legalities = parse_legalities(scryfall_object["legalities"])

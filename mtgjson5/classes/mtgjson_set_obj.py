@@ -39,8 +39,6 @@ class MtgjsonSetObject:
     translations: MtgjsonTranslationsObject
     type: str
 
-    search_uri: str
-
     def __init__(self):
         pass
 

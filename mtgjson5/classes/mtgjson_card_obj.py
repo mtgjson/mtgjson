@@ -1,7 +1,7 @@
 """
 MTGJSON container for holding an individual card
 """
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from mtgjson5.classes.mtgjson_foreign_data_obj import MtgjsonForeignDataObject
 from mtgjson5.classes.mtgjson_leadership_skills_obj import MtgjsonLeadershipSkillsObject
@@ -16,7 +16,7 @@ class MtgjsonCardObject:
     MTGJSON's container for a card
     """
 
-    artist: str
+    artist: Optional[str]
     border_color: str
     color_identity: List[str]
     color_indicator: List[str]
@@ -27,7 +27,7 @@ class MtgjsonCardObject:
     edhrec_rank: int
     face_converted_mana_cost: float
     flavor_text: str
-    # foreign_data: List[MtgjsonForeignDataObject]
+    foreign_data: List[MtgjsonForeignDataObject]
     frame_effect: str  # DEPRECATED
     frame_effects: List[str]
     frame_version: str
@@ -49,9 +49,9 @@ class MtgjsonCardObject:
     is_story_spotlight: bool
     is_textless: bool
     is_timeshifted: bool
-    layout: str
-    # leadership_skills: MtgjsonLeadershipSkillsObject
-    # legalities: MtgjsonLegalitiesObject
+    layout: Optional[str]
+    leadership_skills: MtgjsonLeadershipSkillsObject
+    legalities: MtgjsonLegalitiesObject
     life: str
     loyalty: str
     mana_cost: str
@@ -68,13 +68,13 @@ class MtgjsonCardObject:
     original_text: str
     original_type: str
     power: str
-    # prices: MtgjsonPricesObject
+    prices: MtgjsonPricesObject
     printings: List[str]
-    # purchase_urls: MtgjsonPurchaseUrlsObject
+    purchase_urls: MtgjsonPurchaseUrlsObject
     rarity: str
     reverse_related: List[str]
-    # rulings: List[MtgjsonRulingObject]
-    set_code: str
+    rulings: List[MtgjsonRulingObject]
+    _set_code: str
     scryfall_id: str
     scryfall_oracle_id: str
     scryfall_illustration_id: str
@@ -88,7 +88,7 @@ class MtgjsonCardObject:
     types: List[str]
     uuid: str
     variations: List[str]
-    watermark: str
+    watermark: Optional[str]
 
     def __init__(self):
         self.colors = []
@@ -105,5 +105,5 @@ class MtgjsonCardObject:
         return {
             key: value
             for key, value in self.__dict__.items()
-            if not key.startswith("__") and not callable(value)
+            if not key.startswith("_") and not callable(value)
         }

@@ -78,7 +78,7 @@ class AbstractProvider(abc.ABC):
         Log how the URL was acquired
         :param response: Response from Server
         """
-        logging.info(f"Downloaded {response.url} (Cache = {response.from_cache})")
+        logging.debug(f"Downloaded {response.url} (Cache = {response.from_cache})")
 
     # Private Methods
     def __install_cache(self, use_cache: bool):
