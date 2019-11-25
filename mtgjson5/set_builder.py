@@ -9,11 +9,74 @@ import re
 import unicodedata
 from typing import Dict, Any, Optional, List, Set, Tuple
 
+import simplejson
+
 from mtgjson5.classes.mtgjson_card_obj import MtgjsonCardObject
+from mtgjson5.classes.mtgjson_foreign_data_obj import MtgjsonForeignDataObject
 from mtgjson5.classes.mtgjson_meta_obj import MtgjsonMetaObject
 from mtgjson5.classes.mtgjson_set_obj import MtgjsonSetObject
-from mtgjson5.globals import init_logger, FOREIGN_SETS, SUPER_TYPES
+from mtgjson5.globals import FOREIGN_SETS, SUPER_TYPES, LANGUAGE_MAP, init_logger
+from mtgjson5.providers.gatherer_provider import GathererProvider
 from mtgjson5.providers.scryfall_provider import ScryfallProvider
+
+
+def parse_foreign(
+    sf_prints_url: str, card_name: str, card_number: str, set_name: str
+) -> List[MtgjsonForeignDataObject]:
+    """
+    Get the foreign printings information for a specific card
+    :param card_number: Card's number
+    :param sf_prints_url: URL to get prints from
+    :param card_name: Card name to parse (needed for double faced)
+    :param set_name: Set name
+    :return: Foreign entries object
+    """
+    card_foreign_entries: List[MtgjsonForeignDataObject] = []
+
+    # Add information to get all languages
+    sf_prints_url = sf_prints_url.replace("&unique=prints", "+lang%3Aany&unique=prints")
+
+    prints_api_json: Dict[str, Any] = ScryfallProvider.instance().download(
+        sf_prints_url
+    )
+    if prints_api_json["object"] == "error":
+        logging.error(f"No data found for {sf_prints_url}: {prints_api_json}")
+        return []
+
+    for foreign_card in prints_api_json["data"]:
+        if (
+            set_name != foreign_card["set"]
+            or card_number != foreign_card["collector_number"]
+            or foreign_card["lang"] == "en"
+        ):
+            continue
+
+        card_foreign_entry = MtgjsonForeignDataObject()
+        try:
+            card_foreign_entry.language = LANGUAGE_MAP[foreign_card["lang"]]
+        except IndexError:
+            logging.warning(f"Unable to get language {foreign_card}")
+
+        if foreign_card["multiverse_ids"]:
+            card_foreign_entry.multiverse_id = foreign_card["multiverse_ids"][0]
+
+        if "card_faces" in foreign_card:
+            if card_name.lower() == foreign_card["name"].split("/")[0].strip().lower():
+                face = 0
+            else:
+                face = 1
+
+            foreign_card = foreign_card["card_faces"][face]
+            logging.info(f"Split card found: Using face {face} for {card_name}")
+
+        card_foreign_entry.name = foreign_card.get("printed_name")
+        card_foreign_entry.text = foreign_card.get("printed_text")
+        card_foreign_entry.flavor_text = foreign_card.get("flavor_text")
+        card_foreign_entry.type = foreign_card.get("printed_type_line")
+
+        card_foreign_entries.append(card_foreign_entry)
+
+    return card_foreign_entries
 
 
 def parse_card_types(card_type: str) -> Tuple[List[str], List[str], List[str]]:
@@ -104,7 +167,7 @@ def get_card_cmc(mana_cost: str) -> float:
     """
     total: float = 0
 
-    symbol: List[str] = re.findall(r"{([^{]*)}", mana_cost)
+    symbol: List[str] = re.findall(r"{([^{]*)}", mana_cost.strip())
     for element in symbol:
         # Address 2/W, G/W, etc as "higher" cost always first
         if "/" in element:
@@ -253,17 +316,19 @@ def build_mtgjson_card(
     """
     Construct a MTGJSON Card object from 3rd party
     entities
-    :param scryfall_object: Scryfall Set Object
-    :param is_privileged: Should we download with Authorization
+    :param scryfall_object: Scryfall Card Object
     :param face_id: What face to build for (set internally)
     :return: List of card objects that were constructed
     """
     logging.info(f"Building {scryfall_object['name']}")
 
+    # Return List
     mtgjson_cards = []
 
+    # Object Container
     mtgjson_card = MtgjsonCardObject()
-    mtgjson_card._set_code = scryfall_object["set"]
+
+    mtgjson_card.set_code = scryfall_object["set"]
     mtgjson_card.scryfall_id = scryfall_object["id"]
     mtgjson_card.scryfall_oracle_id = scryfall_object["oracle_id"]
     mtgjson_card.scryfall_illustration_id = scryfall_object.get("illustration_id")
@@ -273,7 +338,7 @@ def build_mtgjson_card(
     if "card_faces" in scryfall_object:
         mtgjson_card.names = scryfall_object["name"].split(" // ")
 
-        # Update face_data for later uses
+        # Override face_data from above
         face_data = scryfall_object["card_faces"][face_id]
 
         if "//" in scryfall_object.get("mana_cost", ""):
@@ -281,19 +346,20 @@ def build_mtgjson_card(
                 scryfall_object["mana_cost"].split(" // ")[face_id]
             )
             mtgjson_card.face_converted_mana_cost = get_card_cmc(
-                scryfall_object["mana_cost"].split("//")[face_id].strip()
+                scryfall_object["mana_cost"].split("//")[face_id]
             )
-        elif scryfall_object["layout"] in [
+        elif scryfall_object["layout"] in {
             "split",
             "transform",
             "aftermath",
             "adventure",
-        ]:
+        }:
             mtgjson_card.face_converted_mana_cost = get_card_cmc(
-                face_data.get("mana_cost", "0").strip()
+                face_data.get("mana_cost", "0")
             )
 
         mtgjson_card.watermark = scryfall_object["card_faces"][0].get("watermark")
+
         if scryfall_object["card_faces"][-1]["oracle_text"].startswith("Aftermath"):
             mtgjson_card.layout = "aftermath"
 
@@ -303,6 +369,7 @@ def build_mtgjson_card(
             for i in range(1, len(scryfall_object["card_faces"])):
                 mtgjson_cards.extend(build_mtgjson_card(scryfall_object, i))
 
+    # Start of single card builder
     if face_data.get("mana_cost"):
         mtgjson_card.mana_cost = face_data["mana_cost"]
 
@@ -343,9 +410,11 @@ def build_mtgjson_card(
         mtgjson_card.artist = scryfall_object.get("artist")
     if not mtgjson_card.layout:
         mtgjson_card.layout = scryfall_object.get("layout")
+    if not mtgjson_card.watermark:
+        mtgjson_card.watermark = face_data.get("watermark")
 
-    # isPaper, isMtgo, isArena
     for game_mode in scryfall_object.get("games", []):
+        # isPaper, isMtgo, isArena
         setattr(mtgjson_card, f"is{game_mode.capitalize()}", True)
 
     # Explicit Variables -- Based on the face of the card
@@ -355,8 +424,6 @@ def build_mtgjson_card(
     mtgjson_card.text = face_data.get("oracle_text")
     mtgjson_card.toughness = face_data.get("toughness")
     mtgjson_card.type = face_data.get("type_line", "Card")
-    if not mtgjson_card.watermark:
-        mtgjson_card.watermark = face_data.get("watermark")
 
     # Explicit -- Depending on if card face has it or not
     mtgjson_card.flavor_text = (
@@ -383,9 +450,11 @@ def build_mtgjson_card(
 
     # Implicit Variables
     mtgjson_card.is_timeshifted = (
-        scryfall_object.get("frame") == "future" or mtgjson_card._set_code == "TSB"
+        scryfall_object.get("frame") == "future" or mtgjson_card.set_code == "TSB"
     )
-    mtgjson_card.printings = parse_printings(scryfall_object["prints_search_uri"])
+    mtgjson_card.printings = parse_printings(
+        scryfall_object["prints_search_uri"].replace("%22", "")
+    )
     mtgjson_card.legalities = parse_legalities(scryfall_object["legalities"])
     mtgjson_card.rulings = parse_rulings(scryfall_object["rulings_uri"])
 
@@ -431,6 +500,22 @@ def build_mtgjson_card(
                 mtgjson_card.side = "b"
             else:
                 mtgjson_card.side = "c"
+
+    mtgjson_card.foreign_data = parse_foreign(
+        scryfall_object["prints_search_uri"].replace("%22", ""),
+        mtgjson_card.name,
+        mtgjson_card.number,
+        mtgjson_card.set_code,
+    )
+
+    # Gatherer Calls -- SLOWWWWW
+    if mtgjson_card.multiverse_id:
+        gatherer_cards = GathererProvider.instance().get_cards(
+            mtgjson_card.multiverse_id, mtgjson_card.set_code
+        )
+        if len(gatherer_cards) > face_id:
+            mtgjson_card.original_type = gatherer_cards[face_id].original_types
+            mtgjson_card.original_text = gatherer_cards[face_id].original_text
 
     mtgjson_cards.append(mtgjson_card)
 

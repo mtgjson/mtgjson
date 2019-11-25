@@ -1,14 +1,12 @@
 """
 MTGJSON Main Executor
 """
-import json
 import logging
 
-import simplejson as simplejson
+import simplejson
 
 from mtgjson5.arg_parser import parse_args
 from mtgjson5.globals import init_logger
-from mtgjson5.providers.scryfall_provider import ScryfallProvider
 from mtgjson5.set_builder import build_mtgjson_set
 
 

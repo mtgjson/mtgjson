@@ -1,3 +1,4 @@
+simplejson
 singleton
 contextvars
 beautifulsoup4

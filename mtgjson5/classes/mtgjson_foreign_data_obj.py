@@ -1,7 +1,11 @@
 """
 MTGJSON container for foreign entries
 """
-from typing import Dict, Any
+import logging
+from typing import Dict, Any, List
+
+from mtgjson5.globals import LANGUAGE_MAP, init_logger, to_camel_case
+from mtgjson5.providers.scryfall_provider import ScryfallProvider
 
 
 class MtgjsonForeignDataObject:
@@ -16,15 +20,12 @@ class MtgjsonForeignDataObject:
     text: str
     type: str
 
+    _url: str
+    _number: float
+    _set_code: str
+
     def __init__(self):
         pass
-
-    def default(self, o):
-        return {
-            key: value
-            for key, value in self.__dict__.items()
-            if not key.startswith("__") and not callable(value)
-        }
 
     def for_json(self) -> Dict[str, Any]:
         """
@@ -32,7 +33,7 @@ class MtgjsonForeignDataObject:
         :return: JSON serialized object
         """
         return {
-            key: value
+            to_camel_case(key): value
             for key, value in self.__dict__.items()
             if not key.startswith("__") and not callable(value)
         }

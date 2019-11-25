@@ -4,7 +4,7 @@ MTGJSON's meta object to determine time and version
 import datetime
 from typing import Dict, Any
 
-from mtgjson5.globals import MTGJSON_VERSION
+from mtgjson5.globals import MTGJSON_VERSION, to_camel_case
 
 
 class MtgjsonMetaObject:
@@ -29,7 +29,7 @@ class MtgjsonMetaObject:
         :return: JSON serialized object
         """
         options = {
-            key: value
+            to_camel_case(key): value
             for key, value in self.__dict__.items()
             if not key.startswith("__") and not callable(value)
         }

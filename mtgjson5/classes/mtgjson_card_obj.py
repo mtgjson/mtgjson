@@ -9,6 +9,7 @@ from mtgjson5.classes.mtgjson_legalities_obj import MtgjsonLegalitiesObject
 from mtgjson5.classes.mtgjson_prices_obj import MtgjsonPricesObject
 from mtgjson5.classes.mtgjson_purchase_urls_obj import MtgjsonPurchaseUrlsObject
 from mtgjson5.classes.mtgjson_rulings_obj import MtgjsonRulingObject
+from mtgjson5.globals import to_camel_case
 
 
 class MtgjsonCardObject:
@@ -74,7 +75,7 @@ class MtgjsonCardObject:
     rarity: str
     reverse_related: List[str]
     rulings: List[MtgjsonRulingObject]
-    _set_code: str
+    set_code: str
     scryfall_id: str
     scryfall_oracle_id: str
     scryfall_illustration_id: str
@@ -91,11 +92,15 @@ class MtgjsonCardObject:
     watermark: Optional[str]
 
     def __init__(self):
+
+        # These values are tested against at some point
+        # So we need a default value
         self.colors = []
         self.artist = None
         self.layout = None
         self.watermark = None
         self.names = []
+        self.multiverse_id = 0
 
     def for_json(self) -> Dict[str, Any]:
         """
@@ -103,7 +108,9 @@ class MtgjsonCardObject:
         :return: JSON serialized object
         """
         return {
-            key: value
+            to_camel_case(key): value
             for key, value in self.__dict__.items()
-            if not key.startswith("_") and not callable(value)
+            if not key.startswith("_")
+            and not callable(value)
+            and key not in {"set_code"}  # CUSTOM LIST OF EXCEPTIONS
         }

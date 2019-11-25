@@ -45,10 +45,11 @@ class AbstractProvider(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def download(self, url: str) -> str:
+    def download(self, url: str, params: Dict[str, str] = None) -> str:
         """
         Download an object from a service using appropriate authentication protocols
         :param url: URL to download content from
+        :param params: Options to give to the GET request
         """
         pass
 

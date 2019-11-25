@@ -4,6 +4,8 @@ MTGJSON container for Leadership Skills
 import json
 from typing import Dict, Any
 
+from mtgjson5.globals import to_camel_case
+
 
 class MtgjsonLeadershipSkillsObject(json.JSONEncoder):
     """
@@ -23,7 +25,7 @@ class MtgjsonLeadershipSkillsObject(json.JSONEncoder):
         :return: JSON serialized object
         """
         return {
-            key: value
+            to_camel_case(key): value
             for key, value in self.__dict__.items()
             if not key.startswith("__") and not callable(value)
         }

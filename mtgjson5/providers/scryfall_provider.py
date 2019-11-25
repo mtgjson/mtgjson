@@ -38,11 +38,12 @@ class ScryfallProvider(AbstractProvider):
 
         return headers
 
-    def download(self, url: str) -> Dict[str, Any]:
+    def download(self, url: str, params: Dict[str, str] = None) -> Dict[str, Any]:
         """
         Download content from Scryfall
         Api calls always return JSON from Scryfall
         :param url: URL to download from
+        :param params: Options for URL download
         """
         session = self.session_pool.popleft()
         response = session.get(url)
