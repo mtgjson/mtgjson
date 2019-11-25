@@ -1,7 +1,9 @@
 """
 Class structure for a MTGJSON Set Object
 """
-from typing import List, Any
+import datetime
+import json
+from typing import List, Any, Dict
 
 from mtgjson5.classes.mtgjson_card_obj import MtgjsonCardObject
 from mtgjson5.classes.mtgjson_meta_obj import MtgjsonMetaObject
@@ -37,5 +39,21 @@ class MtgjsonSetObject:
     translations: MtgjsonTranslationsObject
     type: str
 
+    search_uri: str
+
     def __init__(self):
         pass
+
+    def __str__(self):
+        return str(vars(self))
+
+    def for_json(self) -> Dict[str, Any]:
+        """
+        Support json.dumps()
+        :return: JSON serialized object
+        """
+        return {
+            key: value
+            for key, value in self.__dict__.items()
+            if not key.startswith("__") and not callable(value)
+        }

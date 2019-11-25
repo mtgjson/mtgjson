@@ -1,7 +1,7 @@
-import pytest
-
 from unittest import mock
+
 from mtgjson4.provider.scryfall import parse_foreign
+import pytest
 
 
 @mock.patch("mtgjson4.provider.scryfall.download")

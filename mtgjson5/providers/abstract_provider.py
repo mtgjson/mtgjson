@@ -4,9 +4,10 @@ API for how providers need to interact with other classes
 from __future__ import annotations
 
 import abc
+import collections
 import configparser
+import logging
 import multiprocessing
-import queue
 from typing import Dict
 
 import requests
@@ -14,7 +15,7 @@ import requests.adapters
 import requests_cache
 import urllib3
 
-from mtgjson5.globals import CONFIG_PATH, CACHE_PATH
+from mtgjson5.globals import CONFIG_PATH, CACHE_PATH, init_logger
 
 
 class AbstractProvider(abc.ABC):
@@ -22,23 +23,26 @@ class AbstractProvider(abc.ABC):
     Abstract class to indicate what other providers should provide
     """
 
-    session_pool: queue.Queue[requests.Session]
+    session_pool: collections.deque[requests.Session]
 
     def __init__(self, headers: Dict[str, str], use_cache: bool = True):
+        init_logger()
+
         super().__init__()
 
-        self.session_pool = queue.Queue()
+        self.session_pool = collections.deque()
 
         self.__install_cache(use_cache)
         self.__init_session_pool(headers)
 
-    @classmethod
-    def get_class_name(cls) -> str:
+    # Abstract Methods
+    @abc.abstractmethod
+    def _build_http_header(self) -> Dict[str, str]:
         """
-        Get the name of the calling class
-        :return: Calling class name
+        Construct the HTTP authorization header
+        :return: Authorization header
         """
-        return cls.__name__
+        pass
 
     @abc.abstractmethod
     def download(self, url: str) -> str:
@@ -48,10 +52,40 @@ class AbstractProvider(abc.ABC):
         """
         pass
 
+    # Class Methods
+    @classmethod
+    def get_class_name(cls) -> str:
+        """
+        Get the name of the calling class
+        :return: Calling class name
+        """
+        return cls.__name__
+
+    @staticmethod
+    def get_configs() -> configparser.RawConfigParser:
+        """
+        Parse the config for this specific setup
+        :return: Parsed config file
+        """
+        config = configparser.RawConfigParser()
+        config.read(CONFIG_PATH)
+
+        return config
+
+    @staticmethod
+    def log_download(response) -> None:
+        """
+        Log how the URL was acquired
+        :param response: Response from Server
+        """
+        logging.info(f"Downloaded {response.url} (Cache = {response.from_cache})")
+
+    # Private Methods
     def __install_cache(self, use_cache: bool):
         if use_cache:
+            CACHE_PATH.mkdir(exist_ok=True)
             requests_cache.install_cache(
-                str(CACHE_PATH.joinpath(f"{self.get_class_name()}_cache"))
+                str(CACHE_PATH.joinpath(self.get_class_name()))
             )
 
     def __init_session_pool(self, headers: Dict[str, str] = None) -> None:
@@ -69,18 +103,7 @@ class AbstractProvider(abc.ABC):
                 session.headers.update(headers)
 
             session = self.__retryable_session(session)
-            self.session_pool.put(session)
-
-    @staticmethod
-    def get_configs() -> configparser.RawConfigParser:
-        """
-        Parse the config for this specific setup
-        :return: Parsed config file
-        """
-        config = configparser.RawConfigParser()
-        config.read(CONFIG_PATH)
-
-        return config
+            self.session_pool.append(session)
 
     @staticmethod
     def __retryable_session(

@@ -1,6 +1,10 @@
 """
 MTGJSON's meta object to determine time and version
 """
+import datetime
+from typing import Dict, Any
+
+from mtgjson5.globals import MTGJSON_VERSION
 
 
 class MtgjsonMetaObject:
@@ -8,9 +12,30 @@ class MtgjsonMetaObject:
     Determine what version of software built this object
     """
 
-    date: str
-    prices_date: str
+    date: datetime.datetime
+    prices_date: datetime.datetime
     version: str
 
-    def __init__(self):
-        pass
+    def __init__(
+        self, date=datetime.datetime.today(), prices_date=datetime.datetime.today()
+    ):
+        self.date = date
+        self.prices_date = prices_date
+        self.version = MTGJSON_VERSION
+
+    def for_json(self) -> Dict[str, Any]:
+        """
+        Support json.dumps()
+        :return: JSON serialized object
+        """
+        options = {
+            key: value
+            for key, value in self.__dict__.items()
+            if not key.startswith("__") and not callable(value)
+        }
+
+        for key, value in options.items():
+            if isinstance(value, datetime.datetime):
+                options[key] = value.isoformat()
+
+        return options

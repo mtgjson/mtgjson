@@ -1,7 +1,7 @@
 """
 MTGJSON container for holding an individual card
 """
-from typing import List
+from typing import List, Dict, Any
 
 from mtgjson5.classes.mtgjson_foreign_data_obj import MtgjsonForeignDataObject
 from mtgjson5.classes.mtgjson_leadership_skills_obj import MtgjsonLeadershipSkillsObject
@@ -27,7 +27,7 @@ class MtgjsonCardObject:
     edhrec_rank: int
     face_converted_mana_cost: float
     flavor_text: str
-    foreign_data: List[MtgjsonForeignDataObject]
+    # foreign_data: List[MtgjsonForeignDataObject]
     frame_effect: str  # DEPRECATED
     frame_effects: List[str]
     frame_version: str
@@ -50,8 +50,8 @@ class MtgjsonCardObject:
     is_textless: bool
     is_timeshifted: bool
     layout: str
-    leadership_skills: MtgjsonLeadershipSkillsObject
-    legalities: MtgjsonLegalitiesObject
+    # leadership_skills: MtgjsonLeadershipSkillsObject
+    # legalities: MtgjsonLegalitiesObject
     life: str
     loyalty: str
     mana_cost: str
@@ -68,12 +68,13 @@ class MtgjsonCardObject:
     original_text: str
     original_type: str
     power: str
-    prices: MtgjsonPricesObject
+    # prices: MtgjsonPricesObject
     printings: List[str]
-    purchase_urls: MtgjsonPurchaseUrlsObject
+    # purchase_urls: MtgjsonPurchaseUrlsObject
     rarity: str
     reverse_related: List[str]
-    rulings: List[MtgjsonRulingObject]
+    # rulings: List[MtgjsonRulingObject]
+    set_code: str
     scryfall_id: str
     scryfall_oracle_id: str
     scryfall_illustration_id: str
@@ -90,4 +91,19 @@ class MtgjsonCardObject:
     watermark: str
 
     def __init__(self):
-        pass
+        self.colors = []
+        self.artist = None
+        self.layout = None
+        self.watermark = None
+        self.names = []
+
+    def for_json(self) -> Dict[str, Any]:
+        """
+        Support json.dumps()
+        :return: JSON serialized object
+        """
+        return {
+            key: value
+            for key, value in self.__dict__.items()
+            if not key.startswith("__") and not callable(value)
+        }
