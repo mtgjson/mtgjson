@@ -2,7 +2,7 @@
 MTGJSON container for Leadership Skills
 """
 import json
-from typing import Dict, Any
+from typing import Any, Dict
 
 from mtgjson5.globals import to_camel_case
 
@@ -16,8 +16,10 @@ class MtgjsonLeadershipSkillsObject(json.JSONEncoder):
     commander: bool
     oathbreaker: bool
 
-    def __init__(self):
-        pass
+    def __init__(self, brawl, commander, oathbreaker):
+        self.brawl = brawl
+        self.commander = commander
+        self.oathbreaker = oathbreaker
 
     def for_json(self) -> Dict[str, Any]:
         """

@@ -2,9 +2,9 @@
 MTGJSON container for foreign entries
 """
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
-from mtgjson5.globals import LANGUAGE_MAP, init_logger, to_camel_case
+from mtgjson5.globals import LANGUAGE_MAP, init_thread_logger, to_camel_case
 from mtgjson5.providers.scryfall_provider import ScryfallProvider
 
 

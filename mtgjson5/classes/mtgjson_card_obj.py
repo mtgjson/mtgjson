@@ -1,7 +1,7 @@
 """
 MTGJSON container for holding an individual card
 """
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 from mtgjson5.classes.mtgjson_foreign_data_obj import MtgjsonForeignDataObject
 from mtgjson5.classes.mtgjson_leadership_skills_obj import MtgjsonLeadershipSkillsObject
@@ -101,6 +101,25 @@ class MtgjsonCardObject:
         self.watermark = None
         self.names = []
         self.multiverse_id = 0
+
+    def __eq__(self, other: Any) -> bool:
+        """
+        Determine if two card objects are equal
+        :param other: Other card
+        :return: Same object or not
+        """
+        return self.number == other.number
+
+    def __lt__(self, other: Any) -> bool:
+        """
+        Determine if this card object is less than another
+        :param other: Other card
+        :return: Less than or not
+        """
+        try:
+            return int(self.number) < int(other.number)
+        except ValueError:
+            return self.number < other.number
 
     def for_json(self) -> Dict[str, Any]:
         """

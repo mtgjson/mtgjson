@@ -2,12 +2,11 @@
 Scryfall 3rd party provider
 """
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List, Set
 
-from singleton.singleton import Singleton
-
-from mtgjson5.globals import init_logger
+from mtgjson5.globals import init_thread_logger
 from mtgjson5.providers.abstract_provider import AbstractProvider
+from singleton.singleton import Singleton
 
 
 @Singleton
@@ -16,12 +15,18 @@ class ScryfallProvider(AbstractProvider):
     Scryfall container
     """
 
-    ALL_SETS: str = "https://api.scryfall.com/sets/"
-    VARIATIONS: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}&unique=prints"
+    ID: str = "sf"
+    ALL_SETS_URL: str = "https://api.scryfall.com/sets/"
+    CARDS_URL: str = "https://api.scryfall.com/cards/"
+    VARIATIONS_URL: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}&unique=prints"
+    CARDS_WITHOUT_LIMITS_URL: str = "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named)"
+    CARDS_WITHOUT_LIMITS: Set[str]
 
     def __init__(self, use_cache: bool = True):
-        init_logger()
+        init_thread_logger()
         super().__init__(self._build_http_header(), use_cache)
+
+        self.CARDS_WITHOUT_LIMITS = self.cards_without_limits()
 
     def _build_http_header(self) -> Dict[str, str]:
         """
@@ -53,18 +58,15 @@ class ScryfallProvider(AbstractProvider):
 
         return response.json()
 
-    def download_cards(
-        self, set_code: str, in_booster: bool = True
-    ) -> List[Dict[str, Any]]:
+    def download_cards(self, set_code: str) -> List[Dict[str, Any]]:
         """
         Connects to Scryfall API and goes through all redirects to get the
         card data from their several pages via multiple API calls.
         :param set_code: Set to download (Ex: AER, M19)
-        :param in_booster: Cards that can appear in booster or not
         :return: List of all card objects
         """
         logging.info(f"Downloading set {set_code} information")
-        set_api_json: Dict[str, Any] = self.download(self.ALL_SETS + set_code)
+        set_api_json: Dict[str, Any] = self.download(self.ALL_SETS_URL + set_code)
         if set_api_json["object"] == "error":
             if not set_api_json["details"].startswith("No Magic set found"):
                 logging.warning(
@@ -78,7 +80,7 @@ class ScryfallProvider(AbstractProvider):
         # Download both normal card and variations
         for cards_api_url in [
             set_api_json.get("search_uri"),
-            self.VARIATIONS.format(set_code),
+            self.VARIATIONS_URL.format(set_code),
         ]:
             # For each page, append all the data, go to next page
             page_downloaded: int = 1
@@ -110,3 +112,15 @@ class ScryfallProvider(AbstractProvider):
         return sorted(
             scryfall_cards, key=lambda card: (card["name"], card["collector_number"])
         )
+
+    def cards_without_limits(self) -> Set[str]:
+        """
+        Grab all cards that can have as many copies
+        in a deck as the player wants
+        :return: Set of valid cards
+        """
+
+        return {
+            card["name"]
+            for card in self.download(self.CARDS_WITHOUT_LIMITS_URL)["data"]
+        }

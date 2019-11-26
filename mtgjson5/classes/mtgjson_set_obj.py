@@ -1,9 +1,7 @@
 """
 Class structure for a MTGJSON Set Object
 """
-import datetime
-import json
-from typing import List, Any, Dict
+from typing import Any, Dict, List
 
 from mtgjson5.classes.mtgjson_card_obj import MtgjsonCardObject
 from mtgjson5.classes.mtgjson_meta_obj import MtgjsonMetaObject
@@ -16,6 +14,7 @@ class MtgjsonSetObject:
     MTGJSON Set Object
     """
 
+    extra_tokens: List[Dict[str, Any]]
     base_set_size: int
     block: str
     booster_v3: List[Any]
@@ -51,8 +50,10 @@ class MtgjsonSetObject:
         Support json.dumps()
         :return: JSON serialized object
         """
+        skip_keys = {"added_scryfall_tokens"}
+
         return {
             to_camel_case(key): value
             for key, value in self.__dict__.items()
-            if not key.startswith("__") and not callable(value)
+            if not key.startswith("__") and not callable(value) and key not in skip_keys
         }

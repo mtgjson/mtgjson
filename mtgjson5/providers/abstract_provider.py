@@ -15,7 +15,7 @@ import requests.adapters
 import requests_cache
 import urllib3
 
-from mtgjson5.globals import CONFIG_PATH, CACHE_PATH, init_logger
+from mtgjson5.globals import CACHE_PATH, CONFIG_PATH, init_thread_logger
 
 
 class AbstractProvider(abc.ABC):
@@ -23,13 +23,15 @@ class AbstractProvider(abc.ABC):
     Abstract class to indicate what other providers should provide
     """
 
+    ID: str
     session_pool: collections.deque[requests.Session]
 
     def __init__(self, headers: Dict[str, str], use_cache: bool = True):
-        init_logger()
+        init_thread_logger()
 
         super().__init__()
 
+        self.ID = ""
         self.session_pool = collections.deque()
 
         self.__install_cache(use_cache)

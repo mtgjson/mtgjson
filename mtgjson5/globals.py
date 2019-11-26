@@ -4,7 +4,7 @@ Const values of MTGJSON
 import logging
 import pathlib
 import time
-from typing import List, Dict
+from typing import Dict, List
 
 MTGJSON_VERSION = "5.0.0"
 
@@ -15,6 +15,7 @@ LOG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
 
 FOREIGN_SETS: List[str] = []
 SUPER_TYPES: List[str] = ["Basic", "Host", "Legendary", "Ongoing", "Snow", "World"]
+BASIC_LAND_NAMES: List[str] = ["Plains", "Island", "Swamp", "Mountain", "Forest"]
 
 LANGUAGE_MAP: Dict[str, str] = {
     "en": "English",
@@ -77,7 +78,7 @@ SYMBOL_MAP = {
 }
 
 
-def init_logger() -> None:
+def init_thread_logger() -> None:
     """
     Logging configuration
     """

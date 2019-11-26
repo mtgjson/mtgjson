@@ -3,15 +3,15 @@ Wizards Gatherer 3rd party provider
 """
 import copy
 import re
-from typing import Dict, NamedTuple, Optional, List
+from typing import Dict, List, NamedTuple, Optional
 
 import bs4
 import requests
-from singleton.singleton import Singleton
 
 from mtgjson4.provider.gatherer import SYMBOL_MAP
-from mtgjson5.globals import init_logger
+from mtgjson5.globals import init_thread_logger
 from mtgjson5.providers.abstract_provider import AbstractProvider
+from singleton.singleton import Singleton
 
 
 class GathererCard(NamedTuple):
@@ -35,7 +35,7 @@ class GathererProvider(AbstractProvider):
     SETS_TO_REMOVE_PARENTHESES = {"10E"}
 
     def __init__(self, use_cache: bool = True):
-        init_logger()
+        init_thread_logger()
         super().__init__(self._build_http_header(), use_cache)
 
     def _build_http_header(self) -> Dict[str, str]:
