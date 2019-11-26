@@ -17,18 +17,18 @@ class WhatsInStandardProvider(AbstractProvider):
     """
 
     API_ENDPOINT: str = "https://whatsinstandard.com/api/v6/standard.json"
-    SET_CODES: Set[str]
+    set_codes: Set[str]
 
     def __init__(self, use_cache: bool = True):
         init_thread_logger()
         super().__init__(self._build_http_header(), use_cache)
 
-        self.SET_CODES = self.standard_legal_set_codes()
+        self.set_codes = self.standard_legal_set_codes()
 
     def _build_http_header(self) -> Dict[str, str]:
         return {}
 
-    def download(self, url: str, params: Dict[str, str] = None) -> Dict[str, Any]:
+    def download(self, url: str, params: Dict[str, str] = None) -> Any:
         """
         Download content from Whats in Standard
         Api calls always return JSON from them

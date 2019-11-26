@@ -24,7 +24,7 @@ class MtgjsonLegalitiesObject:
     standard: str
     vintage: str
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def for_json(self) -> Dict[str, Any]:

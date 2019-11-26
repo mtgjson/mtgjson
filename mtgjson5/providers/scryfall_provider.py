@@ -15,18 +15,18 @@ class ScryfallProvider(AbstractProvider):
     Scryfall container
     """
 
-    ID: str = "sf"
+    class_id: str = "sf"
     ALL_SETS_URL: str = "https://api.scryfall.com/sets/"
     CARDS_URL: str = "https://api.scryfall.com/cards/"
     VARIATIONS_URL: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}&unique=prints"
     CARDS_WITHOUT_LIMITS_URL: str = "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named)"
-    CARDS_WITHOUT_LIMITS: Set[str]
+    cards_without_limits: Set[str]
 
     def __init__(self, use_cache: bool = True):
         init_thread_logger()
         super().__init__(self._build_http_header(), use_cache)
 
-        self.CARDS_WITHOUT_LIMITS = self.cards_without_limits()
+        self.cards_without_limits = self.generate_cards_without_limits()
 
     def _build_http_header(self) -> Dict[str, str]:
         """
@@ -43,7 +43,7 @@ class ScryfallProvider(AbstractProvider):
 
         return headers
 
-    def download(self, url: str, params: Dict[str, str] = None) -> Dict[str, Any]:
+    def download(self, url: str, params: Dict[str, str] = None) -> Any:
         """
         Download content from Scryfall
         Api calls always return JSON from Scryfall
@@ -113,7 +113,7 @@ class ScryfallProvider(AbstractProvider):
             scryfall_cards, key=lambda card: (card["name"], card["collector_number"])
         )
 
-    def cards_without_limits(self) -> Set[str]:
+    def generate_cards_without_limits(self) -> Set[str]:
         """
         Grab all cards that can have as many copies
         in a deck as the player wants

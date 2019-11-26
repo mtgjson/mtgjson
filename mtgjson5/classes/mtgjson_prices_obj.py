@@ -16,7 +16,7 @@ class MtgjsonPricesObject:
     mtgo: Dict[str, float]
     mtgo_foil: Dict[str, float]
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def for_json(self) -> Dict[str, Any]:

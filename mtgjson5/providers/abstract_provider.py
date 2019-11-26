@@ -8,7 +8,7 @@ import collections
 import configparser
 import logging
 import multiprocessing
-from typing import Dict
+from typing import Any, Deque, Dict
 
 import requests
 import requests.adapters
@@ -23,15 +23,15 @@ class AbstractProvider(abc.ABC):
     Abstract class to indicate what other providers should provide
     """
 
-    ID: str
-    session_pool: collections.deque[requests.Session]
+    class_id: str
+    session_pool: Deque[requests.Session]
 
     def __init__(self, headers: Dict[str, str], use_cache: bool = True):
         init_thread_logger()
 
         super().__init__()
 
-        self.ID = ""
+        self.class_id = ""
         self.session_pool = collections.deque()
 
         self.__install_cache(use_cache)
@@ -44,16 +44,14 @@ class AbstractProvider(abc.ABC):
         Construct the HTTP authorization header
         :return: Authorization header
         """
-        pass
 
     @abc.abstractmethod
-    def download(self, url: str, params: Dict[str, str] = None) -> str:
+    def download(self, url: str, params: Dict[str, str] = None) -> Any:
         """
         Download an object from a service using appropriate authentication protocols
         :param url: URL to download content from
         :param params: Options to give to the GET request
         """
-        pass
 
     # Class Methods
     @classmethod
@@ -76,7 +74,7 @@ class AbstractProvider(abc.ABC):
         return config
 
     @staticmethod
-    def log_download(response) -> None:
+    def log_download(response: Any) -> None:
         """
         Log how the URL was acquired
         :param response: Response from Server
@@ -84,7 +82,12 @@ class AbstractProvider(abc.ABC):
         logging.debug(f"Downloaded {response.url} (Cache = {response.from_cache})")
 
     # Private Methods
-    def __install_cache(self, use_cache: bool):
+    def __install_cache(self, use_cache: bool) -> None:
+        """
+        Initiate the MTGJSON cache for requests
+        (Useful for development and re-running often)
+        :param use_cache: Should we use cache?
+        """
         if use_cache:
             CACHE_PATH.mkdir(exist_ok=True)
             requests_cache.install_cache(
@@ -99,7 +102,7 @@ class AbstractProvider(abc.ABC):
         if headers is None:
             headers = {}
 
-        for i in range(0, multiprocessing.cpu_count() * 3):
+        for _ in range(0, multiprocessing.cpu_count() * 3):
             session = requests.Session()
 
             if headers:

@@ -17,8 +17,10 @@ class MtgjsonMetaObject:
     version: str
 
     def __init__(
-        self, date=datetime.datetime.today(), prices_date=datetime.datetime.today()
-    ):
+        self,
+        date: datetime.datetime = datetime.datetime.today(),
+        prices_date: datetime.datetime = datetime.datetime.today(),
+    ) -> None:
         self.date = date
         self.prices_date = prices_date
         self.version = MTGJSON_VERSION

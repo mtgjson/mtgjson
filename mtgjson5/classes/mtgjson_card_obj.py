@@ -17,54 +17,54 @@ class MtgjsonCardObject:
     MTGJSON's container for a card
     """
 
-    artist: Optional[str]
+    artist: str
     border_color: str
     color_identity: List[str]
-    color_indicator: List[str]
+    color_indicator: Optional[List[str]]
     colors: List[str]
     converted_mana_cost: float
     count: int
-    duel_deck: str
-    edhrec_rank: int
+    duel_deck: Optional[str]
+    edhrec_rank: Optional[int]
     face_converted_mana_cost: float
-    flavor_text: str
+    flavor_text: Optional[str]
     foreign_data: List[MtgjsonForeignDataObject]
     frame_effect: str  # DEPRECATED
     frame_effects: List[str]
     frame_version: str
-    hand: str
-    has_foil: bool
-    has_no_deck_limit: bool  # DEPRECATED
-    has_non_foil: bool
-    is_alternative: bool
-    is_arena: bool
-    is_full_art: bool
-    is_mtgo: bool
-    is_online_only: bool
-    is_oversized: bool
-    is_paper: bool
-    is_promo: bool
-    is_reprint: bool
-    is_reserved: bool
-    is_starter: bool
-    is_story_spotlight: bool
-    is_textless: bool
-    is_timeshifted: bool
-    layout: Optional[str]
-    leadership_skills: MtgjsonLeadershipSkillsObject
+    hand: Optional[str]
+    has_foil: Optional[bool]
+    has_no_deck_limit: Optional[bool]  # DEPRECATED
+    has_non_foil: Optional[bool]
+    is_alternative: Optional[bool]
+    is_arena: Optional[bool]
+    is_full_art: Optional[bool]
+    is_mtgo: Optional[bool]
+    is_online_only: Optional[bool]
+    is_oversized: Optional[bool]
+    is_paper: Optional[bool]
+    is_promo: Optional[bool]
+    is_reprint: Optional[bool]
+    is_reserved: Optional[bool]
+    is_starter: Optional[bool]
+    is_story_spotlight: Optional[bool]
+    is_textless: Optional[bool]
+    is_timeshifted: Optional[bool]
+    layout: str
+    leadership_skills: Optional[MtgjsonLeadershipSkillsObject]
     legalities: MtgjsonLegalitiesObject
-    life: str
-    loyalty: str
+    life: Optional[str]
+    loyalty: Optional[str]
     mana_cost: str
     mcm_id: int
     mcm_meta_id: int
-    mtg_arena_id: int
-    mtgo_foil_id: int
-    mtgo_id: int
+    mtg_arena_id: Optional[int]
+    mtgo_foil_id: Optional[int]
+    mtgo_id: Optional[int]
     mtgstocks_id: int
     multiverse_id: int
     name: str
-    names: List[str]
+    names: Optional[List[str]]
     number: str
     original_text: str
     original_type: str
@@ -73,13 +73,13 @@ class MtgjsonCardObject:
     printings: List[str]
     purchase_urls: MtgjsonPurchaseUrlsObject
     rarity: str
-    reverse_related: List[str]
+    reverse_related: Optional[List[str]]
     rulings: List[MtgjsonRulingObject]
     set_code: str
     scryfall_id: str
     scryfall_oracle_id: str
-    scryfall_illustration_id: str
-    side: str
+    scryfall_illustration_id: Optional[str]
+    side: Optional[str]
     subtypes: List[str]
     supertypes: List[str]
     tcgplayer_product_id: int
@@ -91,12 +91,12 @@ class MtgjsonCardObject:
     variations: List[str]
     watermark: Optional[str]
 
-    def __init__(self):
+    def __init__(self) -> None:
         # These values are tested against at some point
         # So we need a default value
         self.colors = []
-        self.artist = None
-        self.layout = None
+        self.artist = ""
+        self.layout = ""
         self.watermark = None
         self.names = []
         self.multiverse_id = 0
@@ -107,7 +107,7 @@ class MtgjsonCardObject:
         :param other: Other card
         :return: Same object or not
         """
-        return self.number == other.number
+        return bool(self.number == other.number)
 
     def __lt__(self, other: Any) -> bool:
         """
@@ -118,7 +118,7 @@ class MtgjsonCardObject:
         try:
             return int(self.number) < int(other.number)
         except ValueError:
-            return self.number < other.number
+            return bool(self.number < other.number)
 
     def for_json(self) -> Dict[str, Any]:
         """

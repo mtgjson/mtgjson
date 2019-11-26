@@ -1,7 +1,7 @@
 """
 Class structure for a MTGJSON Set Object
 """
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from mtgjson5.classes.mtgjson_card_obj import MtgjsonCardObject
 from mtgjson5.classes.mtgjson_meta_obj import MtgjsonMetaObject
@@ -14,7 +14,6 @@ class MtgjsonSetObject:
     MTGJSON Set Object
     """
 
-    extra_tokens: List[Dict[str, Any]]
     base_set_size: int
     block: str
     booster_v3: List[Any]
@@ -33,16 +32,19 @@ class MtgjsonSetObject:
     name: str
     parent_code: str
     release_date: str
-    tcgplayer_group_id: int
+    tcgplayer_group_id: Optional[int]
     tokens: List[MtgjsonCardObject]
     total_set_size: int
     translations: MtgjsonTranslationsObject
     type: str
 
-    def __init__(self):
+    extra_tokens: List[Dict[str, Any]]
+    search_uri: str
+
+    def __init__(self) -> None:
         pass
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(vars(self))
 
     def for_json(self) -> Dict[str, Any]:
@@ -50,7 +52,7 @@ class MtgjsonSetObject:
         Support json.dumps()
         :return: JSON serialized object
         """
-        skip_keys = {"added_scryfall_tokens"}
+        skip_keys = {"added_scryfall_tokens", "search_uri"}
 
         return {
             to_camel_case(key): value

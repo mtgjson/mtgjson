@@ -17,21 +17,16 @@ persistent=yes
 # --disable=W"
 disable=
     bad-continuation,
-    fixme,
-    line-too-long,
-    localled-enabled,
-    locally-disabled,
-    logging-format-interpolation,
-    too-few-public-methods,
-    too-many-statements,
-    wrong-import-order,
-    too-many-branches,
-    import-error,
-    too-many-public-methods,
     duplicate-code,
-    too-many-locals,
-    logging-fstring-interpolation,
-    global-statement
+    import-error,
+    line-too-long,
+    logging-format-interpolation,
+    no-member,
+    too-few-public-methods,
+    too-many-branches,
+    too-many-instance-attributes,
+    too-many-statements
+
 
 
 [REPORTS]

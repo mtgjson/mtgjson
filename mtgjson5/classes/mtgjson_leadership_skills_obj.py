@@ -15,7 +15,7 @@ class MtgjsonLeadershipSkillsObject:
     commander: bool
     oathbreaker: bool
 
-    def __init__(self, brawl, commander, oathbreaker):
+    def __init__(self, brawl: bool, commander: bool, oathbreaker: bool) -> None:
         self.brawl = brawl
         self.commander = commander
         self.oathbreaker = oathbreaker

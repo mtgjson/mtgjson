@@ -14,8 +14,9 @@ class MtgjsonRulingObject:
     date: str
     text: str
 
-    def __init__(self):
-        pass
+    def __init__(self, date: str, text: str) -> None:
+        self.date = date
+        self.text = text
 
     def for_json(self) -> Dict[str, Any]:
         """
