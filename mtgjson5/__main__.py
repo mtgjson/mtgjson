@@ -25,7 +25,7 @@ def build_mtgjson_sets(sets_to_build: Union[Set[str], List[str]]) -> None:
     :return:
     """
     for set_to_build in sets_to_build:
-        with open(set_to_build + ".json", "w") as f:
+        with open("outputs/" + set_to_build + ".json", "w") as f:
             simplejson.dump(
                 build_mtgjson_set(set_to_build),
                 f,

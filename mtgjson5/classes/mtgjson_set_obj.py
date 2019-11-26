@@ -42,7 +42,7 @@ class MtgjsonSetObject:
     search_uri: str
 
     def __init__(self) -> None:
-        pass
+        self.extra_tokens = []
 
     def __str__(self) -> str:
         return str(vars(self))

@@ -102,7 +102,7 @@ class AbstractProvider(abc.ABC):
         if headers is None:
             headers = {}
 
-        for _ in range(0, multiprocessing.cpu_count() * 3):
+        for _ in range(0, multiprocessing.cpu_count() * 4):
             session = requests.Session()
 
             if headers:

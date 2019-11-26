@@ -38,7 +38,8 @@ class ScryfallProvider(AbstractProvider):
         config = self.get_configs()
         if config.get("Scryfall", "client_secret"):
             headers = {
-                "Authorization": f"Bearer {config.get('Scryfall', 'client_secret')}"
+                "Authorization": f"Bearer {config.get('Scryfall', 'client_secret')}",
+                "Connection": "Keep-Alive",
             }
 
         return headers
@@ -65,7 +66,7 @@ class ScryfallProvider(AbstractProvider):
         :param set_code: Set to download (Ex: AER, M19)
         :return: List of all card objects
         """
-        logging.info(f"Downloading set {set_code} information")
+        logging.info(f"Downloading {set_code} information")
         set_api_json: Dict[str, Any] = self.download(self.ALL_SETS_URL + set_code)
         if set_api_json["object"] == "error":
             if not set_api_json["details"].startswith("No Magic set found"):
@@ -85,7 +86,7 @@ class ScryfallProvider(AbstractProvider):
             # For each page, append all the data, go to next page
             page_downloaded: int = 1
             while cards_api_url:
-                logging.info(f"Downloading card data for {set_code}")
+                logging.info(f"Downloading {set_code} card data page...")
                 page_downloaded += 1
 
                 cards_api_json: Dict[str, Any] = self.download(cards_api_url)

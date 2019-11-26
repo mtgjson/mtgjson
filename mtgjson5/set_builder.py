@@ -74,7 +74,7 @@ def parse_foreign(
                 face = 1
 
             foreign_card = foreign_card["card_faces"][face]
-            logging.info(f"Split card found: Using face {face} for {card_name}")
+            logging.debug(f"Split card found: Using face {face} for {card_name}")
 
         card_foreign_entry.name = foreign_card.get("printed_name")
         card_foreign_entry.text = foreign_card.get("printed_text")
@@ -381,11 +381,10 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
     uniquify_cards_with_same_name(mtgjson_set.cards)
     relocate_miscellaneous_tokens(mtgjson_set)
 
-    # TODO FIX TOKENS
     # Build tokens, a little less of a process
-    # mtgjson_set.tokens = build_base_mtgjson_tokens(
-    #    f"t{set_code}", mtgjson_set.extra_tokens
-    # )
+    mtgjson_set.tokens = build_base_mtgjson_tokens(
+        f"T{set_code}", mtgjson_set.extra_tokens or []
+    )
 
     mtgjson_set.tcgplayer_group_id = set_data.get("tcgplayer_id")
     mtgjson_set.total_set_size = len(mtgjson_set.cards)
@@ -520,7 +519,9 @@ def build_mtgjson_card(
     :param face_id: What face to build for (set internally)
     :return: List of card objects that were constructed
     """
-    logging.info(f"Building {scryfall_object['name']}")
+    logging.info(
+        f"Building {scryfall_object['set'].upper()} : {scryfall_object['name']}"
+    )
 
     # Return List
     mtgjson_cards = []
@@ -667,7 +668,6 @@ def build_mtgjson_card(
         mtgjson_card.text = re.sub(r"([+−-]?[0-9]+):", r"[\1]:", mtgjson_card.text)
 
     # Handle Meld components, as well as tokens
-    # TODO: READDRESS MELD CARDS
     if "all_parts" in scryfall_object.keys():
         meld_object = []
         mtgjson_card.names = []
@@ -691,7 +691,11 @@ def build_mtgjson_card(
             mtgjson_card.names = None
 
         # Meld cards should be CardA, Meld, CardB.
-        if meld_object and meld_object[1] != "meld_result" and mtgjson_card.names:
+        if (
+            len(meld_object) == 3
+            and meld_object[1] != "meld_result"
+            and mtgjson_card.names
+        ):
             mtgjson_card.names = [
                 mtgjson_card.names[2],
                 mtgjson_card.names[1],
