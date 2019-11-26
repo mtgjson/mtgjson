@@ -92,7 +92,6 @@ class MtgjsonCardObject:
     watermark: Optional[str]
 
     def __init__(self):
-
         # These values are tested against at some point
         # So we need a default value
         self.colors = []
@@ -126,10 +125,10 @@ class MtgjsonCardObject:
         Support json.dumps()
         :return: JSON serialized object
         """
+        skip_keys = {"set_code"}
+
         return {
             to_camel_case(key): value
             for key, value in self.__dict__.items()
-            if not key.startswith("_")
-            and not callable(value)
-            and key not in {"set_code"}  # CUSTOM LIST OF EXCEPTIONS
+            if not key.startswith("__") and not callable(value) and key not in skip_keys
         }

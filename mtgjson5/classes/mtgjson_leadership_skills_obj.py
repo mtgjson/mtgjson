@@ -1,13 +1,12 @@
 """
-MTGJSON container for Leadership Skills
+MTGJSON Leadership Skills container
 """
-import json
 from typing import Any, Dict
 
 from mtgjson5.globals import to_camel_case
 
 
-class MtgjsonLeadershipSkillsObject(json.JSONEncoder):
+class MtgjsonLeadershipSkillsObject:
     """
     Container for Leadership Skills
     """
