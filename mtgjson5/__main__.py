@@ -34,7 +34,7 @@ def build_mtgjson_sets_part_1(
                 f,
                 for_json=True,
                 sort_keys=True,
-                indent=(None if output_pretty else 4),
+                indent=(4 if output_pretty else None),
             )
 
 
