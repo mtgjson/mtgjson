@@ -33,9 +33,9 @@ class GathererProvider(AbstractProvider):
     GATHERER_CARD = "http://gatherer.wizards.com/Pages/Card/Details.aspx"
     SETS_TO_REMOVE_PARENTHESES = {"10E"}
 
-    def __init__(self, use_cache: bool = True):
+    def __init__(self) -> None:
         init_thread_logger()
-        super().__init__(self._build_http_header(), use_cache)
+        super().__init__(self._build_http_header())
 
     def _build_http_header(self) -> Dict[str, str]:
         return {}

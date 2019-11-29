@@ -15,7 +15,7 @@ import requests.adapters
 import requests_cache
 import urllib3
 
-from mtgjson5.globals import CACHE_PATH, CONFIG_PATH, init_thread_logger
+from mtgjson5.globals import CACHE_PATH, CONFIG_PATH, USE_CACHE, init_thread_logger
 
 
 class AbstractProvider(abc.ABC):
@@ -26,7 +26,7 @@ class AbstractProvider(abc.ABC):
     class_id: str
     session_pool: Deque[requests.Session]
 
-    def __init__(self, headers: Dict[str, str], use_cache: bool = True):
+    def __init__(self, headers: Dict[str, str]):
         init_thread_logger()
 
         super().__init__()
@@ -34,7 +34,7 @@ class AbstractProvider(abc.ABC):
         self.class_id = ""
         self.session_pool = collections.deque()
 
-        self.__install_cache(use_cache)
+        self.__install_cache()
         self.__init_session_pool(headers)
 
     # Abstract Methods
@@ -82,13 +82,12 @@ class AbstractProvider(abc.ABC):
         logging.debug(f"Downloaded {response.url} (Cache = {response.from_cache})")
 
     # Private Methods
-    def __install_cache(self, use_cache: bool) -> None:
+    def __install_cache(self) -> None:
         """
         Initiate the MTGJSON cache for requests
         (Useful for development and re-running often)
-        :param use_cache: Should we use cache?
         """
-        if use_cache:
+        if USE_CACHE:
             CACHE_PATH.mkdir(exist_ok=True)
             requests_cache.install_cache(
                 str(CACHE_PATH.joinpath(self.get_class_name()))

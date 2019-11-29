@@ -4,20 +4,39 @@ Const values of MTGJSON
 import logging
 import pathlib
 import time
-from typing import Dict, List, Set
+from typing import Dict, Set
 
 MTGJSON_VERSION = "5.0.0"
 
+# Useful paths within the MTGJSON system
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson.properties")
 CACHE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(".mtgjson5_cache")
 LOG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
 OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"json_{MTGJSON_VERSION}")
 
-FOREIGN_SETS: List[str] = []
-SUPER_TYPES: List[str] = ["Basic", "Host", "Legendary", "Ongoing", "Snow", "World"]
-BASIC_LAND_NAMES: List[str] = ["Plains", "Island", "Swamp", "Mountain", "Forest"]
+USE_CACHE: bool = True
 
+FOREIGN_SETS: Set[str] = {
+    "PMPS11",
+    "PS11",
+    "PMPS10",
+    "PMPS09",
+    "PMPS08",
+    "PMPS07",
+    "PMPS06",
+    "PSA1",
+    "PMPS",
+    "PJJT",
+    "PHJ",
+    "PRED",
+    "REN",
+    "RIN",
+    "4BB",
+    "FBB",
+}
+SUPER_TYPES: Set[str] = {"Basic", "Host", "Legendary", "Ongoing", "Snow", "World"}
+BASIC_LAND_NAMES: Set[str] = {"Plains", "Island", "Swamp", "Mountain", "Forest"}
 LANGUAGE_MAP: Dict[str, str] = {
     "en": "English",
     "es": "Spanish",
@@ -37,8 +56,7 @@ LANGUAGE_MAP: Dict[str, str] = {
     "sa": "Sanskrit",
     "px": "Phyrexian",
 }
-
-SYMBOL_MAP = {
+SYMBOL_MAP: Dict[str, str] = {
     "White": "W",
     "Blue": "U",
     "Black": "B",
@@ -77,10 +95,8 @@ SYMBOL_MAP = {
     "Untap": "Q",
     "Infinite": "∞",
 }
-
-
-# File names that can't exist on Windows
 BAD_FILE_NAMES: Set[str] = {
+    # File names that can't exist on Windows
     "AUX",
     "COM0",
     "COM1",
@@ -124,6 +140,15 @@ def init_thread_logger() -> None:
             logging.FileHandler(str(LOG_PATH.joinpath(f"mtgjson_{time_now}.log"))),
         ],
     )
+
+
+def set_cache(use_cache: bool) -> None:
+    """
+    Set the global Cache checker
+    :param use_cache: Should we use cache?
+    """
+    global USE_CACHE
+    USE_CACHE = use_cache
 
 
 def to_camel_case(snake_str: str) -> str:

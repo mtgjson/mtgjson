@@ -22,9 +22,9 @@ class ScryfallProvider(AbstractProvider):
     CARDS_WITHOUT_LIMITS_URL: str = "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named)"
     cards_without_limits: Set[str]
 
-    def __init__(self, use_cache: bool = True):
+    def __init__(self) -> None:
         init_thread_logger()
-        super().__init__(self._build_http_header(), use_cache)
+        super().__init__(self._build_http_header())
 
         self.cards_without_limits = self.generate_cards_without_limits()
 

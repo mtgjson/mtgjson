@@ -6,7 +6,7 @@ import logging
 import pathlib
 from typing import List
 
-from mtgjson5.globals import OUTPUT_PATH, BAD_FILE_NAMES
+from mtgjson5.globals import BAD_FILE_NAMES, OUTPUT_PATH
 from mtgjson5.providers import ScryfallProvider
 
 
@@ -98,6 +98,22 @@ def get_sets_already_built() -> List[str]:
     return set_codes_found
 
 
+def get_all_scryfall_sets() -> List[str]:
+    """
+    Grab all sets that Scryfall currently supports
+    :return: Scryfall sets
+    """
+    scryfall_instance = ScryfallProvider.instance()
+    scryfall_sets = scryfall_instance.download(scryfall_instance.ALL_SETS_URL)
+
+    if scryfall_sets["object"] == "error":
+        logging.error(f"Downloading Scryfall data failed: {scryfall_sets}")
+        return []
+
+    # Get _ALL_ Scryfall sets
+    return [set_obj["code"].upper() for set_obj in scryfall_sets["data"]]
+
+
 def get_sets_to_build(args: argparse.Namespace) -> List[str]:
     """
     Grab what sets to build given build params
@@ -112,24 +128,14 @@ def get_sets_to_build(args: argparse.Namespace) -> List[str]:
         # We have a sub-set list, so only return what we want
         return sorted(list(set(args.sets) - set(args.skip_sets)))
 
-    scryfall_instance = ScryfallProvider.instance()
-    scryfall_sets = scryfall_instance.download(scryfall_instance.ALL_SETS_URL)
-
-    if scryfall_sets["object"] == "error":
-        logging.error(f"Downloading Scryfall data failed: {scryfall_sets}")
-        return []
-
-    # Get _ALL_ Scryfall sets
-    temp_codes: List[str] = [
-        set_obj["code"].upper() for set_obj in scryfall_sets["data"]
-    ]
+    scryfall_sets = get_all_scryfall_sets()
 
     # Remove Scryfall token sets (but leave extra sets)
-    set_codes = {
-        s for s in temp_codes if not (s.startswith("T") and s[1:] in temp_codes)
+    non_token_sets = {
+        s for s in scryfall_sets if not (s.startswith("T") and s[1:] in scryfall_sets)
     }
 
     # Remove sets to skip
-    return_list = list(set_codes - set(args.skip_sets))
+    return_list = list(non_token_sets - set(args.skip_sets))
 
     return sorted(return_list)

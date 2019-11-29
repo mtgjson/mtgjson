@@ -19,9 +19,9 @@ class WhatsInStandardProvider(AbstractProvider):
     API_ENDPOINT: str = "https://whatsinstandard.com/api/v6/standard.json"
     set_codes: Set[str]
 
-    def __init__(self, use_cache: bool = True):
+    def __init__(self) -> None:
         init_thread_logger()
-        super().__init__(self._build_http_header(), use_cache)
+        super().__init__(self._build_http_header())
 
         self.set_codes = self.standard_legal_set_codes()
 
