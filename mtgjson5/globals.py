@@ -4,7 +4,7 @@ Const values of MTGJSON
 import logging
 import pathlib
 import time
-from typing import Dict, List
+from typing import Dict, List, Set
 
 MTGJSON_VERSION = "5.0.0"
 
@@ -12,6 +12,7 @@ TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson.properties")
 CACHE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(".mtgjson5_cache")
 LOG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
+OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"json_{MTGJSON_VERSION}")
 
 FOREIGN_SETS: List[str] = []
 SUPER_TYPES: List[str] = ["Basic", "Host", "Legendary", "Ongoing", "Snow", "World"]
@@ -75,6 +76,35 @@ SYMBOL_MAP = {
     "Tap": "T",
     "Untap": "Q",
     "Infinite": "∞",
+}
+
+
+# File names that can't exist on Windows
+BAD_FILE_NAMES: Set[str] = {
+    "AUX",
+    "COM0",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "CON",
+    "LPT0",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
+    "NUL",
+    "PRN",
 }
 
 

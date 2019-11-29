@@ -38,6 +38,6 @@ class MtgjsonMetaObject:
 
         for key, value in options.items():
             if isinstance(value, datetime.datetime):
-                options[key] = value.isoformat()
+                options[key] = value.strftime("%Y-%m-%d")
 
         return options
