@@ -939,4 +939,14 @@ def mtgjson_custom_fields(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
                 },
             )
 
+    for card in cards:
+        if card.get("names"):
+            ids_to_find = [
+                card_obj.get("uuid")
+                for card_obj in cards
+                if card_obj.get("name") in card.get("names", [])
+                and card_obj.get("uuid") != card.get("uuid")
+            ]
+            card.set("otherFaceIds", ids_to_find)
+
     return cards
