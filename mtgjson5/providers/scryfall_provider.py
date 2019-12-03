@@ -20,6 +20,7 @@ class ScryfallProvider(AbstractProvider):
     CARDS_URL: str = "https://api.scryfall.com/cards/"
     VARIATIONS_URL: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}&unique=prints"
     CARDS_WITHOUT_LIMITS_URL: str = "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named)"
+    CARDS_IN_BASE_SET_URL: str = "https://api.scryfall.com/cards/search?order=set&q=set:{0}%20is:booster%20unique:prints"
     cards_without_limits: Set[str]
 
     def __init__(self) -> None:

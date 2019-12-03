@@ -1,7 +1,7 @@
 """
 Class structure for a MTGJSON Set Object
 """
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from mtgjson5.classes.mtgjson_card_obj import MtgjsonCardObject
 from mtgjson5.classes.mtgjson_meta_obj import MtgjsonMetaObject
@@ -16,7 +16,7 @@ class MtgjsonSetObject:
 
     base_set_size: int
     block: str
-    booster_v3: List[Any]
+    booster_v3: Optional[List[Any]]
     cards: List[MtgjsonCardObject]
     code: str
     code_v3: str
@@ -47,12 +47,35 @@ class MtgjsonSetObject:
     def __str__(self) -> str:
         return str(vars(self))
 
+    def build_keys_to_skip(self) -> Set[str]:
+        """
+        Build this object's instance of what keys to skip under certain circumstances
+        :return What keys to skip over
+        """
+        excluded_keys: Set[str] = set()
+
+        allow_if_empty = {
+            "cards",
+            "tokens",
+            "is_foil_only",
+            "is_online_only",
+        }
+
+        for key, value in self.__dict__.items():
+            if not value:
+                if key not in allow_if_empty:
+                    excluded_keys.add(key)
+
+        return excluded_keys
+
     def for_json(self) -> Dict[str, Any]:
         """
         Support json.dumps()
         :return: JSON serialized object
         """
-        skip_keys = {"added_scryfall_tokens", "search_uri"}
+        skip_keys = self.build_keys_to_skip().union(
+            {"added_scryfall_tokens", "search_uri", "extra_tokens"}
+        )
 
         return {
             to_camel_case(key): value

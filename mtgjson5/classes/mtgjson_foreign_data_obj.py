@@ -2,7 +2,7 @@
 MTGJSON container for foreign entries
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Set
 
 from mtgjson5.globals import to_camel_case
 
@@ -26,12 +26,25 @@ class MtgjsonForeignDataObject:
     def __init__(self) -> None:
         pass
 
+    def build_keys_to_skip(self) -> Set[str]:
+        """
+        Build this object's instance of what keys to skip under certain circumstances
+        :return What keys to skip over
+        """
+        excluded_keys: Set[str] = set()
+
+        for key, value in self.__dict__.items():
+            if not value:
+                excluded_keys.add(key)
+
+        return excluded_keys
+
     def for_json(self) -> Dict[str, Any]:
         """
         Support json.dumps()
         :return: JSON serialized object
         """
-        skip_keys = {"url", "number", "set_code"}
+        skip_keys = self.build_keys_to_skip().union({"url", "number", "set_code"})
 
         return {
             to_camel_case(key): value

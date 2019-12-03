@@ -14,8 +14,11 @@ CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson.properties")
 CACHE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(".mtgjson5_cache")
 LOG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
 OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"json_{MTGJSON_VERSION}")
+RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson5").joinpath("resources")
 
 USE_CACHE: bool = True
+
+SILVER_SETS_TO_NOT_UNIQUIFY: Set[str] = {"HHO", "UNH"}
 
 FOREIGN_SETS: Set[str] = {
     "PMPS11",

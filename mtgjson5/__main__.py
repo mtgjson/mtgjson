@@ -30,11 +30,12 @@ def build_mtgjson_sets_part_1(
         compiled_set = build_mtgjson_set(set_to_build)
         with OUTPUT_PATH.joinpath(f"{set_to_build}.json").open("w") as f:
             simplejson.dump(
-                compiled_set,
-                f,
+                obj=compiled_set,
+                fp=f,
                 for_json=True,
                 sort_keys=True,
                 indent=(4 if output_pretty else None),
+                ensure_ascii=False,
             )
 
 
@@ -46,6 +47,7 @@ def main() -> None:
     args = parse_args()
 
     set_cache(not args.skip_cache)
+    OUTPUT_PATH.mkdir(exist_ok=True)
 
     if args.pricing:
         build_price_stuff()

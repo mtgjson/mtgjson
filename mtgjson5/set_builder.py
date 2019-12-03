@@ -19,12 +19,20 @@ from mtgjson5.classes import (
     MtgjsonRulingObject,
     MtgjsonSetObject,
 )
-from mtgjson5.globals import BASIC_LAND_NAMES, FOREIGN_SETS, LANGUAGE_MAP, SUPER_TYPES
+from mtgjson5.globals import (
+    BASIC_LAND_NAMES,
+    FOREIGN_SETS,
+    LANGUAGE_MAP,
+    RESOURCE_PATH,
+    SILVER_SETS_TO_NOT_UNIQUIFY,
+    SUPER_TYPES,
+)
 from mtgjson5.providers import (
     GathererProvider,
     ScryfallProvider,
     WhatsInStandardProvider,
 )
+import simplejson
 
 
 def parse_foreign(
@@ -223,7 +231,7 @@ def parse_printings(sf_prints_url: Optional[str]) -> List[str]:
 
         sf_prints_url = prints_api_json.get("next_page")
 
-    return list(card_sets)
+    return sorted(list(card_sets))
 
 
 def parse_legalities(sf_card_legalities: Dict[str, str]) -> MtgjsonLegalitiesObject:
@@ -257,7 +265,7 @@ def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
         mtgjson_rule = MtgjsonRulingObject(sf_rule["published_at"], sf_rule["comment"])
         mtgjson_rules.append(mtgjson_rule)
 
-    return mtgjson_rules
+    return sorted(mtgjson_rules, key=lambda ruling: ruling.date)
 
 
 def uniquify_cards_with_same_name(mtgjson_cards: List[MtgjsonCardObject]) -> None:
@@ -266,12 +274,11 @@ def uniquify_cards_with_same_name(mtgjson_cards: List[MtgjsonCardObject]) -> Non
     This addresses it by adding (b), (c), etc to the name of duplicates
     :param mtgjson_cards: Cards object
     """
-    silver_sets_to_not_uniquify: Set[str] = {"HHO", "UNH"}
 
     if not mtgjson_cards:
         return
 
-    if mtgjson_cards[0].set_code in silver_sets_to_not_uniquify:
+    if mtgjson_cards[0].set_code.upper() in SILVER_SETS_TO_NOT_UNIQUIFY:
         return
 
     if mtgjson_cards[0].border_color == "silver":
@@ -367,7 +374,7 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
     mtgjson_set.type = set_data["set_type"]
     mtgjson_set.keyrune_code = pathlib.Path(set_data["icon_svg_uri"]).stem.upper()
     mtgjson_set.release_date = set_data["released_at"]
-    mtgjson_set.mtgo_code = set_data.get("mtgo_code", "")
+    mtgjson_set.mtgo_code = set_data.get("mtgo_code", "").upper()
     mtgjson_set.parent_code = set_data.get("parent_set_code", "")
     mtgjson_set.block = set_data.get("block", "")
     mtgjson_set.is_online_only = set_data.get("digital", "")
@@ -380,6 +387,7 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
     add_is_starter_option(set_code, mtgjson_set.search_uri, mtgjson_set.cards)
     uniquify_cards_with_same_name(mtgjson_set.cards)
     relocate_miscellaneous_tokens(mtgjson_set)
+    add_variations_and_alternative_fields(mtgjson_set)
 
     # Build tokens, a little less of a process
     mtgjson_set.tokens = build_base_mtgjson_tokens(
@@ -387,7 +395,10 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
     )
 
     mtgjson_set.tcgplayer_group_id = set_data.get("tcgplayer_id")
+
+    mtgjson_set.base_set_size = get_base_set_size(set_code)
     mtgjson_set.total_set_size = len(mtgjson_set.cards)
+    mtgjson_set.booster_v3 = get_booster_contents_v3(set_code)
 
     mark_duel_decks(set_code, mtgjson_set.cards)
 
@@ -409,23 +420,27 @@ def build_base_mtgjson_tokens(
     :param added_tokens: Additional tokens to build
     :return: Completed card objects
     """
-    return build_base_mtgjson_cards(set_code, added_tokens)
+    return build_base_mtgjson_cards(set_code, added_tokens, True)
 
 
 def build_base_mtgjson_cards(
-    set_code: str, additional_cards: List[Dict[str, Any]] = None
+    set_code: str, additional_cards: List[Dict[str, Any]] = None, is_token: bool = False
 ) -> List[MtgjsonCardObject]:
     """
     Construct all cards in MTGJSON format from a single set
     :param set_code: Set to build
     :param additional_cards: Additional objects to build (not relevant for normal builds)
+    :param is_token: Are tokens being copmiled?
     :return: Completed card objects
     """
     cards = ScryfallProvider.instance().download_cards(set_code)
     cards.extend(additional_cards or [])
 
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-        temp_cards = pool.map(build_mtgjson_card, cards)
+        temp_cards = pool.starmap(
+            build_mtgjson_card,
+            zip(cards, itertools.repeat(0), itertools.repeat(is_token)),
+        )
 
     mtgjson_cards = list(itertools.chain.from_iterable(temp_cards))
     return mtgjson_cards
@@ -491,7 +506,7 @@ def add_uuid(mtgjson_card: MtgjsonCardObject, is_card: bool = True) -> None:
     """
     if is_card:
         id_source = (
-            ScryfallProvider.instance().class_id
+            ScryfallProvider.instance().get_class_id()
             + mtgjson_card.scryfall_id
             + mtgjson_card.name
         )
@@ -510,13 +525,14 @@ def add_uuid(mtgjson_card: MtgjsonCardObject, is_card: bool = True) -> None:
 
 
 def build_mtgjson_card(
-    scryfall_object: Dict[str, Any], face_id: int = 0
+    scryfall_object: Dict[str, Any], face_id: int = 0, is_token: bool = False
 ) -> List[MtgjsonCardObject]:
     """
     Construct a MTGJSON Card object from 3rd party
     entities
     :param scryfall_object: Scryfall Card Object
     :param face_id: What face to build for (set internally)
+    :param is_token: Is this a token object? (some diff fields)
     :return: List of card objects that were constructed
     """
     logging.info(
@@ -527,7 +543,7 @@ def build_mtgjson_card(
     mtgjson_cards = []
 
     # Object Container
-    mtgjson_card = MtgjsonCardObject()
+    mtgjson_card = MtgjsonCardObject(is_token)
 
     mtgjson_card.set_code = scryfall_object["set"]
     mtgjson_card.scryfall_id = scryfall_object["id"]
@@ -697,6 +713,7 @@ def build_mtgjson_card(
             and mtgjson_card.names
         ):
             mtgjson_card.names = [
+                mtgjson_card.names[0],
                 mtgjson_card.names[2],
                 mtgjson_card.names[1],
             ]
@@ -723,6 +740,14 @@ def build_mtgjson_card(
     add_uuid(mtgjson_card)
     add_leadership_skills(mtgjson_card)
 
+    if is_token:
+        reverse_related: List[str] = []
+        if "all_parts" in scryfall_object:
+            for a_part in scryfall_object["all_parts"]:
+                if a_part.get("name") != mtgjson_card.name:
+                    reverse_related.append(a_part.get("name"))
+        mtgjson_card.reverse_related = reverse_related
+
     # Gatherer Calls -- SLOWWWWW
     if mtgjson_card.multiverse_id:
         gatherer_cards = GathererProvider.instance().get_cards(
@@ -735,3 +760,86 @@ def build_mtgjson_card(
     mtgjson_cards.append(mtgjson_card)
 
     return mtgjson_cards
+
+
+def add_variations_and_alternative_fields(mtgjson_set: Any) -> None:
+    """
+    For non-silver bordered sets, we will create a "variations"
+    field will be created that has UUID of repeat cards.
+    This will also mark alternative printings within a single set.
+    :param mtgjson_set: <<CONST>> object for the file
+    :return: How many alternative printings were marked
+    """
+    if not mtgjson_set.cards:
+        return
+
+    if (
+        mtgjson_set.cards[0].border_color != "silver"
+        or mtgjson_set.code in SILVER_SETS_TO_NOT_UNIQUIFY
+    ):
+        for card in mtgjson_set.cards:
+            variations = [
+                item.uuid
+                for item in mtgjson_set.cards
+                if item.name == card.name and item.uuid != card.uuid
+            ]
+
+            if variations:
+                card.variations = variations
+
+            # Add alternative tag
+            # Ignore singleton printings in set, as well as basics
+            if not variations or card.name in BASIC_LAND_NAMES:
+                continue
+
+            # Some hardcoded checking due to inconsistencies upstream
+            if mtgjson_set.code.upper() in ["UNH", "10E"]:
+                # Check for duplicates, mark the foils
+                if len(variations) >= 1 and card.has_foil and not card.has_non_foil:
+                    card.is_alternative = True
+            elif mtgjson_set.code.upper() in ["CN2", "BBD"]:
+                # Check for set number > set size
+                if int(card.number.replace(chr(9733), "")) > mtgjson_set.base_set_size:
+                    card.is_alternative = True
+            else:
+                # Check for a star in the number
+                if chr(9733) in card.number:
+                    card.is_alternative = True
+
+
+def get_base_set_size(set_code: str) -> int:
+    """
+    Get the size of a set from scryfall or corrections file
+    :param set_code: Set code, upper case
+    :return: Amount of cards in set
+    """
+    # Load cache if not loaded
+    with RESOURCE_PATH.joinpath("base_set_sizes.json").open(encoding="utf-8") as f:
+        base_set_size_override = simplejson.load(f)
+
+    # Manual correction
+    if set_code in base_set_size_override.keys():
+        return int(base_set_size_override[set_code])
+
+    # Download on the fly
+    content = ScryfallProvider.instance().download(
+        ScryfallProvider.instance().CARDS_IN_BASE_SET_URL.format(set_code)
+    )
+    if content["object"] == "error":
+        logging.warning(f"Unable to get set size for {set_code}")
+        return 0
+
+    return int(content["total_cards"])
+
+
+def get_booster_contents_v3(set_code: str) -> Optional[List[Any]]:
+    """
+    Grab the MTGJSON specific booster contents (supporting V3)
+    :param set_code: What set to find
+    :return Booster list or None
+    """
+    with RESOURCE_PATH.joinpath("boosters.json").open(encoding="utf-8") as f:
+        json_dict: Dict[str, List[Any]] = simplejson.load(f)
+        if set_code in json_dict.keys():
+            return json_dict[set_code]
+    return None

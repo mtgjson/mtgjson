@@ -62,6 +62,14 @@ class AbstractProvider(abc.ABC):
         """
         return cls.__name__
 
+    @classmethod
+    def get_class_id(cls) -> str:
+        """
+        Grab the class ID for hashing purposes
+        :return Class ID
+        """
+        return cls.class_id
+
     @staticmethod
     def get_configs() -> configparser.RawConfigParser:
         """

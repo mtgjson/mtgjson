@@ -1,0 +1,1172 @@
+{
+    "PTHS": [{
+        "name": "Abhorrent Overlord",
+        "watermark": "set (THS)"
+    }, {
+        "name": "Anthousa, Setessan Hero",
+        "watermark": "set (THS)"
+    }, {
+        "name": "Bident of Thassa",
+        "watermark": "set (THS)"
+    }, {
+        "name": "Celestial Archon",
+        "watermark": "set (THS)"
+    }, {
+        "name": "Ember Swallower",
+        "watermark": "set (THS)"
+    }, {
+        "name": "Shipbreaker Kraken",
+        "watermark": "set (THS)"
+    }],
+    "PPRE": [{
+        "name": "Ajani Vengeant",
+        "watermark": "set (ALA)"
+    }, {
+        "name": "Allosaurus Rider",
+        "watermark": "set (CSP)"
+    }, {
+        "name": "Demigod of Revenge",
+        "watermark": "set (SHM)"
+    }, {
+        "name": "Door of Destinies",
+        "watermark": "set (MOR)"
+    }, {
+        "name": "Dragon Broodmother",
+        "watermark": "set (ARB)"
+    }, {
+        "name": "Feral Throwback",
+        "watermark": "set (LGN)"
+    }, {
+        "name": "Helm of Kaldra",
+        "watermark": "set (5DN)"
+    }, {
+        "name": "Ink-Eyes, Servant of Oni",
+        "watermark": "set (BOK)"
+    }, {
+        "name": "Kiyomaro, First to Stand",
+        "watermark": "set (SOK)"
+    }, {
+        "name": "Korlash, Heir to Blackblade",
+        "watermark": "set (FUT)"
+    }, {
+        "name": "Lotus Bloom",
+        "watermark": "set (TSP)"
+    }, {
+        "name": "Malfegor",
+        "watermark": "set (CON)"
+    }, {
+        "name": "Oros, the Avenger",
+        "watermark": "set (PLC)"
+    }, {
+        "name": "Overbeing of Myth",
+        "watermark": "set (EVE)"
+    }, {
+        "name": "Ryusei, the Falling Star",
+        "watermark": "set (CHK)"
+    }, {
+        "name": "Shield of Kaldra",
+        "watermark": "set (DST)"
+    }, {
+        "name": "Silent Specter",
+        "watermark": "set (ONS)"
+    }, {
+        "name": "Soul Collector",
+        "watermark": "set (SCG)"
+    }, {
+        "name": "Sword of Kaldra",
+        "watermark": "set (DST)"
+    }, {
+        "name": "Wren's Run Packmaster",
+        "watermark": "set (LRW)"
+    }],
+    "PM11": [{
+        "name": "Ancient Hellkite",
+        "watermark": "set (M11)"
+    }, {
+        "name": "Sun Titan",
+        "watermark": "set (M11)"
+    }],
+    "PSOI": [{
+        "name": "Angel of Deliverance",
+        "watermark": "set (SOI)"
+    }, {
+        "name": "Elusive Tormentor // Insidious Mist",
+        "watermark": "set (SOI)"
+    }],
+    "PM10": [{
+        "name": "Ant Queen",
+        "watermark": "set (M10)"
+    }, {
+        "name": "Vampire Nocturnus",
+        "watermark": "set (M10)"
+    }],
+    "PBNG": [{
+        "name": "Arbiter of the Ideal",
+        "watermark": "set (BNG)"
+    }, {
+        "name": "Eater of Hope",
+        "watermark": "set (BNG)"
+    }, {
+        "name": "Forgestoker Dragon",
+        "watermark": "set (BNG)"
+    }, {
+        "name": "Nessian Wilds Ravager",
+        "watermark": "set (BNG)"
+    }, {
+        "name": "Silent Sentinel",
+        "watermark": "set (BNG)"
+    }, {
+        "name": "Tromokratis",
+        "watermark": "set (BNG)"
+    }],
+    "PAKH": [{
+        "name": "Archfiend of Ifnir",
+        "watermark": "set (AKH)"
+    }, {
+        "name": "Oracle's Vault",
+        "watermark": "set (AKH)"
+    }],
+    "PXTC": [{
+        "name": "Arguel's Blood Fast // Temple of Aclazotz",
+        "watermark": "set (XLN)"
+    }, {
+        "name": "Conqueror's Galleon // Conqueror's Foothold",
+        "watermark": "set (XLN)"
+    }, {
+        "name": "Dowsing Dagger // Lost Vale",
+        "watermark": "set (XLN)"
+    }, {
+        "name": "Growing Rites of Itlimoc // Itlimoc, Cradle of the Sun",
+        "watermark": "set (XLN)"
+    }, {
+        "name": "Legion's Landing // Adanto, the First Fort",
+        "watermark": "set (XLN)"
+    }, {
+        "name": "Primal Amulet // Primal Wellspring",
+        "watermark": "set (XLN)"
+    }, {
+        "name": "Search for Azcanta // Azcanta, the Sunken Ruin",
+        "watermark": "set (XLN)"
+    }, {
+        "name": "Thaumatic Compass // Spires of Orazca",
+        "watermark": "set (XLN)"
+    }, {
+        "name": "Treasure Map // Treasure Cove",
+        "watermark": "set (XLN)"
+    }, {
+        "name": "Vance's Blasting Cannons // Spitfire Bastion",
+        "watermark": "set (XLN)"
+    }],
+    "PREL": [{
+        "name": "Ass Whuppin'",
+        "watermark": "set (UNH)"
+    }, {
+        "name": "Budoka Pupil // Ichiga, Who Topples Oaks",
+        "watermark": "set (BOK)"
+    }, {
+        "name": "Ghost-Lit Raider",
+        "watermark": "set (SOK)"
+    }, {
+        "name": "Hedge Troll",
+        "watermark": "set (PLC)"
+    }, {
+        "name": "Shriekmaw",
+        "watermark": "set (LRW)"
+    }, {
+        "name": "Storm Entity",
+        "watermark": "set (FUT)"
+    }, {
+        "name": "Sudden Shock",
+        "watermark": "set (TSP)"
+    }],
+    "PCMD": [{
+        "name": "Basandra, Battle Seraph",
+        "watermark": "set (CMD)"
+    }, {
+        "name": "Edric, Spymaster of Trest",
+        "watermark": "set (CMD)"
+    }, {
+        "name": "Nin, the Pain Artist",
+        "watermark": "set (CMD)"
+    }, {
+        "name": "Skullbriar, the Walking Grave",
+        "watermark": "set (CMD)"
+    }, {
+        "name": "Vish Kal, Blood Arbiter",
+        "watermark": "set (CMD)"
+    }],
+    "PXLN": [{
+        "name": "Bishop of Rebirth",
+        "watermark": "set (XLN)"
+    }, {
+        "name": "Burning Sun's Avatar",
+        "watermark": "set (XLN)"
+    }, {
+        "name": "Unclaimed Territory",
+        "watermark": "set (XLN)"
+    }],
+    "PBFZ": [{
+        "name": "Blight Herder",
+        "watermark": "set (BFZ)"
+    }],
+    "PM12": [{
+        "name": "Bloodlord of Vaasgoth",
+        "watermark": "set (M12)"
+    }, {
+        "name": "Garruk's Horde",
+        "watermark": "set (M12)"
+    }],
+    "PRIX": [{
+        "name": "Brass's Bounty",
+        "watermark": "set (RIX)"
+    }, {
+        "name": "Captain's Hook",
+        "watermark": "set (RIX)"
+    }],
+    "PM14": [{
+        "name": "Colossal Whale",
+        "watermark": "set (M14)"
+    }, {
+        "name": "Megantic Sliver",
+        "watermark": "set (M14)"
+    }],
+    "PWWK": [{
+        "name": "Comet Storm",
+        "watermark": "set (WWK)"
+    }, {
+        "name": "Joraga Warcaller",
+        "watermark": "set (WWK)"
+    }],
+    "PJOU": [{
+        "name": "Dawnbringer Charioteers",
+        "watermark": "set (JOU)"
+    }, {
+        "name": "Dictate of the Twin Gods",
+        "watermark": "set (JOU)"
+    }, {
+        "name": "Doomwake Giant",
+        "watermark": "set (JOU)"
+    }, {
+        "name": "Heroes' Bane",
+        "watermark": "set (JOU)"
+    }, {
+        "name": "Scourge of Fleets",
+        "watermark": "set (JOU)"
+    }, {
+        "name": "Spawn of Thraxes",
+        "watermark": "set (JOU)"
+    }],
+    "PM19": [{
+        "name": "Desecrated Tomb",
+        "watermark": "set (M19)"
+    }, {
+        "name": "Reliquary Tower",
+        "watermark": "set (M19)"
+    }],
+    "PKTK": [{
+        "name": "Dragon Throne of Tarkir",
+        "watermark": "set (KTK)"
+    }],
+    "PLPA": [{
+        "name": "Earwig Squad",
+        "watermark": "set (MOR)"
+    }, {
+        "name": "Figure of Destiny",
+        "watermark": "set (EVE)"
+    }, {
+        "name": "Knight of New Alara",
+        "watermark": "set (ARB)"
+    }, {
+        "name": "Magister of Worth",
+        "watermark": "set (CNS)"
+    }, {
+        "name": "Obelisk of Alara",
+        "watermark": "set (CON)"
+    }, {
+        "name": "Vexing Shusher",
+        "watermark": "set (SHM)"
+    }],
+    "PROE": [{
+        "name": "Emrakul, the Aeons Torn",
+        "watermark": "set (ROE)"
+    }, {
+        "name": "Lord of Shatterskull Pass",
+        "watermark": "set (ROE)"
+    }],
+    "POGW": [{
+        "name": "Endbringer",
+        "watermark": "set (OGW)"
+    }],
+    "PGRN": [{
+        "name": "Firemind's Research",
+        "watermark": "set (GRN)"
+    }, {
+        "name": "Necrotic Wound",
+        "watermark": "set (GRN)"
+    }],
+    "DOM": [{
+        "name": "Firesong and Sunspeaker",
+        "watermark": "set (DOM)"
+    }],
+    "PRNA": [{
+        "name": "Gate Colossus",
+        "watermark": "set (RNA)"
+    }, {
+        "name": "Simic Ascendancy",
+        "watermark": "set (RNA)"
+    }],
+    "THP3": [{
+        "name": "Hall of Triumph",
+        "watermark": "set (JOU)"
+    }],
+    "PEMN": [{
+        "name": "Identity Thief",
+        "watermark": "set (EMN)"
+    }, {
+        "name": "Thalia, Heretic Cathar",
+        "watermark": "set (EMN)"
+    }],
+    "PRM": [{
+        "name": "Indulgent Tormentor",
+        "watermark": "set (M15)"
+    }, {
+        "name": "In Garruk's Wake",
+        "watermark": "set (M15)"
+    }, {
+        "name": "Mercurial Pretender",
+        "watermark": "set (M15)"
+    }, {
+        "name": "Resolute Archangel",
+        "watermark": "set (M15)"
+    }, {
+        "name": "Siege Dragon",
+        "watermark": "set (M15)"
+    }],
+    "PISD": [{
+        "name": "Ludevic's Test Subject // Ludevic's Abomination",
+        "watermark": "set (ISD)"
+    }, {
+        "name": "Mayor of Avabruck // Howlpack Alpha",
+        "watermark": "set (ISD)"
+    }],
+    "PDGM": [{
+        "name": "Maze's End",
+        "watermark": "set (DGM)"
+    }],
+    "PORI": [{
+        "name": "Mizzium Meddler",
+        "watermark": "set (ORI)"
+    }],
+    "PDKA": [{
+        "name": "Mondronen Shaman // Tovolar's Magehunter",
+        "watermark": "set (DKA)"
+    }, {
+        "name": "Ravenous Demon // Archdemon of Greed",
+        "watermark": "set (DKA)"
+    }],
+    "PAVR": [{
+        "name": "Moonsilver Spear",
+        "watermark": "set (AVR)"
+    }, {
+        "name": "Restoration Angel",
+        "watermark": "set (AVR)"
+    }],
+    "PM15": [{
+        "name": "Phytotitan",
+        "watermark": "set (M15)"
+    }],
+    "PAER": [{
+        "name": "Quicksmith Rebel",
+        "watermark": "set (AER)"
+    }, {
+        "name": "Scrap Trawler",
+        "watermark": "set (AER)"
+    }],
+    "PZEN": [{
+        "name": "Rampaging Baloths",
+        "watermark": "set (ZEN)"
+    }, {
+        "name": "Valakut, the Molten Pinnacle",
+        "watermark": "set (ZEN)"
+    }],
+    "PHOU": [{
+        "name": "Ramunap Excavator",
+        "watermark": "set (HOU)"
+    }, {
+        "name": "Wildfire Eternal",
+        "watermark": "set (HOU)"
+    }],
+    "PKLD": [{
+        "name": "Saheeli's Artistry",
+        "watermark": "set (KLD)"
+    }, {
+        "name": "Skyship Stalker",
+        "watermark": "set (KLD)"
+    }],
+    "PM13": [{
+        "name": "Staff of Nin",
+        "watermark": "set (M13)"
+    }, {
+        "name": "Xathrid Gorgon",
+        "watermark": "set (M13)"
+    }],
+    "PGTC": [{
+        "name": "Treasury Thrull",
+        "watermark": "set (GTC)"
+    }],
+    "PDOM": [{
+        "name": "Zahid, Djinn of the Lamp",
+        "watermark": "set (DOM)"
+    }, {
+        "name": "Zhalfirin Void",
+        "watermark": "set (DOM)"
+    }],
+    "A25": [{
+        "name": "Armageddon",
+        "watermark": "set (LEA)"
+    }, {
+        "name": "Disenchant",
+        "watermark": "set (LEA)"
+    }, {
+        "name": "Savannah Lions",
+        "watermark": "set (LEA)"
+    }, {
+        "name": "Swords to Plowshares",
+        "watermark": "set (LEA)"
+    }, {
+        "name": "Blue Elemental Blast",
+        "watermark": "set (LEA)"
+    }, {
+        "name": "Counterspell",
+        "watermark": "set (LEA)"
+    }, {
+        "name": "Dark Ritual",
+        "watermark": "set (LEA)"
+    }, {
+        "name": "Will-o'-the-Wisp",
+        "watermark": "set (LEA)"
+    }, {
+        "name": "Lightning Bolt",
+        "watermark": "set (LEA)"
+    }, {
+        "name": "Red Elemental Blast",
+        "watermark": "set (LEA)"
+    }, {
+        "name": "Giant Growth",
+        "watermark": "set (LEA)"
+    }, {
+        "name": "Regrowth",
+        "watermark": "set (LEA)"
+    }, {
+        "name": "Erg Raiders",
+        "watermark": "set (ARN)"
+    }, {
+        "name": "Primal Clay",
+        "watermark": "set (ATQ)"
+    }, {
+        "name": "Mishra's Factory",
+        "watermark": "set (ATQ)"
+    }, {
+        "name": "Fallen Angel",
+        "watermark": "set (LEG)"
+    }, {
+        "name": "Hell's Caretaker",
+        "watermark": "set (LEG)"
+    }, {
+        "name": "Nicol Bolas",
+        "watermark": "set (LEG)"
+    }, {
+        "name": "Stangg",
+        "watermark": "set (LEG)"
+    }, {
+        "name": "Pendelhaven",
+        "watermark": "set (LEG)"
+    }, {
+        "name": "Ghost Ship",
+        "watermark": "set (DRK)"
+    }, {
+        "name": "Ball Lightning",
+        "watermark": "set (DRK)"
+    }, {
+        "name": "Blood Moon",
+        "watermark": "set (DRK)"
+    }, {
+        "name": "Goblin War Drums",
+        "watermark": "set (FEM)"
+    }, {
+        "name": "Brainstorm",
+        "watermark": "set (ICE)"
+    }, {
+        "name": "Pyroclasm",
+        "watermark": "set (ICE)"
+    }, {
+        "name": "Ihsan's Shade",
+        "watermark": "set (HML)"
+    }, {
+        "name": "Arcane Denial",
+        "watermark": "set (ALL)"
+    }, {
+        "name": "Balduvian Horde",
+        "watermark": "set (ALL)"
+    }, {
+        "name": "Pillage",
+        "watermark": "set (ALL)"
+    }, {
+        "name": "Pacifism",
+        "watermark": "set (MIR)"
+    }, {
+        "name": "Flash",
+        "watermark": "set (MIR)"
+    }, {
+        "name": "Man-o'-War",
+        "watermark": "set (VIS)"
+    }, {
+        "name": "Quicksand",
+        "watermark": "set (VIS)"
+    }, {
+        "name": "Path of Peace",
+        "watermark": "set (POR)"
+    }, {
+        "name": "Doomsday",
+        "watermark": "set (WTH)"
+    }, {
+        "name": "Diabolic Edict",
+        "watermark": "set (TMP)"
+    }, {
+        "name": "Living Death",
+        "watermark": "set (TMP)"
+    }, {
+        "name": "Jackal Pup",
+        "watermark": "set (TMP)"
+    }, {
+        "name": "Kindle",
+        "watermark": "set (TMP)"
+    }, {
+        "name": "Sift",
+        "watermark": "set (STH)"
+    }, {
+        "name": "Mogg Flunkies",
+        "watermark": "set (STH)"
+    }, {
+        "name": "Ensnaring Bridge",
+        "watermark": "set (STH)"
+    }, {
+        "name": "Curiosity",
+        "watermark": "set (EXO)"
+    }, {
+        "name": "Merfolk Looter",
+        "watermark": "set (EXO)"
+    }, {
+        "name": "Ancient Craving",
+        "watermark": "set (P02)"
+    }, {
+        "name": "Angelic Page",
+        "watermark": "set (USG)"
+    }, {
+        "name": "Congregate",
+        "watermark": "set (USG)"
+    }, {
+        "name": "Horseshoe Crab",
+        "watermark": "set (USG)"
+    }, {
+        "name": "Phyrexian Ghoul",
+        "watermark": "set (USG)"
+    }, {
+        "name": "Lull",
+        "watermark": "set (USG)"
+    }, {
+        "name": "Unearth",
+        "watermark": "set (ULG)"
+    }, {
+        "name": "Rancor",
+        "watermark": "set (ULG)"
+    }, {
+        "name": "Trumpet Blast",
+        "watermark": "set (UDS)"
+    }, {
+        "name": "Elvish Piper",
+        "watermark": "set (UDS)"
+    }, {
+        "name": "Kongming, \"Sleeping Dragon\"",
+        "watermark": "set (PTK)"
+    }, {
+        "name": "Borrowing 100,000 Arrows",
+        "watermark": "set (PTK)"
+    }, {
+        "name": "Imperial Recruiter",
+        "watermark": "set (PTK)"
+    }, {
+        "name": "Loyal Sentry",
+        "watermark": "set (S99)"
+    }, {
+        "name": "Cinder Storm",
+        "watermark": "set (S99)"
+    }, {
+        "name": "Invigorate",
+        "watermark": "set (MMQ)"
+    }, {
+        "name": "Rishadan Port",
+        "watermark": "set (MMQ)"
+    }, {
+        "name": "Accumulated Knowledge",
+        "watermark": "set (NEM)"
+    }, {
+        "name": "Stampede Driver",
+        "watermark": "set (NEM)"
+    }, {
+        "name": "Plague Wind",
+        "watermark": "set (PCY)"
+    }, {
+        "name": "Exclude",
+        "watermark": "set (INV)"
+    }, {
+        "name": "Kavu Climber",
+        "watermark": "set (INV)"
+    }, {
+        "name": "Hanna, Ship's Navigator",
+        "watermark": "set (INV)"
+    }, {
+        "name": "Eladamri's Call",
+        "watermark": "set (PLS)"
+    }, {
+        "name": "Mystic Snake",
+        "watermark": "set (APC)"
+    }, {
+        "name": "Pernicious Deed",
+        "watermark": "set (APC)"
+    }, {
+        "name": "Quicksilver Dagger",
+        "watermark": "set (APC)"
+    }, {
+        "name": "Vindicate",
+        "watermark": "set (APC)"
+    }, {
+        "name": "Auramancer",
+        "watermark": "set (ODY)"
+    }, {
+        "name": "Caustic Tar",
+        "watermark": "set (ODY)"
+    }, {
+        "name": "Zombify",
+        "watermark": "set (ODY)"
+    }, {
+        "name": "Shadowmage Infiltrator",
+        "watermark": "set (ODY)"
+    }, {
+        "name": "Laquatus's Champion",
+        "watermark": "set (TOR)"
+    }, {
+        "name": "Mesmeric Fiend",
+        "watermark": "set (TOR)"
+    }, {
+        "name": "Browbeat",
+        "watermark": "set (JUD)"
+    }, {
+        "name": "Living Wish",
+        "watermark": "set (JUD)"
+    }, {
+        "name": "Akroma's Vengeance",
+        "watermark": "set (ONS)"
+    }, {
+        "name": "Renewed Faith",
+        "watermark": "set (ONS)"
+    }, {
+        "name": "Choking Tethers",
+        "watermark": "set (ONS)"
+    }, {
+        "name": "Dirge of Dread",
+        "watermark": "set (ONS)"
+    }, {
+        "name": "Undead Gladiator",
+        "watermark": "set (ONS)"
+    }, {
+        "name": "Skirk Commando",
+        "watermark": "set (ONS)"
+    }, {
+        "name": "Broodhatch Nantuko",
+        "watermark": "set (ONS)"
+    }, {
+        "name": "Krosan Colossus",
+        "watermark": "set (ONS)"
+    }, {
+        "name": "Krosan Tusker",
+        "watermark": "set (ONS)"
+    }, {
+        "name": "Akroma, Angel of Wrath",
+        "watermark": "set (LGN)"
+    }, {
+        "name": "Willbender",
+        "watermark": "set (LGN)"
+    }, {
+        "name": "Decree of Justice",
+        "watermark": "set (SCG)"
+    }, {
+        "name": "Karona's Zealot",
+        "watermark": "set (SCG)"
+    }, {
+        "name": "Noble Templar",
+        "watermark": "set (SCG)"
+    }, {
+        "name": "Shoreline Ranger",
+        "watermark": "set (SCG)"
+    }, {
+        "name": "Death's-Head Buzzard",
+        "watermark": "set (SCG)"
+    }, {
+        "name": "Twisted Abomination",
+        "watermark": "set (SCG)"
+    }, {
+        "name": "Chartooth Cougar",
+        "watermark": "set (SCG)"
+    }, {
+        "name": "Elvish Aberration",
+        "watermark": "set (SCG)"
+    }, {
+        "name": "Fierce Empath",
+        "watermark": "set (SCG)"
+    }, {
+        "name": "Spikeshot Goblin",
+        "watermark": "set (MRD)"
+    }, {
+        "name": "Chalice of the Void",
+        "watermark": "set (MRD)"
+    }, {
+        "name": "Echoing Courage",
+        "watermark": "set (DST)"
+    }, {
+        "name": "Sundering Titan",
+        "watermark": "set (DST)"
+    }, {
+        "name": "Relentless Rats",
+        "watermark": "set (5DN)"
+    }, {
+        "name": "Nezumi Cutthroat",
+        "watermark": "set (CHK)"
+    }, {
+        "name": "Azusa, Lost but Seeking",
+        "watermark": "set (CHK)"
+    }, {
+        "name": "Genju of the Falls",
+        "watermark": "set (BOK)"
+    }, {
+        "name": "Genju of the Spires",
+        "watermark": "set (BOK)"
+    }, {
+        "name": "Iwamori of the Open Fist",
+        "watermark": "set (BOK)"
+    }, {
+        "name": "Promise of Bunrei",
+        "watermark": "set (SOK)"
+    }, {
+        "name": "Freed from the Real",
+        "watermark": "set (SOK)"
+    }, {
+        "name": "Mikokoro, Center of the Sea",
+        "watermark": "set (SOK)"
+    }, {
+        "name": "Frenzied Goblin",
+        "watermark": "set (RAV)"
+    }, {
+        "name": "Watchwolf",
+        "watermark": "set (RAV)"
+    }, {
+        "name": "Niv-Mizzet, the Firemind",
+        "watermark": "set (GPT)"
+    }, {
+        "name": "Pillory of the Sleepless",
+        "watermark": "set (GPT)"
+    }, {
+        "name": "Court Hussar",
+        "watermark": "set (DIS)"
+    }, {
+        "name": "Ratcatcher",
+        "watermark": "set (DIS)"
+    }, {
+        "name": "Protean Hulk",
+        "watermark": "set (DIS)"
+    }, {
+        "name": "Utopia Sprawl",
+        "watermark": "set (DIS)"
+    }, {
+        "name": "Darien, King of Kjeldor",
+        "watermark": "set (CSP)"
+    }, {
+        "name": "Brine Elemental",
+        "watermark": "set (TSP)"
+    }, {
+        "name": "Fathom Seer",
+        "watermark": "set (TSP)"
+    }, {
+        "name": "Vesuvan Shapeshifter",
+        "watermark": "set (TSP)"
+    }, {
+        "name": "Fortune Thief",
+        "watermark": "set (TSP)"
+    }, {
+        "name": "Assembly-Worker",
+        "watermark": "set (TSP)"
+    }, {
+        "name": "Whitemane Lion",
+        "watermark": "set (PLC)"
+    }, {
+        "name": "Akroma, Angel of Fury",
+        "watermark": "set (PLC)"
+    }, {
+        "name": "Simian Spirit Guide",
+        "watermark": "set (PLC)"
+    }, {
+        "name": "Kavu Predator",
+        "watermark": "set (PLC)"
+    }, {
+        "name": "Pact of Negation",
+        "watermark": "set (FUT)"
+    }, {
+        "name": "Street Wraith",
+        "watermark": "set (FUT)"
+    }, {
+        "name": "Summoner's Pact",
+        "watermark": "set (FUT)"
+    }, {
+        "name": "Coalition Relic",
+        "watermark": "set (FUT)"
+    }, {
+        "name": "Zoetic Cavern",
+        "watermark": "set (FUT)"
+    }, {
+        "name": "Soulbright Flamekin",
+        "watermark": "set (LRW)"
+    }, {
+        "name": "Brion Stoutarm",
+        "watermark": "set (LRW)"
+    }, {
+        "name": "Vendilion Clique",
+        "watermark": "set (MOR)"
+    }, {
+        "name": "Ambassador Oak",
+        "watermark": "set (MOR)"
+    }, {
+        "name": "Cursecatcher",
+        "watermark": "set (SHM)"
+    }, {
+        "name": "Presence of Gond",
+        "watermark": "set (SHM)"
+    }, {
+        "name": "Nettle Sentinel",
+        "watermark": "set (EVE)"
+    }, {
+        "name": "Cascade Bluffs",
+        "watermark": "set (EVE)"
+    }, {
+        "name": "Fetid Heath",
+        "watermark": "set (EVE)"
+    }, {
+        "name": "Flooded Grove",
+        "watermark": "set (EVE)"
+    }, {
+        "name": "Rugged Prairie",
+        "watermark": "set (EVE)"
+    }, {
+        "name": "Twilight Mire",
+        "watermark": "set (EVE)"
+    }, {
+        "name": "Knight of the Skyward Eye",
+        "watermark": "set (ALA)"
+    }, {
+        "name": "Skeletonize",
+        "watermark": "set (ALA)"
+    }, {
+        "name": "Blightning",
+        "watermark": "set (ALA)"
+    }, {
+        "name": "Ember Weaver",
+        "watermark": "set (CON)"
+    }, {
+        "name": "Conflux",
+        "watermark": "set (CON)"
+    }, {
+        "name": "Lorescale Coatl",
+        "watermark": "set (ARB)"
+    }, {
+        "name": "Act of Treason",
+        "watermark": "set (M10)"
+    }, {
+        "name": "Master of the Wild Hunt",
+        "watermark": "set (M10)"
+    }, {
+        "name": "Luminarch Ascension",
+        "watermark": "set (ZEN)"
+    }, {
+        "name": "Disfigure",
+        "watermark": "set (ZEN)"
+    }, {
+        "name": "Vampire Lacerator",
+        "watermark": "set (ZEN)"
+    }, {
+        "name": "Kor Firewalker",
+        "watermark": "set (WWK)"
+    }, {
+        "name": "Jace, the Mind Sculptor",
+        "watermark": "set (WWK)"
+    }, {
+        "name": "Arbor Elf",
+        "watermark": "set (WWK)"
+    }, {
+        "name": "Ancient Stirrings",
+        "watermark": "set (ROE)"
+    }, {
+        "name": "Wildheart Invoker",
+        "watermark": "set (ROE)"
+    }, {
+        "name": "Prophetic Prism",
+        "watermark": "set (ROE)"
+    }, {
+        "name": "Squadron Hawk",
+        "watermark": "set (M11)"
+    }, {
+        "name": "Chandra's Outrage",
+        "watermark": "set (M11)"
+    }, {
+        "name": "Cultivate",
+        "watermark": "set (M11)"
+    }, {
+        "name": "Plummet",
+        "watermark": "set (M11)"
+    }, {
+        "name": "Twisted Image",
+        "watermark": "set (SOM)"
+    }, {
+        "name": "Heavy Arbalest",
+        "watermark": "set (SOM)"
+    }, {
+        "name": "Nihil Spellbomb",
+        "watermark": "set (SOM)"
+    }, {
+        "name": "Perilous Myr",
+        "watermark": "set (SOM)"
+    }, {
+        "name": "Blue Sun's Zenith",
+        "watermark": "set (MBS)"
+    }, {
+        "name": "Phyrexian Obliterator",
+        "watermark": "set (NPH)"
+    }, {
+        "name": "Animar, Soul of Elements",
+        "watermark": "set (CMD)"
+    }, {
+        "name": "Phantasmal Bear",
+        "watermark": "set (M12)"
+    }, {
+        "name": "Crimson Mage",
+        "watermark": "set (M12)"
+    }, {
+        "name": "Swiftfoot Boots",
+        "watermark": "set (M12)"
+    }, {
+        "name": "Fiend Hunter",
+        "watermark": "set (ISD)"
+    }, {
+        "name": "Murder of Crows",
+        "watermark": "set (ISD)"
+    }, {
+        "name": "Tree of Redemption",
+        "watermark": "set (ISD)"
+    }, {
+        "name": "Thalia, Guardian of Thraben",
+        "watermark": "set (DKA)"
+    }, {
+        "name": "Haunted Fengraf",
+        "watermark": "set (DKA)"
+    }, {
+        "name": "Cloudshift",
+        "watermark": "set (AVR)"
+    }, {
+        "name": "Gisela, Blade of Goldnight",
+        "watermark": "set (AVR)"
+    }, {
+        "name": "Sai of the Shinobi",
+        "watermark": "set (PC2)"
+    }, {
+        "name": "Griffin Protector",
+        "watermark": "set (M13)"
+    }, {
+        "name": "Bloodhunter Bat",
+        "watermark": "set (M13)"
+    }, {
+        "name": "Murder",
+        "watermark": "set (M13)"
+    }, {
+        "name": "Timberpack Wolf",
+        "watermark": "set (M13)"
+    }, {
+        "name": "Fencing Ace",
+        "watermark": "set (RTR)"
+    }, {
+        "name": "Rest in Peace",
+        "watermark": "set (RTR)"
+    }, {
+        "name": "Urbis Protector",
+        "watermark": "set (GTC)"
+    }, {
+        "name": "Totally Lost",
+        "watermark": "set (GTC)"
+    }, {
+        "name": "Boros Charm",
+        "watermark": "set (GTC)"
+    }, {
+        "name": "Notion Thief",
+        "watermark": "set (DGM)"
+    }, {
+        "name": "Ruric Thar, the Unbowed",
+        "watermark": "set (DGM)"
+    }, {
+        "name": "Strionic Resonator",
+        "watermark": "set (M14)"
+    }, {
+        "name": "Gods Willing",
+        "watermark": "set (THS)"
+    }, {
+        "name": "Ordeal of Heliod",
+        "watermark": "set (THS)"
+    }, {
+        "name": "Bident of Thassa",
+        "watermark": "set (THS)"
+    }, {
+        "name": "Returned Phalanx",
+        "watermark": "set (THS)"
+    }, {
+        "name": "Prossh, Skyraider of Kher",
+        "watermark": "set (C13)"
+    }, {
+        "name": "Retraction Helix",
+        "watermark": "set (BNG)"
+    }, {
+        "name": "Courser of Kruphix",
+        "watermark": "set (BNG)"
+    }, {
+        "name": "Nyx-Fleece Ram",
+        "watermark": "set (JOU)"
+    }, {
+        "name": "Eidolon of the Great Revel",
+        "watermark": "set (JOU)"
+    }, {
+        "name": "Grenzo, Dungeon Warden",
+        "watermark": "set (CNS)"
+    }, {
+        "name": "Geist of the Moors",
+        "watermark": "set (M15)"
+    }, {
+        "name": "Jalira, Master Polymorphist",
+        "watermark": "set (M15)"
+    }, {
+        "name": "Dragon's Eye Savants",
+        "watermark": "set (KTK)"
+    }, {
+        "name": "Mystic of the Hidden Way",
+        "watermark": "set (KTK)"
+    }, {
+        "name": "Ruthless Ripper",
+        "watermark": "set (KTK)"
+    }, {
+        "name": "Hordeling Outburst",
+        "watermark": "set (KTK)"
+    }, {
+        "name": "Woolly Loxodon",
+        "watermark": "set (KTK)"
+    }, {
+        "name": "Reef Worm",
+        "watermark": "set (C14)"
+    }, {
+        "name": "Myriad Landscape",
+        "watermark": "set (C14)"
+    }, {
+        "name": "Humble Defector",
+        "watermark": "set (FRF)"
+    }, {
+        "name": "Ire Shaman",
+        "watermark": "set (DTK)"
+    }, {
+        "name": "Ainok Survivalist",
+        "watermark": "set (DTK)"
+    }, {
+        "name": "Epic Confrontation",
+        "watermark": "set (DTK)"
+    }, {
+        "name": "Valor in Akros",
+        "watermark": "set (ORI)"
+    }, {
+        "name": "Enthralling Victor",
+        "watermark": "set (ORI)"
+    }, {
+        "name": "Coralhelm Guide",
+        "watermark": "set (BFZ)"
+    }, {
+        "name": "Zulaport Cutthroat",
+        "watermark": "set (BFZ)"
+    }, {
+        "name": "Zada, Hedron Grinder",
+        "watermark": "set (BFZ)"
+    }, {
+        "name": "Magus of the Wheel",
+        "watermark": "set (C15)"
+    }, {
+        "name": "Baloth Null",
+        "watermark": "set (OGW)"
+    }, {
+        "name": "Dauntless Cathar",
+        "watermark": "set (SOI)"
+    }, {
+        "name": "Triskaidekaphobia",
+        "watermark": "set (SOI)"
+    }, {
+        "name": "Pyre Hound",
+        "watermark": "set (SOI)"
+    }, {
+        "name": "Uncaged Fury",
+        "watermark": "set (SOI)"
+    }, {
+        "name": "Vessel of Nascency",
+        "watermark": "set (SOI)"
+    }, {
+        "name": "Lunarch Mantle",
+        "watermark": "set (EMN)"
+    }, {
+        "name": "Deadly Designs",
+        "watermark": "set (CN2)"
+    }, {
+        "name": "Cloudblazer",
+        "watermark": "set (KLD)"
+    }, {
+        "name": "Self-Assembler",
+        "watermark": "set (KLD)"
+    }, {
+        "name": "Ash Barrens",
+        "watermark": "set (C16)"
+    }, {
+        "name": "Treasure Keeper",
+        "watermark": "set (AER)"
+    }, {
+        "name": "Horror of the Broken Lands",
+        "watermark": "set (AKH)"
+    }, {
+        "name": "Supernatural Stamina",
+        "watermark": "set (AKH)"
+    }, {
+        "name": "Thresher Lizard",
+        "watermark": "set (AKH)"
+    }, {
+        "name": "Act of Heroism",
+        "watermark": "set (HOU)"
+    }, {
+        "name": "Izzet Chemister",
+        "watermark": "set (C17)"
+    }, {
+        "name": "Colossal Dreadmaw",
+        "watermark": "set (XLN)"
+    }, {
+        "name": "Dusk Legion Zealot",
+        "watermark": "set (RIX)"
+    }, {
+        "name": "Ravenous Chupacabra",
+        "watermark": "set (RIX)"
+    }]
+}

@@ -1,7 +1,7 @@
 """
 MTGJSON container for holding an individual card
 """
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from mtgjson5.classes.mtgjson_foreign_data_obj import MtgjsonForeignDataObject
 from mtgjson5.classes.mtgjson_leadership_skills_obj import MtgjsonLeadershipSkillsObject
@@ -91,7 +91,9 @@ class MtgjsonCardObject:
     variations: List[str]
     watermark: Optional[str]
 
-    def __init__(self) -> None:
+    is_token: bool
+
+    def __init__(self, is_token: bool = False) -> None:
         # These values are tested against at some point
         # So we need a default value
         self.colors = []
@@ -100,6 +102,9 @@ class MtgjsonCardObject:
         self.watermark = None
         self.names = []
         self.multiverse_id = 0
+        self.purchase_urls = MtgjsonPurchaseUrlsObject()
+        self.prices = MtgjsonPricesObject()
+        self.is_token = is_token
 
     def __eq__(self, other: Any) -> bool:
         """
@@ -120,12 +125,63 @@ class MtgjsonCardObject:
         except ValueError:
             return bool(self.number < other.number)
 
+    def build_keys_to_skip(self) -> Set[str]:
+        """
+        Build this object's instance of what keys to skip under certain circumstances
+        :return What keys to skip over
+        """
+        allow_if_empty = {
+            "supertypes",
+            "types",
+            "subtypes",
+            "has_foil",
+            "has_non_foil",
+            "color_identity",
+            "colors",
+            "rulings",
+            "converted_mana_cost",
+            "face_converted_mana_cost",
+            "foreign_data",
+            "reverse_related",
+        }
+
+        remove_for_tokens = {
+            "rulings",
+            "rarity",
+            "prices",
+            "purchase_urls",
+            "printings",
+            "converted_mana_cost",
+            "foreign_data",
+            "legalities",
+            "leadership_skills",
+            "names",
+        }
+
+        remove_for_cards = {"reverse_related"}
+
+        excluded_keys: Set[str] = set()
+
+        if self.is_token:
+            excluded_keys.update(remove_for_tokens)
+        else:
+            excluded_keys.update(remove_for_cards)
+
+        for key, value in self.__dict__.items():
+            if not value:
+                if key not in allow_if_empty:
+                    excluded_keys.add(key)
+
+        return excluded_keys
+
     def for_json(self) -> Dict[str, Any]:
         """
         Support json.dumps()
         :return: JSON serialized object
         """
-        skip_keys = {"set_code"}
+        skip_keys = self.build_keys_to_skip().union(
+            {"set_code", "edhrec_rank", "is_token"}
+        )
 
         return {
             to_camel_case(key): value
