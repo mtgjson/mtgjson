@@ -198,7 +198,7 @@ def get_gist_json_file(db_url: str, file_name: str) -> Any:
     """
     LOGGER.info("Cloning gist database")
     git_sh = git.cmd.Git()
-    git_sh.clone(db_url, temp_working_dir)
+    git_sh.clone(db_url, temp_working_dir, depth=1)
 
     with temp_working_dir.joinpath(file_name).open() as f:
         return json.load(f)
