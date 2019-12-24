@@ -694,6 +694,9 @@ def build_mtgjson_card(
         else:
             single_card.set("colors", sf_card.get("colors"))
 
+    if "promo_types" in sf_card.keys() and "datestamped" in sf_card["promo_types"]:
+        single_card.set("isDateStamped", True)
+
     single_card.set_all(
         {
             "borderColor": sf_card.get("border_color"),
