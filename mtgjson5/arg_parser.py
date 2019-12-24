@@ -2,12 +2,13 @@
 MTGJSON Arg Parser to determine what actions to run
 """
 import argparse
-import logging
 import pathlib
 from typing import List
 
-from .globals import BAD_FILE_NAMES, OUTPUT_PATH
+from .globals import BAD_FILE_NAMES, OUTPUT_PATH, get_thread_logger
 from .providers import ScryfallProvider
+
+LOGGER = get_thread_logger()
 
 
 def parse_args() -> argparse.Namespace:
@@ -88,7 +89,7 @@ def get_sets_already_built() -> List[str]:
     json_output_files: List[pathlib.Path] = list(OUTPUT_PATH.glob("**/*.json"))
 
     set_codes_found = [file.stem for file in json_output_files]
-    logging.info(set_codes_found)
+    LOGGER.info(set_codes_found)
 
     set_codes_found = [
         set_code[:-1] if set_code[:-1] in BAD_FILE_NAMES else set_code
@@ -107,7 +108,7 @@ def get_all_scryfall_sets() -> List[str]:
     scryfall_sets = scryfall_instance.download(scryfall_instance.ALL_SETS_URL)
 
     if scryfall_sets["object"] == "error":
-        logging.error(f"Downloading Scryfall data failed: {scryfall_sets}")
+        LOGGER.error(f"Downloading Scryfall data failed: {scryfall_sets}")
         return []
 
     # Get _ALL_ Scryfall sets

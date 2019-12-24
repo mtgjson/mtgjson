@@ -1,6 +1,7 @@
 """
 Const values of MTGJSON
 """
+import inspect
 import logging
 import pathlib
 import time
@@ -127,7 +128,7 @@ BAD_FILE_NAMES: Set[str] = {
 }
 
 
-def init_thread_logger() -> None:
+def get_thread_logger() -> logging.Logger:
     """
     Logging configuration
     """
@@ -143,6 +144,10 @@ def init_thread_logger() -> None:
             logging.FileHandler(str(LOG_PATH.joinpath(f"mtgjson_{time_now}.log"))),
         ],
     )
+
+    frame = inspect.stack()[1]
+    file_name = frame[0].f_code.co_filename
+    return logging.getLogger(file_name)
 
 
 def set_cache(use_cache: bool) -> None:

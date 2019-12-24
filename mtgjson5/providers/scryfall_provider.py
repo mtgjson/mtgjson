@@ -1,13 +1,15 @@
 """
 Scryfall 3rd party provider
 """
-import logging
+
 from typing import Any, Dict, List, Set
 
 from singleton.singleton import Singleton
 
-from ..globals import init_thread_logger
+from ..globals import get_thread_logger
 from ..providers.abstract_provider import AbstractProvider
+
+LOGGER = get_thread_logger()
 
 
 @Singleton
@@ -25,7 +27,7 @@ class ScryfallProvider(AbstractProvider):
     cards_without_limits: Set[str]
 
     def __init__(self) -> None:
-        init_thread_logger()
+        get_thread_logger()
         super().__init__(self._build_http_header())
 
         self.cards_without_limits = self.generate_cards_without_limits()
@@ -68,11 +70,11 @@ class ScryfallProvider(AbstractProvider):
         :param set_code: Set to download (Ex: AER, M19)
         :return: List of all card objects
         """
-        logging.info(f"Downloading {set_code} information")
+        LOGGER.info(f"Downloading {set_code} information")
         set_api_json: Dict[str, Any] = self.download(self.ALL_SETS_URL + set_code)
         if set_api_json["object"] == "error":
             if not set_api_json["details"].startswith("No Magic set found"):
-                logging.warning(
+                LOGGER.warning(
                     f"Set api download failed for {set_code}: {set_api_json}"
                 )
             return []
@@ -88,7 +90,7 @@ class ScryfallProvider(AbstractProvider):
             # For each page, append all the data, go to next page
             page_downloaded: int = 1
             while cards_api_url:
-                logging.info(f"Downloading {set_code} card data page...")
+                LOGGER.info(f"Downloading {set_code} card data page...")
                 page_downloaded += 1
 
                 cards_api_json: Dict[str, Any] = self.download(cards_api_url)
@@ -96,7 +98,7 @@ class ScryfallProvider(AbstractProvider):
                     if not cards_api_json["details"].startswith(
                         "Your query didn’t match"
                     ):
-                        logging.warning(
+                        LOGGER.warning(
                             f"Error downloading {set_code}: {cards_api_json}"
                         )
                     break

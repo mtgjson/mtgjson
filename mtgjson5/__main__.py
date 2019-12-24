@@ -1,13 +1,14 @@
 """
 MTGJSON Main Executor
 """
-import logging
 from typing import List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
-from mtgjson5.globals import OUTPUT_PATH, init_thread_logger, set_cache
+from mtgjson5.globals import OUTPUT_PATH, get_thread_logger, set_cache
 from mtgjson5.set_builder import build_mtgjson_set
 import simplejson
+
+LOGGER = get_thread_logger()
 
 
 def build_price_stuff() -> None:
@@ -43,7 +44,7 @@ def main() -> None:
     """
     MTGJSON Main Executor
     """
-    init_thread_logger()
+    get_thread_logger()
     args = parse_args()
 
     set_cache(not args.skip_cache)
@@ -53,10 +54,10 @@ def main() -> None:
         build_price_stuff()
         return
 
-    logging.info(args)
+    LOGGER.info(args)
 
     sets_to_build = get_sets_to_build(args)
-    logging.info(f"Building Sets: {sets_to_build}")
+    LOGGER.info(f"Building Sets: {sets_to_build}")
 
     build_mtgjson_sets_part_1(sets_to_build, args.pretty)
 

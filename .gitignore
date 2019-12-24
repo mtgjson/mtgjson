@@ -90,6 +90,7 @@ ENV/
 env.bak/
 venv.bak/
 venv3.7/
+venv*/
 
 # Spyder project settings
 .spyderproject
@@ -119,9 +120,7 @@ compiled_outputs/
 /trace.html
 /tests/test_*.yaml
 /test_results/*.xml
-.mtgjson4_cache/
-
-.DS_Store
+.mtgjson*_cache/
 mtgjson.properties
 *.sqlite
 set_translations.json

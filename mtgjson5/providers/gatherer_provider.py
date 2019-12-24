@@ -10,7 +10,7 @@ import requests
 
 from singleton.singleton import Singleton
 
-from ..globals import SYMBOL_MAP, init_thread_logger
+from ..globals import SYMBOL_MAP, get_thread_logger
 from ..providers.abstract_provider import AbstractProvider
 
 
@@ -35,7 +35,7 @@ class GathererProvider(AbstractProvider):
     SETS_TO_REMOVE_PARENTHESES = {"10E"}
 
     def __init__(self) -> None:
-        init_thread_logger()
+        get_thread_logger()
         super().__init__(self._build_http_header())
 
     def _build_http_header(self) -> Dict[str, str]:

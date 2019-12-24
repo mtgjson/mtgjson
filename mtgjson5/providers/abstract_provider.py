@@ -6,7 +6,6 @@ from __future__ import annotations
 import abc
 import collections
 import configparser
-import logging
 import multiprocessing
 from typing import Any, Deque, Dict
 
@@ -15,7 +14,9 @@ import requests.adapters
 import requests_cache
 import urllib3
 
-from ..globals import CACHE_PATH, CONFIG_PATH, USE_CACHE, init_thread_logger
+from ..globals import CACHE_PATH, CONFIG_PATH, USE_CACHE, get_thread_logger
+
+LOGGER = get_thread_logger()
 
 
 class AbstractProvider(abc.ABC):
@@ -27,7 +28,7 @@ class AbstractProvider(abc.ABC):
     session_pool: Deque[requests.Session]
 
     def __init__(self, headers: Dict[str, str]):
-        init_thread_logger()
+        get_thread_logger()
 
         super().__init__()
 
@@ -87,7 +88,7 @@ class AbstractProvider(abc.ABC):
         Log how the URL was acquired
         :param response: Response from Server
         """
-        logging.debug(f"Downloaded {response.url} (Cache = {response.from_cache})")
+        LOGGER.debug(f"Downloaded {response.url} (Cache = {response.from_cache})")
 
     # Private Methods
     def __install_cache(self) -> None:

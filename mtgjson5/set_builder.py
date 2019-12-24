@@ -2,7 +2,6 @@
 MTGJSON Set Builder
 """
 import itertools
-import logging
 import multiprocessing
 import pathlib
 import re
@@ -28,8 +27,11 @@ from .globals import (
     RESOURCE_PATH,
     SILVER_SETS_TO_NOT_UNIQUIFY,
     SUPER_TYPES,
+    get_thread_logger,
 )
 from .providers import GathererProvider, ScryfallProvider, WhatsInStandardProvider
+
+LOGGER = get_thread_logger()
 
 
 def parse_foreign(
@@ -52,7 +54,7 @@ def parse_foreign(
         sf_prints_url
     )
     if prints_api_json["object"] == "error":
-        logging.error(f"No data found for {sf_prints_url}: {prints_api_json}")
+        LOGGER.error(f"No data found for {sf_prints_url}: {prints_api_json}")
         return []
 
     for foreign_card in prints_api_json["data"]:
@@ -67,7 +69,7 @@ def parse_foreign(
         try:
             card_foreign_entry.language = LANGUAGE_MAP[foreign_card["lang"]]
         except IndexError:
-            logging.warning(f"Unable to get language {foreign_card}")
+            LOGGER.warning(f"Unable to get language {foreign_card}")
 
         if foreign_card["multiverse_ids"]:
             card_foreign_entry.multiverse_id = foreign_card["multiverse_ids"][0]
@@ -79,7 +81,7 @@ def parse_foreign(
                 face = 1
 
             foreign_card = foreign_card["card_faces"][face]
-            logging.debug(f"Split card found: Using face {face} for {card_name}")
+            LOGGER.debug(f"Split card found: Using face {face} for {card_name}")
 
         card_foreign_entry.name = foreign_card.get("printed_name")
         card_foreign_entry.text = foreign_card.get("printed_text")
@@ -152,7 +154,7 @@ def get_scryfall_set_data(set_code: str) -> Optional[Dict[str, Any]]:
     )
 
     if set_data["object"] == "error":
-        logging.error(f"Failed to download {set_code}")
+        LOGGER.error(f"Failed to download {set_code}")
         return None
 
     return set_data
@@ -217,7 +219,7 @@ def parse_printings(sf_prints_url: Optional[str]) -> List[str]:
         )
 
         if prints_api_json["object"] == "error":
-            logging.error(f"Bad download: {sf_prints_url}")
+            LOGGER.error(f"Bad download: {sf_prints_url}")
             break
 
         for card in prints_api_json["data"]:
@@ -253,7 +255,7 @@ def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
     """
     rules_api_json: Dict[str, Any] = ScryfallProvider.instance().download(rulings_url)
     if rules_api_json["object"] == "error":
-        logging.error(f"Error downloading URL {rulings_url}: {rules_api_json}")
+        LOGGER.error(f"Error downloading URL {rulings_url}: {rules_api_json}")
         return []
 
     mtgjson_rules: List[MtgjsonRulingObject] = []
@@ -457,7 +459,7 @@ def add_is_starter_option(
     starter_cards = ScryfallProvider.instance().download(starter_card_url)
 
     if starter_cards["object"] == "error":
-        logging.info(f"All cards in {set_code} are available in boosters")
+        LOGGER.info(f"All cards in {set_code} are available in boosters")
         return
 
     for scryfall_object in starter_cards["data"]:
@@ -532,9 +534,7 @@ def build_mtgjson_card(
     :param is_token: Is this a token object? (some diff fields)
     :return: List of card objects that were constructed
     """
-    logging.info(
-        f"Building {scryfall_object['set'].upper()} : {scryfall_object['name']}"
-    )
+    LOGGER.info(f"Building {scryfall_object['set'].upper()}: {scryfall_object['name']}")
 
     # Return List
     mtgjson_cards = []
@@ -826,7 +826,7 @@ def get_base_set_size(set_code: str) -> int:
         ScryfallProvider.instance().CARDS_IN_BASE_SET_URL.format(set_code)
     )
     if content["object"] == "error":
-        logging.warning(f"Unable to get set size for {set_code}")
+        LOGGER.warning(f"Unable to get set size for {set_code}")
         return 0
 
     return int(content["total_cards"])

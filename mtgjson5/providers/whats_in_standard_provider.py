@@ -7,7 +7,7 @@ from typing import Any, Dict, Set
 import dateutil.parser
 from singleton.singleton import Singleton
 
-from ..globals import init_thread_logger
+from ..globals import get_thread_logger
 from ..providers.abstract_provider import AbstractProvider
 
 
@@ -21,7 +21,7 @@ class WhatsInStandardProvider(AbstractProvider):
     set_codes: Set[str]
 
     def __init__(self) -> None:
-        init_thread_logger()
+        get_thread_logger()
         super().__init__(self._build_http_header())
 
         self.set_codes = self.standard_legal_set_codes()
