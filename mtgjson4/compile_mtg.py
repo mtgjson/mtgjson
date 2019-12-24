@@ -453,7 +453,7 @@ def build_mtgjson_tokens(
             # Remove the last character and replace with the id of the card face
             token_card.set("scryfallId", sf_token["id"])
             token_card.set("scryfallOracleId", sf_token["oracle_id"])
-            token_card.set("scryfallIllustrationId", sf_token.get("illustration_id"))
+            token_card.set("scryfallIllustrationId", face_data.get("illustration_id"))
 
             # Recursively parse the other cards within this card too
             # Only call recursive if it is the first time we see this card object
@@ -481,9 +481,6 @@ def build_mtgjson_tokens(
                     "toughness": face_data.get("toughness"),
                     "loyalty": face_data.get("loyalty"),
                     "watermark": sf_token.get("watermark"),
-                    "scryfallId": sf_token["id"],
-                    "scryfallOracleId": sf_token.get("oracle_id"),
-                    "scryfallIllustrationId": sf_token.get("illustration_id"),
                     "layout": "double_faced_token",
                     "side": chr(97 + sf_card_face),
                     "borderColor": face_data.get("border_color"),
