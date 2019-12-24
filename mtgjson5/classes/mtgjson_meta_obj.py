@@ -4,7 +4,7 @@ MTGJSON's meta object to determine time and version
 import datetime
 from typing import Any, Dict
 
-from mtgjson5.globals import MTGJSON_VERSION, to_camel_case
+from ..globals import MTGJSON_VERSION, to_camel_case
 
 
 class MtgjsonMetaObject:

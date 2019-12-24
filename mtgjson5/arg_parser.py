@@ -6,8 +6,8 @@ import logging
 import pathlib
 from typing import List
 
-from mtgjson5.globals import BAD_FILE_NAMES, OUTPUT_PATH
-from mtgjson5.providers import ScryfallProvider
+from .globals import BAD_FILE_NAMES, OUTPUT_PATH
+from .providers import ScryfallProvider
 
 
 def parse_args() -> argparse.Namespace:

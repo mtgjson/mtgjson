@@ -3,7 +3,7 @@ MTGJSON container for Purchase URLs
 """
 from typing import Any, Dict, Set
 
-from mtgjson5.globals import to_camel_case
+from ..globals import to_camel_case
 
 
 class MtgjsonPurchaseUrlsObject:

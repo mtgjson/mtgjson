@@ -5,9 +5,10 @@ import datetime
 from typing import Any, Dict, Set
 
 import dateutil.parser
-from mtgjson5.globals import init_thread_logger
-from mtgjson5.providers.abstract_provider import AbstractProvider
 from singleton.singleton import Singleton
+
+from ..globals import init_thread_logger
+from ..providers.abstract_provider import AbstractProvider
 
 
 @Singleton

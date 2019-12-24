@@ -4,9 +4,10 @@ Scryfall 3rd party provider
 import logging
 from typing import Any, Dict, List, Set
 
-from mtgjson5.globals import init_thread_logger
-from mtgjson5.providers.abstract_provider import AbstractProvider
 from singleton.singleton import Singleton
+
+from ..globals import init_thread_logger
+from ..providers.abstract_provider import AbstractProvider
 
 
 @Singleton

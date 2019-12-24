@@ -3,13 +3,13 @@ MTGJSON container for holding an individual card
 """
 from typing import Any, Dict, List, Optional, Set
 
-from mtgjson5.classes.mtgjson_foreign_data_obj import MtgjsonForeignDataObject
-from mtgjson5.classes.mtgjson_leadership_skills_obj import MtgjsonLeadershipSkillsObject
-from mtgjson5.classes.mtgjson_legalities_obj import MtgjsonLegalitiesObject
-from mtgjson5.classes.mtgjson_prices_obj import MtgjsonPricesObject
-from mtgjson5.classes.mtgjson_purchase_urls_obj import MtgjsonPurchaseUrlsObject
-from mtgjson5.classes.mtgjson_rulings_obj import MtgjsonRulingObject
-from mtgjson5.globals import to_camel_case
+from ..classes.mtgjson_foreign_data_obj import MtgjsonForeignDataObject
+from ..classes.mtgjson_leadership_skills_obj import MtgjsonLeadershipSkillsObject
+from ..classes.mtgjson_legalities_obj import MtgjsonLegalitiesObject
+from ..classes.mtgjson_prices_obj import MtgjsonPricesObject
+from ..classes.mtgjson_purchase_urls_obj import MtgjsonPurchaseUrlsObject
+from ..classes.mtgjson_rulings_obj import MtgjsonRulingObject
+from ..globals import to_camel_case
 
 
 class MtgjsonCardObject:
@@ -38,6 +38,7 @@ class MtgjsonCardObject:
     has_non_foil: Optional[bool]
     is_alternative: Optional[bool]
     is_arena: Optional[bool]
+    is_date_stamped: Optional[bool]
     is_full_art: Optional[bool]
     is_mtgo: Optional[bool]
     is_online_only: Optional[bool]

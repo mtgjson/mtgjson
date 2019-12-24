@@ -3,7 +3,7 @@ MTGJSON container for pricing data
 """
 from typing import Any, Dict
 
-from mtgjson5.globals import to_camel_case
+from ..globals import to_camel_case
 
 
 class MtgjsonPricesObject:

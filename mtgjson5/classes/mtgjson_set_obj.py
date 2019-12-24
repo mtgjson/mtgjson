@@ -3,10 +3,10 @@ Class structure for a MTGJSON Set Object
 """
 from typing import Any, Dict, List, Optional, Set
 
-from mtgjson5.classes.mtgjson_card_obj import MtgjsonCardObject
-from mtgjson5.classes.mtgjson_meta_obj import MtgjsonMetaObject
-from mtgjson5.classes.mtgjson_translations_obj import MtgjsonTranslationsObject
-from mtgjson5.globals import to_camel_case
+from ..classes.mtgjson_card_obj import MtgjsonCardObject
+from ..classes.mtgjson_meta_obj import MtgjsonMetaObject
+from ..classes.mtgjson_translations_obj import MtgjsonTranslationsObject
+from ..globals import to_camel_case
 
 
 class MtgjsonSetObject:

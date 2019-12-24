@@ -15,7 +15,7 @@ import requests.adapters
 import requests_cache
 import urllib3
 
-from mtgjson5.globals import CACHE_PATH, CONFIG_PATH, USE_CACHE, init_thread_logger
+from ..globals import CACHE_PATH, CONFIG_PATH, USE_CACHE, init_thread_logger
 
 
 class AbstractProvider(abc.ABC):

@@ -8,9 +8,10 @@ from typing import Dict, List, NamedTuple, Optional
 import bs4
 import requests
 
-from mtgjson5.globals import SYMBOL_MAP, init_thread_logger
-from mtgjson5.providers.abstract_provider import AbstractProvider
 from singleton.singleton import Singleton
+
+from ..globals import SYMBOL_MAP, init_thread_logger
+from ..providers.abstract_provider import AbstractProvider
 
 
 class GathererCard(NamedTuple):
