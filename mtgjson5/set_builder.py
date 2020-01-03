@@ -22,14 +22,21 @@ from .classes import (
 )
 from .globals import (
     BASIC_LAND_NAMES,
+    CARD_MARKET_BUFFER,
     FOREIGN_SETS,
     LANGUAGE_MAP,
     RESOURCE_PATH,
     SILVER_SETS_TO_NOT_UNIQUIFY,
     SUPER_TYPES,
     get_thread_logger,
+    url_keygen,
 )
-from .providers import GathererProvider, ScryfallProvider, WhatsInStandardProvider
+from .providers import (
+    GathererProvider,
+    McmProvider,
+    ScryfallProvider,
+    WhatsInStandardProvider,
+)
 
 LOGGER = get_thread_logger()
 
@@ -380,6 +387,8 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
     mtgjson_set.is_foil_only = set_data.get("foil_only", "")
     mtgjson_set.meta = MtgjsonMetaObject()
     mtgjson_set.search_uri = set_data["search_uri"]
+    mtgjson_set.mcm_name = McmProvider.instance().get_set_name(mtgjson_set.name)
+    mtgjson_set.mcm_id = McmProvider.instance().get_set_id(mtgjson_set.name)
 
     # Building cards is a process
     mtgjson_set.cards = build_base_mtgjson_cards(set_code)
@@ -387,6 +396,7 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
     uniquify_cards_with_same_name(mtgjson_set.cards)
     relocate_miscellaneous_tokens(mtgjson_set)
     add_variations_and_alternative_fields(mtgjson_set)
+    add_mcm_details(mtgjson_set)
 
     # Build tokens, a little less of a process
     mtgjson_set.tokens = build_base_mtgjson_tokens(
@@ -621,7 +631,10 @@ def build_mtgjson_card(
     mtgjson_card.mtgo_id = scryfall_object.get("mtgo_id")
     mtgjson_card.mtgo_foil_id = scryfall_object.get("mtgo_foil_id")
     mtgjson_card.number = scryfall_object.get("collector_number", "0")
+
     mtgjson_card.tcgplayer_product_id = scryfall_object.get("tcgplayer_id", 0)
+    mtgjson_card.purchase_urls.tcgplayer = url_keygen(mtgjson_card.tcgplayer_product_id)
+
     mtgjson_card.rarity = scryfall_object.get("rarity", "")
     if not mtgjson_card.artist:
         mtgjson_card.artist = scryfall_object.get("artist", "")
@@ -767,6 +780,7 @@ def add_variations_and_alternative_fields(mtgjson_set: Any) -> None:
     For non-silver bordered sets, we will create a "variations"
     field will be created that has UUID of repeat cards.
     This will also mark alternative printings within a single set.
+    This will also set the otherFaceIds list.
     :param mtgjson_set: <<CONST>> object for the file
     :return: How many alternative printings were marked
     """
@@ -778,6 +792,15 @@ def add_variations_and_alternative_fields(mtgjson_set: Any) -> None:
         or mtgjson_set.code in SILVER_SETS_TO_NOT_UNIQUIFY
     ):
         for card in mtgjson_set.cards:
+            # Adds other face ID list
+            if card.names:
+                card.other_face_ids = [
+                    card_obj.uuid
+                    for card_obj in mtgjson_set.cards
+                    if card_obj.name in card.names and card_obj.uuid != card.uuid
+                ]
+
+            # Adds variations
             variations = [
                 item.uuid
                 for item in mtgjson_set.cards
@@ -805,6 +828,32 @@ def add_variations_and_alternative_fields(mtgjson_set: Any) -> None:
                 # Check for a star in the number
                 if chr(9733) in card.number:
                     card.is_alternative = True
+
+
+def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    Add the MKM components to a set's cards and tokens
+    :param mtgjson_set: MTGJSON Set
+    """
+    mkm_cards = McmProvider.instance().get_mkm_cards(mtgjson_set.mcm_id)
+    for mtgjson_card in mtgjson_set.cards:
+        for key, mkm_obj in mkm_cards.items():
+            if mtgjson_card.name.lower() not in key:
+                continue
+
+            if "number" not in mkm_obj.keys() or (
+                mkm_obj.get("number") in mtgjson_card.number
+            ):
+                mtgjson_card.mcm_id = mkm_obj["idProduct"]
+                mtgjson_card.mcm_meta_id = mkm_obj["idMetaproduct"]
+
+                mtgjson_card.purchase_urls.cardmarket = url_keygen(
+                    str(mtgjson_card.mcm_id)
+                    + CARD_MARKET_BUFFER
+                    + str(mtgjson_card.mcm_meta_id)
+                )
+
+                break
 
 
 def get_base_set_size(set_code: str) -> int:

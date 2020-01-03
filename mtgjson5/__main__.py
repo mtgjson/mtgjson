@@ -29,10 +29,10 @@ def build_mtgjson_sets_part_1(
     """
     for set_to_build in sets_to_build:
         compiled_set = build_mtgjson_set(set_to_build)
-        with OUTPUT_PATH.joinpath(f"{set_to_build}.json").open("w") as f:
+        with OUTPUT_PATH.joinpath(f"{set_to_build}.json").open("w") as file:
             simplejson.dump(
                 obj=compiled_set,
-                fp=f,
+                fp=file,
                 for_json=True,
                 sort_keys=True,
                 indent=(4 if output_pretty else None),

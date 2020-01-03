@@ -69,6 +69,7 @@ class MtgjsonCardObject:
     number: str
     original_text: str
     original_type: str
+    other_face_ids: List[str]
     power: str
     prices: MtgjsonPricesObject
     printings: List[str]
@@ -180,9 +181,7 @@ class MtgjsonCardObject:
         Support json.dumps()
         :return: JSON serialized object
         """
-        skip_keys = self.build_keys_to_skip().union(
-            {"set_code", "edhrec_rank", "is_token"}
-        )
+        skip_keys = self.build_keys_to_skip().union({"set_code", "is_token"})
 
         return {
             to_camel_case(key): value

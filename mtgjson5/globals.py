@@ -1,11 +1,12 @@
 """
 Const values of MTGJSON
 """
+import hashlib
 import inspect
 import logging
 import pathlib
 import time
-from typing import Dict, Set
+from typing import Dict, Set, Union
 
 MTGJSON_VERSION = "5.0.0"
 
@@ -20,6 +21,8 @@ RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson5").joinpath("resou
 USE_CACHE: bool = True
 
 SILVER_SETS_TO_NOT_UNIQUIFY: Set[str] = {"HHO", "UNH"}
+
+CARD_MARKET_BUFFER: str = "10101"
 
 FOREIGN_SETS: Set[str] = {
     "PMPS11",
@@ -167,3 +170,14 @@ def to_camel_case(snake_str: str) -> str:
     """
     components = snake_str.split("_")
     return components[0] + "".join(x.title() for x in components[1:])
+
+
+def url_keygen(prod_id: Union[int, str], with_leading: bool = True) -> str:
+    """
+    Generates a key that MTGJSON will use for redirection
+    :param prod_id: Seed
+    :param with_leading: Should URL be included
+    :return: URL Key
+    """
+    return_value = "https://mtgjson.com/links/" if with_leading else ""
+    return f"{return_value}{hashlib.sha256(str(prod_id).encode()).hexdigest()[:16]}"
