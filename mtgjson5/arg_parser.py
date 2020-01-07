@@ -72,12 +72,6 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help="Purposely exclude sets from the build that may have been set using '--sets' or '--all'",
     )
-    parser.add_argument(
-        "--skip-cache",
-        "--no-cache",
-        action="store_true",
-        help="Prevent the caching of data from external sources",
-    )
 
     return parser.parse_args()
 
@@ -105,7 +99,7 @@ def get_all_scryfall_sets() -> List[str]:
     Grab all sets that Scryfall currently supports
     :return: Scryfall sets
     """
-    scryfall_instance = ScryfallProvider.instance()
+    scryfall_instance = ScryfallProvider()
     scryfall_sets = scryfall_instance.download(scryfall_instance.ALL_SETS_URL)
 
     if scryfall_sets["object"] == "error":

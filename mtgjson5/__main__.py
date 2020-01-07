@@ -6,7 +6,7 @@ from typing import List, Set, Union
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
 from mtgjson5.consts import OUTPUT_PATH
 from mtgjson5.set_builder import build_mtgjson_set
-from mtgjson5.utils import get_thread_logger, set_global_cache
+from mtgjson5.utils import get_thread_logger
 import simplejson
 
 LOGGER = get_thread_logger()
@@ -39,7 +39,6 @@ def main() -> None:
     """
     get_thread_logger()
     args = parse_args()
-    set_global_cache(not args.skip_cache)
 
     OUTPUT_PATH.mkdir(exist_ok=True)
 

@@ -67,8 +67,8 @@ class MtgjsonCardObject:
     name: str
     names: Optional[List[str]]
     number: str
-    original_text: str
-    original_type: str
+    original_text: Optional[str]
+    original_type: Optional[str]
     other_face_ids: List[str]
     power: str
     prices: MtgjsonPricesObject

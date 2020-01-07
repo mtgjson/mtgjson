@@ -4,7 +4,7 @@ Scryfall 3rd party provider
 
 from typing import Any, Dict, List, Set
 
-from singleton.singleton import Singleton
+from singleton_decorator import singleton
 
 from ..providers.abstract_provider import AbstractProvider
 from ..utils import get_thread_logger
@@ -12,7 +12,7 @@ from ..utils import get_thread_logger
 LOGGER = get_thread_logger()
 
 
-@Singleton
+@singleton
 class ScryfallProvider(AbstractProvider):
     """
     Scryfall container

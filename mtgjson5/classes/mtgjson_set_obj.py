@@ -25,8 +25,8 @@ class MtgjsonSetObject:
     is_online_only: bool
     is_partial_preview: bool
     keyrune_code: str
-    mcm_id: int
-    mcm_name: str
+    mcm_id: Optional[int]
+    mcm_name: Optional[str]
     meta: MtgjsonMetaObject
     mtgo_code: str
     name: str

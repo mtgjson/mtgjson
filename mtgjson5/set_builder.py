@@ -56,9 +56,7 @@ def parse_foreign(
     # Add information to get all languages
     sf_prints_url = sf_prints_url.replace("&unique=prints", "+lang%3Aany&unique=prints")
 
-    prints_api_json: Dict[str, Any] = ScryfallProvider.instance().download(
-        sf_prints_url
-    )
+    prints_api_json: Dict[str, Any] = ScryfallProvider().download(sf_prints_url)
     if prints_api_json["object"] == "error":
         LOGGER.error(f"No data found for {sf_prints_url}: {prints_api_json}")
         return []
@@ -155,8 +153,8 @@ def get_scryfall_set_data(set_code: str) -> Optional[Dict[str, Any]]:
     :param set_code: Set to grab header for
     :return: Set header, if it exists
     """
-    set_data: Dict[str, Any] = ScryfallProvider.instance().download(
-        ScryfallProvider.instance().ALL_SETS_URL + set_code
+    set_data: Dict[str, Any] = ScryfallProvider().download(
+        ScryfallProvider().ALL_SETS_URL + set_code
     )
 
     if set_data["object"] == "error":
@@ -220,9 +218,7 @@ def parse_printings(sf_prints_url: Optional[str]) -> List[str]:
     card_sets: Set[str] = set()
 
     while sf_prints_url:
-        prints_api_json: Dict[str, Any] = ScryfallProvider.instance().download(
-            sf_prints_url
-        )
+        prints_api_json: Dict[str, Any] = ScryfallProvider().download(sf_prints_url)
 
         if prints_api_json["object"] == "error":
             LOGGER.error(f"Bad download: {sf_prints_url}")
@@ -259,7 +255,7 @@ def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
     :param rulings_url: URL to get Scryfall JSON data from
     :return: MTGJSON rulings list
     """
-    rules_api_json: Dict[str, Any] = ScryfallProvider.instance().download(rulings_url)
+    rules_api_json: Dict[str, Any] = ScryfallProvider().download(rulings_url)
     if rules_api_json["object"] == "error":
         LOGGER.error(f"Error downloading URL {rulings_url}: {rules_api_json}")
         return []
@@ -328,9 +324,7 @@ def relocate_miscellaneous_tokens(mtgjson_set: MtgjsonSetObject) -> None:
 
     # Scryfall objects to handle later
     mtgjson_set.extra_tokens = [
-        ScryfallProvider.instance().download(
-            ScryfallProvider.instance().CARD_API + scryfall_id
-        )
+        ScryfallProvider().download(ScryfallProvider().CARDS_URL + scryfall_id)
         for scryfall_id in tokens_found
     ]
 
@@ -386,8 +380,8 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
     mtgjson_set.is_foil_only = set_data.get("foil_only", "")
     mtgjson_set.meta = MtgjsonMetaObject()
     mtgjson_set.search_uri = set_data["search_uri"]
-    mtgjson_set.mcm_name = McmProvider.instance().get_set_name(mtgjson_set.name)
-    mtgjson_set.mcm_id = McmProvider.instance().get_set_id(mtgjson_set.name)
+    mtgjson_set.mcm_name = McmProvider().get_set_name(mtgjson_set.name)
+    mtgjson_set.mcm_id = McmProvider().get_set_id(mtgjson_set.name)
 
     # Building cards is a process
     mtgjson_set.cards = build_base_mtgjson_cards(set_code)
@@ -441,7 +435,7 @@ def build_base_mtgjson_cards(
     :param is_token: Are tokens being copmiled?
     :return: Completed card objects
     """
-    cards = ScryfallProvider.instance().download_cards(set_code)
+    cards = ScryfallProvider().download_cards(set_code)
     cards.extend(additional_cards or [])
 
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
@@ -465,7 +459,7 @@ def add_is_starter_option(
     :param mtgjson_cards: Card Objects to modify
     """
     starter_card_url = search_url.replace("&unique=", "++not:booster&unique=")
-    starter_cards = ScryfallProvider.instance().download(starter_card_url)
+    starter_cards = ScryfallProvider().download(starter_card_url)
 
     if starter_cards["object"] == "error":
         LOGGER.info(f"All cards in {set_code} are available in boosters")
@@ -496,7 +490,7 @@ def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
 
     is_oathbreaker_legal = "Planeswalker" in mtgjson_card.type
 
-    is_brawl_legal = mtgjson_card.set_code in WhatsInStandardProvider.instance().set_codes and (
+    is_brawl_legal = mtgjson_card.set_code in WhatsInStandardProvider().set_codes and (
         is_oathbreaker_legal or is_commander_legal
     )
 
@@ -514,7 +508,7 @@ def add_uuid(mtgjson_card: MtgjsonCardObject, is_card: bool = True) -> None:
     """
     if is_card:
         id_source = (
-            ScryfallProvider.instance().get_class_id()
+            ScryfallProvider().get_class_id()
             + mtgjson_card.scryfall_id
             + mtgjson_card.name
         )
@@ -746,7 +740,7 @@ def build_mtgjson_card(
         mtgjson_card.set_code,
     )
 
-    if mtgjson_card.name in ScryfallProvider.instance().cards_without_limits:
+    if mtgjson_card.name in ScryfallProvider().cards_without_limits:
         mtgjson_card.has_no_deck_limit = True
 
     add_uuid(mtgjson_card)
@@ -762,7 +756,7 @@ def build_mtgjson_card(
 
     # Gatherer Calls -- SLOWWWWW
     if mtgjson_card.multiverse_id:
-        gatherer_cards = GathererProvider.instance().get_cards(
+        gatherer_cards = GathererProvider().get_cards(
             mtgjson_card.multiverse_id, mtgjson_card.set_code
         )
         if len(gatherer_cards) > face_id:
@@ -834,14 +828,14 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
     Add the MKM components to a set's cards and tokens
     :param mtgjson_set: MTGJSON Set
     """
-    mkm_cards = McmProvider.instance().get_mkm_cards(mtgjson_set.mcm_id)
+    mkm_cards = McmProvider().get_mkm_cards(mtgjson_set.mcm_id)
     for mtgjson_card in mtgjson_set.cards:
         for key, mkm_obj in mkm_cards.items():
             if mtgjson_card.name.lower() not in key:
                 continue
 
             if "number" not in mkm_obj.keys() or (
-                mkm_obj.get("number") in mtgjson_card.number
+                mkm_obj["number"] in mtgjson_card.number
             ):
                 mtgjson_card.mcm_id = mkm_obj["idProduct"]
                 mtgjson_card.mcm_meta_id = mkm_obj["idMetaproduct"]
@@ -870,8 +864,8 @@ def get_base_set_size(set_code: str) -> int:
         return int(base_set_size_override[set_code])
 
     # Download on the fly
-    content = ScryfallProvider.instance().download(
-        ScryfallProvider.instance().CARDS_IN_BASE_SET_URL.format(set_code)
+    content = ScryfallProvider().download(
+        ScryfallProvider().CARDS_IN_BASE_SET_URL.format(set_code)
     )
     if content["object"] == "error":
         LOGGER.warning(f"Unable to get set size for {set_code}")

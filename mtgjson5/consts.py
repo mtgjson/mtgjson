@@ -4,7 +4,9 @@ Const values of MTGJSON
 import pathlib
 from typing import Dict, Set
 
-MTGJSON_VERSION: str = "5.0.0"
+USE_CACHE: bool = False  # Set to True for development purposes
+
+MTGJSON_VERSION: str = "5.0.1"
 
 # Useful paths within the MTGJSON system
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
@@ -123,14 +125,3 @@ BAD_FILE_NAMES: Set[str] = {
     "NUL",
     "PRN",
 }
-
-USE_CACHE: bool = True
-
-
-def __update_cache_status(new_cache_status: bool) -> None:
-    """
-    Update the consts Cache status
-    :param new_cache_status: New cache status
-    """
-    global USE_CACHE
-    USE_CACHE = new_cache_status

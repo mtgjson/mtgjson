@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
-from singleton.singleton import Singleton
+from singleton_decorator import singleton
 
 from ..providers.abstract_provider import AbstractProvider
 from ..utils import get_thread_logger
@@ -15,7 +15,7 @@ from ..utils import get_thread_logger
 LOGGER = get_thread_logger()
 
 
-@Singleton
+@singleton
 class McmProvider(AbstractProvider):
     """
     MKM container
@@ -88,7 +88,7 @@ class McmProvider(AbstractProvider):
         """
         return None
 
-    def get_mkm_cards(self, mcm_id: Optional[str]) -> Dict[str, Dict[str, Any]]:
+    def get_mkm_cards(self, mcm_id: Optional[int]) -> Dict[str, Dict[str, Any]]:
         """
         Initialize the MKM global with the cards found in the set
         :param mcm_id: Set's ID, if possible

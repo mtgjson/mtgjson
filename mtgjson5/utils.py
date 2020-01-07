@@ -7,7 +7,7 @@ import logging
 import time
 from typing import Union
 
-from .consts import LOG_PATH, __update_cache_status
+from .consts import LOG_PATH
 
 
 def url_keygen(prod_id: Union[int, str], with_leading: bool = True) -> str:
@@ -29,14 +29,6 @@ def to_camel_case(snake_str: str) -> str:
     """
     components = snake_str.split("_")
     return components[0] + "".join(x.title() for x in components[1:])
-
-
-def set_global_cache(to_use_cache: bool) -> None:
-    """
-    Set the global Cache checker
-    :param to_use_cache: Should we use cache?
-    """
-    __update_cache_status(to_use_cache)
 
 
 def get_thread_logger() -> logging.Logger:

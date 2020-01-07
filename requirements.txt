@@ -1,11 +1,8 @@
-simplejson
-singleton
-contextvars
 beautifulsoup4
 GitPython
 mkmsdk
 python-dateutil
 requests
 requests_cache
-unidecode
-urllib3
+simplejson
+singleton_decorator

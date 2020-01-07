@@ -5,13 +5,13 @@ import datetime
 from typing import Any, Dict, Set
 
 import dateutil.parser
-from singleton.singleton import Singleton
+from singleton_decorator import singleton
 
 from ..providers.abstract_provider import AbstractProvider
 from ..utils import get_thread_logger
 
 
-@Singleton
+@singleton
 class WhatsInStandardProvider(AbstractProvider):
     """
     Whats In Standard API provider
