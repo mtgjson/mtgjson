@@ -6,7 +6,7 @@ from typing import Dict, Set
 
 USE_CACHE: bool = False  # Set to True for development purposes
 
-MTGJSON_VERSION: str = "5.0.1"
+MTGJSON_VERSION: str = "5.0.0"
 
 # Useful paths within the MTGJSON system
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent

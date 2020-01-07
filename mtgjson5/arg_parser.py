@@ -18,7 +18,7 @@ def parse_args() -> argparse.Namespace:
     MTGJSON and complete the request.
     :return: Namespace of requests
     """
-    parser = argparse.ArgumentParser("mtgjson4")
+    parser = argparse.ArgumentParser("mtgjson5")
 
     # What set(s) to build
     sets_group = parser.add_mutually_exclusive_group()

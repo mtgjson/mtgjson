@@ -2,6 +2,7 @@
 Provider Dispatcher
 """
 
+from .cardhoarder_provider import CardhoarderProvider
 from .gatherer_provider import GathererProvider
 from .mcm_provider import McmProvider
 from .scryfall_provider import ScryfallProvider
