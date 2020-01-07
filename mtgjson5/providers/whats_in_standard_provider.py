@@ -7,8 +7,8 @@ from typing import Any, Dict, Set
 import dateutil.parser
 from singleton.singleton import Singleton
 
-from ..globals import get_thread_logger
 from ..providers.abstract_provider import AbstractProvider
+from ..utils import get_thread_logger
 
 
 @Singleton

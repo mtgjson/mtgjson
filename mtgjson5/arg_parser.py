@@ -5,8 +5,9 @@ import argparse
 import pathlib
 from typing import List
 
-from .globals import BAD_FILE_NAMES, OUTPUT_PATH, get_thread_logger
+from .consts import MtgjsonGlobals
 from .providers import ScryfallProvider
+from .utils import get_thread_logger
 
 LOGGER = get_thread_logger()
 
@@ -86,13 +87,15 @@ def get_sets_already_built() -> List[str]:
     Grab sets that have already been compiled by the system
     :return: List of all set codes found
     """
-    json_output_files: List[pathlib.Path] = list(OUTPUT_PATH.glob("**/*.json"))
+    json_output_files: List[pathlib.Path] = list(
+        MtgjsonGlobals.OUTPUT_PATH.glob("**/*.json")
+    )
 
     set_codes_found = [file.stem for file in json_output_files]
     LOGGER.info(set_codes_found)
 
     set_codes_found = [
-        set_code[:-1] if set_code[:-1] in BAD_FILE_NAMES else set_code
+        set_code[:-1] if set_code[:-1] in MtgjsonGlobals.BAD_FILE_NAMES else set_code
         for set_code in set_codes_found
     ]
 

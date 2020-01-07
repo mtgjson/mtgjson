@@ -9,7 +9,7 @@ from ..classes.mtgjson_legalities_obj import MtgjsonLegalitiesObject
 from ..classes.mtgjson_prices_obj import MtgjsonPricesObject
 from ..classes.mtgjson_purchase_urls_obj import MtgjsonPurchaseUrlsObject
 from ..classes.mtgjson_rulings_obj import MtgjsonRulingObject
-from ..globals import to_camel_case
+from ..utils import to_camel_case
 
 
 class MtgjsonCardObject:

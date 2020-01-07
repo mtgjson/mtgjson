@@ -6,8 +6,8 @@ from typing import Any, Dict, List, Set
 
 from singleton.singleton import Singleton
 
-from ..globals import get_thread_logger
 from ..providers.abstract_provider import AbstractProvider
+from ..utils import get_thread_logger
 
 LOGGER = get_thread_logger()
 

@@ -4,7 +4,8 @@ MTGJSON's meta object to determine time and version
 import datetime
 from typing import Any, Dict
 
-from ..globals import MTGJSON_VERSION, to_camel_case
+from ..consts import MtgjsonGlobals
+from ..utils import to_camel_case
 
 
 class MtgjsonMetaObject:
@@ -23,7 +24,7 @@ class MtgjsonMetaObject:
     ) -> None:
         self.date = date
         self.prices_date = prices_date
-        self.version = MTGJSON_VERSION
+        self.version = MtgjsonGlobals.MTGJSON_VERSION
 
     def for_json(self) -> Dict[str, Any]:
         """

@@ -4,7 +4,7 @@ MTGJSON container for foreign entries
 
 from typing import Any, Dict, Set
 
-from ..globals import to_camel_case
+from ..utils import to_camel_case
 
 
 class MtgjsonForeignDataObject:

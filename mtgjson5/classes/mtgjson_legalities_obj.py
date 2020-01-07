@@ -3,7 +3,7 @@ MTGJSON Legalities container
 """
 from typing import Any, Dict
 
-from ..globals import to_camel_case
+from ..utils import to_camel_case
 
 
 class MtgjsonLegalitiesObject:

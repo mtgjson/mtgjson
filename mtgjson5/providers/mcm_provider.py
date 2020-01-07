@@ -9,8 +9,8 @@ from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
 from singleton.singleton import Singleton
 
-from ..globals import get_thread_logger
 from ..providers.abstract_provider import AbstractProvider
+from ..utils import get_thread_logger
 
 LOGGER = get_thread_logger()
 

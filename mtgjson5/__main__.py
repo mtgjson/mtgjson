@@ -4,19 +4,12 @@ MTGJSON Main Executor
 from typing import List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
-from mtgjson5.globals import OUTPUT_PATH, get_thread_logger, set_cache
+from mtgjson5.consts import MtgjsonGlobals
 from mtgjson5.set_builder import build_mtgjson_set
+from mtgjson5.utils import get_thread_logger, set_global_cache
 import simplejson
 
 LOGGER = get_thread_logger()
-
-
-def build_price_stuff() -> None:
-    """
-    TODO LATER
-    :return:
-    """
-    return
 
 
 def build_mtgjson_sets_part_1(
@@ -29,7 +22,9 @@ def build_mtgjson_sets_part_1(
     """
     for set_to_build in sets_to_build:
         compiled_set = build_mtgjson_set(set_to_build)
-        with OUTPUT_PATH.joinpath(f"{set_to_build}.json").open("w") as file:
+        with MtgjsonGlobals.OUTPUT_PATH.joinpath(f"{set_to_build}.json").open(
+            "w"
+        ) as file:
             simplejson.dump(
                 obj=compiled_set,
                 fp=file,
@@ -47,11 +42,10 @@ def main() -> None:
     get_thread_logger()
     args = parse_args()
 
-    set_cache(not args.skip_cache)
-    OUTPUT_PATH.mkdir(exist_ok=True)
+    set_global_cache(not args.skip_cache)
+    MtgjsonGlobals.OUTPUT_PATH.mkdir(exist_ok=True)
 
     if args.pricing:
-        build_price_stuff()
         return
 
     LOGGER.info(args)

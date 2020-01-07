@@ -10,8 +10,9 @@ import requests
 
 from singleton.singleton import Singleton
 
-from ..globals import SYMBOL_MAP, get_thread_logger
+from ..consts import MtgjsonGlobals
 from ..providers.abstract_provider import AbstractProvider
+from ..utils import get_thread_logger
 
 
 class GathererCard(NamedTuple):
@@ -120,7 +121,7 @@ class GathererProvider(AbstractProvider):
         images = tag_copy.find_all("img")
         for image in images:
             alt = image["alt"]
-            symbol = SYMBOL_MAP.get(alt, alt)
+            symbol = MtgjsonGlobals.SYMBOL_MAP.get(alt, alt)
             image.replace_with("{" + symbol + "}")
         return tag_copy
 

@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Set
 from ..classes.mtgjson_card_obj import MtgjsonCardObject
 from ..classes.mtgjson_meta_obj import MtgjsonMetaObject
 from ..classes.mtgjson_translations_obj import MtgjsonTranslationsObject
-from ..globals import to_camel_case
+from ..utils import to_camel_case
 
 
 class MtgjsonSetObject:

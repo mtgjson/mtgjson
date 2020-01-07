@@ -3,7 +3,7 @@ MTGJSON container for rulings
 """
 from typing import Any, Dict
 
-from ..globals import to_camel_case
+from ..utils import to_camel_case
 
 
 class MtgjsonRulingObject:
