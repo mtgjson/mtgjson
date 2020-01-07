@@ -7,7 +7,7 @@ import logging
 import time
 from typing import Union
 
-from .consts import MtgjsonGlobals
+from .consts import LOG_PATH, __update_cache_status
 
 
 def url_keygen(prod_id: Union[int, str], with_leading: bool = True) -> str:
@@ -36,14 +36,14 @@ def set_global_cache(to_use_cache: bool) -> None:
     Set the global Cache checker
     :param to_use_cache: Should we use cache?
     """
-    MtgjsonGlobals.USE_CACHE = to_use_cache
+    __update_cache_status(to_use_cache)
 
 
 def get_thread_logger() -> logging.Logger:
     """
     Logging configuration
     """
-    MtgjsonGlobals.LOG_PATH.mkdir(exist_ok=True)
+    LOG_PATH.mkdir(exist_ok=True)
 
     time_now = time.strftime("%Y-%m-%d_%H.%M.%S")
 
@@ -52,9 +52,7 @@ def get_thread_logger() -> logging.Logger:
         format="[%(levelname)s] %(asctime)s: %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler(
-                str(MtgjsonGlobals.LOG_PATH.joinpath(f"mtgjson_{time_now}.log"))
-            ),
+            logging.FileHandler(str(LOG_PATH.joinpath(f"mtgjson_{time_now}.log"))),
         ],
     )
 

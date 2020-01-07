@@ -20,7 +20,15 @@ from .classes import (
     MtgjsonRulingObject,
     MtgjsonSetObject,
 )
-from .consts import MtgjsonGlobals
+from .consts import (
+    BASIC_LAND_NAMES,
+    CARD_MARKET_BUFFER,
+    FOREIGN_SETS,
+    LANGUAGE_MAP,
+    RESOURCE_PATH,
+    SILVER_SETS_TO_NOT_UNIQUIFY,
+    SUPER_TYPES,
+)
 from .providers import (
     GathererProvider,
     McmProvider,
@@ -65,9 +73,7 @@ def parse_foreign(
 
         card_foreign_entry = MtgjsonForeignDataObject()
         try:
-            card_foreign_entry.language = MtgjsonGlobals.LANGUAGE_MAP[
-                foreign_card["lang"]
-            ]
+            card_foreign_entry.language = LANGUAGE_MAP[foreign_card["lang"]]
         except IndexError:
             LOGGER.warning(f"Unable to get language {foreign_card}")
 
@@ -119,7 +125,7 @@ def parse_card_types(card_type: str) -> Tuple[List[str], List[str], List[str]]:
             sub_types = [x.strip() for x in subtypes.split() if x]
 
     for value in supertypes_and_types.split():
-        if value in MtgjsonGlobals.SUPER_TYPES:
+        if value in SUPER_TYPES:
             super_types.append(value)
         elif value:
             types.append(value)
@@ -277,7 +283,7 @@ def uniquify_cards_with_same_name(mtgjson_cards: List[MtgjsonCardObject]) -> Non
     if not mtgjson_cards:
         return
 
-    if mtgjson_cards[0].set_code.upper() in MtgjsonGlobals.SILVER_SETS_TO_NOT_UNIQUIFY:
+    if mtgjson_cards[0].set_code.upper() in SILVER_SETS_TO_NOT_UNIQUIFY:
         return
 
     if mtgjson_cards[0].border_color == "silver":
@@ -288,7 +294,7 @@ def uniquify_cards_with_same_name(mtgjson_cards: List[MtgjsonCardObject]) -> Non
                 1 for item in mtgjson_cards if item.name == card.name
             )
 
-            if card.name not in MtgjsonGlobals.BASIC_LAND_NAMES and (
+            if card.name not in BASIC_LAND_NAMES and (
                 card.name in cards_found_already.keys() or cards_with_same_name_sum > 1
             ):
                 if card.name in cards_found_already.keys():
@@ -342,7 +348,7 @@ def mark_duel_decks(set_code: str, mtgjson_cards: List[MtgjsonCardObject]) -> No
         side_letter_as_number = ord("a")
 
         for card in sorted(mtgjson_cards):
-            if card.name in MtgjsonGlobals.BASIC_LAND_NAMES:
+            if card.name in BASIC_LAND_NAMES:
                 land_pile_marked = True
             elif any(_type in card.type for _type in ("Token", "Emblem")):
                 continue
@@ -405,7 +411,7 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
     mark_duel_decks(set_code, mtgjson_set.cards)
 
     # Implicit Variables
-    mtgjson_set.is_foreign_only = mtgjson_set.code in MtgjsonGlobals.FOREIGN_SETS
+    mtgjson_set.is_foreign_only = mtgjson_set.code in FOREIGN_SETS
     mtgjson_set.is_partial_preview = (
         mtgjson_set.meta.date.strftime("%Y-%m-%d") < mtgjson_set.release_date
     )
@@ -782,7 +788,7 @@ def add_variations_and_alternative_fields(mtgjson_set: Any) -> None:
 
     if (
         mtgjson_set.cards[0].border_color != "silver"
-        or mtgjson_set.code in MtgjsonGlobals.SILVER_SETS_TO_NOT_UNIQUIFY
+        or mtgjson_set.code in SILVER_SETS_TO_NOT_UNIQUIFY
     ):
         for card in mtgjson_set.cards:
             # Adds other face ID list
@@ -805,7 +811,7 @@ def add_variations_and_alternative_fields(mtgjson_set: Any) -> None:
 
             # Add alternative tag
             # Ignore singleton printings in set, as well as basics
-            if not variations or card.name in MtgjsonGlobals.BASIC_LAND_NAMES:
+            if not variations or card.name in BASIC_LAND_NAMES:
                 continue
 
             # Some hardcoded checking due to inconsistencies upstream
@@ -842,7 +848,7 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
 
                 mtgjson_card.purchase_urls.cardmarket = url_keygen(
                     str(mtgjson_card.mcm_id)
-                    + MtgjsonGlobals.CARD_MARKET_BUFFER
+                    + CARD_MARKET_BUFFER
                     + str(mtgjson_card.mcm_meta_id)
                 )
 
@@ -856,9 +862,7 @@ def get_base_set_size(set_code: str) -> int:
     :return: Amount of cards in set
     """
     # Load cache if not loaded
-    with MtgjsonGlobals.RESOURCE_PATH.joinpath("base_set_sizes.json").open(
-        encoding="utf-8"
-    ) as f:
+    with RESOURCE_PATH.joinpath("base_set_sizes.json").open(encoding="utf-8") as f:
         base_set_size_override = simplejson.load(f)
 
     # Manual correction
@@ -882,9 +886,7 @@ def get_booster_contents_v3(set_code: str) -> Optional[List[Any]]:
     :param set_code: What set to find
     :return Booster list or None
     """
-    with MtgjsonGlobals.RESOURCE_PATH.joinpath("boosters.json").open(
-        encoding="utf-8"
-    ) as f:
+    with RESOURCE_PATH.joinpath("boosters.json").open(encoding="utf-8") as f:
         json_dict: Dict[str, List[Any]] = simplejson.load(f)
         if set_code in json_dict.keys():
             return json_dict[set_code]

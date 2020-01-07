@@ -14,7 +14,7 @@ import requests.adapters
 import requests_cache
 import urllib3
 
-from ..consts import MtgjsonGlobals
+from ..consts import CACHE_PATH, CONFIG_PATH, USE_CACHE
 from ..utils import get_thread_logger
 
 LOGGER = get_thread_logger()
@@ -79,7 +79,7 @@ class AbstractProvider(abc.ABC):
         :return: Parsed config file
         """
         config = configparser.RawConfigParser()
-        config.read(MtgjsonGlobals.CONFIG_PATH)
+        config.read(CONFIG_PATH)
 
         return config
 
@@ -90,7 +90,7 @@ class AbstractProvider(abc.ABC):
         :param response: Response from Server
         """
         LOGGER.debug(
-            f"Downloaded {response.url} (Cache = {response.from_cache if MtgjsonGlobals.USE_CACHE else False})"
+            f"Downloaded {response.url} (Cache = {response.from_cache if USE_CACHE else False})"
         )
 
     # Private Methods
@@ -99,10 +99,10 @@ class AbstractProvider(abc.ABC):
         Initiate the MTGJSON cache for requests
         (Useful for development and re-running often)
         """
-        if MtgjsonGlobals.USE_CACHE:
-            MtgjsonGlobals.CACHE_PATH.mkdir(exist_ok=True)
+        if USE_CACHE:
+            CACHE_PATH.mkdir(exist_ok=True)
             requests_cache.install_cache(
-                str(MtgjsonGlobals.CACHE_PATH.joinpath(self.get_class_name()))
+                str(CACHE_PATH.joinpath(self.get_class_name()))
             )
 
     def __init_session_pool(self, headers: Dict[str, str] = None) -> None:

@@ -4,7 +4,7 @@ MTGJSON Main Executor
 from typing import List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
-from mtgjson5.consts import MtgjsonGlobals
+from mtgjson5.consts import OUTPUT_PATH
 from mtgjson5.set_builder import build_mtgjson_set
 from mtgjson5.utils import get_thread_logger, set_global_cache
 import simplejson
@@ -22,9 +22,7 @@ def build_mtgjson_sets_part_1(
     """
     for set_to_build in sets_to_build:
         compiled_set = build_mtgjson_set(set_to_build)
-        with MtgjsonGlobals.OUTPUT_PATH.joinpath(f"{set_to_build}.json").open(
-            "w"
-        ) as file:
+        with OUTPUT_PATH.joinpath(f"{set_to_build}.json").open("w") as file:
             simplejson.dump(
                 obj=compiled_set,
                 fp=file,
@@ -41,9 +39,9 @@ def main() -> None:
     """
     get_thread_logger()
     args = parse_args()
-
     set_global_cache(not args.skip_cache)
-    MtgjsonGlobals.OUTPUT_PATH.mkdir(exist_ok=True)
+
+    OUTPUT_PATH.mkdir(exist_ok=True)
 
     if args.pricing:
         return
