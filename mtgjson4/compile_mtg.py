@@ -694,8 +694,11 @@ def build_mtgjson_card(
         else:
             single_card.set("colors", sf_card.get("colors"))
 
-    if "promo_types" in sf_card.keys() and "datestamped" in sf_card["promo_types"]:
-        single_card.set("isDateStamped", True)
+    if "promo_types" in sf_card.keys():
+        if "datestamped" in sf_card["promo_types"]:
+            single_card.set("isDateStamped", True)
+        if "buyabox" in sf_card["promo_types"]:
+            single_card.set("isBuyABox", True)
 
     single_card.set_all(
         {
