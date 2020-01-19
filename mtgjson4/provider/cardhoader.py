@@ -117,6 +117,15 @@ def __get_ch_data() -> Dict[str, Dict[str, str]]:
                     "paperFoil": {},
                 }
 
+            if "mtgo" not in db_contents[key].keys():
+                db_contents[key]["mtgo"] = {}
+            if "mtgoFoil" not in db_contents[key].keys():
+                db_contents[key]["mtgoFoil"] = {}
+            if "paper" not in db_contents[key].keys():
+                db_contents[key]["paper"] = {}
+            if "paperFoil" not in db_contents[key].keys():
+                db_contents[key]["paperFoil"] = {}
+
             db_contents[key]["mtgo"][TODAY_DATE] = value
             db_contents[key]["mtgoFoil"][TODAY_DATE] = foil_cards.get(key)
 
