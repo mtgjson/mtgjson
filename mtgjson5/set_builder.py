@@ -607,6 +607,7 @@ def build_mtgjson_card(
     mtgjson_card.hand = scryfall_object.get("hand_modifier")
     mtgjson_card.has_foil = scryfall_object.get("foil")
     mtgjson_card.has_non_foil = scryfall_object.get("nonfoil")
+    mtgjson_card.is_buy_a_box = "buyabox" in scryfall_object.get("promo_types", [])
     mtgjson_card.is_date_stamped = "datestamped" in scryfall_object.get(
         "promo_types", []
     )

@@ -38,6 +38,7 @@ class MtgjsonCardObject:
     has_non_foil: Optional[bool]
     is_alternative: Optional[bool]
     is_arena: Optional[bool]
+    is_buy_a_box: Optional[bool]
     is_date_stamped: Optional[bool]
     is_full_art: Optional[bool]
     is_mtgo: Optional[bool]
