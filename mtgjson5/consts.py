@@ -16,8 +16,6 @@ LOG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
 OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"json_{MTGJSON_VERSION}")
 RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson5").joinpath("resources")
 
-SILVER_SETS_TO_NOT_UNIQUIFY: Set[str] = {"HHO", "UNH"}
-
 CARD_MARKET_BUFFER: str = "10101"
 
 FOREIGN_SETS: Set[str] = {

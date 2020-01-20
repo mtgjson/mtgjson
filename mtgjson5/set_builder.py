@@ -26,7 +26,6 @@ from .consts import (
     FOREIGN_SETS,
     LANGUAGE_MAP,
     RESOURCE_PATH,
-    SILVER_SETS_TO_NOT_UNIQUIFY,
     SUPER_TYPES,
 )
 from .providers import (
@@ -279,7 +278,7 @@ def uniquify_cards_with_same_name(mtgjson_cards: List[MtgjsonCardObject]) -> Non
     if not mtgjson_cards:
         return
 
-    if mtgjson_cards[0].set_code.upper() in SILVER_SETS_TO_NOT_UNIQUIFY:
+    if mtgjson_cards[0].set_code.upper() in {"HHO", "UNH"}:
         return
 
     if mtgjson_cards[0].border_color == "silver":
@@ -780,10 +779,11 @@ def add_variations_and_alternative_fields(mtgjson_set: Any) -> None:
     if not mtgjson_set.cards:
         return
 
-    if (
-        mtgjson_set.cards[0].border_color != "silver"
-        or mtgjson_set.code in SILVER_SETS_TO_NOT_UNIQUIFY
-    ):
+    if mtgjson_set.cards[0].border_color != "silver" or mtgjson_set.code in {
+        "HHO",
+        "UNH",
+        "UST",
+    }:
         for card in mtgjson_set.cards:
             # Adds other face ID list
             if card.names:
