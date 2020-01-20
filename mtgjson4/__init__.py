@@ -7,7 +7,7 @@ import time
 from typing import Dict, List, Set
 
 # Maintenance variables
-__VERSION__ = "4.6.1"
+__VERSION__ = "4.6.2"
 __VERSION_DATE__ = "2019-12-01"
 __PRICE_UPDATE_DATE__ = "2019-12-01"
 __MAINTAINER__ = "Zach Halpern (GitHub: @ZeldaZach)"
