@@ -353,13 +353,18 @@ def add_variations_and_alternative_fields(
     :return: How many alternative printings were marked
     """
     # Non-silver border sets use "variations"
-    override_border_color: bool = bool(cards) and cards[0].set_code in ["HHO", "UNH"]
+    override_border_color: bool = bool(cards) and cards[0].set_code in {
+        "HHO",
+        "UNH",
+        "UST",
+    }
+
     if cards and (cards[0].get("borderColor") != "silver" or override_border_color):
         for card in cards:
             repeats_in_set = [
                 item
                 for item in cards
-                if item.get("name") == card.get("name")
+                if item.get("name").split("(")[0] == card.get("name").split("(")[0]
                 and item.get("uuid") != card.get("uuid")
             ]
 
