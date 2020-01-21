@@ -24,9 +24,6 @@ class MtgjsonPricesObject:
         self.mtgo = {}
         self.mtgo_foil = {}
 
-    def __str__(self):
-        return str(self.for_json())
-
     def for_json(self) -> Dict[str, Any]:
         """
         Support json.dumps()

@@ -106,7 +106,7 @@ class MtgjsonCardObject:
         self.names = []
         self.multiverse_id = 0
         self.purchase_urls = MtgjsonPurchaseUrlsObject()
-        self.prices = MtgjsonPricesObject()
+        self.prices = MtgjsonPricesObject("")
         self.is_token = is_token
 
     def __eq__(self, other: Any) -> bool:

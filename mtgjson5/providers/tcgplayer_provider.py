@@ -3,11 +3,9 @@ TCGPlayer 3rd party provider
 """
 import collections
 import datetime
-
 import multiprocessing
 import pathlib
 from typing import Any, Dict, List, Tuple, Union
-
 
 import requests
 
@@ -20,8 +18,6 @@ from ..providers.abstract_provider import AbstractProvider
 from ..utils import get_thread_logger
 
 LOGGER = get_thread_logger()
-
-global_test_zach = "Old"
 
 
 def generate_tcgplayer_to_mtgjson_map(
@@ -48,6 +44,11 @@ def generate_tcgplayer_to_mtgjson_map(
 def get_tcgplayer_prices_map(
     group_id_and_name: Tuple[str, str]
 ) -> Dict[str, MtgjsonPricesObject]:
+    """
+    Construct MtgjsonPricesObjects from TCGPlayer data
+    :param group_id_and_name: TCGPlayer Set ID & Name to build
+    :return: Cards with prices from Set ID & Name
+    """
 
     with CACHE_PATH.joinpath("tcgplayer_price_map.json").open() as file:
         tcg_to_mtgjson_map = json.load(file)
@@ -63,7 +64,7 @@ def get_tcgplayer_prices_map(
     if not response["results"]:
         return {}
 
-    prices_map = {}
+    prices_map: Dict[str, MtgjsonPricesObject] = {}
     for tcgplayer_object in response["results"]:
         key = tcg_to_mtgjson_map.get(str(tcgplayer_object["productId"]), 0)
         if not key:

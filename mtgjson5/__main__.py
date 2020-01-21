@@ -5,7 +5,7 @@ from typing import List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
 from mtgjson5.consts import OUTPUT_PATH
-from mtgjson5.price_builder import build_today_prices
+from mtgjson5.price_builder import build_prices
 from mtgjson5.set_builder import build_mtgjson_set
 from mtgjson5.utils import get_thread_logger
 import simplejson as json
@@ -44,7 +44,7 @@ def main() -> None:
     OUTPUT_PATH.mkdir(exist_ok=True)
 
     if args.pricing:
-        build_today_prices()
+        build_prices()
         return
 
     LOGGER.info(args)

@@ -37,7 +37,7 @@ def get_thread_logger() -> logging.Logger:
     """
     LOG_PATH.mkdir(exist_ok=True)
 
-    time_now = time.strftime("%Y-%m-%d_%H.%M.%S")
+    time_now = time.strftime("%Y-%m-%d_%H.%M")
 
     logging.basicConfig(
         level=logging.INFO,
