@@ -4,6 +4,7 @@ import datetime
 import hashlib
 import json
 import logging
+import lzma
 import pathlib
 import re
 import shutil
@@ -200,8 +201,8 @@ def get_gist_json_file(db_url: str, file_name: str) -> Any:
     git_sh = git.cmd.Git()
     git_sh.clone(db_url, temp_working_dir, depth=1)
 
-    with temp_working_dir.joinpath(file_name).open() as f:
-        return json.load(f)
+    with lzma.open(temp_working_dir.joinpath(file_name)) as file:
+        return json.load(file)
 
 
 def set_gist_json_file(
@@ -215,8 +216,8 @@ def set_gist_json_file(
     :param file_name: File name
     :param content: New file content
     """
-    with temp_working_dir.joinpath(file_name).open("w") as f:
-        json.dump(content, f)
+    with lzma.open(temp_working_dir.joinpath(file_name), "w") as file:
+        file.write(json.dumps(content).encode("utf-8"))
 
     try:
         repo = git.Repo(temp_working_dir)
