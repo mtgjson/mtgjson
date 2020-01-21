@@ -71,6 +71,9 @@ def prune_ch_database(
 
     for format_dicts in database.values():
         for value_dates in format_dicts.values():
+            if not isinstance(value_dates, dict):
+                continue
+
             # Determine keys to remove
             keys_to_prune = [
                 key_date
@@ -179,6 +182,9 @@ def get_card_data(mtgjson_uuid: str, limited: bool = False) -> Dict[str, Any]:
 
     if limited:
         for key, value in return_value.items():
+            if not isinstance(value, dict):
+                continue
+
             if value:
                 max_value = max(value)
                 return_value[key] = {max_value: value[max_value]}
