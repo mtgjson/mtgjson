@@ -21,7 +21,7 @@ LOGGER = get_thread_logger()
 
 def download_prices_archive(
     gist_repo_name: str, file_name: str, github_repo_local_path: pathlib.Path
-) -> Any:
+) -> Dict[str, Any]:
     """
     Grab the contents from a gist file
     :param gist_repo_name: Gist repo name
@@ -158,6 +158,24 @@ def build_today_prices() -> Dict[str, Any]:
     return final_results
 
 
+def get_price_archive_data() -> Dict[str, Any]:
+    """
+    Download compiled MTGJSON price data
+    :return: MTGJSON price data
+    """
+    # Config values for GitHub
+    config = TCGPlayerProvider().get_configs()
+    github_repo_name = config.get("GitHub", "repo_name")
+    github_file_name = config.get("GitHub", "file_name")
+    github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
+
+    # Get the current working database
+    LOGGER.info("Downloading old price data")
+    return download_prices_archive(
+        github_repo_name, github_file_name, github_local_path
+    )
+
+
 def build_prices() -> None:
     """
     The full build prices operation
@@ -167,17 +185,7 @@ def build_prices() -> None:
     LOGGER.info("Building new price data")
     today_prices = build_today_prices()
 
-    # Config values for GitHub
-    config = TCGPlayerProvider().get_configs()
-    github_repo_name = config.get("GitHub", "repo_name")
-    github_file_name = config.get("GitHub", "file_name")
-    github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
-
-    # Get the current working database
-    LOGGER.info("Downloading old price data")
-    archive_prices = download_prices_archive(
-        github_repo_name, github_file_name, github_local_path
-    )
+    archive_prices = get_price_archive_data()
 
     # Update local copy of database
     LOGGER.info("Merging price data")
@@ -189,4 +197,6 @@ def build_prices() -> None:
 
     # Push changes to remote database
     LOGGER.info("Uploading price data")
+    config = TCGPlayerProvider().get_configs()
+    github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
     upload_prices_archive(config, github_local_path, archive_prices)
