@@ -3,7 +3,7 @@ MKM 3rd party provider
 """
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
@@ -79,7 +79,7 @@ class McmProvider(AbstractProvider):
         """
         return {}
 
-    def download(self, url: str, params: Dict[str, str] = None) -> Any:
+    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
         """
         Download Content -- Not Used
         :param url:

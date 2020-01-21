@@ -3,7 +3,7 @@ Wizards Gatherer 3rd party provider
 """
 import copy
 import re
-from typing import Dict, List, NamedTuple, Optional
+from typing import Dict, List, NamedTuple, Optional, Union
 
 import bs4
 import requests
@@ -42,7 +42,9 @@ class GathererProvider(AbstractProvider):
     def _build_http_header(self) -> Dict[str, str]:
         return {}
 
-    def download(self, url: str, params: Dict[str, str] = None) -> requests.Response:
+    def download(
+        self, url: str, params: Dict[str, Union[str, int]] = None
+    ) -> requests.Response:
         session = self.session_pool.popleft()
         response = session.get(url, params=params)
         self.session_pool.append(session)

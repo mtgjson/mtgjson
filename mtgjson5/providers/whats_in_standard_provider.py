@@ -2,7 +2,7 @@
 Whats In Standard 3rd party provider
 """
 import datetime
-from typing import Any, Dict, Set
+from typing import Any, Dict, Set, Union
 
 import dateutil.parser
 from singleton_decorator import singleton
@@ -29,7 +29,7 @@ class WhatsInStandardProvider(AbstractProvider):
     def _build_http_header(self) -> Dict[str, str]:
         return {}
 
-    def download(self, url: str, params: Dict[str, str] = None) -> Any:
+    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
         """
         Download content from Whats in Standard
         Api calls always return JSON from them

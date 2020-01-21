@@ -11,13 +11,21 @@ class MtgjsonPricesObject:
     Pricing Container
     """
 
+    uuid: str
     paper: Dict[str, float]
     paper_foil: Dict[str, float]
     mtgo: Dict[str, float]
     mtgo_foil: Dict[str, float]
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, uuid: str) -> None:
+        self.uuid = uuid
+        self.paper = {}
+        self.paper_foil = {}
+        self.mtgo = {}
+        self.mtgo_foil = {}
+
+    def __str__(self):
+        return str(self.for_json())
 
     def for_json(self) -> Dict[str, Any]:
         """

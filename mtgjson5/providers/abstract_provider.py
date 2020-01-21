@@ -7,7 +7,7 @@ import abc
 import collections
 import configparser
 import multiprocessing
-from typing import Any, Deque, Dict
+from typing import Any, Deque, Dict, Union
 
 import requests
 import requests.adapters
@@ -48,7 +48,7 @@ class AbstractProvider(abc.ABC):
         """
 
     @abc.abstractmethod
-    def download(self, url: str, params: Dict[str, str] = None) -> Any:
+    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
         """
         Download an object from a service using appropriate authentication protocols
         :param url: URL to download content from
@@ -89,7 +89,7 @@ class AbstractProvider(abc.ABC):
         Log how the URL was acquired
         :param response: Response from Server
         """
-        LOGGER.debug(
+        LOGGER.info(
             f"Downloaded {response.url} (Cache = {response.from_cache if USE_CACHE else False})"
         )
 
