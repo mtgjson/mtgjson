@@ -189,4 +189,7 @@ def get_card_data(mtgjson_uuid: str, limited: bool = False) -> Dict[str, Any]:
                 max_value = max(value)
                 return_value[key] = {max_value: value[max_value]}
 
+        if "uuid" in return_value.keys():
+            del return_value["uuid"]
+
     return return_value
