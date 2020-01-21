@@ -90,7 +90,7 @@ class ScryfallProvider(AbstractProvider):
             # For each page, append all the data, go to next page
             page_downloaded: int = 1
             while cards_api_url:
-                LOGGER.info(f"Downloading {set_code} card data page...")
+                LOGGER.info(f"Downloading {set_code} card data page")
                 page_downloaded += 1
 
                 cards_api_json: Dict[str, Any] = self.download(cards_api_url)

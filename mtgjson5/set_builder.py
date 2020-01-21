@@ -270,7 +270,7 @@ def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
 
 def uniquify_cards_with_same_name(mtgjson_cards: List[MtgjsonCardObject]) -> None:
     """
-    Some sets (namely Un-sets) have cards with the same name, but different effects...
+    Some sets (namely Un-sets) have cards with the same name, but different effects.
     This addresses it by adding (b), (c), etc to the name of duplicates
     :param mtgjson_cards: Cards object
     """

@@ -29,19 +29,17 @@ def download_prices_archive(
     :param github_repo_local_path: Where to checkout the repo to
     :return: File content
     """
-    LOGGER.info("Cloning GitHub Repo...")
+    LOGGER.info("Cloning GitHub Repo")
     github_url = f"https://gist.github.com/{gist_repo_name}"
 
     if github_repo_local_path.is_dir():
-        LOGGER.warning("Deleting old copy of GitHub repo first...")
+        LOGGER.warning("Deleting old copy of GitHub repo first")
         shutil.rmtree(github_repo_local_path)
 
     git_sh = git.cmd.Git()
     git_sh.clone(github_url, github_repo_local_path, depth=1)
 
-    # with lzma.open(github_repo_local_path.joinpath(file_name)) as file:
-    #     return json.load(file)
-    with github_repo_local_path.joinpath(file_name).open() as file:
+    with lzma.open(github_repo_local_path.joinpath(file_name)) as file:
         return json.load(file)
 
 
@@ -80,7 +78,7 @@ def upload_prices_archive(
         origin.push()
         LOGGER.info("Pushed changes to GitHub repo")
     except git.GitCommandError:
-        LOGGER.warning(f"No changes found to GitHub repo, skipping...")
+        LOGGER.warning(f"No changes found to GitHub repo, skipping")
 
     shutil.rmtree(github_repo_local_path)
 
