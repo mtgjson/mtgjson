@@ -21,7 +21,7 @@ LOGGER = get_thread_logger()
 
 def download_prices_archive(
     gist_repo_name: str, file_name: str, github_repo_local_path: pathlib.Path
-) -> Dict[str, Any]:
+) -> Dict[str, Dict[str, float]]:
     """
     Grab the contents from a gist file
     :param gist_repo_name: Gist repo name
@@ -40,7 +40,7 @@ def download_prices_archive(
     git_sh.clone(github_url, github_repo_local_path, depth=1)
 
     with lzma.open(github_repo_local_path.joinpath(file_name)) as file:
-        return json.load(file)
+        return dict(json.load(file))
 
 
 def upload_prices_archive(
@@ -158,7 +158,7 @@ def build_today_prices() -> Dict[str, Any]:
     return final_results
 
 
-def get_price_archive_data() -> Dict[str, Any]:
+def get_price_archive_data() -> Dict[str, Dict[str, float]]:
     """
     Download compiled MTGJSON price data
     :return: MTGJSON price data

@@ -2,7 +2,7 @@
 Const values of MTGJSON
 """
 import pathlib
-from typing import Dict, Set
+from typing import Dict, List, Set, Tuple
 
 USE_CACHE: bool = True  # Set to True for development purposes
 
@@ -57,6 +57,21 @@ LANGUAGE_MAP: Dict[str, str] = {
     "sa": "Sanskrit",
     "px": "Phyrexian",
 }
+
+WIZARDS_SUPPORTED_LANGUAGES: List[Tuple[str, str]] = [
+    ("zh-hans", "Chinese Simplified"),
+    ("zh-hant", "Chinese Traditional"),
+    ("fr", "French"),
+    ("de", "German"),
+    ("it", "Italian"),
+    ("ja", "Japanese"),
+    ("ko", "Korean"),
+    ("pt-br", "Portuguese (Brazil)"),
+    ("ru", "Russian"),
+    ("es", "Spanish"),
+    ("en", "English"),
+]
+
 SYMBOL_MAP: Dict[str, str] = {
     "White": "W",
     "Blue": "U",

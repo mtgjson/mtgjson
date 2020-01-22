@@ -185,7 +185,7 @@ class TCGPlayerProvider(AbstractProvider):
 
     def generate_today_price_dict(
         self, all_printings_path: pathlib.Path
-    ) -> Dict[str, str]:
+    ) -> Dict[str, MtgjsonPricesObject]:
         """
         Download the TCGPlayer pricing API and collate into MTGJSON format
         :param all_printings_path Path to AllPrintings.json for pre-processing

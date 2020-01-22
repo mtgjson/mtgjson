@@ -18,8 +18,8 @@ class MtgjsonPricesObject:
     mtgo_foil: Dict[str, float]
     __parent_is_card_object: bool = True
 
-    def __init__(self, uuid: str, entries: Dict[str, float] = None) -> None:
-        if not entries:
+    def __init__(self, uuid: str, entries: Dict[str, Dict[str, float]] = None) -> None:
+        if entries is None:
             entries = {}
             self.__parent_is_card_object = False
 

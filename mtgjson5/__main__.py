@@ -1,10 +1,10 @@
 """
 MTGJSON Main Executor
 """
-from typing import List, Set, Union, Dict, Any
+from typing import Any, Dict, List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
-from mtgjson5.classes import MtgjsonSetObject, MtgjsonPricesObject
+from mtgjson5.classes import MtgjsonPricesObject, MtgjsonSetObject
 from mtgjson5.consts import OUTPUT_PATH
 from mtgjson5.price_builder import build_prices, get_price_archive_data
 from mtgjson5.set_builder import build_mtgjson_set
@@ -23,8 +23,7 @@ def build_mtgjson_sets_part_2(
     :param price_data_cache: Data cache to pull entries from
     """
     for mtgjson_card_object in mtgjson_part_1_set.cards:
-        mtgjson_card_object.prices = MtgjsonPricesObject(mtgjson_card_object.uuid)
-
+        single_price_entries: Dict[str, Dict[str, float]] = {}
         data_entry = price_data_cache.get(mtgjson_card_object.uuid, {})
         for key, value in data_entry.items():
             if not isinstance(value, dict):
@@ -32,16 +31,16 @@ def build_mtgjson_sets_part_2(
 
             if value:
                 max_value = max(value)
-                data_entry[key] = {max_value: value[max_value]}
+                single_price_entries[key] = {max_value: value[max_value]}
 
         mtgjson_card_object.prices = MtgjsonPricesObject(
-            mtgjson_card_object.uuid, data_entry
+            mtgjson_card_object.uuid, single_price_entries
         )
 
 
 def build_mtgjson_sets_part_1(
     sets_to_build: Union[Set[str], List[str]],
-    price_data_cache: Dict[str, Any],
+    price_data_cache: Dict[str, Dict[str, float]],
     output_pretty: bool = False,
 ) -> None:
     """
