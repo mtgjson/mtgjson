@@ -17,6 +17,8 @@ OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"json_{MTGJSON_VERSION}")
 RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson5").joinpath("resources")
 
 CARD_MARKET_BUFFER: str = "10101"
+TCGPLAYER_REFERRAL: str = "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"
+CARD_MARKET_REFERRAL: str = "?utm_campaign=card_prices&utm_medium=text&utm_source=mtgjson"
 
 FOREIGN_SETS: Set[str] = {
     "PMPS11",

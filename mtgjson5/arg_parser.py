@@ -72,6 +72,7 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help="Purposely exclude sets from the build that may have been set using '--sets' or '--all'",
     )
+    parser.add_argument("--referrals", action="store_true", help="Store referrals map")
 
     return parser.parse_args()
 

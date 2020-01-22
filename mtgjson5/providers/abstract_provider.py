@@ -89,7 +89,7 @@ class AbstractProvider(abc.ABC):
         Log how the URL was acquired
         :param response: Response from Server
         """
-        LOGGER.info(
+        LOGGER.debug(
             f"Downloaded {response.url} (Cache = {response.from_cache if USE_CACHE else False})"
         )
 

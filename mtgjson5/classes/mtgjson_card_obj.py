@@ -95,6 +95,7 @@ class MtgjsonCardObject:
     watermark: Optional[str]
 
     is_token: bool
+    raw_purchase_urls: Dict[str, str]
 
     def __init__(self, is_token: bool = False) -> None:
         # These values are tested against at some point
@@ -181,7 +182,9 @@ class MtgjsonCardObject:
         Support json.dumps()
         :return: JSON serialized object
         """
-        skip_keys = self.build_keys_to_skip().union({"set_code", "is_token"})
+        skip_keys = self.build_keys_to_skip().union(
+            {"set_code", "is_token", "raw_purchase_urls"}
+        )
 
         return {
             to_camel_case(key): value

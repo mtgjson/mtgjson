@@ -12,6 +12,7 @@ import dateutil.relativedelta
 import git
 import simplejson as json
 
+from .classes import MtgjsonPricesObject, MtgjsonSetObject
 from .consts import CACHE_PATH, OUTPUT_PATH
 from .providers import CardhoarderProvider, TCGPlayerProvider
 from .utils import get_thread_logger
@@ -200,3 +201,27 @@ def build_prices() -> None:
     config = TCGPlayerProvider().get_configs()
     github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
     upload_prices_archive(config, github_local_path, archive_prices)
+
+
+def add_prices_to_mtgjson_set(
+    mtgjson_set: MtgjsonSetObject, price_data_cache: Dict[str, Any]
+) -> None:
+    """
+    Add the final pieces to the set (i.e. Price data)
+    :param mtgjson_set: Part 1 build
+    :param price_data_cache: Data cache to pull entries from
+    """
+    for mtgjson_card_object in mtgjson_set.cards:
+        single_price_entries: Dict[str, Dict[str, float]] = {}
+        data_entry = price_data_cache.get(mtgjson_card_object.uuid, {})
+        for key, value in data_entry.items():
+            if not isinstance(value, dict):
+                continue
+
+            if value:
+                max_value = max(value)
+                single_price_entries[key] = {max_value: value[max_value]}
+
+        mtgjson_card_object.prices = MtgjsonPricesObject(
+            mtgjson_card_object.uuid, single_price_entries
+        )

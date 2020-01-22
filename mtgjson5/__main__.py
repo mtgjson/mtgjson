@@ -1,67 +1,49 @@
 """
 MTGJSON Main Executor
 """
-from typing import Any, Dict, List, Set, Union
+from typing import Dict, List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
-from mtgjson5.classes import MtgjsonPricesObject, MtgjsonSetObject
 from mtgjson5.consts import OUTPUT_PATH
-from mtgjson5.price_builder import build_prices, get_price_archive_data
+from mtgjson5.output_generator import write_set_file
+from mtgjson5.price_builder import (
+    add_prices_to_mtgjson_set,
+    build_prices,
+    get_price_archive_data,
+)
+from mtgjson5.referral_builder import build_and_write_referral_map
 from mtgjson5.set_builder import build_mtgjson_set
 from mtgjson5.utils import get_thread_logger
-import simplejson as json
 
 LOGGER = get_thread_logger()
 
 
-def build_mtgjson_sets_part_2(
-    mtgjson_part_1_set: MtgjsonSetObject, price_data_cache: Dict[str, Any]
-) -> None:
-    """
-    Add the final pieces to the set (i.e. Price data)
-    :param mtgjson_part_1_set: Part 1 build
-    :param price_data_cache: Data cache to pull entries from
-    """
-    for mtgjson_card_object in mtgjson_part_1_set.cards:
-        single_price_entries: Dict[str, Dict[str, float]] = {}
-        data_entry = price_data_cache.get(mtgjson_card_object.uuid, {})
-        for key, value in data_entry.items():
-            if not isinstance(value, dict):
-                continue
-
-            if value:
-                max_value = max(value)
-                single_price_entries[key] = {max_value: value[max_value]}
-
-        mtgjson_card_object.prices = MtgjsonPricesObject(
-            mtgjson_card_object.uuid, single_price_entries
-        )
-
-
-def build_mtgjson_sets_part_1(
+def build_mtgjson_sets(
     sets_to_build: Union[Set[str], List[str]],
     price_data_cache: Dict[str, Dict[str, float]],
-    output_pretty: bool = False,
+    output_pretty: bool,
+    include_referrals: bool,
 ) -> None:
     """
     Build each set one-by-one and output them to a file
     :param sets_to_build: Sets to construct
     :param price_data_cache: Data cache
-    :param output_pretty: Should we dump minified? (Default=False)
+    :param output_pretty: Should we dump minified?
+    :param include_referrals: Should we include referrals?
     """
     for set_to_build in sets_to_build:
+        # Build the full set
         compiled_set = build_mtgjson_set(set_to_build)
-        build_mtgjson_sets_part_2(compiled_set, price_data_cache)
 
-        with OUTPUT_PATH.joinpath(f"{set_to_build}.json").open("w") as file:
-            json.dump(
-                obj=compiled_set,
-                fp=file,
-                for_json=True,
-                sort_keys=True,
-                indent=(4 if output_pretty else None),
-                ensure_ascii=False,
-            )
+        # Add single price lines to each card entry
+        add_prices_to_mtgjson_set(compiled_set, price_data_cache)
+
+        # Handle referral components
+        if include_referrals:
+            build_and_write_referral_map(compiled_set)
+
+        # Dump set out to file
+        write_set_file(compiled_set, output_pretty)
 
 
 def main() -> None:
@@ -83,7 +65,7 @@ def main() -> None:
     sets_to_build = get_sets_to_build(args)
     LOGGER.info(f"Building Sets: {sets_to_build}")
 
-    build_mtgjson_sets_part_1(sets_to_build, price_data_cache, args.pretty)
+    build_mtgjson_sets(sets_to_build, price_data_cache, args.pretty, args.referrals)
 
 
 if __name__ == "__main__":

@@ -160,7 +160,7 @@ class WizardsProvider(AbstractProvider):
         return_table = {}
         for key, value in table.items():
             if "English" not in value.keys():
-                self.logger.error(f"VALUE INCOMPLETE\t{key}: {value}")
+                self.logger.warning(f"VALUE INCOMPLETE\t{key}: {value}")
                 continue
 
             new_key = value["English"]
