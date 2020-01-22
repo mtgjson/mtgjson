@@ -8,3 +8,4 @@ from .gatherer_provider import GathererProvider
 from .scryfall_provider import ScryfallProvider
 from .tcgplayer_provider import TCGPlayerProvider
 from .whats_in_standard_provider import WhatsInStandardProvider
+from .wizards_provider import WizardsProvider

@@ -33,6 +33,7 @@ from .providers import (
     McmProvider,
     ScryfallProvider,
     WhatsInStandardProvider,
+    WizardsProvider,
 )
 from .utils import get_thread_logger, url_keygen
 
@@ -381,6 +382,9 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
     mtgjson_set.search_uri = set_data["search_uri"]
     mtgjson_set.mcm_name = McmProvider().get_set_name(mtgjson_set.name)
     mtgjson_set.mcm_id = McmProvider().get_set_id(mtgjson_set.name)
+    mtgjson_set.translations = WizardsProvider().get_translation_for_set(
+        mtgjson_set.code
+    )
 
     # Building cards is a process
     mtgjson_set.cards = build_base_mtgjson_cards(set_code)

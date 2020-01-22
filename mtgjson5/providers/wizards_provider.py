@@ -11,10 +11,11 @@ import requests
 import simplejson as json
 from singleton_decorator import singleton
 
-from . import ScryfallProvider
+from ..classes import MtgjsonTranslationsObject
 from ..consts import RESOURCE_PATH, WIZARDS_SUPPORTED_LANGUAGES
 from ..providers.abstract_provider import AbstractProvider
 from ..utils import get_thread_logger
+from .scryfall_provider import ScryfallProvider
 
 
 def set_names_to_set_codes(
@@ -59,6 +60,7 @@ class WizardsProvider(AbstractProvider):
 
     TRANSLATION_URL: str = "https://magic.wizards.com/{}/products/card-set-archive"
     COMP_RULES: str = "https://magic.wizards.com/en/game-info/gameplay/rules-and-formats/rules"
+    translation_table: Dict[str, Dict[str, str]] = {}
 
     def __init__(self) -> None:
         self.logger = get_thread_logger()
@@ -81,6 +83,21 @@ class WizardsProvider(AbstractProvider):
         self.session_pool.append(session)
         self.log_download(response)
         return response
+
+    def get_translation_for_set(self, set_code: str) -> MtgjsonTranslationsObject:
+        """
+        Get translations for a specific set, if it exists
+        :param set_code: Set code
+        :return: Set translations
+        """
+        if not self.translation_table:
+            self.logger.info("Initializing Translation Table")
+            self.build_translation_table()
+
+        if set_code in self.translation_table.keys():
+            return MtgjsonTranslationsObject(self.translation_table[set_code])
+
+        return MtgjsonTranslationsObject()
 
     def build_single_language(
         self,
@@ -152,7 +169,7 @@ class WizardsProvider(AbstractProvider):
 
         return return_table
 
-    def build_translation_table(self) -> Dict[str, Dict[str, str]]:
+    def build_translation_table(self) -> None:
         """
         Helper method to create the translation table for
         the end user. Should only be called once per week
@@ -170,4 +187,4 @@ class WizardsProvider(AbstractProvider):
         translation_table = self.convert_keys_to_set_names(translation_table)
         translation_table = set_names_to_set_codes(translation_table)
 
-        return translation_table
+        self.translation_table = translation_table
