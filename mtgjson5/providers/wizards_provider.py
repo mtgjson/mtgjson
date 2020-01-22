@@ -167,7 +167,6 @@ class WizardsProvider(AbstractProvider):
             )
 
         # Oh Wizards...
-        # translation_table = manual_fix_urls(translation_table)
         translation_table = self.convert_keys_to_set_names(translation_table)
         translation_table = set_names_to_set_codes(translation_table)
 
