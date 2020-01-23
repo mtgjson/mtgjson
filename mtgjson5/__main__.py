@@ -5,7 +5,7 @@ from typing import Dict, List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
 from mtgjson5.consts import OUTPUT_PATH
-from mtgjson5.output_generator import write_set_file
+from mtgjson5.output_generator import generate_compiled_output_files, write_set_file
 from mtgjson5.price_builder import (
     add_prices_to_mtgjson_set,
     build_prices,
@@ -59,13 +59,18 @@ def main() -> None:
         build_prices()
         return
 
-    LOGGER.info("Installing Price Cache")
-    price_data_cache = get_price_archive_data()
-
     sets_to_build = get_sets_to_build(args)
-    LOGGER.info(f"Building Sets: {sets_to_build}")
 
-    build_mtgjson_sets(sets_to_build, price_data_cache, args.pretty, args.referrals)
+    if sets_to_build:
+        LOGGER.info("Installing Price Cache")
+        price_data_cache = get_price_archive_data()
+
+        LOGGER.info(f"Building Sets: {sets_to_build}")
+        build_mtgjson_sets(sets_to_build, price_data_cache, args.pretty, args.referrals)
+
+    if args.full_build:
+        LOGGER.info("Building Compiled Outputs")
+        generate_compiled_output_files(args.pretty)
 
 
 if __name__ == "__main__":

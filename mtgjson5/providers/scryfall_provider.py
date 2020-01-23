@@ -24,6 +24,7 @@ class ScryfallProvider(AbstractProvider):
     VARIATIONS_URL: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}&unique=prints"
     CARDS_WITHOUT_LIMITS_URL: str = "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named)"
     CARDS_IN_BASE_SET_URL: str = "https://api.scryfall.com/cards/search?order=set&q=set:{0}%20is:booster%20unique:prints"
+    TYPE_CATALOG: str = "https://api.scryfall.com/catalog/{0}-types"
     cards_without_limits: Set[str]
 
     def __init__(self) -> None:
@@ -129,3 +130,11 @@ class ScryfallProvider(AbstractProvider):
             card["name"]
             for card in self.download(self.CARDS_WITHOUT_LIMITS_URL)["data"]
         }
+
+    def get_catalog_entry(self, catalog_key: str) -> List[str]:
+        """
+        Grab the Scryfall catalog of appropriate types
+        :param catalog_key: Type to find
+        :return: List of values found
+        """
+        return list(self.download(self.TYPE_CATALOG.format(catalog_key))["data"])
