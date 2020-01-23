@@ -400,10 +400,11 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
     )
 
     mtgjson_set.tcgplayer_group_id = set_data.get("tcgplayer_id")
-
-    mtgjson_set.base_set_size = get_base_set_size(set_code)
-    mtgjson_set.total_set_size = len(mtgjson_set.cards)
     mtgjson_set.booster_v3 = get_booster_contents_v3(set_code)
+
+    base_total_sizes = get_base_and_total_set_sizes(set_code)
+    mtgjson_set.base_set_size = base_total_sizes[0]
+    mtgjson_set.total_set_size = base_total_sizes[1]
 
     mark_duel_decks(set_code, mtgjson_set.cards)
 
@@ -855,29 +856,33 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
                 break
 
 
-def get_base_set_size(set_code: str) -> int:
+def get_base_and_total_set_sizes(set_code: str) -> Tuple[int, int]:
     """
     Get the size of a set from scryfall or corrections file
     :param set_code: Set code, upper case
-    :return: Amount of cards in set
+    :return: Amount of cards in set (base, total)
     """
     # Load cache if not loaded
     with RESOURCE_PATH.joinpath("base_set_sizes.json").open(encoding="utf-8") as f:
         base_set_size_override = simplejson.load(f)
 
-    # Manual correction
     if set_code in base_set_size_override.keys():
-        return int(base_set_size_override[set_code])
+        # Manual correction
+        base_set_size = int(base_set_size_override[set_code])
+    else:
+        # Download on the fly
+        base_set_size_download = ScryfallProvider().download(
+            ScryfallProvider().CARDS_IN_BASE_SET_URL.format(set_code)
+        )
+        if base_set_size_download["object"] == "error":
+            LOGGER.warning(f"Unable to get set size for {set_code}")
+            base_set_size = 0
+        else:
+            base_set_size = int(base_set_size_download["total_cards"])
 
-    # Download on the fly
-    content = ScryfallProvider().download(
-        ScryfallProvider().CARDS_IN_BASE_SET_URL.format(set_code)
-    )
-    if content["object"] == "error":
-        LOGGER.warning(f"Unable to get set size for {set_code}")
-        return 0
+    total_set_size = len(ScryfallProvider().download_cards(set_code))
 
-    return int(content["total_cards"])
+    return base_set_size, total_set_size
 
 
 def get_booster_contents_v3(set_code: str) -> Optional[List[Any]]:

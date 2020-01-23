@@ -1,6 +1,7 @@
 """
 Referral Map builder operations
 """
+import re
 from typing import List, Tuple
 
 from .classes import MtgjsonSetObject
@@ -23,13 +24,14 @@ def build_referral_map(mtgjson_set: MtgjsonSetObject) -> List[Tuple[str, str]]:
     :return: Referral content to dump
     """
     return_list = []
+    string_regex = re.compile(re.escape("scryfall"), re.IGNORECASE)
     for mtgjson_card_object in mtgjson_set.cards:
         for service, url in mtgjson_card_object.purchase_urls.for_json().items():
             return_list.append(
                 (
                     url.split("/")[-1],
-                    mtgjson_card_object.raw_purchase_urls[service].replace(
-                        "scryfall", "mtgjson"
+                    string_regex.sub(
+                        "mtgjson", mtgjson_card_object.raw_purchase_urls[service]
                     ),
                 )
             )
