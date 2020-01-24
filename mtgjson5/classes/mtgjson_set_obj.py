@@ -59,6 +59,8 @@ class MtgjsonSetObject:
             "tokens",
             "is_foil_only",
             "is_online_only",
+            "base_set_size",
+            "total_set_size",
         }
 
         for key, value in self.__dict__.items():
