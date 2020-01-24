@@ -1,7 +1,8 @@
 """
 MTGJSON output generator to write out contents to file & accessory methods
 """
-from typing import Any
+import pathlib
+from typing import Any, Dict, List
 
 import simplejson as json
 
@@ -15,7 +16,7 @@ from .compiled_classes import (
     MtgjsonSetListObject,
     MtgjsonStructuresObject,
 )
-from .consts import OUTPUT_PATH
+from .consts import OUTPUT_PATH, SUPPORTED_FORMAT_OUTPUTS, SUPPORTED_SET_TYPES
 from .utils import get_thread_logger
 
 LOGGER = get_thread_logger()
@@ -82,6 +83,46 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
         MtgjsonStructuresObject().all_cards, MtgjsonAllCardsObject(), pretty_print,
     )
 
+    # Creating of sub-type files based on larger files
+    format_map = construct_format_map(
+        OUTPUT_PATH.joinpath(f"{MtgjsonStructuresObject().all_printings}.json")
+    )
+
+    # StandardPrintings.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_printings_standard,
+        MtgjsonAllPrintingsObject(format_map["standard"]),
+        pretty_print,
+    )
+
+    # PioneerPrintings.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_printings_pioneer,
+        MtgjsonAllPrintingsObject(format_map["pioneer"]),
+        pretty_print,
+    )
+
+    # ModernPrintings.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_printings_modern,
+        MtgjsonAllPrintingsObject(format_map["modern"]),
+        pretty_print,
+    )
+
+    # LegacyPrintings.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_printings_legacy,
+        MtgjsonAllPrintingsObject(format_map["legacy"]),
+        pretty_print,
+    )
+
+    # VintagePrintings.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_printings_vintage,
+        MtgjsonAllPrintingsObject(format_map["vintage"]),
+        pretty_print,
+    )
+
 
 def log_and_create_compiled_output(
     compiled_name: str, compiled_object: Any, pretty_print: bool
@@ -116,3 +157,40 @@ def write_compiled_output_to_file(
             indent=(4 if pretty_print else None),
             ensure_ascii=False,
         )
+
+
+def construct_format_map(
+    all_printings_path: pathlib.Path, normal_sets_only: bool = True
+) -> Dict[str, List[str]]:
+    """
+    For each set in AllPrintings, determine what format(s) the set is
+    legal in and put the set's key into that specific entry in the
+    return value.
+    :param all_printings_path: Path to AllPrintings.json
+    :param normal_sets_only: Should we only handle normal sets
+    :return: Format Map for future identifications
+    """
+    format_map: Dict[str, List[str]] = {
+        magic_format: [] for magic_format in SUPPORTED_FORMAT_OUTPUTS
+    }
+
+    if not all_printings_path.is_file():
+        LOGGER.warning(f"{all_printings_path} was not found, skipping format map")
+        return {}
+
+    with all_printings_path.open(encoding="utf-8") as file:
+        content = json.load(file)
+
+    for set_code_key, set_code_content in content.items():
+        if normal_sets_only and set_code_content["type"] not in SUPPORTED_SET_TYPES:
+            continue
+
+        formats_set_legal_in = SUPPORTED_FORMAT_OUTPUTS
+        for card in set_code_content.get("cards"):
+            card_legalities = set(card.get("legalities").keys())
+            formats_set_legal_in = formats_set_legal_in.intersection(card_legalities)
+
+        for magic_format in formats_set_legal_in:
+            format_map[magic_format].append(set_code_key)
+
+    return format_map

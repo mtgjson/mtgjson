@@ -61,7 +61,6 @@ LANGUAGE_MAP: Dict[str, str] = {
     "sa": "Sanskrit",
     "px": "Phyrexian",
 }
-
 WIZARDS_SUPPORTED_LANGUAGES: List[Tuple[str, str]] = [
     ("zh-hans", "Chinese Simplified"),
     ("zh-hant", "Chinese Traditional"),
@@ -75,7 +74,6 @@ WIZARDS_SUPPORTED_LANGUAGES: List[Tuple[str, str]] = [
     ("es", "Spanish"),
     ("en", "English"),
 ]
-
 SYMBOL_MAP: Dict[str, str] = {
     "White": "W",
     "Blue": "U",
@@ -141,4 +139,19 @@ BAD_FILE_NAMES: Set[str] = {
     "LPT9",
     "NUL",
     "PRN",
+}
+SUPPORTED_FORMAT_OUTPUTS: Set[str] = {
+    "standard",
+    "pioneer",
+    "modern",
+    "legacy",
+    "vintage",
+    "pauper",
+}
+SUPPORTED_SET_TYPES: Set[str] = {
+    "expansion",
+    "core",
+    "draft_innovation",
+    "commander",
+    "masters",
 }
