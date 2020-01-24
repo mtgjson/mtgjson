@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Set
 
 from singleton_decorator import singleton
 
-from ..utils import to_camel_case
+from mtgjson5.utils import to_camel_case
 
 
 @singleton
@@ -68,12 +68,19 @@ class MtgjsonStructuresObject:
         self.all_cards_vintage: str = "VintageCards"
         self.all_cards_pauper: str = "PauperCards"
 
+    def get_all_compiled_file_names(self) -> List[str]:
+        """
+        Get all files that are compiled outputs
+        :return: Compiled outputs files
+        """
+        return list(set(self.__dict__.values()))
+
     def get_compiled_list_files(self) -> List[str]:
         """
         Get all files that should appear in CompiledList.json
         :return: Files for CompiledList.json
         """
-        return list(set(self.__dict__.values()) - {self.referral_database})
+        return list(set(self.get_all_compiled_file_names()) - {self.referral_database})
 
     def for_json(self) -> Dict[str, Any]:
         """

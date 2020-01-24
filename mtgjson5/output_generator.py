@@ -3,14 +3,19 @@ MTGJSON output generator to write out contents to file & accessory methods
 """
 from typing import Any
 
-from mtgjson5.classes import MtgjsonSetObject, MtgjsonStructuresObject
-from mtgjson5.compiled_classes import (
+from .classes import (
+    MtgjsonSetObject,
+    MtgjsonMetaObject,
+)
+from .compiled_classes import (
     MtgjsonCardTypesObject,
     MtgjsonCompiledListObject,
     MtgjsonKeywordsObject,
+    MtgjsonStructuresObject,
+    MtgjsonSetListObject,
 )
-from mtgjson5.consts import OUTPUT_PATH
-from mtgjson5.utils import get_thread_logger
+from .consts import OUTPUT_PATH
+from .utils import get_thread_logger
 import simplejson as json
 
 LOGGER = get_thread_logger()
@@ -39,24 +44,44 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     :param pretty_print: Pretty or minimal
     """
     # CompiledList.json
-    LOGGER.info(f"Generating {MtgjsonStructuresObject().compiled_list}")
-    write_compiled_output_to_file(
+    log_and_create_compiled_output(
         MtgjsonStructuresObject().compiled_list,
         MtgjsonCompiledListObject(),
         pretty_print,
     )
 
     # Keywords.json
-    LOGGER.info(f"Generating {MtgjsonStructuresObject().key_words}")
-    write_compiled_output_to_file(
-        MtgjsonStructuresObject().key_words, MtgjsonKeywordsObject(), pretty_print
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().key_words, MtgjsonKeywordsObject(), pretty_print,
     )
 
     # CardTypes.json
-    LOGGER.info(f"Generating {MtgjsonStructuresObject().card_types}")
-    write_compiled_output_to_file(
-        MtgjsonStructuresObject().card_types, MtgjsonCardTypesObject(), pretty_print
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().card_types, MtgjsonCardTypesObject(), pretty_print,
     )
+
+    # version.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().version, MtgjsonMetaObject(), pretty_print,
+    )
+
+    # SetList.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().set_list, MtgjsonSetListObject(), pretty_print
+    )
+
+
+def log_and_create_compiled_output(
+    compiled_name, compiled_object, pretty_print
+) -> None:
+    """
+    Log and write out a compiled output file
+    :param compiled_name: What file to save
+    :param compiled_object: What content to write
+    :param pretty_print: Pretty or minimal
+    """
+    LOGGER.info(f"Generating {compiled_name}")
+    write_compiled_output_to_file(compiled_name, compiled_object, pretty_print)
 
 
 def write_compiled_output_to_file(

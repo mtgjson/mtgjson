@@ -3,7 +3,8 @@ MTGJSON CompiledList container
 """
 from typing import Any, Dict, List
 
-from ..classes import MtgjsonMetaObject, MtgjsonStructuresObject
+from .mtgjson_structures_obj import MtgjsonStructuresObject
+from ..classes import MtgjsonMetaObject
 from ..utils import to_camel_case
 
 
@@ -16,10 +17,7 @@ class MtgjsonCompiledListObject:
     meta: MtgjsonMetaObject
 
     def __init__(self) -> None:
-        self.files = list(
-            set(MtgjsonStructuresObject().__dict__.values())
-            - {MtgjsonStructuresObject().referral_database}
-        )
+        self.files = MtgjsonStructuresObject().get_compiled_list_files()
         self.meta = MtgjsonMetaObject()
 
     def for_json(self) -> Dict[str, Any]:

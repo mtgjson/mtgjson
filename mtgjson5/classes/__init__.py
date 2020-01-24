@@ -11,5 +11,4 @@ from .mtgjson_prices_obj import MtgjsonPricesObject
 from .mtgjson_purchase_urls_obj import MtgjsonPurchaseUrlsObject
 from .mtgjson_rulings_obj import MtgjsonRulingObject
 from .mtgjson_set_obj import MtgjsonSetObject
-from .mtgjson_structures_obj import MtgjsonStructuresObject
 from .mtgjson_translations_obj import MtgjsonTranslationsObject
