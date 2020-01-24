@@ -51,3 +51,22 @@ def get_thread_logger() -> logging.Logger:
     frame = inspect.stack()[1]
     file_name = frame[0].f_code.co_filename
     return logging.getLogger(file_name)
+
+
+def parse_magic_rules_subset(
+    magic_rules: str, start_header: str, end_header: str
+) -> str:
+    """
+    Split up the magic rules to get a smaller working subset for parsing
+    :param magic_rules: Magic rules to split up
+    :param start_header: Start of content
+    :param end_header: End of content
+    :return: Smaller set of content
+    """
+    # Keyword actions are found in section XXX
+    magic_rules = magic_rules.split(start_header)[2].split(end_header)[0]
+
+    # Windows line endings... yuck
+    valid_line_segments = "\n".join(magic_rules.split("\r\n"))
+
+    return valid_line_segments

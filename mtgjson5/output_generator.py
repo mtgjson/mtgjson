@@ -1,20 +1,17 @@
 """
 MTGJSON output generator to write out contents to file & accessory methods
 """
-from typing import Any, Dict
+from typing import Any
 
-from mtgjson5.classes import MtgjsonSetObject
-from mtgjson5.classes.mtgjson_structures_obj import MtgjsonStructuresObject
-from mtgjson5.consts import (
-    MTGJSON_BUILD_DATE,
-    MTGJSON_PRICE_BUILD_DATE,
-    MTGJSON_VERSION,
-    OUTPUT_PATH,
+from mtgjson5.classes import MtgjsonSetObject, MtgjsonStructuresObject
+from mtgjson5.compiled_classes import (
+    MtgjsonCardTypesObject,
+    MtgjsonCompiledListObject,
+    MtgjsonKeywordsObject,
 )
-from mtgjson5.providers import WizardsProvider
-import simplejson as json
-
+from mtgjson5.consts import OUTPUT_PATH
 from mtgjson5.utils import get_thread_logger
+import simplejson as json
 
 LOGGER = get_thread_logger()
 
@@ -36,51 +33,6 @@ def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> 
         )
 
 
-def get_meta_information() -> Dict[str, str]:
-    """
-    Get MTGJSON meta information
-    :return: Meta information
-    """
-    return {
-        "version": MTGJSON_VERSION,
-        "date": MTGJSON_BUILD_DATE,
-        "pricesDate": MTGJSON_PRICE_BUILD_DATE,
-    }
-
-
-def create_compiled_list_output() -> Dict[str, Any]:
-    """
-    Create the compiled list output file
-    :return: CompiledList.json file content
-    """
-    return {
-        "files": sorted(MtgjsonStructuresObject().get_compiled_list_files()),
-        "meta": get_meta_information(),
-    }
-
-
-def create_keywords_output() -> Dict[str, Any]:
-    """
-    Give a compiled dictionary result of the key phrases that can be
-    found in the MTG comprehensive rule book.
-    :return: Keywords.json file content
-    """
-    return {
-        "abilityWords": WizardsProvider().get_magic_ability_words(),
-        "keywordActions": WizardsProvider().get_keyword_actions(),
-        "keywordAbilities": WizardsProvider().get_keyword_abilities(),
-        "meta": get_meta_information(),
-    }
-
-
-def create_card_types_output() -> Dict[str, Any]:
-    """
-    Create the card types list output file
-    :return: CardTypes.json file c ontent
-    """
-    return {"types": WizardsProvider().get_card_types(), "meta": get_meta_information()}
-
-
 def generate_compiled_output_files(pretty_print: bool) -> None:
     """
     Create and dump all compiled outputs
@@ -90,20 +42,20 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     LOGGER.info(f"Generating {MtgjsonStructuresObject().compiled_list}")
     write_compiled_output_to_file(
         MtgjsonStructuresObject().compiled_list,
-        create_compiled_list_output(),
+        MtgjsonCompiledListObject(),
         pretty_print,
     )
 
     # Keywords.json
     LOGGER.info(f"Generating {MtgjsonStructuresObject().key_words}")
     write_compiled_output_to_file(
-        MtgjsonStructuresObject().key_words, create_keywords_output(), pretty_print
+        MtgjsonStructuresObject().key_words, MtgjsonKeywordsObject(), pretty_print
     )
 
     # CardTypes.json
     LOGGER.info(f"Generating {MtgjsonStructuresObject().card_types}")
     write_compiled_output_to_file(
-        MtgjsonStructuresObject().card_types, create_card_types_output(), pretty_print
+        MtgjsonStructuresObject().card_types, MtgjsonCardTypesObject(), pretty_print
     )
 
 
@@ -121,6 +73,7 @@ def write_compiled_output_to_file(
         json.dump(
             obj=file_contents,
             fp=file,
+            for_json=True,
             sort_keys=True,
             indent=(4 if pretty_print else None),
             ensure_ascii=False,

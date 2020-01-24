@@ -1,3 +1,4 @@
+unidecode
 beautifulsoup4
 GitPython
 mkmsdk

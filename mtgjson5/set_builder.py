@@ -410,9 +410,7 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
 
     # Implicit Variables
     mtgjson_set.is_foreign_only = mtgjson_set.code in FOREIGN_SETS
-    mtgjson_set.is_partial_preview = (
-        mtgjson_set.meta.date.strftime("%Y-%m-%d") < mtgjson_set.release_date
-    )
+    mtgjson_set.is_partial_preview = mtgjson_set.meta.date < mtgjson_set.release_date
 
     return mtgjson_set
 
