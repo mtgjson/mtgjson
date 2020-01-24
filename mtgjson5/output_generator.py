@@ -3,20 +3,20 @@ MTGJSON output generator to write out contents to file & accessory methods
 """
 from typing import Any
 
-from .classes import (
-    MtgjsonSetObject,
-    MtgjsonMetaObject,
-)
+import simplejson as json
+
+from .classes import MtgjsonMetaObject, MtgjsonSetObject
 from .compiled_classes import (
+    MtgjsonAllCardsObject,
+    MtgjsonAllPrintingsObject,
     MtgjsonCardTypesObject,
     MtgjsonCompiledListObject,
     MtgjsonKeywordsObject,
-    MtgjsonStructuresObject,
     MtgjsonSetListObject,
+    MtgjsonStructuresObject,
 )
 from .consts import OUTPUT_PATH
 from .utils import get_thread_logger
-import simplejson as json
 
 LOGGER = get_thread_logger()
 
@@ -70,9 +70,21 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
         MtgjsonStructuresObject().set_list, MtgjsonSetListObject(), pretty_print
     )
 
+    # AllPrintings.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_printings,
+        MtgjsonAllPrintingsObject(),
+        pretty_print,
+    )
+
+    # AllCards.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_cards, MtgjsonAllCardsObject(), pretty_print,
+    )
+
 
 def log_and_create_compiled_output(
-    compiled_name, compiled_object, pretty_print
+    compiled_name: str, compiled_object: Any, pretty_print: bool
 ) -> None:
     """
     Log and write out a compiled output file
@@ -82,6 +94,7 @@ def log_and_create_compiled_output(
     """
     LOGGER.info(f"Generating {compiled_name}")
     write_compiled_output_to_file(compiled_name, compiled_object, pretty_print)
+    LOGGER.debug(f"Finished Generating {compiled_name}")
 
 
 def write_compiled_output_to_file(

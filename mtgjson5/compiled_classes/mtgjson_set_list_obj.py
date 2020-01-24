@@ -5,8 +5,8 @@ from typing import Any, Dict, List
 
 import simplejson as json
 
-from .mtgjson_structures_obj import MtgjsonStructuresObject
 from ..consts import OUTPUT_PATH
+from .mtgjson_structures_obj import MtgjsonStructuresObject
 
 
 class MtgjsonSetListObject:

@@ -3,9 +3,9 @@ MTGJSON CompiledList container
 """
 from typing import Any, Dict, List
 
-from .mtgjson_structures_obj import MtgjsonStructuresObject
 from ..classes import MtgjsonMetaObject
 from ..utils import to_camel_case
+from .mtgjson_structures_obj import MtgjsonStructuresObject
 
 
 class MtgjsonCompiledListObject:

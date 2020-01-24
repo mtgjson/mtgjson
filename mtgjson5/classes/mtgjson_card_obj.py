@@ -128,6 +128,48 @@ class MtgjsonCardObject:
         except ValueError:
             return bool(self.number < other.number)
 
+    @staticmethod
+    def get_atomic_keys() -> List[str]:
+        """
+        Get attributes of a card that don't change
+        from printing to printing
+        :return: Keys that are atomic
+        """
+        return [
+            "color_identity",
+            "color_indicator",
+            "colors",
+            "converted_mana_cost",
+            "count",
+            "edhrec_rank",
+            "face_converted_mana_cost",
+            "foreign_data",
+            "hand",
+            "has_no_deck_limit",
+            "is_reserved",
+            "layout",
+            "leadership_skills",
+            "legalities",
+            "life",
+            "loyalty",
+            "mana_cost",
+            "name",
+            "names",
+            "power",
+            "printings",
+            "purchase_urls",
+            "rulings",
+            "scryfall_oracle_id",
+            "side",
+            "subtypes",
+            "supertypes",
+            "text",
+            "toughness",
+            "type",
+            "types",
+            "uuid",
+        ]
+
     def build_keys_to_skip(self) -> Set[str]:
         """
         Build this object's instance of what keys to skip under certain circumstances

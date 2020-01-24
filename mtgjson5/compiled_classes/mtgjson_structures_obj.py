@@ -3,9 +3,8 @@ MTGJSON container that holds what output files should be generated
 """
 from typing import Any, Dict, List, Set
 
-from singleton_decorator import singleton
-
 from mtgjson5.utils import to_camel_case
+from singleton_decorator import singleton
 
 
 @singleton
