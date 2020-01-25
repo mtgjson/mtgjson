@@ -78,15 +78,8 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
         pretty_print,
     )
 
-    # AllCards.json
-    log_and_create_compiled_output(
-        MtgjsonStructuresObject().all_cards, MtgjsonAllCardsObject(), pretty_print,
-    )
-
-    # Creating of sub-type files based on larger files
-    format_map = construct_format_map(
-        OUTPUT_PATH.joinpath(f"{MtgjsonStructuresObject().all_printings}.json")
-    )
+    # Format specific set code split up
+    format_map = construct_format_map()
 
     # StandardPrintings.json
     log_and_create_compiled_output(
@@ -120,6 +113,56 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     log_and_create_compiled_output(
         MtgjsonStructuresObject().all_printings_vintage,
         MtgjsonAllPrintingsObject(format_map["vintage"]),
+        pretty_print,
+    )
+
+    # AllCards.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_cards, MtgjsonAllCardsObject(), pretty_print,
+    )
+
+    # Format specific card split up
+    card_format_map = construct_all_cards_format_map()
+
+    # StandardCards.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_cards_standard,
+        MtgjsonAllCardsObject(card_format_map["standard"]),
+        pretty_print,
+    )
+
+    # PioneerCards.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_cards_pioneer,
+        MtgjsonAllCardsObject(card_format_map["pioneer"]),
+        pretty_print,
+    )
+
+    # ModernCards.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_cards_modern,
+        MtgjsonAllCardsObject(card_format_map["modern"]),
+        pretty_print,
+    )
+
+    # LegacyCards.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_cards_legacy,
+        MtgjsonAllCardsObject(card_format_map["legacy"]),
+        pretty_print,
+    )
+
+    # VintageCards.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_cards_vintage,
+        MtgjsonAllCardsObject(card_format_map["vintage"]),
+        pretty_print,
+    )
+
+    # PauperCards.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_cards_pauper,
+        MtgjsonAllCardsObject(card_format_map["pauper"]),
         pretty_print,
     )
 
@@ -160,7 +203,10 @@ def write_compiled_output_to_file(
 
 
 def construct_format_map(
-    all_printings_path: pathlib.Path, normal_sets_only: bool = True
+    all_printings_path: pathlib.Path = OUTPUT_PATH.joinpath(
+        f"{MtgjsonStructuresObject().all_printings}.json"
+    ),
+    normal_sets_only: bool = True,
 ) -> Dict[str, List[str]]:
     """
     For each set in AllPrintings, determine what format(s) the set is
@@ -194,3 +240,35 @@ def construct_format_map(
             format_map[magic_format].append(set_code_key)
 
     return format_map
+
+
+def construct_all_cards_format_map(
+    all_printings_path: pathlib.Path = OUTPUT_PATH.joinpath(
+        f"{MtgjsonStructuresObject().all_printings}.json"
+    ),
+) -> Dict[str, Any]:
+    """
+    Construct a format map for cards instead of sets,
+    allowing for easy parsing and dispatching to different
+    files.
+    :param all_printings_path: Path to AllPrintings.json
+    :return: Cards in a format map
+    """
+    format_card_map: Dict[str, Dict[str, Dict[str, Any]]] = {
+        magic_format: {} for magic_format in SUPPORTED_FORMAT_OUTPUTS
+    }
+
+    if not all_printings_path.is_file():
+        LOGGER.warning(f"{all_printings_path} was not found, skipping format map")
+        return {}
+
+    with all_printings_path.open(encoding="utf-8") as file:
+        content = json.load(file)
+
+    for set_contents in content.values():
+        for card in set_contents.get("cards"):
+            for magic_format in format_card_map.keys():
+                if card.get("legalities").get(magic_format) in {"Legal", "Restricted"}:
+                    format_card_map[magic_format][card["name"]] = card
+
+    return format_card_map
