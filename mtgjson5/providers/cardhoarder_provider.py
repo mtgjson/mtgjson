@@ -2,15 +2,15 @@
 CardHoarder 3rd party provider
 """
 import datetime
+import logging
 from typing import Any, Dict, List, Union
 
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
 from ..providers.abstract_provider import AbstractProvider
-from ..utils import get_thread_logger
 
-LOGGER = get_thread_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 @singleton
@@ -26,7 +26,7 @@ class CardhoarderProvider(AbstractProvider):
         """
         Initializer
         """
-        get_thread_logger()
+
         super().__init__(self._build_http_header())
 
     def _build_http_header(self) -> Dict[str, str]:

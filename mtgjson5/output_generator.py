@@ -1,6 +1,7 @@
 """
 MTGJSON output generator to write out contents to file & accessory methods
 """
+import logging
 import pathlib
 from typing import Any, Dict, List
 
@@ -17,9 +18,8 @@ from .compiled_classes import (
     MtgjsonStructuresObject,
 )
 from .consts import OUTPUT_PATH, SUPPORTED_FORMAT_OUTPUTS, SUPPORTED_SET_TYPES
-from .utils import get_thread_logger
 
-LOGGER = get_thread_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> None:

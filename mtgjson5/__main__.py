@@ -1,6 +1,7 @@
 """
 MTGJSON Main Executor
 """
+import logging
 from typing import Dict, List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
@@ -13,9 +14,9 @@ from mtgjson5.price_builder import (
 )
 from mtgjson5.referral_builder import build_and_write_referral_map
 from mtgjson5.set_builder import build_mtgjson_set
-from mtgjson5.utils import get_thread_logger
+from mtgjson5.utils import init_logger
 
-LOGGER = get_thread_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 def build_mtgjson_sets(
@@ -50,7 +51,7 @@ def main() -> None:
     """
     MTGJSON Main Executor
     """
-    get_thread_logger()
+
     args = parse_args()
 
     OUTPUT_PATH.mkdir(exist_ok=True)
@@ -74,4 +75,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    init_logger()
     main()

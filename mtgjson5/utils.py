@@ -2,7 +2,6 @@
 MTGJSON simple utilities
 """
 import hashlib
-import inspect
 import logging
 import time
 from typing import Union
@@ -31,26 +30,25 @@ def to_camel_case(snake_str: str) -> str:
     return components[0] + "".join(x.title() for x in components[1:])
 
 
-def get_thread_logger() -> logging.Logger:
+def init_logger() -> None:
     """
-    Logging configuration
+    Initialize the main system logger
     """
     LOG_PATH.mkdir(exist_ok=True)
-
-    time_now = time.strftime("%Y-%m-%d_%H.%M")
-
     logging.basicConfig(
         level=logging.INFO,
         format="[%(levelname)s] %(asctime)s: %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler(str(LOG_PATH.joinpath(f"mtgjson_{time_now}.log"))),
+            logging.FileHandler(
+                str(
+                    LOG_PATH.joinpath(
+                        "mtgjson_" + str(time.strftime("%Y-%m-%d_%H.%M.%S")) + ".log"
+                    )
+                )
+            ),
         ],
     )
-
-    frame = inspect.stack()[1]
-    file_name = frame[0].f_code.co_filename
-    return logging.getLogger(file_name)
 
 
 def parse_magic_rules_subset(

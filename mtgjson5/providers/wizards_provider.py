@@ -1,7 +1,7 @@
 """
 Wizards Site 3rd party provider
 """
-
+import logging
 import re
 from typing import Dict, Union
 
@@ -15,7 +15,6 @@ from ..classes import MtgjsonTranslationsObject
 from ..consts import RESOURCE_PATH, WIZARDS_SUPPORTED_LANGUAGES
 from ..providers.abstract_provider import AbstractProvider
 from ..providers.scryfall_provider import ScryfallProvider
-from ..utils import get_thread_logger
 
 
 @singleton
@@ -30,7 +29,7 @@ class WizardsProvider(AbstractProvider):
     magic_rules: str = ""
 
     def __init__(self) -> None:
-        self.logger = get_thread_logger()
+        self.logger = logging.getLogger(__name__)
         super().__init__(self._build_http_header())
 
     def _build_http_header(self) -> Dict[str, str]:

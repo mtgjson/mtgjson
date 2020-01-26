@@ -8,7 +8,6 @@ import dateutil.parser
 from singleton_decorator import singleton
 
 from ..providers.abstract_provider import AbstractProvider
-from ..utils import get_thread_logger
 
 
 @singleton
@@ -21,7 +20,7 @@ class WhatsInStandardProvider(AbstractProvider):
     set_codes: Set[str]
 
     def __init__(self) -> None:
-        get_thread_logger()
+
         super().__init__(self._build_http_header())
 
         self.set_codes = self.standard_legal_set_codes()

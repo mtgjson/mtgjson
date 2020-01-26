@@ -3,6 +3,7 @@ Construct Prices for MTGJSON
 """
 import configparser
 import datetime
+import logging
 import lzma
 import pathlib
 import shutil
@@ -15,9 +16,8 @@ import simplejson as json
 from .classes import MtgjsonPricesObject, MtgjsonSetObject
 from .consts import CACHE_PATH, OUTPUT_PATH
 from .providers import CardhoarderProvider, TCGPlayerProvider
-from .utils import get_thread_logger
 
-LOGGER = get_thread_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 def download_prices_archive(

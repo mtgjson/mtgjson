@@ -1,7 +1,7 @@
 """
 MKM 3rd party provider
 """
-
+import logging
 import os
 from typing import Any, Dict, Optional, Union
 
@@ -10,9 +10,8 @@ from mkmsdk.mkm import Mkm
 from singleton_decorator import singleton
 
 from ..providers.abstract_provider import AbstractProvider
-from ..utils import get_thread_logger
 
-LOGGER = get_thread_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 @singleton

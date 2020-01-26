@@ -3,6 +3,7 @@ TCGPlayer 3rd party provider
 """
 import collections
 import datetime
+import logging
 import multiprocessing
 import pathlib
 from typing import Any, Dict, List, Tuple, Union
@@ -15,9 +16,8 @@ from singleton_decorator import singleton
 from ..classes import MtgjsonPricesObject
 from ..consts import CACHE_PATH
 from ..providers.abstract_provider import AbstractProvider
-from ..utils import get_thread_logger
 
-LOGGER = get_thread_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 def generate_tcgplayer_to_mtgjson_map(
@@ -98,7 +98,7 @@ class TCGPlayerProvider(AbstractProvider):
         """
         Initializer
         """
-        get_thread_logger()
+
         super().__init__(self._build_http_header())
 
     def _build_http_header(self) -> Dict[str, str]:

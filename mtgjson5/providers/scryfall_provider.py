@@ -1,15 +1,14 @@
 """
 Scryfall 3rd party provider
 """
-
+import logging
 from typing import Any, Dict, List, Set, Union
 
 from singleton_decorator import singleton
 
 from ..providers.abstract_provider import AbstractProvider
-from ..utils import get_thread_logger
 
-LOGGER = get_thread_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 @singleton
@@ -28,7 +27,7 @@ class ScryfallProvider(AbstractProvider):
     cards_without_limits: Set[str]
 
     def __init__(self) -> None:
-        get_thread_logger()
+
         super().__init__(self._build_http_header())
 
         self.cards_without_limits = self.generate_cards_without_limits()

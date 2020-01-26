@@ -12,7 +12,6 @@ from singleton_decorator import singleton
 
 from ..consts import SYMBOL_MAP
 from ..providers.abstract_provider import AbstractProvider
-from ..utils import get_thread_logger
 
 
 class GathererCard(NamedTuple):
@@ -36,7 +35,7 @@ class GathererProvider(AbstractProvider):
     SETS_TO_REMOVE_PARENTHESES = {"10E"}
 
     def __init__(self) -> None:
-        get_thread_logger()
+
         super().__init__(self._build_http_header())
 
     def _build_http_header(self) -> Dict[str, str]:

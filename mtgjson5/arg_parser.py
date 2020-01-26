@@ -2,14 +2,14 @@
 MTGJSON Arg Parser to determine what actions to run
 """
 import argparse
+import logging
 import pathlib
 from typing import List
 
 from .consts import BAD_FILE_NAMES, OUTPUT_PATH
 from .providers import ScryfallProvider
-from .utils import get_thread_logger
 
-LOGGER = get_thread_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 def parse_args() -> argparse.Namespace:

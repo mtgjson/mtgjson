@@ -6,6 +6,7 @@ from __future__ import annotations
 import abc
 import collections
 import configparser
+import logging
 import multiprocessing
 from typing import Any, Deque, Dict, Union
 
@@ -15,9 +16,8 @@ import requests_cache
 import urllib3
 
 from ..consts import CACHE_PATH, CONFIG_PATH, USE_CACHE
-from ..utils import get_thread_logger
 
-LOGGER = get_thread_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 class AbstractProvider(abc.ABC):
@@ -29,7 +29,6 @@ class AbstractProvider(abc.ABC):
     session_pool: Deque[requests.Session]
 
     def __init__(self, headers: Dict[str, str]):
-        get_thread_logger()
 
         super().__init__()
 

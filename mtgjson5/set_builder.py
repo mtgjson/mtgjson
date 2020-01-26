@@ -2,6 +2,7 @@
 MTGJSON Set Builder
 """
 import itertools
+import logging
 import multiprocessing
 import pathlib
 import re
@@ -35,9 +36,9 @@ from .providers import (
     WhatsInStandardProvider,
     WizardsProvider,
 )
-from .utils import get_thread_logger, url_keygen
+from .utils import url_keygen
 
-LOGGER = get_thread_logger()
+LOGGER = logging.getLogger(__name__)
 
 
 def parse_foreign(
