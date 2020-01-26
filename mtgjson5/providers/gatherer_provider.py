@@ -7,7 +7,6 @@ from typing import Dict, List, NamedTuple, Optional, Union
 
 import bs4
 import requests
-
 from singleton_decorator import singleton
 
 from ..consts import SYMBOL_MAP

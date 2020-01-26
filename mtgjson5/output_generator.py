@@ -28,6 +28,7 @@ def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> 
     :param mtgjson_set_object: Set to write out
     :param pretty_print: Should it be pretty or minimized?
     """
+    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
     with OUTPUT_PATH.joinpath(f"{mtgjson_set_object.code}.json").open("w") as file:
         json.dump(
             obj=mtgjson_set_object,
@@ -39,11 +40,19 @@ def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> 
         )
 
 
-def generate_compiled_output_files(pretty_print: bool) -> None:
+def generate_compiled_output_files(
+    price_data: Dict[str, Any], pretty_print: bool
+) -> None:
     """
     Create and dump all compiled outputs
+    :param price_data: Price data to output
     :param pretty_print: Pretty or minimal
     """
+    # AllPrices.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_prices, price_data, pretty_print,
+    )
+
     # CompiledList.json
     log_and_create_compiled_output(
         MtgjsonStructuresObject().compiled_list,

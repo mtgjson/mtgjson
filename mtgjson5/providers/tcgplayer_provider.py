@@ -9,7 +9,6 @@ import pathlib
 from typing import Any, Dict, List, Tuple, Union
 
 import requests
-
 import simplejson as json
 from singleton_decorator import singleton
 

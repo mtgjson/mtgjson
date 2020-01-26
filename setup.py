@@ -1,6 +1,8 @@
 """
 Installation setup for mtgjson5
 """
+import pathlib
+
 import setuptools
 
 
@@ -44,5 +46,7 @@ setuptools.setup(
     ],
     include_package_data=True,
     packages=setuptools.find_packages(),
-    install_requires=open("requirements.txt").read().splitlines(),
+    install_requires=pathlib.Path("requirements.txt").open().read().splitlines()
+    if pathlib.Path("requirements.txt").is_file()
+    else [],
 )

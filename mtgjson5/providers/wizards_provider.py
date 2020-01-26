@@ -7,7 +7,6 @@ from typing import Dict, Union
 
 import bs4
 import requests
-
 import simplejson as json
 from singleton_decorator import singleton
 

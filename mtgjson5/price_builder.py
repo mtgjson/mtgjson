@@ -177,10 +177,11 @@ def get_price_archive_data() -> Dict[str, Dict[str, float]]:
     )
 
 
-def build_prices() -> None:
+def build_prices() -> Dict[str, Any]:
     """
     The full build prices operation
     Prune & Update remote database
+    :return Latest prices
     """
     # Get today's price database
     LOGGER.info("Building new price data")
@@ -201,6 +202,9 @@ def build_prices() -> None:
     config = TCGPlayerProvider().get_configs()
     github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
     upload_prices_archive(config, github_local_path, archive_prices)
+
+    # Return the latest prices
+    return archive_prices
 
 
 def add_prices_to_mtgjson_set(
