@@ -40,6 +40,19 @@ def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> 
         )
 
 
+def generate_compiled_prices_output(
+    price_data: Dict[str, Any], pretty_print: bool
+) -> None:
+    """
+    Dump AllPrices to a file
+    :param price_data: Data to dump
+    :param pretty_print: Pretty or minimal
+    """
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_prices, price_data, pretty_print,
+    )
+
+
 def generate_compiled_output_files(
     price_data: Dict[str, Any], pretty_print: bool
 ) -> None:
@@ -49,9 +62,7 @@ def generate_compiled_output_files(
     :param pretty_print: Pretty or minimal
     """
     # AllPrices.json
-    log_and_create_compiled_output(
-        MtgjsonStructuresObject().all_prices, price_data, pretty_print,
-    )
+    generate_compiled_prices_output(price_data, pretty_print)
 
     # CompiledList.json
     log_and_create_compiled_output(

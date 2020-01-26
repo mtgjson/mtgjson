@@ -5,7 +5,11 @@ import logging
 from typing import Dict, List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
-from mtgjson5.output_generator import generate_compiled_output_files, write_set_file
+from mtgjson5.output_generator import (
+    generate_compiled_output_files,
+    generate_compiled_prices_output,
+    write_set_file,
+)
 from mtgjson5.price_builder import (
     add_prices_to_mtgjson_set,
     build_prices,
@@ -53,7 +57,8 @@ def main() -> None:
     # If a price build, simply build prices and exit
     if args.pricing:
         LOGGER.info("Prices Build - Building Prices")
-        build_prices()
+        price_data_cache = build_prices()
+        generate_compiled_prices_output(price_data_cache, args.pretty)
         return
 
     # If a full build, build prices then build sets
