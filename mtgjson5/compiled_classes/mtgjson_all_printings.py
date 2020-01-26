@@ -8,7 +8,7 @@ import simplejson as json
 
 from ..classes import MtgjsonSetObject
 from ..consts import OUTPUT_PATH
-from .mtgjson_structures_obj import MtgjsonStructuresObject
+from .mtgjson_structures import MtgjsonStructuresObject
 
 
 class MtgjsonAllPrintingsObject:

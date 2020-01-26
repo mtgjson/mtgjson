@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 
 from ..classes import MtgjsonMetaObject
 from ..utils import to_camel_case
-from .mtgjson_structures_obj import MtgjsonStructuresObject
+from .mtgjson_structures import MtgjsonStructuresObject
 
 
 class MtgjsonCompiledListObject:

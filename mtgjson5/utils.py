@@ -34,7 +34,7 @@ def init_logger() -> None:
     """
     Initialize the main system logger
     """
-    LOG_PATH.mkdir(exist_ok=True)
+    LOG_PATH.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
         format="[%(levelname)s] %(asctime)s: %(message)s",

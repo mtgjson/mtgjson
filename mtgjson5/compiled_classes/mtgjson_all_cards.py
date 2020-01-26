@@ -8,7 +8,7 @@ import simplejson as json
 from ..classes import MtgjsonCardObject
 from ..consts import OUTPUT_PATH
 from ..utils import to_camel_case
-from .mtgjson_structures_obj import MtgjsonStructuresObject
+from .mtgjson_structures import MtgjsonStructuresObject
 
 
 class MtgjsonAllCardsObject:

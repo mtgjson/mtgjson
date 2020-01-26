@@ -3,12 +3,12 @@ MTGJSON container for holding an individual card
 """
 from typing import Any, Dict, List, Optional, Set
 
-from ..classes.mtgjson_foreign_data_obj import MtgjsonForeignDataObject
-from ..classes.mtgjson_leadership_skills_obj import MtgjsonLeadershipSkillsObject
-from ..classes.mtgjson_legalities_obj import MtgjsonLegalitiesObject
-from ..classes.mtgjson_prices_obj import MtgjsonPricesObject
-from ..classes.mtgjson_purchase_urls_obj import MtgjsonPurchaseUrlsObject
-from ..classes.mtgjson_rulings_obj import MtgjsonRulingObject
+from ..classes.mtgjson_foreign_data import MtgjsonForeignDataObject
+from ..classes.mtgjson_leadership_skills import MtgjsonLeadershipSkillsObject
+from ..classes.mtgjson_legalities import MtgjsonLegalitiesObject
+from ..classes.mtgjson_prices import MtgjsonPricesObject
+from ..classes.mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
+from ..classes.mtgjson_rulings import MtgjsonRulingObject
 from ..utils import to_camel_case
 
 
