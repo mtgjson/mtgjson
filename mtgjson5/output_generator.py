@@ -41,7 +41,7 @@ def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> 
 
 
 def generate_compiled_prices_output(
-    price_data: Dict[str, Any], pretty_print: bool
+    price_data: Dict[str, Dict[str, float]], pretty_print: bool
 ) -> None:
     """
     Dump AllPrices to a file
@@ -54,7 +54,7 @@ def generate_compiled_prices_output(
 
 
 def generate_compiled_output_files(
-    price_data: Dict[str, Any], pretty_print: bool
+    price_data: Dict[str, Dict[str, float]], pretty_print: bool
 ) -> None:
     """
     Create and dump all compiled outputs

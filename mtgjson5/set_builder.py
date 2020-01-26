@@ -773,7 +773,7 @@ def build_mtgjson_card(
     return mtgjson_cards
 
 
-def add_variations_and_alternative_fields(mtgjson_set: Any) -> None:
+def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None:
     """
     For non-silver bordered sets, we will create a "variations"
     field will be created that has UUID of repeat cards.
