@@ -56,13 +56,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-m", "--pricing", action="store_true", help="Compile only pricing files"
     )
-
-    parser.add_argument(
-        "--skip-keys",
-        "--no-keys",
-        action="store_true",
-        help="Disable privileged information lookups for builds",
-    )
     parser.add_argument(
         "--skip-sets",
         "--no-sets",
