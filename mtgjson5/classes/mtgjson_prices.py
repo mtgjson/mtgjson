@@ -34,7 +34,7 @@ class MtgjsonPricesObject:
         Support json.dumps()
         :return: JSON serialized object
         """
-        skip_keys = set()
+        skip_keys = {"__parent_is_card_object"}
 
         if self.__parent_is_card_object:
             skip_keys.add("uuid")
