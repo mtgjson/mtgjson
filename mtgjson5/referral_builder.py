@@ -44,6 +44,7 @@ def write_referral_map(single_set_referral_map: List[Tuple[str, str]]) -> None:
     Dump referral map content to the database
     :param single_set_referral_map: Referrals to dump
     """
+    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
     with OUTPUT_PATH.joinpath("ReferralMap.json").open("a") as file:
         for entry in single_set_referral_map:
             file.write(f"{entry[0]}\t{entry[1]}\n")

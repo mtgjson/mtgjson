@@ -92,6 +92,7 @@ class TCGPlayerProvider(AbstractProvider):
     today_date: str = datetime.datetime.today().strftime("%Y-%m-%d")
     api_version: str = ""
     tcg_to_mtgjson_map: Dict[str, str]
+    __keys_found: bool
 
     def __init__(self) -> None:
         """
@@ -117,6 +118,16 @@ class TCGPlayerProvider(AbstractProvider):
         """
         config = self.get_configs()
 
+        # Ensure config is established
+        if not (
+            config.get("TCGPlayer", "client_id")
+            and config.get("TCGPlayer", "client_secret")
+        ):
+            LOGGER.warning("TCGPlayer keys not established. Skipping header requests")
+            self.__keys_found = False
+            return ""
+
+        self.__keys_found = True
         tcg_post = requests.post(
             "https://api.tcgplayer.com/token",
             data={
@@ -190,6 +201,9 @@ class TCGPlayerProvider(AbstractProvider):
         :param all_printings_path Path to AllPrintings.json for pre-processing
         :return: Prices to combine with others
         """
+        if not self.__keys_found:
+            return {}
+
         # Future ways to put this into shared memory so all threads can access
         tcg_to_mtgjson_map = generate_tcgplayer_to_mtgjson_map(all_printings_path)
         with CACHE_PATH.joinpath("tcgplayer_price_map.json").open("w") as file:

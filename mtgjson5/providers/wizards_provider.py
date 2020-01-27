@@ -2,7 +2,9 @@
 Wizards Site 3rd party provider
 """
 import logging
+import pathlib
 import re
+import time
 from typing import Dict, Union
 
 import bs4
@@ -11,7 +13,7 @@ import simplejson as json
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonTranslationsObject
-from ..consts import RESOURCE_PATH, WIZARDS_SUPPORTED_LANGUAGES
+from ..consts import CACHE_PATH, RESOURCE_PATH, WIZARDS_SUPPORTED_LANGUAGES
 from ..providers.abstract_provider import AbstractProvider
 from ..providers.scryfall_provider import ScryfallProvider
 
@@ -26,6 +28,10 @@ class WizardsProvider(AbstractProvider):
     magic_rules_url: str = "https://magic.wizards.com/en/game-info/gameplay/rules-and-formats/rules"
     translation_table: Dict[str, Dict[str, str]] = {}
     magic_rules: str = ""
+    __translation_table_cache: pathlib.Path = CACHE_PATH.joinpath(
+        "translation_table.json"
+    )
+    __one_week_ago: int = int(time.time() - 7 * 86400)
 
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
@@ -57,7 +63,15 @@ class WizardsProvider(AbstractProvider):
         """
         if not self.translation_table:
             self.logger.info("Initializing Translation Table")
-            self.build_translation_table()
+            if (
+                self.__translation_table_cache.is_file()
+                and self.__translation_table_cache.stat().st_mtime > self.__one_week_ago
+            ):
+                self.logger.debug("Loading cached translation table")
+                self.load_translation_table()
+            else:
+                self.logger.debug("Building new translation table")
+                self.build_translation_table()
 
         if set_code in self.translation_table.keys():
             return MtgjsonTranslationsObject(self.translation_table[set_code])
@@ -94,7 +108,7 @@ class WizardsProvider(AbstractProvider):
             if not icon or len(icon) == 1:
                 set_name = set_line.find("span", class_="nameSet")
                 if set_name:
-                    self.logger.warning(
+                    self.logger.debug(
                         f"Unable to find set icon for {set_name.text.strip()}"
                     )
                 continue
@@ -125,7 +139,7 @@ class WizardsProvider(AbstractProvider):
         return_table = {}
         for key, value in table.items():
             if "English" not in value.keys():
-                self.logger.warning(f"VALUE INCOMPLETE\t{key}: {value}")
+                self.logger.debug(f"VALUE INCOMPLETE\t{key}: {value}")
                 continue
 
             new_key = value["English"]
@@ -133,6 +147,14 @@ class WizardsProvider(AbstractProvider):
             return_table[new_key] = value
 
         return return_table
+
+    def load_translation_table(self) -> None:
+        """
+        Load translation table from cache (as it doesn't change
+        that frequently)
+        """
+        with self.__translation_table_cache.open() as file:
+            self.translation_table = json.load(file)
 
     def build_translation_table(self) -> None:
         """
@@ -151,6 +173,11 @@ class WizardsProvider(AbstractProvider):
         # Oh Wizards...
         translation_table = self.convert_keys_to_set_names(translation_table)
         translation_table = self.set_names_to_set_codes(translation_table)
+
+        # Cache the table for future uses
+        self.__translation_table_cache.parent.mkdir(parents=True, exist_ok=True)
+        with self.__translation_table_cache.open("w") as file:
+            json.dump(translation_table, file)
 
         self.translation_table = translation_table
 

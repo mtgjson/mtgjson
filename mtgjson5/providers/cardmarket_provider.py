@@ -23,6 +23,8 @@ class McmProvider(AbstractProvider):
     connection: Mkm
     set_map: Dict[str, Dict[str, Any]]
 
+    __keys_found: bool
+
     def __init__(self, headers: Dict[str, str] = None):
         super().__init__(headers or {})
 
@@ -31,6 +33,13 @@ class McmProvider(AbstractProvider):
         os.environ["MKM_APP_SECRET"] = config.get("CardMarket", "app_secret")
         os.environ["MKM_ACCESS_TOKEN"] = ""
         os.environ["MKM_ACCESS_TOKEN_SECRET"] = ""
+
+        if not (os.environ["MKM_APP_TOKEN"] and os.environ["MKM_APP_SECRET"]):
+            LOGGER.warning("MKM keys not established. Skipping requests")
+            self.__keys_found = False
+            return
+
+        self.__keys_found = True
 
         self.connection = Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"])
         self.set_map = {}
@@ -57,6 +66,9 @@ class McmProvider(AbstractProvider):
         :param set_name: Set to get ID from
         :return: Set ID
         """
+        if not self.__keys_found:
+            return None
+
         if set_name.lower() in self.set_map.keys():
             return int(self.set_map[set_name.lower()]["mcmId"])
         return None
@@ -67,6 +79,9 @@ class McmProvider(AbstractProvider):
         :param set_name: Set to get Name from
         :return: Set Name
         """
+        if not self.__keys_found:
+            return None
+
         if set_name.lower() in self.set_map.keys():
             return str(self.set_map[set_name.lower()]["mcmName"])
         return None

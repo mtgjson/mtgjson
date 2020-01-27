@@ -164,8 +164,17 @@ def get_price_archive_data() -> Dict[str, Dict[str, float]]:
     Download compiled MTGJSON price data
     :return: MTGJSON price data
     """
-    # Config values for GitHub
     config = TCGPlayerProvider().get_configs()
+
+    if not (
+        config.get("GitHub", "repo_name")
+        and config.get("GitHub", "repo_name")
+        and config.get("GitHub", "repo_name")
+    ):
+        LOGGER.warning("GitHub keys not established. Skipping price archives")
+        return {}
+
+    # Config values for GitHub
     github_repo_name = config.get("GitHub", "repo_name")
     github_file_name = config.get("GitHub", "file_name")
     github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
@@ -186,6 +195,12 @@ def build_prices() -> Dict[str, Any]:
     # Get today's price database
     LOGGER.info("Building new price data")
     today_prices = build_today_prices()
+
+    if not today_prices:
+        LOGGER.warning(
+            "TCGPlayer and CardHoarder keys not established. No prices generated"
+        )
+        return {}
 
     archive_prices = get_price_archive_data()
 

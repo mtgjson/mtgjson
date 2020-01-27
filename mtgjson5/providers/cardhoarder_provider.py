@@ -35,11 +35,16 @@ class CardhoarderProvider(AbstractProvider):
         :return: Authorization header
         """
         headers: Dict[str, str] = {}
+        __keys_found: bool
 
         config = self.get_configs()
-        if not config.get("CardHoarder", "token"):
+        if config.get("CardHoarder", "token"):
+            self.__keys_found = True
+            self.ch_api_url = self.ch_api_url.format(config.get("CardHoarder", "token"))
+        else:
+            LOGGER.info("CardHoarder keys not established. Skipping pricing")
+            self.__keys_found = False
             self.ch_api_url = ""
-        self.ch_api_url = self.ch_api_url.format(config.get("CardHoarder", "token"))
 
         return headers
 
@@ -86,6 +91,9 @@ class CardhoarderProvider(AbstractProvider):
         Generate a single-day price structure for MTGO from CardHoarder
         :return MTGJSON prices single day structure
         """
+        if not self.__keys_found:
+            return {}
+
         normal_cards = self.convert_cardhoarder_to_mtgjson(self.ch_api_url)
         foil_cards = self.convert_cardhoarder_to_mtgjson(self.ch_api_url + "/foil")
 

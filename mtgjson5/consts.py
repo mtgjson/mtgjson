@@ -4,7 +4,7 @@ Const values of MTGJSON
 import pathlib
 from typing import Dict, List, Set, Tuple
 
-USE_CACHE: bool = True  # Set to True for development purposes
+USE_CACHE: bool = False  # Set to True for development purposes
 
 MTGJSON_VERSION: str = "5.0.0"
 MTGJSON_BUILD_DATE: str = "2019-01-20"

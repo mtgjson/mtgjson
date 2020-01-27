@@ -27,9 +27,7 @@ class ScryfallProvider(AbstractProvider):
     cards_without_limits: Set[str]
 
     def __init__(self) -> None:
-
         super().__init__(self._build_http_header())
-
         self.cards_without_limits = self.generate_cards_without_limits()
 
     def _build_http_header(self) -> Dict[str, str]:
@@ -37,15 +35,17 @@ class ScryfallProvider(AbstractProvider):
         Construct the Authorization header for Scryfall
         :return: Authorization header
         """
-        headers: Dict[str, str] = {}
-
         config = self.get_configs()
-        if config.get("Scryfall", "client_secret"):
-            headers = {
-                "Authorization": f"Bearer {config.get('Scryfall', 'client_secret')}",
-                "Connection": "Keep-Alive",
-            }
+        if not self.get_configs().get("Scryfall", "client_secret"):
+            LOGGER.warning(
+                "Scryfall keys not established. Defaulting to non-authorized mode"
+            )
+            return {}
 
+        headers: Dict[str, str] = {
+            "Authorization": f"Bearer {config.get('Scryfall', 'client_secret')}",
+            "Connection": "Keep-Alive",
+        }
         return headers
 
     def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
@@ -77,6 +77,8 @@ class ScryfallProvider(AbstractProvider):
                 LOGGER.warning(
                     f"Set api download failed for {set_code}: {set_api_json}"
                 )
+            else:
+                LOGGER.error("Idk")
             return []
 
         # All cards in the set structure
