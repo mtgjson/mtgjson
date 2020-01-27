@@ -11,6 +11,7 @@ from typing import Any, Dict
 
 import dateutil.relativedelta
 import git
+import requests
 import simplejson as json
 
 from .classes import MtgjsonPricesObject, MtgjsonSetObject
@@ -186,12 +187,35 @@ def get_price_archive_data() -> Dict[str, Dict[str, float]]:
     )
 
 
+def download_old_all_printings() -> None:
+    """
+    Download the hosted version of AllPrintings from MTGJSON
+    for future consumption
+    """
+    file_bytes = b""
+    file_data = requests.get(
+        f"https://mtgjson.com/files/AllPrintings.json.xz", stream=True
+    )
+    for chunk in file_data.iter_content(chunk_size=1024 * 36):
+        if chunk:
+            file_bytes += chunk
+
+    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
+    with OUTPUT_PATH.joinpath("AllPrintings.json").open("w", encoding="utf8") as f:
+        f.write(lzma.decompress(file_bytes).decode())
+
+
 def build_prices() -> Dict[str, Any]:
     """
     The full build prices operation
     Prune & Update remote database
     :return Latest prices
     """
+    # We'll need AllPrintings.json to handle this
+    if not OUTPUT_PATH.joinpath("AllPrintings.json").is_file():
+        LOGGER.info("AllPrintings not found, attempting to download")
+        download_old_all_printings()
+
     # Get today's price database
     LOGGER.info("Building new price data")
     today_prices = build_today_prices()
