@@ -68,5 +68,5 @@ class MtgjsonSetListObject:
         return [
             value
             for key, value in self.__dict__.items()
-            if not key.startswith("__") and not callable(value)
+            if "__" not in key and not callable(value)
         ]

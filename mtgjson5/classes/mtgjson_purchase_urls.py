@@ -41,5 +41,5 @@ class MtgjsonPurchaseUrlsObject:
         return {
             to_camel_case(key): value
             for key, value in self.__dict__.items()
-            if not key.startswith("__") and not callable(value) and key not in skip_keys
+            if "__" not in key and not callable(value) and key not in skip_keys
         }

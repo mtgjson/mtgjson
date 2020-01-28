@@ -28,7 +28,7 @@ class AbstractProvider(abc.ABC):
     class_id: str
     session_pool: Deque[requests.Session]
 
-    def __init__(self, headers: Dict[str, str]):
+    def __init__(self, headers: Dict[str, str], init_sessions: bool = True):
 
         super().__init__()
 
@@ -36,7 +36,8 @@ class AbstractProvider(abc.ABC):
         self.session_pool = collections.deque()
 
         self.__install_cache()
-        self.__init_session_pool(headers)
+        if init_sessions:
+            self.__init_session_pool(headers)
 
     # Abstract Methods
     @abc.abstractmethod
