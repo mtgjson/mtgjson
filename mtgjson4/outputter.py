@@ -245,6 +245,8 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
             set_data = {
                 "baseSetSize": file_content.get("baseSetSize"),
                 "code": file_content.get("code"),
+                "isOnlineOnly": file_content.get("isOnlineOnly", False),
+                "isPaperOnly": file_content.get("isPaperOnly", False),
                 "meta": file_content.get("meta"),
                 "name": file_content.get("name"),
                 "releaseDate": file_content.get("releaseDate"),
