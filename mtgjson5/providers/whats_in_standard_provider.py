@@ -5,6 +5,7 @@ import datetime
 from typing import Any, Dict, Set, Union
 
 import dateutil.parser
+import requests
 from singleton_decorator import singleton
 
 from ..providers.abstract_provider import AbstractProvider
@@ -20,9 +21,7 @@ class WhatsInStandardProvider(AbstractProvider):
     set_codes: Set[str]
 
     def __init__(self) -> None:
-
         super().__init__(self._build_http_header())
-
         self.set_codes = self.standard_legal_set_codes()
 
     def _build_http_header(self) -> Dict[str, str]:
@@ -35,9 +34,9 @@ class WhatsInStandardProvider(AbstractProvider):
         :param url: URL to download from
         :param params: Options for URL download
         """
-        session = self.session_pool.popleft()
+        session = requests.Session()
+        session.headers.update(self.session_header)
         response = session.get(url, params=params)
-        self.session_pool.append(session)
         self.log_download(response)
         return response.json()
 

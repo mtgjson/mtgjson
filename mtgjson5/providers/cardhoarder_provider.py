@@ -5,6 +5,7 @@ import datetime
 import logging
 from typing import Any, Dict, List, Union
 
+import requests
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
@@ -26,7 +27,6 @@ class CardhoarderProvider(AbstractProvider):
         """
         Initializer
         """
-
         super().__init__(self._build_http_header())
 
     def _build_http_header(self) -> Dict[str, str]:
@@ -55,10 +55,10 @@ class CardhoarderProvider(AbstractProvider):
         :param url: URL to download from
         :param params: Options for URL download
         """
-        session = self.session_pool.popleft()
-        response = session.get(url)
-        self.session_pool.append(session)
+        session = requests.Session()
+        session.headers.update(self.session_header)
 
+        response = session.get(url)
         self.log_download(response)
 
         return response.content.decode()

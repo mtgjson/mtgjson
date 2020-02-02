@@ -1,7 +1,9 @@
 """
 Wizards Site 3rd party provider
 """
+import collections
 import logging
+import multiprocessing
 import pathlib
 import re
 import time
@@ -49,9 +51,9 @@ class WizardsProvider(AbstractProvider):
         :param params: Not used
         :return: Response
         """
-        session = self.session_pool.popleft()
+        session = requests.Session()
+        session.headers.update(self.session_header)
         response = session.get(url)
-        self.session_pool.append(session)
         self.log_download(response)
         return response
 
@@ -166,6 +168,7 @@ class WizardsProvider(AbstractProvider):
         translation_table: Dict[str, Dict[str, str]] = {}
 
         for short_code, long_name in WIZARDS_SUPPORTED_LANGUAGES:
+            self.logger.info(f"Building translations for {long_name}")
             translation_table = self.build_single_language(
                 short_code, long_name, translation_table
             )
@@ -175,15 +178,15 @@ class WizardsProvider(AbstractProvider):
         translation_table = self.set_names_to_set_codes(translation_table)
 
         # Cache the table for future uses
+        self.logger.info("Saving translation table")
         self.__translation_table_cache.parent.mkdir(parents=True, exist_ok=True)
         with self.__translation_table_cache.open("w") as file:
             json.dump(translation_table, file)
 
         self.translation_table = translation_table
 
-    @staticmethod
     def set_names_to_set_codes(
-        table: Dict[str, Dict[str, str]]
+        self, table: Dict[str, Dict[str, str]]
     ) -> Dict[str, Dict[str, str]]:
         """
         The set names from Wizard's website are slightly incorrect.
@@ -199,19 +202,10 @@ class WizardsProvider(AbstractProvider):
             del table[key]
 
         # Build new table with set codes instead of set names
-        new_table = {}
-        for key, value in table.items():
-            if not key:
-                continue
+        with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+            results = pool.starmap(build_single_set_code, (table.items()))
 
-            # Strip chars not in line with Scryfall's API
-            key = key.translate({ord(i): None for i in ":'’.& "})
-
-            set_header = ScryfallProvider().download(
-                f"{ScryfallProvider().ALL_SETS_URL}/{key}"
-            )
-            if set_header:
-                new_table[set_header["code"].upper()] = value
+        new_table = dict(collections.ChainMap(*results))
 
         return new_table
 
@@ -235,3 +229,25 @@ class WizardsProvider(AbstractProvider):
 
         self.magic_rules = response
         return self.magic_rules
+
+
+def build_single_set_code(key: str, value: Dict[str, str]) -> Dict[str, Dict[str, str]]:
+    """
+    Download upstream data to identify set code
+    :param key: Set name (long)
+    :param value: Set translations already generated
+    :return: Set dict to be combined with the other sets
+    """
+    if not key:
+        return {}
+
+    new_table = {}
+
+    # Strip chars not in line with Scryfall's API
+    key = key.translate({ord(i): None for i in ":'’.& "})
+
+    set_header = ScryfallProvider().download(f"{ScryfallProvider().ALL_SETS_URL}/{key}")
+    if set_header:
+        new_table[set_header["code"].upper()] = value
+
+    return new_table

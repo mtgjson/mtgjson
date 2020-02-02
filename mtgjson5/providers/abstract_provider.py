@@ -4,11 +4,9 @@ API for how providers need to interact with other classes
 from __future__ import annotations
 
 import abc
-import collections
 import configparser
 import logging
-import multiprocessing
-from typing import Any, Deque, Dict, Union
+from typing import Any, Dict, Union
 
 import requests
 import requests.adapters
@@ -26,18 +24,13 @@ class AbstractProvider(abc.ABC):
     """
 
     class_id: str
-    session_pool: Deque[requests.Session]
+    session_header: Dict[str, str]
 
-    def __init__(self, headers: Dict[str, str], init_sessions: bool = True):
-
+    def __init__(self, headers: Dict[str, str]):
         super().__init__()
-
         self.class_id = ""
-        self.session_pool = collections.deque()
-
+        self.session_header = headers
         self.__install_cache()
-        if init_sessions:
-            self.__init_session_pool(headers)
 
     # Abstract Methods
     @abc.abstractmethod
@@ -104,23 +97,6 @@ class AbstractProvider(abc.ABC):
             requests_cache.install_cache(
                 str(CACHE_PATH.joinpath(self.get_class_name()))
             )
-
-    def __init_session_pool(self, headers: Dict[str, str] = None) -> None:
-        """
-        Initialize the pool of sessions a download request can pull from to have
-        greater throughput
-        """
-        if headers is None:
-            headers = {}
-
-        for _ in range(0, multiprocessing.cpu_count() * 4):
-            session = requests.Session()
-
-            if headers:
-                session.headers.update(headers)
-
-            session = self.__retryable_session(session)
-            self.session_pool.append(session)
 
     @staticmethod
     def __retryable_session(

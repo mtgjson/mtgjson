@@ -4,6 +4,7 @@ Scryfall 3rd party provider
 import logging
 from typing import Any, Dict, List, Set, Union
 
+import requests
 from singleton_decorator import singleton
 
 from ..providers.abstract_provider import AbstractProvider
@@ -55,12 +56,10 @@ class ScryfallProvider(AbstractProvider):
         :param url: URL to download from
         :param params: Options for URL download
         """
-        session = self.session_pool.popleft()
+        session = requests.Session()
+        session.headers.update(self.session_header)
         response = session.get(url)
-        self.session_pool.append(session)
-
         self.log_download(response)
-
         return response.json()
 
     def download_cards(self, set_code: str) -> List[Dict[str, Any]]:

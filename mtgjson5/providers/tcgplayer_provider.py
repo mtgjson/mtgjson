@@ -29,13 +29,12 @@ class TCGPlayerProvider(AbstractProvider):
     api_version: str = ""
     tcg_to_mtgjson_map: Dict[str, str]
     __keys_found: bool
-    __manual_headers: Dict[str, str]
 
     def __init__(self) -> None:
         """
         Initializer
         """
-        super().__init__(self._build_http_header(), False)
+        super().__init__(self._build_http_header())
 
     def _build_http_header(self) -> Dict[str, str]:
         """
@@ -43,7 +42,6 @@ class TCGPlayerProvider(AbstractProvider):
         :return: Authorization header
         """
         headers = {"Authorization": f"Bearer {self._request_tcgplayer_bearer()}"}
-        self.__manual_headers = headers
         return headers
 
     def _request_tcgplayer_bearer(self) -> str:
@@ -91,12 +89,10 @@ class TCGPlayerProvider(AbstractProvider):
         :param params: Options for URL download
         """
         session = requests.Session()
-        session.headers.update(self.__manual_headers)
-
+        session.headers.update(self.session_header)
         response = session.get(
             url.replace("[API_VERSION]", self.api_version), params=params
         )
-
         self.log_download(response)
         return response.content.decode()
 
