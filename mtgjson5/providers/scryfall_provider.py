@@ -77,7 +77,7 @@ class ScryfallProvider(AbstractProvider):
                     f"Set api download failed for {set_code}: {set_api_json}"
                 )
             else:
-                LOGGER.error("Idk")
+                LOGGER.error(set_api_json["details"])
             return []
 
         # All cards in the set structure

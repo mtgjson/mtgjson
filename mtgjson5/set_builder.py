@@ -387,6 +387,10 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
         mtgjson_set.code
     )
 
+    base_total_sizes = get_base_and_total_set_sizes(set_code)
+    mtgjson_set.base_set_size = base_total_sizes[0]
+    mtgjson_set.total_set_size = base_total_sizes[1]
+
     # Building cards is a process
     mtgjson_set.cards = build_base_mtgjson_cards(set_code)
     add_is_starter_option(set_code, mtgjson_set.search_uri, mtgjson_set.cards)
@@ -402,10 +406,6 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
 
     mtgjson_set.tcgplayer_group_id = set_data.get("tcgplayer_id")
     mtgjson_set.booster_v3 = get_booster_contents_v3(set_code)
-
-    base_total_sizes = get_base_and_total_set_sizes(set_code)
-    mtgjson_set.base_set_size = base_total_sizes[0]
-    mtgjson_set.total_set_size = base_total_sizes[1]
 
     mark_duel_decks(set_code, mtgjson_set.cards)
 
