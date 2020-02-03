@@ -101,7 +101,13 @@ def get_all_scryfall_sets() -> List[str]:
         return []
 
     # Get _ALL_ Scryfall sets
-    return [set_obj["code"].upper() for set_obj in scryfall_sets["data"]]
+    scryfall_set_codes = [
+        set_obj["code"].upper()
+        for set_obj in scryfall_sets["data"]
+        if set_obj["set_type"] != "token"
+    ]
+
+    return sorted(scryfall_set_codes)
 
 
 def get_sets_to_build(args: argparse.Namespace) -> List[str]:
