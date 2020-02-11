@@ -185,8 +185,9 @@ class WizardsProvider(AbstractProvider):
 
         self.translation_table = translation_table
 
+    @staticmethod
     def set_names_to_set_codes(
-        self, table: Dict[str, Dict[str, str]]
+        table: Dict[str, Dict[str, str]]
     ) -> Dict[str, Dict[str, str]]:
         """
         The set names from Wizard's website are slightly incorrect.

@@ -7,17 +7,19 @@ from typing import Any, Dict, List
 
 import simplejson as json
 
-from .classes import MtgjsonMetaObject, MtgjsonSetObject
+from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject, MtgjsonSetObject
 from .compiled_classes import (
     MtgjsonAllCardsObject,
     MtgjsonAllPrintingsObject,
     MtgjsonCardTypesObject,
     MtgjsonCompiledListObject,
+    MtgjsonDeckListObject,
     MtgjsonKeywordsObject,
     MtgjsonSetListObject,
     MtgjsonStructuresObject,
 )
 from .consts import OUTPUT_PATH, SUPPORTED_FORMAT_OUTPUTS, SUPPORTED_SET_TYPES
+from .providers.github_decks_provider import GithubDecksProvider
 
 LOGGER = logging.getLogger(__name__)
 
@@ -186,6 +188,24 @@ def generate_compiled_output_files(
         pretty_print,
     )
 
+    # All Pre-constructed Decks
+    deck_names = []
+    for mtgjson_deck_obj in GithubDecksProvider().iterate_precon_decks():
+        mtgjson_deck_header_obj = MtgjsonDeckHeaderObject(mtgjson_deck_obj)
+        log_and_create_compiled_output(
+            f"decks/{mtgjson_deck_header_obj.file_name}_{mtgjson_deck_header_obj.code}",
+            mtgjson_deck_obj,
+            pretty_print,
+        )
+        deck_names.append(mtgjson_deck_header_obj)
+
+    # DeckLists.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().deck_lists,
+        MtgjsonDeckListObject(deck_names),
+        pretty_print,
+    )
+
 
 def log_and_create_compiled_output(
     compiled_name: str, compiled_object: Any, pretty_print: bool
@@ -210,8 +230,10 @@ def write_compiled_output_to_file(
     :param file_contents: Contents to dump
     :param pretty_print: Pretty or minimal
     """
-    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
-    with OUTPUT_PATH.joinpath(f"{file_name}.json").open("w", encoding="utf-8") as file:
+    write_file = OUTPUT_PATH.joinpath(f"{file_name}.json")
+
+    write_file.parent.mkdir(parents=True, exist_ok=True)
+    with write_file.open("w", encoding="utf-8") as file:
         json.dump(
             obj=file_contents,
             fp=file,
