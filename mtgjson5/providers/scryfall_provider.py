@@ -4,10 +4,10 @@ Scryfall 3rd party provider
 import logging
 from typing import Any, Dict, List, Set, Union
 
-import requests
 from singleton_decorator import singleton
 
 from ..providers.abstract_provider import AbstractProvider
+from ..utils import retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class ScryfallProvider(AbstractProvider):
         :param url: URL to download from
         :param params: Options for URL download
         """
-        session = requests.Session()
+        session = retryable_session()
         session.headers.update(self.session_header)
         response = session.get(url)
         self.log_download(response)

@@ -7,7 +7,6 @@ import multiprocessing
 import pathlib
 from typing import Any, Dict, Iterator, List, Union
 
-import requests
 import simplejson as json
 from singleton_decorator import singleton
 
@@ -16,6 +15,7 @@ from ..classes.mtgjson_deck import MtgjsonDeckObject
 from ..compiled_classes import MtgjsonStructuresObject
 from ..consts import OUTPUT_PATH
 from ..providers.abstract_provider import AbstractProvider
+from ..utils import retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class GithubDecksProvider(AbstractProvider):
         :param url: Download URL
         :param params: Options for URL download
         """
-        session = requests.Session()
+        session = retryable_session()
 
         response = session.get(url)
         self.log_download(response)

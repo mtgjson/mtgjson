@@ -1,3 +1,4 @@
+urllib3
 beautifulsoup4==4.8.2
 GitPython==3.0.5
 mkmsdk==0.5.3

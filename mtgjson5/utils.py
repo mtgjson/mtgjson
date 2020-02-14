@@ -6,6 +6,10 @@ import logging
 import time
 from typing import Union
 
+import requests
+import requests.adapters
+import urllib3
+
 from .consts import LOG_PATH
 
 
@@ -68,3 +72,26 @@ def parse_magic_rules_subset(
     valid_line_segments = "\n".join(magic_rules.split("\r\n"))
 
     return valid_line_segments
+
+
+def retryable_session(
+    session: requests.Session = requests.Session(), retries: int = 8
+) -> requests.Session:
+    """
+    Session with requests to allow for re-attempts at downloading missing data
+    :param session: Session to download with
+    :param retries: How many retries to attempt
+    :return: Session that does downloading
+    """
+    retry = urllib3.util.retry.Retry(
+        total=retries,
+        read=retries,
+        connect=retries,
+        backoff_factor=0.3,
+        status_forcelist=(500, 502, 504),
+    )
+
+    adapter = requests.adapters.HTTPAdapter(max_retries=retry)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session

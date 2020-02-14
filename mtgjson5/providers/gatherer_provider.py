@@ -11,6 +11,7 @@ from singleton_decorator import singleton
 
 from ..consts import SYMBOL_MAP
 from ..providers.abstract_provider import AbstractProvider
+from ..utils import retryable_session
 
 
 class GathererCard(NamedTuple):
@@ -42,7 +43,7 @@ class GathererProvider(AbstractProvider):
     def download(
         self, url: str, params: Dict[str, Union[str, int]] = None
     ) -> requests.Response:
-        session = requests.Session()
+        session = retryable_session()
         session.headers.update(self.session_header)
         response = session.get(url, params=params)
         self.log_download(response)

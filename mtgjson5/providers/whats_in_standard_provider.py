@@ -5,10 +5,10 @@ import datetime
 from typing import Any, Dict, Set, Union
 
 import dateutil.parser
-import requests
 from singleton_decorator import singleton
 
 from ..providers.abstract_provider import AbstractProvider
+from ..utils import retryable_session
 
 
 @singleton
@@ -34,7 +34,7 @@ class WhatsInStandardProvider(AbstractProvider):
         :param url: URL to download from
         :param params: Options for URL download
         """
-        session = requests.Session()
+        session = retryable_session()
         session.headers.update(self.session_header)
         response = session.get(url, params=params)
         self.log_download(response)

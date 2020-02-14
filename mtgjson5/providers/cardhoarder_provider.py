@@ -5,11 +5,11 @@ import datetime
 import logging
 from typing import Any, Dict, List, Union
 
-import requests
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
 from ..providers.abstract_provider import AbstractProvider
+from ..utils import retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class CardhoarderProvider(AbstractProvider):
         :param url: URL to download from
         :param params: Options for URL download
         """
-        session = requests.Session()
+        session = retryable_session()
         session.headers.update(self.session_header)
 
         response = session.get(url)

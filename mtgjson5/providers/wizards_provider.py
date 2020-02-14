@@ -18,6 +18,7 @@ from ..classes import MtgjsonTranslationsObject
 from ..consts import CACHE_PATH, RESOURCE_PATH, WIZARDS_SUPPORTED_LANGUAGES
 from ..providers.abstract_provider import AbstractProvider
 from ..providers.scryfall_provider import ScryfallProvider
+from ..utils import retryable_session
 
 
 @singleton
@@ -51,7 +52,7 @@ class WizardsProvider(AbstractProvider):
         :param params: Not used
         :return: Response
         """
-        session = requests.Session()
+        session = retryable_session()
         session.headers.update(self.session_header)
         response = session.get(url)
         self.log_download(response)
