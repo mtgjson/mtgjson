@@ -19,10 +19,12 @@ class WhatsInStandardProvider(AbstractProvider):
 
     API_ENDPOINT: str = "https://whatsinstandard.com/api/v6/standard.json"
     set_codes: Set[str]
+    standard_legal_sets: Set[str]
 
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
         self.set_codes = self.standard_legal_set_codes()
+        self.standard_legal_sets = set()
 
     def _build_http_header(self) -> Dict[str, str]:
         return {}
@@ -45,6 +47,9 @@ class WhatsInStandardProvider(AbstractProvider):
         Get all set codes from sets that are currently legal in Standard
         :return: Set Codes legal in standard
         """
+        if self.standard_legal_sets:
+            return self.standard_legal_sets
+
         api_response = self.download(self.API_ENDPOINT)
 
         standard_set_codes = {
@@ -56,5 +61,7 @@ class WhatsInStandardProvider(AbstractProvider):
                 <= dateutil.parser.parse(set_object["exitDate"]["exact"] or "9999")
             )
         }
+
+        self.standard_legal_sets = standard_set_codes
 
         return standard_set_codes
