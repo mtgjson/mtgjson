@@ -23,8 +23,8 @@ class WhatsInStandardProvider(AbstractProvider):
 
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
-        self.set_codes = self.standard_legal_set_codes()
         self.standard_legal_sets = set()
+        self.set_codes = self.standard_legal_set_codes()
 
     def _build_http_header(self) -> Dict[str, str]:
         return {}
