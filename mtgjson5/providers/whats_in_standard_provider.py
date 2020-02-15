@@ -41,11 +41,13 @@ class WhatsInStandardProvider(AbstractProvider):
         session = retryable_session()
         response = session.get(url, params=params)
         self.log_download(response)
-        if response.ok:
-            return response.json()
-        else:
-            self.logger.error(f"WIS Download error: {response.content.decode()}")
-            return {}
+        if not response.ok:
+            self.logger.error(
+                f"WhatsInStandard Download Error: {response.content.decode()}"
+            )
+            return self.download(url, params)
+
+        return response.json()
 
     def standard_legal_set_codes(self) -> Set[str]:
         """
