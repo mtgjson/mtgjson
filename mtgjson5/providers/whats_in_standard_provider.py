@@ -2,6 +2,7 @@
 Whats In Standard 3rd party provider
 """
 import datetime
+import logging
 from typing import Any, Dict, Set, Union
 
 import dateutil.parser
@@ -23,6 +24,7 @@ class WhatsInStandardProvider(AbstractProvider):
 
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
+        self.logger = logging.getLogger(__name__)
         self.standard_legal_sets = set()
         self.set_codes = self.standard_legal_set_codes()
 
@@ -37,10 +39,13 @@ class WhatsInStandardProvider(AbstractProvider):
         :param params: Options for URL download
         """
         session = retryable_session()
-        session.headers.update(self.session_header)
         response = session.get(url, params=params)
         self.log_download(response)
-        return response.json()
+        if response.ok:
+            return response.json()
+        else:
+            self.logger.error(f"WIS Download error: {response.content.decode()}")
+            return {}
 
     def standard_legal_set_codes(self) -> Set[str]:
         """
