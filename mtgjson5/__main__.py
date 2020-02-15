@@ -4,6 +4,8 @@ MTGJSON Main Executor
 import logging
 from typing import Dict, List, Set, Union
 
+from mtgjson5.providers import WhatsInStandardProvider
+
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
 from mtgjson5.output_generator import (
     generate_compiled_output_files,
@@ -33,6 +35,9 @@ def build_mtgjson_sets(
     :param output_pretty: Should we dump minified?
     :param include_referrals: Should we include referrals?
     """
+    # Prime WhatsInStandard lookup
+    _ = WhatsInStandardProvider().standard_legal_set_codes
+
     for set_to_build in sets_to_build:
         # Build the full set
         compiled_set = build_mtgjson_set(set_to_build)

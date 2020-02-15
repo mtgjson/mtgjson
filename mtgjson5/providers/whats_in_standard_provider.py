@@ -40,11 +40,11 @@ class WhatsInStandardProvider(AbstractProvider):
         :param params: Options for URL download
         """
         session = retryable_session()
-        response = session.get(url, params=params)
+        response = session.get(url)
         self.log_download(response)
         if not response.ok:
             self.logger.error(
-                f"WhatsInStandard Download Error: {response.content.decode()}"
+                f"WhatsInStandard Download Error ({response}): {response.content.decode()}"
             )
             time.sleep(5)
             return self.download(url, params)
