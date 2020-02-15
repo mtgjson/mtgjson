@@ -3,6 +3,7 @@ Whats In Standard 3rd party provider
 """
 import datetime
 import logging
+import time
 from typing import Any, Dict, Set, Union
 
 import dateutil.parser
@@ -45,6 +46,7 @@ class WhatsInStandardProvider(AbstractProvider):
             self.logger.error(
                 f"WhatsInStandard Download Error: {response.content.decode()}"
             )
+            time.sleep(5)
             return self.download(url, params)
 
         return response.json()
