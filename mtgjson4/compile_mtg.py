@@ -48,7 +48,7 @@ def build_mtgjson_set(
         LOGGER.error(f"Set Config for {set_code} was not found, skipping...")
         return {"cards": [], "tokens": []}
 
-    mtgjson_set_file["name"] = set_config["name"]
+    mtgjson_set_file["name"] = set_config["name"].strip()
     mtgjson_set_file["code"] = set_config["code"].upper()
     mtgjson_set_file["type"] = set_config["set_type"]
     mtgjson_set_file["keyruneCode"] = (
