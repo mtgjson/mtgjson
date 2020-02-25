@@ -369,7 +369,7 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
         return mtgjson_set
 
     # Explicit Variables
-    mtgjson_set.name = set_data["name"]
+    mtgjson_set.name = set_data["name"].strip()
     mtgjson_set.code = set_data["code"].upper()
     mtgjson_set.type = set_data["set_type"]
     mtgjson_set.keyrune_code = pathlib.Path(set_data["icon_svg_uri"]).stem.upper()
