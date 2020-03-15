@@ -6,7 +6,8 @@ import string
 from typing import Any, Dict, List, Match, Optional
 
 from ..classes import MtgjsonMetaObject
-from ..providers import ScryfallProvider, WizardsProvider
+from ..providers.scryfall_provider import ScryfallProvider
+from ..providers.wizards_provider import WizardsProvider
 from ..utils import parse_magic_rules_subset, to_camel_case
 
 

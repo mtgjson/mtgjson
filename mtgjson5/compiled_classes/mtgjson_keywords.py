@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 import unidecode
 
 from ..classes import MtgjsonMetaObject
-from ..providers import WizardsProvider
+from ..providers.wizards_provider import WizardsProvider
 from ..utils import parse_magic_rules_subset, to_camel_case
 
 
