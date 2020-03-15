@@ -203,7 +203,7 @@ class WizardsProvider(AbstractProvider):
 
         # Build new table with set codes instead of set names
         new_table = parallel_call(
-            build_single_set_code, (table.items()), force_starmap=True, fold_dict=True
+            build_single_set_code, table.items(), force_starmap=True, fold_dict=True
         )
 
         return dict(new_table)

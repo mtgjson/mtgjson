@@ -121,12 +121,13 @@ def parallel_call(
     :return: Results from execution, with modifications if desired
     """
     with multiprocessing.Pool(multiprocessing.cpu_count() * overclock) as pool:
-        if repeatable_args or force_starmap:
+        if repeatable_args:
             additional_args_repeated = [
-                itertools.repeat(arg)
-                for arg in (repeatable_args if repeatable_args else [])
+                itertools.repeat(arg) for arg in repeatable_args
             ]
             results = pool.starmap(function, zip(args, *additional_args_repeated))
+        elif force_starmap:
+            results = pool.starmap(function, args)
         else:
             results = pool.map(function, args)
 
