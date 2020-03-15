@@ -1,7 +1,6 @@
 """
 TCGPlayer 3rd party provider
 """
-import collections
 import datetime
 import logging
 import pathlib
@@ -147,7 +146,7 @@ class TCGPlayerProvider(AbstractProvider):
 
         results = parallel_call(get_tcgplayer_prices_map, ids_and_names, fold_dict=True)
 
-        return results
+        return dict(results)
 
 
 def generate_tcgplayer_to_mtgjson_map(

@@ -7,7 +7,7 @@ import itertools
 import logging
 import multiprocessing
 import time
-from typing import Any, Callable, List, Tuple, Union, ItemsView
+from typing import Any, Callable, List, Tuple, Union
 
 import requests
 import requests.adapters
@@ -103,27 +103,28 @@ def retryable_session(
 def parallel_call(
     function: Callable,
     args: Any,
+    repeatable_args: Union[Tuple[Any, ...], List[Any]] = None,
     fold_list: bool = False,
     fold_dict: bool = False,
-    overclock: int = 1,
     force_starmap: bool = False,
-    repeatable_args: Union[Tuple[Any, ...], List[Any]] = None,
+    overclock: int = 1,
 ) -> Any:
     """
     Execute a function in parallel
     :param function: Function to execute
     :param args: Args to pass to the function
+    :param repeatable_args: Repeatable args to pass with the original args
     :param fold_list: Compress the results into a 1D list
     :param fold_dict: Compress the results into a single dictionary
-    :param overclock: How many threads per CPU to create
     :param force_starmap: Force system to use Starmap over normal selection process
-    :param repeatable_args: Repeatable args to pass with the original args
+    :param overclock: How many threads per CPU to create
     :return: Results from execution, with modifications if desired
     """
     with multiprocessing.Pool(multiprocessing.cpu_count() * overclock) as pool:
         if repeatable_args or force_starmap:
             additional_args_repeated = [
-                itertools.repeat(arg) for arg in repeatable_args
+                itertools.repeat(arg)
+                for arg in (repeatable_args if repeatable_args else [])
             ]
             results = pool.starmap(function, zip(args, *additional_args_repeated))
         else:

@@ -443,7 +443,7 @@ def build_base_mtgjson_cards(
         build_mtgjson_card, cards, fold_list=True, repeatable_args=(0, is_token)
     )
 
-    return mtgjson_cards
+    return list(mtgjson_cards)
 
 
 def add_is_starter_option(

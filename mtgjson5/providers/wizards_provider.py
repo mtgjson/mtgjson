@@ -1,7 +1,6 @@
 """
 Wizards Site 3rd party provider
 """
-import collections
 import logging
 import pathlib
 import re
@@ -207,7 +206,7 @@ class WizardsProvider(AbstractProvider):
             build_single_set_code, (table.items()), force_starmap=True, fold_dict=True
         )
 
-        return new_table
+        return dict(new_table)
 
     # Handle building up components from rules text
     def get_magic_rules(self) -> str:
