@@ -29,32 +29,41 @@ def parse_args() -> argparse.Namespace:
         nargs="*",
         metavar="SET",
         default=[],
-        help="What set(s) to build",
+        help="What sets to build, via set code. Will ignore non-existent set codes.",
     )
     sets_group.add_argument(
-        "-a", "--all-sets", action="store_true", help="Alias to build all sets"
+        "-a",
+        "--all-sets",
+        action="store_true",
+        help="Build all possible sets, overriding the --sets option.",
     )
 
     parser.add_argument(
-        "-c", "--full-build", action="store_true", help="Compile extra outputs"
+        "-c",
+        "--full-build",
+        action="store_true",
+        help="After building individual sets, build MTGSqlite and compiled outputs, like AllPrintings.",
     )
     parser.add_argument(
         "-x",
         "--resume-build",
         action="store_true",
-        help="Continue from last set built in outputs folder",
+        help="Ignore rebuilding set files that already exist in the output folder.",
     )
     parser.add_argument(
-        "-z", "--compress", action="store_true", help="Compress outputs folder contents"
+        "-z",
+        "--compress",
+        action="store_true",
+        help="Compress the output folder's contents.",
     )
     parser.add_argument(
         "-p",
         "--pretty",
         action="store_true",
-        help="Outputs will be prettified over minified",
+        help="When dumping JSON files, prettify the contents instead of minifying them.",
     )
     parser.add_argument(
-        "-m", "--pricing", action="store_true", help="Compile only pricing files"
+        "-m", "--pricing", action="store_true", help="Compile updated pricing data."
     )
     parser.add_argument(
         "--skip-sets",
@@ -63,9 +72,13 @@ def parse_args() -> argparse.Namespace:
         nargs="*",
         metavar="SET",
         default=[],
-        help="Purposely exclude sets from the build that may have been set using '--sets' or '--all'",
+        help="Purposely exclude sets from the build that may have been set using --sets or --all.",
     )
-    parser.add_argument("--referrals", action="store_true", help="Store referrals map")
+    parser.add_argument(
+        "--referrals",
+        action="store_true",
+        help="Create and maintain a referral map for MTGJSON linkages.",
+    )
 
     return parser.parse_args()
 

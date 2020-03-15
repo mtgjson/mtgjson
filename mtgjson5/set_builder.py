@@ -1,9 +1,7 @@
 """
 MTGJSON Set Builder
 """
-import itertools
 import logging
-import multiprocessing
 import pathlib
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -36,7 +34,7 @@ from .providers import (
     WhatsInStandardProvider,
     WizardsProvider,
 )
-from .utils import url_keygen
+from .utils import parallel_call, url_keygen
 
 LOGGER = logging.getLogger(__name__)
 
@@ -441,13 +439,10 @@ def build_base_mtgjson_cards(
     cards = ScryfallProvider().download_cards(set_code)
     cards.extend(additional_cards or [])
 
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-        temp_cards = pool.starmap(
-            build_mtgjson_card,
-            zip(cards, itertools.repeat(0), itertools.repeat(is_token)),
-        )
+    mtgjson_cards = parallel_call(
+        build_mtgjson_card, cards, fold_list=True, repeatable_args=(0, is_token)
+    )
 
-    mtgjson_cards = list(itertools.chain.from_iterable(temp_cards))
     return mtgjson_cards
 
 

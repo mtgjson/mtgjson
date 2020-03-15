@@ -4,9 +4,9 @@ MTGJSON Main Executor
 import logging
 from typing import Dict, List, Set, Union
 
-from mtgjson5.providers import WhatsInStandardProvider
-
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
+from mtgjson5.compress_generator import compress_mtgjson_contents
+from mtgjson5.consts import OUTPUT_PATH
 from mtgjson5.output_generator import (
     generate_compiled_output_files,
     generate_compiled_prices_output,
@@ -17,6 +17,7 @@ from mtgjson5.price_builder import (
     build_prices,
     get_price_archive_data,
 )
+from mtgjson5.providers import GithubMTGSqliteProvider, WhatsInStandardProvider
 from mtgjson5.referral_builder import build_and_write_referral_map
 from mtgjson5.set_builder import build_mtgjson_set
 from mtgjson5.utils import init_logger
@@ -82,7 +83,12 @@ def main() -> None:
 
     if args.full_build:
         LOGGER.info("Building Compiled Outputs")
+        GithubMTGSqliteProvider().build_sql_and_csv_files()
         generate_compiled_output_files(price_data_cache, args.pretty)
+
+    if args.compress:
+        LOGGER.info("Compressing MTGJSON")
+        compress_mtgjson_contents(OUTPUT_PATH)
 
 
 if __name__ == "__main__":

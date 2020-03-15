@@ -4,7 +4,6 @@ TCGPlayer 3rd party provider
 import collections
 import datetime
 import logging
-import multiprocessing
 import pathlib
 from typing import Any, Dict, List, Tuple, Union
 
@@ -15,7 +14,7 @@ from singleton_decorator import singleton
 from ..classes import MtgjsonPricesObject
 from ..consts import CACHE_PATH
 from ..providers.abstract_provider import AbstractProvider
-from ..utils import retryable_session
+from ..utils import parallel_call, retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -146,10 +145,9 @@ class TCGPlayerProvider(AbstractProvider):
 
         ids_and_names = self.get_tcgplayer_magic_set_ids()
 
-        with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-            results = pool.map(get_tcgplayer_prices_map, ids_and_names)
+        results = parallel_call(get_tcgplayer_prices_map, ids_and_names, fold_dict=True)
 
-        return dict(collections.ChainMap(*results))
+        return results
 
 
 def generate_tcgplayer_to_mtgjson_map(

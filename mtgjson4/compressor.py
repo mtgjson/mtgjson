@@ -99,9 +99,7 @@ def compress_file(file_path: pathlib.Path) -> None:
 
 
 def __generic_compressor(
-    input_file_path: pathlib.Path,
-    file_ending: str,
-    compress_function: Callable[[Any], Any],
+    input_file_path: pathlib.Path, file_ending: str, compress_function: Callable,
 ) -> None:
     """
     Compress a single file

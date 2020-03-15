@@ -3,7 +3,6 @@ Wizards Site 3rd party provider
 """
 import collections
 import logging
-import multiprocessing
 import pathlib
 import re
 import time
@@ -18,7 +17,7 @@ from ..classes import MtgjsonTranslationsObject
 from ..consts import CACHE_PATH, RESOURCE_PATH, WIZARDS_SUPPORTED_LANGUAGES
 from ..providers.abstract_provider import AbstractProvider
 from ..providers.scryfall_provider import ScryfallProvider
-from ..utils import retryable_session
+from ..utils import parallel_call, retryable_session
 
 
 @singleton
@@ -204,10 +203,9 @@ class WizardsProvider(AbstractProvider):
             del table[key]
 
         # Build new table with set codes instead of set names
-        with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-            results = pool.starmap(build_single_set_code, (table.items()))
-
-        new_table = dict(collections.ChainMap(*results))
+        new_table = parallel_call(
+            build_single_set_code, (table.items()), force_starmap=True, fold_dict=True
+        )
 
         return new_table
 

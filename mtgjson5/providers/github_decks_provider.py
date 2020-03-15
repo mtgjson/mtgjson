@@ -1,9 +1,7 @@
 """
 Decks via GitHub 3rd party provider
 """
-import itertools
 import logging
-import multiprocessing
 import pathlib
 from typing import Any, Dict, Iterator, List, Union
 
@@ -15,7 +13,7 @@ from ..classes.mtgjson_deck import MtgjsonDeckObject
 from ..compiled_classes import MtgjsonStructuresObject
 from ..consts import OUTPUT_PATH
 from ..providers.abstract_provider import AbstractProvider
-from ..utils import retryable_session
+from ..utils import parallel_call, retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -84,17 +82,12 @@ class GithubDecksProvider(AbstractProvider):
             this_deck.release_date = deck["release_date"]
             this_deck.meta = MtgjsonMetaObject()
 
-            with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-                this_deck.main_board = list(
-                    itertools.chain.from_iterable(
-                        pool.map(build_single_card, deck["cards"])
-                    )
-                )
-                this_deck.side_board = list(
-                    itertools.chain.from_iterable(
-                        pool.map(build_single_card, deck["sideboard"])
-                    )
-                )
+            this_deck.main_board = parallel_call(
+                build_single_card, deck["cards"], fold_list=True
+            )
+            this_deck.side_board = parallel_call(
+                build_single_card, deck["sideboard"], fold_list=True
+            )
 
             yield this_deck
 
