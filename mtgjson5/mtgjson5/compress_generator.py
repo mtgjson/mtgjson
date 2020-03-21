@@ -10,8 +10,7 @@ import shutil
 from typing import Any, Callable, List
 import zipfile
 
-from mtgjson4 import OUTPUT_FILES
-
+from .compiled_classes import MtgjsonStructuresObject
 from .utils import parallel_call
 
 LOGGER = logging.getLogger(__name__)
@@ -24,7 +23,9 @@ def compress_mtgjson_contents(directory: pathlib.Path) -> None:
     """
     LOGGER.info(f"Starting compression on {directory.name}")
     single_set_files = [
-        file for file in directory.glob("*.json") if file.stem not in OUTPUT_FILES
+        file
+        for file in directory.glob("*.json")
+        if file.stem not in MtgjsonStructuresObject().get_all_compiled_file_names()
     ]
     parallel_call(_compress_mtgjson_file, single_set_files)
 
@@ -38,7 +39,9 @@ def compress_mtgjson_contents(directory: pathlib.Path) -> None:
     parallel_call(_compress_mtgjson_file, csv_files)
 
     compiled_files = [
-        file for file in directory.glob("*.json") if file.stem in OUTPUT_FILES
+        file
+        for file in directory.glob("*.json")
+        if file.stem in MtgjsonStructuresObject().get_all_compiled_file_names()
     ]
     parallel_call(_compress_mtgjson_file, compiled_files)
 

@@ -4,6 +4,7 @@ MTGJSON Arg Parser to determine what actions to run
 import argparse
 import logging
 import pathlib
+import sys
 from typing import List
 
 from .consts import BAD_FILE_NAMES, OUTPUT_PATH
@@ -29,7 +30,7 @@ def parse_args() -> argparse.Namespace:
         nargs="*",
         metavar="SET",
         default=[],
-        help="What sets to build, via set code. Will ignore non-existent set codes.",
+        help="Sets to build, using Scryfall set code notation. Non-existent sets shall be ignored.",
     )
     sets_group.add_argument(
         "-a",
@@ -42,32 +43,34 @@ def parse_args() -> argparse.Namespace:
         "-c",
         "--full-build",
         action="store_true",
-        help="After building individual sets, build MTGSqlite and compiled outputs, like AllPrintings.",
+        help="Trigger a new price build, as well as building MTGSQLite, and constructing compiled outputs.",
     )
     parser.add_argument(
         "-x",
         "--resume-build",
         action="store_true",
-        help="Ignore rebuilding set files that already exist in the output folder.",
+        help="While determine what sets to build, ignore individual set files found in the json_* output directory.",
     )
     parser.add_argument(
         "-z",
         "--compress",
         action="store_true",
-        help="Compress the output folder's contents.",
+        help="Compress the json_* output folder's contents for distribution.",
     )
     parser.add_argument(
         "-p",
         "--pretty",
         action="store_true",
-        help="When dumping JSON files, prettify the contents instead of minifying them.",
+        help="When dumping JSON files, prettify the contents instead of minify-ing them.",
     )
     parser.add_argument(
-        "-m", "--pricing", action="store_true", help="Compile updated pricing data."
+        "-m",
+        "--pricing",
+        action="store_true",
+        help="Compile updated pricing data and only updated pricing, disregarding all other flags and operations.",
     )
     parser.add_argument(
         "--skip-sets",
-        "--no-sets",
         type=str.upper,
         nargs="*",
         metavar="SET",
@@ -79,6 +82,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Create and maintain a referral map for MTGJSON linkages.",
     )
+
+    # Show help menu if no arguments are passed
+    if len(sys.argv) == 1:
+        parser.print_help()
+        parser.exit()
 
     return parser.parse_args()
 
