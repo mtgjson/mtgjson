@@ -44,7 +44,7 @@ class WhatsInStandardProvider(AbstractProvider):
         self.log_download(response)
         if not response.ok:
             self.logger.error(
-                f"WhatsInStandard Download Error ({response}): {response.content.decode()}"
+                f"WhatsInStandard Download Error ({response.status_code}): {response.content.decode()}"
             )
             time.sleep(5)
             return self.download(url, params)

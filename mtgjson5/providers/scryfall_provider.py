@@ -69,29 +69,28 @@ class ScryfallProvider(AbstractProvider):
         :param set_code: Set to download (Ex: AER, M19)
         :return: List of all card objects
         """
-        LOGGER.info(f"Downloading {set_code} information")
+        LOGGER.info(f"Downloading {set_code} cards")
         set_api_json: Dict[str, Any] = self.download(self.ALL_SETS_URL + set_code)
         if set_api_json["object"] == "error":
-            if not set_api_json["details"].startswith("No Magic set found"):
-                LOGGER.warning(
-                    f"Set api download failed for {set_code}: {set_api_json}"
-                )
+            if set_api_json["details"].startswith("No Magic set found"):
+                LOGGER.info(f"Downloading {set_code} cards failed -- Set not found")
             else:
-                LOGGER.error(set_api_json["details"])
+                LOGGER.error(f'Scryfall download failure: {set_api_json["details"]}')
             return []
 
         # All cards in the set structure
         scryfall_cards: List[Dict[str, Any]] = []
 
         # Download both normal card and variations
-        for cards_api_url in [
-            set_api_json.get("search_uri"),
-            self.VARIATIONS_URL.format(set_code),
-        ]:
+        for setup_index, cards_api_url in enumerate(
+            [set_api_json.get("search_uri"), self.VARIATIONS_URL.format(set_code)]
+        ):
             # For each page, append all the data, go to next page
             page_downloaded: int = 1
             while cards_api_url:
-                LOGGER.info(f"Downloading {set_code} card data page")
+                LOGGER.info(
+                    f"Downloading {set_code} card data page {setup_index} - {page_downloaded}"
+                )
                 page_downloaded += 1
 
                 cards_api_json: Dict[str, Any] = self.download(cards_api_url)

@@ -460,7 +460,7 @@ def add_is_starter_option(
     starter_cards = ScryfallProvider().download(starter_card_url)
 
     if starter_cards["object"] == "error":
-        LOGGER.info(f"All cards in {set_code} are available in boosters")
+        LOGGER.debug(f"All cards in {set_code} are available in boosters")
         return
 
     for scryfall_object in starter_cards["data"]:
@@ -869,7 +869,7 @@ def get_base_and_total_set_sizes(set_code: str) -> Tuple[int, int]:
             ScryfallProvider().CARDS_IN_BASE_SET_URL.format(set_code)
         )
         if base_set_size_download["object"] == "error":
-            LOGGER.warning(f"Unable to get set size for {set_code}")
+            LOGGER.warning(f"Unable to get base(2) set size for {set_code}")
             base_set_size = 0
         else:
             base_set_size = int(base_set_size_download["total_cards"])

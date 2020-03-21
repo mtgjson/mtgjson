@@ -82,7 +82,7 @@ def get_base_set_size(set_code: str) -> int:
     # Download on the fly
     content = download(SCRYFALL_SET_SIZE.format(set_code))
     if content["object"] == "error":
-        LOGGER.warning(f"Unable to get set size for {set_code}")
+        LOGGER.warning(f"Unable to get base(1) set size for {set_code}")
         return 0
 
     return int(content["total_cards"])

@@ -415,7 +415,7 @@ def add_start_flag_and_count_modified(
     starter_cards = scryfall.download(starter_card_url)
 
     if starter_cards["object"] == "error":
-        LOGGER.info(f"All cards in {set_code} are available in boosters")
+        LOGGER.debug(f"All cards in {set_code} are available in boosters")
         return mtgjson_cards
 
     for sf_card in starter_cards["data"]:

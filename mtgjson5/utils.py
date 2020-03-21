@@ -97,6 +97,8 @@ def retryable_session(
     adapter = requests.adapters.HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
+
+    session.headers.update({"User-Agent": "Mozilla/74.0 www.mtgjson.com"})
     return session
 
 

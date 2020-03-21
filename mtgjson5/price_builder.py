@@ -31,13 +31,13 @@ def download_prices_archive(
     :param github_repo_local_path: Where to checkout the repo to
     :return: File content
     """
-    LOGGER.info("Cloning GitHub Repo")
     github_url = f"https://gist.github.com/{gist_repo_name}"
 
     if github_repo_local_path.is_dir():
-        LOGGER.warning("Deleting old copy of GitHub repo first")
+        LOGGER.warning("Deleting Old Price Data Repo")
         shutil.rmtree(github_repo_local_path)
 
+    LOGGER.info("Cloning Price Data Repo")
     git_sh = git.cmd.Git()
     git_sh.clone(github_url, github_repo_local_path, depth=1)
 
@@ -181,7 +181,7 @@ def get_price_archive_data() -> Dict[str, Dict[str, float]]:
     github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
 
     # Get the current working database
-    LOGGER.info("Downloading old price data")
+    LOGGER.info("Downloading Price Data Repo")
     return download_prices_archive(
         github_repo_name, github_file_name, github_local_path
     )
