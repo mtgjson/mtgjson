@@ -34,7 +34,7 @@ We follow the [black](https://pypi.org/project/black/) style guides, a stricter 
 
 To reformat your code and ensure compatibility with our system, simply run the Tox file found in the repo before you open up a pull request.
 - Before running Tox, you'll need to install the requirements
-    - `python3 install -r requirements_dev.txt`
+    - `python3 install -r requirements_test.txt`
 - In PyCharm, simply right click on `tox.ini` and click "Run Tox"
 
 You will need to pass all Tox requirements, including the unit tests, for your pull request to be approved.

@@ -1,5 +1,7 @@
-from mtgjson4.util import build_format_map
 import pytest
+
+from mtgjson4.util import build_format_map
+
 
 NULL_OUTPUT = {
     "standard": [],
