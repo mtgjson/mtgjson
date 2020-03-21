@@ -1,12 +1,13 @@
 """
 MTGJSON Main Executor
 """
+import datetime
 import logging
 from typing import Dict, List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
 from mtgjson5.compress_generator import compress_mtgjson_contents
-from mtgjson5.consts import OUTPUT_PATH
+from mtgjson5.consts import CACHE_PATH, OUTPUT_PATH
 from mtgjson5.output_generator import (
     generate_compiled_output_files,
     generate_compiled_prices_output,
@@ -54,6 +55,23 @@ def build_mtgjson_sets(
         write_set_file(compiled_set, output_pretty)
 
 
+def should_build_new_prices() -> bool:
+    """
+    Determine if prices were built recently enough that there
+    is no reason to build them again
+    :return: Should prices be rebuilt
+    """
+    cache_file = CACHE_PATH.joinpath("last_price_build_time")
+
+    if not cache_file.is_file():
+        return True
+
+    stat_time = cache_file.stat().st_mtime
+    last_price_build_time = datetime.datetime.fromtimestamp(stat_time)
+    twelve_hours_ago = datetime.datetime.now() - datetime.timedelta(hours=12)
+    return twelve_hours_ago > last_price_build_time
+
+
 def main() -> None:
     """
     MTGJSON Main Executor
@@ -70,8 +88,12 @@ def main() -> None:
     # If a full build, build prices then build sets
     # Otherwise just load up the prices cache
     if args.full_build:
-        LOGGER.info("Full Build - Building Prices")
-        price_data_cache = build_prices()
+        if should_build_new_prices():
+            LOGGER.info("Full Build - Building Prices")
+            price_data_cache = build_prices()
+        else:
+            LOGGER.info("Full Build - Installing Price Cache")
+            price_data_cache = get_price_archive_data()
     else:
         LOGGER.info("Installing Price Cache")
         price_data_cache = get_price_archive_data()

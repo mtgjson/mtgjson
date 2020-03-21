@@ -243,6 +243,7 @@ def build_prices() -> Dict[str, Any]:
     upload_prices_archive(config, github_local_path, archive_prices)
 
     # Return the latest prices
+    CACHE_PATH.joinpath("last_price_build_time").touch()
     return archive_prices
 
 

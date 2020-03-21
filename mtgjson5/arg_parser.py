@@ -91,7 +91,7 @@ def get_sets_already_built() -> List[str]:
     json_output_files: List[pathlib.Path] = list(OUTPUT_PATH.glob("**/*.json"))
 
     set_codes_found = [file.stem for file in json_output_files]
-    LOGGER.info(set_codes_found)
+    LOGGER.info(f"Sets Built Already: {set_codes_found}")
 
     set_codes_found = [
         set_code[:-1] if set_code[:-1] in BAD_FILE_NAMES else set_code
