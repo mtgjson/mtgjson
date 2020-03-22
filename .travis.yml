@@ -1,21 +1,37 @@
-dist: bionic
 os: linux
+dist: bionic
 language: python
 
 jobs:
   include:
-    - name: "MTGJSON4 Code Analysis Python37"
+    - name: "MTGJSON4 Tox - Python 3.6"
       before_install:
         - cd "mtgjson4"
         - "pip install -U pip setuptools wheel tox-travis"
-      install: "pip install -r requirements.txt -r requirements_test.txt"
+      install: "pip install -r requirements_test.txt"
+      script: tox
+      python: "3.6"
+
+    - name: "MTGJSON4 Tox - Python 3.7"
+      before_install:
+        - cd "mtgjson4"
+        - "pip install -U pip setuptools wheel tox-travis"
+      install: "pip install -r requirements_test.txt"
       script: tox
       python: "3.7"
 
-    - name: "MTGJSON5 Code Analysis Python37"
+    - name: "MTGJSON5 Tox - Python 3.6"
       before_install:
         - cd "mtgjson5"
         - "pip install -U pip setuptools wheel tox-travis"
-      install: "pip install -r requirements.txt -r requirements_test.txt"
+      install: "pip install -r requirements_test.txt"
+      script: tox
+      python: "3.6"
+
+    - name: "MTGJSON5 Tox - Python 3.7"
+      before_install:
+        - cd "mtgjson5"
+        - "pip install -U pip setuptools wheel tox-travis"
+      install: "pip install -r requirements_test.txt"
       script: tox
       python: "3.7"
