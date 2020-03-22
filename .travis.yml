@@ -7,23 +7,23 @@ jobs:
     - name: "MTGJSON4 Code Analysis Python36"
       before_install: "pip install -U pip setuptools wheel tox-travis"
       install: "pip install -r mtgjson4/requirements.txt -r mtgjson4/requirements_test.txt"
-      script: tox mtgjson4/
+      script: tox mtgjson4/tox.ini
       python: "3.6"
 
     - name: "MTGJSON4 Code Analysis Python37"
       before_install: "pip install -U pip setuptools wheel tox-travis"
       install: "pip install -r mtgjson4/requirements.txt -r mtgjson4/requirements_test.txt"
-      script: tox mtgjson4/
+      script: tox mtgjson4/tox.ini
       python: "3.7"
 
     - name: "MTGJSON5 Code Analysis Python36"
       before_install: "pip install -U pip setuptools wheel tox-travis"
       install: "pip install -r mtgjson5/requirements.txt -r mtgjson5/requirements_test.txt"
-      script: tox mtgjson4/
+      script: tox mtgjson4/tox.ini
       python: "3.6"
 
     - name: "MTGJSON5 Code Analysis Python37"
       before_install: "pip install -U pip setuptools wheel tox-travis"
       install: "pip install -r mtgjson5/requirements.txt -r mtgjson5/requirements_test.txt"
-      script: tox mtgjson4/
+      script: tox mtgjson4/tox.ini
       python: "3.7"
