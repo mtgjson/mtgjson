@@ -1,17 +1,12 @@
 """
 API for how providers need to interact with other classes
 """
-from __future__ import annotations
-
 import abc
 import configparser
 import logging
 from typing import Any, Dict, Union
 
-import requests
-import requests.adapters
 import requests_cache
-import urllib3
 
 from ..consts import CACHE_PATH, CONFIG_PATH, USE_CACHE
 
@@ -97,26 +92,3 @@ class AbstractProvider(abc.ABC):
             requests_cache.install_cache(
                 str(CACHE_PATH.joinpath(self.get_class_name()))
             )
-
-    @staticmethod
-    def __retryable_session(
-        session: requests.Session, retries: int = 8
-    ) -> requests.Session:
-        """
-        Session with requests to allow for re-attempts at downloading missing data
-        :param session: Session to download with
-        :param retries: How many retries to attempt
-        :return: Session that does downloading
-        """
-        retry = urllib3.util.retry.Retry(
-            total=retries,
-            read=retries,
-            connect=retries,
-            backoff_factor=0.3,
-            status_forcelist=(500, 502, 504),
-        )
-
-        adapter = requests.adapters.HTTPAdapter(max_retries=retry)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
-        return session
