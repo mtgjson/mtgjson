@@ -1,21 +1,17 @@
-os: linux
 dist: bionic
 language: python
 python:
   - "3.6"
   - "3.7"
-
 cache: pip
 
 jobs:
   include:
-
-  - name: "MTGJSON4 Code Analysis"
-    before_install: pip install -U pip setuptools wheel tox-travis
-    install: pip install -r mtgjson4/requirements.txt -r mtgjson4/requirements_test.txt
-    script: tox
-
-  - name: "MTGJSON5 Code Analysis"
-      before_install: pip install -U pip setuptools wheel tox-travis
-      install: pip install -r mtgjson5/requirements.txt -r mtgjson5/requirements_test.txt
+    - name: "MTGJSON4 Code Analysis"
+      before_install: "pip install -U pip setuptools wheel tox-travis"
+      install: "pip install -r mtgjson4/requirements.txt -r mtgjson4/requirements_test.txt"
+      script: tox
+    - name: "MTGJSON5 Code Analysis"
+      before_install: "pip install -U pip setuptools wheel tox-travis"
+      install: "pip install -r mtgjson5/requirements.txt -r mtgjson5/requirements_test.txt"
       script: tox
