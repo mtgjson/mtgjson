@@ -43,6 +43,8 @@ class MtgjsonSetObject:
 
     def __init__(self) -> None:
         self.extra_tokens = []
+        self.cards = []
+        self.tokens = []
 
     def __str__(self) -> str:
         return str(vars(self))
