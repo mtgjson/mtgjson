@@ -24,7 +24,7 @@ class GithubDecksProvider(AbstractProvider):
     GithubDecksProvider container
     """
 
-    decks_api_url: str = "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks.json"
+    decks_api_url: str = "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks.json?raw=true"
     all_printings_file: pathlib.Path = OUTPUT_PATH.joinpath(
         f"{MtgjsonStructuresObject().all_printings}.json"
     )
@@ -53,8 +53,11 @@ class GithubDecksProvider(AbstractProvider):
 
         response = session.get(url)
         self.log_download(response)
+        if response.ok:
+            return response.json()
 
-        return response.json()
+        LOGGER.error(f"Error downloading GitHub Decks: {response} --- {response.text}")
+        return []
 
     def iterate_precon_decks(self) -> Iterator[MtgjsonDeckObject]:
         """
@@ -82,12 +85,18 @@ class GithubDecksProvider(AbstractProvider):
             this_deck.release_date = deck["release_date"]
             this_deck.meta = MtgjsonMetaObject()
 
-            this_deck.main_board = parallel_call(
-                build_single_card, deck["cards"], fold_list=True
-            )
-            this_deck.side_board = parallel_call(
-                build_single_card, deck["sideboard"], fold_list=True
-            )
+            try:
+                this_deck.main_board = parallel_call(
+                    build_single_card, deck["cards"], fold_list=True
+                )
+                this_deck.side_board = parallel_call(
+                    build_single_card, deck["sideboard"], fold_list=True
+                )
+            except KeyError as error:
+                LOGGER.warning(
+                    f'GitHub Deck "{this_deck.name}" failed to build -- Missing Set {error}'
+                )
+                continue
 
             yield this_deck
 
