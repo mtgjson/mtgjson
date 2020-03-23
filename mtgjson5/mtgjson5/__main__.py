@@ -43,6 +43,8 @@ def build_mtgjson_sets(
     for set_to_build in sets_to_build:
         # Build the full set
         compiled_set = build_mtgjson_set(set_to_build)
+        if not compiled_set:
+            continue
 
         # Add single price lines to each card entry
         add_prices_to_mtgjson_set(compiled_set, price_data_cache)

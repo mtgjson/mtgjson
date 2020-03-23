@@ -352,7 +352,7 @@ def mark_duel_decks(set_code: str, mtgjson_cards: List[MtgjsonCardObject]) -> No
             card.duel_deck = chr(side_letter_as_number)
 
 
-def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
+def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     """
     Construct a MTGJSON Magic Set
     :param set_code: Set to construct
@@ -364,7 +364,7 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject:
     # Ensure we have a header for this set
     set_data = get_scryfall_set_data(set_code)
     if not set_data:
-        return mtgjson_set
+        return None
 
     # Explicit Variables
     mtgjson_set.name = set_data["name"].strip()
