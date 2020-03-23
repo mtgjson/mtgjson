@@ -107,8 +107,8 @@ def main() -> None:
 
     if args.full_build:
         LOGGER.info("Building Compiled Outputs")
-        GithubMTGSqliteProvider().build_sql_and_csv_files()
         generate_compiled_output_files(price_data_cache, args.pretty)
+        GithubMTGSqliteProvider().build_sql_and_csv_files()
 
     if args.compress:
         LOGGER.info("Compressing MTGJSON")
