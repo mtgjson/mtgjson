@@ -9,6 +9,10 @@
 MTGJSON is an open sourced database creation and distribution tool for [_Magic: The Gathering_](https://magic.wizards.com/) cards, specifically in [JSON](https://json.org/) format.
 &nbsp;
 
+## **Contribute**
+MTGJSON is a freely available, open source service, and we rely on you to help us keep it that way. We gratefully accept community donations through Patreon or Paypal, and we welcome new code contribution.
+
+
 ## **Connect With Us**
 
 [![Discord](https://img.shields.io/discord/224178957103136779?label=Discord&logo=discord&logoColor=white&style=for-the-badge)](https://mtgjson.com/discord)
