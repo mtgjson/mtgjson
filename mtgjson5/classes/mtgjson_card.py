@@ -18,6 +18,7 @@ class MtgjsonCardObject:
     """
 
     artist: str
+    ascii_name: Optional[str]
     border_color: str
     color_identity: List[str]
     color_indicator: Optional[List[str]]

@@ -647,6 +647,16 @@ def build_mtgjson_card(
     # Explicit Variables -- Based on the face of the card
     mtgjson_card.loyalty = face_data.get("loyalty")
     mtgjson_card.name = face_data.get("name", "")
+
+    ascii_name = (
+        unicodedata.normalize("NFD", mtgjson_card.name)
+        .encode("ascii", "ignore")
+        .decode()
+    )
+    if mtgjson_card.name != ascii_name:
+        LOGGER.info(f"Adding ascii name for {mtgjson_card.name} -> {ascii_name}")
+        mtgjson_card.ascii_name = ascii_name
+
     mtgjson_card.power = face_data.get("power", "")
     mtgjson_card.text = face_data.get("oracle_text", "")
     mtgjson_card.toughness = face_data.get("toughness", "")
