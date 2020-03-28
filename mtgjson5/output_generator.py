@@ -83,7 +83,7 @@ def generate_compiled_output_files(
         MtgjsonStructuresObject().card_types, MtgjsonCardTypesObject(), pretty_print,
     )
 
-    # version.json
+    # Meta.json (Formerly version.json)
     log_and_create_compiled_output(
         MtgjsonStructuresObject().version, MtgjsonMetaObject(), pretty_print,
     )

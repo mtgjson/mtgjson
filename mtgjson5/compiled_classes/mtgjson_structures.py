@@ -55,7 +55,7 @@ class MtgjsonStructuresObject:
         self.key_words: str = "Keywords"
         self.set_list: str = "SetList"
         self.referral_database = "ReferralMap"
-        self.version: str = "version"
+        self.version: str = "Meta"
         self.all_printings_standard: str = "StandardPrintings"
         self.all_printings_pioneer: str = "PioneerPrintings"
         self.all_printings_modern: str = "ModernPrintings"
