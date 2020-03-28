@@ -482,7 +482,12 @@ def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
     :param mtgjson_card: Card object
     """
     is_commander_legal = (
-        "Legendary" in mtgjson_card.type and "Creature" in mtgjson_card.type
+        "Legendary" in mtgjson_card.type
+        and "Creature" in mtgjson_card.type
+        # Exclude Flip cards
+        and mtgjson_card.type not in {"flip"}
+        # Exclude Melded cards and backside of Transform cards
+        and (mtgjson_card.side == "a" if mtgjson_card.side else True)
     ) or ("can be your commander" in mtgjson_card.text)
 
     is_oathbreaker_legal = "Planeswalker" in mtgjson_card.type
