@@ -47,7 +47,10 @@ class MtgjsonAllCardsObject:
 
             with set_file.open(encoding="utf-8") as file:
                 file_content = json.load(file)
-            self.update_global_card_list(file_content["cards"], valid_keys)
+
+            self.update_global_card_list(
+                file_content.get("data", {}).get("cards", []), valid_keys
+            )
 
     def update_global_card_list(
         self, card_list: List[Dict[str, Any]], valid_keys: List[str]

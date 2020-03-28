@@ -269,7 +269,7 @@ def construct_format_map(
     with all_printings_path.open(encoding="utf-8") as file:
         content = json.load(file)
 
-    for set_code_key, set_code_content in content.items():
+    for set_code_key, set_code_content in content.get("data", {}).items():
         if normal_sets_only and set_code_content["type"] not in SUPPORTED_SET_TYPES:
             continue
 
@@ -307,7 +307,7 @@ def construct_all_cards_format_map(
     with all_printings_path.open(encoding="utf-8") as file:
         content = json.load(file)
 
-    for set_contents in content.values():
+    for set_contents in content.get("data", {}).values():
         for card in set_contents.get("cards"):
             for magic_format in format_card_map.keys():
                 if card.get("legalities").get(magic_format) in {"Legal", "Restricted"}:
