@@ -120,10 +120,8 @@ compiled_outputs/
 /trace.html
 /tests/test_*.yaml
 /test_results/*.xml
-.mtgjson4_cache/
-
-.DS_Store
 mtgjson.properties
 *.sqlite
 set_translations.json
 stocks_data.json
+.*_cache/

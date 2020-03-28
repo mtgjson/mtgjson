@@ -100,7 +100,7 @@ class WizardsProvider(AbstractProvider):
         )
 
         # Find all nodes, which are table (set) rows
-        set_lines = soup.find_all("a", href=re.compile(".*(node|content).*"))
+        set_lines = soup.find_all("a", href=re.compile(r".*(node|content).*"))
         for set_line in set_lines:
             # Pluck out the set icon, as it's how we will link all languages
             icon = set_line.find("span", class_="icon")
