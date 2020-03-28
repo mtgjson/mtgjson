@@ -270,7 +270,7 @@ def construct_format_map(
         content = json.load(file)
 
     for set_code_key, set_code_content in content.get("data", {}).items():
-        if normal_sets_only and set_code_content["type"] not in SUPPORTED_SET_TYPES:
+        if normal_sets_only and set_code_content.get("type") not in SUPPORTED_SET_TYPES:
             continue
 
         formats_set_legal_in = SUPPORTED_FORMAT_OUTPUTS
