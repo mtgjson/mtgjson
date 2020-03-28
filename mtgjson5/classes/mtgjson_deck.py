@@ -4,7 +4,6 @@ MTGJSON container for holding an individual card
 import re
 from typing import Any, Dict, List
 
-from ..classes.mtgjson_meta import MtgjsonMetaObject
 from ..utils import to_camel_case
 
 
@@ -15,7 +14,6 @@ class MtgjsonDeckObject:
 
     code: str
     main_board: List[Dict[str, Any]]  # MtgjsonCardObject
-    meta: MtgjsonMetaObject
     name: str
     side_board: List[Dict[str, Any]]  # MtgjsonCardObject
     release_date: str

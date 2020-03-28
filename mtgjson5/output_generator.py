@@ -33,7 +33,7 @@ def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> 
     OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
     with OUTPUT_PATH.joinpath(f"{mtgjson_set_object.code}.json").open("w") as file:
         json.dump(
-            obj=mtgjson_set_object,
+            obj={"data": mtgjson_set_object, "meta": MtgjsonMetaObject()},
             fp=file,
             for_json=True,
             sort_keys=True,
@@ -231,11 +231,11 @@ def write_compiled_output_to_file(
     :param pretty_print: Pretty or minimal
     """
     write_file = OUTPUT_PATH.joinpath(f"{file_name}.json")
-
     write_file.parent.mkdir(parents=True, exist_ok=True)
+
     with write_file.open("w", encoding="utf-8") as file:
         json.dump(
-            obj=file_contents,
+            obj={"data": file_contents, "meta": MtgjsonMetaObject()},
             fp=file,
             for_json=True,
             sort_keys=True,

@@ -4,7 +4,6 @@ Class structure for a MTGJSON Set Object
 from typing import Any, Dict, List, Optional, Set
 
 from ..classes.mtgjson_card import MtgjsonCardObject
-from ..classes.mtgjson_meta import MtgjsonMetaObject
 from ..classes.mtgjson_translations import MtgjsonTranslationsObject
 from ..utils import to_camel_case
 
@@ -27,7 +26,6 @@ class MtgjsonSetObject:
     keyrune_code: str
     mcm_id: Optional[int]
     mcm_name: Optional[str]
-    meta: MtgjsonMetaObject
     mtgo_code: str
     name: str
     parent_code: str

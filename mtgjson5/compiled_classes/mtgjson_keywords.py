@@ -6,7 +6,6 @@ from typing import Any, Dict, List
 
 import unidecode
 
-from ..classes import MtgjsonMetaObject
 from ..providers.wizards_provider import WizardsProvider
 from ..utils import parse_magic_rules_subset, to_camel_case
 
@@ -19,10 +18,8 @@ class MtgjsonKeywordsObject:
     ability_words: List[str]
     keyword_actions: List[str]
     keyword_abilities: List[str]
-    meta: MtgjsonMetaObject
 
     def __init__(self) -> None:
-        self.meta = MtgjsonMetaObject()
         self.ability_words = self.get_magic_ability_words()
         self.keyword_actions = self.get_keyword_actions()
         self.keyword_abilities = self.get_keyword_abilities()

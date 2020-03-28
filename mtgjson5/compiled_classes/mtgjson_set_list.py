@@ -46,7 +46,6 @@ class MtgjsonSetListObject:
             set_data = {
                 "baseSetSize": file_content.get("baseSetSize"),
                 "code": file_content.get("code"),
-                "meta": file_content.get("meta"),
                 "name": file_content.get("name"),
                 "releaseDate": file_content.get("releaseDate"),
                 "totalSetSize": file_content.get("totalSetSize"),

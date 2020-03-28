@@ -5,7 +5,6 @@ import re
 import string
 from typing import Any, Dict, List, Match, Optional
 
-from ..classes import MtgjsonMetaObject
 from ..providers.scryfall_provider import ScryfallProvider
 from ..providers.wizards_provider import WizardsProvider
 from ..utils import parse_magic_rules_subset, to_camel_case
@@ -68,11 +67,9 @@ class MtgjsonCardTypesObject:
             }
 
     types: Dict[str, Dict[str, List[str]]]
-    meta: MtgjsonMetaObject
 
     def __init__(self) -> None:
         self.types = {}
-        self.meta = MtgjsonMetaObject()
 
         comp_rules = parse_magic_rules_subset(
             WizardsProvider().get_magic_rules(),

@@ -377,7 +377,6 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.block = set_data.get("block", "")
     mtgjson_set.is_online_only = set_data.get("digital", "")
     mtgjson_set.is_foil_only = set_data.get("foil_only", "")
-    mtgjson_set.meta = MtgjsonMetaObject()
     mtgjson_set.search_uri = set_data["search_uri"]
     mtgjson_set.mcm_name = McmProvider().get_set_name(mtgjson_set.name)
     mtgjson_set.mcm_id = McmProvider().get_set_id(mtgjson_set.name)
@@ -409,7 +408,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
 
     # Implicit Variables
     mtgjson_set.is_foreign_only = mtgjson_set.code in FOREIGN_SETS
-    mtgjson_set.is_partial_preview = mtgjson_set.meta.date < mtgjson_set.release_date
+    mtgjson_set.is_partial_preview = MtgjsonMetaObject().date < mtgjson_set.release_date
 
     return mtgjson_set
 

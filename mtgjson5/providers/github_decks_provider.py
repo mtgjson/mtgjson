@@ -8,7 +8,6 @@ from typing import Any, Dict, Iterator, List, Union
 import simplejson as json
 from singleton_decorator import singleton
 
-from ..classes import MtgjsonMetaObject
 from ..classes.mtgjson_deck import MtgjsonDeckObject
 from ..compiled_classes import MtgjsonStructuresObject
 from ..consts import OUTPUT_PATH
@@ -83,7 +82,6 @@ class GithubDecksProvider(AbstractProvider):
             this_deck.code = deck["set_code"].upper()
             this_deck.type = deck["type"]
             this_deck.release_date = deck["release_date"]
-            this_deck.meta = MtgjsonMetaObject()
 
             try:
                 this_deck.main_board = parallel_call(
