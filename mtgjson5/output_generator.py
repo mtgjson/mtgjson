@@ -140,50 +140,50 @@ def generate_compiled_output_files(
 
     # AllCards.json
     log_and_create_compiled_output(
-        MtgjsonStructuresObject().all_cards, MtgjsonAllCardsObject(), pretty_print,
+        MtgjsonStructuresObject().atomic_cards, MtgjsonAllCardsObject(), pretty_print,
     )
 
     # Format specific card split up
-    card_format_map = construct_all_cards_format_map()
+    card_format_map = construct_atomic_cards_format_map()
 
     # StandardCards.json
     log_and_create_compiled_output(
-        MtgjsonStructuresObject().all_cards_standard,
+        MtgjsonStructuresObject().atomic_cards_standard,
         MtgjsonAllCardsObject(card_format_map["standard"]),
         pretty_print,
     )
 
     # PioneerCards.json
     log_and_create_compiled_output(
-        MtgjsonStructuresObject().all_cards_pioneer,
+        MtgjsonStructuresObject().atomic_cards_pioneer,
         MtgjsonAllCardsObject(card_format_map["pioneer"]),
         pretty_print,
     )
 
     # ModernCards.json
     log_and_create_compiled_output(
-        MtgjsonStructuresObject().all_cards_modern,
+        MtgjsonStructuresObject().atomic_cards_modern,
         MtgjsonAllCardsObject(card_format_map["modern"]),
         pretty_print,
     )
 
     # LegacyCards.json
     log_and_create_compiled_output(
-        MtgjsonStructuresObject().all_cards_legacy,
+        MtgjsonStructuresObject().atomic_cards_legacy,
         MtgjsonAllCardsObject(card_format_map["legacy"]),
         pretty_print,
     )
 
     # VintageCards.json
     log_and_create_compiled_output(
-        MtgjsonStructuresObject().all_cards_vintage,
+        MtgjsonStructuresObject().atomic_cards_vintage,
         MtgjsonAllCardsObject(card_format_map["vintage"]),
         pretty_print,
     )
 
     # PauperCards.json
     log_and_create_compiled_output(
-        MtgjsonStructuresObject().all_cards_pauper,
+        MtgjsonStructuresObject().atomic_cards_pauper,
         MtgjsonAllCardsObject(card_format_map["pauper"]),
         pretty_print,
     )
@@ -284,7 +284,7 @@ def construct_format_map(
     return format_map
 
 
-def construct_all_cards_format_map(
+def construct_atomic_cards_format_map(
     all_printings_path: pathlib.Path = OUTPUT_PATH.joinpath(
         f"{MtgjsonStructuresObject().all_printings}.json"
     ),

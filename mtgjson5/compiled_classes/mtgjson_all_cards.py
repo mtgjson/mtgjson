@@ -16,10 +16,10 @@ class MtgjsonAllCardsObject:
     AllCards container
     """
 
-    all_cards_dict: Dict[str, List[Dict[str, Any]]]
+    atomic_cards_dict: Dict[str, List[Dict[str, Any]]]
 
     def __init__(self, cards_to_parse: Dict[str, Dict[str, Any]] = None) -> None:
-        self.all_cards_dict = {}
+        self.atomic_cards_dict = {}
         self.iterate_all_cards(
             MtgjsonStructuresObject().get_all_compiled_file_names(), cards_to_parse
         )
@@ -71,21 +71,21 @@ class MtgjsonAllCardsObject:
             for foreign_data in atomic_card.get("foreignData", {}):
                 foreign_data.pop("multiverseId", None)
 
-            if atomic_card["name"] not in self.all_cards_dict.keys():
-                self.all_cards_dict[atomic_card["name"]] = []
+            if atomic_card["name"] not in self.atomic_cards_dict.keys():
+                self.atomic_cards_dict[atomic_card["name"]] = []
 
             should_add_card = True
-            for card_entry in self.all_cards_dict[atomic_card["name"]]:
+            for card_entry in self.atomic_cards_dict[atomic_card["name"]]:
                 if card_entry.get("purchaseUrls") == atomic_card.get("purchase_urls"):
                     should_add_card = False
                     break
 
             if should_add_card:
-                self.all_cards_dict[atomic_card["name"]].append(atomic_card)
+                self.atomic_cards_dict[atomic_card["name"]].append(atomic_card)
 
     def for_json(self) -> Dict[str, List[Dict[str, Any]]]:
         """
         Support json.dumps()
         :return: JSON serialized object
         """
-        return self.all_cards_dict
+        return self.atomic_cards_dict

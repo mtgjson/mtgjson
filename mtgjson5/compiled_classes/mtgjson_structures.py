@@ -15,7 +15,7 @@ class MtgjsonStructuresObject:
     """
 
     all_printings: str
-    all_cards: str
+    atomic_cards: str
     all_prices: str
 
     all_decks_directory: str
@@ -36,16 +36,16 @@ class MtgjsonStructuresObject:
     all_printings_legacy: str
     all_printings_vintage: str
 
-    all_cards_standard: str
-    all_cards_pioneer: str
-    all_cards_modern: str
-    all_cards_legacy: str
-    all_cards_vintage: str
-    all_cards_pauper: str
+    atomic_cards_standard: str
+    atomic_cards_pioneer: str
+    atomic_cards_modern: str
+    atomic_cards_legacy: str
+    atomic_cards_vintage: str
+    atomic_cards_pauper: str
 
     def __init__(self) -> None:
         self.all_printings: str = "AllPrintings"
-        self.all_cards: str = "AllCards"
+        self.atomic_cards: str = "AtomicCards"
         self.all_prices: str = "AllPrices"
         self.all_decks_directory: str = "AllDeckFiles"
         self.all_sets_directory: str = "AllSetFiles"
@@ -61,12 +61,12 @@ class MtgjsonStructuresObject:
         self.all_printings_modern: str = "ModernPrintings"
         self.all_printings_legacy: str = "LegacyPrintings"
         self.all_printings_vintage: str = "VintagePrintings"
-        self.all_cards_standard: str = "StandardCards"
-        self.all_cards_pioneer: str = "PioneerCards"
-        self.all_cards_modern: str = "ModernCards"
-        self.all_cards_legacy: str = "LegacyCards"
-        self.all_cards_vintage: str = "VintageCards"
-        self.all_cards_pauper: str = "PauperCards"
+        self.atomic_cards_standard: str = "StandardAtomicCards"
+        self.atomic_cards_pioneer: str = "PioneerAtomicCards"
+        self.atomic_cards_modern: str = "ModernAtomicCards"
+        self.atomic_cards_legacy: str = "LegacyAtomicCards"
+        self.atomic_cards_vintage: str = "VintageAtomicCards"
+        self.atomic_cards_pauper: str = "PauperAtomicCards"
 
     def get_all_compiled_file_names(self) -> List[str]:
         """
