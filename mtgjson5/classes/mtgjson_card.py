@@ -28,14 +28,14 @@ class MtgjsonCardObject:
     duel_deck: Optional[str]
     edhrec_rank: Optional[int]
     face_converted_mana_cost: float
+    face_name: Optional[str]
     flavor_text: Optional[str]
     foreign_data: List[MtgjsonForeignDataObject]
-    frame_effect: str  # DEPRECATED
     frame_effects: List[str]
     frame_version: str
     hand: Optional[str]
     has_foil: Optional[bool]
-    has_no_deck_limit: Optional[bool]  # DEPRECATED
+    has_alternative_deck_limit: Optional[bool]
     has_non_foil: Optional[bool]
     is_alternative: Optional[bool]
     is_arena: Optional[bool]
@@ -67,7 +67,6 @@ class MtgjsonCardObject:
     mtgstocks_id: int
     multiverse_id: int
     name: str
-    names: Optional[List[str]]
     number: str
     original_text: Optional[str]
     original_type: Optional[str]
@@ -97,6 +96,7 @@ class MtgjsonCardObject:
 
     is_token: bool
     raw_purchase_urls: Dict[str, str]
+    __names: Optional[List[str]]
 
     def __init__(self, is_token: bool = False) -> None:
         # These values are tested against at some point
@@ -105,7 +105,7 @@ class MtgjsonCardObject:
         self.artist = ""
         self.layout = ""
         self.watermark = None
-        self.names = []
+        self.__names = []
         self.multiverse_id = 0
         self.purchase_urls = MtgjsonPurchaseUrlsObject()
         self.is_token = is_token
@@ -130,6 +130,30 @@ class MtgjsonCardObject:
         except ValueError:
             return bool(self.number < other.number)
 
+    def get_names(self) -> List[str]:
+        """
+        Get internal names array
+        :return Names array or None
+        """
+        return self.__names or []
+
+    def set_names(self, names: Optional[List[str]]) -> None:
+        """
+        Set internal names array
+        :param names: Names list (optional)
+        """
+        self.__names = names
+
+    def append_names(self, name: str) -> None:
+        """
+        Append to internal names array
+        :param name: Name to append
+        """
+        if self.__names:
+            self.__names.append(name)
+        else:
+            self.set_names([name])
+
     @staticmethod
     def get_atomic_keys() -> List[str]:
         """
@@ -145,9 +169,10 @@ class MtgjsonCardObject:
             "count",
             "edhrec_rank",
             "face_converted_mana_cost",
+            "face_name",
             "foreign_data",
             "hand",
-            "has_no_deck_limit",
+            "has_alternative_deck_limit",
             "is_reserved",
             "layout",
             "leadership_skills",
@@ -156,7 +181,6 @@ class MtgjsonCardObject:
             "loyalty",
             "mana_cost",
             "name",
-            "names",
             "power",
             "printings",
             "purchase_urls",
@@ -169,7 +193,6 @@ class MtgjsonCardObject:
             "toughness",
             "type",
             "types",
-            "uuid",
         ]
 
     def build_keys_to_skip(self) -> Set[str]:
@@ -202,7 +225,6 @@ class MtgjsonCardObject:
             "foreign_data",
             "legalities",
             "leadership_skills",
-            "names",
         }
 
         remove_for_cards = {"reverse_related"}

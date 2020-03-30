@@ -299,7 +299,7 @@ def uniquify_cards_with_same_name(mtgjson_cards: List[MtgjsonCardObject]) -> Non
 
                 if cards_found_already[card.name] != ord("a"):
                     card.name += f" ({chr(cards_found_already[card.name])})"
-                card.names = []
+                card.set_names([])
 
 
 def relocate_miscellaneous_tokens(mtgjson_set: MtgjsonSetObject) -> None:
@@ -513,10 +513,12 @@ def add_uuid(mtgjson_card: MtgjsonCardObject, is_card: bool = True) -> None:
             ScryfallProvider().get_class_id()
             + mtgjson_card.scryfall_id
             + mtgjson_card.name
+            + (mtgjson_card.face_name or "")
         )
     else:
         id_source = (
             mtgjson_card.name
+            + (mtgjson_card.face_name or "")
             + "".join((mtgjson_card.colors or ""))
             + (mtgjson_card.power or "")
             + (mtgjson_card.toughness or "")
@@ -547,6 +549,7 @@ def build_mtgjson_card(
     # Object Container
     mtgjson_card = MtgjsonCardObject(is_token)
 
+    mtgjson_card.name = scryfall_object["name"]
     mtgjson_card.set_code = scryfall_object["set"]
     mtgjson_card.scryfall_id = scryfall_object["id"]
     mtgjson_card.scryfall_oracle_id = scryfall_object["oracle_id"]
@@ -555,7 +558,7 @@ def build_mtgjson_card(
     # Handle atypical cards
     face_data = scryfall_object
     if "card_faces" in scryfall_object:
-        mtgjson_card.names = scryfall_object["name"].split(" // ")
+        mtgjson_card.set_names(scryfall_object["name"].split(" // "))
 
         # Override face_data from above
         face_data = scryfall_object["card_faces"][face_id]
@@ -600,11 +603,11 @@ def build_mtgjson_card(
         )
 
     # Explicit Variables -- Based on the entire card object
+
     mtgjson_card.border_color = scryfall_object.get("border_color", "")
     mtgjson_card.color_identity = scryfall_object.get("color_identity", "")
     mtgjson_card.converted_mana_cost = scryfall_object.get("cmc", "")
     mtgjson_card.edhrec_rank = scryfall_object.get("edhrec_rank")
-    mtgjson_card.frame_effect = scryfall_object.get("frame_effects", [""])[0]
     mtgjson_card.frame_effects = scryfall_object.get("frame_effects", "")
     mtgjson_card.frame_version = scryfall_object.get("frame", "")
     mtgjson_card.hand = scryfall_object.get("hand_modifier")
@@ -646,7 +649,6 @@ def build_mtgjson_card(
 
     # Explicit Variables -- Based on the face of the card
     mtgjson_card.loyalty = face_data.get("loyalty")
-    mtgjson_card.name = face_data.get("name", "")
 
     ascii_name = (
         unicodedata.normalize("NFD", mtgjson_card.name)
@@ -681,9 +683,13 @@ def build_mtgjson_card(
             mtgjson_card.multiverse_id = scryfall_object["multiverse_ids"][0]
 
     # Add "side" for split cards (cards with exactly 2 sides)
-    if mtgjson_card.names and len(mtgjson_card.names) == 2:
+    # Also set face name
+    if mtgjson_card.get_names() and len(mtgjson_card.get_names()) == 2:
+        mtgjson_card.face_name = str(face_data["name"])
         # chr(97) = 'a', chr(98) = 'b', ...
-        mtgjson_card.side = chr(mtgjson_card.names.index(mtgjson_card.name) + 97)
+        mtgjson_card.side = chr(
+            mtgjson_card.get_names().index(mtgjson_card.face_name) + 97
+        )
 
     # Implicit Variables
     mtgjson_card.is_timeshifted = (
@@ -706,43 +712,45 @@ def build_mtgjson_card(
     # Handle Meld components, as well as tokens
     if "all_parts" in scryfall_object.keys():
         meld_object = []
-        mtgjson_card.names = []
+        mtgjson_card.set_names([])
         for a_part in scryfall_object["all_parts"]:
             if a_part["component"] != "token":
                 if "//" in a_part.get("name"):
-                    mtgjson_card.names = a_part.get("name").split(" // ")
+                    mtgjson_card.set_names(a_part.get("name").split(" // "))
                     break
 
                 # This is a meld only-fix, so we ignore tokens/combo pieces
                 if "meld" in a_part["component"]:
                     meld_object.append(a_part["component"])
-                    mtgjson_card.names.append(a_part.get("name"))
+                    mtgjson_card.append_names(a_part.get("name"))
 
         # If the only entry is the original card, empty the names array
         if (
-            mtgjson_card.names
-            and len(mtgjson_card.names) == 1
-            and mtgjson_card.name in mtgjson_card.names
+            mtgjson_card.get_names()
+            and len(mtgjson_card.get_names()) == 1
+            and mtgjson_card.name in mtgjson_card.get_names()
         ):
-            mtgjson_card.names = None
+            mtgjson_card.set_names(None)
 
         # Meld cards should be CardA, Meld, CardB.
         if (
             len(meld_object) == 3
             and meld_object[1] != "meld_result"
-            and mtgjson_card.names
+            and mtgjson_card.get_names()
         ):
-            mtgjson_card.names = [
-                mtgjson_card.names[0],
-                mtgjson_card.names[2],
-                mtgjson_card.names[1],
-            ]
+            mtgjson_card.set_names(
+                [
+                    mtgjson_card.get_names()[0],
+                    mtgjson_card.get_names()[2],
+                    mtgjson_card.get_names()[1],
+                ]
+            )
 
         # Meld Object
-        if mtgjson_card.names and len(mtgjson_card.names) == 3:
-            if mtgjson_card.name == mtgjson_card.names[0]:
+        if mtgjson_card.get_names() and len(mtgjson_card.get_names()) == 3:
+            if mtgjson_card.name == mtgjson_card.get_names()[0]:
                 mtgjson_card.side = "a"
-            elif mtgjson_card.name == mtgjson_card.names[2]:
+            elif mtgjson_card.name == mtgjson_card.get_names()[2]:
                 mtgjson_card.side = "b"
             else:
                 mtgjson_card.side = "c"
@@ -755,7 +763,7 @@ def build_mtgjson_card(
     )
 
     if mtgjson_card.name in ScryfallProvider().cards_without_limits:
-        mtgjson_card.has_no_deck_limit = True
+        mtgjson_card.has_alternative_deck_limit = True
 
     add_uuid(mtgjson_card)
     add_leadership_skills(mtgjson_card)
@@ -801,18 +809,21 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
     }:
         for card in mtgjson_set.cards:
             # Adds other face ID list
-            if card.names:
+            if card.get_names():
                 card.other_face_ids = [
                     card_obj.uuid
                     for card_obj in mtgjson_set.cards
-                    if card_obj.name in card.names and card_obj.uuid != card.uuid
+                    if card_obj.face_name in card.get_names()
+                    and card_obj.uuid != card.uuid
                 ]
 
             # Adds variations
             variations = [
                 item.uuid
                 for item in mtgjson_set.cards
-                if item.name == card.name and item.uuid != card.uuid
+                if item.name == card.name
+                and item.face_name == card.face_name
+                and item.uuid != card.uuid
             ]
 
             if variations:
