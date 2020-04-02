@@ -65,7 +65,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "-m",
-        "--pricing",
+        "--price-build",
         action="store_true",
         help="Compile updated pricing data and only updated pricing, disregarding all other flags and operations.",
     )

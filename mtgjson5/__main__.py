@@ -72,7 +72,7 @@ def main() -> None:
     args = parse_args()
 
     # If a price build, simply build prices and exit
-    if args.pricing:
+    if args.price_build:
         LOGGER.info("Prices Build - Building Prices")
         price_data_cache = build_prices()
         generate_compiled_prices_output(price_data_cache, args.pretty)

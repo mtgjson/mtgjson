@@ -14,7 +14,6 @@ import git
 import requests
 import simplejson as json
 
-from .classes import MtgjsonPricesObject, MtgjsonSetObject
 from .consts import CACHE_PATH, OUTPUT_PATH
 from .providers import CardhoarderProvider, TCGPlayerProvider
 
@@ -87,29 +86,36 @@ def upload_prices_archive(
 
 def prune_prices_archive(content: Dict[str, Any], months: int = 3) -> None:
     """
-    Prune entries from the CardHoarder database in which entries are
-    older than X months
-    :param content: Database to modify
+    Prune entries from the MTGJSON database that are older than `months` old
+    :param content: Dataset to modify
     :param months: How many months back should we keep (default = 3)
     """
     prune_date = datetime.date.today() + dateutil.relativedelta.relativedelta(
         months=-months
     )
 
-    for format_dicts in content.values():
-        for date_price in format_dicts.values():
-            # Skip UUID and any other meta data we may add in future
-            if not isinstance(date_price, dict):
-                continue
+    keys_to_prune = []
+    for source_key, source_data in content.items():
+        for provider_key, provider_data in source_data.items():
+            for buy_sell_key, buy_sell_data in provider_data.items():
+                for card_type_key, card_type_data in buy_sell_data.items():
+                    keys_to_prune.extend(
+                        [
+                            (
+                                source_key,
+                                provider_key,
+                                buy_sell_key,
+                                card_type_key,
+                                key_date,
+                            )
+                            for key_date in card_type_data.keys()
+                            if datetime.datetime.strptime(key_date, "%Y-%m-%d").date()
+                            < prune_date
+                        ]
+                    )
 
-            keys_to_prune = [
-                key_date
-                for key_date in date_price.keys()
-                if datetime.datetime.strptime(key_date, "%Y-%m-%d").date() < prune_date
-            ]
-
-            for key in keys_to_prune:
-                del date_price[key]
+    for source, provider, buy_sell, card_type, date in keys_to_prune:
+        del content[source][provider][buy_sell][card_type][date]
 
 
 def deep_merge_dictionaries(
@@ -245,27 +251,3 @@ def build_prices() -> Dict[str, Any]:
     # Return the latest prices
     CACHE_PATH.joinpath("last_price_build_time").touch()
     return archive_prices
-
-
-def add_prices_to_mtgjson_set(
-    mtgjson_set: MtgjsonSetObject, price_data_cache: Dict[str, Any]
-) -> None:
-    """
-    Add the final pieces to the set (i.e. Price data)
-    :param mtgjson_set: Part 1 build
-    :param price_data_cache: Data cache to pull entries from
-    """
-    for mtgjson_card_object in mtgjson_set.cards:
-        single_price_entries: Dict[str, Dict[str, float]] = {}
-        data_entry = price_data_cache.get(mtgjson_card_object.uuid, {})
-        for key, value in data_entry.items():
-            if not isinstance(value, dict):
-                continue
-
-            if value:
-                max_value = max(value)
-                single_price_entries[key] = {max_value: value[max_value]}
-
-        mtgjson_card_object.prices = MtgjsonPricesObject(
-            mtgjson_card_object.uuid, single_price_entries
-        )

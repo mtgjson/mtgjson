@@ -1,9 +1,7 @@
 """
 MTGJSON container for pricing data
 """
-from typing import Any, Dict
-
-from ..utils import to_camel_case
+from typing import Any, Dict, Optional
 
 
 class MtgjsonPricesObject:
@@ -11,36 +9,43 @@ class MtgjsonPricesObject:
     Pricing Container
     """
 
-    uuid: str
-    paper: Dict[str, float]
-    paper_foil: Dict[str, float]
-    mtgo: Dict[str, float]
-    mtgo_foil: Dict[str, float]
-    __parent_is_card_object: bool = True
+    source: str
+    provider: str
+    date: str
+    buy_normal: Optional[float]
+    buy_foil: Optional[float]
+    sell_normal: Optional[float]
+    sell_foil: Optional[float]
 
-    def __init__(self, uuid: str, entries: Dict[str, Dict[str, float]] = None) -> None:
-        if entries is None:
-            entries = {}
-            self.__parent_is_card_object = False
-
-        self.uuid = uuid
-        self.paper = entries.get("paper", {})
-        self.paper_foil = entries.get("paperFoil", {})
-        self.mtgo = entries.get("mtgo", {})
-        self.mtgo_foil = entries.get("mtgoFoil", {})
+    def __init__(self, source: str, provider: str, date: str) -> None:
+        self.source = source
+        self.provider = provider
+        self.date = date
+        self.buy_normal = None
+        self.buy_foil = None
+        self.sell_normal = None
+        self.sell_foil = None
 
     def for_json(self) -> Dict[str, Any]:
         """
         Support json.dumps()
         :return: JSON serialized object
         """
-        skip_keys = set()
+        buy_sell_option: Dict[str, Dict[str, Dict[str, float]]] = {}
+        if (self.buy_normal is not None) or (self.buy_foil is not None):
+            buy_sell_option["buy"] = {"normal": {}, "foil": {}}
+            if self.buy_normal is not None:
+                buy_sell_option["buy"]["normal"][self.date] = self.buy_normal
+            if self.buy_foil is not None:
+                buy_sell_option["buy"]["foil"][self.date] = self.buy_foil
 
-        if self.__parent_is_card_object:
-            skip_keys.add("uuid")
+        if (self.sell_normal is not None) or (self.sell_foil is not None):
+            buy_sell_option["sell"] = {"normal": {}, "foil": {}}
+            if self.sell_normal is not None:
+                buy_sell_option["sell"]["normal"][self.date] = self.sell_normal
+            if self.sell_foil is not None:
+                buy_sell_option["sell"]["foil"][self.date] = self.sell_foil
 
-        return {
-            to_camel_case(key): value
-            for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value) and key not in skip_keys
-        }
+        return_object: Dict[str, Any] = {self.source: {self.provider: buy_sell_option}}
+
+        return return_object

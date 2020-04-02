@@ -203,11 +203,13 @@ def get_tcgplayer_prices_map(
         card_price = tcgplayer_object["marketPrice"]
 
         if key not in prices_map.keys():
-            prices_map[key] = MtgjsonPricesObject(key)
+            prices_map[key] = MtgjsonPricesObject(
+                "paper", "tcgplayer", TCGPlayerProvider().today_date
+            )
 
         if is_non_foil:
-            prices_map[key].paper[TCGPlayerProvider().today_date] = card_price
+            prices_map[key].sell_normal = card_price
         else:
-            prices_map[key].paper_foil[TCGPlayerProvider().today_date] = card_price
+            prices_map[key].sell_foil = card_price
 
     return prices_map

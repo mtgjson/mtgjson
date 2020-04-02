@@ -116,9 +116,11 @@ class CardhoarderProvider(AbstractProvider):
         """
         for key, value in cards.items():
             if key not in semi_completed_data.keys():
-                semi_completed_data[key] = MtgjsonPricesObject(key)
+                semi_completed_data[key] = MtgjsonPricesObject(
+                    "mtgo", "cardhoarder", self.today_date
+                )
 
             if is_mtgo_normal:
-                semi_completed_data[key].mtgo[self.today_date] = float(value)
+                semi_completed_data[key].sell_normal = float(value)
             else:
-                semi_completed_data[key].mtgo_foil[self.today_date] = float(value)
+                semi_completed_data[key].sell_foil = float(value)
