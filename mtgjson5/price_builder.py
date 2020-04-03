@@ -93,27 +93,30 @@ def prune_prices_archive(content: Dict[str, Any], months: int = 3) -> None:
     prune_date = datetime.date.today() + dateutil.relativedelta.relativedelta(
         months=-months
     )
+    prune_date_str = prune_date.strftime("%Y-%m-%d")
 
+    LOGGER.info("Determining keys to prune")
     keys_to_prune = []
-    for source_key, source_data in content.items():
-        for provider_key, provider_data in source_data.items():
-            for buy_sell_key, buy_sell_data in provider_data.items():
-                for card_type_key, card_type_data in buy_sell_data.items():
-                    keys_to_prune.extend(
-                        [
-                            (
-                                source_key,
-                                provider_key,
-                                buy_sell_key,
-                                card_type_key,
-                                key_date,
-                            )
-                            for key_date in card_type_data.keys()
-                            if datetime.datetime.strptime(key_date, "%Y-%m-%d").date()
-                            < prune_date
-                        ]
-                    )
+    for card_data in content.values():
+        for source_key, source_data in card_data.items():
+            for provider_key, provider_data in source_data.items():
+                for buy_sell_key, buy_sell_data in provider_data.items():
+                    for card_type_key, card_type_data in buy_sell_data.items():
+                        keys_to_prune.extend(
+                            [
+                                (
+                                    source_key,
+                                    provider_key,
+                                    buy_sell_key,
+                                    card_type_key,
+                                    key_date,
+                                )
+                                for key_date in card_type_data.keys()
+                                if key_date < prune_date_str
+                            ]
+                        )
 
+    LOGGER.info(f"Pruning {len(keys_to_prune)} keys")
     for source, provider, buy_sell, card_type, date in keys_to_prune:
         del content[source][provider][buy_sell][card_type][date]
 
