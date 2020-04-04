@@ -55,7 +55,7 @@ def init_logger() -> None:
             logging.FileHandler(str(LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))),
         ],
     )
-    logging.getLogger("urllib3.connection.pool").setLevel(logging.ERROR)
+    logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 
 def parse_magic_rules_subset(
