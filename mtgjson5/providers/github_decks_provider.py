@@ -107,9 +107,14 @@ def build_single_card(card: Dict[str, Any]) -> List[Dict[str, Any]]:
     :return: List of enhanced cards in set
     """
     cards = []
-    set_to_build_from = GithubDecksProvider().all_printings_cards[
+    set_to_build_from = GithubDecksProvider().all_printings_cards.get(
         card["set_code"].upper()
-    ]
+    )
+
+    if not set_to_build_from:
+        LOGGER.warning(f"Set {card['set_code'].upper()} not found for {card['name']}")
+        return []
+
     for mtgjson_card in set_to_build_from["cards"]:
         if "//" in card["name"]:
             if card["number"][-1].isalpha():

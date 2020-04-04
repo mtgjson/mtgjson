@@ -47,9 +47,9 @@ def init_logger() -> None:
 
     start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
 
-    # import stacksampler
-    #
-    # stacksampler.install(str(LOG_PATH.joinpath(f"mtgjson_{start_time}.stack.log")))
+    import stacksampler
+
+    stacksampler.install(str(LOG_PATH.joinpath(f"mtgjson_{start_time}.stack.log")))
     logging.basicConfig(
         level=logging.INFO,
         format="[%(levelname)s] %(asctime)s: %(message)s",
@@ -58,6 +58,7 @@ def init_logger() -> None:
             logging.FileHandler(str(LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))),
         ],
     )
+    logging.getLogger("urllib3.connection.pool").setLevel(logging.ERROR)
 
 
 def parse_magic_rules_subset(
@@ -128,10 +129,8 @@ def parallel_call(
 
     if repeatable_args:
         extra_args_rep = [itertools.repeat(arg) for arg in repeatable_args]
-        # results = pool.starmap(function, zip(args, *additional_args_repeated))
         results = pool.map(lambda g_args: function(*g_args), zip(args, *extra_args_rep))
     elif force_starmap:
-        # results = pool.starmap(function, args)
         results = pool.map(lambda g_args: function(*g_args), args)
     else:
         results = pool.map(function, args)
