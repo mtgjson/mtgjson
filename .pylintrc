@@ -18,18 +18,15 @@ persistent=yes
 disable=
     bad-continuation,
     duplicate-code,
-    import-error,
     line-too-long,
     logging-format-interpolation,
-    no-member,
     too-few-public-methods,
     too-many-branches,
     too-many-instance-attributes,
     too-many-statements,
-    global-statement,
-    too-many-locals,
-    fixme,
-    too-many-arguments
+    too-many-arguments,
+    wrong-import-order,
+    wrong-import-position
 
 
 
@@ -61,8 +58,7 @@ no-docstring-rgx=__.*__|test_.*
 # List of note tags to take in consideration, separated by a comma.
 notes=
     FIXME,
-    XXX,
-    TODO,
+    TODO
 
 
 [VARIABLES]

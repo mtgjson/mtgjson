@@ -1,14 +1,13 @@
 """
 MTGJSON Set Builder
 """
+import json
 import logging
 import pathlib
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 import unicodedata
 import uuid
-
-import simplejson
 
 from .classes import (
     MtgjsonCardObject,
@@ -883,7 +882,7 @@ def get_base_and_total_set_sizes(set_code: str) -> Tuple[int, int]:
     """
     # Load cache if not loaded
     with RESOURCE_PATH.joinpath("base_set_sizes.json").open(encoding="utf-8") as f:
-        base_set_size_override = simplejson.load(f)
+        base_set_size_override = json.load(f)
 
     if set_code in base_set_size_override.keys():
         # Manual correction
@@ -911,7 +910,7 @@ def get_booster_contents_v3(set_code: str) -> Optional[List[Any]]:
     :return Booster list or None
     """
     with RESOURCE_PATH.joinpath("boosters.json").open(encoding="utf-8") as f:
-        json_dict: Dict[str, List[Any]] = simplejson.load(f)
+        json_dict: Dict[str, List[Any]] = json.load(f)
         if set_code in json_dict.keys():
             return json_dict[set_code]
     return None

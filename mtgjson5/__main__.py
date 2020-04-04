@@ -1,6 +1,10 @@
 """
 MTGJSON Main Executor
 """
+import gevent.monkey  # isort:skip
+
+gevent.monkey.patch_all()  # isort:skip
+
 import datetime
 import logging
 from typing import List, Set, Union
