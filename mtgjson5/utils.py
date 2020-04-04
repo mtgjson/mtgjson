@@ -47,9 +47,6 @@ def init_logger() -> None:
 
     start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
 
-    import stacksampler
-
-    stacksampler.install(str(LOG_PATH.joinpath(f"mtgjson_{start_time}.stack.log")))
     logging.basicConfig(
         level=logging.INFO,
         format="[%(levelname)s] %(asctime)s: %(message)s",

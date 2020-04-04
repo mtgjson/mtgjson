@@ -95,7 +95,7 @@ def main() -> None:
 
     sets_to_build = get_sets_to_build(args)
     if sets_to_build:
-        LOGGER.info(f"Building Sets: {sets_to_build}")
+        LOGGER.info(f"Building Sets: {', '.join(sets_to_build)}")
         build_mtgjson_sets(sets_to_build, args.pretty, args.referrals)
 
     if args.full_build:
