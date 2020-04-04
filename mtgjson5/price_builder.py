@@ -3,6 +3,7 @@ Construct Prices for MTGJSON
 """
 import configparser
 import datetime
+import json
 import logging
 import lzma
 import pathlib
@@ -12,7 +13,6 @@ from typing import Any, Dict
 import dateutil.relativedelta
 import git
 import requests
-import simplejson as json
 
 from .consts import CACHE_PATH, OUTPUT_PATH
 from .providers import CardhoarderProvider, TCGPlayerProvider
@@ -159,8 +159,12 @@ def build_today_prices() -> Dict[str, Any]:
         OUTPUT_PATH.joinpath("AllPrintings.json")
     )
 
-    cardhoarder_prices_json = json.loads(json.dumps(cardhoarder_prices, for_json=True))
-    tcgplayer_prices_json = json.loads(json.dumps(tcgplayer_prices, for_json=True))
+    cardhoarder_prices_json = json.loads(
+        json.dumps(cardhoarder_prices, default=lambda o: o.for_json())
+    )
+    tcgplayer_prices_json = json.loads(
+        json.dumps(tcgplayer_prices, default=lambda o: o.for_json())
+    )
 
     final_results = deep_merge_dictionaries(
         cardhoarder_prices_json, tcgplayer_prices_json

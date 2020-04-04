@@ -41,19 +41,20 @@ def init_logger() -> None:
     """
     Initialize the main system logger
     """
+
     LOG_PATH.mkdir(parents=True, exist_ok=True)
+
+    start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
+
+    # import stacksampler
+    #
+    # stacksampler.install(str(LOG_PATH.joinpath(f"mtgjson_{start_time}.stack.log")))
     logging.basicConfig(
         level=logging.INFO,
         format="[%(levelname)s] %(asctime)s: %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler(
-                str(
-                    LOG_PATH.joinpath(
-                        "mtgjson_" + str(time.strftime("%Y-%m-%d_%H.%M.%S")) + ".log"
-                    )
-                )
-            ),
+            logging.FileHandler(str(LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))),
         ],
     )
 

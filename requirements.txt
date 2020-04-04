@@ -4,7 +4,6 @@ mkmsdk==0.5.3
 python-dateutil==2.8.1
 requests==2.23.0
 requests_cache==0.5.2
-simplejson==3.17.0
 singleton_decorator==1.0.0
 unidecode==1.1.1
 urllib3==1.25.8

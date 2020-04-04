@@ -1,11 +1,10 @@
 """
 MTGJSON output generator to write out contents to file & accessory methods
 """
+import json
 import logging
 import pathlib
 from typing import Any, Dict, List
-
-import simplejson as json
 
 from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject, MtgjsonSetObject
 from .compiled_classes import (
@@ -35,10 +34,10 @@ def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> 
         json.dump(
             obj={"data": mtgjson_set_object, "meta": MtgjsonMetaObject()},
             fp=file,
-            for_json=True,
             sort_keys=True,
             indent=(4 if pretty_print else None),
             ensure_ascii=False,
+            default=lambda o: o.for_json(),
         )
 
 
@@ -237,10 +236,10 @@ def write_compiled_output_to_file(
         json.dump(
             obj={"data": file_contents, "meta": MtgjsonMetaObject()},
             fp=file,
-            for_json=True,
             sort_keys=True,
             indent=(4 if pretty_print else None),
             ensure_ascii=False,
+            default=lambda o: o.for_json(),
         )
 
 

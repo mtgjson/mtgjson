@@ -1,9 +1,8 @@
 """
 MTGJSON AllCards container
 """
+import json
 from typing import Any, Dict, List
-
-import simplejson as json
 
 from ..classes import MtgjsonCardObject
 from ..consts import OUTPUT_PATH

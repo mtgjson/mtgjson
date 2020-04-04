@@ -1,9 +1,8 @@
 """
 MTGJSON SetList container
 """
+import json
 from typing import Any, Dict, List
-
-import simplejson as json
 
 from ..consts import OUTPUT_PATH
 from .mtgjson_structures import MtgjsonStructuresObject

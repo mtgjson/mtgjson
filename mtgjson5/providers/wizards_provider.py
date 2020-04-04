@@ -1,6 +1,7 @@
 """
 Wizards Site 3rd party provider
 """
+import json
 import logging
 import pathlib
 import re
@@ -9,7 +10,6 @@ from typing import Dict, Union
 
 import bs4
 import requests
-import simplejson as json
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonTranslationsObject

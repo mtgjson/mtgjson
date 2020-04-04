@@ -1,10 +1,9 @@
 """
 MTGJSON AllPrintings container
 """
+import json
 import pathlib
 from typing import Dict, List
-
-import simplejson as json
 
 from ..classes import MtgjsonSetObject
 from ..consts import OUTPUT_PATH

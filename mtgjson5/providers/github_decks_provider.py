@@ -1,11 +1,11 @@
 """
 Decks via GitHub 3rd party provider
 """
+import json
 import logging
 import pathlib
 from typing import Any, Dict, Iterator, List, Union
 
-import simplejson as json
 from singleton_decorator import singleton
 
 from ..classes.mtgjson_deck import MtgjsonDeckObject
