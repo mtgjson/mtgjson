@@ -5,7 +5,6 @@ import bz2
 import gzip
 import logging
 import lzma
-import multiprocessing
 import pathlib
 import shutil
 from typing import Any, Callable, List
@@ -69,13 +68,12 @@ def _compress_mtgjson_directory(
         shutil.copy(str(file), str(temp_dir))
 
     LOGGER.info(f"Compressing {output_file}")
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
-        pool.apply_async(shutil.make_archive, (temp_dir, "bztar", str(temp_dir)))
-        pool.apply_async(shutil.make_archive, (temp_dir, "gztar", str(temp_dir)))
-        pool.apply_async(shutil.make_archive, (temp_dir, "xztar", str(temp_dir)))
-        pool.apply_async(shutil.make_archive, (temp_dir, "zip", str(temp_dir)))
-        pool.close()
-        pool.join()
+
+    args = [
+        (str(temp_dir), ext, str(temp_dir))
+        for ext in ("bztar", "gztar", "xztar", "zip")
+    ]
+    parallel_call(shutil.make_archive, args, force_starmap=True)
 
     LOGGER.info(f"Removing temporary directory {output_file}")
     shutil.rmtree(temp_dir, ignore_errors=True)

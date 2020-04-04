@@ -98,6 +98,35 @@ class MtgjsonCardObject:
     raw_purchase_urls: Dict[str, str]
     __names: Optional[List[str]]
 
+    __allow_if_empty = {
+        "supertypes",
+        "types",
+        "subtypes",
+        "has_foil",
+        "has_non_foil",
+        "color_identity",
+        "colors",
+        "rulings",
+        "converted_mana_cost",
+        "face_converted_mana_cost",
+        "foreign_data",
+        "reverse_related",
+    }
+
+    __remove_for_tokens = {
+        "rulings",
+        "rarity",
+        "prices",
+        "purchase_urls",
+        "printings",
+        "converted_mana_cost",
+        "foreign_data",
+        "legalities",
+        "leadership_skills",
+    }
+
+    __remove_for_cards = {"reverse_related"}
+
     def __init__(self, is_token: bool = False) -> None:
         # These values are tested against at some point
         # So we need a default value
@@ -201,45 +230,16 @@ class MtgjsonCardObject:
         Build this object's instance of what keys to skip under certain circumstances
         :return What keys to skip over
         """
-        allow_if_empty = {
-            "supertypes",
-            "types",
-            "subtypes",
-            "has_foil",
-            "has_non_foil",
-            "color_identity",
-            "colors",
-            "rulings",
-            "converted_mana_cost",
-            "face_converted_mana_cost",
-            "foreign_data",
-            "reverse_related",
-        }
-
-        remove_for_tokens = {
-            "rulings",
-            "rarity",
-            "prices",
-            "purchase_urls",
-            "printings",
-            "converted_mana_cost",
-            "foreign_data",
-            "legalities",
-            "leadership_skills",
-        }
-
-        remove_for_cards = {"reverse_related"}
-
-        excluded_keys: Set[str] = set()
+        excluded_keys: Set[str]
 
         if self.is_token:
-            excluded_keys.update(remove_for_tokens)
+            excluded_keys = self.__remove_for_tokens
         else:
-            excluded_keys.update(remove_for_cards)
+            excluded_keys = self.__remove_for_cards
 
         for key, value in self.__dict__.items():
             if not value:
-                if key not in allow_if_empty:
+                if key not in self.__allow_if_empty:
                     excluded_keys.add(key)
 
         return excluded_keys
