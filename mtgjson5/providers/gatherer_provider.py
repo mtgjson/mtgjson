@@ -2,6 +2,7 @@
 Wizards Gatherer 3rd party provider
 """
 import copy
+import logging
 import re
 from typing import Dict, List, NamedTuple, Optional, Union
 
@@ -12,6 +13,8 @@ from singleton_decorator import singleton
 from ..consts import SYMBOL_MAP
 from ..providers.abstract_provider import AbstractProvider
 from ..utils import retryable_session
+
+LOGGER = logging.getLogger(__name__)
 
 
 class GathererCard(NamedTuple):
@@ -45,7 +48,13 @@ class GathererProvider(AbstractProvider):
     ) -> requests.Response:
         session = retryable_session()
         session.headers.update(self.session_header)
-        response = session.get(url, params=params)
+
+        try:
+            response = session.get(url, params=params)
+        except requests.exceptions.RetryError as error:
+            LOGGER.error(f"Unable to download {url} -> {error}. Retrying.")
+            return self.download(url, params)
+
         self.log_download(response)
         return response
 
