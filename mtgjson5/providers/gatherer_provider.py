@@ -4,6 +4,7 @@ Wizards Gatherer 3rd party provider
 import copy
 import logging
 import re
+import time
 from typing import Dict, List, NamedTuple, Optional, Union
 
 import bs4
@@ -53,6 +54,7 @@ class GathererProvider(AbstractProvider):
             response = session.get(url, params=params)
         except requests.exceptions.RetryError as error:
             LOGGER.error(f"Unable to download {url} -> {error}. Retrying.")
+            time.sleep(5)
             return self.download(url, params)
 
         self.log_download(response)
