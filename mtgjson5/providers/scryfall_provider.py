@@ -64,7 +64,9 @@ class ScryfallProvider(AbstractProvider):
         try:
             return response.json()
         except ValueError as error:
-            LOGGER.error(f"Unable to convert response to JSON -> {error}")
+            LOGGER.error(
+                f"Unable to convert response: {response} to JSON for URL: {url} -> {error}"
+            )
             time.sleep(5)
             return self.download(url, params)
 
