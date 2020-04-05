@@ -2,6 +2,7 @@
 Scryfall 3rd party provider
 """
 import logging
+import time
 from typing import Any, Dict, List, Set, Union
 
 from singleton_decorator import singleton
@@ -60,7 +61,12 @@ class ScryfallProvider(AbstractProvider):
         session.headers.update(self.session_header)
         response = session.get(url)
         self.log_download(response)
-        return response.json()
+        try:
+            return response.json()
+        except ValueError as error:
+            LOGGER.error(f"Unable to convert response to JSON -> {error}")
+            time.sleep(5)
+            return self.download(url, params)
 
     def download_cards(self, set_code: str) -> List[Dict[str, Any]]:
         """
