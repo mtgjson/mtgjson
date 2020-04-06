@@ -64,9 +64,13 @@ class ScryfallProvider(AbstractProvider):
         try:
             return response.json()
         except ValueError as error:
-            LOGGER.error(
-                f'Unable to convert response: "{response.text}" to JSON for URL: {url} -> {error}'
-            )
+            if "504" in response.text:
+                LOGGER.warning("Scryfall 504 error, sleeping...")
+            else:
+                LOGGER.error(
+                    f'Unable to convert response: "{response.text}" to JSON for URL: {url} -> {error}'
+                )
+
             time.sleep(5)
             return self.download(url, params)
 
