@@ -655,7 +655,7 @@ def build_mtgjson_card(
         .decode()
     )
     if mtgjson_card.name != ascii_name:
-        LOGGER.info(f"Adding ascii name for {mtgjson_card.name} -> {ascii_name}")
+        LOGGER.debug(f"Adding ascii name for {mtgjson_card.name} -> {ascii_name}")
         mtgjson_card.ascii_name = ascii_name
 
     mtgjson_card.power = face_data.get("power", "")
