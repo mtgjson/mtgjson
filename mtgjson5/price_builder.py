@@ -33,7 +33,7 @@ def download_prices_archive(
     github_url = f"https://gist.github.com/{gist_repo_name}"
 
     if github_repo_local_path.is_dir():
-        LOGGER.warning("Deleting Old Price Data Repo")
+        LOGGER.info("Deleting Old Price Data Repo")
         shutil.rmtree(github_repo_local_path)
 
     LOGGER.info("Cloning Price Data Repo")
@@ -96,22 +96,22 @@ def prune_prices_archive(content: Dict[str, Any], months: int = 3) -> None:
 
     LOGGER.info("Determining keys to prune")
     keys_to_prune = []
-    for card_data in content.values():
+    for card_uuid, card_data in content.items():
         for source, source_data in card_data.items():
             for provider, provider_data in source_data.items():
                 for buy_sell, buy_sell_data in provider_data.items():
                     for card_type, card_type_data in buy_sell_data.items():
                         keys_to_prune.extend(
                             [
-                                (source, provider, buy_sell, card_type, date)
+                                (card_uuid, source, provider, buy_sell, card_type, date)
                                 for date in card_type_data.keys()
                                 if date < prune_date_str
                             ]
                         )
 
     LOGGER.info(f"Pruning {len(keys_to_prune)} keys")
-    for (source, provider, buy_sell, card_type, date) in keys_to_prune:
-        del content[source][provider][buy_sell][card_type][date]
+    for (card_uuid, source, provider, buy_sell, card_type, date) in keys_to_prune:
+        del content[card_uuid][source][provider][buy_sell][card_type][date]
 
 
 def deep_merge_dictionaries(
