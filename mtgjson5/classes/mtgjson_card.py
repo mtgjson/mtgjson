@@ -172,7 +172,7 @@ class MtgjsonCardObject:
         Set internal names array
         :param names: Names list (optional)
         """
-        self.__names = names
+        self.__names = list(map(str.strip, names)) if names else None
 
     def append_names(self, name: str) -> None:
         """
@@ -233,9 +233,9 @@ class MtgjsonCardObject:
         excluded_keys: Set[str]
 
         if self.is_token:
-            excluded_keys = self.__remove_for_tokens
+            excluded_keys = self.__remove_for_tokens.copy()
         else:
-            excluded_keys = self.__remove_for_cards
+            excluded_keys = self.__remove_for_cards.copy()
 
         for key, value in self.__dict__.items():
             if not value:

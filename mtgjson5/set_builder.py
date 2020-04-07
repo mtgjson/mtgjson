@@ -298,7 +298,7 @@ def uniquify_cards_with_same_name(mtgjson_cards: List[MtgjsonCardObject]) -> Non
 
                 if cards_found_already[card.name] != ord("a"):
                     card.name += f" ({chr(cards_found_already[card.name])})"
-                card.set_names([])
+                card.set_names(None)
 
 
 def relocate_miscellaneous_tokens(mtgjson_set: MtgjsonSetObject) -> None:
@@ -557,14 +557,14 @@ def build_mtgjson_card(
     # Handle atypical cards
     face_data = scryfall_object
     if "card_faces" in scryfall_object:
-        mtgjson_card.set_names(scryfall_object["name"].split(" // "))
+        mtgjson_card.set_names(scryfall_object["name"].split("//"))
 
         # Override face_data from above
         face_data = scryfall_object["card_faces"][face_id]
 
         if "//" in scryfall_object.get("mana_cost", ""):
             mtgjson_card.colors = get_card_colors(
-                scryfall_object["mana_cost"].split(" // ")[face_id]
+                scryfall_object["mana_cost"].split("//")[face_id]
             )
             mtgjson_card.face_converted_mana_cost = get_card_cmc(
                 scryfall_object["mana_cost"].split("//")[face_id]
@@ -683,12 +683,14 @@ def build_mtgjson_card(
 
     # Add "side" for split cards (cards with exactly 2 sides)
     # Also set face name
-    if mtgjson_card.get_names() and len(mtgjson_card.get_names()) == 2:
+    if mtgjson_card.get_names():
         mtgjson_card.face_name = str(face_data["name"])
-        # chr(97) = 'a', chr(98) = 'b', ...
-        mtgjson_card.side = chr(
-            mtgjson_card.get_names().index(mtgjson_card.face_name) + 97
-        )
+
+        if mtgjson_card.layout not in ["meld"]:
+            # chr(97) = 'a', chr(98) = 'b', ...
+            mtgjson_card.side = chr(
+                mtgjson_card.get_names().index(mtgjson_card.face_name) + 97
+            )
 
     # Implicit Variables
     mtgjson_card.is_timeshifted = (
@@ -711,11 +713,11 @@ def build_mtgjson_card(
     # Handle Meld components, as well as tokens
     if "all_parts" in scryfall_object.keys():
         meld_object = []
-        mtgjson_card.set_names([])
+        mtgjson_card.set_names(None)
         for a_part in scryfall_object["all_parts"]:
             if a_part["component"] != "token":
                 if "//" in a_part.get("name"):
-                    mtgjson_card.set_names(a_part.get("name").split(" // "))
+                    mtgjson_card.set_names(a_part.get("name").split("//"))
                     break
 
                 # This is a meld only-fix, so we ignore tokens/combo pieces
