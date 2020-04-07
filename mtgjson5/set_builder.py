@@ -588,7 +588,7 @@ def build_mtgjson_card(
 
         if face_id == 0:
             for i in range(1, len(scryfall_object["card_faces"])):
-                mtgjson_cards.extend(build_mtgjson_card(scryfall_object, i))
+                mtgjson_cards.extend(build_mtgjson_card(scryfall_object, i, is_token))
 
     # Start of single card builder
     if face_data.get("mana_cost"):
