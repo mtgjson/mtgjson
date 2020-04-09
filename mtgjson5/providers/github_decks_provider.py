@@ -107,8 +107,10 @@ def build_single_card(card: Dict[str, Any]) -> List[Dict[str, Any]]:
     :return: List of enhanced cards in set
     """
     cards = []
-    set_to_build_from = GithubDecksProvider().all_printings_cards.get(
-        card["set_code"].upper()
+    set_to_build_from = (
+        GithubDecksProvider()
+        .all_printings_cards.get("data", {})
+        .get(card["set_code"].upper())
     )
 
     if not set_to_build_from:

@@ -894,11 +894,14 @@ def get_base_and_total_set_sizes(set_code: str) -> Tuple[int, int]:
         base_set_size_download = ScryfallProvider().download(
             ScryfallProvider().CARDS_IN_BASE_SET_URL.format(set_code)
         )
+
+        # Wasn't able to determine, so use all cards instead
         if base_set_size_download["object"] == "error":
-            LOGGER.warning(f"Unable to get base(2) set size for {set_code}")
-            base_set_size = 0
-        else:
-            base_set_size = int(base_set_size_download["total_cards"])
+            base_set_size_download = ScryfallProvider().download(
+                ScryfallProvider().CARDS_IN_SET.format(set_code)
+            )
+
+        base_set_size = int(base_set_size_download["total_cards"])
 
     total_set_size = len(ScryfallProvider().download_cards(set_code))
 
