@@ -98,7 +98,7 @@ def retryable_session(
     session.mount("http://", adapter)
     session.mount("https://", adapter)
 
-    session.headers.update({"User-Agent": "Mozilla/74.0 www.mtgjson.com"})
+    session.headers.update({"User-Agent": "Mozilla/5.0 Firefox/75.0 www.mtgjson.com"})
     return session
 
 

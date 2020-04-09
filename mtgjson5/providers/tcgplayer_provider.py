@@ -163,7 +163,7 @@ def generate_tcgplayer_to_mtgjson_map(
 
     dump_map: Dict[str, str] = {}
     for value in file_contents.values():
-        for card in value.get("cards") + value.get("tokens"):
+        for card in value.get("cards", []) + value.get("tokens", []):
             if "tcgplayerProductId" in card.keys():
                 dump_map[card["tcgplayerProductId"]] = card["uuid"]
 
