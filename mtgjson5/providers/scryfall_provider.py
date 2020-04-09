@@ -5,6 +5,7 @@ import logging
 import time
 from typing import Any, Dict, List, Set, Union
 
+import ratelimit
 from singleton_decorator import singleton
 
 from ..providers.abstract_provider import AbstractProvider
@@ -51,6 +52,8 @@ class ScryfallProvider(AbstractProvider):
         }
         return headers
 
+    @ratelimit.sleep_and_retry
+    @ratelimit.limits(calls=40, period=1)
     def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
         """
         Download content from Scryfall

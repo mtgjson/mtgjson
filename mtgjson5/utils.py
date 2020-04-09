@@ -8,11 +8,10 @@ import logging
 import time
 from typing import Any, Callable, List, Tuple, Union
 
+import gevent.pool
 import requests
 import requests.adapters
 import urllib3
-
-import gevent.pool
 
 from .consts import LOG_PATH
 
@@ -42,7 +41,6 @@ def init_logger() -> None:
     """
     Initialize the main system logger
     """
-
     LOG_PATH.mkdir(parents=True, exist_ok=True)
 
     start_time = time.strftime("%Y-%m-%d_%H.%M.%S")

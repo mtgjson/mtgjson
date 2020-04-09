@@ -8,6 +8,7 @@ import time
 from typing import Dict, List, NamedTuple, Optional, Union
 
 import bs4
+import ratelimit
 import requests
 from singleton_decorator import singleton
 
@@ -44,18 +45,21 @@ class GathererProvider(AbstractProvider):
     def _build_http_header(self) -> Dict[str, str]:
         return {}
 
+    @ratelimit.sleep_and_retry
+    @ratelimit.limits(calls=40, period=1)
     def download(
         self, url: str, params: Dict[str, Union[str, int]] = None
     ) -> requests.Response:
         session = retryable_session()
         session.headers.update(self.session_header)
 
-        try:
-            response = session.get(url, params=params)
-        except requests.exceptions.RetryError as error:
-            LOGGER.error(f"Unable to download {url} -> {error}. Retrying.")
-            time.sleep(5)
-            return self.download(url, params)
+        while True:
+            try:
+                response = session.get(url, params=params)
+                break
+            except requests.exceptions.RetryError as error:
+                LOGGER.error(f"Unable to download {url} -> {error}. Retrying.")
+                time.sleep(5)
 
         self.log_download(response)
         return response
