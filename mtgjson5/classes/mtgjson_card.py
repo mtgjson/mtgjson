@@ -46,6 +46,7 @@ class MtgjsonCardObject:
     is_online_only: Optional[bool]
     is_oversized: Optional[bool]
     is_paper: Optional[bool]
+    is_planeswalker_stamped: Optional[bool]
     is_promo: Optional[bool]
     is_reprint: Optional[bool]
     is_reserved: Optional[bool]

@@ -612,10 +612,7 @@ def build_mtgjson_card(
     mtgjson_card.hand = scryfall_object.get("hand_modifier")
     mtgjson_card.has_foil = scryfall_object.get("foil")
     mtgjson_card.has_non_foil = scryfall_object.get("nonfoil")
-    mtgjson_card.is_buy_a_box = "buyabox" in scryfall_object.get("promo_types", [])
-    mtgjson_card.is_date_stamped = "datestamped" in scryfall_object.get(
-        "promo_types", []
-    )
+
     mtgjson_card.is_full_art = scryfall_object.get("full_art")
     mtgjson_card.is_online_only = scryfall_object.get("digital")
     mtgjson_card.is_oversized = scryfall_object.get("oversized")
@@ -629,6 +626,12 @@ def build_mtgjson_card(
     mtgjson_card.mtgo_id = scryfall_object.get("mtgo_id")
     mtgjson_card.mtgo_foil_id = scryfall_object.get("mtgo_foil_id")
     mtgjson_card.number = scryfall_object.get("collector_number", "0")
+
+    mtgjson_card.is_buy_a_box = "buyabox" in scryfall_object.get("promo_types", [])
+    mtgjson_card.is_date_stamped = "datestamped" in scryfall_object.get(
+        "promo_types", []
+    )
+    mtgjson_card.is_planeswalker_stamped = mtgjson_card.number.endswith("p")
 
     mtgjson_card.raw_purchase_urls = scryfall_object.get("purchase_uris", {})
     mtgjson_card.tcgplayer_product_id = scryfall_object.get("tcgplayer_id", 0)
