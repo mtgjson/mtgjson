@@ -230,7 +230,7 @@ class MTGJSONCard:
         :return: Re-formatted text for planeswalkers
         """
         # Most PWs use the correct dash, but include minus just in case
-        return re.sub(r"([+−-]?[0-9]+):", r"[\1]:", card_text)
+        return re.sub(r"([+−-]?[0-9X]+):", r"[\1]:", card_text)
 
     def cleanup_watermark(self, watermark: str) -> Optional[str]:
         """
