@@ -8,8 +8,8 @@ from typing import Any, Dict, List
 
 from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject, MtgjsonSetObject
 from .compiled_classes import (
-    MtgjsonAtomicCardsObject,
     MtgjsonAllPrintingsObject,
+    MtgjsonAtomicCardsObject,
     MtgjsonCardTypesObject,
     MtgjsonCompiledListObject,
     MtgjsonDeckListObject,
