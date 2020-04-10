@@ -13,6 +13,7 @@ from .compiled_classes import (
     MtgjsonCardTypesObject,
     MtgjsonCompiledListObject,
     MtgjsonDeckListObject,
+    MtgjsonKeyValuesObject,
     MtgjsonKeywordsObject,
     MtgjsonSetListObject,
     MtgjsonStructuresObject,
@@ -97,6 +98,11 @@ def generate_compiled_output_files(
         MtgjsonStructuresObject().all_printings,
         MtgjsonAllPrintingsObject(),
         pretty_print,
+    )
+
+    # KeyValues.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().key_values, MtgjsonKeyValuesObject(), pretty_print
     )
 
     # Format specific set code split up

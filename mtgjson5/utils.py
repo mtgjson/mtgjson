@@ -137,3 +137,18 @@ def parallel_call(
         return dict(collections.ChainMap(*results))
 
     return results
+
+
+def sort_internal_lists(data: Any) -> Any:
+    """
+    Sort all lists & sets within a given data structure
+    :param data: Data structure to internally sort
+    :return Data structure with sorted lists
+    """
+    if isinstance(data, dict):
+        for key, value in data.items():
+            data[key] = sort_internal_lists(value)
+    elif isinstance(data, (set, list)):
+        return sorted(list(data))
+
+    return data

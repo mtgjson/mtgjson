@@ -27,6 +27,8 @@ class MtgjsonStructuresObject:
     key_words: str
     set_list: str
 
+    key_values: str
+
     referral_database: str
     version: str
 
@@ -53,6 +55,7 @@ class MtgjsonStructuresObject:
         self.compiled_list: str = "CompiledList"
         self.deck_list: str = "DeckList"
         self.key_words: str = "Keywords"
+        self.key_values: str = "KeyValues"
         self.set_list: str = "SetList"
         self.referral_database = "ReferralMap"
         self.version: str = "Meta"
