@@ -708,7 +708,7 @@ def build_mtgjson_card(
     mtgjson_card.subtypes = card_types[2]
 
     if "Planeswalker" in mtgjson_card.types:
-        mtgjson_card.text = re.sub(r"([+−-]?[0-9]+):", r"[\1]:", mtgjson_card.text)
+        mtgjson_card.text = re.sub(r"([+−-]?[0-9X]+):", r"[\1]:", mtgjson_card.text)
 
     # Handle Meld components, as well as tokens
     if "all_parts" in scryfall_object.keys():
