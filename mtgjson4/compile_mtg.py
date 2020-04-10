@@ -8,6 +8,7 @@ import multiprocessing
 import os
 import pathlib
 import re
+import unicodedata
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from mkmsdk.api_map import _API_MAP
@@ -740,6 +741,14 @@ def build_mtgjson_card(
             "type": face_data.get("type_line", "Card"),
         }
     )
+
+    ascii_name = (
+        unicodedata.normalize("NFD", single_card.get("name", ""))
+        .encode("ascii", "ignore")
+        .decode()
+    )
+    if single_card.get("name") != ascii_name:
+        single_card.set("asciiName", ascii_name)
 
     # Set MKM IDs if it exists
     if MKM_API.get(None):
