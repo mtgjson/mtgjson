@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 
 from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject, MtgjsonSetObject
 from .compiled_classes import (
-    MtgjsonAllCardsObject,
+    MtgjsonAtomicCardsObject,
     MtgjsonAllPrintingsObject,
     MtgjsonCardTypesObject,
     MtgjsonCompiledListObject,
@@ -143,9 +143,11 @@ def generate_compiled_output_files(
         pretty_print,
     )
 
-    # AllCards.json
+    # AtomicCards.json
     log_and_create_compiled_output(
-        MtgjsonStructuresObject().atomic_cards, MtgjsonAllCardsObject(), pretty_print,
+        MtgjsonStructuresObject().atomic_cards,
+        MtgjsonAtomicCardsObject(),
+        pretty_print,
     )
 
     # Format specific card split up
@@ -154,42 +156,42 @@ def generate_compiled_output_files(
     # StandardCards.json
     log_and_create_compiled_output(
         MtgjsonStructuresObject().atomic_cards_standard,
-        MtgjsonAllCardsObject(card_format_map["standard"]),
+        MtgjsonAtomicCardsObject(card_format_map["standard"]),
         pretty_print,
     )
 
     # PioneerCards.json
     log_and_create_compiled_output(
         MtgjsonStructuresObject().atomic_cards_pioneer,
-        MtgjsonAllCardsObject(card_format_map["pioneer"]),
+        MtgjsonAtomicCardsObject(card_format_map["pioneer"]),
         pretty_print,
     )
 
     # ModernCards.json
     log_and_create_compiled_output(
         MtgjsonStructuresObject().atomic_cards_modern,
-        MtgjsonAllCardsObject(card_format_map["modern"]),
+        MtgjsonAtomicCardsObject(card_format_map["modern"]),
         pretty_print,
     )
 
     # LegacyCards.json
     log_and_create_compiled_output(
         MtgjsonStructuresObject().atomic_cards_legacy,
-        MtgjsonAllCardsObject(card_format_map["legacy"]),
+        MtgjsonAtomicCardsObject(card_format_map["legacy"]),
         pretty_print,
     )
 
     # VintageCards.json
     log_and_create_compiled_output(
         MtgjsonStructuresObject().atomic_cards_vintage,
-        MtgjsonAllCardsObject(card_format_map["vintage"]),
+        MtgjsonAtomicCardsObject(card_format_map["vintage"]),
         pretty_print,
     )
 
     # PauperCards.json
     log_and_create_compiled_output(
         MtgjsonStructuresObject().atomic_cards_pauper,
-        MtgjsonAllCardsObject(card_format_map["pauper"]),
+        MtgjsonAtomicCardsObject(card_format_map["pauper"]),
         pretty_print,
     )
 

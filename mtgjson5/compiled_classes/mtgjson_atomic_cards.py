@@ -1,7 +1,8 @@
 """
-MTGJSON AllCards container
+MTGJSON AtomicCards container
 """
 import json
+import re
 from typing import Any, Dict, List
 
 from ..classes import MtgjsonCardObject
@@ -10,12 +11,14 @@ from ..utils import to_camel_case
 from .mtgjson_structures import MtgjsonStructuresObject
 
 
-class MtgjsonAllCardsObject:
+class MtgjsonAtomicCardsObject:
     """
-    AllCards container
+    AtomicCards container
     """
 
     atomic_cards_dict: Dict[str, List[Dict[str, Any]]]
+
+    _name_regex = re.compile(r"^([^\n]+) \([a-z]\)$")
 
     def __init__(self, cards_to_parse: Dict[str, Dict[str, Any]] = None) -> None:
         self.atomic_cards_dict = {}
@@ -70,17 +73,21 @@ class MtgjsonAllCardsObject:
             for foreign_data in atomic_card.get("foreignData", {}):
                 foreign_data.pop("multiverseId", None)
 
-            if atomic_card["name"] not in self.atomic_cards_dict.keys():
-                self.atomic_cards_dict[atomic_card["name"]] = []
+            # Strip out the (a), (b) stuff
+            values = self._name_regex.findall(atomic_card["name"])
+            card_name = values[0] if values else atomic_card["name"]
+
+            if card_name not in self.atomic_cards_dict.keys():
+                self.atomic_cards_dict[card_name] = []
 
             should_add_card = True
-            for card_entry in self.atomic_cards_dict[atomic_card["name"]]:
+            for card_entry in self.atomic_cards_dict[card_name]:
                 if card_entry.get("purchaseUrls") == atomic_card.get("purchase_urls"):
                     should_add_card = False
                     break
 
             if should_add_card:
-                self.atomic_cards_dict[atomic_card["name"]].append(atomic_card)
+                self.atomic_cards_dict[card_name].append(atomic_card)
 
     def for_json(self) -> Dict[str, List[Dict[str, Any]]]:
         """

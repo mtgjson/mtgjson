@@ -2,7 +2,7 @@
 Compiled Outputs Dispatcher
 """
 
-from .mtgjson_all_cards import MtgjsonAllCardsObject
+from .mtgjson_atomic_cards import MtgjsonAtomicCardsObject
 from .mtgjson_all_printings import MtgjsonAllPrintingsObject
 from .mtgjson_card_types import MtgjsonCardTypesObject
 from .mtgjson_compiled_list import MtgjsonCompiledListObject
