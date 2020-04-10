@@ -733,6 +733,7 @@ def build_mtgjson_card(
             "name": face_data.get("name"),
             "number": sf_card.get("collector_number"),
             "power": face_data.get("power"),
+            "side": None,
             "tcgplayerProductId": sf_card.get("tcgplayer_id"),
             "text": face_data.get("oracle_text"),
             "toughness": face_data.get("toughness"),
@@ -926,7 +927,10 @@ def mtgjson_custom_fields(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
 
         # Cards that can be your traditional commander
         is_commander = (
-            "Legendary" in card.get("type") and "Creature" in card.get("type")
+            "Legendary" in card.get("type")
+            and "Creature" in card.get("type")
+            and card.get("type", "") not in {"flip"}
+            and (card.get("side", "") == "a" if card.get("side") else True)
         ) or "can be your commander" in card.get("text")
 
         # Cards that can be your oathbreaker commander
