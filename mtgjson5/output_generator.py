@@ -198,9 +198,9 @@ def generate_compiled_output_files(
         )
         deck_names.append(mtgjson_deck_header_obj)
 
-    # DeckLists.json
+    # DeckList.json
     log_and_create_compiled_output(
-        MtgjsonStructuresObject().deck_lists,
+        MtgjsonStructuresObject().deck_list,
         MtgjsonDeckListObject(deck_names),
         pretty_print,
     )

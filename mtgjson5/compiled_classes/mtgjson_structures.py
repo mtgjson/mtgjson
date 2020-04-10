@@ -23,7 +23,7 @@ class MtgjsonStructuresObject:
 
     card_types: str
     compiled_list: str
-    deck_lists: str
+    deck_list: str
     key_words: str
     set_list: str
 
@@ -51,7 +51,7 @@ class MtgjsonStructuresObject:
         self.all_sets_directory: str = "AllSetFiles"
         self.card_types: str = "CardTypes"
         self.compiled_list: str = "CompiledList"
-        self.deck_lists: str = "DeckLists"
+        self.deck_list: str = "DeckList"
         self.key_words: str = "Keywords"
         self.set_list: str = "SetList"
         self.referral_database = "ReferralMap"

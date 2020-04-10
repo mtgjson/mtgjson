@@ -47,4 +47,4 @@ def write_referral_map(single_set_referral_map: List[Tuple[str, str]]) -> None:
     OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
     with OUTPUT_PATH.joinpath("ReferralMap.json").open("a") as file:
         for entry in single_set_referral_map:
-            file.write(f"{entry[0]}\t{entry[1]}\n")
+            file.write(f"/links/{entry[0]}\t{entry[1]};\n")
