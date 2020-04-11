@@ -3,7 +3,7 @@ Provider Dispatcher
 """
 
 from .cardhoarder_provider import CardhoarderProvider
-from .cardmarket_provider import McmProvider
+from .cardmarket_provider import CardMarketProvider
 from .gatherer_provider import GathererProvider
 from .github_mtgsqlite_provider import GithubMTGSqliteProvider
 from .scryfall_provider import ScryfallProvider

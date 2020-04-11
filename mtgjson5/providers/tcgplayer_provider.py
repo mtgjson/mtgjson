@@ -1,7 +1,6 @@
 """
 TCGPlayer 3rd party provider
 """
-import datetime
 import json
 import logging
 import pathlib
@@ -24,7 +23,6 @@ class TCGPlayerProvider(AbstractProvider):
     TCGPlayer container
     """
 
-    today_date: str = datetime.date.today().strftime("%Y-%m-%d")
     api_version: str = ""
     tcg_to_mtgjson_map: Dict[str, str]
     __keys_found: bool
@@ -159,7 +157,7 @@ def generate_tcgplayer_to_mtgjson_map(
     :return: Map of TCGPlayerID -> MTGJSON UUID
     """
     with all_printings_path.expanduser().open(encoding="utf-8") as f:
-        file_contents = json.load(f)
+        file_contents = json.load(f).get("data", {})
 
     dump_map: Dict[str, str] = {}
     for value in file_contents.values():

@@ -1,7 +1,6 @@
 """
 CardHoarder 3rd party provider
 """
-import datetime
 import logging
 from typing import Any, Dict, List, Union
 
@@ -21,7 +20,6 @@ class CardhoarderProvider(AbstractProvider):
     """
 
     ch_api_url: str = "https://www.cardhoarder.com/affiliates/pricefile/{}"
-    today_date: str = datetime.datetime.today().strftime("%Y-%m-%d")
 
     def __init__(self) -> None:
         """

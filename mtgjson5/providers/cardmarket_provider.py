@@ -1,21 +1,29 @@
 """
 MKM 3rd party provider
 """
+import base64
+import io
+import json
 import logging
+import math
 import os
+import pathlib
 from typing import Any, Dict, Optional, Union
+import zlib
 
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
+import pandas
 from singleton_decorator import singleton
 
+from ..classes import MtgjsonPricesObject
 from ..providers.abstract_provider import AbstractProvider
 
 LOGGER = logging.getLogger(__name__)
 
 
 @singleton
-class McmProvider(AbstractProvider):
+class CardMarketProvider(AbstractProvider):
     """
     MKM container
     """
@@ -44,6 +52,84 @@ class McmProvider(AbstractProvider):
         self.connection = Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"])
         self.set_map = {}
         self.__init_set_map()
+
+    def _get_card_market_data(self) -> io.StringIO:
+        """
+        Download and reformat Card Market price data for further processing
+        :return Card Market data ready for Pandas consumption
+        """
+        # Response comes gzip'd, then base64'd
+        mkm_response = self.connection.market_place.price_guide().json()
+
+        price_data = base64.b64decode(mkm_response["priceguidefile"])  # Un-base64
+        price_data = zlib.decompress(price_data, 16 + zlib.MAX_WBITS)  # Un-gzip
+        decoded_data = price_data.decode("utf-8")  # byte array to string
+        return io.StringIO(decoded_data)
+
+    def generate_today_price_dict(
+        self, all_printings_path: pathlib.Path
+    ) -> Dict[str, MtgjsonPricesObject]:
+        """
+        Generate a single-day price structure from Card Market
+        :return MTGJSON prices single day structure
+        """
+        mtgjson_id_map = self._generate_cardmarket_to_mtgjson_map(all_printings_path)
+
+        price_data = pandas.read_csv(self._get_card_market_data())
+        data_frame_columns = list(price_data.columns)
+
+        product_id_index = data_frame_columns.index("idProduct")
+        avg_sell_price_index = data_frame_columns.index("AVG1")
+        avg_foil_price_index = data_frame_columns.index("Foil AVG1")
+
+        today_dict: Dict[str, MtgjsonPricesObject] = {}
+        for row in price_data.iterrows():
+            columns = [
+                None if math.isnan(value) else value for value in row[1].tolist()
+            ]
+
+            product_id = str(columns[product_id_index])
+            if product_id in mtgjson_id_map.keys():
+                mtgjson_uuid = mtgjson_id_map[product_id]
+                avg_sell_price = columns[avg_sell_price_index]
+                avg_foil_price = columns[avg_foil_price_index]
+
+                if mtgjson_uuid not in today_dict.keys():
+                    if not avg_sell_price and not avg_foil_price:
+                        continue
+
+                    today_dict[mtgjson_uuid] = MtgjsonPricesObject(
+                        "paper", "cardmarket", self.today_date
+                    )
+
+                if avg_sell_price:
+                    today_dict[mtgjson_uuid].sell_normal = avg_sell_price
+
+                if avg_foil_price:
+                    today_dict[mtgjson_uuid].sell_foil = avg_foil_price
+
+        return today_dict
+
+    @staticmethod
+    def _generate_cardmarket_to_mtgjson_map(
+        all_printings_path: pathlib.Path,
+    ) -> Dict[str, str]:
+        """
+        Generate a CardMarketID -> MTGJSON UUID map that can be used
+        across the system.
+        :param all_printings_path: Path to JSON compiled version
+        :return: Map of CardMarketID -> MTGJSON UUID
+        """
+        with all_printings_path.expanduser().open(encoding="utf-8") as f:
+            file_contents = json.load(f).get("data", {})
+
+        dump_map: Dict[str, str] = {}
+        for value in file_contents.values():
+            for card in value.get("cards", []) + value.get("tokens", []):
+                if "mcmId" in card.keys():
+                    dump_map[card["mcmId"]] = card["uuid"]
+
+        return dump_map
 
     def __init_set_map(self) -> None:
         """

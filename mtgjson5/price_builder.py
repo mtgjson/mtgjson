@@ -15,7 +15,7 @@ import git
 import requests
 
 from .consts import CACHE_PATH, OUTPUT_PATH
-from .providers import CardhoarderProvider, TCGPlayerProvider
+from .providers import CardhoarderProvider, CardMarketProvider, TCGPlayerProvider
 
 LOGGER = logging.getLogger(__name__)
 
@@ -151,6 +151,9 @@ def build_today_prices() -> Dict[str, Any]:
     tcgplayer_prices = TCGPlayerProvider().generate_today_price_dict(
         OUTPUT_PATH.joinpath("AllPrintings.json")
     )
+    cardmarket_prices = CardMarketProvider().generate_today_price_dict(
+        OUTPUT_PATH.joinpath("AllPrintings.json")
+    )
 
     cardhoarder_prices_json = json.loads(
         json.dumps(cardhoarder_prices, default=lambda o: o.for_json())
@@ -158,9 +161,13 @@ def build_today_prices() -> Dict[str, Any]:
     tcgplayer_prices_json = json.loads(
         json.dumps(tcgplayer_prices, default=lambda o: o.for_json())
     )
+    cardmarket_prices_json = json.loads(
+        json.dumps(cardmarket_prices, default=lambda o: o.for_json())
+    )
 
     final_results = deep_merge_dictionaries(
-        cardhoarder_prices_json, tcgplayer_prices_json
+        cardmarket_prices_json,
+        deep_merge_dictionaries(cardhoarder_prices_json, tcgplayer_prices_json),
     )
 
     return final_results

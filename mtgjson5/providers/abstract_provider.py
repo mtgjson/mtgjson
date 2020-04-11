@@ -3,6 +3,7 @@ API for how providers need to interact with other classes
 """
 import abc
 import configparser
+import datetime
 import logging
 from typing import Any, Dict, Union
 
@@ -20,6 +21,7 @@ class AbstractProvider(abc.ABC):
 
     class_id: str
     session_header: Dict[str, str]
+    today_date: str = datetime.datetime.today().strftime("%Y-%m-%d")
 
     def __init__(self, headers: Dict[str, str]):
         super().__init__()
