@@ -5,6 +5,7 @@ import collections
 import hashlib
 import itertools
 import logging
+import os
 import time
 from typing import Any, Callable, List, Tuple, Union
 
@@ -14,6 +15,25 @@ import requests.adapters
 import urllib3
 
 from .consts import LOG_PATH
+
+
+def init_logger() -> None:
+    """
+    Initialize the main system logger
+    """
+    LOG_PATH.mkdir(parents=True, exist_ok=True)
+
+    start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
+
+    logging.basicConfig(
+        level=logging.DEBUG if os.environ.get("DEBUG") else logging.INFO,
+        format="[%(levelname)s] %(asctime)s: %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(str(LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))),
+        ],
+    )
+    logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 
 def url_keygen(prod_id: Union[int, str], with_leading: bool = True) -> str:
@@ -35,25 +55,6 @@ def to_camel_case(snake_str: str) -> str:
     """
     components = snake_str.split("_")
     return components[0] + "".join(x.title() for x in components[1:])
-
-
-def init_logger() -> None:
-    """
-    Initialize the main system logger
-    """
-    LOG_PATH.mkdir(parents=True, exist_ok=True)
-
-    start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="[%(levelname)s] %(asctime)s: %(message)s",
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler(str(LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))),
-        ],
-    )
-    logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 
 def parse_magic_rules_subset(

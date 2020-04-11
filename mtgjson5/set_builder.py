@@ -462,16 +462,12 @@ def add_is_starter_option(
         return
 
     for scryfall_object in starter_cards["data"]:
-        try:
-            card = next(
-                item
-                for item in mtgjson_cards
-                if item.scryfall_id == scryfall_object["id"]
-            )
-            if card:
-                card.is_starter = True
-        except StopIteration:
-            pass
+        mtgjson_cards_with_same_id = [
+            item for item in mtgjson_cards if item.scryfall_id == scryfall_object["id"]
+        ]
+
+        for card in mtgjson_cards_with_same_id:
+            card.is_starter = True
 
 
 def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
