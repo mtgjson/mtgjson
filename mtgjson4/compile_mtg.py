@@ -8,8 +8,8 @@ import multiprocessing
 import os
 import pathlib
 import re
-import unicodedata
 from typing import Any, Dict, List, Optional, Set, Tuple
+import unicodedata
 
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
@@ -421,18 +421,12 @@ def add_start_flag_and_count_modified(
 
     for sf_card in starter_cards["data"]:
         # Each card has a unique UUID, even if they're the same card printed twice
-        try:
-            card = next(
-                item
-                for item in mtgjson_cards
-                if item.get("scryfallId") == sf_card["id"]
-            )
-            if card:
-                card.set("isStarter", True)
-        except StopIteration:
-            LOGGER.warning(
-                f"Passed on {sf_card['name']} with SF_ID {sf_card['scryfallId']}"
-            )
+        mtgjson_cards_with_same_id = [
+            item for item in mtgjson_cards if item.get("scryfallId") == sf_card["id"]
+        ]
+
+        for card in mtgjson_cards_with_same_id:
+            card.set("isStarter", True)
 
     return mtgjson_cards
 
