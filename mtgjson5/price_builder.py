@@ -8,7 +8,7 @@ import logging
 import lzma
 import pathlib
 import shutil
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 
 import dateutil.relativedelta
 import git
@@ -95,13 +95,33 @@ def prune_prices_archive(content: Dict[str, Any], months: int = 3) -> None:
     ).strftime("%Y-%m-%d")
 
     LOGGER.info("Determining keys to prune")
-    keys_to_prune = []
+    prune_structs: List[Tuple[str, ...]] = []
+
     for card_uuid, card_data in content.items():
         for source, source_data in card_data.items():
+            if not source_data:
+                prune_structs.append((card_uuid, source, "", "", "", ""))
             for provider, provider_data in source_data.items():
+                if not provider_data:
+                    prune_structs.append((card_uuid, source, provider, "", "", ""))
                 for buy_sell, buy_sell_data in provider_data.items():
+                    if not buy_sell_data:
+                        prune_structs.append(
+                            (card_uuid, source, provider, buy_sell, "", "")
+                        )
                     for card_type, card_type_data in buy_sell_data.items():
-                        keys_to_prune.extend(
+                        if not card_type_data:
+                            prune_structs.append(
+                                (
+                                    card_uuid,
+                                    source,
+                                    provider,
+                                    buy_sell,
+                                    card_type_data,
+                                    "",
+                                )
+                            )
+                        prune_structs.extend(
                             [
                                 (card_uuid, source, provider, buy_sell, card_type, date)
                                 for date in card_type_data.keys()
@@ -109,9 +129,18 @@ def prune_prices_archive(content: Dict[str, Any], months: int = 3) -> None:
                             ]
                         )
 
-    LOGGER.info(f"Pruning {len(keys_to_prune)} keys")
-    for (card_uuid, source, provider, buy_sell, card_type, date) in keys_to_prune:
-        del content[card_uuid][source][provider][buy_sell][card_type][date]
+    LOGGER.info(f"Pruning {len(prune_structs)} structs")
+    for (card_uuid, source, provider, buy_sell, card_type, date) in prune_structs:
+        if date:
+            del content[card_uuid][source][provider][buy_sell][card_type][date]
+        elif card_type:
+            del content[card_uuid][source][provider][buy_sell][card_type]
+        elif buy_sell:
+            del content[card_uuid][source][provider][buy_sell]
+        elif provider:
+            del content[card_uuid][source][provider]
+        elif source:
+            del content[card_uuid][source]
 
 
 def deep_merge_dictionaries(
