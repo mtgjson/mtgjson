@@ -8,7 +8,7 @@ import logging
 import lzma
 import pathlib
 import shutil
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 import dateutil.relativedelta
 import git
@@ -93,54 +93,28 @@ def prune_prices_archive(content: Dict[str, Any], months: int = 3) -> None:
     prune_date_str = (
         datetime.date.today() + dateutil.relativedelta.relativedelta(months=-months)
     ).strftime("%Y-%m-%d")
+    keys_pruned = 0
+
+    def prune_recursive(obj: Dict[str, Any], depth: int = 0) -> None:
+        """
+        Recursive pruner to pluck out bad dates and empty fields
+        """
+        nonlocal keys_pruned
+        if depth == 5:
+            for date in list(obj.keys()):
+                if date < prune_date_str:
+                    del obj[date]
+                    keys_pruned += 1
+        else:
+            for key, value in list(obj.items()):
+                prune_recursive(value, depth + 1)
+                if not value:
+                    del obj[key]
+                    keys_pruned += 1
 
     LOGGER.info("Determining keys to prune")
-    prune_structs: List[Tuple[str, ...]] = []
-
-    for card_uuid, card_data in content.items():
-        for source, source_data in card_data.items():
-            if not source_data:
-                prune_structs.append((card_uuid, source, "", "", "", ""))
-            for provider, provider_data in source_data.items():
-                if not provider_data:
-                    prune_structs.append((card_uuid, source, provider, "", "", ""))
-                for buy_sell, buy_sell_data in provider_data.items():
-                    if not buy_sell_data:
-                        prune_structs.append(
-                            (card_uuid, source, provider, buy_sell, "", "")
-                        )
-                    for card_type, card_type_data in buy_sell_data.items():
-                        if not card_type_data:
-                            prune_structs.append(
-                                (
-                                    card_uuid,
-                                    source,
-                                    provider,
-                                    buy_sell,
-                                    card_type_data,
-                                    "",
-                                )
-                            )
-                        prune_structs.extend(
-                            [
-                                (card_uuid, source, provider, buy_sell, card_type, date)
-                                for date in card_type_data.keys()
-                                if date < prune_date_str
-                            ]
-                        )
-
-    LOGGER.info(f"Pruning {len(prune_structs)} structs")
-    for (card_uuid, source, provider, buy_sell, card_type, date) in prune_structs:
-        if date:
-            del content[card_uuid][source][provider][buy_sell][card_type][date]
-        elif card_type:
-            del content[card_uuid][source][provider][buy_sell][card_type]
-        elif buy_sell:
-            del content[card_uuid][source][provider][buy_sell]
-        elif provider:
-            del content[card_uuid][source][provider]
-        elif source:
-            del content[card_uuid][source]
+    prune_recursive(content)
+    LOGGER.info(f"Pruned {keys_pruned} structs")
 
 
 def deep_merge_dictionaries(
