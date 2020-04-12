@@ -214,7 +214,7 @@ def get_price_archive_data() -> Dict[str, Dict[str, float]]:
         and config.get("GitHub", "repo_name")
         and config.get("GitHub", "repo_name")
     ):
-        LOGGER.warning("GitHub keys not established. Skipping price archives")
+        LOGGER.warning("GitHub keys not established. Skipping requests")
         return {}
 
     # Config values for GitHub

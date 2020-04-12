@@ -55,7 +55,7 @@ class TCGPlayerProvider(AbstractProvider):
             config.get("TCGPlayer", "client_id")
             and config.get("TCGPlayer", "client_secret")
         ):
-            LOGGER.warning("TCGPlayer keys not established. Skipping header requests")
+            LOGGER.warning("TCGPlayer keys not established. Skipping requests")
             self.__keys_found = False
             return ""
 

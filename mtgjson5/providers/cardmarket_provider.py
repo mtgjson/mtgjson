@@ -73,6 +73,9 @@ class CardMarketProvider(AbstractProvider):
         Generate a single-day price structure from Card Market
         :return MTGJSON prices single day structure
         """
+        if not self.__keys_found:
+            return {}
+
         mtgjson_id_map = self._generate_cardmarket_to_mtgjson_map(all_printings_path)
 
         price_data = pandas.read_csv(self._get_card_market_data())
