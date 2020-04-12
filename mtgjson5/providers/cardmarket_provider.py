@@ -8,7 +8,7 @@ import logging
 import math
 import os
 import pathlib
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 import zlib
 
 from mkmsdk.api_map import _API_MAP
@@ -87,28 +87,28 @@ class CardMarketProvider(AbstractProvider):
 
         today_dict: Dict[str, MtgjsonPricesObject] = {}
         for row in price_data.iterrows():
-            columns = [
-                None if math.isnan(value) else value for value in row[1].tolist()
+            columns: List[float] = [
+                -1 if math.isnan(value) else value for value in row[1].tolist()
             ]
 
-            product_id = str(columns[product_id_index])
+            product_id = int(columns[product_id_index])
             if product_id in mtgjson_id_map.keys():
                 mtgjson_uuid = mtgjson_id_map[product_id]
                 avg_sell_price = columns[avg_sell_price_index]
                 avg_foil_price = columns[avg_foil_price_index]
 
                 if mtgjson_uuid not in today_dict.keys():
-                    if not avg_sell_price and not avg_foil_price:
+                    if avg_sell_price == -1 and avg_foil_price == -1:
                         continue
 
                     today_dict[mtgjson_uuid] = MtgjsonPricesObject(
                         "paper", "cardmarket", self.today_date
                     )
 
-                if avg_sell_price:
+                if avg_sell_price != -1:
                     today_dict[mtgjson_uuid].sell_normal = avg_sell_price
 
-                if avg_foil_price:
+                if avg_foil_price != -1:
                     today_dict[mtgjson_uuid].sell_foil = avg_foil_price
 
         return today_dict
@@ -116,7 +116,7 @@ class CardMarketProvider(AbstractProvider):
     @staticmethod
     def _generate_cardmarket_to_mtgjson_map(
         all_printings_path: pathlib.Path,
-    ) -> Dict[str, str]:
+    ) -> Dict[int, str]:
         """
         Generate a CardMarketID -> MTGJSON UUID map that can be used
         across the system.
@@ -126,7 +126,7 @@ class CardMarketProvider(AbstractProvider):
         with all_printings_path.expanduser().open(encoding="utf-8") as f:
             file_contents = json.load(f).get("data", {})
 
-        dump_map: Dict[str, str] = {}
+        dump_map: Dict[int, str] = {}
         for value in file_contents.values():
             for card in value.get("cards", []) + value.get("tokens", []):
                 if "mcmId" in card.keys():
