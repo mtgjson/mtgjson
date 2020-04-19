@@ -10,10 +10,10 @@ from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject, MtgjsonSetObjec
 from .compiled_classes import (
     MtgjsonAllPrintingsObject,
     MtgjsonAtomicCardsObject,
+    MtgjsonAttributeValuesObject,
     MtgjsonCardTypesObject,
     MtgjsonCompiledListObject,
     MtgjsonDeckListObject,
-    MtgjsonAttributeValuesObject,
     MtgjsonKeywordsObject,
     MtgjsonSetListObject,
     MtgjsonStructuresObject,

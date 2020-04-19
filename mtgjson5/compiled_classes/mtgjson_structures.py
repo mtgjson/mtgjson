@@ -46,30 +46,30 @@ class MtgjsonStructuresObject:
     atomic_cards_pauper: str
 
     def __init__(self) -> None:
-        self.all_printings: str = "AllPrintings"
-        self.atomic_cards: str = "AtomicCards"
-        self.all_prices: str = "AllPrices"
-        self.all_decks_directory: str = "AllDeckFiles"
-        self.all_sets_directory: str = "AllSetFiles"
-        self.card_types: str = "CardTypes"
-        self.compiled_list: str = "CompiledList"
-        self.deck_list: str = "DeckList"
-        self.key_words: str = "Keywords"
-        self.attribute_values: str = "AttributeValues"
-        self.set_list: str = "SetList"
+        self.all_printings = "AllPrintings"
+        self.atomic_cards = "AtomicCards"
+        self.all_prices = "AllPrices"
+        self.all_decks_directory = "AllDeckFiles"
+        self.all_sets_directory = "AllSetFiles"
+        self.card_types = "CardTypes"
+        self.compiled_list = "CompiledList"
+        self.deck_list = "DeckList"
+        self.key_words = "Keywords"
+        self.attribute_values = "AttributeValues"
+        self.set_list = "SetList"
         self.referral_database = "ReferralMap"
-        self.version: str = "Meta"
-        self.all_printings_standard: str = "StandardPrintings"
-        self.all_printings_pioneer: str = "PioneerPrintings"
-        self.all_printings_modern: str = "ModernPrintings"
-        self.all_printings_legacy: str = "LegacyPrintings"
-        self.all_printings_vintage: str = "VintagePrintings"
-        self.atomic_cards_standard: str = "StandardAtomicCards"
-        self.atomic_cards_pioneer: str = "PioneerAtomicCards"
-        self.atomic_cards_modern: str = "ModernAtomicCards"
-        self.atomic_cards_legacy: str = "LegacyAtomicCards"
-        self.atomic_cards_vintage: str = "VintageAtomicCards"
-        self.atomic_cards_pauper: str = "PauperAtomicCards"
+        self.version = "Meta"
+        self.all_printings_standard = "StandardPrintings"
+        self.all_printings_pioneer = "PioneerPrintings"
+        self.all_printings_modern = "ModernPrintings"
+        self.all_printings_legacy = "LegacyPrintings"
+        self.all_printings_vintage = "VintagePrintings"
+        self.atomic_cards_standard = "StandardAtomicCards"
+        self.atomic_cards_pioneer = "PioneerAtomicCards"
+        self.atomic_cards_modern = "ModernAtomicCards"
+        self.atomic_cards_legacy = "LegacyAtomicCards"
+        self.atomic_cards_vintage = "VintageAtomicCards"
+        self.atomic_cards_pauper = "PauperAtomicCards"
 
     def get_all_compiled_file_names(self) -> List[str]:
         """
@@ -90,10 +90,8 @@ class MtgjsonStructuresObject:
         Support json.dumps()
         :return: JSON serialized object
         """
-        skip_keys: Set[str] = set()
-
         return {
             to_camel_case(key): value
             for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value) and key not in skip_keys
+            if "__" not in key and not callable(value)
         }
