@@ -6,6 +6,7 @@ import logging
 import pathlib
 from typing import Any, Dict, List
 
+from . import utils
 from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject, MtgjsonSetObject
 from .compiled_classes import (
     MtgjsonAllPrintingsObject,
@@ -31,7 +32,9 @@ def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> 
     :param pretty_print: Should it be pretty or minimized?
     """
     OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
-    with OUTPUT_PATH.joinpath(f"{mtgjson_set_object.code}.json").open("w") as file:
+
+    file_name: str = f"{utils.fix_windows_set_name(mtgjson_set_object.code)}.json"
+    with OUTPUT_PATH.joinpath(file_name).open("w") as file:
         json.dump(
             obj={"data": mtgjson_set_object, "meta": MtgjsonMetaObject()},
             fp=file,

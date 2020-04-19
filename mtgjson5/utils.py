@@ -14,7 +14,7 @@ import requests
 import requests.adapters
 import urllib3
 
-from .consts import LOG_PATH
+from .consts import BAD_FILE_NAMES, LOG_PATH
 
 
 def init_logger() -> None:
@@ -153,3 +153,17 @@ def sort_internal_lists(data: Any) -> Any:
         return sorted(list(data))
 
     return data
+
+
+def fix_windows_set_name(set_name: str) -> str:
+    """
+    In the Windows OS, there are certain file names that are not allowed.
+    In case we have a set with such a name, we will add a _ to the end to allow its existence
+    on Windows.
+    :param set_name: Set name
+    :return: Set name with a _ if necessary
+    """
+    if set_name in BAD_FILE_NAMES:
+        return set_name + "_"
+
+    return set_name
