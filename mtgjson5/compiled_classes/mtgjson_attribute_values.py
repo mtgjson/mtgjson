@@ -1,5 +1,5 @@
 """
-MTGJSON KeyValues container
+MTGJSON AttributeValues container
 """
 from typing import Any, Dict, List, Union
 
@@ -7,9 +7,9 @@ from ..compiled_classes.mtgjson_all_printings import MtgjsonAllPrintingsObject
 from ..utils import sort_internal_lists
 
 
-class MtgjsonKeyValuesObject:
+class MtgjsonAttributeValuesObject:
     """
-    KeyValues container
+    AttributeValues container
     """
 
     key_values_dict: Dict[str, Union[Dict[str, List[str]], List[str]]]
