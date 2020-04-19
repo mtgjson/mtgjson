@@ -1,5 +1,5 @@
 """
-Class Dispatcher
+MTGJSON Class Dispatcher
 """
 
 from .mtgjson_card import MtgjsonCardObject

@@ -1,4 +1,5 @@
 """
-MTGJSON, written by Zach Halpern
-MIT License (c) 2019
+MTGJSON, written by Zachary Halpern
+https://mtgjson.com/
+MIT License (c) 2019-2020
 """

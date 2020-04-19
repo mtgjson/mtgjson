@@ -1,5 +1,5 @@
 """
-MTGJSON DeckList container
+MTGJSON DeckList Object
 """
 from typing import Any, Dict, List
 
@@ -9,17 +9,20 @@ from ..utils import to_camel_case
 
 class MtgjsonDeckListObject:
     """
-    DeckList container
+    MTGJSON DeckList Object
     """
 
     decks: List[MtgjsonDeckHeaderObject]
 
     def __init__(self, deck_headers: List[MtgjsonDeckHeaderObject]) -> None:
+        """
+        Initializer to build up the object
+        """
         self.decks = deck_headers
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return {

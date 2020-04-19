@@ -1,5 +1,5 @@
 """
-MTGJSON container for foreign entries
+MTGJSON Singular Card.ForeignData Object
 """
 
 from typing import Any, Dict, Optional
@@ -9,7 +9,7 @@ from ..utils import to_camel_case
 
 class MtgjsonForeignDataObject:
     """
-    Foreign data rows
+    MTGJSON Singular Card.ForeignData Object
     """
 
     language: str
@@ -26,9 +26,9 @@ class MtgjsonForeignDataObject:
         self.text = None
         self.type = None
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         skip_keys = ("url", "number", "set_code")

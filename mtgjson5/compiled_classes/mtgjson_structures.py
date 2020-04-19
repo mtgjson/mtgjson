@@ -1,7 +1,7 @@
 """
-MTGJSON container that holds what output files should be generated
+MTGJSON Internal Object for Output Files
 """
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List
 
 from singleton_decorator import singleton
 
@@ -11,7 +11,7 @@ from ..utils import to_camel_case
 @singleton
 class MtgjsonStructuresObject:
     """
-    MTGJSON's container for output files
+    MTGJSON Internal Object for Output Files
     """
 
     all_printings: str
@@ -46,6 +46,9 @@ class MtgjsonStructuresObject:
     atomic_cards_pauper: str
 
     def __init__(self) -> None:
+        """
+        Initializer to build up the object
+        """
         self.all_printings = "AllPrintings"
         self.atomic_cards = "AtomicCards"
         self.all_prices = "AllPrices"
@@ -85,9 +88,9 @@ class MtgjsonStructuresObject:
         """
         return list(set(self.get_all_compiled_file_names()) - {self.referral_database})
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return {

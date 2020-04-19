@@ -1,5 +1,5 @@
 """
-MTGJSON container for rulings
+MTGJSON Singular Card.Rulings Object
 """
 from typing import Any, Dict
 
@@ -8,19 +8,22 @@ from ..utils import to_camel_case
 
 class MtgjsonRulingObject:
     """
-    Ruling object
+    MTGJSON Singular Card.Rulings Object
     """
 
     date: str
     text: str
 
     def __init__(self, date: str, text: str) -> None:
+        """
+        Set the ruling date and text
+        """
         self.date = date
         self.text = text
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return {

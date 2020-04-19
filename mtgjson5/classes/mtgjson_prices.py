@@ -1,12 +1,12 @@
 """
-MTGJSON container for pricing data
+MTGJSON Singular Prices.Card Object
 """
 from typing import Any, Dict, Optional
 
 
 class MtgjsonPricesObject:
     """
-    Pricing Container
+    MTGJSON Singular Prices.Card Object
     """
 
     source: str
@@ -18,6 +18,9 @@ class MtgjsonPricesObject:
     sell_foil: Optional[float]
 
     def __init__(self, source: str, provider: str, date: str) -> None:
+        """
+        Initializer for Pricing Container
+        """
         self.source = source
         self.provider = provider
         self.date = date
@@ -26,9 +29,9 @@ class MtgjsonPricesObject:
         self.sell_normal = None
         self.sell_foil = None
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         buy_sell_option: Dict[str, Dict[str, Dict[str, float]]] = {}

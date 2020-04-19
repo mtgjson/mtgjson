@@ -1,5 +1,5 @@
 """
-MTGJSON Leadership Skills container
+MTGJSON Singular Card.LeadershipSkills Object
 """
 from typing import Any, Dict
 
@@ -8,7 +8,7 @@ from ..utils import to_camel_case
 
 class MtgjsonLeadershipSkillsObject:
     """
-    Container for Leadership Skills
+    MTGJSON Singular Card.LeadershipSkills Object
     """
 
     brawl: bool
@@ -20,9 +20,9 @@ class MtgjsonLeadershipSkillsObject:
         self.commander = commander
         self.oathbreaker = oathbreaker
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return {

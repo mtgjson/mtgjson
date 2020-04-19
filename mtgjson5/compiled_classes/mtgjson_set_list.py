@@ -1,5 +1,5 @@
 """
-MTGJSON SetList container
+MTGJSON SetList Object
 """
 import json
 from typing import Any, Dict, List
@@ -10,12 +10,15 @@ from .mtgjson_structures import MtgjsonStructuresObject
 
 class MtgjsonSetListObject:
     """
-    SetList container
+    MTGJSON SetList Object
     """
 
     set_list: List[Dict[str, str]]
 
     def __init__(self) -> None:
+        """
+        Initializer to build up the object
+        """
         self.set_list = self.get_all_set_list(
             MtgjsonStructuresObject().get_all_compiled_file_names()
         )
@@ -58,9 +61,9 @@ class MtgjsonSetListObject:
 
         return sorted(all_sets_data, key=lambda set_info: set_info["name"])
 
-    def for_json(self) -> List[Any]:
+    def to_json(self) -> List[Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return [

@@ -38,7 +38,7 @@ def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> 
             sort_keys=True,
             indent=(4 if pretty_print else None),
             ensure_ascii=False,
-            default=lambda o: o.for_json(),
+            default=lambda o: o.to_json(),
         )
 
 
@@ -249,7 +249,7 @@ def write_compiled_output_to_file(
             sort_keys=True,
             indent=(4 if pretty_print else None),
             ensure_ascii=False,
-            default=lambda o: o.for_json(),
+            default=lambda o: o.to_json(),
         )
 
 

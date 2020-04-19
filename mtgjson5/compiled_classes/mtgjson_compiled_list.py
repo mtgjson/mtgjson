@@ -1,5 +1,5 @@
 """
-MTGJSON CompiledList container
+MTGJSON CompiledList Object
 """
 from typing import Any, Dict, List
 
@@ -9,17 +9,20 @@ from .mtgjson_structures import MtgjsonStructuresObject
 
 class MtgjsonCompiledListObject:
     """
-    CompiledList container
+    MTGJSON CompiledList Object
     """
 
     files: List[str]
 
     def __init__(self) -> None:
+        """
+        Initializer to build up the object
+        """
         self.files = MtgjsonStructuresObject().get_compiled_list_files()
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return {

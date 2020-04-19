@@ -1,12 +1,12 @@
 """
-MTGJSON container for Set Translations
+MTGJSON Set.Translations Object
 """
 from typing import Any, Dict, Optional
 
 
 class MtgjsonTranslationsObject:
     """
-    Structure to hold translations for an individual set
+    MTGJSON Set.Translations Object
     """
 
     chinese_simplified: Optional[str]
@@ -21,6 +21,9 @@ class MtgjsonTranslationsObject:
     spanish: Optional[str]
 
     def __init__(self, active_dict: Dict[str, str] = None) -> None:
+        """
+        Initializer, for each language, given the contents
+        """
         if not active_dict:
             return
 
@@ -46,9 +49,9 @@ class MtgjsonTranslationsObject:
         components = key.split("_")
         return " ".join(x.title() for x in components)
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return {

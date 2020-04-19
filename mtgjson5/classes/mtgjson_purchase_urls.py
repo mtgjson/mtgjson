@@ -1,5 +1,5 @@
 """
-MTGJSON container for Purchase URLs
+MTGJSON Singular Card.PurchaseURLs Object
 """
 from typing import Any, Dict, Set
 
@@ -8,15 +8,11 @@ from ..utils import to_camel_case
 
 class MtgjsonPurchaseUrlsObject:
     """
-    Container for purchase affiliate URLs
+    MTGJSON Singular Card.PurchaseURLs Object
     """
 
     cardmarket: str
     tcgplayer: str
-    mtgstocks: str
-
-    def __init__(self) -> None:
-        pass
 
     def build_keys_to_skip(self) -> Set[str]:
         """
@@ -31,9 +27,9 @@ class MtgjsonPurchaseUrlsObject:
 
         return excluded_keys
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         skip_keys = self.build_keys_to_skip()

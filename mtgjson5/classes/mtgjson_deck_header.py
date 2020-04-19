@@ -1,5 +1,5 @@
 """
-MTGJSON DeckList container
+MTGJSON Singular Deck Header Object
 """
 from typing import Any, Dict
 
@@ -9,7 +9,7 @@ from ..utils import to_camel_case
 
 class MtgjsonDeckHeaderObject:
     """
-    DeckList container
+    MTGJSON Singular Deck Header Object
     """
 
     code: str
@@ -18,14 +18,17 @@ class MtgjsonDeckHeaderObject:
     release_date: str
 
     def __init__(self, output_deck: MtgjsonDeckObject) -> None:
+        """
+        Initialize the header given a deck
+        """
         self.code = output_deck.code
         self.file_name = output_deck.file_name
         self.name = output_deck.name
         self.release_date = output_deck.release_date
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return {

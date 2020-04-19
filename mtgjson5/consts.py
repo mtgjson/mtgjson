@@ -1,5 +1,5 @@
 """
-Const values of MTGJSON
+MTGJSON Consts for Building
 """
 import pathlib
 from typing import Dict, List, Set, Tuple
@@ -7,8 +7,7 @@ from typing import Dict, List, Set, Tuple
 USE_CACHE: bool = False  # Set to True for development purposes
 
 MTGJSON_VERSION: str = "5.0.0"
-MTGJSON_BUILD_DATE: str = "2019-01-20"
-MTGJSON_PRICE_BUILD_DATE: str = "2019-01-21"
+MTGJSON_BUILD_DATE: str = "202-04-20"
 
 # Useful paths within the MTGJSON system
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent

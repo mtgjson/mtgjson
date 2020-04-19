@@ -1,5 +1,5 @@
 """
-MTGJSON container for holding an individual card
+MTGJSON Singular Deck Object
 """
 import re
 from typing import Any, Dict, List
@@ -9,7 +9,7 @@ from ..utils import to_camel_case
 
 class MtgjsonDeckObject:
     """
-    MTGJSON's container for a card
+    MTGJSON Singular Card Object
     """
 
     code: str
@@ -19,9 +19,6 @@ class MtgjsonDeckObject:
     release_date: str
     type: str
     file_name: str
-
-    def __init__(self) -> None:
-        pass
 
     def set_sanitized_name(self, name: str) -> None:
         """
@@ -33,9 +30,9 @@ class MtgjsonDeckObject:
 
         self.file_name = word_characters_only_regex.sub("", capital_case)
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         skip_keys = {"file_name"}

@@ -1,5 +1,5 @@
 """
-MTGJSON Legalities container
+MTGJSON Singular Card.Legalities Object
 """
 from typing import Any, Dict
 
@@ -8,7 +8,7 @@ from ..utils import to_camel_case
 
 class MtgjsonLegalitiesObject:
     """
-    Legalities container for cards
+    MTGJSON Singular Card.Legalities Object
     """
 
     brawl: str
@@ -24,12 +24,9 @@ class MtgjsonLegalitiesObject:
     standard: str
     vintage: str
 
-    def __init__(self) -> None:
-        pass
-
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return {

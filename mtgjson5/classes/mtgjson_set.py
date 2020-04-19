@@ -1,5 +1,5 @@
 """
-Class structure for a MTGJSON Set Object
+MTGJSON Singular Set Object
 """
 from typing import Any, Dict, List, Optional, Set
 
@@ -10,7 +10,7 @@ from ..utils import to_camel_case
 
 class MtgjsonSetObject:
     """
-    MTGJSON Set Object
+    MTGJSON Singular Set Object
     """
 
     base_set_size: int
@@ -39,12 +39,28 @@ class MtgjsonSetObject:
     extra_tokens: List[Dict[str, Any]]
     search_uri: str
 
+    __allow_if_falsey = {
+        "cards",
+        "tokens",
+        "is_foil_only",
+        "is_online_only",
+        "base_set_size",
+        "total_set_size",
+    }
+
     def __init__(self) -> None:
+        """
+        Initializer to ensure arrays are pre-loaded
+        """
         self.extra_tokens = []
         self.cards = []
         self.tokens = []
 
     def __str__(self) -> str:
+        """
+        MTGJSON Set as a string for debugging purposes
+        :return MTGJSON Set as a string
+        """
         return str(vars(self))
 
     def build_keys_to_skip(self) -> Set[str]:
@@ -52,32 +68,25 @@ class MtgjsonSetObject:
         Build this object's instance of what keys to skip under certain circumstances
         :return What keys to skip over
         """
-        excluded_keys: Set[str] = set()
-
-        allow_if_empty = {
-            "cards",
-            "tokens",
-            "is_foil_only",
-            "is_online_only",
-            "base_set_size",
-            "total_set_size",
+        excluded_keys: Set[str] = {
+            "added_scryfall_tokens",
+            "search_uri",
+            "extra_tokens",
         }
 
         for key, value in self.__dict__.items():
             if not value:
-                if key not in allow_if_empty:
+                if key not in self.__allow_if_falsey:
                     excluded_keys.add(key)
 
         return excluded_keys
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
-        skip_keys = self.build_keys_to_skip().union(
-            {"added_scryfall_tokens", "search_uri", "extra_tokens"}
-        )
+        skip_keys = self.build_keys_to_skip()
 
         return {
             to_camel_case(key): value

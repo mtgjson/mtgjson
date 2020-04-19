@@ -1,5 +1,5 @@
 """
-Compiled Outputs Dispatcher
+MTGJSON Compiled Outputs Dispatcher
 """
 
 from .mtgjson_all_printings import MtgjsonAllPrintingsObject

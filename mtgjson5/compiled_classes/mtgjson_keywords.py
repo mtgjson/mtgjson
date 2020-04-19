@@ -1,5 +1,5 @@
 """
-MTGJSON Keywords container
+MTGJSON Keywords Object
 """
 import re
 from typing import Any, Dict, List
@@ -12,7 +12,7 @@ from ..utils import parse_magic_rules_subset, to_camel_case
 
 class MtgjsonKeywordsObject:
     """
-    Keywords container
+    MTGJSON Keywords Object
     """
 
     ability_words: List[str]
@@ -20,6 +20,9 @@ class MtgjsonKeywordsObject:
     keyword_abilities: List[str]
 
     def __init__(self) -> None:
+        """
+        Initializer to build up the object
+        """
         self.ability_words = self.get_magic_ability_words()
         self.keyword_actions = self.get_keyword_actions()
         self.keyword_abilities = self.get_keyword_abilities()
@@ -35,7 +38,7 @@ class MtgjsonKeywordsObject:
                 # Isolate all of the ability words, capitalize the words,
                 line = unidecode.unidecode(
                     line.split("The ability words are")[1].strip()
-                ).split("\r\n")[0]
+                ).splitlines()[0]
 
                 result = [x.strip().lower() for x in line.split(",")]
 
@@ -94,7 +97,7 @@ class MtgjsonKeywordsObject:
         for line in valid_line_segments:
             # Keywords are defined as "XXX.# Name"
             # We will want to ignore subset lines like "XXX.#a"
-            regex_search = re.findall(f"{rule_to_read}.{keyword_index}. (.*)", line)
+            regex_search = re.findall(rf"{rule_to_read}.{keyword_index}. (.*)", line)
             if regex_search:
                 # Break the line into "Rule Number | Keyword"
                 return_list.append(regex_search[0].lower())
@@ -103,9 +106,9 @@ class MtgjsonKeywordsObject:
 
         return sorted(return_list)
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return {

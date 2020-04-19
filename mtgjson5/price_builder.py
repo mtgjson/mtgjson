@@ -159,13 +159,13 @@ def build_today_prices() -> Dict[str, Any]:
     )
 
     cardhoarder_prices_json = json.loads(
-        json.dumps(cardhoarder_prices, default=lambda o: o.for_json())
+        json.dumps(cardhoarder_prices, default=lambda o: o.to_json())
     )
     tcgplayer_prices_json = json.loads(
-        json.dumps(tcgplayer_prices, default=lambda o: o.for_json())
+        json.dumps(tcgplayer_prices, default=lambda o: o.to_json())
     )
     cardmarket_prices_json = json.loads(
-        json.dumps(cardmarket_prices, default=lambda o: o.for_json())
+        json.dumps(cardmarket_prices, default=lambda o: o.to_json())
     )
 
     final_results = deep_merge_dictionaries(

@@ -26,7 +26,7 @@ def build_referral_map(mtgjson_set: MtgjsonSetObject) -> List[Tuple[str, str]]:
     return_list = []
     string_regex = re.compile(re.escape("scryfall"), re.IGNORECASE)
     for mtgjson_card_object in mtgjson_set.cards:
-        for service, url in mtgjson_card_object.purchase_urls.for_json().items():
+        for service, url in mtgjson_card_object.purchase_urls.to_json().items():
             return_list.append(
                 (
                     url.split("/")[-1],

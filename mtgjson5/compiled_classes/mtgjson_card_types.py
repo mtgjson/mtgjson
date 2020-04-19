@@ -1,5 +1,5 @@
 """
-MTGJSON CardTypes container
+MTGJSON CardTypes Object
 """
 import re
 import string
@@ -12,12 +12,12 @@ from ..utils import parse_magic_rules_subset, to_camel_case
 
 class MtgjsonCardTypesObject:
     """
-    CardTypes container
+    MTGJSON CardTypes Object
     """
 
     class MtgjsonCardTypesInnerObject:
         """
-        CardTypes inner container for each type
+        MTGJSON CardTypes.CardTypesInner Object
         """
 
         artifact: List[str]
@@ -39,6 +39,8 @@ class MtgjsonCardTypesObject:
             Internal initializer
             :param magic_rules: Rules for MTG from Wizards
             """
+            planar_regex = re.compile(r".*planar types are (.*)\.")
+
             self.artifact = ScryfallProvider().get_catalog_entry("artifact")
             self.conspiracy = []
             self.creature = ScryfallProvider().get_catalog_entry("creature")
@@ -46,18 +48,16 @@ class MtgjsonCardTypesObject:
             self.instant = ScryfallProvider().get_catalog_entry("spell")
             self.land = ScryfallProvider().get_catalog_entry("land")
             self.phenomenon = []
-            self.plane = regex_str_to_list(
-                re.search(r".*planar types are (.*)\.", magic_rules)
-            )
+            self.plane = regex_str_to_list(planar_regex.search(magic_rules))
             self.planeswalker = ScryfallProvider().get_catalog_entry("planeswalker")
             self.scheme = []
             self.sorcery = ScryfallProvider().get_catalog_entry("spell")
             self.tribal = []
             self.vanguard = []
 
-        def for_json(self) -> Dict[str, Any]:
+        def to_json(self) -> Dict[str, Any]:
             """
-            Support json.dumps()
+            Support json.dump()
             :return: JSON serialized object
             """
             return {
@@ -69,6 +69,9 @@ class MtgjsonCardTypesObject:
     types: Dict[str, Dict[str, List[str]]]
 
     def __init__(self) -> None:
+        """
+        Initializer to build up the object
+        """
         self.types = {}
 
         comp_rules = parse_magic_rules_subset(
@@ -79,22 +82,15 @@ class MtgjsonCardTypesObject:
 
         inner_sets = self.MtgjsonCardTypesInnerObject(comp_rules)
 
-        super_types = regex_str_to_list(
-            re.search(r".*supertypes are (.*)\.", comp_rules)
-        )
+        super_regex = re.compile(r".*supertypes are (.*)\.")
+        super_types = regex_str_to_list(super_regex.search(comp_rules))
 
-        for key, value in inner_sets.for_json().items():
+        for key, value in inner_sets.to_json().items():
             self.types[key] = {"subTypes": value, "superTypes": super_types}
 
-    def get_card_types(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Get all possible card super, sub, and types from the rules.
-        :return: Card types for return_value
-        """
-
-    def for_json(self) -> Dict[str, Any]:
-        """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return {

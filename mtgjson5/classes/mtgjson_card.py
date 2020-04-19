@@ -1,5 +1,5 @@
 """
-MTGJSON container for holding an individual card
+MTGJSON Singular Card Object
 """
 from typing import Any, Dict, List, Optional, Set
 
@@ -14,7 +14,7 @@ from ..utils import to_camel_case
 
 class MtgjsonCardObject:
     """
-    MTGJSON's container for a card
+    MTGJSON Singular Card Object
     """
 
     artist: str
@@ -99,7 +99,7 @@ class MtgjsonCardObject:
     raw_purchase_urls: Dict[str, str]
     __names: Optional[List[str]]
 
-    __allow_if_empty = {
+    __allow_if_falsey = {
         "supertypes",
         "types",
         "subtypes",
@@ -128,9 +128,45 @@ class MtgjsonCardObject:
 
     __remove_for_cards = {"reverse_related"}
 
+    __atomic_keys = [
+        "color_identity",
+        "color_indicator",
+        "colors",
+        "converted_mana_cost",
+        "count",
+        "edhrec_rank",
+        "face_converted_mana_cost",
+        "face_name",
+        "foreign_data",
+        "hand",
+        "has_alternative_deck_limit",
+        "is_reserved",
+        "layout",
+        "leadership_skills",
+        "legalities",
+        "life",
+        "loyalty",
+        "mana_cost",
+        "name",
+        "power",
+        "printings",
+        "purchase_urls",
+        "rulings",
+        "scryfall_oracle_id",
+        "side",
+        "subtypes",
+        "supertypes",
+        "text",
+        "toughness",
+        "type",
+        "types",
+    ]
+
     def __init__(self, is_token: bool = False) -> None:
-        # These values are tested against at some point
-        # So we need a default value
+        """
+        Initializer for MTGJSON Singular Card Object
+        """
+        self.is_token = is_token
         self.colors = []
         self.artist = ""
         self.layout = ""
@@ -138,13 +174,12 @@ class MtgjsonCardObject:
         self.__names = []
         self.multiverse_id = 0
         self.purchase_urls = MtgjsonPurchaseUrlsObject()
-        self.is_token = is_token
         self.side = None
         self.face_name = None
 
     def __eq__(self, other: Any) -> bool:
         """
-        Determine if two card objects are equal
+        Determine if two MTGJSON Card Objects are equal
         :param other: Other card
         :return: Same object or not
         """
@@ -152,7 +187,7 @@ class MtgjsonCardObject:
 
     def __lt__(self, other: Any) -> bool:
         """
-        Determine if this card object is less than another
+        Determine if this card object is "less than" another
         :param other: Other card
         :return: Less than or not
         """
@@ -163,21 +198,21 @@ class MtgjsonCardObject:
 
     def get_names(self) -> List[str]:
         """
-        Get internal names array
+        Get internal names array for this card
         :return Names array or None
         """
         return self.__names or []
 
     def set_names(self, names: Optional[List[str]]) -> None:
         """
-        Set internal names array
+        Set internal names array for this card
         :param names: Names list (optional)
         """
         self.__names = list(map(str.strip, names)) if names else None
 
     def append_names(self, name: str) -> None:
         """
-        Append to internal names array
+        Append to internal names array for this card
         :param name: Name to append
         """
         if self.__names:
@@ -185,53 +220,20 @@ class MtgjsonCardObject:
         else:
             self.set_names([name])
 
-    @staticmethod
-    def get_atomic_keys() -> List[str]:
+    def get_atomic_keys(self) -> List[str]:
         """
         Get attributes of a card that don't change
         from printing to printing
         :return: Keys that are atomic
         """
-        return [
-            "color_identity",
-            "color_indicator",
-            "colors",
-            "converted_mana_cost",
-            "count",
-            "edhrec_rank",
-            "face_converted_mana_cost",
-            "face_name",
-            "foreign_data",
-            "hand",
-            "has_alternative_deck_limit",
-            "is_reserved",
-            "layout",
-            "leadership_skills",
-            "legalities",
-            "life",
-            "loyalty",
-            "mana_cost",
-            "name",
-            "power",
-            "printings",
-            "purchase_urls",
-            "rulings",
-            "scryfall_oracle_id",
-            "side",
-            "subtypes",
-            "supertypes",
-            "text",
-            "toughness",
-            "type",
-            "types",
-        ]
+        return self.__atomic_keys
 
     def build_keys_to_skip(self) -> Set[str]:
         """
         Build this object's instance of what keys to skip under certain circumstances
         :return What keys to skip over
         """
-        excluded_keys: Set[str]
+        excluded_keys: Set[str] = {"set_code", "is_token", "raw_purchase_urls"}
 
         if self.is_token:
             excluded_keys = self.__remove_for_tokens.copy()
@@ -240,19 +242,17 @@ class MtgjsonCardObject:
 
         for key, value in self.__dict__.items():
             if not value:
-                if key not in self.__allow_if_empty:
+                if key not in self.__allow_if_falsey:
                     excluded_keys.add(key)
 
         return excluded_keys
 
-    def for_json(self) -> Dict[str, Any]:
+    def to_json(self) -> Dict[str, Any]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
-        skip_keys = self.build_keys_to_skip().union(
-            {"set_code", "is_token", "raw_purchase_urls"}
-        )
+        skip_keys = self.build_keys_to_skip()
 
         return {
             to_camel_case(key): value

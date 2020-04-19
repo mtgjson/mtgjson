@@ -1,5 +1,5 @@
 """
-MTGJSON AttributeValues container
+MTGJSON AttributeValues Object
 """
 from typing import Any, Dict, List, Union
 
@@ -9,13 +9,14 @@ from ..utils import sort_internal_lists
 
 class MtgjsonAttributeValuesObject:
     """
-    AttributeValues container
+    MTGJSON AttributeValues Object
     """
 
-    key_values_dict: Dict[str, Union[Dict[str, List[str]], List[str]]]
+    attr_value_dict: Dict[str, Union[Dict[str, List[str]], List[str]]]
 
-    _set_keys = ["code"]
-    _card_keys = [
+    __included_set_keys = ["code"]
+
+    __included_card_keys = [
         "borderColor",
         "colorIdentity",
         "colorIndicator",
@@ -28,10 +29,11 @@ class MtgjsonAttributeValuesObject:
         "side",
         "watermark",
     ]
-    _expanded_card_keys = {"foreignData": "language"}
+
+    __included_sub_card_keys = {"foreignData": "language"}
 
     def __init__(self) -> None:
-        self.construct_internal_enums(MtgjsonAllPrintingsObject().for_json())
+        self.construct_internal_enums(MtgjsonAllPrintingsObject().to_json())
 
     def construct_internal_enums(self, all_printings_content: Dict[str, Any]) -> None:
         """
@@ -43,9 +45,11 @@ class MtgjsonAttributeValuesObject:
             "card": {},
         }
 
-        full_key_options = self._card_keys + list(self._expanded_card_keys.keys())
+        full_key_options = self.__included_card_keys + list(
+            self.__included_sub_card_keys.keys()
+        )
         for set_code, set_contents in all_printings_content.items():
-            for find_set_key in self._set_keys:
+            for find_set_key in self.__included_set_keys:
                 if find_set_key not in type_map["set"].keys():
                     type_map["set"][find_set_key] = set()
                 type_map["set"][find_set_key].add(set_code)
@@ -60,7 +64,7 @@ class MtgjsonAttributeValuesObject:
                     if card_key not in type_map["card"].keys():
                         type_map["card"][card_key] = (
                             dict()
-                            if card_key in self._expanded_card_keys.keys()
+                            if card_key in self.__included_sub_card_keys.keys()
                             else set()
                         )
 
@@ -75,17 +79,17 @@ class MtgjsonAttributeValuesObject:
                             type_map["card"][card_key].add(value)
                             continue
 
-                        field_name = self._expanded_card_keys[card_key]
+                        field_name = self.__included_sub_card_keys[card_key]
                         if field_name not in type_map["card"][card_key].keys():
                             type_map["card"][card_key][field_name] = set()
 
                         type_map["card"][card_key][field_name].add(value[field_name])
 
-        self.key_values_dict = sort_internal_lists(type_map)
+        self.attr_value_dict = sort_internal_lists(type_map)
 
-    def for_json(self) -> Dict[str, Union[Dict[str, List[str]], List[str]]]:
+    def to_json(self) -> Dict[str, Union[Dict[str, List[str]], List[str]]]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
-        return self.key_values_dict
+        return self.attr_value_dict

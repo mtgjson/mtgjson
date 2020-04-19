@@ -1,5 +1,5 @@
 """
-MTGJSON Arg Parser to determine what actions to run
+MTGJSON Arg Parser to determine what actions to take
 """
 import argparse
 import logging
@@ -7,6 +7,7 @@ import pathlib
 import sys
 from typing import List
 
+from .compiled_classes import MtgjsonStructuresObject
 from .consts import BAD_FILE_NAMES, OUTPUT_PATH
 from .providers import ScryfallProvider
 
@@ -98,8 +99,12 @@ def get_sets_already_built() -> List[str]:
     """
     json_output_files: List[pathlib.Path] = list(OUTPUT_PATH.glob("**/*.json"))
 
-    set_codes_found = [file.stem for file in json_output_files]
-    LOGGER.info(f"Sets Built Already: {set_codes_found}")
+    set_codes_found = list(
+        {file.stem for file in json_output_files}
+        - {MtgjsonStructuresObject().get_all_compiled_file_names()}
+    )
+
+    LOGGER.info(f"Sets Built Already: {', '.join(set_codes_found)}")
 
     set_codes_found = [
         set_code[:-1] if set_code[:-1] in BAD_FILE_NAMES else set_code

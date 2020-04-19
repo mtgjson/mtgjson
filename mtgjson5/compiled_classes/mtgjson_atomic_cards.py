@@ -1,5 +1,5 @@
 """
-MTGJSON AtomicCards container
+MTGJSON AtomicCards Object
 """
 import json
 import re
@@ -13,14 +13,16 @@ from .mtgjson_structures import MtgjsonStructuresObject
 
 class MtgjsonAtomicCardsObject:
     """
-    AtomicCards container
+    MTGJSON AtomicCards Object
     """
 
     atomic_cards_dict: Dict[str, List[Dict[str, Any]]]
-
-    _name_regex = re.compile(r"^([^\n]+) \([a-z]\)$")
+    __name_regex = re.compile(r"^([^\n]+) \([a-z]\)$")
 
     def __init__(self, cards_to_parse: Dict[str, Dict[str, Any]] = None) -> None:
+        """
+        Initializer to build up the object
+        """
         self.atomic_cards_dict = {}
         self.iterate_all_cards(
             MtgjsonStructuresObject().get_all_compiled_file_names(), cards_to_parse
@@ -74,7 +76,7 @@ class MtgjsonAtomicCardsObject:
                 foreign_data.pop("multiverseId", None)
 
             # Strip out the (a), (b) stuff
-            values = self._name_regex.findall(atomic_card["name"])
+            values = self.__name_regex.findall(atomic_card["name"])
             card_name = values[0] if values else atomic_card["name"]
 
             if card_name not in self.atomic_cards_dict.keys():
@@ -89,9 +91,9 @@ class MtgjsonAtomicCardsObject:
             if should_add_card:
                 self.atomic_cards_dict[card_name].append(atomic_card)
 
-    def for_json(self) -> Dict[str, List[Dict[str, Any]]]:
+    def to_json(self) -> Dict[str, List[Dict[str, Any]]]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return self.atomic_cards_dict

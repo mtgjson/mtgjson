@@ -1,23 +1,29 @@
 """
-MTGJSON AllPrintings container
+MTGJSON AllPrintings Object
 """
 import json
 import pathlib
 from typing import Dict, List
+
+from singleton_decorator import singleton
 
 from ..classes import MtgjsonSetObject
 from ..consts import OUTPUT_PATH
 from .mtgjson_structures import MtgjsonStructuresObject
 
 
+@singleton
 class MtgjsonAllPrintingsObject:
     """
-    AllPrintings container
+    MTGJSON AllPrintings Object
     """
 
     all_sets_dict: Dict[str, MtgjsonSetObject]
 
     def __init__(self, whitelist_sets: List[str] = None) -> None:
+        """
+        Initialize to build up the object
+        """
         self.all_sets_dict = {}
 
         files_to_build = self.get_files_to_build(
@@ -61,9 +67,9 @@ class MtgjsonAllPrintingsObject:
 
             self.all_sets_dict[set_file.stem] = file_content.get("data", {})
 
-    def for_json(self) -> Dict[str, MtgjsonSetObject]:
+    def to_json(self) -> Dict[str, MtgjsonSetObject]:
         """
-        Support json.dumps()
+        Support json.dump()
         :return: JSON serialized object
         """
         return self.all_sets_dict
