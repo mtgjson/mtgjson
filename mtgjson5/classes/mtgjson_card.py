@@ -29,6 +29,7 @@ class MtgjsonCardObject:
     edhrec_rank: Optional[int]
     face_converted_mana_cost: float
     face_name: Optional[str]
+    flavor_name: Optional[str]
     flavor_text: Optional[str]
     foreign_data: List[MtgjsonForeignDataObject]
     frame_effects: List[str]

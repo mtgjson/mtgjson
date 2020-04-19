@@ -545,6 +545,7 @@ def build_mtgjson_card(
     mtgjson_card = MtgjsonCardObject(is_token)
 
     mtgjson_card.name = scryfall_object["name"]
+    mtgjson_card.flavor_name = scryfall_object.get("flavor_name")
     mtgjson_card.set_code = scryfall_object["set"]
     mtgjson_card.scryfall_id = scryfall_object["id"]
     mtgjson_card.scryfall_oracle_id = scryfall_object["oracle_id"]
