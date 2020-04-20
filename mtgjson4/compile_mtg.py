@@ -726,6 +726,7 @@ def build_mtgjson_card(
             "mtgoFoilId": sf_card.get("mtgo_foil_id"),
             "mtgoId": sf_card.get("mtgo_id"),
             "name": face_data.get("name"),
+            "flavorName": face_data.get("flavor_name"),
             "number": sf_card.get("collector_number"),
             "power": face_data.get("power"),
             "side": None,
