@@ -69,7 +69,7 @@ class AbstractProvider(abc.ABC):
         :return: Parsed config file
         """
         config = configparser.RawConfigParser()
-        config.read(CONFIG_PATH)
+        config.read(str(CONFIG_PATH))
 
         return config
 

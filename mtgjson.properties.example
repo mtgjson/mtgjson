@@ -11,6 +11,11 @@ api_key=
 repo_name=
 file_name=
 
+[MTGJSON]
+version=
+date=
+use_cache=
+
 [Scryfall]
 name=
 client_id=

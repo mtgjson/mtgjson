@@ -1,21 +1,28 @@
 """
 MTGJSON Consts for Building
 """
+import configparser
 import pathlib
 from typing import Dict, List, Set, Tuple
 
-USE_CACHE: bool = False  # Set to True for development purposes
-
-MTGJSON_VERSION: str = "5.0.0"
-MTGJSON_BUILD_DATE: str = "202-04-20"
-
-# Useful paths within the MTGJSON system
+# Useful MTGJSON Paths - Part 1
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson.properties")
+
+# Load in MTGJSON config values
+__CONFIG = configparser.RawConfigParser()
+__CONFIG.read(str(CONFIG_PATH))
+
+MTGJSON_VERSION: str = __CONFIG.get("MTGJSON", "version")
+MTGJSON_BUILD_DATE: str = __CONFIG.get("MTGJSON", "date")
+USE_CACHE: bool = __CONFIG.get("MTGJSON", "use_cache").lower().strip() == "true"
+
+# Useful MTGJSON Paths - Part 2
+OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"json_{MTGJSON_VERSION}")
 CACHE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(".mtgjson5_cache")
 LOG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
-OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"json_{MTGJSON_VERSION}")
 RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson5").joinpath("resources")
+
 
 CARD_MARKET_BUFFER: str = "10101"
 TCGPLAYER_REFERRAL: str = "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"

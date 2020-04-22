@@ -1,21 +1,22 @@
 """
 Installation setup for mtgjson5
 """
+import configparser
 import pathlib
 
 import setuptools
 
+config = configparser.RawConfigParser()
+config.read(str(pathlib.Path(__file__).resolve().parent.joinpath("mtgjson.properties")))
 
 setuptools.setup(
     name="mtgjson5",
-    version=setuptools.depends.get_module_constant(
-        "mtgjson5.consts", "MTGJSON_VERSION"
-    ),
+    version=config.get("MTGJSON", "version"),
     author="Zach Halpern",
     author_email="zach@mtgjson.com",
     url="https://mtgjson.com/",
     description="Magic: the Gathering compiled database generator",
-    long_description=open("README.md").read(),
+    long_description=pathlib.Path("README.md").open().read(),
     long_description_content_type="text/markdown",
     license="MIT",
     classifiers=[
@@ -28,7 +29,9 @@ setuptools.setup(
         "Operating System :: Microsoft :: Windows :: Windows 10",
         "Operating System :: Unix",
         "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python",
         "Topic :: Database",
         "Topic :: Software Development :: Version Control :: Git",
@@ -46,7 +49,5 @@ setuptools.setup(
     ],
     include_package_data=True,
     packages=setuptools.find_packages(),
-    install_requires=pathlib.Path("requirements.txt").open().read().splitlines()
-    if pathlib.Path("requirements.txt").is_file()
-    else [],
+    install_requires=pathlib.Path("requirements.txt").open().readlines(),
 )
