@@ -24,9 +24,12 @@ class MtgjsonAttributeValuesObject:
         "duelDeck",
         "frameEffects",
         "frameVersion",
-        "rarity",
         "layout",
+        "rarity",
         "side",
+        "subtypes",
+        "supertypes",
+        "types",
         "watermark",
     ]
 
