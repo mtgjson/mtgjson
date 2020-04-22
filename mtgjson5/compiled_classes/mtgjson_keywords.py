@@ -33,7 +33,7 @@ class MtgjsonKeywordsObject:
         Go through the ability words and put them into a list
         :return: List of abilities, sorted
         """
-        for line in WizardsProvider().get_magic_rules().split("\r\r"):
+        for line in WizardsProvider().get_magic_rules().splitlines():
             if "Ability words" in line:
                 # Isolate all of the ability words, capitalize the words,
                 line = unidecode.unidecode(
@@ -53,12 +53,18 @@ class MtgjsonKeywordsObject:
         Go through the keyword actions and put them into a list
         :return: List of keyword actions, sorted
         """
-        return self.parse_magic_rules(
+        actions = self.parse_magic_rules(
             WizardsProvider().get_magic_rules(),
             "701. Keyword Actions",
             "702. Keyword Abilities",
             "701",
         )
+
+        # Manual correction for the rules
+        actions.remove("tap and untap")
+        actions.extend(["tap", "untap"])
+
+        return sorted(actions)
 
     def get_keyword_abilities(self) -> List[str]:
         """
@@ -87,7 +93,7 @@ class MtgjsonKeywordsObject:
         # Keyword actions are found in section XXX
         valid_line_segments = parse_magic_rules_subset(
             magic_rules, start_header, end_header
-        ).split("\n")
+        ).splitlines()
 
         # XXX.1 is just a description of what rule XXX includes.
         # XXX.2 starts the action for _most_ sections

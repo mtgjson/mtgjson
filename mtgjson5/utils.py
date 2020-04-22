@@ -58,7 +58,7 @@ def to_camel_case(snake_str: str) -> str:
 
 
 def parse_magic_rules_subset(
-    magic_rules: str, start_header: str, end_header: str
+    magic_rules: str, start_header: str = "", end_header: str = ""
 ) -> str:
     """
     Split up the magic rules to get a smaller working subset for parsing
@@ -68,10 +68,11 @@ def parse_magic_rules_subset(
     :return: Smaller set of content
     """
     # Keyword actions are found in section XXX
-    magic_rules = magic_rules.split(start_header)[2].split(end_header)[0]
+    if start_header and end_header:
+        magic_rules = magic_rules.split(start_header)[2].split(end_header)[0]
 
     # Windows line endings... yuck
-    valid_line_segments = "\n".join(magic_rules.split("\r\n"))
+    valid_line_segments = "\n".join(magic_rules.splitlines())
 
     return valid_line_segments
 

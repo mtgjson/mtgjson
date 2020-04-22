@@ -73,7 +73,7 @@ class CardhoarderProvider(AbstractProvider):
         mtgjson_to_price = {}
 
         # All Entries from CH, cutting off headers
-        card_rows: List[str] = request_api_response.split("\n")[2:]
+        card_rows: List[str] = request_api_response.splitlines()[2:]
 
         for card_row in card_rows:
             split_row = card_row.split("\t")

@@ -39,7 +39,7 @@ class MtgjsonCardTypesObject:
             Internal initializer
             :param magic_rules: Rules for MTG from Wizards
             """
-            planar_regex = re.compile(r".*planar types are (.*)\.")
+            planar_regex = re.compile(r".*The planar types are (.*)\.")
 
             self.artifact = ScryfallProvider().get_catalog_entry("artifact")
             self.conspiracy = []
@@ -51,7 +51,7 @@ class MtgjsonCardTypesObject:
             self.plane = regex_str_to_list(planar_regex.search(magic_rules))
             self.planeswalker = ScryfallProvider().get_catalog_entry("planeswalker")
             self.scheme = []
-            self.sorcery = ScryfallProvider().get_catalog_entry("spell")
+            self.sorcery = self.instant
             self.tribal = []
             self.vanguard = []
 
@@ -74,15 +74,11 @@ class MtgjsonCardTypesObject:
         """
         self.types = {}
 
-        comp_rules = parse_magic_rules_subset(
-            WizardsProvider().get_magic_rules(),
-            "205. Type Line",
-            "206. Expansion Symbol",
-        )
+        comp_rules = parse_magic_rules_subset(WizardsProvider().get_magic_rules())
 
         inner_sets = self.MtgjsonCardTypesInnerObject(comp_rules)
 
-        super_regex = re.compile(r".*supertypes are (.*)\.")
+        super_regex = re.compile(r".*The supertypes are (.*)\.")
         super_types = regex_str_to_list(super_regex.search(comp_rules))
 
         for key, value in inner_sets.to_json().items():

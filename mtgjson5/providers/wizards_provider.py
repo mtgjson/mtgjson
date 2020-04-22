@@ -226,7 +226,7 @@ class WizardsProvider(AbstractProvider):
             self.download(self.magic_rules_url).content.decode().replace("â€™", "'")
         )
 
-        self.magic_rules = response
+        self.magic_rules = "\n".join(response.splitlines())
         return self.magic_rules
 
 
