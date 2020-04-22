@@ -125,3 +125,5 @@ mtgjson.properties
 set_translations.json
 stocks_data.json
 .*_cache/
+flamegraph.pl
+stacksampler.py
