@@ -101,7 +101,7 @@ def get_sets_already_built() -> List[str]:
 
     set_codes_found = list(
         {file.stem for file in json_output_files}
-        - {MtgjsonStructuresObject().get_all_compiled_file_names()}
+        - set(MtgjsonStructuresObject().get_all_compiled_file_names())
     )
 
     LOGGER.info(f"Sets Built Already: {', '.join(set_codes_found)}")
