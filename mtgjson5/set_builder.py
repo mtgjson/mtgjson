@@ -901,7 +901,7 @@ def get_base_and_total_set_sizes(set_code: str) -> Tuple[int, int]:
                 ScryfallProvider().CARDS_IN_SET.format(set_code)
             )
 
-        base_set_size = int(base_set_size_download["total_cards"])
+        base_set_size = int(base_set_size_download.get("total_cards", 0))
 
     total_set_size = len(ScryfallProvider().download_cards(set_code))
 
