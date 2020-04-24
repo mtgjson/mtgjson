@@ -12,9 +12,10 @@ from typing import Any, Callable, List, Tuple, Union
 import gevent.pool
 import requests
 import requests.adapters
+import requests_cache
 import urllib3
 
-from .consts import BAD_FILE_NAMES, LOG_PATH
+from .consts import BAD_FILE_NAMES, LOG_PATH, USE_CACHE
 
 
 def init_logger() -> None:
@@ -77,15 +78,14 @@ def parse_magic_rules_subset(
     return valid_line_segments
 
 
-def retryable_session(
-    session: requests.Session = requests.Session(), retries: int = 8
-) -> requests.Session:
+def retryable_session(retries: int = 8) -> requests.Session:
     """
     Session with requests to allow for re-attempts at downloading missing data
-    :param session: Session to download with
     :param retries: How many retries to attempt
     :return: Session that does downloading
     """
+    session = requests_cache.core.CachedSession() if USE_CACHE else requests.Session()
+
     retry = urllib3.util.retry.Retry(
         total=retries,
         read=retries,

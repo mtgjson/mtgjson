@@ -63,12 +63,12 @@ class AbstractProvider(abc.ABC):
         return cls.class_id
 
     @staticmethod
-    def get_configs() -> configparser.RawConfigParser:
+    def get_configs() -> configparser.ConfigParser:
         """
         Parse the config for this specific setup
         :return: Parsed config file
         """
-        config = configparser.RawConfigParser()
+        config = configparser.ConfigParser()
         config.read(str(CONFIG_PATH))
 
         return config

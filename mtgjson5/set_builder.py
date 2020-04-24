@@ -5,9 +5,9 @@ import json
 import logging
 import pathlib
 import re
-from typing import Any, Dict, List, Optional, Set, Tuple
 import unicodedata
 import uuid
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .classes import (
     MtgjsonCardObject,

@@ -7,8 +7,8 @@ import logging
 import lzma
 import pathlib
 import shutil
-from typing import Any, Callable, List
 import zipfile
+from typing import Any, Callable, List
 
 from .compiled_classes import MtgjsonStructuresObject
 from .utils import parallel_call

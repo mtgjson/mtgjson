@@ -45,7 +45,7 @@ def download_prices_archive(
 
 
 def upload_prices_archive(
-    config: configparser.RawConfigParser,
+    config: configparser.ConfigParser,
     github_repo_local_path: pathlib.Path,
     content: Any,
 ) -> None:
@@ -261,3 +261,20 @@ def build_prices() -> Dict[str, Any]:
     # Return the latest prices
     CACHE_PATH.joinpath("last_price_build_time").touch()
     return archive_prices
+
+
+def should_build_new_prices() -> bool:
+    """
+    Determine if prices were built recently enough that there
+    is no reason to build them again
+    :return: Should prices be rebuilt
+    """
+    cache_file = CACHE_PATH.joinpath("last_price_build_time")
+
+    if not cache_file.is_file():
+        return True
+
+    stat_time = cache_file.stat().st_mtime
+    last_price_build_time = datetime.datetime.fromtimestamp(stat_time)
+    twelve_hours_ago = datetime.datetime.now() - datetime.timedelta(hours=12)
+    return twelve_hours_ago > last_price_build_time

@@ -5,19 +5,18 @@ import gevent.monkey  # isort:skip
 
 gevent.monkey.patch_all()  # isort:skip
 
-import datetime
 import logging
 from typing import List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
 from mtgjson5.compress_generator import compress_mtgjson_contents
-from mtgjson5.consts import CACHE_PATH, OUTPUT_PATH
+from mtgjson5.consts import OUTPUT_PATH
 from mtgjson5.output_generator import (
     generate_compiled_output_files,
     generate_compiled_prices_output,
     write_set_file,
 )
-from mtgjson5.price_builder import build_prices, get_price_archive_data
+from mtgjson5.price_builder import build_prices
 from mtgjson5.providers import GithubMTGSqliteProvider, WhatsInStandardProvider
 from mtgjson5.referral_builder import build_and_write_referral_map
 from mtgjson5.set_builder import build_mtgjson_set
@@ -52,27 +51,11 @@ def build_mtgjson_sets(
         write_set_file(compiled_set, output_pretty)
 
 
-def should_build_new_prices() -> bool:
-    """
-    Determine if prices were built recently enough that there
-    is no reason to build them again
-    :return: Should prices be rebuilt
-    """
-    cache_file = CACHE_PATH.joinpath("last_price_build_time")
-
-    if not cache_file.is_file():
-        return True
-
-    stat_time = cache_file.stat().st_mtime
-    last_price_build_time = datetime.datetime.fromtimestamp(stat_time)
-    twelve_hours_ago = datetime.datetime.now() - datetime.timedelta(hours=12)
-    return twelve_hours_ago > last_price_build_time
-
-
 def main() -> None:
     """
     MTGJSON Main Executor
     """
+    LOGGER.info("MTGJSON Compiler Starting")
     args = parse_args()
 
     # If a price build, simply build prices and exit
@@ -82,17 +65,6 @@ def main() -> None:
         generate_compiled_prices_output(price_data_cache, args.pretty)
         return
 
-    # If a full build, build prices then build sets
-    # Otherwise just load up the prices cache
-    price_data_cache = {}
-    if args.full_build:
-        if should_build_new_prices():
-            LOGGER.info("Full Build - Building Prices")
-            price_data_cache = build_prices()
-        else:
-            LOGGER.info("Full Build - Installing Price Cache")
-            price_data_cache = get_price_archive_data()
-
     sets_to_build = get_sets_to_build(args)
     if sets_to_build:
         LOGGER.info(f"Building {len(sets_to_build)} Sets: {', '.join(sets_to_build)}")
@@ -100,7 +72,7 @@ def main() -> None:
 
     if args.full_build:
         LOGGER.info("Building Compiled Outputs")
-        generate_compiled_output_files(price_data_cache, args.pretty)
+        generate_compiled_output_files(args.pretty)
         GithubMTGSqliteProvider().build_sql_and_csv_files()
 
     if args.compress:

@@ -8,12 +8,12 @@ import logging
 import math
 import os
 import pathlib
-from typing import Any, Dict, List, Optional, Union
 import zlib
+from typing import Any, Dict, List, Optional, Union
 
+import pandas
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
-import pandas
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject

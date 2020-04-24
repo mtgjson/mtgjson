@@ -20,6 +20,7 @@ from .compiled_classes import (
     MtgjsonStructuresObject,
 )
 from .consts import OUTPUT_PATH, SUPPORTED_FORMAT_OUTPUTS, SUPPORTED_SET_TYPES
+from .price_builder import build_prices, get_price_archive_data, should_build_new_prices
 from .providers.github_decks_provider import GithubDecksProvider
 
 LOGGER = logging.getLogger(__name__)
@@ -58,16 +59,29 @@ def generate_compiled_prices_output(
     )
 
 
-def generate_compiled_output_files(
-    price_data: Dict[str, Dict[str, float]], pretty_print: bool
-) -> None:
+def generate_compiled_output_files(pretty_print: bool) -> None:
     """
     Create and dump all compiled outputs
-    :param price_data: Price data to output
     :param pretty_print: Pretty or minimal
     """
+    # AllPrintings.json
+    log_and_create_compiled_output(
+        MtgjsonStructuresObject().all_printings,
+        MtgjsonAllPrintingsObject(),
+        pretty_print,
+    )
+
+    # If a full build, build prices then build sets
+    # Otherwise just load up the prices cache
+    if should_build_new_prices():
+        LOGGER.info("Full Build - Building Prices")
+        price_data_cache = build_prices()
+    else:
+        LOGGER.info("Full Build - Installing Price Cache")
+        price_data_cache = get_price_archive_data()
+
     # AllPrices.json
-    generate_compiled_prices_output(price_data, pretty_print)
+    generate_compiled_prices_output(price_data_cache, pretty_print)
 
     # CompiledList.json
     log_and_create_compiled_output(
@@ -94,13 +108,6 @@ def generate_compiled_output_files(
     # SetList.json
     log_and_create_compiled_output(
         MtgjsonStructuresObject().set_list, MtgjsonSetListObject(), pretty_print
-    )
-
-    # AllPrintings.json
-    log_and_create_compiled_output(
-        MtgjsonStructuresObject().all_printings,
-        MtgjsonAllPrintingsObject(),
-        pretty_print,
     )
 
     # AttributeValues.json

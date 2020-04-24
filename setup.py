@@ -6,17 +6,22 @@ import pathlib
 
 import setuptools
 
-config = configparser.RawConfigParser()
-config.read(str(pathlib.Path(__file__).resolve().parent.joinpath("mtgjson.properties")))
+# Establish project directory
+project_root: pathlib.Path = pathlib.Path(__file__).resolve().parent
+
+# Read config details to determine versioning
+config = configparser.ConfigParser()
+config.read(project_root.joinpath("mtgjson.properties").open().read())
+
 
 setuptools.setup(
     name="mtgjson5",
-    version=config.get("MTGJSON", "version"),
+    version=config.get("MTGJSON", "version", fallback="5.0.0+fallback"),
     author="Zach Halpern",
     author_email="zach@mtgjson.com",
     url="https://mtgjson.com/",
     description="Magic: the Gathering compiled database generator",
-    long_description=pathlib.Path("README.md").open().read(),
+    long_description=project_root.joinpath("README.md").open().read(),
     long_description_content_type="text/markdown",
     license="MIT",
     classifiers=[
@@ -49,5 +54,7 @@ setuptools.setup(
     ],
     include_package_data=True,
     packages=setuptools.find_packages(),
-    install_requires=pathlib.Path("requirements.txt").open().readlines(),
+    install_requires=project_root.joinpath("requirements.txt").open().readlines()
+    if project_root.joinpath("requirements.txt").is_file()
+    else [],  # Use the requirements file, if able
 )

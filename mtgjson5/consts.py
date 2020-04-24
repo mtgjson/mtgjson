@@ -10,7 +10,7 @@ TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson.properties")
 
 # Load in MTGJSON config values
-__CONFIG = configparser.RawConfigParser()
+__CONFIG = configparser.ConfigParser()
 __CONFIG.read(str(CONFIG_PATH))
 
 MTGJSON_VERSION: str = __CONFIG.get("MTGJSON", "version")
