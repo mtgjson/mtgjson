@@ -78,13 +78,15 @@ def parse_magic_rules_subset(
     return valid_line_segments
 
 
-def retryable_session(retries: int = 8) -> requests.Session:
+def retryable_session(
+    retries: int = 8,
+) -> Union[requests.Session, requests_cache.CachedSession]:
     """
     Session with requests to allow for re-attempts at downloading missing data
     :param retries: How many retries to attempt
     :return: Session that does downloading
     """
-    session = requests_cache.core.CachedSession() if USE_CACHE else requests.Session()
+    session = requests_cache.CachedSession() if USE_CACHE else requests.Session()
 
     retry = urllib3.util.retry.Retry(
         total=retries,
