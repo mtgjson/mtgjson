@@ -78,8 +78,8 @@ class GithubDecksProvider(AbstractProvider):
         for deck in self.download(self.decks_api_url):
             this_deck = MtgjsonDeckObject()
             this_deck.name = deck["name"]
-            this_deck.set_sanitized_name(this_deck.name)
             this_deck.code = deck["set_code"].upper()
+            this_deck.set_sanitized_name(this_deck.name)
             this_deck.type = deck["type"]
             this_deck.release_date = deck["release_date"]
 

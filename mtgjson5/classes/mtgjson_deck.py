@@ -28,7 +28,9 @@ class MtgjsonDeckObject:
         word_characters_only_regex = re.compile(r"[^\w]")
         capital_case = "".join(x for x in name.title() if not x.isspace())
 
-        self.file_name = word_characters_only_regex.sub("", capital_case)
+        deck_name_sanitized = word_characters_only_regex.sub("", capital_case)
+
+        self.file_name = f"{deck_name_sanitized}_{self.code}"
 
     def to_json(self) -> Dict[str, Any]:
         """

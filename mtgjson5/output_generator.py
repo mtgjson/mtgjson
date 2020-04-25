@@ -212,7 +212,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     for mtgjson_deck_obj in GithubDecksProvider().iterate_precon_decks():
         mtgjson_deck_header_obj = MtgjsonDeckHeaderObject(mtgjson_deck_obj)
         log_and_create_compiled_output(
-            f"decks/{mtgjson_deck_header_obj.file_name}_{mtgjson_deck_header_obj.code}",
+            f"decks/{mtgjson_deck_header_obj.file_name}",
             mtgjson_deck_obj,
             pretty_print,
         )
@@ -327,7 +327,7 @@ def construct_atomic_cards_format_map(
         content = json.load(file)
 
     for set_contents in content.get("data", {}).values():
-        for card in set_contents.get("cards"):
+        for card in set_contents.get("cards", []):
             for magic_format in format_card_map.keys():
                 if card.get("legalities").get(magic_format) in {"Legal", "Restricted"}:
                     format_card_map[magic_format][card["name"]] = card
