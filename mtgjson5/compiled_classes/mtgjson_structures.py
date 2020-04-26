@@ -27,7 +27,7 @@ class MtgjsonStructuresObject:
     key_words: str
     set_list: str
 
-    attribute_values: str
+    enum_values: str
 
     referral_database: str
     version: str
@@ -58,7 +58,7 @@ class MtgjsonStructuresObject:
         self.compiled_list = "CompiledList"
         self.deck_list = "DeckList"
         self.key_words = "Keywords"
-        self.attribute_values = "AttributeValues"
+        self.enum_values = "EnumValues"
         self.set_list = "SetList"
         self.referral_database = "ReferralMap"
         self.version = "Meta"

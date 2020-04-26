@@ -11,10 +11,10 @@ from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject, MtgjsonSetObjec
 from .compiled_classes import (
     MtgjsonAllPrintingsObject,
     MtgjsonAtomicCardsObject,
-    MtgjsonAttributeValuesObject,
     MtgjsonCardTypesObject,
     MtgjsonCompiledListObject,
     MtgjsonDeckListObject,
+    MtgjsonEnumValuesObject,
     MtgjsonKeywordsObject,
     MtgjsonSetListObject,
     MtgjsonStructuresObject,
@@ -110,11 +110,9 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
         MtgjsonStructuresObject().set_list, MtgjsonSetListObject(), pretty_print
     )
 
-    # AttributeValues.json
+    # EnumValues.json
     log_and_create_compiled_output(
-        MtgjsonStructuresObject().attribute_values,
-        MtgjsonAttributeValuesObject(),
-        pretty_print,
+        MtgjsonStructuresObject().enum_values, MtgjsonEnumValuesObject(), pretty_print,
     )
 
     # Format specific set code split up
