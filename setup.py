@@ -9,9 +9,11 @@ import setuptools
 # Establish project directory
 project_root: pathlib.Path = pathlib.Path(__file__).resolve().parent
 
-# Read config details to determine versioning
+# Read config details to determine version-ing
+config_file = project_root.joinpath("mtgjson.properties")
 config = configparser.ConfigParser()
-config.read(project_root.joinpath("mtgjson.properties").open().read())
+if config_file.is_file():
+    config.read(config_file.open().read())
 
 
 setuptools.setup(
