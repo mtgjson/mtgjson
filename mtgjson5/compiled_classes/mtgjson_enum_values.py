@@ -52,10 +52,12 @@ class MtgjsonEnumValuesObject:
             for object_field_name in object_values:
                 type_map[object_name][object_field_name] = set()
 
-        for set_code, set_contents in all_printing_content.items():
+        for set_contents in all_printing_content.values():
             for set_contents_key in set_contents.keys():
                 if set_contents_key in self.key_struct["set"]:
-                    type_map["set"][set_contents_key].add(set_code)
+                    type_map["set"][set_contents_key].add(
+                        set_contents.get(set_contents_key)
+                    )
 
             match_keys = set(self.key_struct["card"]).union(set(self.key_struct.keys()))
             for card in set_contents.get("cards", []) + set_contents.get("tokens", []):
