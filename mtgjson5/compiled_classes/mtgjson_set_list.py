@@ -20,7 +20,7 @@ class MtgjsonSetListObject:
         Initializer to build up the object
         """
         self.set_list = self.get_all_set_list(
-            MtgjsonStructuresObject().get_all_compiled_file_names()
+            files_to_ignore=MtgjsonStructuresObject().get_all_compiled_file_names()
         )
 
     @staticmethod
@@ -40,7 +40,7 @@ class MtgjsonSetListObject:
                 continue
 
             with set_file.open(encoding="utf-8") as f:
-                file_content = json.load(f)
+                file_content = json.load(f).get("data", {})
 
             if not file_content.get("name"):
                 continue
@@ -66,8 +66,4 @@ class MtgjsonSetListObject:
         Support json.dump()
         :return: JSON serialized object
         """
-        return [
-            value
-            for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value)
-        ]
+        return self.set_list
