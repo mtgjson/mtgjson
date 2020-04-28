@@ -20,9 +20,9 @@ LOGGER = logging.getLogger(__name__)
 
 
 @singleton
-class GithubMTGSqliteProvider(AbstractProvider):
+class GitHubMTGSqliteProvider(AbstractProvider):
     """
-    GithubMTGSqliteProvider container
+    GitHubMTGSqliteProvider container
     """
 
     repo_url: str = "https://github.com/mtgjson/mtgsqlive/"

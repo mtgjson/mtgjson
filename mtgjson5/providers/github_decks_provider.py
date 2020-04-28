@@ -18,9 +18,9 @@ LOGGER = logging.getLogger(__name__)
 
 
 @singleton
-class GithubDecksProvider(AbstractProvider):
+class GitHubDecksProvider(AbstractProvider):
     """
-    GithubDecksProvider container
+    GitHubDecksProvider container
     """
 
     decks_api_url: str = "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks.json?raw=true"
@@ -108,7 +108,7 @@ def build_single_card(card: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     cards = []
     set_to_build_from = (
-        GithubDecksProvider()
+        GitHubDecksProvider()
         .all_printings_cards.get("data", {})
         .get(card["set_code"].upper())
     )

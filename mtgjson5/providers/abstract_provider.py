@@ -9,7 +9,7 @@ from typing import Any, Dict, Union
 
 import requests_cache
 
-from ..consts import CACHE_PATH, CONFIG_PATH, USE_CACHE
+from ..consts import CACHE_PATH, CONFIG, USE_CACHE
 
 LOGGER = logging.getLogger(__name__)
 
@@ -68,10 +68,7 @@ class AbstractProvider(abc.ABC):
         Parse the config for this specific setup
         :return: Parsed config file
         """
-        config = configparser.ConfigParser()
-        config.read(str(CONFIG_PATH))
-
-        return config
+        return CONFIG
 
     @staticmethod
     def log_download(response: Any) -> None:

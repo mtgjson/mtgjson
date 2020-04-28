@@ -21,7 +21,7 @@ from .compiled_classes import (
 )
 from .consts import OUTPUT_PATH, SUPPORTED_FORMAT_OUTPUTS, SUPPORTED_SET_TYPES
 from .price_builder import build_prices, get_price_archive_data, should_build_new_prices
-from .providers.github_decks_provider import GithubDecksProvider
+from .providers.github_decks_provider import GitHubDecksProvider
 
 LOGGER = logging.getLogger(__name__)
 
@@ -207,7 +207,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
 
     # All Pre-constructed Decks
     deck_names = []
-    for mtgjson_deck_obj in GithubDecksProvider().iterate_precon_decks():
+    for mtgjson_deck_obj in GitHubDecksProvider().iterate_precon_decks():
         mtgjson_deck_header_obj = MtgjsonDeckHeaderObject(mtgjson_deck_obj)
         log_and_create_compiled_output(
             f"decks/{mtgjson_deck_header_obj.file_name}",

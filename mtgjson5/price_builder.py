@@ -15,7 +15,7 @@ import git
 import requests
 
 from .consts import CACHE_PATH, OUTPUT_PATH
-from .providers import CardhoarderProvider, CardMarketProvider, TCGPlayerProvider
+from .providers import CardHoarderProvider, CardMarketProvider, TCGPlayerProvider
 
 LOGGER = logging.getLogger(__name__)
 
@@ -150,7 +150,7 @@ def build_today_prices() -> Dict[str, Any]:
         LOGGER.error(f"Unable to build prices. AllPrintings not found in {OUTPUT_PATH}")
         return {}
 
-    cardhoarder_prices = CardhoarderProvider().generate_today_price_dict()
+    cardhoarder_prices = CardHoarderProvider().generate_today_price_dict()
     tcgplayer_prices = TCGPlayerProvider().generate_today_price_dict(
         OUTPUT_PATH.joinpath("AllPrintings.json")
     )

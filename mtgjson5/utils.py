@@ -3,6 +3,7 @@ MTGJSON simple utilities
 """
 import collections
 import hashlib
+import inspect
 import itertools
 import logging
 import os
@@ -15,7 +16,7 @@ import requests.adapters
 import requests_cache
 import urllib3
 
-from .consts import BAD_FILE_NAMES, LOG_PATH, USE_CACHE
+from .consts import BAD_FILE_NAMES, CACHE_PATH, LOG_PATH, USE_CACHE
 
 
 def init_logger() -> None:
@@ -86,7 +87,12 @@ def retryable_session(
     :param retries: How many retries to attempt
     :return: Session that does downloading
     """
-    session = requests_cache.CachedSession() if USE_CACHE else requests.Session()
+    if USE_CACHE:
+        stack = inspect.stack()
+        calling_class = stack[1][0].f_locals["self"].__class__.__name__
+        session = requests_cache.CachedSession(str(CACHE_PATH.joinpath(calling_class)))
+    else:
+        session = requests.Session()
 
     retry = urllib3.util.retry.Retry(
         total=retries,

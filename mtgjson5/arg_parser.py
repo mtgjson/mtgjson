@@ -65,12 +65,6 @@ def parse_args() -> argparse.Namespace:
         help="When dumping JSON files, prettify the contents instead of minify-ing them.",
     )
     parser.add_argument(
-        "-m",
-        "--price-build",
-        action="store_true",
-        help="Compile updated pricing data and only updated pricing, disregarding all other flags and operations.",
-    )
-    parser.add_argument(
         "--skip-sets",
         type=str.upper,
         nargs="*",
@@ -78,7 +72,14 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help="Purposely exclude sets from the build that may have been set using --sets or --all.",
     )
-    parser.add_argument(
+
+    mtgjson_arg_group = parser.add_argument_group("mtgjson only arguments")
+    mtgjson_arg_group.add_argument(
+        "--price-build",
+        action="store_true",
+        help="Compile updated pricing data and only updated pricing, disregarding all other flags and operations.",
+    )
+    mtgjson_arg_group.add_argument(
         "--referrals",
         action="store_true",
         help="Create and maintain a referral map for MTGJSON linkages.",

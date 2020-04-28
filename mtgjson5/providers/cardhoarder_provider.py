@@ -14,7 +14,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 @singleton
-class CardhoarderProvider(AbstractProvider):
+class CardHoarderProvider(AbstractProvider):
     """
     CardHoarder container
     """

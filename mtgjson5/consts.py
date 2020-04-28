@@ -10,12 +10,15 @@ TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson.properties")
 
 # Load in MTGJSON config values
-__CONFIG = configparser.ConfigParser()
-__CONFIG.read(str(CONFIG_PATH))
+CONFIG = configparser.ConfigParser()
+if CONFIG_PATH:
+    CONFIG.read(str(CONFIG_PATH))
 
-MTGJSON_VERSION: str = __CONFIG.get("MTGJSON", "version")
-MTGJSON_BUILD_DATE: str = __CONFIG.get("MTGJSON", "date")
-USE_CACHE: bool = __CONFIG.get("MTGJSON", "use_cache").lower().strip() == "true"
+MTGJSON_VERSION: str = CONFIG.get("MTGJSON", "version", fallback="5.X.X")
+MTGJSON_BUILD_DATE: str = CONFIG.get("MTGJSON", "date", fallback="0000-00-00")
+USE_CACHE: bool = CONFIG.get(
+    "MTGJSON", "use_cache", fallback="false"
+).lower().strip() == "true"
 
 # Useful MTGJSON Paths - Part 2
 OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"json_{MTGJSON_VERSION}")
