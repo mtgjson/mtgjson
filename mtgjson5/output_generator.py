@@ -110,7 +110,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
         MtgjsonStructuresObject().set_list, MtgjsonSetListObject(), pretty_print
     )
 
-    # EnumValues.json
+    # EnumValues.json - Depends on Keywords.json
     log_and_create_compiled_output(
         MtgjsonStructuresObject().enum_values, MtgjsonEnumValuesObject(), pretty_print,
     )
