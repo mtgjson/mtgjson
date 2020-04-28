@@ -1,10 +1,9 @@
 """
 MTGJSON DeckList Object
 """
-from typing import Any, Dict, List
+from typing import List
 
 from ..classes import MtgjsonDeckHeaderObject
-from ..utils import to_camel_case
 
 
 class MtgjsonDeckListObject:
@@ -20,13 +19,9 @@ class MtgjsonDeckListObject:
         """
         self.decks = deck_headers
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> List[MtgjsonDeckHeaderObject]:
         """
         Support json.dump()
         :return: JSON serialized object
         """
-        return {
-            to_camel_case(key): value
-            for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value)
-        }
+        return self.decks
