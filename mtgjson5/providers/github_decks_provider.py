@@ -73,7 +73,7 @@ class GitHubDecksProvider(AbstractProvider):
             return
 
         with self.all_printings_file.open() as file:
-            self.all_printings_cards = json.load(file)
+            self.all_printings_cards = json.load(file).get("data", {})
 
         for deck in self.download(self.decks_api_url):
             this_deck = MtgjsonDeckObject()
@@ -107,10 +107,8 @@ def build_single_card(card: Dict[str, Any]) -> List[Dict[str, Any]]:
     :return: List of enhanced cards in set
     """
     cards = []
-    set_to_build_from = (
-        GitHubDecksProvider()
-        .all_printings_cards.get("data", {})
-        .get(card["set_code"].upper())
+    set_to_build_from = GitHubDecksProvider().all_printings_cards.get(
+        card["set_code"].upper()
     )
 
     if not set_to_build_from:
