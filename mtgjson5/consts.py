@@ -7,7 +7,8 @@ from typing import Dict, List, Set, Tuple
 
 # Useful MTGJSON Paths - Part 1
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
-CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson.properties")
+RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson5").joinpath("resources")
+CONFIG_PATH: pathlib.Path = RESOURCE_PATH.joinpath("mtgjson.properties")
 
 # Load in MTGJSON config values
 CONFIG = configparser.ConfigParser()
@@ -24,7 +25,6 @@ USE_CACHE: bool = CONFIG.get(
 OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"json_{MTGJSON_VERSION}")
 CACHE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(".mtgjson5_cache")
 LOG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
-RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson5").joinpath("resources")
 
 
 CARD_MARKET_BUFFER: str = "10101"

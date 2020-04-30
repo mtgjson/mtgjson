@@ -10,7 +10,7 @@ import setuptools
 project_root: pathlib.Path = pathlib.Path(__file__).resolve().parent
 
 # Read config details to determine version-ing
-config_file = project_root.joinpath("mtgjson.properties")
+config_file = project_root.joinpath("mtgjson5/resources/mtgjson.properties")
 config = configparser.ConfigParser()
 if config_file.is_file():
     config.read(config_file.open().read())
