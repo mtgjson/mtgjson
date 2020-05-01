@@ -13,8 +13,7 @@ project_root: pathlib.Path = pathlib.Path(__file__).resolve().parent
 config_file = project_root.joinpath("mtgjson5/resources/mtgjson.properties")
 config = configparser.ConfigParser()
 if config_file.is_file():
-    config.read(config_file.open().read())
-
+    config.read(str(config_file))
 
 setuptools.setup(
     name="mtgjson5",
