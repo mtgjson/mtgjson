@@ -64,6 +64,8 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     Create and dump all compiled outputs
     :param pretty_print: Pretty or minimal
     """
+    LOGGER.info("Building Compiled Outputs")
+
     # AllPrintings.json
     log_and_create_compiled_output(
         MtgjsonStructuresObject().all_printings,

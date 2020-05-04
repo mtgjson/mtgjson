@@ -227,6 +227,8 @@ def build_prices() -> Dict[str, Any]:
     Prune & Update remote database
     :return Latest prices
     """
+    LOGGER.info("Prices Build - Building Prices")
+
     # We'll need AllPrintings.json to handle this
     if not OUTPUT_PATH.joinpath("AllPrintings.json").is_file():
         LOGGER.info("AllPrintings not found, attempting to download")

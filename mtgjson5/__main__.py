@@ -34,6 +34,8 @@ def build_mtgjson_sets(
     :param output_pretty: Should we dump minified?
     :param include_referrals: Should we include referrals?
     """
+    LOGGER.info(f"Building {len(sets_to_build)} Sets: {', '.join(sets_to_build)}")
+
     # Prime WhatsInStandard lookup
     _ = WhatsInStandardProvider().standard_legal_set_codes
 
@@ -60,23 +62,20 @@ def main() -> None:
 
     # If a price build, simply build prices and exit
     if args.price_build:
-        LOGGER.info("Prices Build - Building Prices")
-        price_data_cache = build_prices()
-        generate_compiled_prices_output(price_data_cache, args.pretty)
+        generate_compiled_prices_output(build_prices(), args.pretty)
+        if args.compress:
+            compress_mtgjson_contents(OUTPUT_PATH)
         return
 
     sets_to_build = get_sets_to_build(args)
     if sets_to_build:
-        LOGGER.info(f"Building {len(sets_to_build)} Sets: {', '.join(sets_to_build)}")
         build_mtgjson_sets(sets_to_build, args.pretty, args.referrals)
 
     if args.full_build:
-        LOGGER.info("Building Compiled Outputs")
         generate_compiled_output_files(args.pretty)
         GitHubMTGSqliteProvider().build_sql_and_csv_files()
 
     if args.compress:
-        LOGGER.info("Compressing MTGJSON")
         compress_mtgjson_contents(OUTPUT_PATH)
 
 
