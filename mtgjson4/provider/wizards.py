@@ -132,14 +132,14 @@ def parse_comp_internal(
     comp_rules = comp_rules.split(top_delim)[2].split(bottom_delim)[0]
 
     # Windows line endings... yuck
-    valid_line_segments = comp_rules.split("\r\n")
+    valid_line_segments = "\n".join(comp_rules.splitlines())
 
     # XXX.1 is just a description of what rule XXX includes.
     # XXX.2 starts the action for _most_ sections
     keyword_index = 2
     return_list: List[str] = []
 
-    for line in valid_line_segments:
+    for line in valid_line_segments.splitlines():
         # Keywords are defined as "XXX.# Name"
         # We will want to ignore subset lines like "XXX.#a"
         regex_search = re.findall(f"{rule_start}.{keyword_index}. (.*)", line)

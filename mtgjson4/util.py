@@ -234,7 +234,7 @@ def set_gist_json_file(
         origin.push()
         LOGGER.info("Committing changes to CH database")
     except git.GitCommandError:
-        LOGGER.warning(f"No changes to CH database detected")
+        LOGGER.warning("No changes to CH database detected")
 
     LOGGER.info("Removing local CH database")
     shutil.rmtree(temp_working_dir)
