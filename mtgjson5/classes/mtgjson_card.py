@@ -234,12 +234,14 @@ class MtgjsonCardObject:
         Build this object's instance of what keys to skip under certain circumstances
         :return What keys to skip over
         """
-        excluded_keys: Set[str] = {"set_code", "is_token", "raw_purchase_urls"}
-
         if self.is_token:
             excluded_keys = self.__remove_for_tokens.copy()
         else:
             excluded_keys = self.__remove_for_cards.copy()
+
+        excluded_keys = excluded_keys.union(
+            {"set_code", "is_token", "raw_purchase_urls"}
+        )
 
         for key, value in self.__dict__.items():
             if not value:

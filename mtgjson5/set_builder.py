@@ -857,23 +857,46 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
     """
     mkm_cards = CardMarketProvider().get_mkm_cards(mtgjson_set.mcm_id)
     for mtgjson_card in mtgjson_set.cards:
-        for key, mkm_obj in mkm_cards.items():
-            if mtgjson_card.name.lower() not in key:
+        delete_key = False
+
+        # There are multiple ways MKM represents cards...
+        if mtgjson_card.name.lower() in mkm_cards.keys():
+            # First lets see if the card name is found
+            card_key = mtgjson_card.name.lower()
+        elif (
+            mtgjson_card.face_name
+            and mtgjson_card.face_name.lower() in mkm_cards.keys()
+        ):
+            # If that failed, lets see if the face name is found
+            card_key = mtgjson_card.face_name.lower()
+        elif mtgjson_card.name.replace("//", "/").lower() in mkm_cards.keys():
+            # Finally, lets check if they used a single slash for split-type cards
+            card_key = mtgjson_card.name.replace("//", "/").lower()
+        else:
+            # Multiple printings of a card in the set... just guess at this point
+            card_key = ""
+            for mkm_card in mkm_cards:
+                if mkm_card.startswith(mtgjson_card.name.lower()):
+                    card_key = mkm_card
+                    delete_key = True
+                    break
+
+            if not card_key:
+                LOGGER.debug(f"Failed to find {mtgjson_card.name} for MKM")
                 continue
 
-            if "number" not in mkm_obj.keys() or (
-                mkm_obj["number"] in mtgjson_card.number
-            ):
-                mtgjson_card.mcm_id = mkm_obj["idProduct"]
-                mtgjson_card.mcm_meta_id = mkm_obj["idMetaproduct"]
+        mkm_obj = mkm_cards[card_key]
+        if delete_key:
+            del mkm_cards[card_key]
 
-                mtgjson_card.purchase_urls.cardmarket = url_keygen(
-                    str(mtgjson_card.mcm_id)
-                    + CARD_MARKET_BUFFER
-                    + str(mtgjson_card.mcm_meta_id)
-                )
+        mtgjson_card.mcm_id = mkm_obj["idProduct"]
+        mtgjson_card.mcm_meta_id = mkm_obj["idMetaproduct"]
 
-                break
+        mtgjson_card.purchase_urls.cardmarket = url_keygen(
+            str(mtgjson_card.mcm_id)
+            + CARD_MARKET_BUFFER
+            + str(mtgjson_card.mcm_meta_id)
+        )
 
 
 def get_base_and_total_set_sizes(set_code: str) -> Tuple[int, int]:
