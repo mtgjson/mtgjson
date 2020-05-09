@@ -904,7 +904,12 @@ def build_mtgjson_card(
         try:
             gatherer_card = gatherer_cards[sf_card_face]
             single_card.set("originalType", gatherer_card.original_types)
-            single_card.set("originalText", gatherer_card.original_text)
+            single_card.set(
+                "originalText",
+                re.sub(r"<[^>]+>", "", gatherer_card.original_text)
+                if gatherer_card.original_text
+                else None,
+            )
         except IndexError:
             LOGGER.warning(f"Unable to parse originals for {single_card.get('name')}")
 
