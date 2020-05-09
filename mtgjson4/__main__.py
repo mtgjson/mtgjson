@@ -65,7 +65,7 @@ def init_mkm_const() -> None:
     if mtgjson4.CONFIG_PATH.is_file():
         # Open and read MTGJSON secret properties
         config = configparser.RawConfigParser()
-        config.read(mtgjson4.CONFIG_PATH)
+        config.read(str(mtgjson4.CONFIG_PATH))
         try:
             os.environ["MKM_APP_TOKEN"] = config.get("CardMarket", "app_token")
             os.environ["MKM_APP_SECRET"] = config.get("CardMarket", "app_secret")
@@ -79,16 +79,57 @@ def parse_args() -> argparse.Namespace:
     :return: Parser values
     """
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("-a", action="store_true")
-    parser.add_argument("-c", action="store_true")
-    parser.add_argument("-x", action="store_true")
-    parser.add_argument("-z", action="store_true")
-    parser.add_argument("-s", metavar="SET", nargs="*", type=str)
-    parser.add_argument("--skip-keys", action="store_true")
-    parser.add_argument("--skip-sets", metavar="SET", nargs="*", type=str)
-    parser.add_argument("--skip-cache", action="store_true")
-    parser.add_argument("-p", "--pretty-output", action="store_true")
-    parser.add_argument("--pricing", action="store_true")
+    parser.add_argument(
+        "-a",
+        action="store_true",
+        help="Build all sets. This overshadows the `-s` flag.",
+    )
+    parser.add_argument(
+        "-c",
+        action="store_true",
+        help="After building any/all sets, create the compiled outputs (ex: AllSets, AllCards).",
+    )
+    parser.add_argument(
+        "-x",
+        action="store_true",
+        help="Skips sets that have already been built (i.e. set files in the output folder), "
+        "and build the remaining sets. Must be passed with `-a` or `-s`.",
+    )
+    parser.add_argument(
+        "-z", action="store_true", help="Compress the outputs directory contents"
+    )
+    parser.add_argument(
+        "-s",
+        metavar="SET",
+        nargs="*",
+        type=str,
+        help="Build set code arguments, provided they exist.",
+    )
+    parser.add_argument(
+        "--skip-keys",
+        action="store_true",
+        help="If you don't have all required API keys (TCGPlayer & MKM), "
+        "you can disable the building of these components.",
+    )
+    parser.add_argument(
+        "--skip-sets",
+        metavar="SET",
+        nargs="*",
+        type=str,
+        help="Prevents set code arguments from being built, even if passed in via `-a` or `-s`.",
+    )
+    parser.add_argument(
+        "--skip-cache",
+        action="store_true",
+        help="Disables the reading and writing of cached content",
+    )
+    parser.add_argument(
+        "-p",
+        "--pretty-output",
+        action="store_true",
+        help="Indent the output files for easier human readability",
+    )
+    parser.add_argument("--pricing", action="store_true", help="Build pricing updates.")
 
     # Ensure there are args
     if len(sys.argv) < 2:

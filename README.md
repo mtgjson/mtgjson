@@ -64,6 +64,7 @@ ___
 | `--skip-sets SET [SET ...]` | Prevents set code arguments from being built, even if passed in via `-a` or `-s`.                                                               |
 | `--skip-cache`              | Disables the reading and writing of cached content                                                                                              |
 | `--pretty-output`           | Indent the output files for easier human readability                                                                                            |
+| `--pricing`                 | Build pricing updates.                                                                                                                          |
 
 > &nbsp;
 > **Newcomer Note**: Omitting either the `-a` and `-s` flag will yield empty outputted data.
