@@ -123,7 +123,9 @@ class GathererProvider(AbstractProvider):
         return GathererCard(
             card_name=card_name,
             original_types=card_types,
-            original_text=original_text,
+            original_text=re.sub(r"<[^>]+>", "", original_text)
+            if original_text
+            else None,
             flavor_text="\n".join(flavor_lines).strip() or None,
         )
 
