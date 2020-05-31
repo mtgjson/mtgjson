@@ -2,6 +2,7 @@
 MTGJSON Consts for Building
 """
 import configparser
+import hashlib
 import pathlib
 from typing import Dict, List, Set, Tuple
 
@@ -26,6 +27,8 @@ OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"json_{MTGJSON_VERSION}")
 CACHE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(".mtgjson5_cache")
 LOG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
 
+# Hash Details
+HASH_TO_GENERATE = hashlib.sha256()
 
 CARD_MARKET_BUFFER: str = "10101"
 TCGPLAYER_REFERRAL: str = "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"

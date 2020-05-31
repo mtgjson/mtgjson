@@ -19,9 +19,15 @@ from .compiled_classes import (
     MtgjsonSetListObject,
     MtgjsonStructuresObject,
 )
-from .consts import OUTPUT_PATH, SUPPORTED_FORMAT_OUTPUTS, SUPPORTED_SET_TYPES
+from .consts import (
+    HASH_TO_GENERATE,
+    OUTPUT_PATH,
+    SUPPORTED_FORMAT_OUTPUTS,
+    SUPPORTED_SET_TYPES,
+)
 from .price_builder import build_prices, get_price_archive_data, should_build_new_prices
 from .providers.github_decks_provider import GitHubDecksProvider
+from .utils import get_file_hash
 
 LOGGER = logging.getLogger(__name__)
 
@@ -333,3 +339,26 @@ def construct_atomic_cards_format_map(
                     format_card_map[magic_format][card["name"]] = card
 
     return format_card_map
+
+
+def generate_output_file_hashes(directory: pathlib.Path) -> None:
+    """
+    Given a directory, hash each file within it and write that hash
+    out to the file "FILENAME.HASH_NAME"
+    :param directory: Directory to hash
+    """
+    for file in directory.glob("**/*"):
+        if file.is_dir():
+            continue
+
+        # Don't hash the hash file...
+        if file.name.endswith(HASH_TO_GENERATE.name):
+            continue
+
+        generated_hash = get_file_hash(file)
+        if not generated_hash:
+            continue
+
+        hash_file_name = f"{file.name}.{HASH_TO_GENERATE.name}"
+        with file.parent.joinpath(hash_file_name).open("w") as hash_file:
+            hash_file.write(generated_hash)

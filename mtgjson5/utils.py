@@ -7,6 +7,7 @@ import inspect
 import itertools
 import logging
 import os
+import pathlib
 import time
 from typing import Any, Callable, List, Tuple, Union
 
@@ -16,7 +17,10 @@ import requests.adapters
 import requests_cache
 import urllib3
 
+from . import consts
 from .consts import BAD_FILE_NAMES, CACHE_PATH, LOG_PATH, USE_CACHE
+
+LOGGER = logging.getLogger(__name__)
 
 
 def init_logger() -> None:
@@ -176,3 +180,27 @@ def fix_windows_set_name(set_name: str) -> str:
         return set_name + "_"
 
     return set_name
+
+
+def get_file_hash(file_to_hash: pathlib.Path, block_size: int = 65536) -> str:
+    """
+    Given a file, generate a hash of the contents
+    :param file_to_hash: File to generate the hash of
+    :param block_size: How big a chunk to read in at a time
+    :return file hash
+    """
+    if not file_to_hash.is_file():
+        LOGGER.warning(f"Unable to find {file_to_hash}, no hashes generated")
+        return ""
+
+    # Hash can be adjusted in consts.py file
+    hash_operation = consts.HASH_TO_GENERATE.copy()
+
+    with file_to_hash.open("rb") as file:
+        while True:
+            data = file.read(block_size)
+            if not data:
+                break
+            hash_operation.update(data)
+
+    return hash_operation.hexdigest()

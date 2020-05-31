@@ -14,6 +14,7 @@ from mtgjson5.consts import OUTPUT_PATH
 from mtgjson5.output_generator import (
     generate_compiled_output_files,
     generate_compiled_prices_output,
+    generate_output_file_hashes,
     write_set_file,
 )
 from mtgjson5.price_builder import build_prices
@@ -65,6 +66,7 @@ def main() -> None:
         generate_compiled_prices_output(build_prices(), args.pretty)
         if args.compress:
             compress_mtgjson_contents(OUTPUT_PATH)
+        generate_output_file_hashes(OUTPUT_PATH)
         return
 
     sets_to_build = get_sets_to_build(args)
@@ -77,6 +79,7 @@ def main() -> None:
 
     if args.compress:
         compress_mtgjson_contents(OUTPUT_PATH)
+    generate_output_file_hashes(OUTPUT_PATH)
 
 
 if __name__ == "__main__":
