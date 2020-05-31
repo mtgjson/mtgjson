@@ -816,6 +816,7 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
                     for card_obj in mtgjson_set.cards
                     if card_obj.face_name in card.get_names()
                     and card_obj.uuid != card.uuid
+                    and (card_obj.number == card.number if card_obj.number else True)
                 ]
 
             # Adds variations
@@ -825,6 +826,7 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
                 if item.name.split(" (")[0] == card.name.split(" (")[0]
                 and item.face_name == card.face_name
                 and item.uuid != card.uuid
+                and (item.number != card.number if item.number else True)
             ]
 
             if variations:
