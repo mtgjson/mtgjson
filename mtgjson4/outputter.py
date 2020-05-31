@@ -257,6 +257,9 @@ def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
             if "parentCode" in file_content.keys():
                 set_data["parentCode"] = file_content["parentCode"]
 
+            if "isPartialPreview" in file_content.keys():
+                set_data["isPartialPreview"] = file_content["isPartialPreview"]
+
             all_sets_data.append(set_data)
 
     return sorted(all_sets_data, key=lambda set_info: set_info["name"])
