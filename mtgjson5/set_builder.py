@@ -645,7 +645,7 @@ def build_mtgjson_card(
         mtgjson_card.watermark = face_data.get("watermark")
 
     for game_mode in scryfall_object.get("games", []):
-        # isPaper, isMtgo, isArena
+        # isPaper, isMtgo, isArena / is_paper, is_mtgo, is_arena
         setattr(mtgjson_card, f"is{game_mode.capitalize()}", True)
 
     # Explicit Variables -- Based on the face of the card
