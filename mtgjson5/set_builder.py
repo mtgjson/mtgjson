@@ -29,6 +29,7 @@ from .consts import (
 from .providers import (
     CardMarketProvider,
     GathererProvider,
+    GitHubBoostersProvider,
     ScryfallProvider,
     WhatsInStandardProvider,
     WizardsProvider,
@@ -402,7 +403,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     )
 
     mtgjson_set.tcgplayer_group_id = set_data.get("tcgplayer_id")
-    mtgjson_set.booster_v3 = get_booster_contents_v3(set_code)
+    mtgjson_set.booster = GitHubBoostersProvider().get_set_booster_data(set_code)
 
     mark_duel_decks(set_code, mtgjson_set.cards)
 

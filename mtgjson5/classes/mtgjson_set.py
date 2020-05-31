@@ -15,7 +15,7 @@ class MtgjsonSetObject:
 
     base_set_size: int
     block: str
-    booster_v3: Optional[List[Any]]
+    booster: Optional[Dict[str, Any]]
     cards: List[MtgjsonCardObject]
     code: str
     code_v3: str

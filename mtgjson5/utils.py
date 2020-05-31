@@ -32,7 +32,9 @@ def init_logger() -> None:
     start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
 
     logging.basicConfig(
-        level=logging.DEBUG if os.environ.get("DEBUG") else logging.INFO,
+        level=logging.DEBUG
+        if os.environ.get("DEBUG") in ["true", "1"]
+        else logging.INFO,
         format="[%(levelname)s] %(asctime)s: %(message)s",
         handlers=[
             logging.StreamHandler(),
