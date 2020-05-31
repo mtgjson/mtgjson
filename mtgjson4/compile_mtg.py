@@ -967,6 +967,7 @@ def mtgjson_custom_fields(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
                 for card_obj in cards
                 if card_obj.get("name") in card.get("names", [])
                 and card_obj.get("uuid") != card.get("uuid")
+                and card_obj.get("number") == card.get("number")
             ]
             card.set("otherFaceIds", ids_to_find)
 
