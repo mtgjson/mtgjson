@@ -376,6 +376,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.block = set_data.get("block", "")
     mtgjson_set.is_online_only = set_data.get("digital", "")
     mtgjson_set.is_foil_only = set_data.get("foil_only", "")
+    mtgjson_set.is_non_foil_only = set_data.get("nonfoil_only", "")
     mtgjson_set.search_uri = set_data["search_uri"]
     mtgjson_set.mcm_name = CardMarketProvider().get_set_name(mtgjson_set.name)
     mtgjson_set.mcm_id = CardMarketProvider().get_set_id(mtgjson_set.name)

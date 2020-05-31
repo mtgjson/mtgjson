@@ -21,6 +21,7 @@ class MtgjsonSetObject:
     code_v3: str
     is_foreign_only: bool
     is_foil_only: bool
+    is_non_foil_only: bool
     is_online_only: bool
     is_partial_preview: bool
     keyrune_code: str
