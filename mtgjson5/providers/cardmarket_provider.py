@@ -180,7 +180,7 @@ class CardMarketProvider(AbstractProvider):
         Generate HTTP Header -- Not Used
         :return: Nothing
         """
-        return {}
+        return dict()
 
     def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
         """

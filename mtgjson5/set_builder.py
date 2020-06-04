@@ -432,7 +432,7 @@ def build_base_mtgjson_cards(
     """
     Construct all cards in MTGJSON format from a single set
     :param set_code: Set to build
-    :param additional_cards: Additional objects to build (not relevant for normal builds)
+    :param additional_cards: Additional objs to build (not relevant for normal builds)
     :param is_token: Are tokens being copmiled?
     :return: Completed card objects
     """

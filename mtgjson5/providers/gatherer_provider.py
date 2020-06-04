@@ -40,16 +40,29 @@ class GathererProvider(AbstractProvider):
     SETS_TO_REMOVE_PARENTHESES = {"10E"}
 
     def __init__(self) -> None:
+        """
+        Class Initializer
+        """
         super().__init__(self._build_http_header())
 
     def _build_http_header(self) -> Dict[str, str]:
-        return {}
+        """
+        Generate HTTP Header -- Not Used
+        :return: Nothing
+        """
+        return dict()
 
     @ratelimit.sleep_and_retry
     @ratelimit.limits(calls=40, period=1)
     def download(
         self, url: str, params: Dict[str, Union[str, int]] = None
     ) -> requests.Response:
+        """
+        Download a file from gather, with a rate limit
+        :param url: URL to download
+        :param params: URL parameters
+        :return URL response
+        """
         session = retryable_session()
         session.headers.update(self.session_header)
 
@@ -67,6 +80,9 @@ class GathererProvider(AbstractProvider):
     def get_cards(self, multiverse_id: int, set_code: str = "") -> List[GathererCard]:
         """
         Get card(s) matching a given multiverseId
+        :param multiverse_id: Multiverse ID of the card
+        :param set_code: Set code to find the card in
+        :return All found cards matching description
         """
         response = self.download(
             self.GATHERER_CARD, {"multiverseid": str(multiverse_id), "printed": "true"}
@@ -81,6 +97,9 @@ class GathererProvider(AbstractProvider):
     ) -> List[GathererCard]:
         """
         Parse all cards from a given gatherer page
+        :param gatherer_data: Data from gatherer response
+        :param strip_parentheses: Should strip details
+        :return All found cards, parsed
         """
         soup = bs4.BeautifulSoup(gatherer_data, "html.parser")
         columns = soup.find_all("td", class_="rightCol")
@@ -91,6 +110,9 @@ class GathererProvider(AbstractProvider):
     ) -> GathererCard:
         """
         Parse a single gatherer page 'rightCol' entry
+        :param gatherer_column: Column from BeautifulSoup's Gatherer parse
+        :param strip_parentheses: Should additional strip occur
+        :return Magic card details
         """
         label_to_values = {
             row.find("div", class_="label")
@@ -133,6 +155,8 @@ class GathererProvider(AbstractProvider):
     def _replace_symbols(tag: bs4.BeautifulSoup) -> bs4.BeautifulSoup:
         """
         Replace all image tags with their mapped symbol
+        :param tag: BS4 data tag
+        :return BS4 data tag with updated symbols
         """
         tag_copy = copy.copy(tag)
         images = tag_copy.find_all("img")

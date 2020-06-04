@@ -24,13 +24,20 @@ class WhatsInStandardProvider(AbstractProvider):
     standard_legal_sets: Set[str]
 
     def __init__(self) -> None:
+        """
+        Class Initializer
+        """
         super().__init__(self._build_http_header())
         self.logger = logging.getLogger(__name__)
         self.standard_legal_sets = set()
         self.set_codes = self.standard_legal_set_codes()
 
     def _build_http_header(self) -> Dict[str, str]:
-        return {}
+        """
+        Construct the Authorization header -- unused
+        :return: Authorization header
+        """
+        return dict()
 
     def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
         """

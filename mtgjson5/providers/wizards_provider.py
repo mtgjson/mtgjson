@@ -39,7 +39,11 @@ class WizardsProvider(AbstractProvider):
         super().__init__(self._build_http_header())
 
     def _build_http_header(self) -> Dict[str, str]:
-        return {}
+        """
+        Construct the Authorization header -- unused
+        :return: Authorization header
+        """
+        return dict()
 
     def download(
         self, url: str, params: Dict[str, Union[str, int]] = None
