@@ -55,6 +55,7 @@ class MtgjsonCardObject:
     is_story_spotlight: Optional[bool]
     is_textless: Optional[bool]
     is_timeshifted: Optional[bool]
+    keywords: List[str]
     layout: str
     leadership_skills: Optional[MtgjsonLeadershipSkillsObject]
     legalities: MtgjsonLegalitiesObject
