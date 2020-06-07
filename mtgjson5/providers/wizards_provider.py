@@ -179,6 +179,7 @@ class WizardsProvider(AbstractProvider):
         # Oh Wizards...
         translation_table = self.convert_keys_to_set_names(translation_table)
         translation_table = self.set_names_to_set_codes(translation_table)
+        translation_table = self.override_set_translations(translation_table)
 
         # Cache the table for future uses
         self.logger.info("Saving translation table")
@@ -187,6 +188,25 @@ class WizardsProvider(AbstractProvider):
             json.dump(translation_table, file)
 
         self.translation_table = translation_table
+
+    @staticmethod
+    def override_set_translations(
+        table: Dict[str, Dict[str, str]]
+    ) -> Dict[str, Dict[str, str]]:
+        """
+        In some situations, additional overrides might be necessary.
+        This will apply an overwrite (and append) operation from
+        the overrides file onto the translations table
+        :param table: Translation Table
+        :return: Overridden Translation Table
+        """
+        with RESOURCE_PATH.joinpath("translation_overrides.json").open() as f:
+            translation_fixes = json.load(f)
+
+        for set_code, override_translations in translation_fixes.items():
+            table[set_code].update(override_translations)
+
+        return table
 
     @staticmethod
     def set_names_to_set_codes(
