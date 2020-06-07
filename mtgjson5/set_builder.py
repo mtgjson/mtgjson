@@ -373,7 +373,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.keyrune_code = pathlib.Path(set_data["icon_svg_uri"]).stem.upper()
     mtgjson_set.release_date = set_data["released_at"]
     mtgjson_set.mtgo_code = set_data.get("mtgo_code", "").upper()
-    mtgjson_set.parent_code = set_data.get("parent_set_code", "")
+    mtgjson_set.parent_code = set_data.get("parent_set_code", "").upper()
     mtgjson_set.block = set_data.get("block", "")
     mtgjson_set.is_online_only = set_data.get("digital", "")
     mtgjson_set.is_foil_only = set_data.get("foil_only", "")
