@@ -67,7 +67,6 @@ class MtgjsonCardObject:
     mtg_arena_id: Optional[int]
     mtgo_foil_id: Optional[int]
     mtgo_id: Optional[int]
-    mtgstocks_id: int
     multiverse_id: int
     name: str
     number: str

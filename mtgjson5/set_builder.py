@@ -645,9 +645,14 @@ def build_mtgjson_card(
     if not mtgjson_card.watermark:
         mtgjson_card.watermark = face_data.get("watermark")
 
-    for game_mode in scryfall_object.get("games", []):
-        # isPaper, isMtgo, isArena / is_paper, is_mtgo, is_arena
-        setattr(mtgjson_card, f"is{game_mode.capitalize()}", True)
+    # Indicate if this component exists on the platform
+    mtgjson_card.is_arena = "arena" in scryfall_object.get("games", []) or (
+        mtgjson_card.mtg_arena_id is not None
+    )
+    mtgjson_card.is_mtgo = "mtgo" in scryfall_object.get("games", []) or (
+        mtgjson_card.mtgo_id is not None
+    )
+    mtgjson_card.is_paper = not mtgjson_card.is_online_only
 
     # Explicit Variables -- Based on the face of the card
     mtgjson_card.loyalty = face_data.get("loyalty")
