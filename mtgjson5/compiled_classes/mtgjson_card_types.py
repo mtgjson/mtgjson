@@ -41,15 +41,17 @@ class MtgjsonCardTypesObject:
             """
             planar_regex = re.compile(r".*The planar types are (.*)\.")
 
-            self.artifact = ScryfallProvider().get_catalog_entry("artifact")
+            self.artifact = ScryfallProvider().get_catalog_entry("artifact-types")
             self.conspiracy = []
-            self.creature = ScryfallProvider().get_catalog_entry("creature")
-            self.enchantment = ScryfallProvider().get_catalog_entry("enchantment")
-            self.instant = ScryfallProvider().get_catalog_entry("spell")
-            self.land = ScryfallProvider().get_catalog_entry("land")
+            self.creature = ScryfallProvider().get_catalog_entry("creature-types")
+            self.enchantment = ScryfallProvider().get_catalog_entry("enchantment-types")
+            self.instant = ScryfallProvider().get_catalog_entry("spell-types")
+            self.land = ScryfallProvider().get_catalog_entry("land-types")
             self.phenomenon = []
             self.plane = regex_str_to_list(planar_regex.search(magic_rules))
-            self.planeswalker = ScryfallProvider().get_catalog_entry("planeswalker")
+            self.planeswalker = ScryfallProvider().get_catalog_entry(
+                "planeswalker-types"
+            )
             self.scheme = []
             self.sorcery = self.instant
             self.tribal = []
