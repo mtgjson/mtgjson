@@ -268,40 +268,6 @@ def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
     return sorted(mtgjson_rules, key=lambda ruling: ruling.date)
 
 
-def uniquify_cards_with_same_name(mtgjson_cards: List[MtgjsonCardObject]) -> None:
-    """
-    Some sets (namely Un-sets) have cards with the same name, but different effects.
-    This addresses it by adding (b), (c), etc to the name of duplicates
-    :param mtgjson_cards: Cards object
-    """
-
-    if not mtgjson_cards:
-        return
-
-    if mtgjson_cards[0].set_code.upper() in {"HHO", "UNH"}:
-        return
-
-    if mtgjson_cards[0].border_color == "silver":
-        cards_found_already: Dict[str, int] = {}
-
-        for card in mtgjson_cards:
-            cards_with_same_name_sum = sum(
-                1 for item in mtgjson_cards if item.name == card.name
-            )
-
-            if card.name not in BASIC_LAND_NAMES and (
-                card.name in cards_found_already.keys() or cards_with_same_name_sum > 1
-            ):
-                if card.name in cards_found_already.keys():
-                    cards_found_already[card.name] += 1
-                else:
-                    cards_found_already[card.name] = ord("a")
-
-                if cards_found_already[card.name] != ord("a"):
-                    card.name += f" ({chr(cards_found_already[card.name])})"
-                card.set_names(None)
-
-
 def relocate_miscellaneous_tokens(mtgjson_set: MtgjsonSetObject) -> None:
     """
     Sometimes tokens find their way into the main set. This will
@@ -392,7 +358,6 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     # Building cards is a process
     mtgjson_set.cards = build_base_mtgjson_cards(set_code)
     add_is_starter_option(set_code, mtgjson_set.search_uri, mtgjson_set.cards)
-    uniquify_cards_with_same_name(mtgjson_set.cards)
     relocate_miscellaneous_tokens(mtgjson_set)
     add_variations_and_alternative_fields(mtgjson_set)
     add_mcm_details(mtgjson_set)
