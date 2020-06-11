@@ -65,7 +65,12 @@ class MtgjsonAllPrintingsObject:
             with set_file.open(encoding="utf-8") as file:
                 file_content = json.load(file)
 
-            self.all_sets_dict[set_file.stem] = file_content.get("data", {})
+            # Account for the CON fix
+            set_code = set_file.stem
+            if set_code.endswith("_"):
+                set_code = set_code[:-1]
+
+            self.all_sets_dict[set_code] = file_content.get("data", {})
 
     def to_json(self) -> Dict[str, MtgjsonSetObject]:
         """
