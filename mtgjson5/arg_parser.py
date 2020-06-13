@@ -50,13 +50,13 @@ def parse_args() -> argparse.Namespace:
         "-x",
         "--resume-build",
         action="store_true",
-        help="While determine what sets to build, ignore individual set files found in the json_* output directory.",
+        help="While determine what sets to build, ignore individual set files found in the output directory.",
     )
     parser.add_argument(
         "-z",
         "--compress",
         action="store_true",
-        help="Compress the json_* output folder's contents for distribution.",
+        help="Compress the output folder's contents for distribution.",
     )
     parser.add_argument(
         "-p",

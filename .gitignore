@@ -116,6 +116,7 @@ venv*/
 # MTG JSON
 set_outputs/
 json_*/
+v*/
 compiled_outputs/
 /trace.html
 /tests/test_*.yaml
