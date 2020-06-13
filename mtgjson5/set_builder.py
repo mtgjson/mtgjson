@@ -600,8 +600,9 @@ def build_mtgjson_card(
     mtgjson_card.is_planeswalker_stamped = mtgjson_card.number.endswith("p")
 
     mtgjson_card.raw_purchase_urls = scryfall_object.get("purchase_uris", {})
-    mtgjson_card.tcgplayer_product_id = scryfall_object.get("tcgplayer_id")
-    if mtgjson_card.tcgplayer_product_id:
+
+    if "tcgplayer_id" in scryfall_object:
+        mtgjson_card.tcgplayer_product_id = scryfall_object["tcgplayer_id"]
         mtgjson_card.purchase_urls.tcgplayer = url_keygen(
             mtgjson_card.tcgplayer_product_id
         )
