@@ -710,6 +710,7 @@ def build_mtgjson_card(
             "frameEffects": sf_card.get("frame_effects"),
             "frameVersion": sf_card.get("frame"),
             "hand": sf_card.get("hand_modifier"),
+            "hasContentWarning": sf_card.get("content_warning"),
             "hasFoil": sf_card.get("foil"),
             "hasNonFoil": sf_card.get("nonfoil"),
             "isFullArt": sf_card.get("full_art"),
