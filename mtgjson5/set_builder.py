@@ -578,6 +578,7 @@ def build_mtgjson_card(
     mtgjson_card.has_foil = scryfall_object.get("foil")
     mtgjson_card.has_non_foil = scryfall_object.get("nonfoil")
 
+    mtgjson_card.has_content_warning = scryfall_object.get("content_warning")
     mtgjson_card.is_full_art = scryfall_object.get("full_art")
     mtgjson_card.is_online_only = scryfall_object.get("digital")
     mtgjson_card.is_oversized = scryfall_object.get("oversized")
@@ -599,8 +600,11 @@ def build_mtgjson_card(
     mtgjson_card.is_planeswalker_stamped = mtgjson_card.number.endswith("p")
 
     mtgjson_card.raw_purchase_urls = scryfall_object.get("purchase_uris", {})
-    mtgjson_card.tcgplayer_product_id = scryfall_object.get("tcgplayer_id", 0)
-    mtgjson_card.purchase_urls.tcgplayer = url_keygen(mtgjson_card.tcgplayer_product_id)
+    mtgjson_card.tcgplayer_product_id = scryfall_object.get("tcgplayer_id")
+    if mtgjson_card.tcgplayer_product_id:
+        mtgjson_card.purchase_urls.tcgplayer = url_keygen(
+            mtgjson_card.tcgplayer_product_id
+        )
 
     mtgjson_card.rarity = scryfall_object.get("rarity", "")
     if not mtgjson_card.artist:

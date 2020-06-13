@@ -37,6 +37,7 @@ class MtgjsonCardObject:
     hand: Optional[str]
     has_foil: Optional[bool]
     has_alternative_deck_limit: Optional[bool]
+    has_content_warning: Optional[bool]
     has_non_foil: Optional[bool]
     is_alternative: Optional[bool]
     is_arena: Optional[bool]
