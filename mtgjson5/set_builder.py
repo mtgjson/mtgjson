@@ -879,10 +879,7 @@ def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
                 entry["foil"]["url"]
             )
             mtgjson_card.raw_purchase_urls.update(
-                {
-                    "cardKingdomFoil": entry["normal"]["url"]
-                    + consts.CARD_KINGDOM_REFERRAL
-                }
+                {"cardKingdomFoil": entry["foil"]["url"] + consts.CARD_KINGDOM_REFERRAL}
             )
 
 
