@@ -1,11 +1,14 @@
 """
 Referral Map builder operations
 """
+import logging
 import re
 from typing import List, Tuple
 
 from .classes import MtgjsonSetObject
 from .consts import OUTPUT_PATH
+
+LOGGER = logging.getLogger(__name__)
 
 
 def build_and_write_referral_map(mtgjson_set: MtgjsonSetObject) -> None:
@@ -27,8 +30,10 @@ def build_referral_map(mtgjson_set: MtgjsonSetObject) -> List[Tuple[str, str]]:
     string_regex = re.compile(re.escape("scryfall"), re.IGNORECASE)
     for mtgjson_card_object in mtgjson_set.cards:
         for service, url in mtgjson_card_object.purchase_urls.to_json().items():
-            # Some cards might be missing this information nowadays
             if service not in mtgjson_card_object.raw_purchase_urls:
+                LOGGER.info(
+                    f"Service {service} not found for {mtgjson_card_object.name}"
+                )
                 continue
 
             return_list.append(

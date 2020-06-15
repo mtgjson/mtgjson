@@ -9,6 +9,7 @@ import unicodedata
 import uuid
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from . import consts
 from .classes import (
     MtgjsonCardObject,
     MtgjsonForeignDataObject,
@@ -30,6 +31,7 @@ from .providers import (
     CardMarketProvider,
     GathererProvider,
     GitHubBoostersProvider,
+    MTGBanProvider,
     ScryfallProvider,
     WhatsInStandardProvider,
     WizardsProvider,
@@ -361,6 +363,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     relocate_miscellaneous_tokens(mtgjson_set)
     add_variations_and_alternative_fields(mtgjson_set)
     add_mcm_details(mtgjson_set)
+    add_card_kingdom_details(mtgjson_set)
 
     # Build tokens, a little less of a process
     mtgjson_set.tokens = build_base_mtgjson_tokens(
@@ -599,7 +602,7 @@ def build_mtgjson_card(
     )
     mtgjson_card.is_planeswalker_stamped = mtgjson_card.number.endswith("p")
 
-    mtgjson_card.raw_purchase_urls = scryfall_object.get("purchase_uris", {})
+    mtgjson_card.raw_purchase_urls.update(scryfall_object.get("purchase_uris", {}))
 
     if "tcgplayer_id" in scryfall_object:
         mtgjson_card.tcgplayer_product_id = scryfall_object["tcgplayer_id"]
@@ -844,6 +847,39 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
             # Check for a star in the number
             if chr(9733) in card.number:
                 card.is_alternative = True
+
+
+def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    Add the CardKingdom components, like IDs and purchase URLs
+    :param mtgjson_set: MTGJSON Set
+    """
+
+    translation_table = MTGBanProvider().get_mtgjson_to_card_kingdom()
+    for mtgjson_card in mtgjson_set.cards:
+        if mtgjson_card.uuid not in translation_table:
+            continue
+
+        entry = translation_table[mtgjson_card.uuid]
+
+        if "normal" in entry:
+            mtgjson_card.card_kingdom_id = int(entry["normal"]["id"])
+            mtgjson_card.purchase_urls.card_kingdom = url_keygen(entry["normal"]["url"])
+            mtgjson_card.raw_purchase_urls.update(
+                {"cardKingdom": entry["normal"]["url"] + consts.CARD_KINGDOM_REFERRAL}
+            )
+
+        if "foil" in entry:
+            mtgjson_card.card_kingdom_foil_id = int(entry["foil"]["id"])
+            mtgjson_card.purchase_urls.card_kingdom_foil = url_keygen(
+                entry["foil"]["url"]
+            )
+            mtgjson_card.raw_purchase_urls.update(
+                {
+                    "cardKingdomFoil": entry["normal"]["url"]
+                    + consts.CARD_KINGDOM_REFERRAL
+                }
+            )
 
 
 def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:

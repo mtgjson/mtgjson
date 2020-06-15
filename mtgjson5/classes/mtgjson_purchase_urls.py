@@ -11,6 +11,8 @@ class MtgjsonPurchaseUrlsObject:
     MTGJSON Singular Card.PurchaseURLs Object
     """
 
+    card_kingdom: str
+    card_kingdom_foil: str
     cardmarket: str
     tcgplayer: str
 

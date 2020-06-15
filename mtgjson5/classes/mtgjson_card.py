@@ -20,6 +20,8 @@ class MtgjsonCardObject:
     artist: str
     ascii_name: Optional[str]
     border_color: str
+    card_kingdom_id: Optional[int]
+    card_kingdom_foil_id: Optional[int]
     color_identity: List[str]
     color_indicator: Optional[List[str]]
     colors: List[str]
@@ -178,6 +180,7 @@ class MtgjsonCardObject:
         self.purchase_urls = MtgjsonPurchaseUrlsObject()
         self.side = None
         self.face_name = None
+        self.raw_purchase_urls = {}
 
     def __eq__(self, other: Any) -> bool:
         """

@@ -90,7 +90,7 @@ class WizardsProvider(AbstractProvider):
         translation_table: Dict[str, Dict[str, str]],
     ) -> Dict[str, Dict[str, str]]:
         """
-        This will take the given language and source the data
+        This will take the given language and provider the data
         from the Wizards site to create a new entry in each
         option.
         :param translation_table: Partially built table

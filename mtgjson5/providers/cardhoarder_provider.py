@@ -84,7 +84,7 @@ class CardHoarderProvider(AbstractProvider):
 
         return mtgjson_to_price
 
-    def generate_today_price_dict(self) -> Dict[str, MtgjsonPricesObject]:
+    def generate_today_price_dict(self, _: Any) -> Dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure for MTGO from CardHoarder
         :return MTGJSON prices single day structure

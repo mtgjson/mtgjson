@@ -1,3 +1,5 @@
+# Modify this file and put it at "mtgjson5/resources/mtgjson.properties"
+
 [CardHoarder]
 token=
 
@@ -10,6 +12,9 @@ username=
 api_key=
 repo_name=
 file_name=
+
+[MTGBan]
+api_key=
 
 [MTGJSON]
 version=

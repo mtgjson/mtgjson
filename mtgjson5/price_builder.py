@@ -15,7 +15,12 @@ import git
 import requests
 
 from .consts import CACHE_PATH, OUTPUT_PATH
-from .providers import CardHoarderProvider, CardMarketProvider, TCGPlayerProvider
+from .providers import (
+    CardHoarderProvider,
+    CardKingdomProvider,
+    CardMarketProvider,
+    TCGPlayerProvider,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -150,30 +155,33 @@ def build_today_prices() -> Dict[str, Any]:
         LOGGER.error(f"Unable to build prices. AllPrintings not found in {OUTPUT_PATH}")
         return {}
 
-    cardhoarder_prices = CardHoarderProvider().generate_today_price_dict()
-    tcgplayer_prices = TCGPlayerProvider().generate_today_price_dict(
-        OUTPUT_PATH.joinpath("AllPrintings.json")
-    )
-    cardmarket_prices = CardMarketProvider().generate_today_price_dict(
-        OUTPUT_PATH.joinpath("AllPrintings.json")
-    )
-
-    cardhoarder_prices_json = json.loads(
-        json.dumps(cardhoarder_prices, default=lambda o: o.to_json())
-    )
-    tcgplayer_prices_json = json.loads(
-        json.dumps(tcgplayer_prices, default=lambda o: o.to_json())
-    )
-    cardmarket_prices_json = json.loads(
-        json.dumps(cardmarket_prices, default=lambda o: o.to_json())
-    )
+    card_hoarder = _generate_prices(CardHoarderProvider())
+    tcgplayer = _generate_prices(TCGPlayerProvider())
+    card_market = _generate_prices(CardMarketProvider())
+    card_kingdom = _generate_prices(CardKingdomProvider())
 
     final_results = deep_merge_dictionaries(
-        cardmarket_prices_json,
-        deep_merge_dictionaries(cardhoarder_prices_json, tcgplayer_prices_json),
+        deep_merge_dictionaries(card_hoarder, tcgplayer),
+        deep_merge_dictionaries(card_market, card_kingdom),
     )
 
     return final_results
+
+
+def _generate_prices(provider: Any) -> Dict[str, Any]:
+    """
+    Generate the prices for a source and prepare them for
+    merging with other entities
+    :param provider: MTGJSON Provider that implements generate_today_price_dict
+    :return Manageable data for MTGJSON prices
+    """
+    preprocess_prices = provider.generate_today_price_dict(
+        OUTPUT_PATH.joinpath("AllPrintings.json")
+    )
+    final_prices: Dict[str, Any] = json.loads(
+        json.dumps(preprocess_prices, default=lambda o: o.to_json())
+    )
+    return final_prices
 
 
 def get_price_archive_data() -> Dict[str, Dict[str, float]]:
