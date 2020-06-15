@@ -20,8 +20,8 @@ class MtgjsonCardObject:
     artist: str
     ascii_name: Optional[str]
     border_color: str
-    card_kingdom_id: Optional[int]
     card_kingdom_foil_id: Optional[int]
+    card_kingdom_id: Optional[int]
     color_identity: List[str]
     color_indicator: Optional[List[str]]
     colors: List[str]
@@ -37,9 +37,9 @@ class MtgjsonCardObject:
     frame_effects: List[str]
     frame_version: str
     hand: Optional[str]
-    has_foil: Optional[bool]
     has_alternative_deck_limit: Optional[bool]
     has_content_warning: Optional[bool]
+    has_foil: Optional[bool]
     has_non_foil: Optional[bool]
     is_alternative: Optional[bool]
     is_arena: Optional[bool]
@@ -54,6 +54,7 @@ class MtgjsonCardObject:
     is_promo: Optional[bool]
     is_reprint: Optional[bool]
     is_reserved: Optional[bool]
+    is_shandalar: Optional[bool]
     is_starter: Optional[bool]
     is_story_spotlight: Optional[bool]
     is_textless: Optional[bool]
@@ -83,10 +84,10 @@ class MtgjsonCardObject:
     rarity: str
     reverse_related: Optional[List[str]]
     rulings: List[MtgjsonRulingObject]
-    set_code: str
     scryfall_id: str
-    scryfall_oracle_id: str
     scryfall_illustration_id: Optional[str]
+    scryfall_oracle_id: str
+    set_code: str
     side: Optional[str]
     subtypes: List[str]
     supertypes: List[str]

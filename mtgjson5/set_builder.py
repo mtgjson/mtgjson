@@ -626,6 +626,7 @@ def build_mtgjson_card(
         mtgjson_card.mtgo_id is not None
     )
     mtgjson_card.is_paper = not mtgjson_card.is_online_only
+    mtgjson_card.is_shandalar = "astral" in scryfall_object.get("games", [])
 
     # Explicit Variables -- Based on the face of the card
     mtgjson_card.loyalty = face_data.get("loyalty")
