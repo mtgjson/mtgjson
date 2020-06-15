@@ -4,6 +4,7 @@ MTGJSON Singular Card Object
 from typing import Any, Dict, List, Optional, Set
 
 from ..classes.mtgjson_foreign_data import MtgjsonForeignDataObject
+from ..classes.mtgjson_game_formats import MtgjsonGameFormatsObject
 from ..classes.mtgjson_leadership_skills import MtgjsonLeadershipSkillsObject
 from ..classes.mtgjson_legalities import MtgjsonLegalitiesObject
 from ..classes.mtgjson_prices import MtgjsonPricesObject
@@ -19,6 +20,7 @@ class MtgjsonCardObject:
 
     artist: str
     ascii_name: Optional[str]
+    availability: MtgjsonGameFormatsObject
     border_color: str
     card_kingdom_foil_id: Optional[int]
     card_kingdom_id: Optional[int]
@@ -42,19 +44,15 @@ class MtgjsonCardObject:
     has_foil: Optional[bool]
     has_non_foil: Optional[bool]
     is_alternative: Optional[bool]
-    is_arena: Optional[bool]
     is_buy_a_box: Optional[bool]
     is_date_stamped: Optional[bool]
     is_full_art: Optional[bool]
-    is_mtgo: Optional[bool]
     is_online_only: Optional[bool]
     is_oversized: Optional[bool]
-    is_paper: Optional[bool]
     is_planeswalker_stamped: Optional[bool]
     is_promo: Optional[bool]
     is_reprint: Optional[bool]
     is_reserved: Optional[bool]
-    is_shandalar: Optional[bool]
     is_starter: Optional[bool]
     is_story_spotlight: Optional[bool]
     is_textless: Optional[bool]

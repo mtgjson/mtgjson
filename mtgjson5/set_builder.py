@@ -13,6 +13,7 @@ from . import consts
 from .classes import (
     MtgjsonCardObject,
     MtgjsonForeignDataObject,
+    MtgjsonGameFormatsObject,
     MtgjsonLeadershipSkillsObject,
     MtgjsonLegalitiesObject,
     MtgjsonMetaObject,
@@ -619,14 +620,16 @@ def build_mtgjson_card(
         mtgjson_card.watermark = face_data.get("watermark")
 
     # Indicate if this component exists on the platform
-    mtgjson_card.is_arena = "arena" in scryfall_object.get("games", []) or (
+    mtgjson_card.availability = MtgjsonGameFormatsObject()
+    mtgjson_card.availability.arena = "arena" in scryfall_object.get("games", []) or (
         mtgjson_card.mtg_arena_id is not None
     )
-    mtgjson_card.is_mtgo = "mtgo" in scryfall_object.get("games", []) or (
+    mtgjson_card.availability.mtgo = "mtgo" in scryfall_object.get("games", []) or (
         mtgjson_card.mtgo_id is not None
     )
-    mtgjson_card.is_paper = not mtgjson_card.is_online_only
-    mtgjson_card.is_shandalar = "astral" in scryfall_object.get("games", [])
+    mtgjson_card.availability.paper = not mtgjson_card.is_online_only
+    mtgjson_card.availability.shandalar = "astral" in scryfall_object.get("games", [])
+    mtgjson_card.availability.dreamcast = "sega" in scryfall_object.get("games", [])
 
     # Explicit Variables -- Based on the face of the card
     mtgjson_card.loyalty = face_data.get("loyalty")

@@ -6,6 +6,7 @@ from .mtgjson_card import MtgjsonCardObject
 from .mtgjson_deck import MtgjsonDeckObject
 from .mtgjson_deck_header import MtgjsonDeckHeaderObject
 from .mtgjson_foreign_data import MtgjsonForeignDataObject
+from .mtgjson_game_formats import MtgjsonGameFormatsObject
 from .mtgjson_leadership_skills import MtgjsonLeadershipSkillsObject
 from .mtgjson_legalities import MtgjsonLegalitiesObject
 from .mtgjson_meta import MtgjsonMetaObject
