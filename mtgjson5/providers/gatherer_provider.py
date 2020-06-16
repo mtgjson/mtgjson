@@ -77,7 +77,7 @@ class GathererProvider(AbstractProvider):
         self.log_download(response)
         return response
 
-    def get_cards(self, multiverse_id: int, set_code: str = "") -> List[GathererCard]:
+    def get_cards(self, multiverse_id: str, set_code: str = "") -> List[GathererCard]:
         """
         Get card(s) matching a given multiverseId
         :param multiverse_id: Multiverse ID of the card
@@ -85,7 +85,7 @@ class GathererProvider(AbstractProvider):
         :return All found cards matching description
         """
         response = self.download(
-            self.GATHERER_CARD, {"multiverseid": str(multiverse_id), "printed": "true"}
+            self.GATHERER_CARD, {"multiverseid": multiverse_id, "printed": "true"}
         )
 
         return self.parse_cards(

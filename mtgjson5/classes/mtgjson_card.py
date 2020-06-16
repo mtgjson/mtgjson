@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Set
 
 from ..classes.mtgjson_foreign_data import MtgjsonForeignDataObject
 from ..classes.mtgjson_game_formats import MtgjsonGameFormatsObject
+from ..classes.mtgjson_identifiers import MtgjsonIdentifiersObject
 from ..classes.mtgjson_leadership_skills import MtgjsonLeadershipSkillsObject
 from ..classes.mtgjson_legalities import MtgjsonLegalitiesObject
 from ..classes.mtgjson_prices import MtgjsonPricesObject
@@ -22,8 +23,6 @@ class MtgjsonCardObject:
     ascii_name: Optional[str]
     availability: MtgjsonGameFormatsObject
     border_color: str
-    card_kingdom_foil_id: Optional[int]
-    card_kingdom_id: Optional[int]
     color_identity: List[str]
     color_indicator: Optional[List[str]]
     colors: List[str]
@@ -43,6 +42,7 @@ class MtgjsonCardObject:
     has_content_warning: Optional[bool]
     has_foil: Optional[bool]
     has_non_foil: Optional[bool]
+    identifiers: MtgjsonIdentifiersObject
     is_alternative: Optional[bool]
     is_buy_a_box: Optional[bool]
     is_date_stamped: Optional[bool]
@@ -64,12 +64,6 @@ class MtgjsonCardObject:
     life: Optional[str]
     loyalty: Optional[str]
     mana_cost: str
-    mcm_id: int
-    mcm_meta_id: int
-    mtg_arena_id: Optional[int]
-    mtgo_foil_id: Optional[int]
-    mtgo_id: Optional[int]
-    multiverse_id: int
     name: str
     number: str
     original_text: Optional[str]
@@ -82,14 +76,10 @@ class MtgjsonCardObject:
     rarity: str
     reverse_related: Optional[List[str]]
     rulings: List[MtgjsonRulingObject]
-    scryfall_id: str
-    scryfall_illustration_id: Optional[str]
-    scryfall_oracle_id: str
     set_code: str
     side: Optional[str]
     subtypes: List[str]
     supertypes: List[str]
-    tcgplayer_product_id: int
     text: str
     toughness: str
     type: str
@@ -98,6 +88,7 @@ class MtgjsonCardObject:
     variations: List[str]
     watermark: Optional[str]
 
+    # Outside entities, not published
     is_token: bool
     raw_purchase_urls: Dict[str, str]
     __names: Optional[List[str]]
@@ -175,11 +166,11 @@ class MtgjsonCardObject:
         self.layout = ""
         self.watermark = None
         self.__names = []
-        self.multiverse_id = 0
         self.purchase_urls = MtgjsonPurchaseUrlsObject()
         self.side = None
         self.face_name = None
         self.raw_purchase_urls = {}
+        self.identifiers = MtgjsonIdentifiersObject()
 
     def __eq__(self, other: Any) -> bool:
         """

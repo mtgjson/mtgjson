@@ -282,7 +282,9 @@ def relocate_miscellaneous_tokens(mtgjson_set: MtgjsonSetObject) -> None:
 
     # Identify unique tokens from cards
     tokens_found = {
-        card.scryfall_id for card in mtgjson_set.cards if card.layout in token_types
+        card.identifiers.scryfall_id
+        for card in mtgjson_set.cards
+        if card.layout in token_types and card.identifiers.scryfall_id
     }
 
     # Remove tokens from cards
@@ -434,7 +436,9 @@ def add_is_starter_option(
 
     for scryfall_object in starter_cards["data"]:
         mtgjson_cards_with_same_id = [
-            item for item in mtgjson_cards if item.scryfall_id == scryfall_object["id"]
+            item
+            for item in mtgjson_cards
+            if item.identifiers.scryfall_id == scryfall_object["id"]
         ]
 
         for card in mtgjson_cards_with_same_id:
@@ -477,7 +481,7 @@ def add_uuid(mtgjson_card: MtgjsonCardObject, is_card: bool = True) -> None:
     if is_card:
         id_source = (
             ScryfallProvider().get_class_id()
-            + mtgjson_card.scryfall_id
+            + (mtgjson_card.identifiers.scryfall_id or "")
             + mtgjson_card.name
             + (mtgjson_card.face_name or "")
         )
@@ -490,7 +494,7 @@ def add_uuid(mtgjson_card: MtgjsonCardObject, is_card: bool = True) -> None:
             + (mtgjson_card.toughness or "")
             + (mtgjson_card.side or "")
             + mtgjson_card.set_code[1:]
-            + mtgjson_card.scryfall_id
+            + (mtgjson_card.identifiers.scryfall_id or "")
         )
 
     mtgjson_card.uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
@@ -518,9 +522,11 @@ def build_mtgjson_card(
     mtgjson_card.name = scryfall_object["name"]
     mtgjson_card.flavor_name = scryfall_object.get("flavor_name")
     mtgjson_card.set_code = scryfall_object["set"]
-    mtgjson_card.scryfall_id = scryfall_object["id"]
-    mtgjson_card.scryfall_oracle_id = scryfall_object["oracle_id"]
-    mtgjson_card.scryfall_illustration_id = scryfall_object.get("illustration_id")
+    mtgjson_card.identifiers.scryfall_id = scryfall_object["id"]
+    mtgjson_card.identifiers.scryfall_oracle_id = scryfall_object["oracle_id"]
+    mtgjson_card.identifiers.scryfall_illustration_id = scryfall_object.get(
+        "illustration_id"
+    )
 
     # Handle atypical cards
     face_data = scryfall_object
@@ -592,9 +598,9 @@ def build_mtgjson_card(
     mtgjson_card.is_story_spotlight = scryfall_object.get("story_spotlight")
     mtgjson_card.is_textless = scryfall_object.get("textless")
     mtgjson_card.life = scryfall_object.get("life_modifier")
-    mtgjson_card.mtg_arena_id = scryfall_object.get("arena_id")
-    mtgjson_card.mtgo_id = scryfall_object.get("mtgo_id")
-    mtgjson_card.mtgo_foil_id = scryfall_object.get("mtgo_foil_id")
+    mtgjson_card.identifiers.mtg_arena_id = scryfall_object.get("arena_id")
+    mtgjson_card.identifiers.mtgo_id = str(scryfall_object.get("mtgo_id"))
+    mtgjson_card.identifiers.mtgo_foil_id = str(scryfall_object.get("mtgo_foil_id"))
     mtgjson_card.number = scryfall_object.get("collector_number", "0")
 
     mtgjson_card.is_buy_a_box = "buyabox" in scryfall_object.get("promo_types", [])
@@ -606,9 +612,11 @@ def build_mtgjson_card(
     mtgjson_card.raw_purchase_urls.update(scryfall_object.get("purchase_uris", {}))
 
     if "tcgplayer_id" in scryfall_object:
-        mtgjson_card.tcgplayer_product_id = scryfall_object["tcgplayer_id"]
+        mtgjson_card.identifiers.tcgplayer_product_id = str(
+            scryfall_object["tcgplayer_id"]
+        )
         mtgjson_card.purchase_urls.tcgplayer = url_keygen(
-            mtgjson_card.tcgplayer_product_id
+            mtgjson_card.identifiers.tcgplayer_product_id
         )
 
     mtgjson_card.rarity = scryfall_object.get("rarity", "")
@@ -622,10 +630,10 @@ def build_mtgjson_card(
     # Indicate if this component exists on the platform
     mtgjson_card.availability = MtgjsonGameFormatsObject()
     mtgjson_card.availability.arena = "arena" in scryfall_object.get("games", []) or (
-        mtgjson_card.mtg_arena_id is not None
+        mtgjson_card.identifiers.mtg_arena_id is not None
     )
     mtgjson_card.availability.mtgo = "mtgo" in scryfall_object.get("games", []) or (
-        mtgjson_card.mtgo_id is not None
+        mtgjson_card.identifiers.mtgo_id is not None
     )
     mtgjson_card.availability.paper = not mtgjson_card.is_online_only
     mtgjson_card.availability.shandalar = "astral" in scryfall_object.get("games", [])
@@ -662,9 +670,13 @@ def build_mtgjson_card(
 
     if scryfall_object["multiverse_ids"]:
         if len(scryfall_object["multiverse_ids"]) > face_id:
-            mtgjson_card.multiverse_id = scryfall_object["multiverse_ids"][face_id]
+            mtgjson_card.identifiers.multiverse_id = str(
+                scryfall_object["multiverse_ids"][face_id]
+            )
         else:
-            mtgjson_card.multiverse_id = scryfall_object["multiverse_ids"][0]
+            mtgjson_card.identifiers.multiverse_id = str(
+                scryfall_object["multiverse_ids"][0]
+            )
 
     # Add "side" for split cards (cards with exactly 2 sides)
     # Also set face name
@@ -768,9 +780,9 @@ def build_mtgjson_card(
         mtgjson_card.reverse_related = reverse_related
 
     # Gatherer Calls -- SLOWWWWW
-    if mtgjson_card.multiverse_id:
+    if mtgjson_card.identifiers.multiverse_id:
         gatherer_cards = GathererProvider().get_cards(
-            mtgjson_card.multiverse_id, mtgjson_card.set_code
+            mtgjson_card.identifiers.multiverse_id, mtgjson_card.set_code
         )
         if len(gatherer_cards) > face_id:
             mtgjson_card.original_type = gatherer_cards[face_id].original_types
@@ -867,14 +879,14 @@ def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
         entry = translation_table[mtgjson_card.uuid]
 
         if "normal" in entry:
-            mtgjson_card.card_kingdom_id = int(entry["normal"]["id"])
+            mtgjson_card.identifiers.card_kingdom_id = str(entry["normal"]["id"])
             mtgjson_card.purchase_urls.card_kingdom = url_keygen(entry["normal"]["url"])
             mtgjson_card.raw_purchase_urls.update(
                 {"cardKingdom": entry["normal"]["url"] + consts.CARD_KINGDOM_REFERRAL}
             )
 
         if "foil" in entry:
-            mtgjson_card.card_kingdom_foil_id = int(entry["foil"]["id"])
+            mtgjson_card.identifiers.card_kingdom_foil_id = str(entry["foil"]["id"])
             mtgjson_card.purchase_urls.card_kingdom_foil = url_keygen(
                 entry["foil"]["url"]
             )
@@ -922,13 +934,13 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
         if delete_key:
             del mkm_cards[card_key]
 
-        mtgjson_card.mcm_id = mkm_obj["idProduct"]
-        mtgjson_card.mcm_meta_id = mkm_obj["idMetaproduct"]
+        mtgjson_card.identifiers.mcm_id = str(mkm_obj["idProduct"])
+        mtgjson_card.identifiers.mcm_meta_id = str(mkm_obj["idMetaproduct"])
 
         mtgjson_card.purchase_urls.cardmarket = url_keygen(
-            str(mtgjson_card.mcm_id)
+            mtgjson_card.identifiers.mcm_id
             + CARD_MARKET_BUFFER
-            + str(mtgjson_card.mcm_meta_id)
+            + mtgjson_card.identifiers.mcm_meta_id
         )
 
 
