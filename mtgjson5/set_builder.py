@@ -37,7 +37,7 @@ from .providers import (
     WhatsInStandardProvider,
     WizardsProvider,
 )
-from .utils import parallel_call, url_keygen
+from .utils import get_str_or_none, parallel_call, url_keygen
 
 LOGGER = logging.getLogger(__name__)
 
@@ -598,9 +598,14 @@ def build_mtgjson_card(
     mtgjson_card.is_story_spotlight = scryfall_object.get("story_spotlight")
     mtgjson_card.is_textless = scryfall_object.get("textless")
     mtgjson_card.life = scryfall_object.get("life_modifier")
-    mtgjson_card.identifiers.mtg_arena_id = scryfall_object.get("arena_id")
-    mtgjson_card.identifiers.mtgo_id = str(scryfall_object.get("mtgo_id"))
-    mtgjson_card.identifiers.mtgo_foil_id = str(scryfall_object.get("mtgo_foil_id"))
+
+    mtgjson_card.identifiers.mtg_arena_id = get_str_or_none(
+        scryfall_object.get("arena_id")
+    )
+    mtgjson_card.identifiers.mtgo_id = get_str_or_none(scryfall_object.get("mtgo_id"))
+    mtgjson_card.identifiers.mtgo_foil_id = get_str_or_none(
+        scryfall_object.get("mtgo_foil_id")
+    )
     mtgjson_card.number = scryfall_object.get("collector_number", "0")
 
     mtgjson_card.is_buy_a_box = "buyabox" in scryfall_object.get("promo_types", [])
@@ -670,11 +675,11 @@ def build_mtgjson_card(
 
     if scryfall_object["multiverse_ids"]:
         if len(scryfall_object["multiverse_ids"]) > face_id:
-            mtgjson_card.identifiers.multiverse_id = str(
+            mtgjson_card.identifiers.multiverse_id = get_str_or_none(
                 scryfall_object["multiverse_ids"][face_id]
             )
         else:
-            mtgjson_card.identifiers.multiverse_id = str(
+            mtgjson_card.identifiers.multiverse_id = get_str_or_none(
                 scryfall_object["multiverse_ids"][0]
             )
 
@@ -974,16 +979,3 @@ def get_base_and_total_set_sizes(set_code: str) -> Tuple[int, int]:
     total_set_size = len(ScryfallProvider().download_cards(set_code))
 
     return base_set_size, total_set_size
-
-
-def get_booster_contents_v3(set_code: str) -> Optional[List[Any]]:
-    """
-    Grab the MTGJSON specific booster contents (supporting V3)
-    :param set_code: What set to find
-    :return Booster list or None
-    """
-    with RESOURCE_PATH.joinpath("boosters.json").open(encoding="utf-8") as f:
-        json_dict: Dict[str, List[Any]] = json.load(f)
-        if set_code in json_dict.keys():
-            return json_dict[set_code]
-    return None

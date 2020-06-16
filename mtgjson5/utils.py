@@ -9,7 +9,7 @@ import logging
 import os
 import pathlib
 import time
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import gevent.pool
 import requests
@@ -206,3 +206,16 @@ def get_file_hash(file_to_hash: pathlib.Path, block_size: int = 65536) -> str:
             hash_operation.update(data)
 
     return hash_operation.hexdigest()
+
+
+def get_str_or_none(value: Any) -> Optional[str]:
+    """
+    Given a value, get its string representation
+    or None object
+    :param value: Input value
+    :return String value of input or None
+    """
+    if not value:
+        return None
+
+    return str(value)
