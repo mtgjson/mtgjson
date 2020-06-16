@@ -2,6 +2,7 @@
 MTGJSON Consts for Building
 """
 import configparser
+import datetime
 import hashlib
 import pathlib
 from typing import Dict, List, Set, Tuple
@@ -17,7 +18,10 @@ if CONFIG_PATH:
     CONFIG.read(str(CONFIG_PATH))
 
 MTGJSON_VERSION: str = CONFIG.get("MTGJSON", "version", fallback="5.X.X")
-MTGJSON_BUILD_DATE: str = CONFIG.get("MTGJSON", "date", fallback="0000-00-00")
+MTGJSON_BUILD_DATE: str = CONFIG.get(
+    "MTGJSON", "date", fallback=""
+) or datetime.datetime.today().strftime("%Y-%m-%d")
+
 USE_CACHE: bool = CONFIG.get(
     "MTGJSON", "use_cache", fallback="false"
 ).lower().strip() == "true"
