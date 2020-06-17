@@ -128,10 +128,13 @@ def get_all_scryfall_sets() -> List[str]:
         return []
 
     # Get _ALL_ Scryfall sets
+    scryfall_set_codes = [set_obj["code"].upper() for set_obj in scryfall_sets["data"]]
+
+    # Remove Scryfall token sets (but leave extra sets)
     scryfall_set_codes = [
-        set_obj["code"].upper()
-        for set_obj in scryfall_sets["data"]
-        if set_obj["set_type"] != "token"
+        set_code
+        for set_code in scryfall_set_codes
+        if not (set_code.startswith("t") and set_code[1:] in scryfall_set_codes)
     ]
 
     return sorted(scryfall_set_codes)
