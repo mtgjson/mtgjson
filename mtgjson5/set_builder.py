@@ -608,11 +608,17 @@ def build_mtgjson_card(
     )
     mtgjson_card.number = scryfall_object.get("collector_number", "0")
 
-    mtgjson_card.is_buy_a_box = "buyabox" in scryfall_object.get("promo_types", [])
-    mtgjson_card.is_date_stamped = "datestamped" in scryfall_object.get(
-        "promo_types", []
-    )
-    mtgjson_card.is_planeswalker_stamped = mtgjson_card.number.endswith("p")
+    # Handle Promo Types for MTGJSON
+    mtgjson_card.promo_types = scryfall_object.get("promo_types", [])
+    if mtgjson_card.number.endswith("p"):
+        mtgjson_card.promo_types.append("planeswalkerstamped")
+
+    # Remove terms that are covered elsewhere
+    mtgjson_card.promo_types = [
+        card_type
+        for card_type in mtgjson_card.promo_types
+        if card_type not in {"starterdeck", "planeswalkerdeck"}
+    ]
 
     mtgjson_card.raw_purchase_urls.update(scryfall_object.get("purchase_uris", {}))
 

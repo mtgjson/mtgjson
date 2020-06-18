@@ -44,12 +44,9 @@ class MtgjsonCardObject:
     has_non_foil: Optional[bool]
     identifiers: MtgjsonIdentifiersObject
     is_alternative: Optional[bool]
-    is_buy_a_box: Optional[bool]
-    is_date_stamped: Optional[bool]
     is_full_art: Optional[bool]
     is_online_only: Optional[bool]
     is_oversized: Optional[bool]
-    is_planeswalker_stamped: Optional[bool]
     is_promo: Optional[bool]
     is_reprint: Optional[bool]
     is_reserved: Optional[bool]
@@ -72,6 +69,7 @@ class MtgjsonCardObject:
     power: str
     prices: MtgjsonPricesObject
     printings: List[str]
+    promo_types: List[str]
     purchase_urls: MtgjsonPurchaseUrlsObject
     rarity: str
     reverse_related: Optional[List[str]]
