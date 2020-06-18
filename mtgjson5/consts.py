@@ -35,7 +35,7 @@ LOG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
 HASH_TO_GENERATE = hashlib.sha256()
 
 CARD_MARKET_BUFFER: str = "10101"
-CARD_KINGDOM_REFERRAL: str = "?partner=mtgjson"
+CARD_KINGDOM_REFERRAL: str = "?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson"
 # TCGPLAYER_REFERRAL: str = "?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson"
 # CARD_MARKET_REFERRAL: str = "?utm_campaign=card_prices&utm_medium=text&utm_source=mtgjson"
 
