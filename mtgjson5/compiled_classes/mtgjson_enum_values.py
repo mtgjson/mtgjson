@@ -32,6 +32,7 @@ class MtgjsonEnumValuesObject:
             "frameVersion",
             "layout",
             "rarity",
+            "promoTypes",
             "side",
             "subtypes",
             "supertypes",
