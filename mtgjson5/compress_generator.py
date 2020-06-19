@@ -45,9 +45,18 @@ def compress_mtgjson_contents(directory: pathlib.Path) -> None:
     ]
     parallel_call(_compress_mtgjson_file, compiled_files)
 
-    _compress_mtgjson_directory(single_set_files, directory, "AllSetFiles")
-    _compress_mtgjson_directory(deck_files, directory, "AllDeckFiles")
-    _compress_mtgjson_directory(csv_files, directory, "AllPrintingsCSVFiles")
+    if single_set_files:
+        _compress_mtgjson_directory(
+            single_set_files, directory, MtgjsonStructuresObject().all_sets_directory
+        )
+    if deck_files:
+        _compress_mtgjson_directory(
+            deck_files, directory, MtgjsonStructuresObject().all_decks_directory
+        )
+    if csv_files:
+        _compress_mtgjson_directory(
+            csv_files, directory, MtgjsonStructuresObject().all_csvs_directory
+        )
     LOGGER.info(f"Finished compression on {directory.name}")
 
 
