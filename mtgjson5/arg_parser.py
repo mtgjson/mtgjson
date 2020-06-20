@@ -31,7 +31,7 @@ def parse_args() -> argparse.Namespace:
         nargs="*",
         metavar="SET",
         default=[],
-        help="Sets to build, using Scryfall set code notation. Non-existent sets shall be ignored.",
+        help="Set(s) to build, using Scryfall set code notation. Non-existent sets silently ignored.",
     )
     sets_group.add_argument(
         "-a",
@@ -44,7 +44,7 @@ def parse_args() -> argparse.Namespace:
         "-c",
         "--full-build",
         action="store_true",
-        help="Trigger a new price build, as well as building MTGSQLite, and constructing compiled outputs.",
+        help="Build new prices, MTGSQLive, and compiled outputs like AllPrintings.",
     )
     parser.add_argument(
         "-x",
@@ -62,27 +62,30 @@ def parse_args() -> argparse.Namespace:
         "-p",
         "--pretty",
         action="store_true",
-        help="When dumping JSON files, prettify the contents instead of minify-ing them.",
+        help="When dumping JSON files, prettify the contents instead of minifying them.",
     )
     parser.add_argument(
+        "-SS",
         "--skip-sets",
         type=str.upper,
         nargs="*",
         metavar="SET",
         default=[],
-        help="Purposely exclude sets from the build that may have been set using --sets or --all.",
+        help="Purposely exclude sets from the build that may have been set using --sets or --all-sets.",
     )
 
-    mtgjson_arg_group = parser.add_argument_group("mtgjson only arguments")
+    mtgjson_arg_group = parser.add_argument_group("mtgjson maintainer arguments")
     mtgjson_arg_group.add_argument(
+        "-PB",
         "--price-build",
         action="store_true",
-        help="Compile updated pricing data and only updated pricing, disregarding all other flags and operations.",
+        help="Build updated pricing data then exit.",
     )
     mtgjson_arg_group.add_argument(
+        "-R",
         "--referrals",
         action="store_true",
-        help="Create and maintain a referral map for MTGJSON linkages.",
+        help="Create and maintain a referral map for referral linkages.",
     )
 
     # Show help menu if no arguments are passed
