@@ -84,12 +84,25 @@ class MtgjsonAtomicCardsObject:
 
             should_add_card = True
             for card_entry in self.atomic_cards_dict[card_name]:
-                if card_entry.get("purchaseUrls") == atomic_card.get("purchase_urls"):
+                if card_entry.get("text") == atomic_card.get("text"):
                     should_add_card = False
                     break
 
             if should_add_card:
                 self.atomic_cards_dict[card_name].append(atomic_card)
+
+            # ForeignData is consumable on all components, but not always
+            # included by upstreams. This updates foreignData if necessary
+            hold_entry = atomic_card
+            if not atomic_card["foreignData"]:
+                for entry in self.atomic_cards_dict[card_name]:
+                    if entry["foreignData"]:
+                        hold_entry = entry
+                        break
+
+            for entry in self.atomic_cards_dict[card_name]:
+                if entry.get("text") == hold_entry.get("text"):
+                    entry["foreignData"] = hold_entry["foreignData"]
 
     def to_json(self) -> Dict[str, List[Dict[str, Any]]]:
         """
