@@ -76,6 +76,7 @@ LANGUAGE_MAP: Dict[str, str] = {
     "grc": "Ancient Greek",
     "ar": "Arabic",
     "sa": "Sanskrit",
+    "ph": "Phyrexian",
     "px": "Phyrexian",
 }
 WIZARDS_SUPPORTED_LANGUAGES: List[Tuple[str, str]] = [
