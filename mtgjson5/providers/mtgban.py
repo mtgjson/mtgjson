@@ -6,7 +6,7 @@ from typing import Any, Dict, Union
 
 from singleton_decorator import singleton
 
-from ..providers.abstract_provider import AbstractProvider
+from ..providers.abstract import AbstractProvider
 from ..utils import retryable_session
 
 LOGGER = logging.getLogger(__name__)

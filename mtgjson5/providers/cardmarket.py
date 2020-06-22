@@ -17,7 +17,7 @@ from mkmsdk.mkm import Mkm
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
-from ..providers.abstract_provider import AbstractProvider
+from ..providers.abstract import AbstractProvider
 
 LOGGER = logging.getLogger(__name__)
 

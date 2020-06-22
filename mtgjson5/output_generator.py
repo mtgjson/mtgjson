@@ -26,7 +26,7 @@ from .consts import (
     SUPPORTED_SET_TYPES,
 )
 from .price_builder import build_prices, get_price_archive_data, should_build_new_prices
-from .providers.github_decks_provider import GitHubDecksProvider
+from .providers import GitHubDecksProvider
 from .utils import get_file_hash
 
 LOGGER = logging.getLogger(__name__)

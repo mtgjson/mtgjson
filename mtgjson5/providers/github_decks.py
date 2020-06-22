@@ -11,7 +11,7 @@ from singleton_decorator import singleton
 from ..classes.mtgjson_deck import MtgjsonDeckObject
 from ..compiled_classes import MtgjsonStructuresObject
 from ..consts import OUTPUT_PATH
-from ..providers.abstract_provider import AbstractProvider
+from ..providers.abstract import AbstractProvider
 from ..utils import parallel_call, retryable_session
 
 LOGGER = logging.getLogger(__name__)

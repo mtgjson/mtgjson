@@ -14,7 +14,7 @@ from singleton_decorator import singleton
 
 from ..compiled_classes.mtgjson_structures import MtgjsonStructuresObject
 from ..consts import CACHE_PATH, OUTPUT_PATH
-from ..providers.abstract_provider import AbstractProvider
+from ..providers.abstract import AbstractProvider
 
 LOGGER = logging.getLogger(__name__)
 

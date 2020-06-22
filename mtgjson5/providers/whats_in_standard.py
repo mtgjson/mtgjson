@@ -9,7 +9,7 @@ from typing import Any, Dict, Set, Union
 import dateutil.parser
 from singleton_decorator import singleton
 
-from ..providers.abstract_provider import AbstractProvider
+from ..providers.abstract import AbstractProvider
 from ..utils import retryable_session
 
 

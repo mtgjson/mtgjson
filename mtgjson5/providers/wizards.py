@@ -14,8 +14,8 @@ from singleton_decorator import singleton
 
 from ..classes import MtgjsonTranslationsObject
 from ..consts import CACHE_PATH, RESOURCE_PATH, WIZARDS_SUPPORTED_LANGUAGES
-from ..providers.abstract_provider import AbstractProvider
-from ..providers.scryfall_provider import ScryfallProvider
+from ..providers.abstract import AbstractProvider
+from ..providers.scryfall import ScryfallProvider
 from ..utils import parallel_call, retryable_session
 
 
