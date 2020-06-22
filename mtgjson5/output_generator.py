@@ -60,7 +60,7 @@ def generate_compiled_prices_output(
     :param price_data: Data to dump
     :param pretty_print: Pretty or minimal
     """
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().all_prices, price_data, pretty_print,
     )
 
@@ -73,7 +73,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     LOGGER.info("Building Compiled Outputs")
 
     # AllPrintings.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().all_printings,
         MtgjsonAllPrintingsObject(),
         pretty_print,
@@ -92,77 +92,72 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     generate_compiled_prices_output(price_data_cache, pretty_print)
 
     # CompiledList.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().compiled_list,
         MtgjsonCompiledListObject(),
         pretty_print,
     )
 
     # Keywords.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().key_words, MtgjsonKeywordsObject(), pretty_print,
     )
 
     # CardTypes.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().card_types, MtgjsonCardTypesObject(), pretty_print,
     )
 
     # Meta.json (Formerly version.json)
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().version, MtgjsonMetaObject(), pretty_print,
     )
 
     # SetList.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().set_list, MtgjsonSetListObject(), pretty_print
-    )
-
-    # EnumValues.json - Depends on Keywords.json
-    log_and_create_compiled_output(
-        MtgjsonStructuresObject().enum_values, MtgjsonEnumValuesObject(), pretty_print,
     )
 
     # Format specific set code split up
     format_map = construct_format_map()
 
     # StandardPrintings.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().all_printings_standard,
         MtgjsonAllPrintingsObject(format_map["standard"]),
         pretty_print,
     )
 
     # PioneerPrintings.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().all_printings_pioneer,
         MtgjsonAllPrintingsObject(format_map["pioneer"]),
         pretty_print,
     )
 
     # ModernPrintings.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().all_printings_modern,
         MtgjsonAllPrintingsObject(format_map["modern"]),
         pretty_print,
     )
 
     # LegacyPrintings.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().all_printings_legacy,
         MtgjsonAllPrintingsObject(format_map["legacy"]),
         pretty_print,
     )
 
     # VintagePrintings.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().all_printings_vintage,
         MtgjsonAllPrintingsObject(format_map["vintage"]),
         pretty_print,
     )
 
     # AtomicCards.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().atomic_cards,
         MtgjsonAtomicCardsObject(),
         pretty_print,
@@ -172,42 +167,42 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     card_format_map = construct_atomic_cards_format_map()
 
     # StandardCards.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().atomic_cards_standard,
         MtgjsonAtomicCardsObject(card_format_map["standard"]),
         pretty_print,
     )
 
     # PioneerCards.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().atomic_cards_pioneer,
         MtgjsonAtomicCardsObject(card_format_map["pioneer"]),
         pretty_print,
     )
 
     # ModernCards.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().atomic_cards_modern,
         MtgjsonAtomicCardsObject(card_format_map["modern"]),
         pretty_print,
     )
 
     # LegacyCards.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().atomic_cards_legacy,
         MtgjsonAtomicCardsObject(card_format_map["legacy"]),
         pretty_print,
     )
 
     # VintageCards.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().atomic_cards_vintage,
         MtgjsonAtomicCardsObject(card_format_map["vintage"]),
         pretty_print,
     )
 
     # PauperCards.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().atomic_cards_pauper,
         MtgjsonAtomicCardsObject(card_format_map["pauper"]),
         pretty_print,
@@ -217,7 +212,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     deck_names = []
     for mtgjson_deck_obj in GitHubDecksProvider().iterate_precon_decks():
         mtgjson_deck_header_obj = MtgjsonDeckHeaderObject(mtgjson_deck_obj)
-        log_and_create_compiled_output(
+        create_compiled_output(
             f"decks/{mtgjson_deck_header_obj.file_name}",
             mtgjson_deck_obj,
             pretty_print,
@@ -225,14 +220,19 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
         deck_names.append(mtgjson_deck_header_obj)
 
     # DeckList.json
-    log_and_create_compiled_output(
+    create_compiled_output(
         MtgjsonStructuresObject().deck_list,
         MtgjsonDeckListObject(deck_names),
         pretty_print,
     )
 
+    # EnumValues.json - Depends on Keywords & Decks
+    create_compiled_output(
+        MtgjsonStructuresObject().enum_values, MtgjsonEnumValuesObject(), pretty_print,
+    )
 
-def log_and_create_compiled_output(
+
+def create_compiled_output(
     compiled_name: str, compiled_object: Any, pretty_print: bool
 ) -> None:
     """
