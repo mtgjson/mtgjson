@@ -91,7 +91,7 @@ class CardMarketProvider(AbstractProvider):
                 -1 if math.isnan(value) else value for value in row[1].tolist()
             ]
 
-            product_id = int(columns[product_id_index])
+            product_id = str(int(columns[product_id_index]))
             if product_id in mtgjson_id_map.keys():
                 mtgjson_uuid = mtgjson_id_map[product_id]
                 avg_sell_price = columns[avg_sell_price_index]
@@ -116,7 +116,7 @@ class CardMarketProvider(AbstractProvider):
     @staticmethod
     def _generate_cardmarket_to_mtgjson_map(
         all_printings_path: pathlib.Path,
-    ) -> Dict[int, str]:
+    ) -> Dict[str, str]:
         """
         Generate a CardMarketID -> MTGJSON UUID map that can be used
         across the system.
@@ -126,11 +126,13 @@ class CardMarketProvider(AbstractProvider):
         with all_printings_path.expanduser().open(encoding="utf-8") as f:
             file_contents = json.load(f).get("data", {})
 
-        dump_map: Dict[int, str] = {}
+        dump_map: Dict[str, str] = {}
         for value in file_contents.values():
             for card in value.get("cards", []) + value.get("tokens", []):
-                if "mcmId" in card.keys():
-                    dump_map[card["mcmId"]] = card["uuid"]
+                try:
+                    dump_map[card["identifiers"]["mcmId"]] = card["uuid"]
+                except KeyError:
+                    pass
 
         return dump_map
 

@@ -67,8 +67,9 @@ class CardKingdomProvider(AbstractProvider):
 
         card_rows = request_api_response.get("data", [])
         for card in card_rows:
-            if card["id"] in translation_table.keys():
-                mtgjson_uuid = translation_table[card["id"]]
+            card_id = str(card["id"])
+            if card_id in translation_table.keys():
+                mtgjson_uuid = translation_table[card_id]
 
                 if mtgjson_uuid not in today_dict:
                     today_dict[mtgjson_uuid] = MtgjsonPricesObject(
@@ -100,9 +101,14 @@ class CardKingdomProvider(AbstractProvider):
         dump_map: Dict[str, str] = {}
         for value in file_contents.values():
             for card in value.get("cards", []) + value.get("tokens", []):
-                if "cardKingdomId" in card.keys():
-                    dump_map[card["cardKingdomId"]] = card["uuid"]
-                if "cardKingdomFoilId" in card.keys():
-                    dump_map[card["cardKingdomFoilId"]] = card["uuid"]
+                try:
+                    dump_map[card["identifiers"]["cardKingdomId"]] = card["uuid"]
+                except KeyError:
+                    pass
+
+                try:
+                    dump_map[card["identifiers"]["cardKingdomFoilId"]] = card["uuid"]
+                except KeyError:
+                    pass
 
         return dump_map

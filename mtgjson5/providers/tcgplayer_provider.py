@@ -132,6 +132,7 @@ class TCGPlayerProvider(AbstractProvider):
         :return: Prices to combine with others
         """
         if not self.__keys_found:
+            LOGGER.warning(f"Keys not found for TCGPlayer, skipping")
             return {}
 
         # Future ways to put this into shared memory so all threads can access
@@ -162,8 +163,10 @@ def generate_tcgplayer_to_mtgjson_map(
     dump_map: Dict[str, str] = {}
     for value in file_contents.values():
         for card in value.get("cards", []) + value.get("tokens", []):
-            if "tcgplayerProductId" in card.keys():
-                dump_map[card["tcgplayerProductId"]] = card["uuid"]
+            try:
+                dump_map[card["identifiers"]["tcgplayerProductId"]] = card["uuid"]
+            except KeyError:
+                pass
 
     return dump_map
 
