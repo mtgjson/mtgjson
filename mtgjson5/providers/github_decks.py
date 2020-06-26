@@ -9,7 +9,7 @@ from typing import Any, Dict, Iterator, List, Union
 from singleton_decorator import singleton
 
 from ..classes.mtgjson_deck import MtgjsonDeckObject
-from ..compiled_classes import MtgjsonStructuresObject
+from ..compiled_classes.mtgjson_structures import MtgjsonStructuresObject
 from ..consts import OUTPUT_PATH
 from ..providers.abstract import AbstractProvider
 from ..utils import parallel_call, retryable_session

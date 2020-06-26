@@ -30,6 +30,7 @@ class MtgjsonEnumValuesObject:
             "duelDeck",
             "frameEffects",
             "frameVersion",
+            "identifiers",
             "layout",
             "promoTypes",
             "rarity",
@@ -121,6 +122,12 @@ class MtgjsonEnumValuesObject:
 
                     # Get the value when actually needed
                     card_value = card[card_key]
+
+                    # For Dicts, we just enum the keys
+                    if isinstance(card_value, dict):
+                        for value in card_value.keys():
+                            type_map["card"][card_key].add(value)
+                        continue
 
                     # String, Integer, etc can be added as-is
                     if not isinstance(card_value, list):
