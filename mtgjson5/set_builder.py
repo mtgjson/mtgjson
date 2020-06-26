@@ -583,7 +583,7 @@ def build_mtgjson_card(
     mtgjson_card.edhrec_rank = scryfall_object.get("edhrec_rank")
     mtgjson_card.frame_effects = scryfall_object.get("frame_effects", "")
     mtgjson_card.frame_version = scryfall_object.get("frame", "")
-    mtgjson_card.keywords = scryfall_object.get("keywords", "")
+    mtgjson_card.keywords = sorted(scryfall_object.get("keywords", ""))
     mtgjson_card.hand = scryfall_object.get("hand_modifier")
     mtgjson_card.has_foil = scryfall_object.get("foil")
     mtgjson_card.has_non_foil = scryfall_object.get("nonfoil")
