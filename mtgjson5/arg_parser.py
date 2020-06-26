@@ -87,6 +87,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Create and maintain a referral map for referral linkages.",
     )
+    mtgjson_arg_group.add_argument(
+        "-NA",
+        "--no-alerts",
+        action="store_true",
+        help="Prevent push notifications from sending when property keys are defined.",
+    )
 
     # Show help menu if no arguments are passed
     if len(sys.argv) == 1:

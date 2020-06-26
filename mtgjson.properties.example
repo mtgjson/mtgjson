@@ -21,6 +21,10 @@ version=
 date=
 use_cache=
 
+[Pushover]
+app_token=
+user_tokens=
+
 [Scryfall]
 name=
 client_id=

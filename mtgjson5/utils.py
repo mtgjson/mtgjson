@@ -219,3 +219,42 @@ def get_str_or_none(value: Any) -> Optional[str]:
         return None
 
     return str(value)
+
+
+def send_push_notification(message: str) -> bool:
+    """
+    Send a push notification to project maintainers.
+    These alerts can be disabled by removing the Pushover
+    category from the properties file.
+    :param message: Message to send
+    :return If the message send successfully to everyone
+    """
+    pushover_app_token = consts.CONFIG.get("Pushover", "app_token")
+    pushover_app_users = list(
+        filter(None, consts.CONFIG.get("Pushover", "user_tokens").split(","))
+    )
+
+    if not pushover_app_token:
+        LOGGER.warning("Unable to send Pushover notification. App token not set.")
+        return False
+
+    if not pushover_app_users:
+        LOGGER.warning("Unable to send Pushover notification. No user keys set.")
+        return False
+
+    all_succeeded = True
+    for user in pushover_app_users:
+        response = requests.post(
+            "https://api.pushover.net/1/messages.json",
+            data={
+                "token": pushover_app_token,
+                "user": user,
+                "title": f"MTGJSON {consts.MTGJSON_VERSION}",
+                "message": message,
+            },
+        )
+        if not response.ok:
+            LOGGER.warning(f"Error sending Pushover notification: {response.text}")
+            all_succeeded = False
+
+    return all_succeeded
