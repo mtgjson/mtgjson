@@ -93,7 +93,7 @@ class MtgjsonCardTypesObject:
         """
         return {
             to_camel_case(key): value
-            for key, value in self.__dict__.items()
+            for key, value in self.types.items()
             if "__" not in key and not callable(value)
         }
 
