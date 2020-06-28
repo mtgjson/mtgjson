@@ -18,7 +18,7 @@ class MTGBanProvider(AbstractProvider):
     MTGBan container
     """
 
-    api_url: str = "http://157.245.255.185/api/mtgjson/ck.json?sig={}"
+    api_url: str = "https://www.mtgban.com/api/mtgjson/ck.json?sig={}"
     __mtgjson_to_card_kingdom: Dict[str, Dict[str, Dict[str, str]]]
 
     def __init__(self) -> None:
