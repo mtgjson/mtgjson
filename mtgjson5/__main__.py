@@ -8,6 +8,7 @@ gevent.monkey.patch_all()  # isort:skip
 
 import argparse
 import logging
+import traceback
 from typing import List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
@@ -94,10 +95,10 @@ def main() -> None:
         dispatcher(args)
         if not args.no_alerts:
             send_push_notification("Build finished")
-    except Exception as exception:
-        LOGGER.fatal(f"Exception caught: {exception}")
+    except Exception:
+        LOGGER.fatal(f"Exception caught: {traceback.format_exc()}")
         if not args.no_alerts:
-            send_push_notification(f"Build failed\n{exception}")
+            send_push_notification(f"Build failed\n{traceback.format_exc()}")
 
 
 if __name__ == "__main__":
