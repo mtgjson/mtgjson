@@ -36,18 +36,18 @@ class MtgjsonPricesObject:
         """
         buy_sell_option: Dict[str, Dict[str, Dict[str, float]]] = {}
         if (self.buy_normal is not None) or (self.buy_foil is not None):
-            buy_sell_option["buy"] = {"normal": {}, "foil": {}}
+            buy_sell_option["buylist"] = {"normal": {}, "foil": {}}
             if self.buy_normal is not None:
-                buy_sell_option["buy"]["normal"][self.date] = self.buy_normal
+                buy_sell_option["buylist"]["normal"][self.date] = self.buy_normal
             if self.buy_foil is not None:
-                buy_sell_option["buy"]["foil"][self.date] = self.buy_foil
+                buy_sell_option["buylist"]["foil"][self.date] = self.buy_foil
 
         if (self.sell_normal is not None) or (self.sell_foil is not None):
-            buy_sell_option["sell"] = {"normal": {}, "foil": {}}
+            buy_sell_option["retail"] = {"normal": {}, "foil": {}}
             if self.sell_normal is not None:
-                buy_sell_option["sell"]["normal"][self.date] = self.sell_normal
+                buy_sell_option["retail"]["normal"][self.date] = self.sell_normal
             if self.sell_foil is not None:
-                buy_sell_option["sell"]["foil"][self.date] = self.sell_foil
+                buy_sell_option["retail"]["foil"][self.date] = self.sell_foil
 
         return_object: Dict[str, Any] = {self.source: {self.provider: buy_sell_option}}
 
