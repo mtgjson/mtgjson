@@ -1,17 +1,13 @@
 """
 MTGJSON Compression Operations
 """
-import bz2
-import gzip
 import logging
-import lzma
 import pathlib
 import shutil
-import zipfile
-from typing import Any, Callable, List
+import subprocess
+from typing import List, Union
 
 from .compiled_classes import MtgjsonStructuresObject
-from .utils import parallel_call
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,41 +18,50 @@ def compress_mtgjson_contents(directory: pathlib.Path) -> None:
     :param directory Directory to compress
     """
     LOGGER.info(f"Starting compression on {directory.name}")
+
     single_set_files = [
         file
         for file in directory.glob("*.json")
         if file.stem not in MtgjsonStructuresObject().get_all_compiled_file_names()
     ]
-    parallel_call(_compress_mtgjson_file, single_set_files)
+    for set_file in single_set_files:
+        _compress_mtgjson_file(set_file)
 
     deck_files = list(directory.joinpath("decks").glob("*.json"))
-    parallel_call(_compress_mtgjson_file, deck_files)
+    for deck_file in deck_files:
+        _compress_mtgjson_file(deck_file)
 
-    sql_files = list(directory.glob("*.sql*"))
-    parallel_call(_compress_mtgjson_file, sql_files)
+    sql_files = list(directory.glob("*.sql")) + list(directory.glob("*.sqlite"))
+    for sql_file in sql_files:
+        _compress_mtgjson_file(sql_file)
 
     csv_files = list(directory.joinpath("csv").glob("*.csv"))
-    parallel_call(_compress_mtgjson_file, csv_files)
+    for csv_file in csv_files:
+        _compress_mtgjson_file(csv_file)
 
     compiled_files = [
         file
         for file in directory.glob("*.json")
         if file.stem in MtgjsonStructuresObject().get_all_compiled_file_names()
     ]
-    parallel_call(_compress_mtgjson_file, compiled_files)
+    for compiled_file in compiled_files:
+        _compress_mtgjson_file(compiled_file)
 
     if single_set_files:
         _compress_mtgjson_directory(
             single_set_files, directory, MtgjsonStructuresObject().all_sets_directory
         )
+
     if deck_files:
         _compress_mtgjson_directory(
             deck_files, directory, MtgjsonStructuresObject().all_decks_directory
         )
+
     if csv_files:
         _compress_mtgjson_directory(
             csv_files, directory, MtgjsonStructuresObject().all_csvs_directory
         )
+
     LOGGER.info(f"Finished compression on {directory.name}")
 
 
@@ -78,11 +83,13 @@ def _compress_mtgjson_directory(
 
     LOGGER.info(f"Compressing {output_file}")
 
-    args = [
-        (str(temp_dir), ext, str(temp_dir))
-        for ext in ("bztar", "gztar", "xztar", "zip")
+    compression_commands: List[List[Union[str, pathlib.Path]]] = [
+        ["tar", "-jcf", f"{temp_dir}.tar.bz2", "-C", temp_dir.parent, temp_dir.name,],
+        ["tar", "-Jcf", f"{temp_dir}.tar.xz", "-C", temp_dir.parent, temp_dir.name],
+        ["tar", "-zcf", f"{temp_dir}.tar.gz", "-C", temp_dir.parent, temp_dir.name],
+        ["zip", "-rj", f"{temp_dir}.zip", temp_dir],
     ]
-    parallel_call(shutil.make_archive, args, force_starmap=True)
+    _compressor(compression_commands)
 
     LOGGER.info(f"Removing temporary directory {output_file}")
     shutil.rmtree(temp_dir, ignore_errors=True)
@@ -94,25 +101,28 @@ def _compress_mtgjson_file(file: pathlib.Path) -> None:
     :param file: File to compress
     """
     LOGGER.info(f"Compressing {file.name}")
-    _compressor(file, ".bz2", bz2.compress)
-    _compressor(file, ".gz", gzip.compress)
-    _compressor(file, ".xz", lzma.compress)
 
-    with zipfile.ZipFile(str(file) + ".zip", "w") as zip_out:
-        zip_out.write(file, file.name, zipfile.ZIP_DEFLATED)
+    compression_commands: List[List[Union[str, pathlib.Path]]] = [
+        ["bzip2", "--keep", "--force", file],
+        ["gzip", "--keep", "--force", file],
+        ["xz", "--keep", "--force", file],
+        ["zip", "--junk-paths", f"{file}.zip", file],
+    ]
+    _compressor(compression_commands)
 
 
-def _compressor(
-    file: pathlib.Path,
-    new_file_ending: str,
-    compression_function: Callable[[Any], Any],
-) -> None:
+def _compressor(compression_commands: List[List[Union[str, pathlib.Path]]]) -> None:
     """
-    Compress a file using a compression function
-    :param file: File to compress
-    :param new_file_ending: Value to append to file
-    :param compression_function: Function to compress with
+    Execute a series of compression commands in true parallel
+    :param compression_commands: Function to compress with
     """
-    output_file = pathlib.Path(str(file) + new_file_ending)
-    with file.open("rb") as fp_in, output_file.open("wb") as fp_out:
-        fp_out.write(compression_function(fp_in.read()))
+    # Compress the file in parallel outside of Python
+    # Multiprocessing cannot be used with gevent
+    processes = [
+        subprocess.Popen(command, stdout=subprocess.DEVNULL)
+        for command in compression_commands
+    ]
+
+    for process in processes:
+        if process.wait() != 0:
+            LOGGER.error(f"Failed to compress {str(process.args)}")
