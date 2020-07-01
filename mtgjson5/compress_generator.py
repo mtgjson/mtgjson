@@ -31,7 +31,7 @@ def compress_mtgjson_contents(directory: pathlib.Path) -> None:
     for deck_file in deck_files:
         _compress_mtgjson_file(deck_file)
 
-    sql_files = list(directory.glob("*.sql*"))
+    sql_files = list(directory.glob("*.sql")) + list(directory.glob("*.sqlite"))
     for sql_file in sql_files:
         _compress_mtgjson_file(sql_file)
 
