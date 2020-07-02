@@ -270,7 +270,8 @@ class MTGJSONCard:
         Get unique card face identifier.
         :return: unique card face identifier
         """
-        if is_card:
+
+        if not {"Token", "Card"}.intersection(self.get("types")):
             #  As long as all cards have scryfallId (scryfallId, name) is enough to uniquely identify the card face
             # PROVIDER_ID prevents collision with card IDs from any future card provider
             id_source = (
