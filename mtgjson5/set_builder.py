@@ -524,9 +524,6 @@ def build_mtgjson_card(
     mtgjson_card.set_code = scryfall_object["set"]
     mtgjson_card.identifiers.scryfall_id = scryfall_object["id"]
     mtgjson_card.identifiers.scryfall_oracle_id = scryfall_object["oracle_id"]
-    mtgjson_card.identifiers.scryfall_illustration_id = scryfall_object.get(
-        "illustration_id"
-    )
 
     # Handle atypical cards
     face_data = scryfall_object
@@ -567,6 +564,10 @@ def build_mtgjson_card(
     # Start of single card builder
     if face_data.get("mana_cost"):
         mtgjson_card.mana_cost = face_data["mana_cost"]
+
+    mtgjson_card.identifiers.scryfall_illustration_id = scryfall_object.get(
+        "illustration_id", face_data.get("illustration_id")
+    )
 
     if not mtgjson_card.colors:
         mtgjson_card.colors = (
