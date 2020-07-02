@@ -265,13 +265,13 @@ class MTGJSONCard:
 
         self.__remove_unnecessary_fields()
 
-    def get_uuid(self, is_card: bool = True) -> str:
+    def get_uuid(self) -> str:
         """
         Get unique card face identifier.
         :return: unique card face identifier
         """
 
-        if not {"Token", "Card"}.intersection(self.get("types")):
+        if not {"Token", "Card"}.intersection(self.get("types", {})):
             #  As long as all cards have scryfallId (scryfallId, name) is enough to uniquely identify the card face
             # PROVIDER_ID prevents collision with card IDs from any future card provider
             id_source = (
