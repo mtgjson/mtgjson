@@ -472,20 +472,14 @@ def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
         )
 
 
-def add_uuid(mtgjson_card: MtgjsonCardObject, is_card: bool = True) -> None:
+def add_uuid(mtgjson_card: MtgjsonCardObject) -> None:
     """
     Construct a UUIDv5 for each MTGJSON card object
-    :param is_card: Is this a card or token object
     :param mtgjson_card: Card object
     """
-    if is_card:
-        id_source = (
-            ScryfallProvider().get_class_id()
-            + (mtgjson_card.identifiers.scryfall_id or "")
-            + mtgjson_card.name
-            + (mtgjson_card.face_name or "")
-        )
-    else:
+
+    if {"Token", "Card"}.intersection(mtgjson_card.types):
+        # Tokens have a special generation method
         id_source = (
             mtgjson_card.name
             + (mtgjson_card.face_name or "")
@@ -495,6 +489,17 @@ def add_uuid(mtgjson_card: MtgjsonCardObject, is_card: bool = True) -> None:
             + (mtgjson_card.side or "")
             + mtgjson_card.set_code[1:]
             + (mtgjson_card.identifiers.scryfall_id or "")
+            + (mtgjson_card.identifiers.scryfall_illustration_id or "")
+        )
+    else:
+        # Normal cards only need a few pieces of data
+        id_source = (
+            ScryfallProvider().get_class_id()
+            + (mtgjson_card.identifiers.scryfall_id or "")
+            + (mtgjson_card.identifiers.scryfall_illustration_id or "")
+            + mtgjson_card.set_code
+            + mtgjson_card.name
+            + (mtgjson_card.face_name or "")
         )
 
     mtgjson_card.uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
