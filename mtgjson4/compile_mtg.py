@@ -626,15 +626,17 @@ def build_mtgjson_card(
     face_data: Dict[str, Any] = sf_card
 
     if "card_faces" in sf_card:
+        face_data = sf_card["card_faces"][sf_card_face]
         single_card.set_all(
             {
                 "names": sf_card["name"].split(" // "),
                 "scryfallId": sf_card["id"],
                 "scryfallOracleId": sf_card["oracle_id"],
-                "scryfallIllustrationId": sf_card.get("illustration_id"),
+                "scryfallIllustrationId": sf_card.get(
+                    "illustration_id", face_data.get("illustration_id")
+                ),
             }
         )
-        face_data = sf_card["card_faces"][sf_card_face]
 
         # Split cards and rotational cards have this field, flip cards do not.
         # Remove rotational cards via the additional check
