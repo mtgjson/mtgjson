@@ -13,6 +13,7 @@ import unicodedata
 
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
+
 import mtgjson4
 from mtgjson4 import mtgjson_card, util
 from mtgjson4.mtgjson_card import MTGJSONCard

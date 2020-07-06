@@ -6,9 +6,9 @@ import datetime
 import logging
 from typing import Any, Dict, List, Optional
 
+import dateutil.relativedelta
 import requests
 
-import dateutil.relativedelta
 import mtgjson4
 from mtgjson4 import util
 

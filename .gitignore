@@ -110,11 +110,11 @@ venv3.7/
 # VS Code
 .vscode/
 
-.DS_Store
-
 # MTG JSON
+venv*/
 set_outputs/
 json_*/
+mtgjson_build_*/
 compiled_outputs/
 /trace.html
 /tests/test_*.yaml

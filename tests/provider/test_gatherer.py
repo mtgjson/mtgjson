@@ -2,8 +2,9 @@
 
 from typing import List
 
-from mtgjson4.provider import gatherer
 import pytest
+
+from mtgjson4.provider import gatherer
 
 
 @pytest.mark.parametrize(

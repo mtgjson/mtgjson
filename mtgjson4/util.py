@@ -12,12 +12,12 @@ import tempfile
 from typing import Any, Dict, List, Optional, Set
 import unicodedata
 
+import git
 import requests
 import requests.adapters
 import requests_cache
 import urllib3.util.retry
 
-import git
 import mtgjson4
 
 LOGGER = logging.getLogger(__name__)

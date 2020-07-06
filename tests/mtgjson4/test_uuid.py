@@ -1,7 +1,8 @@
 from typing import Any, Dict
 
-from mtgjson4.mtgjson_card import MTGJSONCard
 import pytest
+
+from mtgjson4.mtgjson_card import MTGJSONCard
 
 
 @pytest.mark.parametrize(
