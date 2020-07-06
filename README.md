@@ -1,7 +1,8 @@
 # [MTGJSON v5](https://mtgjson.com/)
 <div align="center"><img src="https://www.mtgjson.com/images/assets/logo-mtgjson-dark-blue.svg" height="100px" alt="MTGJSON Logo"/></div>
 
-<div align="center"><img src="https://img.shields.io/badge/dynamic/json.svg?label=Version&url=https%3A%2F%2Fmtgjson.com%2Fapi%2Fv5%2FMeta.json&query=%24.data.version&colorB=blue" alt="MTGJSON Version"/> <img src="https://img.shields.io/badge/dynamic/json.svg?label=Release%20Date&url=https%3A%2F%2Fmtgjson.com%2Fapi%2Fv5%2FMeta.json&query=%24.data.date&colorB=blue" alt="MTGJSON Version Date"/></div>
+<div align="center"><img src="https://img.shields.io/badge/dynamic/json.svg?label=Version&url=https%3A%2F%2Fmtgjson.com%2Fapi%2Fv5%2FMeta.json&query=%24.data.version&colorB=blue" alt="MTGJSON Version"/> <img src="https://img.shields.io/badge/dynamic/json.svg?label=Release%20Date&url=https%3A%2F%2Fmtgjson.com%2Fapi%2Fv5%2FMeta.json&query=%24.data.date&colorB=blue" alt="MTGJSON Version Date"/><br/><br/></div>
+
 
 MTGJSON is an open-source repository of [Magic: The Gathering](https://magic.wizards.com/) card data, specifically in [JSON](https://json.org/) and [CSV](https://en.wikipedia.org/wiki/Comma-separated_values) formats. This repository contains the build scripts we use to create our data sets.
 
