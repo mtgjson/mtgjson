@@ -53,7 +53,7 @@ Over time, MTGJSON has gone through a number of transitions to bring the best pr
 
 ## How to Use  
 ### For 99% of our Users  
-MTGJSON supplies precompiled databases at https://mtgjson.com/api/v5. **This is the recommended way to use our service**.  
+MTGJSON supplies precompiled databases at https://mtgjson.com/api/v5/ for our users. **This is the recommended way to use our service**.  
 
 As stated before, we pride ourselves on our documentation which can be found at https://mtgjson.com/. If you find anything to be unclear or ambiguous, please [open a ticket](https://github.com/mtgjson/mtgjson-website/issues) on our documentation repository so we can address your concern immediately.
 
