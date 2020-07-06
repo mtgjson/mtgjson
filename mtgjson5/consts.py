@@ -27,7 +27,7 @@ USE_CACHE: bool = CONFIG.get(
 ).lower().strip() == "true"
 
 # Useful MTGJSON Paths - Part 2
-OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"v{MTGJSON_VERSION}")
+OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"mtgjson_build_{MTGJSON_VERSION}")
 CACHE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(".mtgjson5_cache")
 LOG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
 
