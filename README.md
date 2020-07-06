@@ -1,5 +1,5 @@
 # [MTGJSON v5](https://mtgjson.com/)
-<div align="center"><img src="https://www.mtgjson.com/images/assets/logo-mtgjson-dark-blue.svg" height="100px" alt="MTGJSON Logo"/><br/><br/></div>
+<div align="center"><img src="https://www.mtgjson.com/images/assets/logo-mtgjson-dark-blue.svg" height="100px" alt="MTGJSON Logo"/></div>
 
 [![Changelog](https://img.shields.io/badge/dynamic/json.svg?label=Version&url=https%3A%2F%2Fmtgjson.com%2Fapi%2Fv5%2FMeta.json&query=%24.data.version&colorB=blue)](https://mtgjson.com/changelog/) [![Current Release Date](https://img.shields.io/badge/dynamic/json.svg?label=Release%20Date&url=https%3A%2F%2Fmtgjson.com%2Fapi%2Fv5%2FMeta.json&query=%24.data.date&colorB=blue)](https://mtgjson.com/changelog/)
 
@@ -8,8 +8,6 @@ MTGJSON is an open-source repository of [Magic: The Gathering](https://magic.wiz
 ## How to Contribute
 
 Running a project as large as ours isn't easy, and we rely on the community to help keep our project going. The community can support us through two different ways: financial contributions and code contributions.
-
-### Monetarily Wise
 
 [![Github Sponsors](https://img.shields.io/static/v1.svg?label=GitHub%20Sponsors&message=Support%20MTGJSON&color=34d058&logo=github)](https://github.com/sponsors/ZeldaZach)  
 We accept reoccurring donations via GitHub Sponsors, that grant priority support from MTGJSON maintainers and a special role on our Discord indicating your support.
@@ -20,8 +18,6 @@ We accept reoccurring donations via Patreon, that grant priority support from MT
 
 [![PayPal](https://img.shields.io/static/v1.svg?label=PayPal&message=Support%20MTGJSON&color=009cde&logo=paypal)](https://paypal.me/zachhalpern)  
 We accept one-time donations via PayPal, for those who want to say thank you to the project.
-
-### Time Wise  
 
 [![Code Contributions](https://img.shields.io/static/v1.svg?label=GitHub&message=Development&color=aaa&logo=github)](https://github.com/mtgjson)  
 We love it when the community contributes back to the project! If you'd like to help improve our data for the hundreds of projects and stores we support, do reach out via [Discord](https://mtgjson.com/discord)!  
