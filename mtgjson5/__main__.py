@@ -22,7 +22,7 @@ from mtgjson5.output_generator import (
 )
 from mtgjson5.price_builder import build_prices
 from mtgjson5.providers import GitHubMTGSqliteProvider, WhatsInStandardProvider
-from mtgjson5.referral_builder import build_and_write_referral_map
+from mtgjson5.referral_builder import build_and_write_referral_map, fixup_referral_map
 from mtgjson5.set_builder import build_mtgjson_set
 from mtgjson5.utils import init_logger, send_push_notification
 
@@ -55,6 +55,9 @@ def build_mtgjson_sets(
 
         # Dump set out to file
         write_set_file(compiled_set, output_pretty)
+
+    if sets_to_build and include_referrals:
+        fixup_referral_map()
 
 
 def dispatcher(args: argparse.Namespace) -> None:

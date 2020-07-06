@@ -626,16 +626,6 @@ def build_mtgjson_card(
         if card_type not in {"starterdeck", "planeswalkerdeck"}
     ]
 
-    mtgjson_card.raw_purchase_urls.update(scryfall_object.get("purchase_uris", {}))
-
-    if "tcgplayer_id" in scryfall_object:
-        mtgjson_card.identifiers.tcgplayer_product_id = str(
-            scryfall_object["tcgplayer_id"]
-        )
-        mtgjson_card.purchase_urls.tcgplayer = url_keygen(
-            mtgjson_card.identifiers.tcgplayer_product_id
-        )
-
     mtgjson_card.rarity = scryfall_object.get("rarity", "")
     if not mtgjson_card.artist:
         mtgjson_card.artist = scryfall_object.get("artist", "")
@@ -788,6 +778,16 @@ def build_mtgjson_card(
     add_uuid(mtgjson_card)
     add_leadership_skills(mtgjson_card)
 
+    # Add purchase URL components after UUIDs are finalized
+    mtgjson_card.raw_purchase_urls.update(scryfall_object.get("purchase_uris", {}))
+    if "tcgplayer_id" in scryfall_object:
+        mtgjson_card.identifiers.tcgplayer_product_id = str(
+            scryfall_object["tcgplayer_id"]
+        )
+        mtgjson_card.purchase_urls.tcgplayer = url_keygen(
+            mtgjson_card.identifiers.tcgplayer_product_id + mtgjson_card.uuid
+        )
+
     if is_token:
         reverse_related: List[str] = []
         if "all_parts" in scryfall_object:
@@ -897,7 +897,9 @@ def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
 
         if "normal" in entry:
             mtgjson_card.identifiers.card_kingdom_id = str(entry["normal"]["id"])
-            mtgjson_card.purchase_urls.card_kingdom = url_keygen(entry["normal"]["url"])
+            mtgjson_card.purchase_urls.card_kingdom = url_keygen(
+                entry["normal"]["url"] + mtgjson_card.uuid
+            )
             mtgjson_card.raw_purchase_urls.update(
                 {"cardKingdom": entry["normal"]["url"] + consts.CARD_KINGDOM_REFERRAL}
             )
@@ -905,7 +907,7 @@ def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
         if "foil" in entry:
             mtgjson_card.identifiers.card_kingdom_foil_id = str(entry["foil"]["id"])
             mtgjson_card.purchase_urls.card_kingdom_foil = url_keygen(
-                entry["foil"]["url"]
+                entry["foil"]["url"] + mtgjson_card.uuid
             )
             mtgjson_card.raw_purchase_urls.update(
                 {"cardKingdomFoil": entry["foil"]["url"] + consts.CARD_KINGDOM_REFERRAL}
@@ -956,6 +958,7 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
 
         mtgjson_card.purchase_urls.cardmarket = url_keygen(
             mtgjson_card.identifiers.mcm_id
+            + mtgjson_card.uuid
             + CARD_MARKET_BUFFER
             + mtgjson_card.identifiers.mcm_meta_id
         )

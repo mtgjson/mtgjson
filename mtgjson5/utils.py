@@ -44,15 +44,15 @@ def init_logger() -> None:
     logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 
-def url_keygen(prod_id: Union[int, str], with_leading: bool = True) -> str:
+def url_keygen(unique_seed: Union[int, str], with_leading: bool = True) -> str:
     """
     Generates a key that MTGJSON will use for redirection
-    :param prod_id: Seed
+    :param unique_seed: Link seed
     :param with_leading: Should URL be included
     :return: URL Key
     """
     return_value = "https://mtgjson.com/links/" if with_leading else ""
-    return f"{return_value}{hashlib.sha256(str(prod_id).encode()).hexdigest()[:16]}"
+    return f"{return_value}{hashlib.sha256(str(unique_seed).encode()).hexdigest()[:16]}"
 
 
 def to_camel_case(snake_str: str) -> str:

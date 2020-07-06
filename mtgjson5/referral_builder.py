@@ -57,3 +57,15 @@ def write_referral_map(single_set_referral_map: List[Tuple[str, str]]) -> None:
     with OUTPUT_PATH.joinpath("ReferralMap.json").open("a") as file:
         for entry in single_set_referral_map:
             file.write(f"/links/{entry[0]}\t{entry[1]};\n")
+
+
+def fixup_referral_map() -> None:
+    """
+    Sort and uniquify the referral map for proper Nginx support
+    """
+    with OUTPUT_PATH.joinpath("ReferralMap.json").open() as file:
+        lines = list(set(file.readlines()))
+        lines = sorted(lines)
+
+    with OUTPUT_PATH.joinpath("ReferralMap.json").open("w") as file:
+        file.writelines(lines)
