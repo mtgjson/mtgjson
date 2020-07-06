@@ -1,18 +1,26 @@
-sudo: true
-dist: xenial
-
+os: linux
+dist: bionic
 language: python
-python: "3.7"
-cache: pip
 
-before_install:
-  - pip install -U pip setuptools wheel
+jobs:
+  include:
+    - name: "MTGJSON5 Tox - Python 3.6"
+      before_install:
+        - "pip install -U pip setuptools wheel tox-travis"
+      install: "pip install -r requirements_test.txt"
+      script: tox
+      python: "3.6"
 
-install:
-  - pip install -r requirements.txt -r requirements_test.txt
+    - name: "MTGJSON5 Tox - Python 3.7"
+      before_install:
+        - "pip install -U pip setuptools wheel tox-travis"
+      install: "pip install -r requirements_test.txt"
+      script: tox
+      python: "3.7"
 
-script:
-  - PYTHONPATH=. pytest
-  - black --check --diff .
-  - pylint mtgjson4 tests
-  - npx eclint check $(git ls-files)
+    - name: "MTGJSON5 Tox - Python 3.8"
+      before_install:
+        - "pip install -U pip setuptools wheel tox-travis"
+      install: "pip install -r requirements_test.txt"
+      script: tox
+      python: "3.8"

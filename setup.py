@@ -1,27 +1,61 @@
-"""Installation setup for mtgjson4."""
+"""
+Installation setup for mtgjson5
+"""
+import configparser
+import pathlib
 
 import setuptools
 
-# Necessary for TOX
+# Establish project directory
+project_root: pathlib.Path = pathlib.Path(__file__).resolve().parent
+
+# Read config details to determine version-ing
+config_file = project_root.joinpath("mtgjson5/resources/mtgjson.properties")
+config = configparser.ConfigParser()
+if config_file.is_file():
+    config.read(str(config_file))
+
 setuptools.setup(
-    name="MTGJSON4",
-    version=setuptools.depends.get_module_constant("mtgjson4", "__VERSION__"),
-    author=setuptools.depends.get_module_constant("mtgjson4", "__MAINTAINER__"),
-    author_email=setuptools.depends.get_module_constant(
-        "mtgjson4", "__MAINTAINER_EMAIL__"
-    ),
-    url=setuptools.depends.get_module_constant("mtgjson4", "__REPO_URL__"),
-    description="Build JSON files for distribution for Magic: The Gathering",
-    long_description=open("README.md", "r").read(),
+    name="mtgjson5",
+    version=config.get("MTGJSON", "version", fallback="5.0.0+fallback"),
+    author="Zach Halpern",
+    author_email="zach@mtgjson.com",
+    url="https://mtgjson.com/",
+    description="Magic: the Gathering compiled database generator",
+    long_description=project_root.joinpath("README.md").open().read(),
     long_description_content_type="text/markdown",
-    license="GPL-3.0",
+    license="MIT",
     classifiers=[
+        "Intended Audience :: Developers",
+        "Intended Audience :: Education",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows :: Windows 10",
+        "Operating System :: Unix",
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
-        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python",
+        "Topic :: Database",
+        "Topic :: Software Development :: Version Control :: Git",
     ],
-    keywords="Magic: The Gathering, MTG, JSON, Card Games, Collectible, Trading Cards",
+    keywords=[
+        "Big Data",
+        "Card Games",
+        "Collectible",
+        "Database",
+        "JSON",
+        "MTG",
+        "MTGJSON",
+        "Trading Cards",
+        "Magic: The Gathering",
+    ],
+    include_package_data=True,
     packages=setuptools.find_packages(),
-    install_requires=["contextvars", "beautifulsoup4", "requests", "requests_cache"],
+    install_requires=project_root.joinpath("requirements.txt").open().readlines()
+    if project_root.joinpath("requirements.txt").is_file()
+    else [],  # Use the requirements file, if able
 )
