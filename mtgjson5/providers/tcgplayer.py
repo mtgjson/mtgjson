@@ -132,7 +132,7 @@ class TCGPlayerProvider(AbstractProvider):
         :return: Prices to combine with others
         """
         if not self.__keys_found:
-            LOGGER.warning(f"Keys not found for TCGPlayer, skipping")
+            LOGGER.warning("Keys not found for TCGPlayer, skipping")
             return {}
 
         # Future ways to put this into shared memory so all threads can access

@@ -84,7 +84,7 @@ def upload_prices_archive(
         origin.push()
         LOGGER.info("Pushed changes to GitHub repo")
     except git.GitCommandError:
-        LOGGER.warning(f"No changes found to GitHub repo, skipping")
+        LOGGER.warning("No changes found to GitHub repo, skipping")
 
     shutil.rmtree(github_repo_local_path)
 
@@ -218,7 +218,7 @@ def download_old_all_printings() -> None:
     """
     file_bytes = b""
     file_data = requests.get(
-        f"https://mtgjson.com/api/v5/AllPrintings.json.xz", stream=True
+        "https://mtgjson.com/api/v5/AllPrintings.json.xz", stream=True
     )
     for chunk in file_data.iter_content(chunk_size=1024 * 36):
         if chunk:
