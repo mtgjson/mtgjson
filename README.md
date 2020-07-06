@@ -1,5 +1,5 @@
 # [MTGJSON v5](https://mtgjson.com/)
-<p align="center"><img src="https://www.mtgjson.com/images/assets/logo-mtgjson-dark-blue.svg" height="100px" alt="MTGJSON Logo"/></p>
+<p align="center"><a href="https://mtgjson.com/"><img src="https://www.mtgjson.com/images/assets/logo-mtgjson-dark-blue.svg" height="100px" alt="MTGJSON Logo"/></a></p>
 <p align="center">
     <a href="https://mtgjson.com/changelog/"><img src="https://img.shields.io/badge/dynamic/json.svg?label=Version&url=https%3A%2F%2Fmtgjson.com%2Fapi%2Fv5%2FMeta.json&query=%24.data.version&colorB=blue" alt="MTGJSON Version"/></a> 
     <a href="https://mtgjson.com/changelog/"><img src="https://img.shields.io/badge/dynamic/json.svg?label=Release%20Date&url=https%3A%2F%2Fmtgjson.com%2Fapi%2Fv5%2FMeta.json&query=%24.data.date&colorB=blue" alt="MTGJSON Version Date"/></a>
