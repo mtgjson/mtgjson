@@ -117,6 +117,7 @@ venv*/
 set_outputs/
 json_*/
 v*/
+mtgjson_build_*/
 compiled_outputs/
 /trace.html
 /tests/test_*.yaml
