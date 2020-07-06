@@ -20,7 +20,9 @@ BASIC_LANDS: List[str] = ["Plains", "Island", "Swamp", "Mountain", "Forest"]
 
 # Globals -- paths
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
-COMPILED_OUTPUT_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath("json_" + __VERSION__)
+COMPILED_OUTPUT_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath(
+    "mtgjson_build_" + __VERSION__
+)
 LOG_DIR: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
 CONFIG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson.properties")
 RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson4").joinpath("resources")
