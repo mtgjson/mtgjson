@@ -278,6 +278,7 @@ def relocate_miscellaneous_tokens(mtgjson_set: MtgjsonSetObject) -> None:
     to be dealt with later down the line
     :param mtgjson_set: MTGJSON Set object
     """
+    LOGGER.info(f"Relocate tokens for {mtgjson_set.code}")
     token_types = {"token", "double_faced_token", "emblem", "art_series"}
 
     # Identify unique tokens from cards
@@ -297,6 +298,7 @@ def relocate_miscellaneous_tokens(mtgjson_set: MtgjsonSetObject) -> None:
         ScryfallProvider().download(ScryfallProvider().CARDS_URL + scryfall_id)
         for scryfall_id in tokens_found
     ]
+    LOGGER.info(f"Finished relocating tokens for {mtgjson_set.code}")
 
 
 def mark_duel_decks(set_code: str, mtgjson_cards: List[MtgjsonCardObject]) -> None:
@@ -307,6 +309,7 @@ def mark_duel_decks(set_code: str, mtgjson_cards: List[MtgjsonCardObject]) -> No
     :param set_code: Set to work on
     :param mtgjson_cards: Card Objects
     """
+    LOGGER.info(f"Marking duel deck status for {set_code}")
     if set_code.startswith("DD") or set_code in {"GS1"}:
         land_pile_marked = False
         side_letter_as_number = ord("a")
@@ -321,6 +324,7 @@ def mark_duel_decks(set_code: str, mtgjson_cards: List[MtgjsonCardObject]) -> No
                 land_pile_marked = False
 
             card.duel_deck = chr(side_letter_as_number)
+    LOGGER.info(f"Finished marking duel deck status for {set_code}")
 
 
 def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
@@ -407,6 +411,7 @@ def build_base_mtgjson_cards(
     :param is_token: Are tokens being copmiled?
     :return: Completed card objects
     """
+    LOGGER.info(f"Building cards for {set_code}")
     cards = ScryfallProvider().download_cards(set_code)
     cards.extend(additional_cards or [])
 
@@ -414,6 +419,7 @@ def build_base_mtgjson_cards(
         build_mtgjson_card, cards, fold_list=True, repeatable_args=(0, is_token)
     )
 
+    LOGGER.info(f"Finished building cards for {set_code}")
     return list(mtgjson_cards)
 
 
@@ -427,11 +433,13 @@ def add_is_starter_option(
     :param search_url: URL to search for cards in
     :param mtgjson_cards: Card Objects to modify
     """
+    LOGGER.info(f"Add starter data to {set_code}")
     starter_card_url = search_url.replace("&unique=", "++not:booster&unique=")
     starter_cards = ScryfallProvider().download(starter_card_url)
 
     if starter_cards["object"] == "error":
         LOGGER.debug(f"All cards in {set_code} are available in boosters")
+        LOGGER.info(f"Finished adding starter data to {set_code}")
         return
 
     for scryfall_object in starter_cards["data"]:
@@ -443,6 +451,7 @@ def add_is_starter_option(
 
         for card in mtgjson_cards_with_same_id:
             card.is_starter = True
+    LOGGER.info(f"Finished adding starter data to {set_code}")
 
 
 def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
@@ -822,6 +831,7 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
     if not mtgjson_set.cards:
         return
 
+    LOGGER.info(f"Adding variations for {mtgjson_set.code}")
     if mtgjson_set.cards[0].border_color == "silver":
         if mtgjson_set.code not in {"HHO", "UNH", "UST"}:
             return
@@ -881,13 +891,15 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
             if chr(9733) in card.number:
                 card.is_alternative = True
 
+    LOGGER.info(f"Finished adding variations for {mtgjson_set.code}")
+
 
 def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
     """
     Add the CardKingdom components, like IDs and purchase URLs
     :param mtgjson_set: MTGJSON Set
     """
-
+    LOGGER.info(f"Adding CK details for {mtgjson_set.code}")
     translation_table = MTGBanProvider().get_mtgjson_to_card_kingdom()
     for mtgjson_card in mtgjson_set.cards:
         if mtgjson_card.uuid not in translation_table:
@@ -912,6 +924,7 @@ def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
             mtgjson_card.raw_purchase_urls.update(
                 {"cardKingdomFoil": entry["foil"]["url"] + consts.CARD_KINGDOM_REFERRAL}
             )
+    LOGGER.info(f"Finished adding CK details for {mtgjson_set.code}")
 
 
 def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
@@ -919,6 +932,7 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
     Add the MKM components to a set's cards and tokens
     :param mtgjson_set: MTGJSON Set
     """
+    LOGGER.info(f"Adding MCM details for {mtgjson_set.code}")
     mkm_cards = CardMarketProvider().get_mkm_cards(mtgjson_set.mcm_id)
     for mtgjson_card in mtgjson_set.cards:
         delete_key = False
@@ -962,6 +976,8 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
             + CARD_MARKET_BUFFER
             + mtgjson_card.identifiers.mcm_meta_id
         )
+
+    LOGGER.info(f"Finished adding MCM details for {mtgjson_set.code}")
 
 
 def get_base_and_total_set_sizes(set_code: str) -> Tuple[int, int]:

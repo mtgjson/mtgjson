@@ -59,4 +59,5 @@ class GitHubBoostersProvider(AbstractProvider):
         :param set_code: Set to pull data from (case insensitive)
         :return Booster data, if applicable
         """
+        LOGGER.info(f"Getting booster data for {set_code}")
         return self.booster_data.get(set_code.upper())
