@@ -34,11 +34,11 @@ ___
   
 ## **About Us**  
 ### The Team  
-<img align="left" width="125" height="125" src="https://mtgjson.com/images/avatar-zach.jpg">  
+<img align="left" width="100" height="100" src="https://mtgjson.com/images/avatar-zach.webp">  
   
 The MTGJSON team has been lead by Zach Halpern since 2018, with support from an awesome group of people.  
 Our full team lineup can be found [MTGJSON's homepage](https://mtgjson.com/).  
- 
+
 ### Our Product  
 MTGJSON at its core is a database that can be downloaded for offline access to Magic: the Gathering card data. We pride ourselves on our [documentation](https://mtgjson.com/data-models/), and aim for full transparency with the community.  
   
