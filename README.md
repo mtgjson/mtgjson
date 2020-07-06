@@ -94,8 +94,8 @@ optional arguments:
   -a, --all-sets        Build all possible sets, overriding the --sets option.
   -c, --full-build      Build new prices, MTGSQLive, and compiled outputs like
                         AllPrintings.
-  -x, --resume-build    While determine what sets to build, ignore individual
-                        set files found in the output directory.
+  -x, --resume-build    While determining what sets to build, ignore
+                        individual set files found in the output directory.
   -z, --compress        Compress the output folder's contents for
                         distribution.
   -p, --pretty          When dumping JSON files, prettify the contents instead

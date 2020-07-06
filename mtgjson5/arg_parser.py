@@ -50,7 +50,7 @@ def parse_args() -> argparse.Namespace:
         "-x",
         "--resume-build",
         action="store_true",
-        help="While determine what sets to build, ignore individual set files found in the output directory.",
+        help="While determining what sets to build, ignore individual set files found in the output directory.",
     )
     parser.add_argument(
         "-z",
