@@ -10,14 +10,14 @@ Running a project as large as ours isn't easy, and we rely on the community to h
 
 ### Monetarily Wise
 
-[![Github Sponsors](https://img.shields.io/static/v1.svg?label=GitHub%20Sponsors&message=Support%20MTGJSON&color=34d058&logo=github)](https://github.com/sponsors/ZeldaZach) 
+[![Github Sponsors](https://img.shields.io/static/v1.svg?label=GitHub%20Sponsors&message=Support%20MTGJSON&color=34d058&logo=github)](https://github.com/sponsors/ZeldaZach)  
 We accept reoccurring donations via GitHub Sponsors, that grant priority support from MTGJSON maintainers and a special role on our Discord indicating your support.
 **This is the preferred approach for financial contributions, as the MTGJSON team pays _no fees_ for these types of donations!**
 
-[![Patreon](https://img.shields.io/static/v1.svg?label=Patreon&message=Support%20MTGJSON&color=f96854&logo=patreon)](https://patreon.com/mtgjson)
+[![Patreon](https://img.shields.io/static/v1.svg?label=Patreon&message=Support%20MTGJSON&color=f96854&logo=patreon)](https://patreon.com/mtgjson)  
 We accept reoccurring donations via Patreon, that grant priority support from MTGJSON maintainers and a special role on our Discord indicating your support.  
 
-[![PayPal](https://img.shields.io/static/v1.svg?label=PayPal&message=Support%20MTGJSON&color=009cde&logo=paypal)](https://paypal.me/zachhalpern)
+[![PayPal](https://img.shields.io/static/v1.svg?label=PayPal&message=Support%20MTGJSON&color=009cde&logo=paypal)](https://paypal.me/zachhalpern)  
 We accept one-time donations via PayPal, for those who want to say thank you to the project.
 
 ### Time Wise  
