@@ -34,7 +34,7 @@ The team stays in contact via [Discord](https://mtgjson.com/discord). The server
 ## About Us
 
 ### The Team  
-The MTGJSON team has been lead by Zach Halpern since 2018, with support from an awesome group of people. The full team lineup can be found [MTGJSON's homepage](https://mtgjson.com/).  
+The MTGJSON team has been led by Zach Halpern since 2018, with support from an awesome group of people. The full team lineup can be found [MTGJSON's homepage](https://mtgjson.com/).  
 
 ### Our Product
 MTGJSON at its core is a database that can be downloaded for offline access to Magic: the Gathering card data. We pride ourselves on our [documentation](https://mtgjson.com/data-models/), and aim for full transparency with the community.  
