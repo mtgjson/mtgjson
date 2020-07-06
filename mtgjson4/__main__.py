@@ -216,6 +216,8 @@ def main() -> None:
 
             mtgjson4.outputter.write_to_file(set_code.upper(), compiled, set_file=True)
 
+    mtgjson4.outputter.fixup_referral_map()
+
     # Compile the additional outputs
     if args.c:
         LOGGER.info("Compiling additional outputs")

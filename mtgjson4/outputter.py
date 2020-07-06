@@ -18,6 +18,22 @@ LOGGER = logging.getLogger(__name__)
 SESSION: contextvars.ContextVar = contextvars.ContextVar("SESSION")
 
 
+def fixup_referral_map() -> None:
+    """
+    Sort and uniquify the referral map for proper Nginx support
+    """
+    with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
+        f"{mtgjson4.REFERRAL_DB_OUTPUT}.json"
+    ).open() as file:
+        lines = list(set(file.readlines()))
+        lines = sorted(lines)
+
+    with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
+        f"{mtgjson4.REFERRAL_DB_OUTPUT}.json"
+    ).open("w") as file:
+        file.writelines(lines)
+
+
 def write_referral_url_information(data: Dict[str, str]) -> None:
     """
     Write out the URL redirection keys to file
@@ -25,10 +41,10 @@ def write_referral_url_information(data: Dict[str, str]) -> None:
     """
     mtgjson4.COMPILED_OUTPUT_DIR.mkdir(exist_ok=True)
     with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
-        mtgjson4.REFERRAL_DB_OUTPUT + ".json"
+        f"{mtgjson4.REFERRAL_DB_OUTPUT}.json"
     ).open("a", encoding="utf-8") as f:
         for key, value in data.items():
-            f.write(f"{key}\t{value}\n")
+            f.write(f"/links/{key}\t{value};\n")
 
 
 def write_deck_to_file(file_name: str, file_contents: Any) -> None:
