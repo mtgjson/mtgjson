@@ -19,6 +19,7 @@ disable=
     duplicate-code,
     line-too-long,
     logging-format-interpolation,
+    logging-fstring-interpolation,
     too-few-public-methods,
     too-many-arguments,
     too-many-branches,
