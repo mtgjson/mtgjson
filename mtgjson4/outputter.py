@@ -22,6 +22,11 @@ def fixup_referral_map() -> None:
     """
     Sort and uniquify the referral map for proper Nginx support
     """
+    if not mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
+        f"{mtgjson4.REFERRAL_DB_OUTPUT}.json"
+    ).is_file():
+        LOGGER.info("ReferralMap not found - Skipping fixup")
+
     with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
         f"{mtgjson4.REFERRAL_DB_OUTPUT}.json"
     ).open() as file:
