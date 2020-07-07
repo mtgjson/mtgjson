@@ -26,6 +26,7 @@ def fixup_referral_map() -> None:
         f"{mtgjson4.REFERRAL_DB_OUTPUT}.json"
     ).is_file():
         LOGGER.info("ReferralMap not found - Skipping fixup")
+        return
 
     with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
         f"{mtgjson4.REFERRAL_DB_OUTPUT}.json"
