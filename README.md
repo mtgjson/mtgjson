@@ -112,5 +112,11 @@ mtgjson maintainer arguments:
                         keys are defined.
 ```
 
+#### MTGJSON Environment Variables
+Due to how the new system is built, a few values are required to be set in the shell environment to be captured.
+- `MTGJSON5_DEBUG` When set to 1 or true, additional logging will be dumped to the output files
+- `MTGJSON5_OUTPUT_PATH` When set, MTGJSON will dump all outputs to a specific directory instead of the default
+    - Ex:  `MTGJSON5_OUTPUT_PATH=~/Desktop` will dump all outputs to `/home/USER/Desktop/mtgjson_build_5XXX`
+
 ## Licensing  
 MTGJSON is a freely available product under the [MIT License](https://github.com/mtgjson/mtgjson/blob/master/LICENSE.txt), allowing our users to enjoy Magic: the Gathering data free of charge, in perpetuity.

@@ -4,6 +4,7 @@ MTGJSON Consts for Building
 import configparser
 import datetime
 import hashlib
+import os
 import pathlib
 from typing import Dict, List, Set, Tuple
 
@@ -27,7 +28,12 @@ USE_CACHE: bool = CONFIG.get(
 ).lower().strip() == "true"
 
 # Useful MTGJSON Paths - Part 2
-OUTPUT_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(f"mtgjson_build_{MTGJSON_VERSION}")
+OUTPUT_PATH: pathlib.Path = (
+    pathlib.Path(os.environ.get("MTGJSON5_OUTPUT_PATH", TOP_LEVEL_DIR))
+    .expanduser()
+    .resolve()
+    .joinpath(f"mtgjson_build_{MTGJSON_VERSION}")
+)
 CACHE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(".mtgjson5_cache")
 LOG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
 

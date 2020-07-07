@@ -6,7 +6,6 @@ import logging
 import pathlib
 from typing import Any, Dict, List
 
-from . import utils
 from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject, MtgjsonSetObject
 from .compiled_classes import (
     MtgjsonAllPrintingsObject,
@@ -27,7 +26,7 @@ from .consts import (
 )
 from .price_builder import build_prices, get_price_archive_data, should_build_new_prices
 from .providers import GitHubDecksProvider
-from .utils import get_file_hash
+from .utils import fix_windows_set_name, get_file_hash
 
 LOGGER = logging.getLogger(__name__)
 
@@ -40,7 +39,7 @@ def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> 
     """
     OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
 
-    file_name: str = f"{utils.fix_windows_set_name(mtgjson_set_object.code)}.json"
+    file_name: str = f"{fix_windows_set_name(mtgjson_set_object.code)}.json"
     with OUTPUT_PATH.joinpath(file_name).open("w") as file:
         json.dump(
             obj={"data": mtgjson_set_object, "meta": MtgjsonMetaObject()},

@@ -33,7 +33,7 @@ def init_logger() -> None:
 
     logging.basicConfig(
         level=logging.DEBUG
-        if os.environ.get("DEBUG", "").lower() in ["true", "1"]
+        if os.environ.get("MTGJSON5_DEBUG", "").lower() in ["true", "1"]
         else logging.INFO,
         format="[%(levelname)s] %(asctime)s: %(message)s",
         handlers=[
