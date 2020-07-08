@@ -12,6 +12,11 @@ from typing import Dict, List, Set, Tuple
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson5").joinpath("resources")
 CONFIG_PATH: pathlib.Path = RESOURCE_PATH.joinpath("mtgjson.properties")
+ENV_OUT_PATH: pathlib.Path = (
+    pathlib.Path(os.environ.get("MTGJSON5_OUTPUT_PATH", TOP_LEVEL_DIR))
+    .expanduser()
+    .resolve()
+)
 
 # Load in MTGJSON config values
 CONFIG = configparser.ConfigParser()
@@ -28,14 +33,9 @@ USE_CACHE: bool = CONFIG.get(
 ).lower().strip() == "true"
 
 # Useful MTGJSON Paths - Part 2
-OUTPUT_PATH: pathlib.Path = (
-    pathlib.Path(os.environ.get("MTGJSON5_OUTPUT_PATH", TOP_LEVEL_DIR))
-    .expanduser()
-    .resolve()
-    .joinpath(f"mtgjson_build_{MTGJSON_VERSION}")
-)
+LOG_PATH: pathlib.Path = ENV_OUT_PATH.joinpath("mtgjson_logs")
+OUTPUT_PATH: pathlib.Path = ENV_OUT_PATH.joinpath(f"mtgjson_build_{MTGJSON_VERSION}")
 CACHE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(".mtgjson5_cache")
-LOG_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("logs")
 
 # Hash Details
 HASH_TO_GENERATE = hashlib.sha256()
