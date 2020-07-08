@@ -839,75 +839,72 @@ def build_mtgjson_card(
 
 def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None:
     """
-    For non-silver bordered sets, we will create a "variations"
-    field will be created that has UUID of repeat cards.
-    This will also mark alternative printings within a single set.
-    This will also set the otherFaceIds list.
-    :param mtgjson_set: <<CONST>> object for the file
-    :return: How many alternative printings were marked
+    Set the variations, other_face_ids, and is_alternative
+    statuses for all cards within the set object
+    :param mtgjson_set: MTGJSON Set Object to modify
     """
     if not mtgjson_set.cards:
         return
 
     LOGGER.info(f"Adding variations for {mtgjson_set.code}")
-    if mtgjson_set.cards[0].border_color == "silver":
-        if mtgjson_set.code not in {"HHO", "UNH", "UST"}:
-            return
-
-    for card in mtgjson_set.cards:
+    for this_card in mtgjson_set.cards:
         # Adds other face ID list
-        if card.get_names():
-            card.other_face_ids = []
-            for card_obj in mtgjson_set.cards:
-                if card_obj.face_name not in card.get_names():
+        if this_card.get_names():
+            this_card.other_face_ids = []
+            for other_card in mtgjson_set.cards:
+                if other_card.face_name not in this_card.get_names():
                     continue
 
-                if card_obj.uuid == card.uuid:
+                if other_card.uuid == this_card.uuid:
                     continue
 
-                if card.layout == "meld":
+                if this_card.layout == "meld":
                     # Meld cards should account for the other sides
-                    if card.side != card_obj.side:
-                        card.other_face_ids.append(card_obj.uuid)
-                elif card_obj.number:
+                    if this_card.side != other_card.side:
+                        this_card.other_face_ids.append(other_card.uuid)
+                elif other_card.number:
                     # Most split cards should have the same number
-                    if card_obj.number == card.number:
-                        card.other_face_ids.append(card_obj.uuid)
+                    if other_card.number == this_card.number:
+                        this_card.other_face_ids.append(other_card.uuid)
                 else:
                     # No number? No problem, just add it!
-                    card.other_face_ids.append(card_obj.uuid)
+                    this_card.other_face_ids.append(other_card.uuid)
 
         # Adds variations
         variations = [
             item.uuid
             for item in mtgjson_set.cards
-            if item.name.split(" (")[0] == card.name.split(" (")[0]
-            and item.face_name == card.face_name
-            and item.uuid != card.uuid
-            and (item.number != card.number if item.number else True)
+            if item.name.split(" (")[0] == this_card.name.split(" (")[0]
+            and item.face_name == this_card.face_name
+            and item.uuid != this_card.uuid
+            and (item.number != this_card.number if item.number else True)
         ]
 
         if variations:
-            card.variations = variations
+            this_card.variations = variations
 
         # Add alternative tag
         # Ignore singleton printings in set, as well as basics
-        if not variations or card.name in BASIC_LAND_NAMES:
+        if not variations or this_card.name in BASIC_LAND_NAMES:
             continue
 
         # Some hardcoded checking due to inconsistencies upstream
         if mtgjson_set.code.upper() in ["UNH", "10E"]:
             # Check for duplicates, mark the foils
-            if len(variations) >= 1 and card.has_foil and not card.has_non_foil:
-                card.is_alternative = True
+            if (
+                len(variations) >= 1
+                and this_card.has_foil
+                and not this_card.has_non_foil
+            ):
+                this_card.is_alternative = True
         elif mtgjson_set.code.upper() in ["CN2", "BBD"]:
             # Check for set number > set size
-            if int(card.number.replace(chr(9733), "")) > mtgjson_set.base_set_size:
-                card.is_alternative = True
+            if int(this_card.number.replace(chr(9733), "")) > mtgjson_set.base_set_size:
+                this_card.is_alternative = True
         else:
             # Check for a star in the number
-            if chr(9733) in card.number:
-                card.is_alternative = True
+            if chr(9733) in this_card.number:
+                this_card.is_alternative = True
 
     LOGGER.info(f"Finished adding variations for {mtgjson_set.code}")
 
