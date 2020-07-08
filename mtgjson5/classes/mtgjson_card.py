@@ -1,6 +1,7 @@
 """
 MTGJSON Singular Card Object
 """
+import json
 from typing import Any, Dict, List, Optional, Set
 
 from ..classes.mtgjson_foreign_data import MtgjsonForeignDataObject
@@ -11,6 +12,7 @@ from ..classes.mtgjson_legalities import MtgjsonLegalitiesObject
 from ..classes.mtgjson_prices import MtgjsonPricesObject
 from ..classes.mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
 from ..classes.mtgjson_rulings import MtgjsonRulingObject
+from ..consts import RESOURCE_PATH
 from ..utils import to_camel_case
 
 
@@ -74,7 +76,6 @@ class MtgjsonCardObject:
     rarity: str
     reverse_related: Optional[List[str]]
     rulings: List[MtgjsonRulingObject]
-    set_code: str
     side: Optional[str]
     subtypes: List[str]
     supertypes: List[str]
@@ -87,9 +88,11 @@ class MtgjsonCardObject:
     watermark: Optional[str]
 
     # Outside entities, not published
+    set_code: str
     is_token: bool
     raw_purchase_urls: Dict[str, str]
     __names: Optional[List[str]]
+    __watermark_resource: Dict[str, List[Any]]
 
     __allow_if_falsey = {
         "supertypes",
@@ -163,6 +166,7 @@ class MtgjsonCardObject:
         self.artist = ""
         self.layout = ""
         self.watermark = None
+        self.__watermark_resource = {}
         self.__names = []
         self.purchase_urls = MtgjsonPurchaseUrlsObject()
         self.side = None
@@ -212,6 +216,30 @@ class MtgjsonCardObject:
             self.__names.append(name)
         else:
             self.set_names([name])
+
+    def set_watermark(self, watermark: Optional[str]) -> None:
+        """
+        Watermarks sometimes aren't specific enough, so we
+        must manually update them. This only applies if the
+        watermark is "set" and then we will append the actual
+        set code to the watermark.
+        :param watermark: Current watermark
+        :return optional value
+        """
+        if not watermark:
+            return
+
+        if not self.__watermark_resource:
+            with RESOURCE_PATH.joinpath("set_code_watermarks.json").open() as f:
+                self.__watermark_resource = json.load(f)
+
+        if watermark == "set":
+            for card in self.__watermark_resource.get(self.set_code.upper(), []):
+                if self.name in card["name"].split(" // "):
+                    watermark = str(card["watermark"])
+                    break
+
+        self.watermark = watermark
 
     def get_atomic_keys(self) -> List[str]:
         """

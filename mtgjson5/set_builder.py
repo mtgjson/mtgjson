@@ -553,7 +553,7 @@ def build_mtgjson_card(
 
     mtgjson_card.name = scryfall_object["name"]
     mtgjson_card.flavor_name = scryfall_object.get("flavor_name")
-    mtgjson_card.set_code = scryfall_object["set"]
+    mtgjson_card.set_code = scryfall_object["set"].lower()
     mtgjson_card.identifiers.scryfall_id = scryfall_object["id"]
     mtgjson_card.identifiers.scryfall_oracle_id = scryfall_object["oracle_id"]
 
@@ -582,7 +582,7 @@ def build_mtgjson_card(
                 face_data.get("mana_cost", "0")
             )
 
-        mtgjson_card.watermark = scryfall_object["card_faces"][0].get("watermark")
+        mtgjson_card.set_watermark(scryfall_object["card_faces"][0].get("watermark"))
 
         if scryfall_object["card_faces"][-1]["oracle_text"].startswith("Aftermath"):
             mtgjson_card.layout = "aftermath"
@@ -659,7 +659,7 @@ def build_mtgjson_card(
     if not mtgjson_card.layout:
         mtgjson_card.layout = scryfall_object.get("layout", "")
     if not mtgjson_card.watermark:
-        mtgjson_card.watermark = face_data.get("watermark")
+        mtgjson_card.set_watermark(face_data.get("watermark"))
 
     # Indicate if this component exists on the platform
     mtgjson_card.availability = MtgjsonGameFormatsObject()
