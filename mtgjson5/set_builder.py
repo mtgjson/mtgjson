@@ -94,7 +94,8 @@ def parse_foreign(
         card_foreign_entry.flavor_text = foreign_card.get("flavor_text")
         card_foreign_entry.type = foreign_card.get("printed_type_line")
 
-        card_foreign_entries.append(card_foreign_entry)
+        if card_foreign_entry.name:
+            card_foreign_entries.append(card_foreign_entry)
 
     return card_foreign_entries
 
