@@ -1,7 +1,9 @@
 """
 CardHoarder 3rd party provider
 """
+import json
 import logging
+import pathlib
 from typing import Any, Dict, List, Union
 
 from singleton_decorator import singleton
@@ -61,16 +63,44 @@ class CardHoarderProvider(AbstractProvider):
 
         return response.content.decode()
 
-    def convert_cardhoarder_to_mtgjson(self, url_to_parse: str) -> Dict[str, float]:
+    @staticmethod
+    def generate_mtgjson4_to_mtgjson5_map(
+        all_printings_path: pathlib.Path,
+    ) -> Dict[str, str]:
+        """
+        Generate a MTGJSON UUID 4 -> MTGJSON UUID 5 map that can be used
+        across the system.
+        :param all_printings_path: Path to JSON compiled version
+        :return: Map of UUID4 -> MTGJSON UUID 5
+        """
+        with all_printings_path.expanduser().open(encoding="utf-8") as f:
+            file_contents = json.load(f).get("data", {})
+
+        dump_map: Dict[str, str] = {}
+        for value in file_contents.values():
+            for card in value.get("cards", []) + value.get("tokens", []):
+                try:
+                    dump_map[card["identifiers"]["mtgjsonV4Id"]] = card["uuid"]
+                except KeyError:
+                    pass
+
+        return dump_map
+
+    def convert_cardhoarder_to_mtgjson(
+        self, url_to_parse: str, all_printings_path: pathlib.Path
+    ) -> Dict[str, float]:
         """
         Download CardHoarder cards and convert them into a more
         consumable format for further processing.
         :param url_to_parse: URL to download CardHoarder cards from
+        :param all_printings_path: Path to AllPrintings on the system
         :return: Consumable dictionary
         """
         request_api_response: str = self.download(url_to_parse)
 
         mtgjson_to_price = {}
+
+        mtgjson_4_to_5_map = self.generate_mtgjson4_to_mtgjson5_map(all_printings_path)
 
         # All Entries from CH, cutting off headers
         card_rows: List[str] = request_api_response.splitlines()[2:]
@@ -80,11 +110,17 @@ class CardHoarderProvider(AbstractProvider):
             # We're only indexing cards with MTGJSON UUIDs
             if len(split_row[-1]) > 3:
                 # Last Row = UUID, 5th Row = Price
-                mtgjson_to_price[split_row[-1]] = float(split_row[5])
+                if split_row[-1] in mtgjson_4_to_5_map:
+                    # Temporary translation of v4->v5 IDs
+                    new_uuid = mtgjson_4_to_5_map[split_row[-1]]
+                    mtgjson_to_price[new_uuid] = float(split_row[5])
+                    LOGGER.warning(split_row[-1])
 
         return mtgjson_to_price
 
-    def generate_today_price_dict(self, _: Any) -> Dict[str, MtgjsonPricesObject]:
+    def generate_today_price_dict(
+        self, all_printings_path: Any
+    ) -> Dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure for MTGO from CardHoarder
         :return MTGJSON prices single day structure
@@ -92,8 +128,12 @@ class CardHoarderProvider(AbstractProvider):
         if not self.__keys_found:
             return {}
 
-        normal_cards = self.convert_cardhoarder_to_mtgjson(self.ch_api_url)
-        foil_cards = self.convert_cardhoarder_to_mtgjson(self.ch_api_url + "/foil")
+        normal_cards = self.convert_cardhoarder_to_mtgjson(
+            self.ch_api_url, all_printings_path
+        )
+        foil_cards = self.convert_cardhoarder_to_mtgjson(
+            self.ch_api_url + "/foil", all_printings_path
+        )
 
         db_contents: Dict[str, MtgjsonPricesObject] = {}
 
