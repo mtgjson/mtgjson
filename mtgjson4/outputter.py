@@ -22,22 +22,30 @@ def fixup_referral_map() -> None:
     """
     Sort and uniquify the referral map for proper Nginx support
     """
-    if not mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
+    referral_file = mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
         f"{mtgjson4.REFERRAL_DB_OUTPUT}.json"
-    ).is_file():
+    )
+
+    if not referral_file.is_file():
         LOGGER.info("ReferralMap not found - Skipping fixup")
         return
 
-    with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
-        f"{mtgjson4.REFERRAL_DB_OUTPUT}.json"
-    ).open() as file:
-        lines = list(set(file.readlines()))
-        lines = sorted(lines)
+    with referral_file.open() as file:
+        lines = file.readlines()
 
-    with mtgjson4.COMPILED_OUTPUT_DIR.joinpath(
-        f"{mtgjson4.REFERRAL_DB_OUTPUT}.json"
-    ).open("w") as file:
-        file.writelines(lines)
+    links_found = set()
+    unique_lines = []
+
+    for line in reversed(lines):
+        link = line.split("\t")[0]
+        if link not in links_found:
+            links_found.add(link)
+            unique_lines.append(line)
+
+    unique_lines = sorted(unique_lines)
+
+    with referral_file.open("w") as file:
+        file.writelines(unique_lines)
 
 
 def write_referral_url_information(data: Dict[str, str]) -> None:
