@@ -484,34 +484,52 @@ def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
 def add_uuid(mtgjson_card: MtgjsonCardObject) -> None:
     """
     Construct a UUIDv5 for each MTGJSON card object
+    This will also add UUIDv4 for legacy support
     :param mtgjson_card: Card object
     """
 
     if {"Token", "Card"}.intersection(mtgjson_card.types):
         # Tokens have a special generation method
-        id_source = (
+        id_source_v5 = (
             mtgjson_card.name
             + (mtgjson_card.face_name or "")
             + "".join((mtgjson_card.colors or ""))
             + (mtgjson_card.power or "")
             + (mtgjson_card.toughness or "")
             + (mtgjson_card.side or "")
-            + mtgjson_card.set_code[1:]
+            + mtgjson_card.set_code[1:].lower()
             + (mtgjson_card.identifiers.scryfall_id or "")
             + (mtgjson_card.identifiers.scryfall_illustration_id or "")
         )
+
+        id_source_v4 = (
+            mtgjson_card.name
+            + "".join((mtgjson_card.colors or ""))
+            + (mtgjson_card.power or "")
+            + (mtgjson_card.toughness or "")
+            + (mtgjson_card.side or "")
+            + mtgjson_card.set_code[1:].upper()
+            + (mtgjson_card.identifiers.scryfall_id or "")
+        )
     else:
         # Normal cards only need a few pieces of data
-        id_source = (
+        id_source_v5 = (
             ScryfallProvider().get_class_id()
             + (mtgjson_card.identifiers.scryfall_id or "")
             + (mtgjson_card.identifiers.scryfall_illustration_id or "")
-            + mtgjson_card.set_code
+            + mtgjson_card.set_code.lower()
             + mtgjson_card.name
             + (mtgjson_card.face_name or "")
         )
 
-    mtgjson_card.uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source))
+        id_source_v4 = (
+            "sf" + (mtgjson_card.identifiers.scryfall_id or "") + mtgjson_card.name
+        )
+
+    mtgjson_card.uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v5))
+    mtgjson_card.identifiers.mtgjson_v4_id = str(
+        uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v4)
+    )
 
 
 def build_mtgjson_card(

@@ -23,6 +23,7 @@ class MtgjsonIdentifiersObject:
     scryfall_illustration_id: Optional[str]
     scryfall_oracle_id: Optional[str]
     tcgplayer_product_id: Optional[str]
+    mtgjson_v4_id: Optional[str]
 
     def __init__(self) -> None:
         """
