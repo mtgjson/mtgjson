@@ -795,7 +795,7 @@ def build_mtgjson_card(
 
     mtgjson_card.foreign_data = parse_foreign(
         scryfall_object["prints_search_uri"].replace("%22", ""),
-        mtgjson_card.name,
+        mtgjson_card.face_name if mtgjson_card.face_name else mtgjson_card.name,
         mtgjson_card.number,
         mtgjson_card.set_code,
     )
