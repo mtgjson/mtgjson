@@ -1,13 +1,18 @@
 ---
 name: Bug Report
-about: File a bug report to help MTGJSONv4 improve
+about: File a bug report to help improve MTGJSON
 title: ''
 labels: ''
 assignees: ''
 
 ---
 
-<!-- Thanks for helping to improve MTGJSONv4!-->
-#### MTGJSON Version: 4.X.X
+#### Version(s) affected
+- [ ] MTGJSON 4
+- [ ] MTGJSON 5
 
-#### Description of Bug:
+#### Version(s) tested against
+<!-- Write in what version of MTGJSON you are working with -->
+<!-- Example: "MTGJSON 5.0.0+20200703" -->
+
+#### Description of Bug
