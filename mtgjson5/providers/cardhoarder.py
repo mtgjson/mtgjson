@@ -114,7 +114,8 @@ class CardHoarderProvider(AbstractProvider):
                     # Temporary translation of v4->v5 IDs
                     new_uuid = mtgjson_4_to_5_map[split_row[-1]]
                     mtgjson_to_price[new_uuid] = float(split_row[5])
-                    LOGGER.warning(split_row[-1])
+                else:
+                    LOGGER.warning(f"Unable to find {split_row} match")
 
         return mtgjson_to_price
 
