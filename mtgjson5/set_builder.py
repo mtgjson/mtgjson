@@ -504,7 +504,7 @@ def add_uuid(mtgjson_card: MtgjsonCardObject) -> None:
         )
 
         id_source_v4 = (
-            mtgjson_card.name
+            (mtgjson_card.face_name if mtgjson_card.face_name else mtgjson_card.name)
             + "".join((mtgjson_card.colors or ""))
             + (mtgjson_card.power or "")
             + (mtgjson_card.toughness or "")
@@ -524,7 +524,9 @@ def add_uuid(mtgjson_card: MtgjsonCardObject) -> None:
         )
 
         id_source_v4 = (
-            "sf" + (mtgjson_card.identifiers.scryfall_id or "") + mtgjson_card.name
+            "sf"
+            + (mtgjson_card.identifiers.scryfall_id or "")
+            + (mtgjson_card.face_name if mtgjson_card.face_name else mtgjson_card.name)
         )
 
     mtgjson_card.uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v5))
