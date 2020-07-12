@@ -619,7 +619,6 @@ def build_mtgjson_card(
     mtgjson_card.edhrec_rank = scryfall_object.get("edhrec_rank")
     mtgjson_card.frame_effects = scryfall_object.get("frame_effects", "")
     mtgjson_card.frame_version = scryfall_object.get("frame", "")
-    mtgjson_card.keywords = sorted(scryfall_object.get("keywords", ""))
     mtgjson_card.hand = scryfall_object.get("hand_modifier")
     mtgjson_card.has_foil = scryfall_object.get("foil")
     mtgjson_card.has_non_foil = scryfall_object.get("nonfoil")
@@ -743,6 +742,13 @@ def build_mtgjson_card(
 
     if "Planeswalker" in mtgjson_card.types:
         mtgjson_card.text = re.sub(r"([+−-]?[0-9X]+):", r"[\1]:", mtgjson_card.text)
+
+    # Keywords have to be split up on our end for individual card faces
+    mtgjson_card.keywords = [
+        keyword
+        for keyword in sorted(scryfall_object.get("keywords", []))
+        if keyword.lower() in mtgjson_card.text.lower()
+    ]
 
     # Handle Meld components, as well as tokens
     if "all_parts" in scryfall_object.keys():
