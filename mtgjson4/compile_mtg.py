@@ -950,7 +950,7 @@ def mtgjson_custom_fields(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
         is_oathbreaker = "Planeswalker" in card.get("type")
 
         # Cards that can be your brawl commander
-        is_brawl = card.get("set") in util.get_standard_sets() and (
+        is_brawl = card.get("set", "").upper() in util.get_standard_sets() and (
             is_oathbreaker or is_commander
         )
 
