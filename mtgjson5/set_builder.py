@@ -472,7 +472,7 @@ def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
 
     is_oathbreaker_legal = "Planeswalker" in mtgjson_card.type
 
-    is_brawl_legal = mtgjson_card.set_code in WhatsInStandardProvider().set_codes and (
+    is_brawl_legal = mtgjson_card.set_code.upper() in WhatsInStandardProvider().set_codes and (
         is_oathbreaker_legal or is_commander_legal
     )
 
@@ -727,7 +727,7 @@ def build_mtgjson_card(
 
     # Implicit Variables
     mtgjson_card.is_timeshifted = (
-        scryfall_object.get("frame") == "future" or mtgjson_card.set_code == "TSB"
+        scryfall_object.get("frame") == "future" or mtgjson_card.set_code == "tsb"
     )
     mtgjson_card.printings = parse_printings(
         scryfall_object["prints_search_uri"].replace("%22", "")
