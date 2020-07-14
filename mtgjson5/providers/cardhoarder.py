@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Union
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
+from ..consts import RESOURCE_PATH
 from ..providers.abstract import AbstractProvider
 from ..utils import retryable_session
 
@@ -102,11 +103,21 @@ class CardHoarderProvider(AbstractProvider):
 
         mtgjson_4_to_5_map = self.generate_mtgjson4_to_mtgjson5_map(all_printings_path)
 
+        # TEMPORARY WORKAROUND FOR MISSING UPSTREAM IDs
+        with RESOURCE_PATH.joinpath("mtgo_to_mtgjson_v4.json").open() as file:
+            mtgo_to_mtgjson_v4 = json.load(file)
+
         # All Entries from CH, cutting off headers
         card_rows: List[str] = request_api_response.splitlines()[2:]
 
         for card_row in card_rows:
             split_row = card_row.split("\t")
+
+            # TEMPORARY WORKAROUND FOR MISSING UPSTREAM IDs
+            if len(split_row[-1]) <= 3:
+                # Grab mtgjson ID via MTGO ID, if available
+                split_row[-1] = mtgo_to_mtgjson_v4.get(split_row[0], "")
+
             # We're only indexing cards with MTGJSON UUIDs
             if len(split_row[-1]) > 3:
                 # Last Row = UUID, 5th Row = Price
