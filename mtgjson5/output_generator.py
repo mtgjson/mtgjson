@@ -64,104 +64,55 @@ def generate_compiled_prices_output(
     )
 
 
-def generate_compiled_output_files(pretty_print: bool) -> None:
+def build_format_specific_files(pretty_print: bool) -> None:
     """
-    Create and dump all compiled outputs
-    :param pretty_print: Pretty or minimal
+    Compile *Printings files based on AllPrintings
+    :param pretty_print: Should outputs be pretty or minimal
     """
-    LOGGER.info("Building Compiled Outputs")
-
-    # AllPrintings.json
-    create_compiled_output(
-        MtgjsonStructuresObject().all_printings,
-        MtgjsonAllPrintingsObject(),
-        pretty_print,
-    )
-
-    # If a full build, build prices then build sets
-    # Otherwise just load up the prices cache
-    if should_build_new_prices():
-        LOGGER.info("Full Build - Building Prices")
-        price_data_cache = build_prices()
-    else:
-        LOGGER.info("Full Build - Installing Price Cache")
-        price_data_cache = get_price_archive_data()
-
-    # AllPrices.json
-    generate_compiled_prices_output(price_data_cache, pretty_print)
-
-    # CompiledList.json
-    create_compiled_output(
-        MtgjsonStructuresObject().compiled_list,
-        MtgjsonCompiledListObject(),
-        pretty_print,
-    )
-
-    # Keywords.json
-    create_compiled_output(
-        MtgjsonStructuresObject().key_words, MtgjsonKeywordsObject(), pretty_print,
-    )
-
-    # CardTypes.json
-    create_compiled_output(
-        MtgjsonStructuresObject().card_types, MtgjsonCardTypesObject(), pretty_print,
-    )
-
-    # Meta.json (Formerly version.json)
-    create_compiled_output(
-        MtgjsonStructuresObject().version, MtgjsonMetaObject(), pretty_print,
-    )
-
-    # SetList.json
-    create_compiled_output(
-        MtgjsonStructuresObject().set_list, MtgjsonSetListObject(), pretty_print
-    )
-
     # Format specific set code split up
     format_map = construct_format_map()
 
-    # StandardPrintings.json
+    # Standard.json
     create_compiled_output(
         MtgjsonStructuresObject().all_printings_standard,
         MtgjsonAllPrintingsObject(format_map["standard"]),
         pretty_print,
     )
 
-    # PioneerPrintings.json
+    # Pioneer.json
     create_compiled_output(
         MtgjsonStructuresObject().all_printings_pioneer,
         MtgjsonAllPrintingsObject(format_map["pioneer"]),
         pretty_print,
     )
 
-    # ModernPrintings.json
+    # Modern.json
     create_compiled_output(
         MtgjsonStructuresObject().all_printings_modern,
         MtgjsonAllPrintingsObject(format_map["modern"]),
         pretty_print,
     )
 
-    # LegacyPrintings.json
+    # Legacy.json
     create_compiled_output(
         MtgjsonStructuresObject().all_printings_legacy,
         MtgjsonAllPrintingsObject(format_map["legacy"]),
         pretty_print,
     )
 
-    # VintagePrintings.json
+    # Vintage.json
     create_compiled_output(
         MtgjsonStructuresObject().all_printings_vintage,
         MtgjsonAllPrintingsObject(format_map["vintage"]),
         pretty_print,
     )
 
-    # AtomicCards.json
-    create_compiled_output(
-        MtgjsonStructuresObject().atomic_cards,
-        MtgjsonAtomicCardsObject(),
-        pretty_print,
-    )
 
+def build_atomic_specific_files(pretty_print: bool) -> None:
+    """
+    Compile *Atomic files based on AtomicCards
+    :param pretty_print: Should outputs be pretty or minimal
+    """
     # Format specific card split up
     card_format_map = construct_atomic_cards_format_map()
 
@@ -206,6 +157,82 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
         MtgjsonAtomicCardsObject(card_format_map["pauper"]),
         pretty_print,
     )
+
+
+def build_price_specific_files(pretty_print: bool) -> None:
+    """
+    Build prices related files (in this case, only one file)
+    :param pretty_print: Should outputs be pretty or minimal
+    """
+    # If a full build, build prices then build sets
+    # Otherwise just load up the prices cache
+    if should_build_new_prices():
+        LOGGER.info("Full Build - Building Prices")
+        price_data_cache = build_prices()
+    else:
+        LOGGER.info("Full Build - Installing Price Cache")
+        price_data_cache = get_price_archive_data()
+
+    # AllPrices.json
+    generate_compiled_prices_output(price_data_cache, pretty_print)
+
+
+def generate_compiled_output_files(pretty_print: bool) -> None:
+    """
+    Create and dump all compiled outputs
+    :param pretty_print: Pretty or minimal
+    """
+    LOGGER.info("Building Compiled Outputs")
+
+    # AllPrintings.json
+    create_compiled_output(
+        MtgjsonStructuresObject().all_printings,
+        MtgjsonAllPrintingsObject(),
+        pretty_print,
+    )
+
+    # AllPrices.json
+    build_price_specific_files(pretty_print)
+
+    # CompiledList.json
+    create_compiled_output(
+        MtgjsonStructuresObject().compiled_list,
+        MtgjsonCompiledListObject(),
+        pretty_print,
+    )
+
+    # Keywords.json
+    create_compiled_output(
+        MtgjsonStructuresObject().key_words, MtgjsonKeywordsObject(), pretty_print,
+    )
+
+    # CardTypes.json
+    create_compiled_output(
+        MtgjsonStructuresObject().card_types, MtgjsonCardTypesObject(), pretty_print,
+    )
+
+    # Meta.json (Formerly version.json)
+    create_compiled_output(
+        MtgjsonStructuresObject().version, MtgjsonMetaObject(), pretty_print,
+    )
+
+    # SetList.json
+    create_compiled_output(
+        MtgjsonStructuresObject().set_list, MtgjsonSetListObject(), pretty_print
+    )
+
+    # <FORMAT>.json
+    build_format_specific_files(pretty_print)
+
+    # AtomicCards.json
+    create_compiled_output(
+        MtgjsonStructuresObject().atomic_cards,
+        MtgjsonAtomicCardsObject(),
+        pretty_print,
+    )
+
+    # <FORMAT>Atomic.json
+    build_atomic_specific_files(pretty_print)
 
     # All Pre-constructed Decks
     deck_names = []
