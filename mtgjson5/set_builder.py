@@ -720,10 +720,14 @@ def build_mtgjson_card(
         mtgjson_card.face_name = str(face_data["name"])
 
         if mtgjson_card.layout not in ["meld"]:
-            # chr(97) = 'a', chr(98) = 'b', ...
-            mtgjson_card.side = chr(
-                mtgjson_card.get_names().index(mtgjson_card.face_name) + 97
-            )
+            # Fix #632 as there are very limited distinguishing attributes
+            if mtgjson_card.set_code == "tust":
+                mtgjson_card.side = "a" if mtgjson_card.type != "Token" else "b"
+            else:
+                # chr(97) = 'a', chr(98) = 'b', ...
+                mtgjson_card.side = chr(
+                    mtgjson_card.get_names().index(mtgjson_card.face_name) + 97
+                )
 
     # Implicit Variables
     mtgjson_card.is_timeshifted = (

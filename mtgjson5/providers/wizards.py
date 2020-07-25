@@ -204,7 +204,10 @@ class WizardsProvider(AbstractProvider):
             translation_fixes = json.load(f)
 
         for set_code, override_translations in translation_fixes.items():
-            table[set_code].update(override_translations)
+            if set_code not in table:
+                table[set_code] = override_translations
+            else:
+                table[set_code].update(override_translations)
 
         return table
 
