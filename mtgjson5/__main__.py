@@ -8,12 +8,13 @@ gevent.monkey.patch_all()  # isort:skip
 
 import argparse
 import logging
+import sys
 import traceback
 from typing import List, Set, Union
 
 from mtgjson5.arg_parser import get_sets_to_build, parse_args
 from mtgjson5.compress_generator import compress_mtgjson_contents
-from mtgjson5.consts import MTGJSON_VERSION, OUTPUT_PATH
+from mtgjson5.consts import CONFIG_PATH, MTGJSON_VERSION, OUTPUT_PATH
 from mtgjson5.output_generator import (
     generate_compiled_output_files,
     generate_compiled_prices_output,
@@ -60,6 +61,21 @@ def build_mtgjson_sets(
         fixup_referral_map()
 
 
+def validate_config_file_in_place() -> None:
+    """
+    Check to see if the MTGJSON config file was found.
+    If not, kill the system with an error message.
+    """
+    if not CONFIG_PATH.exists():
+        LOGGER.error(
+            f"{CONFIG_PATH.name} was not found ({CONFIG_PATH}). "
+            "Please create this file and re-run the program. "
+            "You can copy paste the example file into the "
+            "correct location and (optionally) fill in your keys."
+        )
+        sys.exit(1)
+
+
 def dispatcher(args: argparse.Namespace) -> None:
     """
     MTGJSON Dispatcher
@@ -91,6 +107,8 @@ def main() -> None:
     """
     LOGGER.info(f"Starting MTGJSON {MTGJSON_VERSION}")
     args = parse_args()
+
+    validate_config_file_in_place()
 
     try:
         if not args.no_alerts:
