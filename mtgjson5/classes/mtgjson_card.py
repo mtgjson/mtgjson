@@ -87,6 +87,7 @@ class MtgjsonCardObject:
     variations: List[str]
     watermark: Optional[str]
 
+
     # Outside entities, not published
     set_code: str
     is_token: bool
