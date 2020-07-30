@@ -56,8 +56,8 @@ class TCGPlayerProvider(AbstractProvider):
             return ""
 
         if not (
-            config.get("TCGPlayer", "client_id")
-            and config.get("TCGPlayer", "client_secret")
+                config.get("TCGPlayer", "client_id")
+                and config.get("TCGPlayer", "client_secret")
         ):
             LOGGER.warning("TCGPlayer keys not established. Skipping requests")
             self.__keys_found = False
@@ -128,7 +128,7 @@ class TCGPlayerProvider(AbstractProvider):
         return magic_set_ids
 
     def generate_today_price_dict(
-        self, all_printings_path: pathlib.Path
+            self, all_printings_path: pathlib.Path
     ) -> Dict[str, MtgjsonPricesObject]:
         """
         Download the TCGPlayer pricing API and collate into MTGJSON format
@@ -155,7 +155,7 @@ class TCGPlayerProvider(AbstractProvider):
 
 
 def generate_tcgplayer_to_mtgjson_map(
-    all_printings_path: pathlib.Path,
+        all_printings_path: pathlib.Path,
 ) -> Dict[str, str]:
     """
     Generate a TCGPlayerID -> MTGJSON UUID map that can be used
@@ -178,7 +178,7 @@ def generate_tcgplayer_to_mtgjson_map(
 
 
 def get_tcgplayer_prices_map(
-    group_id_and_name: Tuple[str, str]
+        group_id_and_name: Tuple[str, str]
 ) -> Dict[str, MtgjsonPricesObject]:
     """
     Construct MtgjsonPricesObjects from TCGPlayer data
@@ -220,3 +220,72 @@ def get_tcgplayer_prices_map(
             prices_map[key].sell_foil = card_price
 
     return prices_map
+
+
+def get_tcgplayer_buylist_prices_map(
+        tcg_mtgjson_map
+) -> Dict[str, MtgjsonPricesObject]:
+    """
+    Construct MtgjsonPricesObjects from TCGPlayer Buylist data
+    :param group_id_and_name: TCGPlayer Set ID & Name to build
+    :return: Cards with prices from Set ID & Name
+    """
+    product_id_list = list(tcg_mtgjson_map.keys())
+    for x in range(0, len(tcg_mtgjson_map), 250):
+        section_product_id_list = product_id_list[x:x + 250]
+        csv_product_ids = ','.join(section_product_id_list)
+        api_response = TCGPlayerProvider().download(
+            f"https://api.tcgplayer.com/[API_VERSION]/pricing/buy/product/{csv_product_ids}"
+        )
+        json_response = json.loads(api_response)["results"]
+        for r in json_response:
+            if len(r["skus"]) > 6:
+                print(r)
+                print(len(r["skus"]))
+
+
+def generate_tcgplayer_buylist_to_mtgjson_map(
+        all_printings_path: pathlib.Path,
+) -> Dict[str, Tuple[str, str, str]]:
+    """
+        Generate a TCGPlayerID -> MTGJSON UUID map that can be used
+        across the system.
+        :param all_printings_path: Path to JSON compiled version
+        :return: Map of TCGPlayer Data -> MTGJSON UUID
+        """
+    with all_printings_path.expanduser().open(encoding="utf-8") as f:
+        file_contents = json.load(f).get("data", {})
+
+    dump_map: Dict[str, Tuple[str, str, str]] = {}
+    for value in file_contents.values():
+        for card in value.get("cards", []) + value.get("tokens", []):
+            try:
+                dump_map[card["identifiers"]["tcgplayerProductId"]] = (
+                    card["uuid"], card["hasFoil"], card["hasNonFoil"])
+            except KeyError:
+                pass
+
+    return dump_map
+
+
+def generate_mtgjson_to_tcgplayer_map(
+        all_printings_path: pathlib.Path,
+) -> Dict[str, str]:
+    """
+    Generate a TCGPlayerID -> MTGJSON UUID map that can be used
+    across the system.
+    :param all_printings_path: Path to JSON compiled version
+    :return: Map of TCGPlayerID -> MTGJSON UUID
+    """
+    with all_printings_path.expanduser().open(encoding="utf-8") as f:
+        file_contents = json.load(f).get("data", {})
+
+    dump_map: Dict[str, str] = {}
+    for value in file_contents.values():
+        for card in value.get("cards", []) + value.get("tokens", []):
+            try:
+                dump_map[card["uuid"]] = card["identifiers"]["tcgplayerProductId"]
+            except KeyError:
+                pass
+
+    return dump_map

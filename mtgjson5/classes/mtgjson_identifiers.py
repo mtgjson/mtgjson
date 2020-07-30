@@ -1,7 +1,7 @@
 """
 MTGJSON Singular Card.Identifiers Object
 """
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from mtgjson5.utils import to_camel_case
 
@@ -24,6 +24,7 @@ class MtgjsonIdentifiersObject:
     scryfall_oracle_id: Optional[str]
     tcgplayer_product_id: Optional[str]
     mtgjson_v4_id: Optional[str]
+    tcgplayer_sku_ids: List[Dict[str, str]]
 
     def __init__(self) -> None:
         """
