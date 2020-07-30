@@ -1,7 +1,7 @@
 """
 MTGJSON Singular Card.Identifiers Object
 """
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
 from mtgjson5.utils import to_camel_case
 
