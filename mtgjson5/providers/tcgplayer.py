@@ -24,6 +24,20 @@ class TCGPlayerProvider(AbstractProvider):
     """
 
     api_version: str = ""
+    condition_map = {1: "NM", 2: "LP", 3: "MP", 4: "HP", 5: "DMG", 6: "U"}
+    language_map = {
+        1: "EN",
+        2: "CS",
+        3: "CT",
+        4: "FR",
+        5: "GE",
+        6: "IT",
+        7: "JP",
+        8: "KR",
+        9: "PT",
+        10: "RU",
+        11: "SP",
+    }
     tcg_to_mtgjson_map: Dict[str, str]
     __keys_found: bool
 
