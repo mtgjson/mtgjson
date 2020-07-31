@@ -1051,8 +1051,11 @@ def add_tcgplayer_details(mtgjson_set: MtgjsonSetObject) -> None:
     LOGGER.info(f"Adding TCGPlayer details for {mtgjson_set.code}")
     list_of_product_ids: List
     group_sku_data: Dict[str, List] = {}
-    list_of_product_ids = [mtgjson_card.identifiers.tcgplayer_product_id for mtgjson_card in mtgjson_set.cards if
-                           mtgjson_card.identifiers.tcgplayer_product_id]
+    list_of_product_ids = [
+        mtgjson_card.identifiers.tcgplayer_product_id
+        for mtgjson_card in mtgjson_set.cards
+        if mtgjson_card.identifiers.tcgplayer_product_id
+    ]
     for counter in range(0, len(list_of_product_ids), 250):
         section_list_product_id = list_of_product_ids[counter : counter + 250]
         csv_product_ids = ",".join(section_list_product_id)
@@ -1086,6 +1089,6 @@ def add_tcgplayer_details(mtgjson_set: MtgjsonSetObject) -> None:
     for mtgjson_card in mtgjson_set.cards:
         if not mtgjson_card.identifiers.tcgplayer_product_id:
             continue
-        mtgjson_card.identifiers.tcgplayer_sku_ids = group_sku_data.get(mtgjson_card.identifiers.tcgplayer_product_id)
-
-
+        mtgjson_card.identifiers.tcgplayer_sku_ids = group_sku_data.get(
+            mtgjson_card.identifiers.tcgplayer_product_id
+        )
