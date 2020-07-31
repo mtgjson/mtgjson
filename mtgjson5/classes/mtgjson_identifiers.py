@@ -30,8 +30,9 @@ class MtgjsonIdentifiersObject:
         """
         Empty initializer
         """
-        self.tcgplayer_product_id = None
+
         self.multiverse_id = ""
+        self.tcgplayer_product_id = None
 
     def to_json(self) -> Dict[str, str]:
         """
