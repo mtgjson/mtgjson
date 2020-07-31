@@ -25,7 +25,6 @@ from .consts import (
     CARD_MARKET_BUFFER,
     FOREIGN_SETS,
     LANGUAGE_MAP,
-    OUTPUT_PATH,
     RESOURCE_PATH,
     SUPER_TYPES,
 )
@@ -38,10 +37,6 @@ from .providers import (
     TCGPlayerProvider,
     WhatsInStandardProvider,
     WizardsProvider,
-)
-from .providers.tcgplayer import (
-    generate_mtgjson_to_tcgplayer_map,
-    generate_tcgplayer_to_mtgjson_map,
 )
 from .utils import get_str_or_none, parallel_call, url_keygen
 
@@ -1047,82 +1042,69 @@ def get_base_and_total_set_sizes(set_code: str) -> Tuple[int, int]:
     return base_set_size, total_set_size
 
 
-def add_tcgplayer_details(mtgjson_set: MtgjsonSetObject) -> None:
+def add_tcgplayer_details(mtgjson_set: MtgjsonSetObject) -> MtgjsonSetObject:
     """
     Adds a list of all sku ids from TCGPlayer
     :param mtgjson_set: MTGJSON Set
     """
+
     LOGGER.info(f"Adding TCGPlayer details for {mtgjson_set.code}")
-    translation_table = generate_mtgjson_to_tcgplayer_map(
-        OUTPUT_PATH.joinpath("AllPrintings.json")
-    )
-    list_of_product_ids = []
+    list_of_product_ids: List
+    group_sku_data: Dict[str, List]
+    condition_map = {"1": "NM", "2": "LP", "3": "MP", "4": "HP", "5": "DMG", "6": "U"}
+    language_map = {
+        "1": "EN",
+        "2": "CS",
+        "3": "CT",
+        "4": "FR",
+        "5": "GE",
+        "6": "IT",
+        "7": "JP",
+        "8": "KR",
+        "9": "PT",
+        "10": "RU",
+        "11": "SP",
+    }
     for mtgjson_card in mtgjson_set.cards:
-        if mtgjson_card.uuid not in translation_table:
+        if mtgjson_card.identifiers.tcgplayer_product_id is None:
             continue
-        entry = translation_table[mtgjson_card.uuid]
-        list_of_product_ids.append(entry)
-    for x in range(0, len(list_of_product_ids), 250):
-        section_list_product_id = list_of_product_ids[x : x + 250]
+        list_of_product_ids.append(mtgjson_card.identifiers.tcgplayer_product_id)
+    for counter in range(0, len(list_of_product_ids), 250):
+        section_list_product_id = list_of_product_ids[counter : counter + 250]
         csv_product_ids = ",".join(section_list_product_id)
         api_response = TCGPlayerProvider().download(
             f"https://api.tcgplayer.com/[API_VERSION]/catalog/products/{csv_product_ids}?includeSkus=true"
         )
         for data in json.loads(api_response)["results"]:
             translated_skus = []
+            product_id: str = ""
             for sku in data["skus"]:
+                product_id = str(sku["productId"])
                 # Translates condition
-                if sku["conditionId"] == 1:
-                    condition = "NM"
-                elif sku["conditionId"] == 2:
-                    condition = "LP"
-                elif sku["conditionId"] == 3:
-                    condition = "MP"
-                elif sku["conditionId"] == 4:
-                    condition = "HP"
-                elif sku["conditionId"] == 5:
-                    condition = "DMG"
-                elif sku["conditionId"] == 6:
-                    condition = "U"
+                condition = condition_map[str(sku["conditionId"])]
                 # Translated printing
                 if sku["printingId"] == 1:
                     printing = "Normal"
                 else:
                     printing = "Foil"
                 # Translates language
-                if sku["languageId"] == 1:
-                    language = "EN"
-                elif sku["languageId"] == 2:
-                    language = "CS"
-                elif sku["languageId"] == 3:
-                    language = "CT"
-                elif sku["languageId"] == 4:
-                    language = "FR"
-                elif sku["languageId"] == 5:
-                    language = "DE"
-                elif sku["languageId"] == 6:
-                    language = "IT"
-                elif sku["languageId"] == 7:
-                    language = "JP"
-                elif sku["languageId"] == 8:
-                    language = "KR"
-                elif sku["languageId"] == 9:
-                    language = "PT"
-                elif sku["languageId"] == 10:
-                    language = "RU"
-                elif sku["languageId"] == 11:
-                    language = "SP"
+                language = language_map[str(sku["languageId"])]
                 translated_skus.append(
                     {
                         "skuId": str(sku["skuId"]),
-                        "productId": str(sku["productId"]),
                         "language": language,
                         "printing": printing,
                         "condition": condition,
                     }
                 )
-            mtgjson_card.identifiers.tcgplayer_sku_ids = translated_skus
-            LOGGER.info(f"{mtgjson_card.identifiers.tcgplayer_sku_ids}")
-            json_data = mtgjson_card.to_json()
-            LOGGER.info(f"{json_data}")
+            group_sku_data[product_id] = translated_skus
+            LOGGER.info(f"Adding TCGPlayer details for {translated_skus}")
+
+    for mtgjson_card in mtgjson_set.cards:
+        if mtgjson_card.identifiers.tcgplayer_product_id is None:
+            continue
+        mtgjson_card.identifiers.tcgplayer_sku_ids = group_sku_data[
+            mtgjson_card.identifiers.tcgplayer_product_id
+        ]
+
     return mtgjson_set
