@@ -37,13 +37,19 @@ class CardMarketProvider(AbstractProvider):
         super().__init__(headers or {})
 
         config = self.get_configs()
+
+        if "CardMarket" not in config.sections():
+            LOGGER.warning("CardMarket section not established. Skipping requests")
+            self.__keys_found = False
+            return
+
         os.environ["MKM_APP_TOKEN"] = config.get("CardMarket", "app_token")
         os.environ["MKM_APP_SECRET"] = config.get("CardMarket", "app_secret")
         os.environ["MKM_ACCESS_TOKEN"] = ""
         os.environ["MKM_ACCESS_TOKEN_SECRET"] = ""
 
         if not (os.environ["MKM_APP_TOKEN"] and os.environ["MKM_APP_SECRET"]):
-            LOGGER.warning("MKM keys not established. Skipping requests")
+            LOGGER.warning("CardMarket keys values missing. Skipping requests")
             self.__keys_found = False
             return
 

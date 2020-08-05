@@ -50,7 +50,11 @@ class TCGPlayerProvider(AbstractProvider):
         """
         config = self.get_configs()
 
-        # Ensure config is established
+        if "TCGPlayer" not in config.sections():
+            LOGGER.warning("TCGPlayer section not established. Skipping requests")
+            self.__keys_found = False
+            return ""
+
         if not (
             config.get("TCGPlayer", "client_id")
             and config.get("TCGPlayer", "client_secret")

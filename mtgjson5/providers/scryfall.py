@@ -40,9 +40,15 @@ class ScryfallProvider(AbstractProvider):
         :return: Authorization header
         """
         config = self.get_configs()
-        if not self.get_configs().get("Scryfall", "client_secret"):
+        if "Scryfall" not in config.sections():
             LOGGER.warning(
-                "Scryfall keys not established. Defaulting to non-authorized mode"
+                "Scryfall section not established. Defaulting to non-authorized mode"
+            )
+            return {}
+
+        if not config.get("Scryfall", "client_secret"):
+            LOGGER.warning(
+                "Scryfall keys values missing. Defaulting to non-authorized mode"
             )
             return {}
 

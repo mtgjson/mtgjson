@@ -37,11 +37,17 @@ class MTGBanProvider(AbstractProvider):
         __keys_found: bool
 
         config = self.get_configs()
+        if "MTGBan" not in config.sections():
+            LOGGER.warning("MTGBan section not established. Skipping alerts")
+            self.__keys_found = False
+            self.api_url = ""
+            return headers
+
         if config.get("MTGBan", "api_key"):
             self.__keys_found = True
             self.api_url = self.api_url.format(config.get("MTGBan", "api_key"))
         else:
-            LOGGER.info("MTGBan keys not established. Skipping imports")
+            LOGGER.info("MTGBan keys values missing. Skipping imports")
             self.__keys_found = False
             self.api_url = ""
 

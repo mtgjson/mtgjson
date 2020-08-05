@@ -60,13 +60,24 @@ def upload_prices_archive(
     :param github_repo_local_path: Local file system file
     :param content: File content
     """
+    if "GitHub" not in config.sections():
+        LOGGER.warning("GitHub section not established. Skipping upload")
+        return
+
+    # Config values for GitHub
     github_username = config.get("GitHub", "username")
     github_api_token = config.get("GitHub", "api_key")
-    file_name = config.get("GitHub", "file_name")
+    github_file_name = config.get("GitHub", "file_name")
     github_repo_name = config.get("GitHub", "repo_name")
 
+    if not (
+        github_username and github_api_token and github_file_name and github_repo_name
+    ):
+        LOGGER.warning("GitHub key values missing. Skipping upload")
+        return
+
     # Compress the file to upload for speed and storage savings
-    with lzma.open(github_repo_local_path.joinpath(file_name), "w") as file:
+    with lzma.open(github_repo_local_path.joinpath(github_file_name), "w") as file:
         file.write(json.dumps(content).encode("utf-8"))
 
     try:
@@ -191,18 +202,18 @@ def get_price_archive_data() -> Dict[str, Dict[str, float]]:
     """
     config = TCGPlayerProvider().get_configs()
 
-    if not (
-        config.get("GitHub", "repo_name")
-        and config.get("GitHub", "repo_name")
-        and config.get("GitHub", "repo_name")
-    ):
-        LOGGER.warning("GitHub keys not established. Skipping requests")
+    if "GitHub" not in config.sections():
+        LOGGER.warning("GitHub section not established. Skipping requests")
         return {}
 
     # Config values for GitHub
     github_repo_name = config.get("GitHub", "repo_name")
     github_file_name = config.get("GitHub", "file_name")
     github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
+
+    if not (github_repo_name and github_file_name and github_local_path):
+        LOGGER.warning("GitHub key values missing. Skipping requests")
+        return {}
 
     # Get the current working database
     LOGGER.info("Downloading Price Data Repo")

@@ -39,11 +39,18 @@ class CardHoarderProvider(AbstractProvider):
         __keys_found: bool
 
         config = self.get_configs()
+
+        if "CardHoarder" not in config.sections():
+            LOGGER.warning("CardHoader section not established. Skipping upload")
+            self.__keys_found = False
+            self.ch_api_url = ""
+            return headers
+
         if config.get("CardHoarder", "token"):
             self.__keys_found = True
             self.ch_api_url = self.ch_api_url.format(config.get("CardHoarder", "token"))
         else:
-            LOGGER.info("CardHoarder keys not established. Skipping pricing")
+            LOGGER.info("CardHoarder keys values missing. Skipping pricing")
             self.__keys_found = False
             self.ch_api_url = ""
 

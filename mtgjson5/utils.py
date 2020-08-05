@@ -229,17 +229,17 @@ def send_push_notification(message: str) -> bool:
     :param message: Message to send
     :return If the message send successfully to everyone
     """
+    if "Pushover" not in consts.CONFIG.sections():
+        LOGGER.warning("Pushover section not established. Skipping alerts")
+        return False
+
     pushover_app_token = consts.CONFIG.get("Pushover", "app_token")
     pushover_app_users = list(
         filter(None, consts.CONFIG.get("Pushover", "user_tokens").split(","))
     )
 
-    if not pushover_app_token:
-        LOGGER.warning("Unable to send Pushover notification. App token not set.")
-        return False
-
-    if not pushover_app_users:
-        LOGGER.warning("Unable to send Pushover notification. No user keys set.")
+    if not (pushover_app_token and pushover_app_token):
+        LOGGER.warning("Pushover keys values missing. Skipping alerts")
         return False
 
     all_succeeded = True
