@@ -24,20 +24,8 @@ class TCGPlayerProvider(AbstractProvider):
     """
 
     api_version: str = ""
-    condition_map = {1: "NM", 2: "LP", 3: "MP", 4: "HP", 5: "DMG", 6: "U"}
-    language_map = {
-        1: "EN",
-        2: "CS",
-        3: "CT",
-        4: "FR",
-        5: "GE",
-        6: "IT",
-        7: "JP",
-        8: "KR",
-        9: "PT",
-        10: "RU",
-        11: "SP",
-    }
+    condition_map: Dict[int, str]
+    language_map: Dict[int, str]
     tcg_to_mtgjson_map: Dict[str, str]
     __keys_found: bool
 
@@ -46,6 +34,9 @@ class TCGPlayerProvider(AbstractProvider):
         Initializer
         """
         super().__init__(self._build_http_header())
+        if self.__keys_found:
+            self.condition_map = self.get_tcgplayer_condition_map()
+            self.language_map = self.get_tcgplayer_language_map()
 
     def _build_http_header(self) -> Dict[str, str]:
         """
@@ -110,6 +101,22 @@ class TCGPlayerProvider(AbstractProvider):
         )
         self.log_download(response)
         return response.content.decode()
+
+    def get_tcgplayer_language_map(self) -> Dict[int, str]:
+        api_response = self.download("https://api.tcgplayer.com/catalog/categories/1/languages")
+        language_map: Dict[int, str] = {}
+        tcg_response = json.loads(api_response)
+        for language in tcg_response["results"]:
+            language_map[language["languageId"]] = language["abbr"]
+        return language_map
+
+    def get_tcgplayer_condition_map(self) -> Dict[int, str]:
+        api_response = self.download("https://api.tcgplayer.com/catalog/categories/1/conditions")
+        condition_map: Dict[int, str] = {}
+        tcg_response = json.loads(api_response)
+        for condition in tcg_response["results"]:
+            condition_map[condition["conditionId"]] = condition["abbreviation"]
+        return condition_map
 
     def get_tcgplayer_magic_set_ids(self) -> List[Tuple[str, str]]:
         """
