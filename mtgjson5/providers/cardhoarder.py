@@ -4,12 +4,11 @@ CardHoarder 3rd party provider
 import json
 import logging
 import pathlib
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, Iterator, List, Union
 
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
-from ..consts import RESOURCE_PATH
 from ..providers.abstract import AbstractProvider
 from ..utils import retryable_session
 
@@ -41,7 +40,7 @@ class CardHoarderProvider(AbstractProvider):
         config = self.get_configs()
 
         if "CardHoarder" not in config.sections():
-            LOGGER.warning("CardHoader section not established. Skipping upload")
+            LOGGER.warning("CardHoarder section not established. Skipping upload")
             self.__keys_found = False
             self.ch_api_url = ""
             return headers
@@ -71,71 +70,39 @@ class CardHoarderProvider(AbstractProvider):
 
         return response.content.decode()
 
-    @staticmethod
-    def generate_mtgjson4_to_mtgjson5_map(
-        all_printings_path: pathlib.Path,
-    ) -> Dict[str, str]:
-        """
-        Generate a MTGJSON UUID 4 -> MTGJSON UUID 5 map that can be used
-        across the system.
-        :param all_printings_path: Path to JSON compiled version
-        :return: Map of UUID4 -> MTGJSON UUID 5
-        """
-        with all_printings_path.expanduser().open(encoding="utf-8") as f:
-            file_contents = json.load(f).get("data", {})
-
-        dump_map: Dict[str, str] = {}
-        for value in file_contents.values():
-            for card in value.get("cards", []) + value.get("tokens", []):
-                try:
-                    dump_map[card["identifiers"]["mtgjsonV4Id"]] = card["uuid"]
-                except KeyError:
-                    pass
-
-        return dump_map
-
     def convert_cardhoarder_to_mtgjson(
-        self, url_to_parse: str, all_printings_path: pathlib.Path
+        self, url_to_parse: str, mtgo_to_mtgjson_map: Dict[str, str]
     ) -> Dict[str, float]:
         """
         Download CardHoarder cards and convert them into a more
         consumable format for further processing.
         :param url_to_parse: URL to download CardHoarder cards from
-        :param all_printings_path: Path to AllPrintings on the system
+        :param mtgo_to_mtgjson_map: Mapping for translating incoming data
         :return: Consumable dictionary
         """
+        mtgjson_price_map = {}
+
         request_api_response: str = self.download(url_to_parse)
 
-        mtgjson_to_price = {}
-
-        mtgjson_4_to_5_map = self.generate_mtgjson4_to_mtgjson5_map(all_printings_path)
-
-        # TEMPORARY WORKAROUND FOR MISSING UPSTREAM IDs
-        with RESOURCE_PATH.joinpath("mtgo_to_mtgjson_v4.json").open() as file:
-            mtgo_to_mtgjson_v4 = json.load(file)
-
         # All Entries from CH, cutting off headers
-        card_rows: List[str] = request_api_response.splitlines()[2:]
+        file_rows: List[str] = request_api_response.splitlines()[2:]
+        for file_row in file_rows:
+            card_row = file_row.split("\t")
 
-        for card_row in card_rows:
-            split_row = card_row.split("\t")
+            mtgo_id = card_row[0]
+            card_uuid = mtgo_to_mtgjson_map.get(mtgo_id)
 
-            # TEMPORARY WORKAROUND FOR MISSING UPSTREAM IDs
-            if len(split_row[-1]) <= 3:
-                # Grab mtgjson ID via MTGO ID, if available
-                split_row[-1] = mtgo_to_mtgjson_v4.get(split_row[0], "")
+            if not card_uuid:
+                LOGGER.debug(f"CardHoarder {card_row} unable to be mapped, skipping")
+                continue
 
-            # We're only indexing cards with MTGJSON UUIDs
-            if len(split_row[-1]) > 3:
-                # Last Row = UUID, 5th Row = Price
-                if split_row[-1] in mtgjson_4_to_5_map:
-                    # Temporary translation of v4->v5 IDs
-                    new_uuid = mtgjson_4_to_5_map[split_row[-1]]
-                    mtgjson_to_price[new_uuid] = float(split_row[5])
-                else:
-                    LOGGER.warning(f"Unable to find {split_row} match")
+            if len(card_row) <= 6:
+                LOGGER.warning(f"CardHoarder entry {card_row} malformed, skipping")
+                continue
 
-        return mtgjson_to_price
+            mtgjson_price_map[card_uuid] = float(card_row[5])
+
+        return mtgjson_price_map
 
     def generate_today_price_dict(
         self, all_printings_path: Any
@@ -147,11 +114,13 @@ class CardHoarderProvider(AbstractProvider):
         if not self.__keys_found:
             return {}
 
+        mtgo_to_mtgjson_map = self.get_mtgo_to_mtgjson_map(all_printings_path)
+
         normal_cards = self.convert_cardhoarder_to_mtgjson(
-            self.ch_api_url, all_printings_path
+            self.ch_api_url, mtgo_to_mtgjson_map
         )
         foil_cards = self.convert_cardhoarder_to_mtgjson(
-            self.ch_api_url + "/foil", all_printings_path
+            self.ch_api_url + "/foil", mtgo_to_mtgjson_map
         )
 
         db_contents: Dict[str, MtgjsonPricesObject] = {}
@@ -181,3 +150,37 @@ class CardHoarderProvider(AbstractProvider):
                 semi_completed_data[key].sell_normal = float(value)
             else:
                 semi_completed_data[key].sell_foil = float(value)
+
+    @staticmethod
+    def iterate_cards_and_tokens(
+        all_printings_path: pathlib.Path,
+    ) -> Iterator[Dict[str, Any]]:
+        """
+        Grab every card and token object from an AllPrintings file for future iteration
+        :param all_printings_path: AllPrintings.json to refer when building
+        :return Iterator for all card and token objects
+        """
+        with all_printings_path.expanduser().open(encoding="utf-8") as f:
+            file_contents = json.load(f).get("data", {})
+
+        for value in file_contents.values():
+            for card in value.get("cards", []) + value.get("tokens", []):
+                yield card
+
+    def get_mtgo_to_mtgjson_map(
+        self, all_printings_path: pathlib.Path
+    ) -> Dict[str, str]:
+        """
+        Construct a mapping from MTGO IDs (Regular & Foil) to MTGJSON UUIDs
+        :param all_printings_path: AllPrintings to generate mapping from
+        :return MTGO to MTGJSON mapping
+        """
+        mtgo_to_mtgjson = dict()
+        for card in self.iterate_cards_and_tokens(all_printings_path):
+            identifiers = card["identifiers"]
+            if "mtgoId" in identifiers:
+                mtgo_to_mtgjson[identifiers["mtgoId"]] = card["uuid"]
+            if "mtgoFoilId" in identifiers:
+                mtgo_to_mtgjson[identifiers["mtgoFoilId"]] = card["uuid"]
+
+        return mtgo_to_mtgjson
