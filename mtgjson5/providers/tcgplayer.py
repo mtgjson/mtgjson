@@ -103,7 +103,13 @@ class TCGPlayerProvider(AbstractProvider):
         return response.content.decode()
 
     def get_tcgplayer_language_map(self) -> Dict[int, str]:
-        api_response = self.download("https://api.tcgplayer.com/catalog/categories/1/languages")
+        """
+        gets tcgplayer map for language ids to language abbreviations using the List All Category Conditions endpoint
+        :return: dictionary mapping language ids to abbreviations
+        """
+        api_response = self.download(
+            "https://api.tcgplayer.com/catalog/categories/1/languages"
+        )
         language_map: Dict[int, str] = {}
         tcg_response = json.loads(api_response)
         for language in tcg_response["results"]:
@@ -111,7 +117,13 @@ class TCGPlayerProvider(AbstractProvider):
         return language_map
 
     def get_tcgplayer_condition_map(self) -> Dict[int, str]:
-        api_response = self.download("https://api.tcgplayer.com/catalog/categories/1/conditions")
+        """
+        gets condition map for language ids to language abbreviations using the List All Category Languages endpoint
+        :return: dictionary mapping condition ids to abbreviations
+        """
+        api_response = self.download(
+            "https://api.tcgplayer.com/catalog/categories/1/conditions"
+        )
         condition_map: Dict[int, str] = {}
         tcg_response = json.loads(api_response)
         for condition in tcg_response["results"]:
