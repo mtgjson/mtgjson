@@ -14,6 +14,7 @@ class MtgjsonForeignDataObject:
 
     language: str
     multiverse_id: Optional[int]
+    face_name: Optional[str]
     flavor_text: Optional[str]
     name: Optional[str]
     text: Optional[str]
@@ -21,6 +22,7 @@ class MtgjsonForeignDataObject:
 
     def __init__(self) -> None:
         self.multiverse_id = None
+        self.face_name = None
         self.flavor_text = None
         self.name = None
         self.text = None

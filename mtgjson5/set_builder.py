@@ -86,10 +86,19 @@ def parse_foreign(
             else:
                 face = 1
 
-            foreign_card = foreign_card["card_faces"][face]
             LOGGER.debug(f"Split card found: Using face {face} for {card_name}")
+            card_foreign_entry.name = " // ".join(
+                [
+                    face_data.get("printed_name")
+                    for face_data in foreign_card["card_faces"]
+                ]
+            )
 
-        card_foreign_entry.name = foreign_card.get("printed_name")
+            foreign_card = foreign_card["card_faces"][face]
+            card_foreign_entry.face_name = foreign_card.get("printed_name")
+
+        if not card_foreign_entry.name:
+            card_foreign_entry.name = foreign_card.get("printed_name")
         card_foreign_entry.text = foreign_card.get("printed_text")
         card_foreign_entry.flavor_text = foreign_card.get("flavor_text")
         card_foreign_entry.type = foreign_card.get("printed_type_line")
