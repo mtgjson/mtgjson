@@ -19,6 +19,7 @@ from .classes import (
     MtgjsonMetaObject,
     MtgjsonRulingObject,
     MtgjsonSetObject,
+    MtgjsonTcgplayerSkusObject,
 )
 from .consts import (
     BASIC_LAND_NAMES,
@@ -1047,48 +1048,43 @@ def add_tcgplayer_details(mtgjson_set: MtgjsonSetObject) -> None:
     Adds a list of all sku ids from TCGPlayer
     :param mtgjson_set: MTGJSON Set
     """
-
     LOGGER.info(f"Adding TCGPlayer details for {mtgjson_set.code}")
-    list_of_product_ids: List
-    group_sku_data: Dict[str, List] = {}
-    list_of_product_ids = [
+
+    tcg_product_ids = [
         mtgjson_card.identifiers.tcgplayer_product_id
         for mtgjson_card in mtgjson_set.cards
         if mtgjson_card.identifiers.tcgplayer_product_id
     ]
-    for counter in range(0, len(list_of_product_ids), 250):
-        section_list_product_id = list_of_product_ids[counter : counter + 250]
-        csv_product_ids = ",".join(section_list_product_id)
-        api_response = TCGPlayerProvider().download(
-            f"https://api.tcgplayer.com/[API_VERSION]/catalog/products/{csv_product_ids}?includeSkus=true"
+
+    group_sku_data: Dict[str, List] = {}
+
+    # We have to grab TCG data in chunks of 250 cards
+    for index in range(0, len(tcg_product_ids), 250):
+        tcg_product_id_subset = tcg_product_ids[index : index + 250]
+
+        sku_api_response = TCGPlayerProvider().download(
+            "https://api.tcgplayer.com/[API_VERSION]/catalog/products/"
+            f"{','.join(tcg_product_id_subset)}?includeSkus=true"
         )
-        for data in json.loads(api_response)["results"]:
-            translated_skus = []
-            product_id: str = ""
-            for sku in data["skus"]:
-                product_id = str(sku["productId"])
-                # Translates condition
-                condition = TCGPlayerProvider().condition_map[sku["conditionId"]]
-                # Translated printing
-                if sku["printingId"] == 1:
-                    printing = "Normal"
-                else:
-                    printing = "Foil"
-                # Translates language
-                language = TCGPlayerProvider().language_map[sku["languageId"]]
-                translated_skus.append(
-                    {
-                        "skuId": str(sku["skuId"]),
-                        "language": language,
-                        "printing": printing,
-                        "condition": condition,
-                    }
+        cards_data = json.load(sku_api_response).get("results", [])
+
+        for card_index, card_data in enumerate(cards_data):
+            card_entries = [
+                MtgjsonTcgplayerSkusObject(
+                    sku["skuId"],
+                    TCGPlayerProvider().language_map[sku["languageId"]],
+                    TCGPlayerProvider().condition_map[sku["conditionId"]],
+                    sku["printingId"],
                 )
-            group_sku_data[product_id] = translated_skus
+                for sku in card_data["skus"]
+            ]
+
+            if card_entries:
+                product_id = tcg_product_id_subset[card_index]
+                group_sku_data[product_id] = card_entries
 
     for mtgjson_card in mtgjson_set.cards:
-        if not mtgjson_card.identifiers.tcgplayer_product_id:
-            continue
-        mtgjson_card.identifiers.tcgplayer_sku_ids = group_sku_data.get(
-            mtgjson_card.identifiers.tcgplayer_product_id
-        )
+        if mtgjson_card.identifiers.tcgplayer_product_id:
+            mtgjson_card.identifiers.tcgplayer_sku_ids = group_sku_data.get(
+                mtgjson_card.identifiers.tcgplayer_product_id
+            )

@@ -5,11 +5,12 @@ import collections
 import hashlib
 import inspect
 import itertools
+import json
 import logging
 import os
 import pathlib
 import time
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import gevent.pool
 import requests
@@ -258,3 +259,19 @@ def send_push_notification(message: str) -> bool:
             all_succeeded = False
 
     return all_succeeded
+
+
+def iterate_cards_and_tokens(
+    all_printings_path: pathlib.Path,
+) -> Iterator[Dict[str, Any]]:
+    """
+    Grab every card and token object from an AllPrintings file for future iteration
+    :param all_printings_path: AllPrintings.json to refer when building
+    :return Iterator for all card and token objects
+    """
+    with all_printings_path.expanduser().open(encoding="utf-8") as f:
+        file_contents = json.load(f).get("data", {})
+
+    for value in file_contents.values():
+        for card in value.get("cards", []) + value.get("tokens", []):
+            yield card

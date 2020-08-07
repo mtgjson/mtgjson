@@ -1,16 +1,15 @@
 """
 CardHoarder 3rd party provider
 """
-import json
 import logging
 import pathlib
-from typing import Any, Dict, Iterator, List, Union
+from typing import Any, Dict, List, Union
 
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
 from ..providers.abstract import AbstractProvider
-from ..utils import retryable_session
+from ..utils import iterate_cards_and_tokens, retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -152,31 +151,14 @@ class CardHoarderProvider(AbstractProvider):
                 semi_completed_data[key].sell_foil = float(value)
 
     @staticmethod
-    def iterate_cards_and_tokens(
-        all_printings_path: pathlib.Path,
-    ) -> Iterator[Dict[str, Any]]:
-        """
-        Grab every card and token object from an AllPrintings file for future iteration
-        :param all_printings_path: AllPrintings.json to refer when building
-        :return Iterator for all card and token objects
-        """
-        with all_printings_path.expanduser().open(encoding="utf-8") as f:
-            file_contents = json.load(f).get("data", {})
-
-        for value in file_contents.values():
-            for card in value.get("cards", []) + value.get("tokens", []):
-                yield card
-
-    def get_mtgo_to_mtgjson_map(
-        self, all_printings_path: pathlib.Path
-    ) -> Dict[str, str]:
+    def get_mtgo_to_mtgjson_map(all_printings_path: pathlib.Path) -> Dict[str, str]:
         """
         Construct a mapping from MTGO IDs (Regular & Foil) to MTGJSON UUIDs
         :param all_printings_path: AllPrintings to generate mapping from
         :return MTGO to MTGJSON mapping
         """
         mtgo_to_mtgjson = dict()
-        for card in self.iterate_cards_and_tokens(all_printings_path):
+        for card in iterate_cards_and_tokens(all_printings_path):
             identifiers = card["identifiers"]
             if "mtgoId" in identifiers:
                 mtgo_to_mtgjson[identifiers["mtgoId"]] = card["uuid"]

@@ -4,6 +4,7 @@ MTGJSON Singular Card Object
 import json
 from typing import Any, Dict, List, Optional, Set
 
+from . import MtgjsonTcgplayerSkusObject
 from ..classes.mtgjson_foreign_data import MtgjsonForeignDataObject
 from ..classes.mtgjson_game_formats import MtgjsonGameFormatsObject
 from ..classes.mtgjson_identifiers import MtgjsonIdentifiersObject
@@ -79,6 +80,7 @@ class MtgjsonCardObject:
     side: Optional[str]
     subtypes: List[str]
     supertypes: List[str]
+    tcgplayer_skus: List[MtgjsonTcgplayerSkusObject]
     text: str
     toughness: str
     type: str

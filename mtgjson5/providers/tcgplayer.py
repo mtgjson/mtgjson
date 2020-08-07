@@ -12,7 +12,7 @@ from singleton_decorator import singleton
 from ..classes import MtgjsonPricesObject
 from ..consts import CACHE_PATH
 from ..providers.abstract import AbstractProvider
-from ..utils import parallel_call, retryable_session
+from ..utils import iterate_cards_and_tokens, parallel_call, retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -34,6 +34,8 @@ class TCGPlayerProvider(AbstractProvider):
         Initializer
         """
         super().__init__(self._build_http_header())
+
+        # Keys found status established when building header
         if self.__keys_found:
             self.condition_map = self.get_tcgplayer_condition_map()
             self.language_map = self.get_tcgplayer_language_map()
@@ -118,8 +120,9 @@ class TCGPlayerProvider(AbstractProvider):
 
     def get_tcgplayer_condition_map(self) -> Dict[int, str]:
         """
-        gets condition map for language ids to language abbreviations using the List All Category Languages endpoint
-        :return: dictionary mapping condition ids to abbreviations
+        Get condition map for language ids to language abbreviations
+        using the List All Category Languages endpoint
+        :return: Dict mapping condition ids to abbreviations
         """
         api_response = self.download(
             "https://api.tcgplayer.com/catalog/categories/1/conditions"
@@ -132,7 +135,7 @@ class TCGPlayerProvider(AbstractProvider):
 
     def get_tcgplayer_magic_set_ids(self) -> List[Tuple[str, str]]:
         """
-        Download and grab all TCGPlayer set IDs for Magic: the Gathering
+        Download and grab all TCGPlayer set IDs for MTG
         :return: List of TCGPlayer Magic sets
         """
         magic_set_ids = []
@@ -194,17 +197,12 @@ def generate_tcgplayer_to_mtgjson_map(
     :param all_printings_path: Path to JSON compiled version
     :return: Map of TCGPlayerID -> MTGJSON UUID
     """
-    with all_printings_path.expanduser().open(encoding="utf-8") as f:
-        file_contents = json.load(f).get("data", {})
-
-    dump_map: Dict[str, str] = {}
-    for value in file_contents.values():
-        for card in value.get("cards", []) + value.get("tokens", []):
-            try:
-                dump_map[card["identifiers"]["tcgplayerProductId"]] = card["uuid"]
-            except KeyError:
-                pass
-
+    dump_map = dict()
+    for card in iterate_cards_and_tokens(all_printings_path):
+        try:
+            dump_map[card["identifiers"]["tcgplayerProductId"]] = card["uuid"]
+        except KeyError:
+            pass
     return dump_map
 
 
@@ -216,7 +214,6 @@ def get_tcgplayer_prices_map(
     :param group_id_and_name: TCGPlayer Set ID & Name to build
     :return: Cards with prices from Set ID & Name
     """
-
     with CACHE_PATH.joinpath("tcgplayer_price_map.json").open() as file:
         tcg_to_mtgjson_map = json.load(file)
 
