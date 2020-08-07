@@ -3,8 +3,10 @@
 import configparser
 import contextvars
 import datetime
+import json
 import logging
-from typing import Any, Dict, List, Optional
+import pathlib
+from typing import Any, Dict, Iterator, List, Optional
 
 import dateutil.relativedelta
 import requests
@@ -86,6 +88,38 @@ def prune_ch_database(
                 del value_dates[key]
 
 
+def iterate_cards_and_tokens(
+    all_printings_path: pathlib.Path,
+) -> Iterator[Dict[str, Any]]:
+    """
+    Grab every card and token object from an AllPrintings file for future iteration
+    :param all_printings_path: AllPrintings.json to refer when building
+    :return Iterator for all card and token objects
+    """
+    with all_printings_path.expanduser().open(encoding="utf-8") as f:
+        file_contents = json.load(f)
+
+    for value in file_contents.values():
+        for card in value.get("cards", []) + value.get("tokens", []):
+            yield card
+
+
+def get_mtgo_to_mtgjson_map(all_printings_path: pathlib.Path) -> Dict[str, str]:
+    """
+    Construct a mapping from MTGO IDs (Regular & Foil) to MTGJSON UUIDs
+    :param all_printings_path: AllPrintings to generate mapping from
+    :return MTGO to MTGJSON mapping
+    """
+    mtgo_to_mtgjson = dict()
+    for card in iterate_cards_and_tokens(all_printings_path):
+        if "mtgoId" in card:
+            mtgo_to_mtgjson[str(card["mtgoId"])] = card["uuid"]
+        if "mtgoFoilId" in card:
+            mtgo_to_mtgjson[str(card["mtgoFoilId"])] = card["uuid"]
+
+    return mtgo_to_mtgjson
+
+
 def __get_ch_data() -> Dict[str, Dict[str, str]]:
     """
     Get the stocks data for later use
@@ -108,8 +142,11 @@ def __get_ch_data() -> Dict[str, Dict[str, str]]:
         prune_ch_database(db_contents)
 
         # Update cached version
-        normal_cards = construct_ch_price_dict(CH_API_URL)
-        foil_cards = construct_ch_price_dict(CH_API_URL + "/foil")
+        all_printings_path = mtgjson4.COMPILED_OUTPUT_DIR.joinpath("AllPrintings.json")
+        mtgo_to_mtgjson = get_mtgo_to_mtgjson_map(all_printings_path)
+
+        normal_cards = construct_ch_price_dict(CH_API_URL, mtgo_to_mtgjson)
+        foil_cards = construct_ch_price_dict(CH_API_URL + "/foil", mtgo_to_mtgjson)
 
         for key, value in normal_cards.items():
             if key not in db_contents.keys():
@@ -141,11 +178,14 @@ def __get_ch_data() -> Dict[str, Dict[str, str]]:
     return CH_PRICE_DATA
 
 
-def construct_ch_price_dict(url_to_parse: str) -> Dict[str, float]:
+def construct_ch_price_dict(
+    url_to_parse: str, mtgo_to_mtgjson_map: Dict[str, str]
+) -> Dict[str, float]:
     """
     Turn CardHoarder API response into MTGJSON
     consumable format.
     :param url_to_parse: URL to pull CH data from
+    :param mtgo_to_mtgjson_map: Mapping of MTGO Ids to MTGJSON UUIDs
     :return: MTGJSON dict
     """
     response: Any = __get_session().get(
@@ -156,19 +196,29 @@ def construct_ch_price_dict(url_to_parse: str) -> Dict[str, float]:
     request_api_response: str = response.content.decode()
     util.print_download_status(response)
 
-    mtgjson_to_price = {}
+    mtgjson_price_map = {}
 
     # All Entries from CH, cutting off headers
-    card_rows: List[str] = request_api_response.split("\n")[2:]
+    file_rows: List[str] = request_api_response.splitlines()[2:]
 
-    for card_row in card_rows:
-        split_row = card_row.split("\t")
-        # We're only indexing cards with MTGJSON UUIDs
-        if len(split_row[-1]) > 3:
-            # Last Row = UUID, 5th Row = Price
-            mtgjson_to_price[split_row[-1]] = float(split_row[5])
+    for file_row in file_rows:
+        card_row = file_row.split("\t")
 
-    return mtgjson_to_price
+        mtgo_id = card_row[0]
+        card_uuid = mtgo_to_mtgjson_map.get(mtgo_id)
+
+        if not card_uuid:
+            LOGGER.debug(f"CardHoarder {card_row} unable to be mapped, skipping")
+            continue
+
+        if len(card_row) <= 6:
+            LOGGER.warning(f"CardHoarder entry {card_row} malformed, skipping")
+            continue
+
+        mtgjson_price_map[card_uuid] = float(card_row[5])
+
+    LOGGER.info(mtgjson_price_map)
+    return mtgjson_price_map
 
 
 def get_card_data(mtgjson_uuid: str, limited: bool = False) -> Dict[str, Any]:
