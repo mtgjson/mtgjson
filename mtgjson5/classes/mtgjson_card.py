@@ -4,7 +4,6 @@ MTGJSON Singular Card Object
 import json
 from typing import Any, Dict, List, Optional, Set
 
-from . import MtgjsonTcgplayerSkusObject
 from ..classes.mtgjson_foreign_data import MtgjsonForeignDataObject
 from ..classes.mtgjson_game_formats import MtgjsonGameFormatsObject
 from ..classes.mtgjson_identifiers import MtgjsonIdentifiersObject
@@ -13,6 +12,7 @@ from ..classes.mtgjson_legalities import MtgjsonLegalitiesObject
 from ..classes.mtgjson_prices import MtgjsonPricesObject
 from ..classes.mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
 from ..classes.mtgjson_rulings import MtgjsonRulingObject
+from ..classes.mtgjson_tcgplayer_skus import MtgjsonTcgplayerSkusObject
 from ..consts import RESOURCE_PATH
 from ..utils import to_camel_case
 

@@ -15,5 +15,5 @@ from .mtgjson_prices import MtgjsonPricesObject
 from .mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
 from .mtgjson_rulings import MtgjsonRulingObject
 from .mtgjson_set import MtgjsonSetObject
-from .mtgjson_translations import MtgjsonTranslationsObject
 from .mtgjson_tcgplayer_skus import MtgjsonTcgplayerSkusObject
+from .mtgjson_translations import MtgjsonTranslationsObject
