@@ -40,7 +40,7 @@ def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> 
     OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
 
     file_name: str = f"{fix_windows_set_name(mtgjson_set_object.code)}.json"
-    with OUTPUT_PATH.joinpath(file_name).open("w") as file:
+    with OUTPUT_PATH.joinpath(file_name).open("w", encoding="utf-8") as file:
         json.dump(
             obj={"data": mtgjson_set_object, "meta": MtgjsonMetaObject()},
             fp=file,
