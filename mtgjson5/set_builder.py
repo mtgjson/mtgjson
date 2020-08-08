@@ -1066,7 +1066,7 @@ def add_tcgplayer_details(mtgjson_set: MtgjsonSetObject) -> None:
             "https://api.tcgplayer.com/[API_VERSION]/catalog/products/"
             f"{','.join(tcg_product_id_subset)}?includeSkus=true"
         )
-        cards_data = json.load(sku_api_response).get("results", [])
+        cards_data = json.loads(sku_api_response).get("results", [])
 
         for card_index, card_data in enumerate(cards_data):
             card_entries = [
