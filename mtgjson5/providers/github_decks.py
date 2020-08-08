@@ -72,7 +72,7 @@ class GitHubDecksProvider(AbstractProvider):
             LOGGER.error("Unable to construct decks. AllPrintings not fully formed")
             return
 
-        with self.all_printings_file.open() as file:
+        with self.all_printings_file.open(encoding="utf-8") as file:
             self.all_printings_cards = json.load(file).get("data", {})
 
         for deck in self.download(self.decks_api_url):

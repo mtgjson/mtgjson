@@ -142,7 +142,9 @@ class TCGPlayerProvider(AbstractProvider):
         # Future ways to put this into shared memory so all threads can access
         tcg_to_mtgjson_map = generate_tcgplayer_to_mtgjson_map(all_printings_path)
         CACHE_PATH.mkdir(parents=True, exist_ok=True)
-        with CACHE_PATH.joinpath("tcgplayer_price_map.json").open("w") as file:
+        with CACHE_PATH.joinpath("tcgplayer_price_map.json").open(
+            "w", encoding="utf-8"
+        ) as file:
             json.dump(tcg_to_mtgjson_map, file)
 
         ids_and_names = self.get_tcgplayer_magic_set_ids()
@@ -184,7 +186,7 @@ def get_tcgplayer_prices_map(
     :return: Cards with prices from Set ID & Name
     """
 
-    with CACHE_PATH.joinpath("tcgplayer_price_map.json").open() as file:
+    with CACHE_PATH.joinpath("tcgplayer_price_map.json").open(encoding="utf-8") as file:
         tcg_to_mtgjson_map = json.load(file)
 
     api_response = TCGPlayerProvider().download(

@@ -158,7 +158,7 @@ class WizardsProvider(AbstractProvider):
         Load translation table from cache (as it doesn't change
         that frequently)
         """
-        with self.__translation_table_cache.open() as file:
+        with self.__translation_table_cache.open(encoding="utf-8") as file:
             self.translation_table = json.load(file)
 
     def build_translation_table(self) -> None:
@@ -184,7 +184,7 @@ class WizardsProvider(AbstractProvider):
         # Cache the table for future uses
         self.logger.info("Saving translation table")
         self.__translation_table_cache.parent.mkdir(parents=True, exist_ok=True)
-        with self.__translation_table_cache.open("w") as file:
+        with self.__translation_table_cache.open("w", encoding="utf-8") as file:
             json.dump(translation_table, file)
 
         self.translation_table = translation_table
@@ -200,7 +200,9 @@ class WizardsProvider(AbstractProvider):
         :param table: Translation Table
         :return: Overridden Translation Table
         """
-        with RESOURCE_PATH.joinpath("translation_overrides.json").open() as f:
+        with RESOURCE_PATH.joinpath("translation_overrides.json").open(
+            encoding="utf-8"
+        ) as f:
             translation_fixes = json.load(f)
 
         for set_code, override_translations in translation_fixes.items():
@@ -221,7 +223,9 @@ class WizardsProvider(AbstractProvider):
         :param table: Translation Table
         :return: Fixed Translation Table
         """
-        with RESOURCE_PATH.joinpath("wizards_set_name_fixes.json").open() as f:
+        with RESOURCE_PATH.joinpath("wizards_set_name_fixes.json").open(
+            encoding="utf-8"
+        ) as f:
             set_name_fixes = json.load(f)
 
         for key, value in set_name_fixes.items():

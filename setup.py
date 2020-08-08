@@ -22,7 +22,7 @@ setuptools.setup(
     author_email="zach@mtgjson.com",
     url="https://mtgjson.com/",
     description="Magic: the Gathering compiled database generator",
-    long_description=project_root.joinpath("README.md").open().read(),
+    long_description=project_root.joinpath("README.md").open(encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     license="MIT",
     classifiers=[
@@ -55,7 +55,9 @@ setuptools.setup(
     ],
     include_package_data=True,
     packages=setuptools.find_packages(),
-    install_requires=project_root.joinpath("requirements.txt").open().readlines()
+    install_requires=project_root.joinpath("requirements.txt")
+    .open(encoding="utf-8")
+    .readlines()
     if project_root.joinpath("requirements.txt").is_file()
     else [],  # Use the requirements file, if able
 )

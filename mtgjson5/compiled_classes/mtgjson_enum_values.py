@@ -65,7 +65,7 @@ class MtgjsonEnumValuesObject:
         if not keywords.is_file():
             LOGGER.warning(f"Unable to find {keywords}")
         else:
-            with keywords.open() as file:
+            with keywords.open(encoding="utf-8") as file:
                 content = json.load(file).get("data", {})
             self.attr_value_dict.update({"keywords": content})
 
@@ -82,7 +82,7 @@ class MtgjsonEnumValuesObject:
                 type_map[object_name][object_field_name] = set()
 
         for deck in decks_directory.glob("**/*.json"):
-            with deck.open() as file:
+            with deck.open(encoding="utf-8") as file:
                 content = json.load(file).get("data", {})
 
             for key in content.keys():

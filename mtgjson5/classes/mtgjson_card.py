@@ -230,7 +230,9 @@ class MtgjsonCardObject:
             return
 
         if not self.__watermark_resource:
-            with RESOURCE_PATH.joinpath("set_code_watermarks.json").open() as f:
+            with RESOURCE_PATH.joinpath("set_code_watermarks.json").open(
+                encoding="utf-8"
+            ) as f:
                 self.__watermark_resource = json.load(f)
 
         if watermark == "set":
