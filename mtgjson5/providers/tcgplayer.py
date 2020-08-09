@@ -155,6 +155,11 @@ class TCGPlayerProvider(AbstractProvider):
 
 
 def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict]:
+    """
+    finds all sku data for a given group using the TCGPlayer API
+    :param group_id_and_name: group id and name for the set to get data for
+    :return: product data including skus to be parsed into a sku map
+    """
     magic_set_product_data = []
     api_offset = 0
 
@@ -188,6 +193,11 @@ def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict]:
 
 
 def generate_tcgplayer_sku_map(tcgplayer_set_sku_data: List[Dict]) -> Dict[str, List]:
+    """
+    takes product info and builds a sku map
+    :param tcgplayer_set_sku_data: list of product data dicts used to a build a product id to sku map
+    :return: Map of TCGPlayerID -> NM Foil and Nonfoil SKU
+    """
     tcgplayer_sku_map: Dict[str, List] = {}
     for product_data in tcgplayer_set_sku_data:
         nonfoil_sku: int = 0
@@ -235,15 +245,21 @@ def generate_tcgplayer_to_mtgjson_map(
 def get_tcgplayer_buylist_prices_map(
     group_id_and_name: Tuple[str, str]
 ) -> Dict[str, MtgjsonPricesObject]:
-    # change to logger
-    print(f"Building {group_id_and_name[1]} TCGPlayer Buylist data")
+    """
+    takes a group id and name and finds all buylist data for that group
+    :param group_id_and_name: TCGPlayer Set ID & Name to build
+    :return: returns a map of tcgplayer buylist data to card uuids
+    """
+    LOGGER.info(f"Building {group_id_and_name[1]} TCGPlayer Buylist data")
+    # request all buylist data for a group
     api_response = TCGPlayerProvider().download(
         f"https://api.tcgplayer.com/pricing/buy/group/{group_id_and_name[0]}"
     )
-
+    # breaks if the request is bad
     if not api_response:
         return {}
     response = json.loads(api_response)
+    # breaks if there is no data
     if not response["results"]:
         return {}
     prices_map: Dict[str, MtgjsonPricesObject] = {}
@@ -251,28 +267,40 @@ def get_tcgplayer_buylist_prices_map(
     uuid_map = generate_tcgplayer_to_mtgjson_map(
         OUTPUT_PATH.joinpath("AllPrintings.json")
     )
+    # map of product id to NM Foil and Nonfoil sku
     # this is set specific, build each time
     sku_map = generate_tcgplayer_sku_map(get_tcgplayer_sku_data(group_id_and_name))
     for product_buylist_data in response["results"]:
+        # checks if the product id is in the uuid map
         if not uuid_map.get(str(product_buylist_data["productId"])):
             continue
-        key: str = uuid_map.get(str(product_buylist_data["productId"]))
+        # if it is in the uuid map we set the key for the pricing object
+        key: str = str(uuid_map.get(str(product_buylist_data["productId"])))
+        # parse each sku to find the ones to be stored
         for sku in product_buylist_data["skus"]:
+            # checks if the sku is NM Nonfoil
             if sku["skuId"] == sku_map[str(product_buylist_data["productId"])][0]:
+                # checks to make sure the sku has data
                 if sku["prices"]["high"] is not None:
                     card_price = sku["prices"]["high"]
+                    # checks if the sku has a pricing object yet, if not it creates the object
                     if key not in prices_map.keys():
                         prices_map[key] = MtgjsonPricesObject(
                             "paper", "tcgplayer", TCGPlayerProvider().today_date
                         )
+
                     prices_map[key].buy_normal = card_price
+            # checks if the sku is NM Foil
             elif sku["skuId"] == sku_map[str(product_buylist_data["productId"])][1]:
+                # checks to make sure the sku has data
                 if sku["prices"]["high"] is not None:
                     card_price = sku["prices"]["high"]
+                    # checks if the sku has a pricing object yet, if not it creates the object
                     if key not in prices_map.keys():
                         prices_map[key] = MtgjsonPricesObject(
                             "paper", "tcgplayer", TCGPlayerProvider().today_date
                         )
+                    # sets the price of the sku
                     prices_map[key].buy_foil = card_price
     return prices_map
 
