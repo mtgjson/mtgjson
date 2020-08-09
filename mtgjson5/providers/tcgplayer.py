@@ -10,7 +10,7 @@ import requests
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
-from ..consts import CACHE_PATH
+from ..consts import CACHE_PATH, OUTPUT_PATH
 from ..providers.abstract import AbstractProvider
 from ..utils import parallel_call, retryable_session
 
@@ -154,6 +154,51 @@ class TCGPlayerProvider(AbstractProvider):
         return dict(results)
 
 
+def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict]:
+    magic_set_product_data = []
+    api_offset = 0
+
+    while True:
+        api_response = TCGPlayerProvider().download(
+            "https://api.tcgplayer.com/catalog/products",
+            {"offset": str(api_offset),
+             "limit": 100,
+             "categoryId": 1,
+             "includeSkus": True,
+             "groupId": group_id_and_name[0]}
+        )
+
+        if not api_response:
+            # No more entries
+            break
+
+        response = json.loads(api_response)
+        if not response["results"]:
+            # Something went wrong
+            break
+
+        for product_data in response["results"]:
+            magic_set_product_data.append(product_data)
+
+        api_offset += len(response["results"])
+
+    return magic_set_product_data
+
+
+def generate_tcgplayer_sku_map(tcgplayer_set_sku_data: List[Dict]):
+    tcgplayer_sku_map: Dict[str, List] = {}
+    for product_data in tcgplayer_set_sku_data:
+        nonfoil_sku: int = 0
+        foil_sku: int = 0
+        for sku in product_data["skus"]:
+            if sku["conditionId"] == 1 and sku["printingId"] == 1 and sku["languageId"] == 1:
+                nonfoil_sku = sku["skuId"]
+            elif sku["conditionId"] == 1 and sku["printingId"] == 2 and sku["languageId"] == 1:
+                foil_sku = sku["skuId"]
+        tcgplayer_sku_map[str(product_data["productId"])] = [nonfoil_sku, foil_sku]
+    return tcgplayer_sku_map
+
+
 def generate_tcgplayer_to_mtgjson_map(
         all_printings_path: pathlib.Path,
 ) -> Dict[str, str]:
@@ -175,6 +220,48 @@ def generate_tcgplayer_to_mtgjson_map(
                 pass
 
     return dump_map
+
+
+def get_tcgplayer_buylist_prices_map(group_id_and_name: Tuple[str, str]
+                                     ) -> Dict[str, MtgjsonPricesObject]:
+    # change to logger
+    print(f"Building {group_id_and_name[1]} TCGPlayer Buylist data")
+    api_response = TCGPlayerProvider().download(
+        f"https://api.tcgplayer.com/pricing/buy/group/{group_id_and_name[0]}"
+    )
+
+    if not api_response:
+        return {}
+    response = json.loads(api_response)
+    if not response["results"]:
+        return {}
+    prices_map: Dict[str, MtgjsonPricesObject] = {}
+    # when building the full system, only build this once and take it as an arg
+    uuid_map = generate_tcgplayer_to_mtgjson_map(OUTPUT_PATH.joinpath("AllPrintings.json"))
+    # this is set specific, build each time
+    sku_map = generate_tcgplayer_sku_map(get_tcgplayer_sku_data(group_id_and_name))
+    for product_buylist_data in response["results"]:
+        if not uuid_map.get(str(product_buylist_data["productId"])):
+            continue
+        key = uuid_map.get(str(product_buylist_data["productId"]))
+        for sku in product_buylist_data["skus"]:
+            if sku["skuId"] == sku_map[str(product_buylist_data["productId"])][0]:
+                if sku["prices"]["high"] is not None:
+                    card_price = sku["prices"]["high"]
+                    if key not in prices_map.keys():
+                        prices_map[key] = MtgjsonPricesObject(
+                            "paper", "tcgplayer", TCGPlayerProvider().today_date
+                        )
+                    prices_map[key].buy_normal = card_price
+            elif sku["skuId"] == sku_map[str(product_buylist_data["productId"])][1]:
+                if sku["prices"]["high"] is not None:
+                    card_price = sku["prices"]["high"]
+                    if key not in prices_map.keys():
+                        prices_map[key] = MtgjsonPricesObject(
+                            "paper", "tcgplayer", TCGPlayerProvider().today_date
+                        )
+                    prices_map[key].buy_foil = card_price
+    return prices_map
 
 
 def get_tcgplayer_prices_map(
@@ -220,28 +307,6 @@ def get_tcgplayer_prices_map(
             prices_map[key].sell_foil = card_price
 
     return prices_map
-
-
-def get_tcgplayer_buylist_prices_map(
-        tcg_mtgjson_map
-) -> Dict[str, MtgjsonPricesObject]:
-    """
-    Construct MtgjsonPricesObjects from TCGPlayer Buylist data
-    :param group_id_and_name: TCGPlayer Set ID & Name to build
-    :return: Cards with prices from Set ID & Name
-    """
-    product_id_list = list(tcg_mtgjson_map.keys())
-    for x in range(0, len(tcg_mtgjson_map), 250):
-        section_product_id_list = product_id_list[x:x + 250]
-        csv_product_ids = ','.join(section_product_id_list)
-        api_response = TCGPlayerProvider().download(
-            f"https://api.tcgplayer.com/[API_VERSION]/pricing/buy/product/{csv_product_ids}"
-        )
-        json_response = json.loads(api_response)["results"]
-        for r in json_response:
-            if len(r["skus"]) > 6:
-                print(r)
-                print(len(r["skus"]))
 
 
 def generate_tcgplayer_buylist_to_mtgjson_map(
