@@ -26,7 +26,7 @@ from .consts import (
     FOREIGN_SETS,
     LANGUAGE_MAP,
     RESOURCE_PATH,
-    SUPER_TYPES, OUTPUT_PATH,
+    SUPER_TYPES,
 )
 from .providers import (
     CardMarketProvider,
@@ -35,16 +35,15 @@ from .providers import (
     MTGBanProvider,
     ScryfallProvider,
     WhatsInStandardProvider,
-    WizardsProvider, TCGPlayerProvider,
+    WizardsProvider,
 )
-from .providers.tcgplayer import generate_tcgplayer_to_mtgjson_map, generate_mtgjson_to_tcgplayer_map
 from .utils import get_str_or_none, parallel_call, url_keygen
 
 LOGGER = logging.getLogger(__name__)
 
 
 def parse_foreign(
-        sf_prints_url: str, card_name: str, card_number: str, set_name: str
+    sf_prints_url: str, card_name: str, card_number: str, set_name: str
 ) -> List[MtgjsonForeignDataObject]:
     """
     Get the foreign printings information for a specific card
@@ -66,9 +65,9 @@ def parse_foreign(
 
     for foreign_card in prints_api_json["data"]:
         if (
-                set_name != foreign_card["set"]
-                or card_number != foreign_card["collector_number"]
-                or foreign_card["lang"] == "en"
+            set_name != foreign_card["set"]
+            or card_number != foreign_card["collector_number"]
+            or foreign_card["lang"] == "en"
         ):
             continue
 
@@ -382,7 +381,6 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     add_variations_and_alternative_fields(mtgjson_set)
     add_mcm_details(mtgjson_set)
     add_card_kingdom_details(mtgjson_set)
-    add_tcgplayer_details(mtgjson_set)
 
     # Build tokens, a little less of a process
     mtgjson_set.tokens = build_base_mtgjson_tokens(
@@ -402,7 +400,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
 
 
 def build_base_mtgjson_tokens(
-        set_code: str, added_tokens: List[Dict[str, Any]]
+    set_code: str, added_tokens: List[Dict[str, Any]]
 ) -> List[MtgjsonCardObject]:
     """
     Construct all tokens in MTGJSON format from a single set
@@ -414,7 +412,7 @@ def build_base_mtgjson_tokens(
 
 
 def build_base_mtgjson_cards(
-        set_code: str, additional_cards: List[Dict[str, Any]] = None, is_token: bool = False
+    set_code: str, additional_cards: List[Dict[str, Any]] = None, is_token: bool = False
 ) -> List[MtgjsonCardObject]:
     """
     Construct all cards in MTGJSON format from a single set
@@ -436,7 +434,7 @@ def build_base_mtgjson_cards(
 
 
 def add_is_starter_option(
-        set_code: str, search_url: str, mtgjson_cards: List[MtgjsonCardObject]
+    set_code: str, search_url: str, mtgjson_cards: List[MtgjsonCardObject]
 ) -> None:
     """
     There are cards that may not exist in standard boosters. As such, we mark
@@ -473,18 +471,18 @@ def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
     :param mtgjson_card: Card object
     """
     is_commander_legal = (
-                                 "Legendary" in mtgjson_card.type
-                                 and "Creature" in mtgjson_card.type
-                                 # Exclude Flip cards
-                                 and mtgjson_card.type not in {"flip"}
-                                 # Exclude Melded cards and backside of Transform cards
-                                 and (mtgjson_card.side == "a" if mtgjson_card.side else True)
-                         ) or ("can be your commander" in mtgjson_card.text)
+        "Legendary" in mtgjson_card.type
+        and "Creature" in mtgjson_card.type
+        # Exclude Flip cards
+        and mtgjson_card.type not in {"flip"}
+        # Exclude Melded cards and backside of Transform cards
+        and (mtgjson_card.side == "a" if mtgjson_card.side else True)
+    ) or ("can be your commander" in mtgjson_card.text)
 
     is_oathbreaker_legal = "Planeswalker" in mtgjson_card.type
 
     is_brawl_legal = mtgjson_card.set_code.upper() in WhatsInStandardProvider().set_codes and (
-            is_oathbreaker_legal or is_commander_legal
+        is_oathbreaker_legal or is_commander_legal
     )
 
     if is_commander_legal or is_oathbreaker_legal or is_brawl_legal:
@@ -503,41 +501,41 @@ def add_uuid(mtgjson_card: MtgjsonCardObject) -> None:
     if {"Token", "Card"}.intersection(mtgjson_card.types):
         # Tokens have a special generation method
         id_source_v5 = (
-                mtgjson_card.name
-                + (mtgjson_card.face_name or "")
-                + "".join((mtgjson_card.colors or ""))
-                + (mtgjson_card.power or "")
-                + (mtgjson_card.toughness or "")
-                + (mtgjson_card.side or "")
-                + mtgjson_card.set_code[1:].lower()
-                + (mtgjson_card.identifiers.scryfall_id or "")
-                + (mtgjson_card.identifiers.scryfall_illustration_id or "")
+            mtgjson_card.name
+            + (mtgjson_card.face_name or "")
+            + "".join((mtgjson_card.colors or ""))
+            + (mtgjson_card.power or "")
+            + (mtgjson_card.toughness or "")
+            + (mtgjson_card.side or "")
+            + mtgjson_card.set_code[1:].lower()
+            + (mtgjson_card.identifiers.scryfall_id or "")
+            + (mtgjson_card.identifiers.scryfall_illustration_id or "")
         )
 
         id_source_v4 = (
-                (mtgjson_card.face_name if mtgjson_card.face_name else mtgjson_card.name)
-                + "".join((mtgjson_card.colors or ""))
-                + (mtgjson_card.power or "")
-                + (mtgjson_card.toughness or "")
-                + (mtgjson_card.side or "")
-                + mtgjson_card.set_code[1:].upper()
-                + (mtgjson_card.identifiers.scryfall_id or "")
+            (mtgjson_card.face_name if mtgjson_card.face_name else mtgjson_card.name)
+            + "".join((mtgjson_card.colors or ""))
+            + (mtgjson_card.power or "")
+            + (mtgjson_card.toughness or "")
+            + (mtgjson_card.side or "")
+            + mtgjson_card.set_code[1:].upper()
+            + (mtgjson_card.identifiers.scryfall_id or "")
         )
     else:
         # Normal cards only need a few pieces of data
         id_source_v5 = (
-                ScryfallProvider().get_class_id()
-                + (mtgjson_card.identifiers.scryfall_id or "")
-                + (mtgjson_card.identifiers.scryfall_illustration_id or "")
-                + mtgjson_card.set_code.lower()
-                + mtgjson_card.name
-                + (mtgjson_card.face_name or "")
+            ScryfallProvider().get_class_id()
+            + (mtgjson_card.identifiers.scryfall_id or "")
+            + (mtgjson_card.identifiers.scryfall_illustration_id or "")
+            + mtgjson_card.set_code.lower()
+            + mtgjson_card.name
+            + (mtgjson_card.face_name or "")
         )
 
         id_source_v4 = (
-                "sf"
-                + (mtgjson_card.identifiers.scryfall_id or "")
-                + (mtgjson_card.face_name if mtgjson_card.face_name else mtgjson_card.name)
+            "sf"
+            + (mtgjson_card.identifiers.scryfall_id or "")
+            + (mtgjson_card.face_name if mtgjson_card.face_name else mtgjson_card.name)
         )
 
     mtgjson_card.uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v5))
@@ -547,7 +545,7 @@ def add_uuid(mtgjson_card: MtgjsonCardObject) -> None:
 
 
 def build_mtgjson_card(
-        scryfall_object: Dict[str, Any], face_id: int = 0, is_token: bool = False
+    scryfall_object: Dict[str, Any], face_id: int = 0, is_token: bool = False
 ) -> List[MtgjsonCardObject]:
     """
     Construct a MTGJSON Card object from 3rd party
@@ -677,10 +675,10 @@ def build_mtgjson_card(
     # Indicate if this component exists on the platform
     mtgjson_card.availability = MtgjsonGameFormatsObject()
     mtgjson_card.availability.arena = "arena" in scryfall_object.get("games", []) or (
-            mtgjson_card.identifiers.mtg_arena_id is not None
+        mtgjson_card.identifiers.mtg_arena_id is not None
     )
     mtgjson_card.availability.mtgo = "mtgo" in scryfall_object.get("games", []) or (
-            mtgjson_card.identifiers.mtgo_id is not None
+        mtgjson_card.identifiers.mtgo_id is not None
     )
     mtgjson_card.availability.paper = not mtgjson_card.is_online_only
     mtgjson_card.availability.shandalar = "astral" in scryfall_object.get("games", [])
@@ -691,8 +689,8 @@ def build_mtgjson_card(
 
     ascii_name = (
         unicodedata.normalize("NFD", mtgjson_card.name)
-            .encode("ascii", "ignore")
-            .decode()
+        .encode("ascii", "ignore")
+        .decode()
     )
     if mtgjson_card.name != ascii_name:
         LOGGER.debug(f"Adding ascii name for {mtgjson_card.name} -> {ascii_name}")
@@ -742,7 +740,7 @@ def build_mtgjson_card(
 
     # Implicit Variables
     mtgjson_card.is_timeshifted = (
-            scryfall_object.get("frame") == "future" or mtgjson_card.set_code == "tsb"
+        scryfall_object.get("frame") == "future" or mtgjson_card.set_code == "tsb"
     )
     mtgjson_card.printings = parse_printings(
         scryfall_object["prints_search_uri"].replace("%22", "")
@@ -782,17 +780,17 @@ def build_mtgjson_card(
 
         # If the only entry is the original card, empty the names array
         if (
-                mtgjson_card.get_names()
-                and len(mtgjson_card.get_names()) == 1
-                and mtgjson_card.name in mtgjson_card.get_names()
+            mtgjson_card.get_names()
+            and len(mtgjson_card.get_names()) == 1
+            and mtgjson_card.name in mtgjson_card.get_names()
         ):
             mtgjson_card.set_names(None)
 
         # Meld cards should be CardA, Meld, CardB.
         if (
-                len(meld_object) == 3
-                and meld_object[1] != "meld_result"
-                and mtgjson_card.get_names()
+            len(meld_object) == 3
+            and meld_object[1] != "meld_result"
+            and mtgjson_card.get_names()
         ):
             mtgjson_card.set_names(
                 [
@@ -899,9 +897,9 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
             item.uuid
             for item in mtgjson_set.cards
             if item.name.split(" (")[0] == this_card.name.split(" (")[0]
-               and item.face_name == this_card.face_name
-               and item.uuid != this_card.uuid
-               and (item.number != this_card.number if item.number else True)
+            and item.face_name == this_card.face_name
+            and item.uuid != this_card.uuid
+            and (item.number != this_card.number if item.number else True)
         ]
 
         if variations:
@@ -916,9 +914,9 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
         if mtgjson_set.code.upper() in ["UNH", "10E"]:
             # Check for duplicates, mark the foils
             if (
-                    len(variations) >= 1
-                    and this_card.has_foil
-                    and not this_card.has_non_foil
+                len(variations) >= 1
+                and this_card.has_foil
+                and not this_card.has_non_foil
             ):
                 this_card.is_alternative = True
         elif mtgjson_set.code.upper() in ["CN2", "BBD"]:
@@ -981,8 +979,8 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
             # First lets see if the card name is found
             card_key = mtgjson_card.name.lower()
         elif (
-                mtgjson_card.face_name
-                and mtgjson_card.face_name.lower() in mkm_cards.keys()
+            mtgjson_card.face_name
+            and mtgjson_card.face_name.lower() in mkm_cards.keys()
         ):
             # If that failed, lets see if the face name is found
             card_key = mtgjson_card.face_name.lower()
@@ -1049,80 +1047,3 @@ def get_base_and_total_set_sizes(set_code: str) -> Tuple[int, int]:
     total_set_size = len(ScryfallProvider().download_cards(set_code))
 
     return base_set_size, total_set_size
-
-
-def add_tcgplayer_details(mtgjson_set: MtgjsonSetObject) -> None:
-    """
-    Adds a list of all sku ids from TCGPlayer
-    :param mtgjson_set: MTGJSON Set
-    """
-    LOGGER.info(f"Adding TCGPlayer details for {mtgjson_set.code}")
-    translation_table = generate_mtgjson_to_tcgplayer_map(OUTPUT_PATH.joinpath("AllPrintings.json"))
-    list_of_product_ids = []
-    for mtgjson_card in mtgjson_set.cards:
-        if mtgjson_card.uuid not in translation_table:
-            continue
-        entry = translation_table[mtgjson_card.uuid]
-        list_of_product_ids.append(entry)
-    for x in range(0, len(list_of_product_ids), 250):
-        section_list_product_id = list_of_product_ids[x:x + 250]
-        csv_product_ids = ','.join(section_list_product_id)
-        api_response = TCGPlayerProvider().download(
-            f"https://api.tcgplayer.com/[API_VERSION]/catalog/products/{csv_product_ids}?includeSkus=true"
-        )
-        for data in json.loads(api_response)["results"]:
-            translated_skus = []
-            for sku in data["skus"]:
-                # Translates condition
-                if sku["conditionId"] == 1:
-                    condition = "NM"
-                elif sku["conditionId"] == 2:
-                    condition = "LP"
-                elif sku["conditionId"] == 3:
-                    condition = "MP"
-                elif sku["conditionId"] == 4:
-                    condition = "HP"
-                elif sku["conditionId"] == 5:
-                    condition = "DMG"
-                elif sku["conditionId"] == 6:
-                    condition = "U"
-                # Translated printing
-                if sku["printingId"] == 1:
-                    printing = "Normal"
-                else:
-                    printing = "Foil"
-                # Translates language
-                if sku["languageId"] == 1:
-                    language = "EN"
-                elif sku["languageId"] == 2:
-                    language = "CS"
-                elif sku["languageId"] == 3:
-                    language = "CT"
-                elif sku["languageId"] == 4:
-                    language = "FR"
-                elif sku["languageId"] == 5:
-                    language = "DE"
-                elif sku["languageId"] == 6:
-                    language = "IT"
-                elif sku["languageId"] == 7:
-                    language = "JP"
-                elif sku["languageId"] == 8:
-                    language = "KR"
-                elif sku["languageId"] == 9:
-                    language = "PT"
-                elif sku["languageId"] == 10:
-                    language = "RU"
-                elif sku["languageId"] == 11:
-                    language = "SP"
-                translated_skus.append({
-                    "skuId": str(sku["skuId"]),
-                    "productId": str(sku["productId"]),
-                    "language": language,
-                    "printing": printing,
-                    "condition": condition
-                })
-            mtgjson_card.identifiers.tcgplayer_sku_ids = translated_skus
-            LOGGER.info(f"{mtgjson_card.identifiers.tcgplayer_sku_ids}")
-            json_data = mtgjson_card.to_json()
-            LOGGER.info(f"{json_data}")
-    return mtgjson_set
