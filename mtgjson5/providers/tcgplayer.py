@@ -4,7 +4,7 @@ TCGPlayer 3rd party provider
 import json
 import logging
 import pathlib
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import requests
 from singleton_decorator import singleton
@@ -184,24 +184,25 @@ def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict]:
             # Something went wrong
             break
 
-        for product_data in response["results"]:
-            magic_set_product_data.append(product_data)
+        magic_set_product_data.extend(response["results"])
 
         api_offset += len(response["results"])
 
     return magic_set_product_data
 
 
-def generate_tcgplayer_sku_map(tcgplayer_set_sku_data: List[Dict]) -> Dict[str, List]:
+def generate_tcgplayer_sku_map(
+    tcgplayer_set_sku_data: List[Dict],
+) -> Dict[str, Dict[str, Optional[int]]]:
     """
     takes product info and builds a sku map
     :param tcgplayer_set_sku_data: list of product data dicts used to a build a product id to sku map
     :return: Map of TCGPlayerID -> NM Foil and Nonfoil SKU
     """
-    tcgplayer_sku_map: Dict[str, List] = {}
+    tcgplayer_sku_map: Dict[str, Dict[str, Optional[int]]] = {}
     for product_data in tcgplayer_set_sku_data:
-        nonfoil_sku: int = 0
-        foil_sku: int = 0
+        nonfoil_sku: Optional[int] = None
+        foil_sku: Optional[int] = None
         for sku in product_data["skus"]:
             if (
                 sku["conditionId"] == 1
@@ -215,7 +216,10 @@ def generate_tcgplayer_sku_map(tcgplayer_set_sku_data: List[Dict]) -> Dict[str, 
                 and sku["languageId"] == 1
             ):
                 foil_sku = sku["skuId"]
-        tcgplayer_sku_map[str(product_data["productId"])] = [nonfoil_sku, foil_sku]
+        tcgplayer_sku_map[str(product_data["productId"])] = {
+            "nonfoilSku": nonfoil_sku,
+            "foilSku": foil_sku,
+        }
     return tcgplayer_sku_map
 
 
@@ -254,11 +258,9 @@ def get_tcgplayer_buylist_prices_map(
     api_response = TCGPlayerProvider().download(
         f"https://api.tcgplayer.com/pricing/buy/group/{group_id_and_name[0]}"
     )
-    # breaks if the request is bad
     if not api_response:
         return {}
     response = json.loads(api_response)
-    # breaks if there is no data
     if not response["results"]:
         return {}
     prices_map: Dict[str, MtgjsonPricesObject] = {}
@@ -273,28 +275,29 @@ def get_tcgplayer_buylist_prices_map(
         if not uuid_map.get(str(product_buylist_data["productId"])):
             continue
         # if it is in the uuid map we set the key for the pricing object
-        key: str = str(uuid_map.get(str(product_buylist_data["productId"])))
+        key: str = uuid_map[str(product_buylist_data["productId"])]
         # parse each sku to find the near mint skus
         for sku in product_buylist_data["skus"]:
-            # checks if the sku is NM Nonfoil
-            if sku["skuId"] == sku_map[str(product_buylist_data["productId"])][0]:
-                if sku["prices"]["high"] is not None:
-                    card_price = sku["prices"]["high"]
+            if sku["prices"]["high"]:
+                if sku["skuId"] == sku_map[str(product_buylist_data["productId"])].get(
+                    "nonfoilSku"
+                ):
+
                     if key not in prices_map.keys():
                         prices_map[key] = MtgjsonPricesObject(
                             "paper", "tcgplayer", TCGPlayerProvider().today_date
                         )
 
-                    prices_map[key].buy_normal = card_price
-            # checks if the sku is NM Foil
-            elif sku["skuId"] == sku_map[str(product_buylist_data["productId"])][1]:
-                if sku["prices"]["high"] is not None:
-                    card_price = sku["prices"]["high"]
+                        prices_map[key].buy_normal = sku["prices"]["high"]
+                elif sku["skuId"] == sku_map[
+                    str(product_buylist_data["productId"])
+                ].get("foilSku"):
+
                     if key not in prices_map.keys():
                         prices_map[key] = MtgjsonPricesObject(
                             "paper", "tcgplayer", TCGPlayerProvider().today_date
                         )
-                    prices_map[key].buy_foil = card_price
+                    prices_map[key].buy_foil = sku["prices"]["high"]
     return prices_map
 
 
