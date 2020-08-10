@@ -251,7 +251,6 @@ def get_tcgplayer_buylist_prices_map(
     :return: returns a map of tcgplayer buylist data to card uuids
     """
     LOGGER.info(f"Building {group_id_and_name[1]} TCGPlayer Buylist data")
-    # request all buylist data for a group
     api_response = TCGPlayerProvider().download(
         f"https://api.tcgplayer.com/pricing/buy/group/{group_id_and_name[0]}"
     )
@@ -263,12 +262,11 @@ def get_tcgplayer_buylist_prices_map(
     if not response["results"]:
         return {}
     prices_map: Dict[str, MtgjsonPricesObject] = {}
-    # when building the full system, only build this once and take it as an arg
+    # when building the full system, only build this once and take it as an arg/write to a file
     uuid_map = generate_tcgplayer_to_mtgjson_map(
         OUTPUT_PATH.joinpath("AllPrintings.json")
     )
-    # map of product id to NM Foil and Nonfoil sku
-    # this is set specific, build each time
+    # this is set specific, built each time unlike the uuid map
     sku_map = generate_tcgplayer_sku_map(get_tcgplayer_sku_data(group_id_and_name))
     for product_buylist_data in response["results"]:
         # checks if the product id is in the uuid map
@@ -276,14 +274,12 @@ def get_tcgplayer_buylist_prices_map(
             continue
         # if it is in the uuid map we set the key for the pricing object
         key: str = str(uuid_map.get(str(product_buylist_data["productId"])))
-        # parse each sku to find the ones to be stored
+        # parse each sku to find the near mint skus
         for sku in product_buylist_data["skus"]:
             # checks if the sku is NM Nonfoil
             if sku["skuId"] == sku_map[str(product_buylist_data["productId"])][0]:
-                # checks to make sure the sku has data
                 if sku["prices"]["high"] is not None:
                     card_price = sku["prices"]["high"]
-                    # checks if the sku has a pricing object yet, if not it creates the object
                     if key not in prices_map.keys():
                         prices_map[key] = MtgjsonPricesObject(
                             "paper", "tcgplayer", TCGPlayerProvider().today_date
@@ -292,15 +288,12 @@ def get_tcgplayer_buylist_prices_map(
                     prices_map[key].buy_normal = card_price
             # checks if the sku is NM Foil
             elif sku["skuId"] == sku_map[str(product_buylist_data["productId"])][1]:
-                # checks to make sure the sku has data
                 if sku["prices"]["high"] is not None:
                     card_price = sku["prices"]["high"]
-                    # checks if the sku has a pricing object yet, if not it creates the object
                     if key not in prices_map.keys():
                         prices_map[key] = MtgjsonPricesObject(
                             "paper", "tcgplayer", TCGPlayerProvider().today_date
                         )
-                    # sets the price of the sku
                     prices_map[key].buy_foil = card_price
     return prices_map
 
