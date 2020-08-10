@@ -56,8 +56,8 @@ class TCGPlayerProvider(AbstractProvider):
             return ""
 
         if not (
-                config.get("TCGPlayer", "client_id")
-                and config.get("TCGPlayer", "client_secret")
+            config.get("TCGPlayer", "client_id")
+            and config.get("TCGPlayer", "client_secret")
         ):
             LOGGER.warning("TCGPlayer keys not established. Skipping requests")
             self.__keys_found = False
@@ -128,7 +128,7 @@ class TCGPlayerProvider(AbstractProvider):
         return magic_set_ids
 
     def generate_today_price_dict(
-            self, all_printings_path: pathlib.Path
+        self, all_printings_path: pathlib.Path
     ) -> Dict[str, MtgjsonPricesObject]:
         """
         Download the TCGPlayer pricing API and collate into MTGJSON format
@@ -204,15 +204,15 @@ def generate_tcgplayer_sku_map(tcgplayer_set_sku_data: List[Dict]) -> Dict[str, 
         foil_sku: int = 0
         for sku in product_data["skus"]:
             if (
-                    sku["conditionId"] == 1
-                    and sku["printingId"] == 1
-                    and sku["languageId"] == 1
+                sku["conditionId"] == 1
+                and sku["printingId"] == 1
+                and sku["languageId"] == 1
             ):
                 nonfoil_sku = sku["skuId"]
             elif (
-                    sku["conditionId"] == 1
-                    and sku["printingId"] == 2
-                    and sku["languageId"] == 1
+                sku["conditionId"] == 1
+                and sku["printingId"] == 2
+                and sku["languageId"] == 1
             ):
                 foil_sku = sku["skuId"]
         tcgplayer_sku_map[str(product_data["productId"])] = [nonfoil_sku, foil_sku]
@@ -220,7 +220,7 @@ def generate_tcgplayer_sku_map(tcgplayer_set_sku_data: List[Dict]) -> Dict[str, 
 
 
 def generate_tcgplayer_to_mtgjson_map(
-        all_printings_path: pathlib.Path,
+    all_printings_path: pathlib.Path,
 ) -> Dict[str, str]:
     """
     Generate a TCGPlayerID -> MTGJSON UUID map that can be used
@@ -243,7 +243,7 @@ def generate_tcgplayer_to_mtgjson_map(
 
 
 def get_tcgplayer_buylist_prices_map(
-        group_id_and_name: Tuple[str, str]
+    group_id_and_name: Tuple[str, str]
 ) -> Dict[str, MtgjsonPricesObject]:
     """
     takes a group id and name and finds all buylist data for that group
@@ -306,7 +306,7 @@ def get_tcgplayer_buylist_prices_map(
 
 
 def get_tcgplayer_prices_map(
-        group_id_and_name: Tuple[str, str]
+    group_id_and_name: Tuple[str, str]
 ) -> Dict[str, MtgjsonPricesObject]:
     """
     Construct MtgjsonPricesObjects from TCGPlayer data
@@ -351,7 +351,7 @@ def get_tcgplayer_prices_map(
 
 
 def generate_mtgjson_to_tcgplayer_map(
-        all_printings_path: pathlib.Path,
+    all_printings_path: pathlib.Path,
 ) -> Dict[str, str]:
     """
     Generate a TCGPlayerID -> MTGJSON UUID map that can be used
