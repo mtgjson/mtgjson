@@ -170,10 +170,14 @@ def build_today_prices() -> Dict[str, Any]:
     tcgplayer = _generate_prices(TCGPlayerProvider())
     card_market = _generate_prices(CardMarketProvider())
     card_kingdom = _generate_prices(CardKingdomProvider())
+    tcgplayer_buylist = _generate_tcgplayer_buylist_prices(TCGPlayerProvider())
 
     final_results = deep_merge_dictionaries(
-        deep_merge_dictionaries(card_hoarder, tcgplayer),
-        deep_merge_dictionaries(card_market, card_kingdom),
+        deep_merge_dictionaries(
+            deep_merge_dictionaries(card_hoarder, tcgplayer),
+            deep_merge_dictionaries(card_market, card_kingdom),
+        ),
+        tcgplayer_buylist,
     )
 
     return final_results
@@ -187,6 +191,21 @@ def _generate_prices(provider: Any) -> Dict[str, Any]:
     :return Manageable data for MTGJSON prices
     """
     preprocess_prices = provider.generate_today_price_dict(
+        OUTPUT_PATH.joinpath("AllPrintings.json")
+    )
+    final_prices: Dict[str, Any] = json.loads(
+        json.dumps(preprocess_prices, default=lambda o: o.to_json())
+    )
+    return final_prices
+
+
+def _generate_tcgplayer_buylist_prices(provider: TCGPlayerProvider) -> Dict[str, Any]:
+    """
+    Generates TCGPlayer buylist prices and preps them for merging
+    :param provider: MTGJSON Provider that implements generate_today_buylist_price_dict
+    :return Manageable data for MTGJSON prices
+    """
+    preprocess_prices = provider.generate_today_buylist_price_dict(
         OUTPUT_PATH.joinpath("AllPrintings.json")
     )
     final_prices: Dict[str, Any] = json.loads(
