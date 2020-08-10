@@ -165,6 +165,7 @@ class TCGPlayerProvider(AbstractProvider):
         if not self.__keys_found:
             LOGGER.warning("Keys not found for TCGPlayer, skipping")
             return {}
+
         uuid_map = generate_tcgplayer_to_mtgjson_map(all_printings_path)
         CACHE_PATH.mkdir(parents=True, exist_ok=True)
         with CACHE_PATH.joinpath("tcgplayer_buylist_price_map.json").open("w") as file:
@@ -188,23 +189,23 @@ class TCGPlayerProvider(AbstractProvider):
         """
         if not self.__keys_found:
             LOGGER.warning("Keys not found for TCGPlayer, skipping")
-            return [{}]
+            return []
         uuid_map = generate_tcgplayer_to_mtgjson_map(all_printings_path)
         CACHE_PATH.mkdir(parents=True, exist_ok=True)
         with CACHE_PATH.joinpath("tcgplayer_buylist_price_map.json").open("w") as file:
             json.dump(uuid_map, file)
 
         ids_and_names = self.get_tcgplayer_magic_set_ids()
-        set_price_data = []
-        for set_ids in ids_and_names:
-            set_price_data.append(get_tcgplayer_buylist_prices_map(set_ids))
+        set_price_data = [
+            get_tcgplayer_buylist_prices_map(set_ids) for set_ids in ids_and_names
+        ]
 
         return set_price_data
 
 
-def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict]:
+def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict[str, Any]]:
     """
-    finds all sku data for a given group using the TCGPlayer API
+    Finds all sku data for a given group using the TCGPlayer API
     :param group_id_and_name: group id and name for the set to get data for
     :return: product data including skus to be parsed into a sku map
     """
@@ -240,7 +241,7 @@ def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict]:
 
 
 def generate_tcgplayer_sku_map(
-    tcgplayer_set_sku_data: List[Dict],
+    tcgplayer_set_sku_data: List[Dict[str, Any]],
 ) -> Dict[str, Dict[str, Optional[int]]]:
     """
     takes product info and builds a sku map
@@ -265,8 +266,8 @@ def generate_tcgplayer_sku_map(
             ):
                 foil_sku = sku["skuId"]
         tcgplayer_sku_map[str(product_data["productId"])] = {
-            "nonfoilSku": nonfoil_sku,
-            "foilSku": foil_sku,
+            "nonfoil_sku": nonfoil_sku,
+            "foil_sku": foil_sku,
         }
     return tcgplayer_sku_map
 
@@ -312,8 +313,10 @@ def get_tcgplayer_buylist_prices_map(
     if not response["results"]:
         return {}
     prices_map: Dict[str, MtgjsonPricesObject] = {}
+    # gets all the sku data for a given group
+    tcgplayer_sku_data = get_tcgplayer_sku_data(group_id_and_name)
     # this is set specific, built each time unlike the uuid map
-    sku_map = generate_tcgplayer_sku_map(get_tcgplayer_sku_data(group_id_and_name))
+    sku_map = generate_tcgplayer_sku_map(tcgplayer_sku_data)
     # built when build price today called
     with CACHE_PATH.joinpath("tcgplayer_buylist_price_map.json").open() as file:
         uuid_map = json.load(file)
@@ -329,7 +332,7 @@ def get_tcgplayer_buylist_prices_map(
                 if sku_map.get(str(product_buylist_data["productId"])):
                     if sku["skuId"] == sku_map[
                         str(product_buylist_data["productId"])
-                    ].get("nonfoilSku"):
+                    ].get("nonfoil_sku"):
 
                         if key not in prices_map.keys():
                             prices_map[key] = MtgjsonPricesObject(
@@ -339,7 +342,7 @@ def get_tcgplayer_buylist_prices_map(
                             prices_map[key].buy_normal = sku["prices"]["high"]
                     elif sku["skuId"] == sku_map[
                         str(product_buylist_data["productId"])
-                    ].get("foilSku"):
+                    ].get("foil_sku"):
 
                         if key not in prices_map.keys():
                             prices_map[key] = MtgjsonPricesObject(
