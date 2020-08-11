@@ -9,7 +9,7 @@ import logging
 import os
 import pathlib
 import time
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import gevent.pool
 import requests
@@ -258,3 +258,27 @@ def send_push_notification(message: str) -> bool:
             all_succeeded = False
 
     return all_succeeded
+
+
+def deep_merge_dictionaries(
+    dictionary_one: Dict[str, Any], dictionary_two: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Merge two dictionaries together, recursively
+    :param dictionary_one: Dict 1
+    :param dictionary_two: Dict 2
+    :return: Combined Dictionaries
+    """
+    new_dictionary = dictionary_one.copy()
+
+    new_dictionary.update(
+        {
+            key: deep_merge_dictionaries(new_dictionary[key], dictionary_two[key])
+            if isinstance(new_dictionary.get(key), dict)
+            and isinstance(dictionary_two[key], dict)
+            else dictionary_two[key]
+            for key in dictionary_two.keys()
+        }
+    )
+
+    return new_dictionary
