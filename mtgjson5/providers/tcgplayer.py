@@ -12,7 +12,7 @@ from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
 from ..providers.abstract import AbstractProvider
-from ..utils import parallel_call, retryable_session
+from ..utils import generate_card_mapping, parallel_call, retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -180,7 +180,9 @@ class TCGPlayerProvider(AbstractProvider):
             return {}
 
         ids_and_names = self.get_tcgplayer_magic_set_ids()
-        tcg_to_mtgjson_map = generate_tcgplayer_to_mtgjson_map(all_printings_path)
+        tcg_to_mtgjson_map = generate_card_mapping(
+            all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
+        )
 
         LOGGER.info("Building TCGPlayer buylist data")
         buylist_dict = parallel_call(
@@ -281,29 +283,6 @@ def get_tcgplayer_sku_map(
     return tcgplayer_sku_map
 
 
-def generate_tcgplayer_to_mtgjson_map(
-    all_printings_path: pathlib.Path,
-) -> Dict[str, str]:
-    """
-    Generate a TCGPlayerID -> MTGJSON UUID map that can be used
-    across the system.
-    :param all_printings_path: Path to JSON compiled version
-    :return: Map of TCGPlayerID -> MTGJSON UUID
-    """
-    with all_printings_path.expanduser().open(encoding="utf-8") as f:
-        file_contents = json.load(f).get("data", {})
-
-    dump_map: Dict[str, str] = {}
-    for value in file_contents.values():
-        for card in value.get("cards", []) + value.get("tokens", []):
-            try:
-                dump_map[card["identifiers"]["tcgplayerProductId"]] = card["uuid"]
-            except KeyError:
-                pass
-
-    return dump_map
-
-
 def get_tcgplayer_buylist_prices_map(
     group_id_and_name: Tuple[str, str], tcg_to_mtgjson_map: Dict[str, str]
 ) -> Dict[str, MtgjsonPricesObject]:
@@ -400,26 +379,3 @@ def get_tcgplayer_prices_map(
             prices_map[key].sell_foil = card_price
 
     return prices_map
-
-
-def generate_mtgjson_to_tcgplayer_map(
-    all_printings_path: pathlib.Path,
-) -> Dict[str, str]:
-    """
-    Generate a TCGPlayerID -> MTGJSON UUID map that can be used
-    across the system.
-    :param all_printings_path: Path to JSON compiled version
-    :return: Map of TCGPlayerID -> MTGJSON UUID
-    """
-    with all_printings_path.expanduser().open(encoding="utf-8") as f:
-        file_contents = json.load(f).get("data", {})
-
-    dump_map: Dict[str, str] = {}
-    for value in file_contents.values():
-        for card in value.get("cards", []) + value.get("tokens", []):
-            try:
-                dump_map[card["uuid"]] = card["identifiers"]["tcgplayerProductId"]
-            except KeyError:
-                pass
-
-    return dump_map

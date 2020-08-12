@@ -1,7 +1,6 @@
 """
 Card Kingdom 3rd party provider
 """
-import json
 import logging
 import pathlib
 from typing import Any, Dict, Union
@@ -10,7 +9,7 @@ from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
 from ..providers.abstract import AbstractProvider
-from ..utils import retryable_session
+from ..utils import generate_card_mapping, retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -59,8 +58,17 @@ class CardKingdomProvider(AbstractProvider):
         :return MTGJSON prices single day structure
         """
         request_api_response: Dict[str, Any] = self.download(self.api_url)
-        translation_table = self.generate_card_kingdom_to_mtgjson_map(
-            all_printings_path
+
+        # Start with non-foil IDs
+        card_kingdom_id_to_mtgjson = generate_card_mapping(
+            all_printings_path, ("identifiers", "cardKingdomId"), ("uuid",)
+        )
+
+        # Then add in foil IDs
+        card_kingdom_id_to_mtgjson.update(
+            generate_card_mapping(
+                all_printings_path, ("identifiers", "cardKingdomFoilId"), ("uuid",)
+            )
         )
 
         today_dict: Dict[str, MtgjsonPricesObject] = {}
@@ -68,47 +76,21 @@ class CardKingdomProvider(AbstractProvider):
         card_rows = request_api_response.get("data", [])
         for card in card_rows:
             card_id = str(card["id"])
-            if card_id in translation_table.keys():
-                mtgjson_uuid = translation_table[card_id]
+            if card_id not in card_kingdom_id_to_mtgjson:
+                continue
 
-                if mtgjson_uuid not in today_dict:
-                    today_dict[mtgjson_uuid] = MtgjsonPricesObject(
-                        "paper", "cardkingdom", self.today_date
-                    )
+            mtgjson_uuid = card_kingdom_id_to_mtgjson[card_id]
 
-                if card["is_foil"] == "true":
-                    today_dict[mtgjson_uuid].sell_foil = float(card["price_retail"])
-                    today_dict[mtgjson_uuid].buy_foil = float(card["price_buy"])
-                else:
-                    today_dict[mtgjson_uuid].sell_normal = float(card["price_retail"])
-                    today_dict[mtgjson_uuid].buy_normal = float(card["price_buy"])
+            if mtgjson_uuid not in today_dict:
+                today_dict[mtgjson_uuid] = MtgjsonPricesObject(
+                    "paper", "cardkingdom", self.today_date
+                )
+
+            if card["is_foil"] == "true":
+                today_dict[mtgjson_uuid].sell_foil = float(card["price_retail"])
+                today_dict[mtgjson_uuid].buy_foil = float(card["price_buy"])
+            else:
+                today_dict[mtgjson_uuid].sell_normal = float(card["price_retail"])
+                today_dict[mtgjson_uuid].buy_normal = float(card["price_buy"])
 
         return today_dict
-
-    @staticmethod
-    def generate_card_kingdom_to_mtgjson_map(
-        all_printings_path: pathlib.Path,
-    ) -> Dict[str, str]:
-        """
-        Generate a TCGPlayerID -> MTGJSON UUID map that can be used
-        across the system.
-        :param all_printings_path: Path to JSON compiled version
-        :return: Map of TCGPlayerID -> MTGJSON UUID
-        """
-        with all_printings_path.expanduser().open(encoding="utf-8") as f:
-            file_contents = json.load(f).get("data", {})
-
-        dump_map: Dict[str, str] = {}
-        for value in file_contents.values():
-            for card in value.get("cards", []) + value.get("tokens", []):
-                try:
-                    dump_map[card["identifiers"]["cardKingdomId"]] = card["uuid"]
-                except KeyError:
-                    pass
-
-                try:
-                    dump_map[card["identifiers"]["cardKingdomFoilId"]] = card["uuid"]
-                except KeyError:
-                    pass
-
-        return dump_map

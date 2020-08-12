@@ -5,11 +5,12 @@ import collections
 import hashlib
 import inspect
 import itertools
+import json
 import logging
 import os
 import pathlib
 import time
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import gevent.pool
 import requests
@@ -282,3 +283,56 @@ def deep_merge_dictionaries(
     )
 
     return new_dictionary
+
+
+def get_all_cards_and_tokens(
+    all_printings_path: pathlib.Path,
+) -> Iterator[Dict[str, Any]]:
+    """
+    Grab every card and token object from an AllPrintings file for future iteration
+    :param all_printings_path: AllPrintings.json to refer when building
+    :return Iterator for all card and token objects
+    """
+    all_printings_path = all_printings_path.expanduser()
+    if not all_printings_path.exists():
+        LOGGER.error(f"File {all_printings_path} does not exist, cannot iterate")
+        return
+
+    with all_printings_path.open(encoding="utf-8") as f:
+        file_contents = json.load(f).get("data", {})
+
+    for value in file_contents.values():
+        for card in value.get("cards", []) + value.get("tokens", []):
+            yield card
+
+
+def generate_card_mapping(
+    all_printings_path: pathlib.Path,
+    left_side_components: Tuple[str, ...],
+    right_side_components: Tuple[str, ...],
+) -> Dict[str, Any]:
+    """
+    Construct a mapping from one component of the card to another.
+    The components are nested ops to get to the final value.
+    :param all_printings_path: AllPrintings file to load card data from
+    :param left_side_components: Inner left hand side components ([foo, bar] => card[foo][bar])
+    :param right_side_components: Inner right hand side components ([foo, bar] => card[foo][bar])
+    :return Dict mapping from left components => right components
+    """
+    dump_map: Dict[str, Any] = {}
+
+    for card in get_all_cards_and_tokens(all_printings_path):
+        try:
+            key = card
+            for inside_component in left_side_components:
+                key = key[inside_component]
+
+            value = card
+            for inside_component in right_side_components:
+                value = value[inside_component]
+
+            dump_map[str(key)] = value
+        except KeyError:
+            pass
+
+    return dump_map

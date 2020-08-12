@@ -3,7 +3,6 @@ MKM 3rd party provider
 """
 import base64
 import io
-import json
 import logging
 import math
 import os
@@ -18,6 +17,7 @@ from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
 from ..providers.abstract import AbstractProvider
+from ..utils import generate_card_mapping
 
 LOGGER = logging.getLogger(__name__)
 
@@ -82,7 +82,9 @@ class CardMarketProvider(AbstractProvider):
         if not self.__keys_found:
             return {}
 
-        mtgjson_id_map = self._generate_cardmarket_to_mtgjson_map(all_printings_path)
+        mtgjson_id_map = generate_card_mapping(
+            all_printings_path, ("identifiers", "mcmId"), ("uuid",)
+        )
 
         price_data = pandas.read_csv(self._get_card_market_data())
         data_frame_columns = list(price_data.columns)
@@ -118,29 +120,6 @@ class CardMarketProvider(AbstractProvider):
                     today_dict[mtgjson_uuid].sell_foil = avg_foil_price
 
         return today_dict
-
-    @staticmethod
-    def _generate_cardmarket_to_mtgjson_map(
-        all_printings_path: pathlib.Path,
-    ) -> Dict[str, str]:
-        """
-        Generate a CardMarketID -> MTGJSON UUID map that can be used
-        across the system.
-        :param all_printings_path: Path to JSON compiled version
-        :return: Map of CardMarketID -> MTGJSON UUID
-        """
-        with all_printings_path.expanduser().open(encoding="utf-8") as f:
-            file_contents = json.load(f).get("data", {})
-
-        dump_map: Dict[str, str] = {}
-        for value in file_contents.values():
-            for card in value.get("cards", []) + value.get("tokens", []):
-                try:
-                    dump_map[card["identifiers"]["mcmId"]] = card["uuid"]
-                except KeyError:
-                    pass
-
-        return dump_map
 
     def __init_set_map(self) -> None:
         """
