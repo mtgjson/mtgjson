@@ -307,3 +307,23 @@ def get_tcgplayer_to_mtgjson_map(all_printings_path: pathlib.Path) -> Dict[str, 
                 dump_map[card["tcgplayerProductId"]] = card["uuid"]
 
     return dump_map
+
+
+def download_old_all_printings() -> None:
+    """
+    Download the hosted version of AllPrintings from MTGJSON
+    for future consumption
+    """
+    file_bytes = b""
+    file_data = requests.get(
+        "https://mtgjson.com/api/v4/AllPrintings.json.xz", stream=True
+    )
+    for chunk in file_data.iter_content(chunk_size=1024 * 36):
+        if chunk:
+            file_bytes += chunk
+
+    mtgjson4.COMPILED_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    with mtgjson4.COMPILED_OUTPUT_DIR.joinpath("AllPrintings.json").open(
+        "w", encoding="utf8"
+    ) as f:
+        f.write(lzma.decompress(file_bytes).decode())

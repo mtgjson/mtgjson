@@ -96,7 +96,13 @@ def iterate_cards_and_tokens(
     :param all_printings_path: AllPrintings.json to refer when building
     :return Iterator for all card and token objects
     """
-    with all_printings_path.expanduser().open(encoding="utf-8") as f:
+    all_printings_path = all_printings_path.expanduser()
+
+    if not all_printings_path.exists():
+        LOGGER.info("AllPrintings not found, downloading cached version")
+        util.download_old_all_printings()
+
+    with all_printings_path.open(encoding="utf-8") as f:
         file_contents = json.load(f)
 
     for value in file_contents.values():
