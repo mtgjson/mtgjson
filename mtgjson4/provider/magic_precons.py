@@ -83,9 +83,11 @@ def build_single_card(deck_card: Dict[str, Any]) -> List[Dict[str, Any]]:
     :return: Card(s) built from the card MTGJSONv4 format
     """
     cards = []
-    for mtgjson_card in SET_SESSION.get()[
-        mtgjson4.util.get_mtgjson_set_code(deck_card["set_code"].upper())
-    ]["cards"]:
+    for mtgjson_card in (
+        SET_SESSION.get()
+        .get(mtgjson4.util.get_mtgjson_set_code(deck_card["set_code"].upper()), {})
+        .get("cards", [])
+    ):
         if "//" in deck_card["name"]:
             if deck_card["number"][-1].isalpha():
                 deck_card["number"] = deck_card["number"][:-1]
