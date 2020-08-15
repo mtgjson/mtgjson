@@ -373,6 +373,10 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
         mtgjson_set.code
     )
 
+    # Handle different naming scheme
+    if mtgjson_set.keyrune_code == "STAR":
+        mtgjson_set.keyrune_code = "PMEI"
+    
     base_total_sizes = get_base_and_total_set_sizes(set_code)
     mtgjson_set.base_set_size = base_total_sizes[0]
     mtgjson_set.total_set_size = base_total_sizes[1]
