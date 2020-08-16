@@ -7,9 +7,9 @@ import time
 from typing import Dict, List, Set
 
 # Maintenance variables
-__VERSION__ = "4.6.2"
-__VERSION_DATE__ = "2019-01-20"
-__PRICE_UPDATE_DATE__ = "2019-12-01"
+__VERSION__ = "4.7.0"
+__VERSION_DATE__ = "2020-08-15"
+__PRICE_UPDATE_DATE__ = "2020-08-15"
 __MAINTAINER__ = "Zach Halpern (GitHub: @ZeldaZach)"
 __MAINTAINER_EMAIL__ = "zahalpern+github@gmail.com"
 __REPO_URL__ = "https://github.com/mtgjson/mtgjson"
