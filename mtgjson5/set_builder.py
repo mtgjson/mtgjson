@@ -340,6 +340,22 @@ def mark_duel_decks(set_code: str, mtgjson_cards: List[MtgjsonCardObject]) -> No
     LOGGER.info(f"Finished marking duel deck status for {set_code}")
 
 
+def parse_keyrune_code(url: str) -> str:
+    """
+    Convert a URL of a keyrune icon into its proper handle
+    :param url: URL to keyrune to parse
+    :return Proper keyrune code
+    """
+    file_stem = pathlib.Path(url).stem.upper()
+
+    with RESOURCE_PATH.joinpath("keyrune_code_overrides.json").open(
+        encoding="utf-8"
+    ) as file:
+        upstream_to_keyrune_map: Dict[str, str] = json.load(file)
+
+    return upstream_to_keyrune_map.get(file_stem, file_stem)
+
+
 def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     """
     Construct a MTGJSON Magic Set
@@ -358,7 +374,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.name = set_data["name"].strip()
     mtgjson_set.code = set_data["code"].upper()
     mtgjson_set.type = set_data["set_type"]
-    mtgjson_set.keyrune_code = pathlib.Path(set_data["icon_svg_uri"]).stem.upper()
+    mtgjson_set.keyrune_code = parse_keyrune_code(set_data["icon_svg_uri"])
     mtgjson_set.release_date = set_data["released_at"]
     mtgjson_set.mtgo_code = set_data.get("mtgo_code", "").upper()
     mtgjson_set.parent_code = set_data.get("parent_set_code", "").upper()
