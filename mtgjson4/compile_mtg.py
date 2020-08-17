@@ -53,9 +53,7 @@ def build_mtgjson_set(
     mtgjson_set_file["name"] = set_config["name"].strip()
     mtgjson_set_file["code"] = set_config["code"].upper()
     mtgjson_set_file["type"] = set_config["set_type"]
-    mtgjson_set_file["keyruneCode"] = (
-        pathlib.Path(set_config["icon_svg_uri"]).name.split(".")[0].upper()
-    )
+    mtgjson_set_file["keyruneCode"] = parse_keyrune_code(set_config["icon_svg_uri"])
 
     mtgjson_set_file["releaseDate"] = set_config["released_at"]
     if datetime.datetime.today().strftime("%Y-%m-%d") < mtgjson_set_file["releaseDate"]:
@@ -976,3 +974,16 @@ def mtgjson_custom_fields(cards: List[MTGJSONCard]) -> List[MTGJSONCard]:
             card.set("otherFaceIds", ids_to_find)
 
     return cards
+
+
+def parse_keyrune_code(url: str) -> str:
+    """
+    Convert a URL of a keyrune icon into its proper handle
+    :param url: URL to keyrune to parse
+    :return Proper keyrune code
+    """
+    upstream_to_keyrune_map = {"STAR": "PMEI"}
+
+    file_stem = pathlib.Path(url).stem.upper()
+
+    return upstream_to_keyrune_map.get(file_stem, file_stem)
