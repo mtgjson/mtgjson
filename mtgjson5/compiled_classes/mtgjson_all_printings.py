@@ -5,14 +5,11 @@ import json
 import pathlib
 from typing import Dict, List
 
-from singleton_decorator import singleton
-
 from ..classes import MtgjsonSetObject
 from ..consts import OUTPUT_PATH
 from .mtgjson_structures import MtgjsonStructuresObject
 
 
-@singleton
 class MtgjsonAllPrintingsObject:
     """
     MTGJSON AllPrintings Object
@@ -20,35 +17,38 @@ class MtgjsonAllPrintingsObject:
 
     all_sets_dict: Dict[str, MtgjsonSetObject]
 
-    def __init__(self, whitelist_sets: List[str] = None) -> None:
+    def __init__(self) -> None:
         """
         Initialize to build up the object
         """
         self.all_sets_dict = {}
-
         files_to_build = self.get_files_to_build(
-            MtgjsonStructuresObject().get_all_compiled_file_names(), whitelist_sets
+            MtgjsonStructuresObject().get_all_compiled_file_names()
         )
         self.iterate_all_sets(files_to_build)
 
+    def get_set_contents(self, sets: List[str] = None) -> Dict[str, MtgjsonSetObject]:
+        """
+        Give the contents of certain sets. Empty for all sets.
+        :param sets: Sets to get. Empty for all sets.
+        :return Subset of AllPrintings sets
+        """
+        if sets:
+            return {
+                key: self.all_sets_dict[key]
+                for key in sets
+                if key in self.all_sets_dict
+            }
+
+        return self.all_sets_dict
+
     @staticmethod
-    def get_files_to_build(
-        files_to_ignore: List[str], whitelist_files: List[str] = None,
-    ) -> List[pathlib.Path]:
+    def get_files_to_build(files_to_ignore: List[str]) -> List[pathlib.Path]:
         """
         Determine what file(s) to include in the build
         :param files_to_ignore: Files to exclude
-        :param whitelist_files: Files to include
         :return: Files
         """
-        if whitelist_files:
-            return [
-                file_path
-                for file_path in OUTPUT_PATH.glob("*.json")
-                if file_path.stem in whitelist_files
-                and file_path.stem not in files_to_ignore
-            ]
-
         return [
             file_path
             for file_path in OUTPUT_PATH.glob("*.json")

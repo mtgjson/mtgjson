@@ -64,9 +64,12 @@ def generate_compiled_prices_output(
     )
 
 
-def build_format_specific_files(pretty_print: bool) -> None:
+def build_format_specific_files(
+    all_printings: MtgjsonAllPrintingsObject, pretty_print: bool
+) -> None:
     """
     Compile *Printings files based on AllPrintings
+    :param all_printings: Holder of AllPrintings content
     :param pretty_print: Should outputs be pretty or minimal
     """
     # Format specific set code split up
@@ -75,35 +78,35 @@ def build_format_specific_files(pretty_print: bool) -> None:
     # Standard.json
     create_compiled_output(
         MtgjsonStructuresObject().all_printings_standard,
-        MtgjsonAllPrintingsObject(format_map["standard"]),
+        all_printings.get_set_contents(format_map["standard"]),
         pretty_print,
     )
 
     # Pioneer.json
     create_compiled_output(
         MtgjsonStructuresObject().all_printings_pioneer,
-        MtgjsonAllPrintingsObject(format_map["pioneer"]),
+        all_printings.get_set_contents(format_map["pioneer"]),
         pretty_print,
     )
 
     # Modern.json
     create_compiled_output(
         MtgjsonStructuresObject().all_printings_modern,
-        MtgjsonAllPrintingsObject(format_map["modern"]),
+        all_printings.get_set_contents(format_map["modern"]),
         pretty_print,
     )
 
     # Legacy.json
     create_compiled_output(
         MtgjsonStructuresObject().all_printings_legacy,
-        MtgjsonAllPrintingsObject(format_map["legacy"]),
+        all_printings.get_set_contents(format_map["legacy"]),
         pretty_print,
     )
 
     # Vintage.json
     create_compiled_output(
         MtgjsonStructuresObject().all_printings_vintage,
-        MtgjsonAllPrintingsObject(format_map["vintage"]),
+        all_printings.get_set_contents(format_map["vintage"]),
         pretty_print,
     )
 
@@ -184,12 +187,15 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     """
     LOGGER.info("Building Compiled Outputs")
 
-    # AllPrintings.json
+    # AllPrintings.json and <FORMAT>.json
+    all_printings = MtgjsonAllPrintingsObject()
     create_compiled_output(
         MtgjsonStructuresObject().all_printings,
-        MtgjsonAllPrintingsObject(),
+        all_printings.get_set_contents(),
         pretty_print,
     )
+    build_format_specific_files(all_printings, pretty_print)
+    del all_printings
 
     # AllPrices.json
     build_price_specific_files(pretty_print)
@@ -220,9 +226,6 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     create_compiled_output(
         MtgjsonStructuresObject().set_list, MtgjsonSetListObject(), pretty_print
     )
-
-    # <FORMAT>.json
-    build_format_specific_files(pretty_print)
 
     # AtomicCards.json
     create_compiled_output(
