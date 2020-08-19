@@ -282,6 +282,21 @@ def deep_merge_dictionaries(
     return result
 
 
+def get_all_cards_and_tokens_from_content(
+    all_printings_content: Dict[str, Any]
+) -> List[Tuple[str, Dict[str, Any]]]:
+    """
+    Convert the content of AllPrintings into a list of card objects
+    :param all_printings_content: Content of AllPrintings
+    :return List of Tuples of cards with their set code (set code, card)
+    """
+    cards_and_tokens_with_set_code = []
+    for set_code, value in all_printings_content.items():
+        for card in value.get("cards", []) + value.get("tokens", []):
+            cards_and_tokens_with_set_code.append((set_code, card))
+    return cards_and_tokens_with_set_code
+
+
 def get_all_cards_and_tokens(
     all_printings_path: pathlib.Path,
 ) -> Iterator[Dict[str, Any]]:
@@ -298,9 +313,8 @@ def get_all_cards_and_tokens(
     with all_printings_path.open(encoding="utf-8") as f:
         file_contents = json.load(f).get("data", {})
 
-    for value in file_contents.values():
-        for card in value.get("cards", []) + value.get("tokens", []):
-            yield card
+    for _, card in get_all_cards_and_tokens_from_content(file_contents):
+        yield card
 
 
 def generate_card_mapping(
