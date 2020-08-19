@@ -149,8 +149,7 @@ def build_today_prices() -> Dict[str, Any]:
     card_kingdom = _generate_prices(CardKingdomProvider())
 
     final_results = deep_merge_dictionaries(
-        deep_merge_dictionaries(card_hoarder, tcgplayer),
-        deep_merge_dictionaries(card_market, card_kingdom),
+        card_hoarder, tcgplayer, card_market, card_kingdom
     )
 
     return final_results

@@ -262,27 +262,24 @@ def send_push_notification(message: str) -> bool:
 
 
 def deep_merge_dictionaries(
-    dictionary_one: Dict[str, Any], dictionary_two: Dict[str, Any]
+    first_dict: Dict[str, Any], *other_dicts: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
-    Merge two dictionaries together, recursively
-    :param dictionary_one: Dict 1
-    :param dictionary_two: Dict 2
+    Merge N dictionaries together, recursively
+    :param first_dict: Left hand dictionary
+    :param other_dicts: Right hand dictionaries
     :return: Combined Dictionaries
     """
-    new_dictionary = dictionary_one.copy()
+    result = first_dict.copy()
 
-    new_dictionary.update(
-        {
-            key: deep_merge_dictionaries(new_dictionary[key], dictionary_two[key])
-            if isinstance(new_dictionary.get(key), dict)
-            and isinstance(dictionary_two[key], dict)
-            else dictionary_two[key]
-            for key in dictionary_two.keys()
-        }
-    )
+    for dictionary in other_dicts:
+        for key, new in dictionary.items():
+            old = result.get(key)
+            if isinstance(old, dict) and isinstance(new, dict):
+                new = deep_merge_dictionaries(old, new)
+            result[key] = new
 
-    return new_dictionary
+    return result
 
 
 def get_all_cards_and_tokens(
