@@ -2,6 +2,7 @@
 MTGJSON Compiled Outputs Dispatcher
 """
 
+from .mtgjson_all_identifiers import MtgjsonAllIdentifiersObject
 from .mtgjson_all_printings import MtgjsonAllPrintingsObject
 from .mtgjson_atomic_cards import MtgjsonAtomicCardsObject
 from .mtgjson_card_types import MtgjsonCardTypesObject

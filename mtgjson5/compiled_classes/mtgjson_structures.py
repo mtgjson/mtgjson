@@ -32,6 +32,8 @@ class MtgjsonStructuresObject:
     referral_database: str
     version: str
 
+    all_identifiers: str
+
     all_printings_standard: str
     all_printings_pioneer: str
     all_printings_modern: str
@@ -63,6 +65,7 @@ class MtgjsonStructuresObject:
         self.set_list = "SetList"
         self.referral_database = "ReferralMap"
         self.version = "Meta"
+        self.all_identifiers = "AllIdentifiers"
         self.all_printings_standard = "Standard"
         self.all_printings_pioneer = "Pioneer"
         self.all_printings_modern = "Modern"

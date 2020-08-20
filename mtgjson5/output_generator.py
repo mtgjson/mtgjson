@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 
 from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject, MtgjsonSetObject
 from .compiled_classes import (
+    MtgjsonAllIdentifiersObject,
     MtgjsonAllPrintingsObject,
     MtgjsonAtomicCardsObject,
     MtgjsonCardTypesObject,
@@ -180,6 +181,32 @@ def build_price_specific_files(pretty_print: bool) -> None:
     generate_compiled_prices_output(price_data_cache, pretty_print)
 
 
+def build_all_printings_files(pretty_print: bool) -> None:
+    """
+    Construct all entities that rely upon AllPrintings
+    to avoid loading them into RAM too many times
+    :param pretty_print: Pretty or minimal
+    """
+    # AllPrintings.json
+    all_printings = MtgjsonAllPrintingsObject()
+
+    create_compiled_output(
+        MtgjsonStructuresObject().all_printings,
+        all_printings.get_set_contents(),
+        pretty_print,
+    )
+
+    # <FORMAT>.json
+    build_format_specific_files(all_printings, pretty_print)
+
+    # AllIdentifiers.json
+    create_compiled_output(
+        MtgjsonStructuresObject().all_identifiers,
+        MtgjsonAllIdentifiersObject(all_printings.to_json()),
+        pretty_print,
+    )
+
+
 def generate_compiled_output_files(pretty_print: bool) -> None:
     """
     Create and dump all compiled outputs
@@ -187,15 +214,8 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     """
     LOGGER.info("Building Compiled Outputs")
 
-    # AllPrintings.json and <FORMAT>.json
-    all_printings = MtgjsonAllPrintingsObject()
-    create_compiled_output(
-        MtgjsonStructuresObject().all_printings,
-        all_printings.get_set_contents(),
-        pretty_print,
-    )
-    build_format_specific_files(all_printings, pretty_print)
-    del all_printings
+    # AllPrintings, <FORMAT>, & AllIdentifiers
+    build_all_printings_files(pretty_print)
 
     # AllPrices.json
     build_price_specific_files(pretty_print)
