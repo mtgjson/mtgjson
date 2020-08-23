@@ -584,7 +584,7 @@ def build_mtgjson_card(
 
     mtgjson_card.name = scryfall_object["name"]
     mtgjson_card.flavor_name = scryfall_object.get("flavor_name")
-    mtgjson_card.set_code = scryfall_object["set"].lower()
+    mtgjson_card.set_code = scryfall_object["set"].upper()
     mtgjson_card.identifiers.scryfall_id = scryfall_object["id"]
     mtgjson_card.identifiers.scryfall_oracle_id = scryfall_object["oracle_id"]
 
@@ -749,7 +749,7 @@ def build_mtgjson_card(
 
         if mtgjson_card.layout not in ["meld"]:
             # Fix #632 as there are very limited distinguishing attributes
-            if mtgjson_card.set_code == "tust":
+            if mtgjson_card.set_code.lower() == "tust":
                 mtgjson_card.side = "a" if mtgjson_card.type != "Token" else "b"
             else:
                 # chr(97) = 'a', chr(98) = 'b', ...
@@ -759,7 +759,8 @@ def build_mtgjson_card(
 
     # Implicit Variables
     mtgjson_card.is_timeshifted = (
-        scryfall_object.get("frame") == "future" or mtgjson_card.set_code == "tsb"
+        scryfall_object.get("frame") == "future"
+        or mtgjson_card.set_code.lower() == "tsb"
     )
     mtgjson_card.printings = parse_printings(
         scryfall_object["prints_search_uri"].replace("%22", "")
@@ -837,7 +838,7 @@ def build_mtgjson_card(
         scryfall_object["prints_search_uri"].replace("%22", ""),
         mtgjson_card.face_name if mtgjson_card.face_name else mtgjson_card.name,
         mtgjson_card.number,
-        mtgjson_card.set_code,
+        mtgjson_card.set_code.lower(),
     )
 
     if mtgjson_card.name in ScryfallProvider().cards_without_limits:
@@ -867,7 +868,7 @@ def build_mtgjson_card(
     # Gatherer Calls -- SLOWWWWW
     if mtgjson_card.identifiers.multiverse_id:
         gatherer_cards = GathererProvider().get_cards(
-            mtgjson_card.identifiers.multiverse_id, mtgjson_card.set_code
+            mtgjson_card.identifiers.multiverse_id, mtgjson_card.set_code.lower()
         )
         if len(gatherer_cards) > face_id:
             mtgjson_card.original_type = gatherer_cards[face_id].original_types

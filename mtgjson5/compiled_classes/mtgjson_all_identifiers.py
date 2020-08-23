@@ -22,9 +22,7 @@ class MtgjsonAllIdentifiersObject:
         """
         self.all_identifiers_dict = {}
 
-        for set_code, card in get_all_cards_and_tokens_from_content(all_printings):
-            card["setCode"] = set_code
-
+        for card in get_all_cards_and_tokens_from_content(all_printings):
             if card["uuid"] in self.all_identifiers_dict:
                 LOGGER.error(
                     f"Duplicate MTGJSON UUID {card['uuid']} detected!\n"

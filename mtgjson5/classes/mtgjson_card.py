@@ -261,9 +261,7 @@ class MtgjsonCardObject:
         else:
             excluded_keys = self.__remove_for_cards.copy()
 
-        excluded_keys = excluded_keys.union(
-            {"set_code", "is_token", "raw_purchase_urls"}
-        )
+        excluded_keys = excluded_keys.union({"is_token", "raw_purchase_urls"})
 
         for key, value in self.__dict__.items():
             if not value:
