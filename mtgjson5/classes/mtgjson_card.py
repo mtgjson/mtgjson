@@ -124,6 +124,7 @@ class MtgjsonCardObject:
     __remove_for_cards = {"reverse_related"}
 
     __atomic_keys = [
+        "ascii_name",
         "color_identity",
         "color_indicator",
         "colors",
