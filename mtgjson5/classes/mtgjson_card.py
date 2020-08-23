@@ -135,6 +135,7 @@ class MtgjsonCardObject:
         "foreign_data",
         "hand",
         "has_alternative_deck_limit",
+        "identifiers",
         "is_reserved",
         "layout",
         "leadership_skills",

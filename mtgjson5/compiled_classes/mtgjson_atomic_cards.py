@@ -70,6 +70,13 @@ class MtgjsonAtomicCardsObject:
                 if card.get(to_camel_case(key)) is not None
             }
 
+            # Strip out non-atomic keys from identifiers
+            # Only the Oracle ID is atomic
+            if "scryfallOracleId" in atomic_card.get("identifiers", []):
+                atomic_card["identifiers"] = {
+                    "scryfallOracleId": atomic_card["identifiers"]["scryfallOracleId"]
+                }
+
             for foreign_data in atomic_card.get("foreignData", {}):
                 foreign_data.pop("multiverseId", None)
 
