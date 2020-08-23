@@ -939,7 +939,7 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
                 and not this_card.has_non_foil
             ):
                 this_card.is_alternative = True
-        elif mtgjson_set.code.upper() in ["CN2", "BBD"]:
+        elif mtgjson_set.code.upper() in ["CN2", "BBD", "JMP", "2XM"]:
             # Check for set number > set size
             if int(this_card.number.replace(chr(9733), "")) > mtgjson_set.base_set_size:
                 this_card.is_alternative = True
