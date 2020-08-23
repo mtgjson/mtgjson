@@ -19,7 +19,7 @@ class MtgjsonAtomicCardsObject:
     atomic_cards_dict: Dict[str, List[Dict[str, Any]]]
     __name_regex = re.compile(r"^([^\n]+) \([a-z]\)$")
 
-    def __init__(self, cards_to_parse: Dict[str, Dict[str, Any]] = None) -> None:
+    def __init__(self, cards_to_parse: List[Dict[str, Any]] = None) -> None:
         """
         Initializer to build up the object
         """
@@ -29,9 +29,7 @@ class MtgjsonAtomicCardsObject:
         )
 
     def iterate_all_cards(
-        self,
-        files_to_ignore: List[str],
-        cards_to_load: Dict[str, Dict[str, Any]] = None,
+        self, files_to_ignore: List[str], cards_to_load: List[Dict[str, Any]] = None,
     ) -> None:
         """
         Iterate and all all MTGJSON sets to the dictionary
@@ -42,7 +40,7 @@ class MtgjsonAtomicCardsObject:
         valid_keys = MtgjsonCardObject().get_atomic_keys()
 
         if cards_to_load:
-            self.update_global_card_list(list(cards_to_load.values()), valid_keys)
+            self.update_global_card_list(cards_to_load, valid_keys)
             return
 
         for set_file in OUTPUT_PATH.glob("*.json"):

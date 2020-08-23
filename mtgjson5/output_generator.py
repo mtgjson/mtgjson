@@ -187,9 +187,9 @@ def build_all_printings_files(pretty_print: bool) -> None:
     to avoid loading them into RAM too many times
     :param pretty_print: Pretty or minimal
     """
-    # AllPrintings.json
     all_printings = MtgjsonAllPrintingsObject()
 
+    # AllPrintings.json
     create_compiled_output(
         MtgjsonStructuresObject().all_printings,
         all_printings.get_set_contents(),
@@ -370,8 +370,8 @@ def construct_atomic_cards_format_map(
     :param all_printings_path: Path to AllPrintings.json
     :return: Cards in a format map
     """
-    format_card_map: Dict[str, Dict[str, Dict[str, Any]]] = {
-        magic_format: {} for magic_format in SUPPORTED_FORMAT_OUTPUTS
+    format_card_map: Dict[str, List[Dict[str, Any]]] = {
+        magic_format: [] for magic_format in SUPPORTED_FORMAT_OUTPUTS
     }
 
     if not all_printings_path.is_file():
@@ -385,7 +385,7 @@ def construct_atomic_cards_format_map(
         for card in set_contents.get("cards", []):
             for magic_format in format_card_map.keys():
                 if card.get("legalities").get(magic_format) in {"Legal", "Restricted"}:
-                    format_card_map[magic_format][card["name"]] = card
+                    format_card_map[magic_format].append(card)
 
     return format_card_map
 
