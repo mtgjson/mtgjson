@@ -317,7 +317,7 @@ def get_tcgplayer_buylist_prices_map(
 
         for sku in buylist_data["skus"]:
             if not sku["prices"]["high"]:
-                # We only want to deal with the buyer paying the most for NM
+                # We want the buylist high price, not buylist market price
                 continue
 
             if not sku_map.get(product_id):
