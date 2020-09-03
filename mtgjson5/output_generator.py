@@ -10,6 +10,7 @@ from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject, MtgjsonSetObjec
 from .compiled_classes import (
     MtgjsonAllIdentifiersObject,
     MtgjsonAllPrintingsObject,
+    MtgjsonAllTcgSkusObject,
     MtgjsonAtomicCardsObject,
     MtgjsonCardTypesObject,
     MtgjsonCompiledListObject,
@@ -19,7 +20,6 @@ from .compiled_classes import (
     MtgjsonSetListObject,
     MtgjsonStructuresObject,
 )
-from .compiled_classes.mtgjson_all_tcg_skus import MtgjsonAllTcgSkusObject
 from .consts import (
     HASH_TO_GENERATE,
     OUTPUT_PATH,
