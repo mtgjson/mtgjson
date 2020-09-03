@@ -68,7 +68,7 @@ class MtgjsonStructuresObject:
         self.referral_database = "ReferralMap"
         self.version = "Meta"
         self.all_identifiers = "AllIdentifiers"
-        self.all_tcg_skus = "AllTcgSkus"
+        self.all_tcg_skus = "TcgplayerSkus"
         self.all_printings_standard = "Standard"
         self.all_printings_pioneer = "Pioneer"
         self.all_printings_modern = "Modern"
