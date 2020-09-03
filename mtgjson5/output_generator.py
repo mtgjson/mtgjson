@@ -19,6 +19,7 @@ from .compiled_classes import (
     MtgjsonSetListObject,
     MtgjsonStructuresObject,
 )
+from .compiled_classes.mtgjson_all_tcg_skus import MtgjsonAllTcgSkusObject
 from .consts import (
     HASH_TO_GENERATE,
     OUTPUT_PATH,
@@ -203,6 +204,13 @@ def build_all_printings_files(pretty_print: bool) -> None:
     create_compiled_output(
         MtgjsonStructuresObject().all_identifiers,
         MtgjsonAllIdentifiersObject(all_printings.to_json()),
+        pretty_print,
+    )
+
+    # AllTcgSkus.json
+    create_compiled_output(
+        MtgjsonStructuresObject().all_tcg_skus,
+        MtgjsonAllTcgSkusObject(OUTPUT_PATH.joinpath("AllPrintings.json")),
         pretty_print,
     )
 
