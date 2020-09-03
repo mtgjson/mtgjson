@@ -6,9 +6,9 @@ import logging
 import pathlib
 from typing import Dict
 
-from mtgjson5.providers import TCGPlayerProvider
-from mtgjson5.providers.tcgplayer import get_tcgplayer_sku_data
-from mtgjson5.utils import generate_card_mapping
+from ..providers import TCGPlayerProvider
+from ..providers.tcgplayer import get_tcgplayer_sku_data
+from ..utils import generate_card_mapping
 
 LOGGER = logging.getLogger(__name__)
 
