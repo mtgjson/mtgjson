@@ -54,7 +54,7 @@ def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> 
 
 
 def generate_compiled_prices_output(
-        price_data: Dict[str, Dict[str, float]], pretty_print: bool
+    price_data: Dict[str, Dict[str, float]], pretty_print: bool
 ) -> None:
     """
     Dump AllPrices to a file
@@ -67,7 +67,7 @@ def generate_compiled_prices_output(
 
 
 def build_format_specific_files(
-        all_printings: MtgjsonAllPrintingsObject, pretty_print: bool
+    all_printings: MtgjsonAllPrintingsObject, pretty_print: bool
 ) -> None:
     """
     Compile *Printings files based on AllPrintings
@@ -290,7 +290,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
 
 
 def create_compiled_output(
-        compiled_name: str, compiled_object: Any, pretty_print: bool
+    compiled_name: str, compiled_object: Any, pretty_print: bool
 ) -> None:
     """
     Log and write out a compiled output file
@@ -304,7 +304,7 @@ def create_compiled_output(
 
 
 def write_compiled_output_to_file(
-        file_name: str, file_contents: Any, pretty_print: bool
+    file_name: str, file_contents: Any, pretty_print: bool
 ) -> None:
     """
     Dump content to a file in the outputs directory
@@ -327,10 +327,10 @@ def write_compiled_output_to_file(
 
 
 def construct_format_map(
-        all_printings_path: pathlib.Path = OUTPUT_PATH.joinpath(
-            f"{MtgjsonStructuresObject().all_printings}.json"
-        ),
-        normal_sets_only: bool = True,
+    all_printings_path: pathlib.Path = OUTPUT_PATH.joinpath(
+        f"{MtgjsonStructuresObject().all_printings}.json"
+    ),
+    normal_sets_only: bool = True,
 ) -> Dict[str, List[str]]:
     """
     For each set in AllPrintings, determine what format(s) the set is
@@ -367,9 +367,9 @@ def construct_format_map(
 
 
 def construct_atomic_cards_format_map(
-        all_printings_path: pathlib.Path = OUTPUT_PATH.joinpath(
-            f"{MtgjsonStructuresObject().all_printings}.json"
-        ),
+    all_printings_path: pathlib.Path = OUTPUT_PATH.joinpath(
+        f"{MtgjsonStructuresObject().all_printings}.json"
+    ),
 ) -> Dict[str, Any]:
     """
     Construct a format map for cards instead of sets,
@@ -418,6 +418,6 @@ def generate_output_file_hashes(directory: pathlib.Path) -> None:
 
         hash_file_name = f"{file.name}.{HASH_TO_GENERATE.name}"
         with file.parent.joinpath(hash_file_name).open(
-                "w", encoding="utf-8"
+            "w", encoding="utf-8"
         ) as hash_file:
             hash_file.write(generated_hash)
