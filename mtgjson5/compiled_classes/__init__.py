@@ -4,7 +4,7 @@ MTGJSON Compiled Outputs Dispatcher
 
 from .mtgjson_all_identifiers import MtgjsonAllIdentifiersObject
 from .mtgjson_all_printings import MtgjsonAllPrintingsObject
-from .mtgjson_all_tcg_skus import MtgjsonAllTcgSkusObject
+from .mtgjson_all_tcg_skus import MtgjsonAllTcgplayerSkusObject
 from .mtgjson_atomic_cards import MtgjsonAtomicCardsObject
 from .mtgjson_card_types import MtgjsonCardTypesObject
 from .mtgjson_compiled_list import MtgjsonCompiledListObject

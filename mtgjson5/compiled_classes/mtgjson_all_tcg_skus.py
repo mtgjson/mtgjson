@@ -13,7 +13,7 @@ from ..utils import generate_card_mapping
 LOGGER = logging.getLogger(__name__)
 
 
-class MtgjsonAllTcgSkusObject:
+class MtgjsonAllTcgplayerSkusObject:
     """
     MTGJSON AllTcgSkus Object
     """

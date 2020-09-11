@@ -10,7 +10,7 @@ from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject, MtgjsonSetObjec
 from .compiled_classes import (
     MtgjsonAllIdentifiersObject,
     MtgjsonAllPrintingsObject,
-    MtgjsonAllTcgSkusObject,
+    MtgjsonAllTcgplayerSkusObject,
     MtgjsonAtomicCardsObject,
     MtgjsonCardTypesObject,
     MtgjsonCompiledListObject,
@@ -224,7 +224,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     # AllTcgSkus.json
     create_compiled_output(
         MtgjsonStructuresObject().all_tcg_skus,
-        MtgjsonAllTcgSkusObject(OUTPUT_PATH.joinpath("AllPrintings.json")),
+        MtgjsonAllTcgplayerSkusObject(OUTPUT_PATH.joinpath("AllPrintings.json")),
         pretty_print,
     )
 
