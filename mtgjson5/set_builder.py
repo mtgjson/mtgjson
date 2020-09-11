@@ -401,10 +401,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     add_mcm_details(mtgjson_set)
     add_card_kingdom_details(mtgjson_set)
 
-    # Build Foreign Printed Languages list
-    mtgjson_set.foreign_printed_languages = build_foreign_printed_languages(
-        mtgjson_set.cards
-    )
+    mtgjson_set.printed_languages = build_foreign_printed_languages(mtgjson_set.cards)
 
     # Build tokens, a little less of a process
     mtgjson_set.tokens = build_base_mtgjson_tokens(
@@ -423,16 +420,16 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     return mtgjson_set
 
 
-def build_foreign_printed_languages(card_data: List[MtgjsonCardObject]) -> List[str]:
+def build_foreign_printed_languages(cards: List[MtgjsonCardObject]) -> List[str]:
     """
     Constructs list of non-english languages that a set is printed in
-    :param card_data: all cards from that set
+    :param cards: all cards from that set
     :return: a list of all non-english languages that a set is printed in
     """
     language_set: Set[str] = set()
-    for card in card_data:
-        for lang in card.foreign_data:
-            language_set.add(lang.language)
+    for card in cards:
+        for entry in card.foreign_data:
+            language_set.add(entry.language)
     return list(language_set)
 
 

@@ -19,7 +19,7 @@ class MtgjsonSetObject:
     cards: List[MtgjsonCardObject]
     code: str
     code_v3: str
-    foreign_printed_languages: List[str]
+    printed_languages: List[str]
     is_foreign_only: bool
     is_foil_only: bool
     is_non_foil_only: bool
