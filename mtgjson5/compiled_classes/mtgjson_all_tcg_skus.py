@@ -4,10 +4,10 @@ MTGJSON AllTcgSkus Object
 
 import logging
 import pathlib
-from typing import Dict
+from typing import Dict, List
 
 from ..providers import TCGPlayerProvider
-from ..providers.tcgplayer import get_tcgplayer_sku_data
+from ..providers.tcgplayer import convert_sku_data_enum, get_tcgplayer_sku_data
 from ..utils import generate_card_mapping
 
 LOGGER = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ class MtgjsonAllTcgplayerSkusObject:
     MTGJSON AllTcgSkus Object
     """
 
-    all_tcg_skus_dict: Dict[str, Dict[str, int]]
+    all_tcg_skus_dict: Dict[str, List[Dict[str, str]]]
 
     def __init__(self, all_printings_path: pathlib.Path) -> None:
 
@@ -37,9 +37,11 @@ class MtgjsonAllTcgplayerSkusObject:
                 if not key:
                     continue
 
-                self.all_tcg_skus_dict[key] = product["skus"]
+                self.all_tcg_skus_dict[key] = [
+                    convert_sku_data_enum(sku) for sku in product["skus"]
+                ]
 
-    def to_json(self) -> Dict[str, Dict[str, int]]:
+    def to_json(self) -> Dict[str, List[Dict[str, str]]]:
         """
         Support json.dump()
         :return: JSON serialized object
