@@ -65,6 +65,28 @@ class TCGPlayerProvider(AbstractProvider):
 
     api_version: str = ""
     tcg_to_mtgjson_map: Dict[str, str]
+    language_map: Dict[int, str] = {
+        1: "English",
+        2: "Chinese Simplified",
+        3: "Chinese Traditional",
+        4: "French",
+        5: "German",
+        6: "Italian",
+        7: "Japanese",
+        8: "Korean",
+        9: "Portuguese",
+        10: "Russian",
+        11: "Spanish",
+    }
+    printing_map: Dict[int, str] = {1: "Normal", 2: "Foil"}
+    condition_map: Dict[int, str] = {
+        1: "Near Mint",
+        2: "Lightly Played",
+        3: "Moderately Played",
+        4: "Heavily Played",
+        5: "Damaged",
+        6: "Unopened",
+    }
     __keys_found: bool
 
     def __init__(self) -> None:
@@ -379,3 +401,19 @@ def get_tcgplayer_prices_map(
             prices_map[key].sell_foil = card_price
 
     return prices_map
+
+
+def convert_sku_data_enum(sku: Dict[str, int]) -> Dict[str, str]:
+    """
+    Converts a tcgplayer sku from ids to names of conditions, languages and printings
+    :param sku: a tcgplayer sku dict
+    :return: a converted tcgplayer sku dict
+    """
+    converted_sku: Dict[str, str] = {
+        "skuId": str(sku["skuId"]),
+        "productId": str(sku["productId"]),
+        "language": TCGPlayerProvider().language_map[sku["languageId"]],
+        "printing": TCGPlayerProvider().printing_map[sku["printingId"]],
+        "condition": TCGPlayerProvider().condition_map[sku["conditionId"]],
+    }
+    return converted_sku
