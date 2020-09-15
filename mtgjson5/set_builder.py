@@ -428,6 +428,7 @@ def build_foreign_printed_languages(cards: List[MtgjsonCardObject]) -> List[str]
     """
     language_set: Set[str] = set()
     for card in cards:
+        language_set.add(card.language)
         for entry in card.foreign_data:
             language_set.add(entry.language)
     return list(language_set)
