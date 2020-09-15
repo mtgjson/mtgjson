@@ -122,7 +122,7 @@ def prune_prices_archive(content: Dict[str, Any], months: int = 3) -> None:
                 if date < prune_date_str:
                     del obj[date]
                     keys_pruned += 1
-        else:
+        elif type(obj) == dict:
             for key, value in list(obj.items()):
                 prune_recursive(value, depth + 1)
                 if not value:
