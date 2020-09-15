@@ -110,7 +110,7 @@ class CardMarketProvider(AbstractProvider):
                         continue
 
                     today_dict[mtgjson_uuid] = MtgjsonPricesObject(
-                        "paper", "cardmarket", self.today_date
+                        "paper", "cardmarket", self.today_date, "EUR"
                     )
 
                 if avg_sell_price != -1:

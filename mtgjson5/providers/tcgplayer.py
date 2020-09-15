@@ -326,7 +326,7 @@ def get_tcgplayer_buylist_prices_map(
 
             if key not in prices_map.keys():
                 prices_map[key] = MtgjsonPricesObject(
-                    "paper", "tcgplayer", TCGPlayerProvider().today_date
+                    "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
                 )
 
             product_sku = sku["skuId"]
@@ -370,7 +370,7 @@ def get_tcgplayer_prices_map(
 
         if key not in prices_map.keys():
             prices_map[key] = MtgjsonPricesObject(
-                "paper", "tcgplayer", TCGPlayerProvider().today_date
+                "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
             )
 
         if is_non_foil:
