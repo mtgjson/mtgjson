@@ -58,6 +58,7 @@ class MtgjsonCardObject:
     is_timeshifted: Optional[bool]
     keywords: List[str]
     layout: str
+    language: str
     leadership_skills: Optional[MtgjsonLeadershipSkillsObject]
     legalities: MtgjsonLegalitiesObject
     life: Optional[str]

@@ -665,7 +665,9 @@ def build_mtgjson_card(
     mtgjson_card.hand = scryfall_object.get("hand_modifier")
     mtgjson_card.has_foil = scryfall_object.get("foil")
     mtgjson_card.has_non_foil = scryfall_object.get("nonfoil")
-
+    mtgjson_card.language = ScryfallProvider().language_map.get(
+        scryfall_object.get("lang", ""), ""
+    )
     mtgjson_card.has_content_warning = scryfall_object.get("content_warning")
     mtgjson_card.is_full_art = scryfall_object.get("full_art")
     mtgjson_card.is_online_only = scryfall_object.get("digital")
