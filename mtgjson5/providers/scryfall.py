@@ -29,6 +29,25 @@ class ScryfallProvider(AbstractProvider):
     CARDS_IN_SET: str = "https://api.scryfall.com/cards/search?order=set&q=set:{0}%20unique:prints"
     TYPE_CATALOG: str = "https://api.scryfall.com/catalog/{0}"
     cards_without_limits: Set[str]
+    language_map: Dict[str, str] = {
+        "en": "English",
+        "es": "Spanish",
+        "fr": "French",
+        "de": "German",
+        "it": "Italian",
+        "pt": "Portuguese",
+        "ja": "Japanese",
+        "ko": "Korean",
+        "ru": "Russian",
+        "zhs": "Simplified Chinese",
+        "zht": "Traditional Chinese",
+        "he": "Hebrew",
+        "la": "Latin",
+        "grc": "Ancient Greek",
+        "ar": "Arabic",
+        "sa": "Sanskrit",
+        "ph": "Phyrexian",
+    }
 
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
