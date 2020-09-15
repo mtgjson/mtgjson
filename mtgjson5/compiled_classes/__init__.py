@@ -12,3 +12,4 @@ from .mtgjson_enum_values import MtgjsonEnumValuesObject
 from .mtgjson_keywords import MtgjsonKeywordsObject
 from .mtgjson_set_list import MtgjsonSetListObject
 from .mtgjson_structures import MtgjsonStructuresObject
+from .mtgjson_tcgplayer_skus import MtgjsonTcgplayerSkusObject

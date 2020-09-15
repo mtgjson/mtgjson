@@ -317,7 +317,7 @@ def get_tcgplayer_buylist_prices_map(
 
         for sku in buylist_data["skus"]:
             if not sku["prices"]["high"]:
-                # We only want to deal with the buyer paying the most for NM
+                # We want the buylist high price, not buylist market price
                 continue
 
             if not sku_map.get(product_id):
@@ -379,3 +379,18 @@ def get_tcgplayer_prices_map(
             prices_map[key].sell_foil = card_price
 
     return prices_map
+
+
+def convert_sku_data_enum(sku: Dict[str, int]) -> Dict[str, Union[int, str]]:
+    """
+    Converts a TCGPlayer SKU from IDs to components
+    :param sku: TCGPlayer SKU component
+    :return: Enhanced TCGPlayer SKU dict
+    """
+    return {
+        "skuId": sku["skuId"],
+        "productId": sku["productId"],
+        "language": CardLanguage(sku["languageId"]).name.replace("_", " "),
+        "printing": CardPrinting(sku["printingId"]).name.replace("_", " "),
+        "condition": CardCondition(sku["conditionId"]).name.replace("_", " "),
+    }
