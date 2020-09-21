@@ -83,7 +83,7 @@ class CardKingdomProvider(AbstractProvider):
 
             if mtgjson_uuid not in today_dict:
                 today_dict[mtgjson_uuid] = MtgjsonPricesObject(
-                    "paper", "cardkingdom", self.today_date
+                    "paper", "cardkingdom", self.today_date, "USD"
                 )
 
             if card["is_foil"] == "true":
