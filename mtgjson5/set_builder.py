@@ -394,7 +394,9 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.total_set_size = base_total_sizes[1]
 
     # Building cards is a process
-    mtgjson_set.cards = build_base_mtgjson_cards(set_code, set_release_date=mtgjson_set.release_date)
+    mtgjson_set.cards = build_base_mtgjson_cards(
+        set_code, set_release_date=mtgjson_set.release_date
+    )
     add_is_starter_option(set_code, mtgjson_set.search_uri, mtgjson_set.cards)
     relocate_miscellaneous_tokens(mtgjson_set)
     add_variations_and_alternative_fields(mtgjson_set)
@@ -431,7 +433,10 @@ def build_base_mtgjson_tokens(
 
 
 def build_base_mtgjson_cards(
-    set_code: str, additional_cards: List[Dict[str, Any]] = None, is_token: bool = False, set_release_date: str = ""
+    set_code: str,
+    additional_cards: List[Dict[str, Any]] = None,
+    is_token: bool = False,
+    set_release_date: str = "",
 ) -> List[MtgjsonCardObject]:
     """
     Construct all cards in MTGJSON format from a single set
@@ -446,7 +451,10 @@ def build_base_mtgjson_cards(
     cards.extend(additional_cards or [])
 
     mtgjson_cards = parallel_call(
-        build_mtgjson_card, cards, fold_list=True, repeatable_args=(0, is_token, set_release_date)
+        build_mtgjson_card,
+        cards,
+        fold_list=True,
+        repeatable_args=(0, is_token, set_release_date),
     )
 
     LOGGER.info(f"Finished building cards for {set_code}")
@@ -565,7 +573,10 @@ def add_uuid(mtgjson_card: MtgjsonCardObject) -> None:
 
 
 def build_mtgjson_card(
-    scryfall_object: Dict[str, Any], face_id: int = 0, is_token: bool = False, set_release_date: str = ""
+    scryfall_object: Dict[str, Any],
+    face_id: int = 0,
+    is_token: bool = False,
+    set_release_date: str = "",
 ) -> List[MtgjsonCardObject]:
     """
     Construct a MTGJSON Card object from 3rd party
