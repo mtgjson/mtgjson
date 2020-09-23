@@ -3,6 +3,7 @@ MKM 3rd party provider
 """
 import base64
 import io
+import json
 import logging
 import math
 import os
@@ -16,6 +17,7 @@ from mkmsdk.mkm import Mkm
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
+from ..consts import RESOURCE_PATH
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping
 
@@ -135,6 +137,20 @@ class CardMarketProvider(AbstractProvider):
                 "mcmId": set_content["idExpansion"],
                 "mcmName": set_content["enName"],
             }
+
+        # Update the set map with manual overrides
+        with RESOURCE_PATH.joinpath("mkm_set_name_fixes.json").open() as f:
+            mkm_set_name_fixes = json.load(f)
+
+        for old_set_name, new_set_name in mkm_set_name_fixes.items():
+            if old_set_name.lower() not in self.set_map:
+                LOGGER.warning(
+                    f"MKM Manual override {old_set_name} to {new_set_name} not found"
+                )
+                continue
+
+            self.set_map[new_set_name.lower()] = self.set_map[old_set_name.lower()]
+            del self.set_map[old_set_name.lower()]
 
     def get_set_id(self, set_name: str) -> Optional[int]:
         """
