@@ -65,6 +65,7 @@ class MtgjsonCardObject:
     mana_cost: str
     name: str
     number: str
+    original_release_date: Optional[str]
     original_text: Optional[str]
     original_type: Optional[str]
     other_face_ids: List[str]

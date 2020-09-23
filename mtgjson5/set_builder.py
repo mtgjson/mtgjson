@@ -394,7 +394,9 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.total_set_size = base_total_sizes[1]
 
     # Building cards is a process
-    mtgjson_set.cards = build_base_mtgjson_cards(set_code)
+    mtgjson_set.cards = build_base_mtgjson_cards(
+        set_code, set_release_date=mtgjson_set.release_date
+    )
     add_is_starter_option(set_code, mtgjson_set.search_uri, mtgjson_set.cards)
     relocate_miscellaneous_tokens(mtgjson_set)
     add_variations_and_alternative_fields(mtgjson_set)
@@ -431,13 +433,17 @@ def build_base_mtgjson_tokens(
 
 
 def build_base_mtgjson_cards(
-    set_code: str, additional_cards: List[Dict[str, Any]] = None, is_token: bool = False
+    set_code: str,
+    additional_cards: List[Dict[str, Any]] = None,
+    is_token: bool = False,
+    set_release_date: str = "",
 ) -> List[MtgjsonCardObject]:
     """
     Construct all cards in MTGJSON format from a single set
     :param set_code: Set to build
     :param additional_cards: Additional objs to build (not relevant for normal builds)
     :param is_token: Are tokens being copmiled?
+    :param set_release_date: Original set release date
     :return: Completed card objects
     """
     LOGGER.info(f"Building cards for {set_code}")
@@ -445,7 +451,10 @@ def build_base_mtgjson_cards(
     cards.extend(additional_cards or [])
 
     mtgjson_cards = parallel_call(
-        build_mtgjson_card, cards, fold_list=True, repeatable_args=(0, is_token)
+        build_mtgjson_card,
+        cards,
+        fold_list=True,
+        repeatable_args=(0, is_token, set_release_date),
     )
 
     LOGGER.info(f"Finished building cards for {set_code}")
@@ -564,7 +573,10 @@ def add_uuid(mtgjson_card: MtgjsonCardObject) -> None:
 
 
 def build_mtgjson_card(
-    scryfall_object: Dict[str, Any], face_id: int = 0, is_token: bool = False
+    scryfall_object: Dict[str, Any],
+    face_id: int = 0,
+    is_token: bool = False,
+    set_release_date: str = "",
 ) -> List[MtgjsonCardObject]:
     """
     Construct a MTGJSON Card object from 3rd party
@@ -572,6 +584,7 @@ def build_mtgjson_card(
     :param scryfall_object: Scryfall Card Object
     :param face_id: What face to build for (set internally)
     :param is_token: Is this a token object? (some diff fields)
+    :param set_release_date: Original set release date
     :return: List of card objects that were constructed
     """
     LOGGER.info(f"Building {scryfall_object['set'].upper()}: {scryfall_object['name']}")
@@ -682,6 +695,10 @@ def build_mtgjson_card(
         for card_type in mtgjson_card.promo_types
         if card_type not in {"starterdeck", "planeswalkerdeck"}
     ]
+
+    card_release_date = scryfall_object.get("released_at")
+    if set_release_date and set_release_date != card_release_date:
+        mtgjson_card.original_release_date = card_release_date
 
     mtgjson_card.rarity = scryfall_object.get("rarity", "")
     if not mtgjson_card.artist:
