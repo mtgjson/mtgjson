@@ -149,8 +149,8 @@ class CardMarketProvider(AbstractProvider):
                 )
                 continue
 
-            self.set_map[new_set_name] = self.set_map[old_set_name]
-            del self.set_map[old_set_name]
+            self.set_map[new_set_name.lower()] = self.set_map[old_set_name.lower()]
+            del self.set_map[old_set_name.lower()]
 
     def get_set_id(self, set_name: str) -> Optional[int]:
         """
