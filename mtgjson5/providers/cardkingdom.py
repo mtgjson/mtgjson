@@ -98,4 +98,10 @@ class CardKingdomProvider(AbstractProvider):
                 today_dict[mtgjson_uuid].sell_normal = float(card["price_retail"])
                 today_dict[mtgjson_uuid].buy_normal = float(card["price_buy"])
 
+            if detailed_mode:
+                key_map : Dict[str, Dict[str, Dict[str, float]]] = {
+                        {"retail": {"normal": {"price", float(card["price_retail"]}}}
+                }
+                
+
         return today_dict
