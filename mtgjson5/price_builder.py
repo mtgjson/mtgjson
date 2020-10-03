@@ -216,13 +216,13 @@ def download_old_all_printings() -> None:
         f.write(lzma.decompress(file_bytes).decode())
 
 
-def build_prices() -> Dict[str, Any]:
+def build_prices(detailed_mode: bool = False) -> Dict[str, Any]:
     """
     The full build prices operation
     Prune & Update remote database
     :return Latest prices
     """
-    LOGGER.info("Prices Build - Building Prices")
+    LOGGER.info(f"Prices Build - Building Prices, detailed: {detailed_mode}")
 
     # We'll need AllPrintings.json to handle this
     if not OUTPUT_PATH.joinpath("AllPrintings.json").is_file():
@@ -236,6 +236,11 @@ def build_prices() -> Dict[str, Any]:
     if not today_prices:
         LOGGER.warning("Pricing information failed to generate")
         return {}
+
+    if detailed_mode:
+        LOGGER.info("Skipping merging older prices")
+        prune_prices_archive(today_prices)
+        return today_prices
 
     archive_prices = get_price_archive_data()
 

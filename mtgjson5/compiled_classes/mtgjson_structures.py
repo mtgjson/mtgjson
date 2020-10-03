@@ -17,6 +17,7 @@ class MtgjsonStructuresObject:
     all_printings: str
     atomic_cards: str
     all_prices: str
+    all_daily_prices: str
 
     all_decks_directory: str
     all_sets_directory: str
@@ -56,6 +57,7 @@ class MtgjsonStructuresObject:
         self.all_printings = "AllPrintings"
         self.atomic_cards = "AtomicCards"
         self.all_prices = "AllPrices"
+        self.all_daily_prices = "AllDailyPrices"
         self.all_csvs_directory = "AllPrintingsCSVFiles"
         self.all_decks_directory = "AllDeckFiles"
         self.all_sets_directory = "AllSetFiles"

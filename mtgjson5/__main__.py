@@ -18,6 +18,7 @@ from mtgjson5.consts import CONFIG_PATH, MTGJSON_VERSION, OUTPUT_PATH
 from mtgjson5.output_generator import (
     generate_compiled_output_files,
     generate_compiled_prices_output,
+    generate_compiled_daily_prices_output,
     generate_output_file_hashes,
     write_set_file,
 )
@@ -83,6 +84,7 @@ def dispatcher(args: argparse.Namespace) -> None:
     # If a price build, simply build prices and exit
     if args.price_build:
         generate_compiled_prices_output(build_prices(), args.pretty)
+        generate_compiled_daily_prices_output(build_prices(True), args.pretty)
         if args.compress:
             compress_mtgjson_contents(OUTPUT_PATH)
         generate_output_file_hashes(OUTPUT_PATH)
