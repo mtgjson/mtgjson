@@ -51,7 +51,8 @@ class CardKingdomProvider(AbstractProvider):
         return response.json()
 
     def generate_today_price_dict(
-        self, all_printings_path: pathlib.Path
+        self, all_printings_path: pathlib.Path,
+        detailed_mode: bool = False
     ) -> Dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure for MTGO from CardHoarder
@@ -81,9 +82,13 @@ class CardKingdomProvider(AbstractProvider):
 
             mtgjson_uuid = card_kingdom_id_to_mtgjson[card_id]
 
+            key = self.today_date
+            if detailed_mode:
+                key = "price"
+
             if mtgjson_uuid not in today_dict:
                 today_dict[mtgjson_uuid] = MtgjsonPricesObject(
-                    "paper", "cardkingdom", self.today_date, "USD"
+                    "paper", "cardkingdom", key, "USD"
                 )
 
             if card["is_foil"] == "true":

@@ -168,7 +168,8 @@ class TCGPlayerProvider(AbstractProvider):
         return magic_set_ids
 
     def generate_today_price_dict(
-        self, all_printings_path: pathlib.Path
+        self, all_printings_path: pathlib.Path,
+        detailed_mode: bool = False,
     ) -> Dict[str, MtgjsonPricesObject]:
         """
         Download the TCGPlayer pricing API and collate into MTGJSON format
@@ -188,7 +189,7 @@ class TCGPlayerProvider(AbstractProvider):
         buylist_dict = parallel_call(
             get_tcgplayer_buylist_prices_map,
             ids_and_names,
-            repeatable_args=[tcg_to_mtgjson_map],
+            repeatable_args=[tcg_to_mtgjson_map, detailed_mode],
             fold_dict=True,
         )
 
@@ -196,7 +197,7 @@ class TCGPlayerProvider(AbstractProvider):
         retail_dict = parallel_call(
             get_tcgplayer_prices_map,
             ids_and_names,
-            repeatable_args=[tcg_to_mtgjson_map],
+            repeatable_args=[tcg_to_mtgjson_map, detailed_mode],
             fold_dict=True,
         )
 
@@ -284,7 +285,9 @@ def get_tcgplayer_sku_map(
 
 
 def get_tcgplayer_buylist_prices_map(
-    group_id_and_name: Tuple[str, str], tcg_to_mtgjson_map: Dict[str, str]
+    group_id_and_name: Tuple[str, str],
+    tcg_to_mtgjson_map: Dict[str, str],
+    detailed_mode: bool = False,
 ) -> Dict[str, MtgjsonPricesObject]:
     """
     takes a group id and name and finds all buylist data for that group
@@ -324,10 +327,15 @@ def get_tcgplayer_buylist_prices_map(
                 LOGGER.debug(f"TCGPlayer ProductId {product_id} not found")
                 continue
 
-            if key not in prices_map.keys():
+            if detailed_mode:
                 prices_map[key] = MtgjsonPricesObject(
-                    "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
+                    "paper", "tcgplayer", "high", "USD"
                 )
+            else:
+                if key not in prices_map.keys():
+                    prices_map[key] = MtgjsonPricesObject(
+                        "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
+                    )
 
             product_sku = sku["skuId"]
 
@@ -340,7 +348,9 @@ def get_tcgplayer_buylist_prices_map(
 
 
 def get_tcgplayer_prices_map(
-    group_id_and_name: Tuple[str, str], tcg_to_mtgjson_map: Dict[str, str]
+    group_id_and_name: Tuple[str, str],
+    tcg_to_mtgjson_map: Dict[str, str],
+    detailed_mode: bool = False
 ) -> Dict[str, MtgjsonPricesObject]:
     """
     Construct MtgjsonPricesObjects from TCGPlayer data
@@ -368,9 +378,14 @@ def get_tcgplayer_prices_map(
         is_non_foil = tcgplayer_object["subTypeName"] == "Normal"
         card_price = tcgplayer_object["marketPrice"]
 
-        if key not in prices_map.keys():
+        if detailed_mode:
+            if key not in prices_map.keys():
+                prices_map[key] = MtgjsonPricesObject(
+                    "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
+                )
+        else:
             prices_map[key] = MtgjsonPricesObject(
-                "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
+                "paper", "tcgplayer", "marketPrice", "USD"
             )
 
         if is_non_foil:
