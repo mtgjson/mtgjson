@@ -134,7 +134,7 @@ def prune_prices_archive(content: Dict[str, Any], months: int = 3) -> None:
     LOGGER.info(f"Pruned {keys_pruned} structs")
 
 
-def build_today_prices() -> Dict[str, Any]:
+def build_today_prices(detailed_mode: bool = False) -> Dict[str, Any]:
     """
     Get today's prices from upstream sources and combine them together
     :return: Today's prices (to be merged into archive)
@@ -143,10 +143,10 @@ def build_today_prices() -> Dict[str, Any]:
         LOGGER.error(f"Unable to build prices. AllPrintings not found in {OUTPUT_PATH}")
         return {}
 
-    card_hoarder = _generate_prices(CardHoarderProvider())
-    tcgplayer = _generate_prices(TCGPlayerProvider())
-    card_market = _generate_prices(CardMarketProvider())
-    card_kingdom = _generate_prices(CardKingdomProvider())
+    card_hoarder = _generate_prices(CardHoarderProvider(), detailed_mode)
+    tcgplayer = _generate_prices(TCGPlayerProvider(), detailed_mode)
+    card_market = _generate_prices(CardMarketProvider(), detailed_mode)
+    card_kingdom = _generate_prices(CardKingdomProvider(), detailed_mode)
 
     final_results = deep_merge_dictionaries(
         card_hoarder, tcgplayer, card_market, card_kingdom
@@ -155,7 +155,7 @@ def build_today_prices() -> Dict[str, Any]:
     return final_results
 
 
-def _generate_prices(provider: Any) -> Dict[str, Any]:
+def _generate_prices(provider: Any, detailed_mode: bool = False) -> Dict[str, Any]:
     """
     Generate the prices for a source and prepare them for
     merging with other entities
@@ -163,7 +163,7 @@ def _generate_prices(provider: Any) -> Dict[str, Any]:
     :return Manageable data for MTGJSON prices
     """
     preprocess_prices = provider.generate_today_price_dict(
-        OUTPUT_PATH.joinpath("AllPrintings.json")
+        OUTPUT_PATH.joinpath("AllPrintings.json"), detailed_mode
     )
     final_prices: Dict[str, Any] = json.loads(
         json.dumps(preprocess_prices, default=lambda o: o.to_json())
@@ -231,7 +231,7 @@ def build_prices(detailed_mode: bool = False) -> Dict[str, Any]:
 
     # Get today's price database
     LOGGER.info("Building new price data")
-    today_prices = build_today_prices()
+    today_prices = build_today_prices(detailed_mode)
 
     if not today_prices:
         LOGGER.warning("Pricing information failed to generate")
