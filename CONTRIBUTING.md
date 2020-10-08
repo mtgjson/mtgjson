@@ -16,6 +16,18 @@ In addition to PyCharm, you'll need to install Python 3. We develop actively on 
 - Linux: `sudo apt-get install python3.7`
 - Windows: [Download Python 3](https://www.python.org/downloads/)
 
+### Python venv
+
+If you want to work in a venv, you may follow this commands:
+* `python3.7 -m venv venv`
+  * Use another `python` binary to use it's respective version
+* `source venv/bin/activate`
+* `pip install -r requirements.txt`
+* `pip install -r requirements_test.txt`
+* `cp mtgjson.properties.example mtgjson5/resources/mtgjson.properties`
+* Fill in your credentials into `mtgjson5/resources/mtgjson.properties`
+  * Missing credentials won't fail the run, just extend the generated data
+* `python -m mtgjson5`
 
 ## Project Hierarchy
 The codebase is split up into different files based on functionality. While not perfect, we aim to segregate components based on their usages and dependencies.
