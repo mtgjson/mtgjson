@@ -229,8 +229,9 @@ class WizardsProvider(AbstractProvider):
             set_name_fixes = json.load(f)
 
         for key, value in set_name_fixes.items():
-            table[value] = table[key]
-            del table[key]
+            if key in table:
+                table[value] = table[key]
+                del table[key]
 
         # Build new table with set codes instead of set names
         new_table = parallel_call(
