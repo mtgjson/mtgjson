@@ -165,6 +165,21 @@ class CardMarketProvider(AbstractProvider):
             return int(self.set_map[set_name.lower()]["mcmId"])
         return None
 
+    def get_extras_set_id(self, set_name: str) -> Optional[int]:
+        """
+        Get "Extras" MKM Set ID from pre-generated map
+        For "Throne of Eldraine" it will return the mcmId for "Throne of Eldraine: Extras"
+        :param set_name: Set to get ID from
+        :return: Set ID
+        """
+        if not self.__keys_found:
+            return None
+
+        extras_set_name = set_name.lower() + ": extras"
+        if extras_set_name in self.set_map.keys():
+            return int(self.set_map[extras_set_name]["mcmId"])
+        return None
+
     def get_set_name(self, set_name: str) -> Optional[str]:
         """
         Get MKM Set Name from pre-generated map

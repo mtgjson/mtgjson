@@ -26,6 +26,7 @@ class MtgjsonSetObject:
     is_partial_preview: bool
     keyrune_code: str
     mcm_id: Optional[int]
+    mcm_id_extras: Optional[int]
     mcm_name: Optional[str]
     mtgo_code: str
     name: str

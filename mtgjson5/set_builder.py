@@ -385,6 +385,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.search_uri = set_data["search_uri"]
     mtgjson_set.mcm_name = CardMarketProvider().get_set_name(mtgjson_set.name)
     mtgjson_set.mcm_id = CardMarketProvider().get_set_id(mtgjson_set.name)
+    mtgjson_set.mcm_id_extras = CardMarketProvider().get_extras_set_id(mtgjson_set.name)
     mtgjson_set.translations = WizardsProvider().get_translation_for_set(
         mtgjson_set.code
     )
@@ -1033,26 +1034,36 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
     """
     LOGGER.info(f"Adding MCM details for {mtgjson_set.code}")
     mkm_cards = CardMarketProvider().get_mkm_cards(mtgjson_set.mcm_id)
+
+    if mtgjson_set.mcm_id_extras:
+        extras_cards = CardMarketProvider().get_mkm_cards(mtgjson_set.mcm_id_extras)
+
     for mtgjson_card in mtgjson_set.cards:
         delete_key = False
 
+        if "extendedart" in mtgjson_card.frame_effects and extras_cards:
+            # It is an extended art, search in the "Extras" set instead
+            search_cards = extras_cards
+        else:
+            search_cards = mkm_cards
+
         # There are multiple ways MKM represents cards...
-        if mtgjson_card.name.lower() in mkm_cards.keys():
+        if mtgjson_card.name.lower() in search_cards.keys():
             # First lets see if the card name is found
             card_key = mtgjson_card.name.lower()
         elif (
             mtgjson_card.face_name
-            and mtgjson_card.face_name.lower() in mkm_cards.keys()
+            and mtgjson_card.face_name.lower() in search_cards.keys()
         ):
             # If that failed, lets see if the face name is found
             card_key = mtgjson_card.face_name.lower()
-        elif mtgjson_card.name.replace("//", "/").lower() in mkm_cards.keys():
+        elif mtgjson_card.name.replace("//", "/").lower() in search_cards.keys():
             # Finally, lets check if they used a single slash for split-type cards
             card_key = mtgjson_card.name.replace("//", "/").lower()
         else:
             # Multiple printings of a card in the set... just guess at this point
             card_key = ""
-            for mkm_card in mkm_cards:
+            for mkm_card in search_cards:
                 if mkm_card.startswith(mtgjson_card.name.lower()):
                     card_key = mkm_card
                     delete_key = True
@@ -1062,9 +1073,9 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
                 LOGGER.debug(f"Failed to find {mtgjson_card.name} for MKM")
                 continue
 
-        mkm_obj = mkm_cards[card_key]
+        mkm_obj = search_cards[card_key]
         if delete_key:
-            del mkm_cards[card_key]
+            del search_cards[card_key]
 
         # This value is set by an upstream provider by default
         if not mtgjson_card.identifiers.mcm_id:
