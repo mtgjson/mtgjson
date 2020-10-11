@@ -1041,8 +1041,9 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
     for mtgjson_card in mtgjson_set.cards:
         delete_key = False
 
+        # "boosterfun" is an alias for frame_effects=showcase, frame_effects=extendedart, and border_color=borderless
         if "boosterfun" in mtgjson_card.promo_types and extras_cards:
-            # It is an extended art, search in the "Extras" set instead
+            # It is an extended art, showcase, or borderless, search in the "Extras" set instead
             search_cards = extras_cards
         else:
             search_cards = mkm_cards
