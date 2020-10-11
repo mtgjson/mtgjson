@@ -675,6 +675,9 @@ def build_mtgjson_card(
     mtgjson_card.is_textless = scryfall_object.get("textless")
     mtgjson_card.life = scryfall_object.get("life_modifier")
 
+    mtgjson_card.identifiers.mcm_id = get_str_or_none(
+        scryfall_object.get("cardmarket_id")
+    )
     mtgjson_card.identifiers.mtg_arena_id = get_str_or_none(
         scryfall_object.get("arena_id")
     )
@@ -1041,7 +1044,10 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
         if delete_key:
             del mkm_cards[card_key]
 
-        mtgjson_card.identifiers.mcm_id = str(mkm_obj["idProduct"])
+        # This value is set by an upstream provider by default
+        if not mtgjson_card.identifiers.mcm_id:
+            mtgjson_card.identifiers.mcm_id = str(mkm_obj["idProduct"])
+
         mtgjson_card.identifiers.mcm_meta_id = str(mkm_obj["idMetaproduct"])
 
         mtgjson_card.purchase_urls.cardmarket = url_keygen(
