@@ -40,25 +40,14 @@ class MtgjsonSetListObject:
                 continue
 
             with set_file.open(encoding="utf-8") as f:
-                file_content = json.load(f).get("data", {})
+                set_data = json.load(f).get("data", {})
 
-            if not file_content.get("name"):
+            if not set_data.get("name"):
                 continue
 
-            set_data = {
-                "baseSetSize": file_content.get("baseSetSize"),
-                "code": file_content.get("code"),
-                "name": file_content.get("name"),
-                "releaseDate": file_content.get("releaseDate"),
-                "totalSetSize": file_content.get("totalSetSize"),
-                "type": file_content.get("type"),
-            }
-
-            if "parentCode" in file_content.keys():
-                set_data["parentCode"] = file_content["parentCode"]
-
-            if "isPartialPreview" in file_content.keys():
-                set_data["isPartialPreview"] = file_content["isPartialPreview"]
+            for key in ["booster", "cards", "tokens"]:
+                if key in set_data:
+                    del set_data[key]
 
             all_sets_data.append(set_data)
 
