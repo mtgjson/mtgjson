@@ -706,10 +706,15 @@ def build_mtgjson_card(
     mtgjson_card.rarity = scryfall_object.get("rarity", "")
     if not mtgjson_card.artist:
         mtgjson_card.artist = scryfall_object.get("artist", "")
-    if not mtgjson_card.layout:
-        mtgjson_card.layout = scryfall_object.get("layout", "")
     if not mtgjson_card.watermark:
         mtgjson_card.set_watermark(face_data.get("watermark"))
+
+    # Some sets only contain tokens, so just mark it as-such
+    if scryfall_object.get("set_type", "") == "token":
+        mtgjson_card.layout = "token"
+
+    if not mtgjson_card.layout:
+        mtgjson_card.layout = scryfall_object.get("layout", "")
 
     # Indicate if this component exists on the platform
     mtgjson_card.availability = MtgjsonGameFormatsObject()
