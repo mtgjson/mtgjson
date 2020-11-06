@@ -13,6 +13,7 @@ class MtgjsonDeckObject:
     """
 
     code: str
+    commander: List[Dict[str, Any]]  # MtgjsonCardObject
     main_board: List[Dict[str, Any]]  # MtgjsonCardObject
     name: str
     side_board: List[Dict[str, Any]]  # MtgjsonCardObject
