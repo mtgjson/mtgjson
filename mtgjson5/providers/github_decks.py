@@ -23,7 +23,7 @@ class GitHubDecksProvider(AbstractProvider):
     GitHubDecksProvider container
     """
 
-    decks_api_url: str = "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks.json?raw=true"
+    decks_api_url: str = "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks_v2.json?raw=true"
     all_printings_file: pathlib.Path = OUTPUT_PATH.joinpath(
         f"{MtgjsonStructuresObject().all_printings}.json"
     )
@@ -90,6 +90,9 @@ class GitHubDecksProvider(AbstractProvider):
                 this_deck.side_board = parallel_call(
                     build_single_card, deck["sideboard"], fold_list=True
                 )
+                this_deck.commander = parallel_call(
+                    build_single_card, deck["commander"], fold_list=True
+                )
             except KeyError as error:
                 LOGGER.warning(
                     f'GitHub Deck "{this_deck.name}" failed to build -- Missing Set {error}'
@@ -116,13 +119,7 @@ def build_single_card(card: Dict[str, Any]) -> List[Dict[str, Any]]:
         return []
 
     for mtgjson_card in set_to_build_from["cards"]:
-        if "//" in card["name"]:
-            if card["number"][-1].isalpha():
-                card["number"] = card["number"][:-1]
-
-        if mtgjson_card["number"] == card["number"] or (
-            mtgjson_card.get("multiverseId", "zNone") == card.get("multiverseid")
-        ):
+        if card["mtgjson_uuid"] == mtgjson_card["uuid"]:
             mtgjson_card["count"] = card["count"]
             mtgjson_card["isFoil"] = card["foil"]
             cards.append(mtgjson_card)
