@@ -969,6 +969,17 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
             # Check for set number > set size
             if int(this_card.number.replace(chr(9733), "")) > mtgjson_set.base_set_size:
                 this_card.is_alternative = True
+        elif mtgjson_set.code.upper() in ["CMR"]:
+            # Mark duplicated non-promotional identical cards
+            for other_card in mtgjson_set.cards:
+                if other_card.uuid == this_card.uuid:
+                    continue
+                if other_card.name != this_card.name:
+                    continue
+                if len(other_card.promo_types) != 0 or len(this_card.promo_types) != 0:
+                    continue
+                if int(this_card.number.replace(chr(9733), "")) > mtgjson_set.base_set_size:
+                    this_card.is_alternative = True
         else:
             # Check for a star in the number
             if chr(9733) in this_card.number:
