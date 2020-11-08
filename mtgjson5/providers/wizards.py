@@ -26,7 +26,9 @@ class WizardsProvider(AbstractProvider):
     """
 
     TRANSLATION_URL: str = "https://magic.wizards.com/{}/products/card-set-archive"
-    magic_rules_url: str = "https://magic.wizards.com/en/game-info/gameplay/rules-and-formats/rules"
+    magic_rules_url: str = (
+        "https://magic.wizards.com/en/game-info/gameplay/rules-and-formats/rules"
+    )
     translation_table: Dict[str, Dict[str, str]] = {}
     magic_rules: str = ""
     __translation_table_cache: pathlib.Path = CACHE_PATH.joinpath(
