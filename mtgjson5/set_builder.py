@@ -957,7 +957,7 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
             continue
 
         # Some hardcoded checking due to inconsistencies upstream
-        if mtgjson_set.code.upper() in ["UNH", "10E"]:
+        if mtgjson_set.code.upper() in {"UNH", "10E"}:
             # Check for duplicates, mark the foils
             if (
                 len(variations) >= 1
@@ -965,12 +965,28 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
                 and not this_card.has_non_foil
             ):
                 this_card.is_alternative = True
-        elif mtgjson_set.code.upper() in ["CN2", "BBD", "JMP", "2XM"]:
-            # Check for set number > set size
-            if int(this_card.number.replace(chr(9733), "")) > mtgjson_set.base_set_size:
+        elif mtgjson_set.code.upper() in {"CN2", "BBD", "JMP", "2XM"}:
+            # Check for set number > set size, remove asterisk before comparison
+            card_number = int(this_card.number.replace(chr(9733), ""))
+            if card_number > mtgjson_set.base_set_size:
                 this_card.is_alternative = True
+        elif mtgjson_set.code.upper() in {"CMR"}:
+            # Mark duplicated non-promotional identical cards
+            for other_card in mtgjson_set.cards:
+                if (
+                    other_card.uuid == this_card.uuid
+                    or other_card.name != this_card.name
+                    or other_card.promo_types
+                    or this_card.promo_types
+                ):
+                    continue
+
+                # Check for set number > set size, remove asterisk before comparison
+                card_number = int(this_card.number.replace(chr(9733), ""))
+                if card_number > mtgjson_set.base_set_size:
+                    this_card.is_alternative = True
         else:
-            # Check for a star in the number
+            # Check for an asterisk in the number
             if chr(9733) in this_card.number:
                 this_card.is_alternative = True
 
