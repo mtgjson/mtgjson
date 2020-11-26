@@ -175,7 +175,7 @@ class CardMarketProvider(AbstractProvider):
         if not self.__keys_found:
             return None
 
-        extras_set_name = set_name.lower() + ": extras"
+        extras_set_name = f"{set_name.lower()}: extras"
         if extras_set_name in self.set_map.keys():
             return int(self.set_map[extras_set_name]["mcmId"])
         return None
