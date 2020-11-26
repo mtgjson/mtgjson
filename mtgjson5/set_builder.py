@@ -510,8 +510,9 @@ def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
 
     is_oathbreaker_legal = "Planeswalker" in mtgjson_card.type
 
-    is_brawl_legal = mtgjson_card.set_code.upper() in WhatsInStandardProvider().set_codes and (
-        is_oathbreaker_legal or is_commander_legal
+    is_brawl_legal = (
+        mtgjson_card.set_code.upper() in WhatsInStandardProvider().set_codes
+        and (is_oathbreaker_legal or is_commander_legal)
     )
 
     if is_commander_legal or is_oathbreaker_legal or is_brawl_legal:
