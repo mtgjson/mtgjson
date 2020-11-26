@@ -62,9 +62,7 @@ def generate_compiled_prices_output(
     :param pretty_print: Pretty or minimal
     """
     create_compiled_output(
-        MtgjsonStructuresObject().all_prices,
-        price_data,
-        pretty_print,
+        MtgjsonStructuresObject().all_prices, price_data, pretty_print,
     )
 
 
@@ -239,23 +237,17 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
 
     # Keywords.json
     create_compiled_output(
-        MtgjsonStructuresObject().key_words,
-        MtgjsonKeywordsObject(),
-        pretty_print,
+        MtgjsonStructuresObject().key_words, MtgjsonKeywordsObject(), pretty_print,
     )
 
     # CardTypes.json
     create_compiled_output(
-        MtgjsonStructuresObject().card_types,
-        MtgjsonCardTypesObject(),
-        pretty_print,
+        MtgjsonStructuresObject().card_types, MtgjsonCardTypesObject(), pretty_print,
     )
 
     # Meta.json (Formerly version.json)
     create_compiled_output(
-        MtgjsonStructuresObject().version,
-        MtgjsonMetaObject(),
-        pretty_print,
+        MtgjsonStructuresObject().version, MtgjsonMetaObject(), pretty_print,
     )
 
     # SetList.json
@@ -293,9 +285,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
 
     # EnumValues.json - Depends on Keywords & Decks
     create_compiled_output(
-        MtgjsonStructuresObject().enum_values,
-        MtgjsonEnumValuesObject(),
-        pretty_print,
+        MtgjsonStructuresObject().enum_values, MtgjsonEnumValuesObject(), pretty_print,
     )
 
 

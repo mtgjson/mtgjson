@@ -84,14 +84,7 @@ def _compress_mtgjson_directory(
     LOGGER.info(f"Compressing {output_file}")
 
     compression_commands: List[List[Union[str, pathlib.Path]]] = [
-        [
-            "tar",
-            "-jcf",
-            f"{temp_dir}.tar.bz2",
-            "-C",
-            temp_dir.parent,
-            temp_dir.name,
-        ],
+        ["tar", "-jcf", f"{temp_dir}.tar.bz2", "-C", temp_dir.parent, temp_dir.name,],
         ["tar", "-Jcf", f"{temp_dir}.tar.xz", "-C", temp_dir.parent, temp_dir.name],
         ["tar", "-zcf", f"{temp_dir}.tar.gz", "-C", temp_dir.parent, temp_dir.name],
         ["zip", "-rj", f"{temp_dir}.zip", temp_dir],

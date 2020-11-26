@@ -29,9 +29,7 @@ class MtgjsonAtomicCardsObject:
         )
 
     def iterate_all_cards(
-        self,
-        files_to_ignore: List[str],
-        cards_to_load: List[Dict[str, Any]] = None,
+        self, files_to_ignore: List[str], cards_to_load: List[Dict[str, Any]] = None,
     ) -> None:
         """
         Iterate and all all MTGJSON sets to the dictionary
