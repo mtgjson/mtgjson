@@ -47,8 +47,12 @@ class CardMarketProvider(AbstractProvider):
 
         os.environ["MKM_APP_TOKEN"] = config.get("CardMarket", "app_token")
         os.environ["MKM_APP_SECRET"] = config.get("CardMarket", "app_secret")
-        os.environ["MKM_ACCESS_TOKEN"] = ""
-        os.environ["MKM_ACCESS_TOKEN_SECRET"] = ""
+        os.environ["MKM_ACCESS_TOKEN"] = config.get(
+            "CardMarket", "mkm_access_token", fallback=""
+        )
+        os.environ["MKM_ACCESS_TOKEN_SECRET"] = config.get(
+            "CardMarket", "mkm_access_token_secret", fallback=""
+        )
 
         if not (os.environ["MKM_APP_TOKEN"] and os.environ["MKM_APP_SECRET"]):
             LOGGER.warning("CardMarket keys values missing. Skipping requests")

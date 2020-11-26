@@ -6,6 +6,8 @@ token=
 [CardMarket]
 app_token=
 app_secret=
+mkm_access_token=
+mkm_access_token_secret=
 
 [GitHub]
 username=
