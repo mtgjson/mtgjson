@@ -1035,6 +1035,7 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
     LOGGER.info(f"Adding MCM details for {mtgjson_set.code}")
     mkm_cards = CardMarketProvider().get_mkm_cards(mtgjson_set.mcm_id)
 
+    extras_cards: Dict[str, Dict[str, Any]] = {}
     if mtgjson_set.mcm_id_extras:
         extras_cards = CardMarketProvider().get_mkm_cards(mtgjson_set.mcm_id_extras)
 
