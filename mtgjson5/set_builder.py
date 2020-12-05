@@ -711,8 +711,11 @@ def build_mtgjson_card(
     if not mtgjson_card.watermark:
         mtgjson_card.set_watermark(face_data.get("watermark"))
 
-    # Some sets only contain tokens, so just mark it as-such
-    if scryfall_object.get("set_type", "") == "token":
+    # Cards are just tokens in disguise!
+    if any(
+        type_line in scryfall_object.get("type_line", "").lower()
+        for type_line in ("card", "token")
+    ):
         mtgjson_card.layout = "token"
 
     if not mtgjson_card.layout:
