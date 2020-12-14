@@ -8,9 +8,11 @@ import logging
 import math
 import os
 import pathlib
+import time
 import zlib
 from typing import Any, Dict, List, Optional, Union
 
+import mkmsdk.exceptions
 import pandas
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
@@ -221,7 +223,22 @@ class CardMarketProvider(AbstractProvider):
         if mcm_id is None:
             return {}
 
-        mkm_resp = self.connection.market_place.expansion_singles(1, expansion=mcm_id)
+        mkm_resp = None
+        for _ in range(5):
+            try:
+                mkm_resp = self.connection.market_place.expansion_singles(
+                    1, expansion=mcm_id
+                )
+                break
+            except mkmsdk.exceptions.ConnectionError as exception:
+                LOGGER.warning(
+                    f"MKM Had a connection error trying to build {mcm_id}: {exception}"
+                )
+                time.sleep(10)
+
+        if mkm_resp is None:
+            LOGGER.error("MKM had a critical failure. Skipping this import.")
+            return {}
 
         # {SetNum: Object, ... }
         set_in_progress = {}
