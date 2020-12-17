@@ -607,6 +607,12 @@ def build_mtgjson_card(
     face_data = scryfall_object
     if "card_faces" in scryfall_object:
         mtgjson_card.set_names(scryfall_object["name"].split("//"))
+        mtgjson_card.set_illustration_ids(
+            [
+                card_face["illustration_id"]
+                for card_face in scryfall_object["card_faces"]
+            ]
+        )
 
         # Override face_data from above
         face_data = scryfall_object["card_faces"][face_id]
@@ -782,10 +788,15 @@ def build_mtgjson_card(
             if mtgjson_card.set_code.lower() == "tust":
                 mtgjson_card.side = "a" if mtgjson_card.type != "Token" else "b"
             else:
-                # chr(97) = 'a', chr(98) = 'b', ...
-                mtgjson_card.side = chr(
-                    mtgjson_card.get_names().index(mtgjson_card.face_name) + 97
-                )
+                face_illustration_ids = mtgjson_card.get_illustration_ids()
+                for index in range(len(mtgjson_card.get_names())):
+                    if (
+                        face_illustration_ids[index]
+                        == mtgjson_card.identifiers.scryfall_illustration_id
+                    ):
+                        # chr(97) = 'a', chr(98) = 'b', ...
+                        mtgjson_card.side = chr(index + 97)
+                        break
 
     # Implicit Variables
     mtgjson_card.is_timeshifted = (
