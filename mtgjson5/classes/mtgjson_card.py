@@ -93,6 +93,7 @@ class MtgjsonCardObject:
     is_token: bool
     raw_purchase_urls: Dict[str, str]
     __names: Optional[List[str]]
+    __illustration_ids: List[str]
     __watermark_resource: Dict[str, List[Any]]
 
     __allow_if_falsey = {
@@ -171,6 +172,7 @@ class MtgjsonCardObject:
         self.watermark = None
         self.__watermark_resource = {}
         self.__names = []
+        self.__illustration_ids = []
         self.purchase_urls = MtgjsonPurchaseUrlsObject()
         self.side = None
         self.face_name = None
@@ -195,6 +197,22 @@ class MtgjsonCardObject:
             return int(self.number) < int(other.number)
         except ValueError:
             return bool(self.number < other.number)
+
+    def set_illustration_ids(self, illustration_ids: List[str]) -> None:
+        """
+        Set internal illustration IDs for this card to
+        better identify what side we're working on,
+        especially for Art and Token cards
+        :param illustration_ids: Illustration IDs of the card faces
+        """
+        self.__illustration_ids = illustration_ids
+
+    def get_illustration_ids(self) -> List[str]:
+        """
+        Get the internal illustration IDs roster for this card
+        to better identify the sides for Art and Token cards
+        """
+        return self.__illustration_ids
 
     def get_names(self) -> List[str]:
         """
