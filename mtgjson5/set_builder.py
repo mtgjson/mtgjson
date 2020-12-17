@@ -451,15 +451,18 @@ def build_base_mtgjson_cards(
     cards = ScryfallProvider().download_cards(set_code)
     cards.extend(additional_cards or [])
 
-    mtgjson_cards = parallel_call(
+    mtgjson_cards: List[MtgjsonCardObject] = parallel_call(
         build_mtgjson_card,
         cards,
         fold_list=True,
         repeatable_args=(0, is_token, set_release_date),
     )
 
+    # Ensure we have a consistent ordering for our outputs
+    mtgjson_cards.sort()
+
     LOGGER.info(f"Finished building cards for {set_code}")
-    return list(mtgjson_cards)
+    return mtgjson_cards
 
 
 def add_is_starter_option(
