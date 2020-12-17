@@ -182,18 +182,26 @@ class MtgjsonCardObject:
     def __eq__(self, other: Any) -> bool:
         """
         Determine if two MTGJSON Card Objects are equal
+        First comparison: Card Number
+        Second comparison: Side Letter
         :param other: Other card
         :return: Same object or not
         """
-        return bool(self.number == other.number)
+        return bool(
+            self.number == other.number and (self.side or "") == (other.side or "")
+        )
 
     def __lt__(self, other: Any) -> bool:
         """
-        Determine if this card object is "less than" another
+        Less than operation
+        First comparison: Card Number
+        Second comparison: Side Letter
         :param other: Other card
         :return: Less than or not
         """
         try:
+            if int(self.number) == int(other.number):
+                return (self.side or "") < (other.side or "")
             return int(self.number) < int(other.number)
         except ValueError:
             return bool(self.number < other.number)

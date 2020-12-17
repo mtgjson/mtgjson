@@ -612,7 +612,7 @@ def build_mtgjson_card(
         mtgjson_card.set_names(scryfall_object["name"].split("//"))
         mtgjson_card.set_illustration_ids(
             [
-                card_face["illustration_id"]
+                card_face.get("illustration_id", "Missing")
                 for card_face in scryfall_object["card_faces"]
             ]
         )
@@ -783,16 +783,18 @@ def build_mtgjson_card(
 
     # Add "side" for split cards (cards with exactly 2 sides)
     # Also set face name
-    if mtgjson_card.get_names():
+    face_names = mtgjson_card.get_names()
+    if face_names:
         mtgjson_card.face_name = str(face_data["name"])
 
-        if mtgjson_card.layout not in ["meld"]:
+        if mtgjson_card.layout != "meld":
             # Fix #632 as there are very limited distinguishing attributes
             if mtgjson_card.set_code.lower() == "tust":
                 mtgjson_card.side = "a" if mtgjson_card.type != "Token" else "b"
-            else:
+            elif face_names.count(face_names[0]) == len(face_names):
+                # Art Series have a unique way of determining the side
                 face_illustration_ids = mtgjson_card.get_illustration_ids()
-                for index in range(len(mtgjson_card.get_names())):
+                for index in range(len(face_names)):
                     if (
                         face_illustration_ids[index]
                         == mtgjson_card.identifiers.scryfall_illustration_id
@@ -800,6 +802,10 @@ def build_mtgjson_card(
                         # chr(97) = 'a', chr(98) = 'b', ...
                         mtgjson_card.side = chr(index + 97)
                         break
+            else:
+                # Standard flip cards and such
+                # chr(97) = 'a', chr(98) = 'b', ...
+                mtgjson_card.side = chr(face_names.index(mtgjson_card.face_name) + 97)
 
     # Implicit Variables
     mtgjson_card.is_timeshifted = (
