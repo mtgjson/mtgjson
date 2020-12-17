@@ -21,8 +21,13 @@ jobs:
           - 3.7
           - 3.8
           - 3.9
+        include:
+          - python-version: 3.9
+            allow-failure: yes
 
     runs-on: ubuntu-latest
+
+    continue-on-error: ${{matrix.allow-failure == 'yes'}}
 
     steps:
       - name: Checkout repo
