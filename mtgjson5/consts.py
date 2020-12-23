@@ -50,6 +50,7 @@ CARD_KINGDOM_REFERRAL: str = (
 FOREIGN_SETS: Set[str] = {
     "PMPS11",
     "PS11",
+    "PSAL",
     "PMPS10",
     "PMPS09",
     "PMPS08",
