@@ -27,20 +27,21 @@ LOGGER = logging.getLogger(__name__)
 
 
 def download_prices_archive(
-    github_username: str,
-    github_repo_name: str,
-    file_name: str,
+    config: configparser.ConfigParser,
     github_repo_local_path: pathlib.Path,
 ) -> Dict[str, Dict[str, float]]:
     """
     Grab the contents from a gist file
-    :param github_username: Github repo primary user
-    :param github_repo_name: Gist repo name
-    :param file_name: File to open from Gist
+    :param config: Keys config
     :param github_repo_local_path: Where to checkout the repo to
     :return: File content
     """
-    github_url = f"git@github.com:{github_username}/{github_repo_name}.git"
+    github_username = config.get("GitHub", "username")
+    github_api_key = config.get("GitHub", "api_key")
+    github_repo_name = config.get("GitHub", "repo_name")
+    github_file_name = config.get("GitHub", "file_name")
+
+    github_url = f"https://{github_username}:{github_api_key}@github.com/{github_username}/{github_repo_name}.git"
 
     if github_repo_local_path.is_dir():
         LOGGER.info("Deleting Old Price Data Repo")
@@ -50,7 +51,7 @@ def download_prices_archive(
     git_sh = git.cmd.Git()
     git_sh.clone(github_url, github_repo_local_path, depth=1)
 
-    with lzma.open(github_repo_local_path.joinpath(file_name)) as file:
+    with lzma.open(github_repo_local_path.joinpath(github_file_name)) as file:
         return dict(json.load(file))
 
 
@@ -92,7 +93,7 @@ def upload_prices_archive(
         repo.git.remote(
             "set-url",
             "origin",
-            f"git@github.com:{github_username}/{github_repo_name}.git",
+            f"https://{github_username}:{github_api_token}@github.com/{github_username}/{github_repo_name}.git",
         )
 
         repo.git.commit("-am", "auto-push")
@@ -203,21 +204,10 @@ def get_price_archive_data() -> Dict[str, Dict[str, float]]:
         LOGGER.warning("GitHub section not established. Skipping requests")
         return {}
 
-    # Config values for GitHub
-    github_username = config.get("GitHub", "username")
-    github_repo_name = config.get("GitHub", "repo_name")
-    github_file_name = config.get("GitHub", "file_name")
-    github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
-
-    if not (github_repo_name and github_file_name and github_local_path):
-        LOGGER.warning("GitHub key values missing. Skipping requests")
-        return {}
-
     # Get the current working database
     LOGGER.info("Downloading Price Data Repo")
-    return download_prices_archive(
-        github_username, github_repo_name, github_file_name, github_local_path
-    )
+    github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
+    return download_prices_archive(config, github_local_path)
 
 
 def download_old_all_printings() -> None:
