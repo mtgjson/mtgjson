@@ -111,6 +111,7 @@ def upload_prices_archive(
         LOGGER.info("Pushed changes to GitHub repo")
     except git.GitCommandError:
         LOGGER.warning("No changes found to GitHub repo, skipping")
+        return
 
     shutil.rmtree(github_repo_local_path)
 
@@ -179,10 +180,16 @@ def _generate_prices(provider: Any) -> Dict[str, Any]:
     preprocess_prices = provider.generate_today_price_dict(
         OUTPUT_PATH.joinpath("AllPrintings.json")
     )
-    final_prices: Dict[str, Any] = json.loads(
-        json.dumps(preprocess_prices, default=lambda o: o.to_json())
-    )
-    return final_prices
+    try:
+        final_prices: Dict[str, Any] = json.loads(
+            json.dumps(preprocess_prices, default=lambda o: o.to_json())
+        )
+        return final_prices
+    except Exception as exception:
+        LOGGER.error(
+            f"Failed to compile for {type(provider).__name__} with error: {exception}"
+        )
+        return {}
 
 
 def get_price_archive_data() -> Dict[str, Dict[str, float]]:
