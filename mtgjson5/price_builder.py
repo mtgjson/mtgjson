@@ -27,16 +27,20 @@ LOGGER = logging.getLogger(__name__)
 
 
 def download_prices_archive(
-    gist_repo_name: str, file_name: str, github_repo_local_path: pathlib.Path
+    github_username: str,
+    github_repo_name: str,
+    file_name: str,
+    github_repo_local_path: pathlib.Path,
 ) -> Dict[str, Dict[str, float]]:
     """
     Grab the contents from a gist file
-    :param gist_repo_name: Gist repo name
+    :param github_username: Github repo primary user
+    :param github_repo_name: Gist repo name
     :param file_name: File to open from Gist
     :param github_repo_local_path: Where to checkout the repo to
     :return: File content
     """
-    github_url = f"https://gist.github.com/{gist_repo_name}"
+    github_url = f"git@github.com:{github_username}/{github_repo_name}.git"
 
     if github_repo_local_path.is_dir():
         LOGGER.info("Deleting Old Price Data Repo")
@@ -88,12 +92,22 @@ def upload_prices_archive(
         repo.git.remote(
             "set-url",
             "origin",
-            f"https://{github_username}:{github_api_token}@gist.github.com/{github_repo_name}.git",
+            f"git@github.com:{github_username}/{github_repo_name}.git",
         )
 
         repo.git.commit("-am", "auto-push")
         origin = repo.remote()
-        origin.push()
+        push_results = origin.push()
+
+        if not push_results:
+            LOGGER.error("A critical failure happened with GitHub push")
+            return
+
+        push_result = push_results[0]
+        if push_result.flags & push_result.ERROR == push_result.ERROR:
+            LOGGER.error(f"Push to GitHub failed: {push_result.summary}")
+            return
+
         LOGGER.info("Pushed changes to GitHub repo")
     except git.GitCommandError:
         LOGGER.warning("No changes found to GitHub repo, skipping")
@@ -183,6 +197,7 @@ def get_price_archive_data() -> Dict[str, Dict[str, float]]:
         return {}
 
     # Config values for GitHub
+    github_username = config.get("GitHub", "username")
     github_repo_name = config.get("GitHub", "repo_name")
     github_file_name = config.get("GitHub", "file_name")
     github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
@@ -194,7 +209,7 @@ def get_price_archive_data() -> Dict[str, Dict[str, float]]:
     # Get the current working database
     LOGGER.info("Downloading Price Data Repo")
     return download_prices_archive(
-        github_repo_name, github_file_name, github_local_path
+        github_username, github_repo_name, github_file_name, github_local_path
     )
 
 
