@@ -443,7 +443,7 @@ def build_base_mtgjson_cards(
     Construct all cards in MTGJSON format from a single set
     :param set_code: Set to build
     :param additional_cards: Additional objs to build (not relevant for normal builds)
-    :param is_token: Are tokens being copmiled?
+    :param is_token: Are tokens being compiled?
     :param set_release_date: Original set release date
     :return: Completed card objects
     """
@@ -720,11 +720,13 @@ def build_mtgjson_card(
     if not mtgjson_card.watermark:
         mtgjson_card.set_watermark(face_data.get("watermark"))
 
-    # Cards are just tokens in disguise!
-    if any(
+    if scryfall_object.get("layout") == "art_series":
+        mtgjson_card.layout = "art_series"
+    elif any(
         type_line in scryfall_object.get("type_line", "").lower()
         for type_line in ("card", "token")
     ):
+        # Cards are just tokens in disguise!
         mtgjson_card.layout = "token"
 
     if not mtgjson_card.layout:
