@@ -140,6 +140,7 @@ class MtgjsonCardObject:
         "has_alternative_deck_limit",
         "identifiers",
         "is_reserved",
+        "keywords",
         "layout",
         "leadership_skills",
         "legalities",
