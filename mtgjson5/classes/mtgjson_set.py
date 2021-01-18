@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Set
 
 from ..classes.mtgjson_card import MtgjsonCardObject
 from ..classes.mtgjson_translations import MtgjsonTranslationsObject
+from ..consts import BAD_FILE_NAMES
 from ..utils import to_camel_case
 
 
@@ -82,6 +83,18 @@ class MtgjsonSetObject:
                     excluded_keys.add(key)
 
         return excluded_keys
+
+    def get_windows_safe_set_code(self) -> str:
+        """
+        In the Windows OS, there are certain file names that are not allowed.
+        In case we have a set with such a name, we will add a _ to the end to allow its existence
+        on Windows.
+        :return: Set name an appended underscore, if necessary
+        """
+        if self.code in BAD_FILE_NAMES:
+            return self.code + "_"
+
+        return self.code
 
     def to_json(self) -> Dict[str, Any]:
         """

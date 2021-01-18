@@ -18,8 +18,14 @@ import requests.adapters
 import requests_cache
 import urllib3
 
-from . import consts
-from .consts import BAD_FILE_NAMES, CACHE_PATH, LOG_PATH, USE_CACHE
+from .consts import (
+    CACHE_PATH,
+    CONFIG,
+    HASH_TO_GENERATE,
+    LOG_PATH,
+    MTGJSON_VERSION,
+    USE_CACHE,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -171,20 +177,6 @@ def sort_internal_lists(data: Any) -> Any:
     return data
 
 
-def fix_windows_set_name(set_name: str) -> str:
-    """
-    In the Windows OS, there are certain file names that are not allowed.
-    In case we have a set with such a name, we will add a _ to the end to allow its existence
-    on Windows.
-    :param set_name: Set name
-    :return: Set name with a _ if necessary
-    """
-    if set_name in BAD_FILE_NAMES:
-        return set_name + "_"
-
-    return set_name
-
-
 def get_file_hash(file_to_hash: pathlib.Path, block_size: int = 65536) -> str:
     """
     Given a file, generate a hash of the contents
@@ -197,7 +189,7 @@ def get_file_hash(file_to_hash: pathlib.Path, block_size: int = 65536) -> str:
         return ""
 
     # Hash can be adjusted in consts.py file
-    hash_operation = consts.HASH_TO_GENERATE.copy()
+    hash_operation = HASH_TO_GENERATE.copy()
 
     with file_to_hash.open("rb") as file:
         while True:
@@ -230,13 +222,13 @@ def send_push_notification(message: str) -> bool:
     :param message: Message to send
     :return If the message send successfully to everyone
     """
-    if "Pushover" not in consts.CONFIG.sections():
+    if "Pushover" not in CONFIG.sections():
         LOGGER.warning("Pushover section not established. Skipping alerts")
         return False
 
-    pushover_app_token = consts.CONFIG.get("Pushover", "app_token")
+    pushover_app_token = CONFIG.get("Pushover", "app_token")
     pushover_app_users = list(
-        filter(None, consts.CONFIG.get("Pushover", "user_tokens").split(","))
+        filter(None, CONFIG.get("Pushover", "user_tokens").split(","))
     )
 
     if not (pushover_app_token and pushover_app_token):
@@ -250,7 +242,7 @@ def send_push_notification(message: str) -> bool:
             data={
                 "token": pushover_app_token,
                 "user": user,
-                "title": f"MTGJSON {consts.MTGJSON_VERSION}",
+                "title": f"MTGJSON {MTGJSON_VERSION}",
                 "message": message,
             },
         )

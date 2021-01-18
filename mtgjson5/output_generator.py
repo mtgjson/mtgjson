@@ -6,7 +6,7 @@ import logging
 import pathlib
 from typing import Any, Dict, List
 
-from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject, MtgjsonSetObject
+from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject
 from .compiled_classes import (
     MtgjsonAllIdentifiersObject,
     MtgjsonAllPrintingsObject,
@@ -28,29 +28,9 @@ from .consts import (
 )
 from .price_builder import build_prices, get_price_archive_data, should_build_new_prices
 from .providers import GitHubDecksProvider
-from .utils import fix_windows_set_name, get_file_hash
+from .utils import get_file_hash
 
 LOGGER = logging.getLogger(__name__)
-
-
-def write_set_file(mtgjson_set_object: MtgjsonSetObject, pretty_print: bool) -> None:
-    """
-    Write MTGJSON Set out to a file
-    :param mtgjson_set_object: Set to write out
-    :param pretty_print: Should it be pretty or minimized?
-    """
-    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
-
-    file_name: str = f"{fix_windows_set_name(mtgjson_set_object.code)}.json"
-    with OUTPUT_PATH.joinpath(file_name).open("w", encoding="utf-8") as file:
-        json.dump(
-            obj={"data": mtgjson_set_object, "meta": MtgjsonMetaObject()},
-            fp=file,
-            sort_keys=True,
-            indent=(4 if pretty_print else None),
-            ensure_ascii=False,
-            default=lambda o: o.to_json(),
-        )
 
 
 def generate_compiled_prices_output(
@@ -309,31 +289,8 @@ def create_compiled_output(
     :param pretty_print: Pretty or minimal
     """
     LOGGER.info(f"Generating {compiled_name}")
-    write_compiled_output_to_file(compiled_name, compiled_object, pretty_print)
+    write_to_file(compiled_name, compiled_object, pretty_print)
     LOGGER.debug(f"Finished Generating {compiled_name}")
-
-
-def write_compiled_output_to_file(
-    file_name: str, file_contents: Any, pretty_print: bool
-) -> None:
-    """
-    Dump content to a file in the outputs directory
-    :param file_name: File to dump to
-    :param file_contents: Contents to dump
-    :param pretty_print: Pretty or minimal
-    """
-    write_file = OUTPUT_PATH.joinpath(f"{file_name}.json")
-    write_file.parent.mkdir(parents=True, exist_ok=True)
-
-    with write_file.open("w", encoding="utf-8") as file:
-        json.dump(
-            obj={"data": file_contents, "meta": MtgjsonMetaObject()},
-            fp=file,
-            sort_keys=True,
-            indent=(4 if pretty_print else None),
-            ensure_ascii=False,
-            default=lambda o: o.to_json(),
-        )
 
 
 def construct_format_map(
@@ -431,3 +388,34 @@ def generate_output_file_hashes(directory: pathlib.Path) -> None:
             "w", encoding="utf-8"
         ) as hash_file:
             hash_file.write(generated_hash)
+
+
+def write_to_file(file_name: str, file_contents: Any, pretty_print: bool) -> None:
+    """
+    Dump content to a file in the outputs directory
+    :param file_name: File to dump to
+    :param file_contents: Contents to dump
+    :param pretty_print: Pretty or minimal
+    """
+    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
+
+    write_file = OUTPUT_PATH.joinpath(f"{file_name}.json")
+    with write_file.open("w", encoding="utf-8") as file:
+        # Pre-sort the data object, as we want this in a particular order
+        data_object = json.loads(
+            json.dumps(
+                file_contents,
+                sort_keys=True,
+                ensure_ascii=False,
+                default=lambda o: o.to_json(),
+            )
+        )
+
+        # We want META to be at the top of the file, so we can't sort down here
+        json.dump(
+            obj={"meta": MtgjsonMetaObject(), "data": data_object},
+            fp=file,
+            indent=(4 if pretty_print else None),
+            ensure_ascii=False,
+            default=lambda o: o.to_json(),
+        )
