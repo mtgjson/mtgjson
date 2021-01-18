@@ -397,9 +397,9 @@ def write_to_file(file_name: str, file_contents: Any, pretty_print: bool) -> Non
     :param file_contents: Contents to dump
     :param pretty_print: Pretty or minimal
     """
-    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
-
     write_file = OUTPUT_PATH.joinpath(f"{file_name}.json")
+    write_file.parent.mkdir(parents=True, exist_ok=True)
+
     with write_file.open("w", encoding="utf-8") as file:
         # Pre-sort the data object, as we want this in a particular order
         data_object = json.loads(
