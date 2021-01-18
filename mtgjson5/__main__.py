@@ -19,7 +19,7 @@ from mtgjson5.output_generator import (
     generate_compiled_output_files,
     generate_compiled_prices_output,
     generate_output_file_hashes,
-    write_set_file,
+    write_to_file,
 )
 from mtgjson5.price_builder import build_prices
 from mtgjson5.providers import GitHubMTGSqliteProvider, WhatsInStandardProvider
@@ -46,16 +46,20 @@ def build_mtgjson_sets(
 
     for set_to_build in sets_to_build:
         # Build the full set
-        compiled_set = build_mtgjson_set(set_to_build)
-        if not compiled_set:
+        mtgjson_set = build_mtgjson_set(set_to_build)
+        if not mtgjson_set:
             continue
 
         # Handle referral components
         if include_referrals:
-            build_and_write_referral_map(compiled_set)
+            build_and_write_referral_map(mtgjson_set)
 
         # Dump set out to file
-        write_set_file(compiled_set, output_pretty)
+        write_to_file(
+            file_name=mtgjson_set.get_windows_safe_set_code(),
+            file_contents=mtgjson_set,
+            pretty_print=output_pretty,
+        )
 
     if sets_to_build and include_referrals:
         fixup_referral_map()

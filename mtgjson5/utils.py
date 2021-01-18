@@ -171,20 +171,6 @@ def sort_internal_lists(data: Any) -> Any:
     return data
 
 
-def fix_windows_set_name(set_name: str) -> str:
-    """
-    In the Windows OS, there are certain file names that are not allowed.
-    In case we have a set with such a name, we will add a _ to the end to allow its existence
-    on Windows.
-    :param set_name: Set name
-    :return: Set name with a _ if necessary
-    """
-    if set_name in BAD_FILE_NAMES:
-        return set_name + "_"
-
-    return set_name
-
-
 def get_file_hash(file_to_hash: pathlib.Path, block_size: int = 65536) -> str:
     """
     Given a file, generate a hash of the contents
