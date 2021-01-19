@@ -1,10 +1,10 @@
 ---
 name: Suggestion
-about: Suggest something for MTGJSONv4
+about: Suggest something for MTGJSONv5
 title: ''
 labels: ''
 assignees: ''
 
 ---
 
-<!-- Thanks for helping to improve MTGJSONv4! If you have any questions, please don't hesitate to ask! -->
+<!-- Thanks for helping to improve MTGJSONv5! If you have any questions, please don't hesitate to ask! -->
