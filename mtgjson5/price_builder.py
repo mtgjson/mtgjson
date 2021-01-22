@@ -178,10 +178,11 @@ def _generate_prices(provider: Any) -> Dict[str, Any]:
     :param provider: MTGJSON Provider that implements generate_today_price_dict
     :return Manageable data for MTGJSON prices
     """
-    preprocess_prices = provider.generate_today_price_dict(
-        OUTPUT_PATH.joinpath("AllPrintings.json")
-    )
     try:
+        preprocess_prices = provider.generate_today_price_dict(
+            OUTPUT_PATH.joinpath("AllPrintings.json")
+        )
+
         final_prices: Dict[str, Any] = json.loads(
             json.dumps(preprocess_prices, default=lambda o: o.to_json())
         )
