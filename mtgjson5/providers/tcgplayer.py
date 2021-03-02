@@ -250,6 +250,45 @@ def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict[str,
     return magic_set_product_data
 
 
+def get_tcgplayer_sealed_data(
+    group_id_and_name: Tuple[str, str]
+) -> List[Dict[str, Any]]:
+    """
+    Finds all sealed product for a given group
+    :param group_id_and_name: group id and name for the set to get data for
+    :return: sealed product data with extended fields
+    """
+    magic_set_sealed_data = []
+    api_offset = 0
+
+    while True:
+        api_response = TCGPlayerProvider().download(
+            "https://api.tcgplayer.com/catalog/products",
+            {
+                "offset": str(api_offset),
+                "limit": 100,
+                "categoryId": 1,
+                "getExtendedFields": True,
+                "groupId": group_id_and_name[0],
+                "productTypes": "Booster Box,Booster Pack,Sealed Products",
+            },
+        )
+
+        if not api_response:
+            # No more entries
+            break
+
+        response = json.loads(api_response)
+        if not response["results"]:
+            # Something went wrong
+            break
+
+        magic_set_sealed_data.extend(response["results"])
+        api_offset += len(response["results"])
+
+    return magic_set_sealed_data
+
+
 def get_tcgplayer_sku_map(
     tcgplayer_set_sku_data: List[Dict[str, Any]],
 ) -> Dict[str, Dict[str, Optional[int]]]:
