@@ -4,6 +4,7 @@ MTGJSON Singular Set Object
 from typing import Any, Dict, List, Optional, Set
 
 from ..classes.mtgjson_card import MtgjsonCardObject
+from ..classes.mtgjson_sealed_product import MtgjsonSealedProductObject
 from ..classes.mtgjson_translations import MtgjsonTranslationsObject
 from ..consts import BAD_FILE_NAMES
 from ..utils import to_camel_case
@@ -34,6 +35,7 @@ class MtgjsonSetObject:
     parent_code: str
     release_date: str
     tcgplayer_group_id: Optional[int]
+    sealed_product: List[MtgjsonSealedProductObject]
     tokens: List[MtgjsonCardObject]
     total_set_size: int
     translations: MtgjsonTranslationsObject
