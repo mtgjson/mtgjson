@@ -123,7 +123,7 @@ compiled_outputs/
 /trace.html
 /tests/test_*.yaml
 /test_results/*.xml
-mtgjson.properties
+mtgjson5/resources/mtgjson.properties
 *.sqlite
 set_translations.json
 stocks_data.json
