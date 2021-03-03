@@ -5,12 +5,14 @@ import enum
 import json
 import logging
 import pathlib
+import uuid
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import requests
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
+from ..classes.mtgjson_sealed_product import MtgjsonSealedProductObject
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping, parallel_call, retryable_session
 
@@ -213,6 +215,35 @@ class TCGPlayerProvider(AbstractProvider):
 
         return dict(combined_listings)
 
+    def generate_mtgjson_sealed_product_objects(
+        self, group_id: Optional[Any]
+    ) -> List[MtgjsonSealedProductObject]:
+        """
+        Builds MTGJSON Sealed Product Objects from TCGPlayer data
+        :param group_id: group id for the set to get data for
+        :return: A list of MtgjsonSealedProductObject for a given set
+        """
+        if not self.__keys_found:
+            LOGGER.warning("Keys not found for TCGPlayer, skipping")
+            return []
+
+        sealed_data = get_tcgplayer_sealed_data(group_id)
+
+        mtgjson_sealed_products = []
+
+        for product in sealed_data:
+            sealed_product: MtgjsonSealedProductObject = MtgjsonSealedProductObject()
+            sealed_product.name = product["cleanName"]
+            sealed_product.raw_purchase_urls["tcgplayer"] = product["url"]
+            sealed_product.identifiers.tcgplayer_product_id = product["productId"]
+            sealed_product.uuid = str(
+                uuid.uuid5(uuid.NAMESPACE_DNS, sealed_product.name)
+            )
+            sealed_product.release_date = product["presaleInfo"]["releasedOn"]
+            mtgjson_sealed_products.append(sealed_product)
+
+        return mtgjson_sealed_products
+
 
 def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict[str, Any]]:
     """
@@ -250,12 +281,10 @@ def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict[str,
     return magic_set_product_data
 
 
-def get_tcgplayer_sealed_data(
-    group_id_and_name: Tuple[str, str]
-) -> List[Dict[str, Any]]:
+def get_tcgplayer_sealed_data(group_id: Optional[Any]) -> List[Dict[str, Any]]:
     """
     Finds all sealed product for a given group
-    :param group_id_and_name: group id and name for the set to get data for
+    :param group_id: group id for the set to get data for
     :return: sealed product data with extended fields
     """
     magic_set_sealed_data = []
@@ -269,7 +298,7 @@ def get_tcgplayer_sealed_data(
                 "limit": 100,
                 "categoryId": 1,
                 "getExtendedFields": True,
-                "groupId": group_id_and_name[0],
+                "groupId": str(group_id),
                 "productTypes": "Booster Box,Booster Pack,Sealed Products",
             },
         )
