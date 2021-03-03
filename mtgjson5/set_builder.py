@@ -34,6 +34,7 @@ from .providers import (
     GitHubBoostersProvider,
     MTGBanProvider,
     ScryfallProvider,
+    TCGPlayerProvider,
     WhatsInStandardProvider,
     WizardsProvider,
 )
@@ -411,6 +412,12 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
 
     mtgjson_set.tcgplayer_group_id = set_data.get("tcgplayer_id")
     mtgjson_set.booster = GitHubBoostersProvider().get_set_booster_data(set_code)
+
+    mtgjson_set.sealed_product = (
+        TCGPlayerProvider().generate_mtgjson_sealed_product_objects(
+            mtgjson_set.tcgplayer_group_id
+        )
+    )
 
     mark_duel_decks(set_code, mtgjson_set.cards)
 
