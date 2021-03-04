@@ -24,6 +24,7 @@ class MtgjsonSealedProductObject:
     def __init__(self) -> None:
         self.purchase_urls = MtgjsonPurchaseUrlsObject()
         self.raw_purchase_urls = {}
+        self.identifiers = MtgjsonIdentifiersObject()
 
     def to_json(self) -> Dict[str, Any]:
         """
