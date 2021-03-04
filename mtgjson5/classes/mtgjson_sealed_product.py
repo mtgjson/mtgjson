@@ -5,8 +5,8 @@ from typing import Any, Dict
 
 from mtgjson5.utils import to_camel_case
 
-from .mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
 from .mtgjson_identifiers import MtgjsonIdentifiersObject
+from .mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
 
 
 class MtgjsonSealedProductObject:
