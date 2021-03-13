@@ -229,7 +229,7 @@ class TCGPlayerProvider(AbstractProvider):
 
         sealed_data = get_tcgplayer_sealed_data(group_id)
 
-        mtgjson_sealed_products = []
+        mtgjson_sealed_products: List[MtgjsonSealedProductObject] = []
 
         for product in sealed_data:
             sealed_product: MtgjsonSealedProductObject = MtgjsonSealedProductObject()
