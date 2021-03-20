@@ -14,7 +14,7 @@ from singleton_decorator import singleton
 from ..classes import MtgjsonPricesObject
 from ..classes.mtgjson_sealed_product import MtgjsonSealedProductObject
 from ..providers.abstract import AbstractProvider
-from ..utils import generate_card_mapping, parallel_call, retryable_session
+from ..utils import generate_card_mapping, parallel_call, retryable_session, url_keygen
 
 LOGGER = logging.getLogger(__name__)
 
@@ -234,12 +234,19 @@ class TCGPlayerProvider(AbstractProvider):
         for product in sealed_data:
             sealed_product = MtgjsonSealedProductObject()
             sealed_product.name = product["cleanName"]
-            sealed_product.raw_purchase_urls["tcgplayer"] = product["url"]
-            sealed_product.identifiers.tcgplayer_product_id = product["productId"]
+            sealed_product.identifiers.tcgplayer_product_id = str(product["productId"])
             sealed_product.uuid = str(
                 uuid.uuid5(uuid.NAMESPACE_DNS, sealed_product.name)
             )
             sealed_product.release_date = product["presaleInfo"]["releasedOn"]
+            sealed_product.raw_purchase_urls[
+                "tcgplayer"
+            ] = "https://shop.tcgplayer.com/product/productsearch?id={}&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson".format(
+                sealed_product.identifiers.tcgplayer_product_id
+            )
+            sealed_product.purchase_urls.tcgplayer = url_keygen(
+                sealed_product.identifiers.tcgplayer_product_id + sealed_product.uuid
+            )
             mtgjson_sealed_products.append(sealed_product)
 
         return mtgjson_sealed_products
@@ -297,8 +304,8 @@ def get_tcgplayer_sealed_data(group_id: Optional[Any]) -> List[Dict[str, Any]]:
                 "offset": str(api_offset),
                 "limit": 100,
                 "categoryId": 1,
-                "getExtendedFields": True,
                 "groupId": str(group_id),
+                "getExtendedFields": True,
                 "productTypes": "Booster Box,Booster Pack,Sealed Products",
             },
         )
@@ -309,7 +316,7 @@ def get_tcgplayer_sealed_data(group_id: Optional[Any]) -> List[Dict[str, Any]]:
 
         response = json.loads(api_response)
         if not response["results"]:
-            # Something went wrong
+            LOGGER.warning(f"Issue with Sealed Product for Group ID: {group_id}")
             break
 
         magic_set_sealed_data.extend(response["results"])
