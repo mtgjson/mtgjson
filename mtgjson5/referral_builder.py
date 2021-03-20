@@ -44,6 +44,22 @@ def build_referral_map(mtgjson_set: MtgjsonSetObject) -> List[Tuple[str, str]]:
                     ),
                 )
             )
+    for mtgjson_sealed_object in mtgjson_set.sealed_product:
+        for service, url in mtgjson_sealed_object.purchase_urls.to_json().items():
+            if service not in mtgjson_sealed_object.raw_purchase_urls:
+                LOGGER.info(
+                    f"Service {service} not found for {mtgjson_sealed_object.name}"
+                )
+                continue
+
+            return_list.append(
+                (
+                    url.split("/")[-1],
+                    string_regex.sub(
+                        "mtgjson", mtgjson_sealed_object.raw_purchase_urls[service]
+                    ),
+                )
+            )
 
     return return_list
 
