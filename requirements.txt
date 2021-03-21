@@ -9,4 +9,4 @@ requests==2.25.0
 requests_cache==0.5.2
 singleton_decorator==1.0.0
 unidecode==1.1.1
-urllib3==1.26.2
+urllib3==1.26.3
