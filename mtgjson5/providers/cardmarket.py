@@ -73,7 +73,11 @@ class CardMarketProvider(AbstractProvider):
         :return Card Market data ready for Pandas consumption
         """
         # Response comes gzip'd, then base64'd
-        mkm_response = self.connection.market_place.price_guide().json()
+        try:
+            mkm_response = self.connection.market_place.price_guide().json()
+        except mkmsdk.exceptions.ConnectionError as exception:
+            LOGGER.error(f"Unable to download MKM correctly: {exception}")
+            return io.StringIO("")
 
         price_data = base64.b64decode(mkm_response["priceguidefile"])  # Un-base64
         price_data = zlib.decompress(price_data, 16 + zlib.MAX_WBITS)  # Un-gzip
@@ -133,12 +137,25 @@ class CardMarketProvider(AbstractProvider):
         """
         Construct a mapping for all set components from MKM
         """
-        mkm_resp = self.connection.market_place.expansions(game=1)
+        try:
+            mkm_resp = self.connection.market_place.expansions(game=1)
+        except mkmsdk.exceptions.ConnectionError as exception:
+            LOGGER.error(f"Unable to download MKM correctly: {exception}")
+            return
+
         if mkm_resp.status_code != 200:
             LOGGER.error(f"Unable to download MKM correctly: {mkm_resp}")
             return
 
-        for set_content in mkm_resp.json()["expansion"]:
+        try:
+            mkm_body_json = mkm_resp.json()
+        except json.JSONDecodeError as exception:
+            LOGGER.error(
+                f"Unable to download MKM correctly: {exception} from {mkm_resp.text}"
+            )
+            return
+
+        for set_content in mkm_body_json["expansion"]:
             self.set_map[set_content["enName"].lower()] = {
                 "mcmId": set_content["idExpansion"],
                 "mcmName": set_content["enName"],
