@@ -25,8 +25,6 @@ class MtgjsonSealedProductObject:
         self.purchase_urls = MtgjsonPurchaseUrlsObject()
         self.raw_purchase_urls = {}
 
-
-
     def to_json(self) -> Dict[str, Any]:
         """
         Support json.dump()
