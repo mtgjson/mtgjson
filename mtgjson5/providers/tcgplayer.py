@@ -238,6 +238,7 @@ class TCGPlayerProvider(AbstractProvider):
             sealed_product.uuid = str(
                 uuid.uuid5(uuid.NAMESPACE_DNS, sealed_product.name)
             )
+            sealed_product.release_date = product["presaleInfo"]["releasedOn"]
             sealed_product.raw_purchase_urls[
                 "tcgplayer"
             ] = "https://shop.tcgplayer.com/product/productsearch?id={}&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson".format(

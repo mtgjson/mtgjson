@@ -18,6 +18,7 @@ class MtgjsonSealedProductObject:
     identifiers: MtgjsonIdentifiersObject
     purchase_urls: MtgjsonPurchaseUrlsObject
     raw_purchase_urls: Dict[str, str]
+    release_date: str
 
     def __init__(self) -> None:
         self.identifiers = MtgjsonIdentifiersObject()
