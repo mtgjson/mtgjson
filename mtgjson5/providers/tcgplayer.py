@@ -5,7 +5,6 @@ import enum
 import json
 import logging
 import pathlib
-import uuid
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import requests
@@ -14,7 +13,7 @@ from singleton_decorator import singleton
 from ..classes import MtgjsonPricesObject
 from ..classes.mtgjson_sealed_product import MtgjsonSealedProductObject
 from ..providers.abstract import AbstractProvider
-from ..utils import generate_card_mapping, parallel_call, retryable_session, url_keygen
+from ..utils import generate_card_mapping, parallel_call, retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -235,17 +234,13 @@ class TCGPlayerProvider(AbstractProvider):
             sealed_product = MtgjsonSealedProductObject()
             sealed_product.name = product["cleanName"]
             sealed_product.identifiers.tcgplayer_product_id = str(product["productId"])
-            sealed_product.uuid = str(
-                uuid.uuid5(uuid.NAMESPACE_DNS, sealed_product.name)
-            )
-            sealed_product.release_date = product["presaleInfo"]["releasedOn"]
+            sealed_product.release_date = product["presaleInfo"].get("releasedOn")
+            if sealed_product.release_date is not None:
+                sealed_product.release_date = sealed_product.release_date[0:10]
             sealed_product.raw_purchase_urls[
                 "tcgplayer"
             ] = "https://shop.tcgplayer.com/product/productsearch?id={}&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson".format(
                 sealed_product.identifiers.tcgplayer_product_id
-            )
-            sealed_product.purchase_urls.tcgplayer = url_keygen(
-                sealed_product.identifiers.tcgplayer_product_id + sealed_product.uuid
             )
             mtgjson_sealed_products.append(sealed_product)
 
