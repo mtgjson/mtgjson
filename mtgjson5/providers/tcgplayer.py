@@ -10,8 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import requests
 from singleton_decorator import singleton
 
-from ..classes import MtgjsonPricesObject
-from ..classes.mtgjson_sealed_product import MtgjsonSealedProductObject
+from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping, parallel_call, retryable_session
 
