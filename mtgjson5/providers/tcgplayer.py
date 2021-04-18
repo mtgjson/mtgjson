@@ -215,7 +215,7 @@ class TCGPlayerProvider(AbstractProvider):
         return dict(combined_listings)
 
     def generate_mtgjson_sealed_product_objects(
-        self, group_id: Optional[Any]
+        self, group_id: Optional[int]
     ) -> List[MtgjsonSealedProductObject]:
         """
         Builds MTGJSON Sealed Product Objects from TCGPlayer data
@@ -283,7 +283,7 @@ def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict[str,
     return magic_set_product_data
 
 
-def get_tcgplayer_sealed_data(group_id: Optional[Any]) -> List[Dict[str, Any]]:
+def get_tcgplayer_sealed_data(group_id: Optional[int]) -> List[Dict[str, Any]]:
     """
     Finds all sealed product for a given group
     :param group_id: group id for the set to get data for
