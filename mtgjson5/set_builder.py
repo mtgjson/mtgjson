@@ -18,9 +18,9 @@ from .classes import (
     MtgjsonLegalitiesObject,
     MtgjsonMetaObject,
     MtgjsonRulingObject,
+    MtgjsonSealedProductObject,
     MtgjsonSetObject,
 )
-from .classes.mtgjson_sealed_product import MtgjsonSealedProductObject
 from .consts import (
     BASIC_LAND_NAMES,
     CARD_MARKET_BUFFER,
@@ -459,7 +459,7 @@ def add_sealed_purchase_url(mtgjson_set: MtgjsonSetObject) -> None:
     :param mtgjson_set: the set to add purchase urls to
     """
     for sealed_product in mtgjson_set.sealed_product:
-        if sealed_product.identifiers.tcgplayer_product_id is not None:
+        if sealed_product.identifiers.tcgplayer_product_id:
             sealed_product.purchase_urls.tcgplayer = url_keygen(
                 sealed_product.identifiers.tcgplayer_product_id + sealed_product.uuid
             )
