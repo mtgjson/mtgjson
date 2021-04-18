@@ -1,7 +1,7 @@
 """
 MTGJSON Singular Sealed Product Object
 """
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from ..utils import to_camel_case
 from .mtgjson_identifiers import MtgjsonIdentifiersObject
@@ -18,7 +18,10 @@ class MtgjsonSealedProductObject:
     identifiers: MtgjsonIdentifiersObject
     purchase_urls: MtgjsonPurchaseUrlsObject
     raw_purchase_urls: Dict[str, str]
-    release_date: str
+    release_date: Optional[str]
+    __skip_keys = [
+        "raw_purchase_urls",
+    ]
 
     def __init__(self) -> None:
         self.identifiers = MtgjsonIdentifiersObject()
@@ -30,9 +33,10 @@ class MtgjsonSealedProductObject:
         Support json.dump()
         :return: JSON serialized object
         """
+        skip_keys = self.__skip_keys
 
         return {
             to_camel_case(key): value
             for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value)
+            if "__" not in key and not callable(value) and key not in skip_keys
         }
