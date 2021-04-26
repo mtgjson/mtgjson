@@ -3,9 +3,10 @@ Referral Map builder operations
 """
 import logging
 import re
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
-from .classes import MtgjsonSetObject
+from .classes import MtgjsonCardObject, MtgjsonSetObject
+from .classes.mtgjson_sealed_product import MtgjsonSealedProductObject
 from .consts import OUTPUT_PATH
 
 LOGGER = logging.getLogger(__name__)
@@ -29,22 +30,36 @@ def build_referral_map(mtgjson_set: MtgjsonSetObject) -> List[Tuple[str, str]]:
     return_list = []
     string_regex = re.compile(re.escape("scryfall"), re.IGNORECASE)
     for mtgjson_card_object in mtgjson_set.cards:
-        for service, url in mtgjson_card_object.purchase_urls.to_json().items():
-            if service not in mtgjson_card_object.raw_purchase_urls:
-                LOGGER.info(
-                    f"Service {service} not found for {mtgjson_card_object.name}"
-                )
-                continue
+        return_list.extend(build_referral_map_helper(mtgjson_card_object, string_regex))
+    for mtgjson_sealed_object in mtgjson_set.sealed_product:
+        return_list.extend(
+            build_referral_map_helper(mtgjson_sealed_object, string_regex)
+        )
+    return return_list
 
-            return_list.append(
-                (
-                    url.split("/")[-1],
-                    string_regex.sub(
-                        "mtgjson", mtgjson_card_object.raw_purchase_urls[service]
-                    ),
-                )
+
+def build_referral_map_helper(
+    mtgjson_object: Union[MtgjsonCardObject, MtgjsonSealedProductObject],
+    string_regex: re.Pattern,
+) -> List[Tuple[str, str]]:
+    """
+    Helps construct the referral map contents
+    :param mtgjson_object: MTGJSON Set or Card object
+    :param string_regex: compiled scryfall regex data
+    :return: tuple to append
+    """
+    return_list = []
+    for service, url in mtgjson_object.purchase_urls.to_json().items():
+        if service not in mtgjson_object.raw_purchase_urls:
+            LOGGER.info(f"Service {service} not found for {mtgjson_object.name}")
+            continue
+
+        return_list.append(
+            (
+                url.split("/")[-1],
+                string_regex.sub("mtgjson", mtgjson_object.raw_purchase_urls[service]),
             )
-
+        )
     return return_list
 
 
