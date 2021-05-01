@@ -323,6 +323,10 @@ def get_tcgplayer_sealed_data(group_id: Optional[int]) -> List[Dict[str, Any]]:
         magic_set_sealed_data.extend(response["results"])
         api_offset += len(response["results"])
 
+        # If we got fewer results than requested, no more data is needed
+        if len(response["results"]) < 100:
+            break
+
     return magic_set_sealed_data
 
 
