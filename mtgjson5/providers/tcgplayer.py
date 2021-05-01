@@ -232,6 +232,10 @@ class TCGPlayerProvider(AbstractProvider):
             LOGGER.warning("Keys not found for TCGPlayer, skipping")
             return []
 
+        # Skip request if there is no group_id
+        if group_id is None:
+            return []
+
         sealed_data = get_tcgplayer_sealed_data(group_id)
 
         mtgjson_sealed_products = []
