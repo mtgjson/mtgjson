@@ -72,6 +72,14 @@ class TCGPlayerProvider(AbstractProvider):
         "Sealed Products",
         "Intro Pack",
         "Fat Pack",
+        "Box Sets",
+        "Precon/Event Decks",
+        "Magic Deck Pack",
+        "Magic Booster Box Case",
+        "All 5 Intro Packs",
+        "Intro Pack Display",
+        "3x Magic Booster Packs",
+        "Booster Battle Pack",
     ]
 
     def __init__(self) -> None:
