@@ -66,6 +66,13 @@ class TCGPlayerProvider(AbstractProvider):
     api_version: str = ""
     tcg_to_mtgjson_map: Dict[str, str]
     __keys_found: bool
+    product_types = [
+        "Booster Box",
+        "Booster Pack",
+        "Sealed Products",
+        "Intro Pack",
+        "Fat Pack",
+    ]
 
     def __init__(self) -> None:
         """
@@ -225,6 +232,10 @@ class TCGPlayerProvider(AbstractProvider):
             LOGGER.warning("Keys not found for TCGPlayer, skipping")
             return []
 
+        # Skip request if there is no group_id
+        if group_id is None:
+            return []
+
         sealed_data = get_tcgplayer_sealed_data(group_id)
 
         mtgjson_sealed_products = []
@@ -300,7 +311,7 @@ def get_tcgplayer_sealed_data(group_id: Optional[int]) -> List[Dict[str, Any]]:
                 "categoryId": 1,
                 "groupId": str(group_id),
                 "getExtendedFields": True,
-                "productTypes": "Booster Box,Booster Pack,Sealed Products",
+                "productTypes": ",".join(TCGPlayerProvider().product_types),
             },
         )
 
@@ -315,6 +326,10 @@ def get_tcgplayer_sealed_data(group_id: Optional[int]) -> List[Dict[str, Any]]:
 
         magic_set_sealed_data.extend(response["results"])
         api_offset += len(response["results"])
+
+        # If we got fewer results than requested, no more data is needed
+        if len(response["results"]) < 100:
+            break
 
     return magic_set_sealed_data
 
