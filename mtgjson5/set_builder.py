@@ -883,7 +883,9 @@ def build_mtgjson_card(
     if "all_parts" in scryfall_object.keys():
         meld_object = []
         mtgjson_card.set_names(None)
-        for a_part in scryfall_object["all_parts"]:
+        for a_part in sorted(
+            scryfall_object["all_parts"], key=lambda part: part["component"]  # type: ignore
+        ):
             if a_part["component"] != "token":
                 if "//" in a_part.get("name"):
                     mtgjson_card.set_names(a_part.get("name").split("//"))
@@ -902,29 +904,15 @@ def build_mtgjson_card(
         ):
             mtgjson_card.set_names(None)
 
-        # Meld cards should be CardA, Meld, CardB.
-        if (
-            len(meld_object) == 3
-            and meld_object[1] != "meld_result"
-            and mtgjson_card.get_names()
-        ):
-            mtgjson_card.set_names(
-                [
-                    mtgjson_card.get_names()[0],
-                    mtgjson_card.get_names()[2],
-                    mtgjson_card.get_names()[1],
-                ]
-            )
-
-        # Meld Object
+        # Meld Object; get_names() => CardA, CardB, Meld
         if mtgjson_card.get_names() and len(mtgjson_card.get_names()) == 3:
-            # Front Sides will become Front1//Back, Front2//Back
-            # Back Side will just be Back
-            if mtgjson_card.name != mtgjson_card.get_names()[1]:
+            # Front Sides will have name = Front1//Back, Front2//Back
+            # Back Side will have name = Back
+            if mtgjson_card.name != mtgjson_card.get_names()[2]:
                 mtgjson_card.side = "a"
                 mtgjson_card.face_name = mtgjson_card.name
                 mtgjson_card.name = (
-                    f"{mtgjson_card.name} // {mtgjson_card.get_names()[1]}"
+                    f"{mtgjson_card.name} // {mtgjson_card.get_names()[2]}"
                 )
             else:
                 mtgjson_card.face_name = mtgjson_card.name
