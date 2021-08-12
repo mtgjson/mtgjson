@@ -20,7 +20,7 @@ class MtgjsonKeywordsObject:
         """
         Initializer to build up the object
         """
-        self.ability_words = ScryfallProvider().get_catalog_entry("keyword-abilities")
+        self.ability_words = ScryfallProvider().get_catalog_entry("ability-words")
         self.keyword_actions = ScryfallProvider().get_catalog_entry("keyword-actions")
         self.keyword_abilities = ScryfallProvider().get_catalog_entry(
             "keyword-abilities"
