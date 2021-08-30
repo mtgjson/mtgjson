@@ -4,12 +4,12 @@ Wizards Gatherer 3rd party provider
 import copy
 import logging
 import re
-import time
 from typing import Dict, List, NamedTuple, Optional, Union
 
 import bs4
 import ratelimit
 import requests
+import urllib3.exceptions
 from singleton_decorator import singleton
 
 from ..consts import SYMBOL_MAP
@@ -36,7 +36,7 @@ class GathererProvider(AbstractProvider):
     Gatherer Container
     """
 
-    GATHERER_CARD = "http://gatherer.wizards.com/Pages/Card/Details.aspx"
+    GATHERER_CARD = "https://gatherer.wizards.com/Pages/Card/Details.aspx"
     SETS_TO_REMOVE_PARENTHESES = {"10E"}
 
     def __init__(self) -> None:
@@ -52,27 +52,34 @@ class GathererProvider(AbstractProvider):
         """
         return dict()
 
-    @ratelimit.sleep_and_retry
     @ratelimit.limits(calls=40, period=1)
     def download(
         self, url: str, params: Dict[str, Union[str, int]] = None
-    ) -> requests.Response:
+    ) -> Optional[requests.Response]:
         """
         Download a file from gather, with a rate limit
         :param url: URL to download
         :param params: URL parameters
         :return URL response
         """
-        session = retryable_session()
+        session = retryable_session(retries=3)
         session.headers.update(self.session_header)
 
-        while True:
-            try:
-                response = session.get(url, params=params)
-                break
-            except requests.exceptions.RetryError as error:
-                LOGGER.error(f"Unable to download {url} -> {error}. Retrying.")
-                time.sleep(5)
+        try:
+            response = session.get(url, params=params)
+        except (
+            urllib3.exceptions.MaxRetryError,
+            requests.exceptions.RetryError,
+            requests.exceptions.SSLError,
+        ) as exception:
+            LOGGER.warning(f"Unable to get {url} with {params}: {exception}")
+            return None
+
+        if response.status_code != 200:
+            LOGGER.warning(
+                f"Unable to download {url} with {params}: {response.status_code}"
+            )
+            return None
 
         self.log_download(response)
         return response
@@ -84,9 +91,13 @@ class GathererProvider(AbstractProvider):
         :param set_code: Set code to find the card in
         :return All found cards matching description
         """
+
         response = self.download(
             self.GATHERER_CARD, {"multiverseid": multiverse_id, "printed": "true"}
         )
+
+        if not response:
+            return []
 
         return self.parse_cards(
             response.text, set_code in self.SETS_TO_REMOVE_PARENTHESES
