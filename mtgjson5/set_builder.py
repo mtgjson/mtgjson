@@ -713,12 +713,14 @@ def build_mtgjson_card(
     mtgjson_card.color_identity = scryfall_object.get("color_identity", "")
     mtgjson_card.converted_mana_cost = scryfall_object.get("cmc", "")
     mtgjson_card.edhrec_rank = scryfall_object.get("edhrec_rank")
+    mtgjson_card.finishes = scryfall_object.get("finishes", "")
     mtgjson_card.frame_effects = scryfall_object.get("frame_effects", "")
     mtgjson_card.frame_version = scryfall_object.get("frame", "")
     mtgjson_card.hand = scryfall_object.get("hand_modifier")
-    mtgjson_card.has_foil = scryfall_object.get("foil")
-    mtgjson_card.has_non_foil = scryfall_object.get("nonfoil")
-
+    mtgjson_card.has_foil = any(
+        finish in scryfall_object.get("finishes", []) for finish in ("foil", "glossy")
+    )
+    mtgjson_card.has_non_foil = "nonfoil" in scryfall_object.get("finishes", [])
     mtgjson_card.has_content_warning = scryfall_object.get("content_warning")
     mtgjson_card.is_full_art = scryfall_object.get("full_art")
     mtgjson_card.is_online_only = scryfall_object.get("digital")
@@ -940,6 +942,17 @@ def build_mtgjson_card(
         mtgjson_card.purchase_urls.tcgplayer = url_keygen(
             mtgjson_card.identifiers.tcgplayer_product_id + mtgjson_card.uuid
         )
+    if "tcgplayer_etched_id" in scryfall_object:
+        mtgjson_card.identifiers.tcgplayer_etched_product_id = str(
+            scryfall_object["tcgplayer_etched_id"]
+        )
+        mtgjson_card.purchase_urls.tcgplayer_etched = url_keygen(
+            mtgjson_card.identifiers.tcgplayer_etched_product_id + mtgjson_card.uuid
+        )
+        # Have to manually insert
+        mtgjson_card.raw_purchase_urls[
+            "tcgplayerEtched"
+        ] = f"https://shop.tcgplayer.com/product/productsearch?id={mtgjson_card.identifiers.tcgplayer_etched_product_id}&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson"
 
     if is_token:
         reverse_related: List[str] = []

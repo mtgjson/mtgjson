@@ -34,6 +34,7 @@ class MtgjsonCardObject:
     edhrec_rank: Optional[int]
     face_converted_mana_cost: float
     face_name: Optional[str]
+    finishes: List[str]
     flavor_name: Optional[str]
     flavor_text: Optional[str]
     foreign_data: List[MtgjsonForeignDataObject]
@@ -42,8 +43,8 @@ class MtgjsonCardObject:
     hand: Optional[str]
     has_alternative_deck_limit: Optional[bool]
     has_content_warning: Optional[bool]
-    has_foil: Optional[bool]
-    has_non_foil: Optional[bool]
+    has_foil: Optional[bool]  # Deprecated - Remove in 5.3.0
+    has_non_foil: Optional[bool]  # Deprecated - Remove in 5.3.0
     identifiers: MtgjsonIdentifiersObject
     is_alternative: Optional[bool]
     is_full_art: Optional[bool]
