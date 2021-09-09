@@ -15,6 +15,7 @@ class MtgjsonPurchaseUrlsObject:
     card_kingdom_foil: str
     cardmarket: str
     tcgplayer: str
+    tcgplayer_etched: str
 
     def build_keys_to_skip(self) -> Set[str]:
         """

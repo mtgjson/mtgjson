@@ -257,9 +257,7 @@ class TCGPlayerProvider(AbstractProvider):
                 sealed_product.release_date = sealed_product.release_date[0:10]
             sealed_product.raw_purchase_urls[
                 "tcgplayer"
-            ] = "https://shop.tcgplayer.com/product/productsearch?id={}&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson".format(
-                sealed_product.identifiers.tcgplayer_product_id
-            )
+            ] = f"https://shop.tcgplayer.com/product/productsearch?id={sealed_product.identifiers.tcgplayer_product_id}&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson"
             mtgjson_sealed_products.append(sealed_product)
 
         return mtgjson_sealed_products
