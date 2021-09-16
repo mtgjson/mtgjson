@@ -1094,6 +1094,19 @@ def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
             mtgjson_card.raw_purchase_urls.update(
                 {"cardKingdomFoil": entry["foil"]["url"] + consts.CARD_KINGDOM_REFERRAL}
             )
+
+        if "etched" in entry:
+            mtgjson_card.identifiers.card_kingdom_etched_id = str(entry["etched"]["id"])
+            mtgjson_card.purchase_urls.card_kingdom_etched = url_keygen(
+                entry["etched"]["url"] + mtgjson_card.uuid
+            )
+            mtgjson_card.raw_purchase_urls.update(
+                {
+                    "cardKingdomEtched": entry["etched"]["url"]
+                    + consts.CARD_KINGDOM_REFERRAL
+                }
+            )
+
     LOGGER.info(f"Finished adding CK details for {mtgjson_set.code}")
 
 

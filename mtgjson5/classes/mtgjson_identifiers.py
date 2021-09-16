@@ -11,6 +11,7 @@ class MtgjsonIdentifiersObject:
     MTGJSON Singular Card.Identifiers Object
     """
 
+    card_kingdom_etched_id: Optional[str]
     card_kingdom_foil_id: Optional[str]
     card_kingdom_id: Optional[str]
     mcm_id: Optional[str]

@@ -12,6 +12,7 @@ class MtgjsonPurchaseUrlsObject:
     """
 
     card_kingdom: str
+    card_kingdom_etched: str
     card_kingdom_foil: str
     cardmarket: str
     tcgplayer: str
