@@ -3,7 +3,7 @@ Scryfall 3rd party provider
 """
 import logging
 import time
-from typing import Any, Dict, List, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 import ratelimit
 from singleton_decorator import singleton
@@ -60,6 +60,39 @@ class ScryfallProvider(AbstractProvider):
         }
         return headers
 
+    def download_all_pages(
+        self, starting_url: Optional[str], params: Dict[str, Union[str, int]] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Connects to Scryfall API and goes through all redirects to get the
+        card data from their several pages via multiple API calls
+        :param starting_url: First Page URL
+        :param params: Params to pass to Scryfall API
+        """
+        all_cards: List[Dict[str, Any]] = []
+
+        page_downloaded = 1
+        while starting_url:
+            LOGGER.info(f"Downloading page {page_downloaded} -- {starting_url}")
+            page_downloaded += 1
+
+            response: Dict[str, Any] = self.download(starting_url, params)
+            if response["object"] == "error":
+                if response["code"] != "not_found":
+                    LOGGER.warning(f"Unable to download {starting_url}: {response}")
+                break
+
+            data_response: List[Dict[str, Any]] = response.get("data", [])
+            all_cards.extend(data_response)
+
+            # Go to the next page, if it exists
+            if not response.get("has_more"):
+                break
+
+            starting_url = str(response.get("next_page"))
+
+        return all_cards
+
     @ratelimit.sleep_and_retry
     @ratelimit.limits(calls=40, period=1)
     def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
@@ -88,8 +121,7 @@ class ScryfallProvider(AbstractProvider):
 
     def download_cards(self, set_code: str) -> List[Dict[str, Any]]:
         """
-        Connects to Scryfall API and goes through all redirects to get the
-        card data from their several pages via multiple API calls.
+        Get all cards from Scryfall API for a particular set code
         :param set_code: Set to download (Ex: AER, M19)
         :return: List of all card objects
         """
@@ -106,36 +138,10 @@ class ScryfallProvider(AbstractProvider):
         scryfall_cards: List[Dict[str, Any]] = []
 
         # Download both normal card and variations
-        for setup_index, cards_api_url in enumerate(
-            [set_api_json.get("search_uri"), self.VARIATIONS_URL.format(set_code)]
-        ):
-            # For each page, append all the data, go to next page
-            page_downloaded: int = 1
-            while cards_api_url:
-                LOGGER.info(
-                    f"Downloading {set_code} card data page {setup_index} - {page_downloaded}"
-                )
-                page_downloaded += 1
-
-                cards_api_json: Dict[str, Any] = self.download(cards_api_url)
-                if cards_api_json["object"] == "error":
-                    if not cards_api_json["details"].startswith(
-                        "Your query didn’t match"
-                    ):
-                        LOGGER.warning(
-                            f"Error downloading {set_code}: {cards_api_json}"
-                        )
-                    break
-
-                # Append all cards on this page
-                for card_obj in cards_api_json["data"]:
-                    scryfall_cards.append(card_obj)
-
-                # Go to the next page, if it exists
-                if not cards_api_json.get("has_more"):
-                    break
-
-                cards_api_url = cards_api_json.get("next_page")
+        scryfall_cards.extend(self.download_all_pages(set_api_json.get("search_uri")))
+        scryfall_cards.extend(
+            self.download_all_pages(self.VARIATIONS_URL.format(set_code))
+        )
 
         # Return sorted by card name, and by card number if the same name is found
         return sorted(
