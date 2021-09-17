@@ -206,7 +206,7 @@ def get_card_cmc(mana_cost: str) -> float:
     :param mana_cost: Mana cost string
     :return: One sided cmc
     """
-    total: float = 0
+    total: float = 0.0
 
     symbol: List[str] = re.findall(r"{([^{]*)}", mana_cost.strip())
     for element in symbol:
@@ -690,9 +690,13 @@ def build_mtgjson_card(
         }:
             mtgjson_card.face_mana_value = get_card_cmc(face_data.get("mana_cost", "0"))
             # Deprecated - Remove in 6.0.0
-            mtgjson_card.face_converted_mana_cost = get_card_cmc(
-                face_data.get("mana_cost", "0")
-            )
+            mtgjson_card.face_converted_mana_cost = mtgjson_card.face_mana_value
+
+            # Modal DFCs have their face & normal mana cost the same
+        elif scryfall_object["layout"] == "modal_dfc":
+            mtgjson_card.mana_value = get_card_cmc(face_data.get("mana_cost", "0"))
+            # Deprecated - Remove in 6.0.0
+            mtgjson_card.converted_mana_cost = mtgjson_card.mana_value
 
         mtgjson_card.set_watermark(scryfall_object["card_faces"][0].get("watermark"))
 
@@ -724,9 +728,10 @@ def build_mtgjson_card(
 
     mtgjson_card.border_color = scryfall_object.get("border_color", "")
     mtgjson_card.color_identity = scryfall_object.get("color_identity", "")
-    mtgjson_card.mana_value = scryfall_object.get("cmc", "")
-    # Deprecated - Remove in 6.0.0
-    mtgjson_card.converted_mana_cost = scryfall_object.get("cmc", "")
+    if not hasattr(mtgjson_card, "mana_value"):
+        mtgjson_card.mana_value = scryfall_object.get("cmc", "")
+        # Deprecated - Remove in 6.0.0
+        mtgjson_card.converted_mana_cost = scryfall_object.get("cmc", "")
     mtgjson_card.edhrec_rank = scryfall_object.get("edhrec_rank")
     mtgjson_card.finishes = scryfall_object.get("finishes", "")
     mtgjson_card.frame_effects = scryfall_object.get("frame_effects", "")
