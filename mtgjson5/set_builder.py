@@ -60,12 +60,12 @@ def parse_foreign(
     # Add information to get all languages
     sf_prints_url = sf_prints_url.replace("&unique=prints", "+lang%3Aany&unique=prints")
 
-    prints_api_json: Dict[str, Any] = ScryfallProvider().download(sf_prints_url)
-    if prints_api_json["object"] == "error":
+    prints_api_json = ScryfallProvider().download_all_pages(sf_prints_url)
+    if not prints_api_json:
         LOGGER.error(f"No data found for {sf_prints_url}: {prints_api_json}")
         return []
 
-    for foreign_card in prints_api_json["data"]:
+    for foreign_card in prints_api_json:
         if (
             set_name != foreign_card["set"]
             or card_number != foreign_card["collector_number"]
