@@ -3,7 +3,7 @@ Referral Map builder operations
 """
 import logging
 import re
-from typing import List, Tuple, Union
+from typing import List, Pattern, Tuple, Union
 
 from .classes import MtgjsonCardObject, MtgjsonSetObject
 from .classes.mtgjson_sealed_product import MtgjsonSealedProductObject
@@ -40,7 +40,7 @@ def build_referral_map(mtgjson_set: MtgjsonSetObject) -> List[Tuple[str, str]]:
 
 def build_referral_map_helper(
     mtgjson_object: Union[MtgjsonCardObject, MtgjsonSealedProductObject],
-    string_regex: re.Pattern,
+    string_regex: Pattern[str],
 ) -> List[Tuple[str, str]]:
     """
     Helps construct the referral map contents
