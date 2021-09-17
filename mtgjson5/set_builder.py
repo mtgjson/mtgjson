@@ -739,7 +739,9 @@ def build_mtgjson_card(
     mtgjson_card.has_content_warning = scryfall_object.get("content_warning")
     mtgjson_card.is_full_art = scryfall_object.get("full_art")
     mtgjson_card.is_online_only = scryfall_object.get("digital")
-    mtgjson_card.is_oversized = scryfall_object.get("oversized")
+    mtgjson_card.is_oversized = scryfall_object.get("oversized") or (
+        mtgjson_card.set_code in ("OC21",)
+    )
     mtgjson_card.is_promo = scryfall_object.get("promo")
     mtgjson_card.is_reprint = scryfall_object.get("reprint")
     mtgjson_card.is_reserved = scryfall_object.get("reserved")
