@@ -675,6 +675,10 @@ def build_mtgjson_card(
             mtgjson_card.colors = get_card_colors(
                 scryfall_object["mana_cost"].split("//")[face_id]
             )
+            mtgjson_card.face_mana_value = get_card_cmc(
+                scryfall_object["mana_cost"].split("//")[face_id]
+            )
+            # Deprecated - Remove in 6.0.0
             mtgjson_card.face_converted_mana_cost = get_card_cmc(
                 scryfall_object["mana_cost"].split("//")[face_id]
             )
@@ -684,6 +688,8 @@ def build_mtgjson_card(
             "aftermath",
             "adventure",
         }:
+            mtgjson_card.face_mana_value = get_card_cmc(face_data.get("mana_cost", "0"))
+            # Deprecated - Remove in 6.0.0
             mtgjson_card.face_converted_mana_cost = get_card_cmc(
                 face_data.get("mana_cost", "0")
             )
@@ -718,6 +724,8 @@ def build_mtgjson_card(
 
     mtgjson_card.border_color = scryfall_object.get("border_color", "")
     mtgjson_card.color_identity = scryfall_object.get("color_identity", "")
+    mtgjson_card.mana_value = scryfall_object.get("cmc", "")
+    # Deprecated - Remove in 6.0.0
     mtgjson_card.converted_mana_cost = scryfall_object.get("cmc", "")
     mtgjson_card.edhrec_rank = scryfall_object.get("edhrec_rank")
     mtgjson_card.finishes = scryfall_object.get("finishes", "")
