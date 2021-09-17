@@ -69,7 +69,7 @@ class WhatsInStandardProvider(AbstractProvider):
         api_response = self.download(self.API_ENDPOINT)
 
         standard_set_codes = {
-            set_object.get("code", "").upper()
+            str(set_object.get("code")).upper()
             for set_object in api_response["sets"]
             if (
                 dateutil.parser.parse(set_object["enterDate"]["exact"] or "9999")

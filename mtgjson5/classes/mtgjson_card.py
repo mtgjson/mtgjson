@@ -33,6 +33,7 @@ class MtgjsonCardObject:
     duel_deck: Optional[str]
     edhrec_rank: Optional[int]
     face_converted_mana_cost: float
+    face_mana_value: float
     face_name: Optional[str]
     finishes: List[str]
     flavor_name: Optional[str]
@@ -64,6 +65,7 @@ class MtgjsonCardObject:
     life: Optional[str]
     loyalty: Optional[str]
     mana_cost: str
+    mana_value: float
     name: str
     number: str
     original_release_date: Optional[str]
@@ -107,7 +109,9 @@ class MtgjsonCardObject:
         "colors",
         "rulings",
         "converted_mana_cost",
+        "mana_value",
         "face_converted_mana_cost",
+        "face_mana_value",
         "foreign_data",
         "reverse_related",
     }
@@ -119,6 +123,7 @@ class MtgjsonCardObject:
         "purchase_urls",
         "printings",
         "converted_mana_cost",
+        "mana_value",
         "foreign_data",
         "legalities",
         "leadership_skills",
@@ -135,6 +140,7 @@ class MtgjsonCardObject:
         "count",
         "edhrec_rank",
         "face_converted_mana_cost",
+        "face_mana_value",
         "face_name",
         "foreign_data",
         "hand",
@@ -148,6 +154,7 @@ class MtgjsonCardObject:
         "life",
         "loyalty",
         "mana_cost",
+        "mana_value",
         "name",
         "power",
         "printings",
