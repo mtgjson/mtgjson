@@ -29,6 +29,7 @@ class MtgjsonEnumValuesObject:
             "colorIndicator",
             "colors",
             "duelDeck",
+            "finishes",
             "frameEffects",
             "frameVersion",
             "layout",
