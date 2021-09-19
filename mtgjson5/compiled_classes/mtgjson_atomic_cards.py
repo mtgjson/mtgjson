@@ -50,6 +50,16 @@ class MtgjsonAtomicCardsObject:
             with set_file.open(encoding="utf-8") as file:
                 file_content = json.load(file)
 
+            valid_cards = file_content.get("data", {}).get("cards", [])
+
+            # Workaround for Dungeons so they can be included
+            dungeons = [
+                token
+                for token in file_content.get("data", {}).get("tokens", [])
+                if token.get("type") == "Dungeon"
+            ]
+            valid_cards.extend(dungeons)
+
             self.update_global_card_list(
                 file_content.get("data", {}).get("cards", []), valid_keys
             )
@@ -99,15 +109,15 @@ class MtgjsonAtomicCardsObject:
             # ForeignData is consumable on all components, but not always
             # included by upstreams. This updates foreignData if necessary
             hold_entry = atomic_card
-            if not atomic_card["foreignData"]:
+            if not atomic_card.get("foreignData"):
                 for entry in self.atomic_cards_dict[card_name]:
-                    if entry["foreignData"]:
+                    if entry.get("foreignData"):
                         hold_entry = entry
                         break
 
             for entry in self.atomic_cards_dict[card_name]:
                 if entry.get("text") == hold_entry.get("text"):
-                    entry["foreignData"] = hold_entry["foreignData"]
+                    entry["foreignData"] = hold_entry.get("foreignData", [])
 
     def to_json(self) -> Dict[str, List[Dict[str, Any]]]:
         """

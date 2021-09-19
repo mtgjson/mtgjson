@@ -357,9 +357,22 @@ def construct_atomic_cards_format_map(
         content = json.load(file)
 
     for set_contents in content.get("data", {}).values():
-        for card in set_contents.get("cards", []):
+        set_cards: List[Dict[str, Any]] = set_contents.get("cards", [])
+
+        # Workaround for Dungeons so they can be included
+        for token in set_contents.get("tokens", []):
+            if token.get("type") == "Dungeon":
+                token["legalities"] = {
+                    t_format: "Legal" for t_format in format_card_map.keys()
+                }
+                set_cards.append(token)
+
+        for card in set_cards:
             for magic_format in format_card_map.keys():
-                if card.get("legalities").get(magic_format) in {"Legal", "Restricted"}:
+                if card.get("legalities", {}).get(magic_format) in {
+                    "Legal",
+                    "Restricted",
+                }:
                     format_card_map[magic_format].append(card)
 
     return format_card_map
