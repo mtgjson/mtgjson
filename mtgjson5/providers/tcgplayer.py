@@ -5,6 +5,7 @@ import enum
 import json
 import logging
 import pathlib
+import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import requests
@@ -15,6 +16,23 @@ from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping, parallel_call, retryable_session
 
 LOGGER = logging.getLogger(__name__)
+
+
+class CardFinish(enum.Enum):
+    """
+    TCGPlayer Card Condition
+    Self Driven by MTGJSON
+    """
+
+    FOIL_ETCHED = "Foil Etched"
+
+    @classmethod
+    def has_value(cls, value: str) -> bool:
+        """
+        See if value exists in the Enum class
+        :returns If value exists or not
+        """
+        return any(x.value == value for x in CardFinish)
 
 
 class CardCondition(enum.Enum):
@@ -471,16 +489,50 @@ def get_tcgplayer_prices_map(
     return prices_map
 
 
-def convert_sku_data_enum(sku: Dict[str, int]) -> Dict[str, Union[int, str]]:
+def get_card_finish(card_name: str) -> Optional[str]:
     """
-    Converts a TCGPlayer SKU from IDs to components
-    :param sku: TCGPlayer SKU component
-    :return: Enhanced TCGPlayer SKU dict
+    Determine a card's TCGPlayer finish based on the card name,
+    as TCGPlayer indicates their finishes by ending a card's name
+    with "(Finish)". This can be a bit wonky for some edge cases,
+    but overall this should be good enough.
+    :param card_name: Card name from TCGPlayer
+    :return Card finish, if one is found
     """
-    return {
-        "skuId": sku["skuId"],
-        "productId": sku["productId"],
-        "language": CardLanguage(sku["languageId"]).name.replace("_", " "),
-        "printing": CardPrinting(sku["printingId"]).name.replace("_", " "),
-        "condition": CardCondition(sku["conditionId"]).name.replace("_", " "),
-    }
+    result_card_finish = None
+
+    card_finishes = re.findall(r"\(([^)0-9]+)\)", card_name)
+    for card_finish in card_finishes:
+        if not CardFinish.has_value(card_finish):
+            continue
+
+        result_card_finish = CardFinish(card_finish).name.replace("_", " ")
+        break
+
+    return result_card_finish
+
+
+def convert_sku_data_enum(product: Dict[str, Any]) -> List[Dict[str, Union[int, str]]]:
+    """
+    Converts a TCGPlayer Product's SKUs from IDs to components
+    :param product: TCGPlayer Product
+    :return: Enhanced List of TCGPlayer SKU dict objects
+    """
+    results = []
+
+    name = product["name"]
+    card_finish = get_card_finish(name)
+
+    skus = product["skus"]
+    for sku in skus:
+        entry = {
+            "skuId": sku["skuId"],
+            "productId": sku["productId"],
+            "language": CardLanguage(sku["languageId"]).name.replace("_", " "),
+            "printing": CardPrinting(sku["printingId"]).name.replace("_", " "),
+            "condition": CardCondition(sku["conditionId"]).name.replace("_", " "),
+        }
+        if card_finish:
+            entry["finish"] = card_finish
+        results.append(entry)
+
+    return results
