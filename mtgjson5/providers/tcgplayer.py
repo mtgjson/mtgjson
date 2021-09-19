@@ -24,12 +24,7 @@ class CardFinish(enum.Enum):
     Self Driven by MTGJSON
     """
 
-    ALTERNATE_ART = "Alternate Art"
-    BORDERLESS = "Borderless"
-    EXTENDED_ART = "Extended Art"
     FOIL_ETCHED = "Foil Etched"
-    GLOSSY = "SDCC 2019 Exclusive"
-    RETRO = "Retro Frame"
 
     @classmethod
     def has_value(cls, value: str) -> bool:
@@ -508,7 +503,6 @@ def get_card_finish(card_name: str) -> Optional[str]:
     card_finishes = re.findall(r"\(([^)0-9]+)\)", card_name)
     for card_finish in card_finishes:
         if not CardFinish.has_value(card_finish):
-            LOGGER.warning(f"Unknown TCGPlayer card finish: {card_finish}")
             continue
 
         result_card_finish = CardFinish(card_finish).name.replace("_", " ")
