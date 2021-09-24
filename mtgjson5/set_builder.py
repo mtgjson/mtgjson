@@ -392,19 +392,20 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
         mtgjson_set.code
     )
 
-    base_total_sizes = get_base_and_total_set_sizes(set_code)
-    mtgjson_set.base_set_size = base_total_sizes[0]
-    mtgjson_set.total_set_size = base_total_sizes[1]
-
     # Building cards is a process
     mtgjson_set.cards = build_base_mtgjson_cards(
         set_code, set_release_date=mtgjson_set.release_date
     )
     add_is_starter_option(set_code, mtgjson_set.search_uri, mtgjson_set.cards)
     relocate_miscellaneous_tokens(mtgjson_set)
-    add_variations_and_alternative_fields(mtgjson_set)
     add_mcm_details(mtgjson_set)
     add_card_kingdom_details(mtgjson_set)
+
+    base_total_sizes = get_base_and_total_set_sizes(mtgjson_set)
+    mtgjson_set.base_set_size = base_total_sizes[0]
+    mtgjson_set.total_set_size = base_total_sizes[1]
+
+    add_variations_and_alternative_fields(mtgjson_set)
 
     # Build tokens, a little less of a process
     mtgjson_set.tokens = build_base_mtgjson_tokens(
@@ -1200,33 +1201,44 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
     LOGGER.info(f"Finished adding MCM details for {mtgjson_set.code}")
 
 
-def get_base_and_total_set_sizes(set_code: str) -> Tuple[int, int]:
+def get_base_and_total_set_sizes(mtgjson_set: MtgjsonSetObject) -> Tuple[int, int]:
     """
     Get the size of a set from scryfall or corrections file
-    :param set_code: Set code, upper case
+    :param mtgjson_set: Mtgjson Set Object
     :return: Amount of cards in set (base, total)
     """
     # Load cache if not loaded
     with RESOURCE_PATH.joinpath("base_set_sizes.json").open(encoding="utf-8") as f:
         base_set_size_override = json.load(f)
 
-    if set_code in base_set_size_override.keys():
-        # Manual correction
-        base_set_size = int(base_set_size_override[set_code])
-    else:
-        # Download on the fly
-        base_set_size_download = ScryfallProvider().download(
-            ScryfallProvider().CARDS_IN_BASE_SET_URL.format(set_code)
-        )
+    base_set_size = len(mtgjson_set.cards)
 
-        # Wasn't able to determine, so use all cards instead
-        if base_set_size_download["object"] == "error":
+    if mtgjson_set.code.upper() in base_set_size_override.keys():
+        # Manual correction
+        base_set_size = int(base_set_size_override[mtgjson_set.code.upper()])
+    else:
+        # Use knowledge of Boosterfun being the first non-numbered card
+        # in the set to identify the true base set size
+        # BoosterFun started with Throne of Eldraine in Oct 2019
+        if mtgjson_set.release_date > "2019-10-01":
+            for card in mtgjson_set.cards:
+                if "boosterfun" in card.promo_types:
+                    base_set_size = int(card.number) - 1
+                    break
+        else:
+            # Download on the fly
             base_set_size_download = ScryfallProvider().download(
-                ScryfallProvider().CARDS_IN_SET.format(set_code)
+                ScryfallProvider().CARDS_IN_BASE_SET_URL.format(
+                    mtgjson_set.code.upper()
+                )
             )
 
-        base_set_size = int(base_set_size_download.get("total_cards", 0))
+            # Wasn't able to determine, so use all cards instead
+            if base_set_size_download["object"] == "error":
+                base_set_size_download = ScryfallProvider().download(
+                    ScryfallProvider().CARDS_IN_SET.format(mtgjson_set.code.upper())
+                )
 
-    total_set_size = len(ScryfallProvider().download_cards(set_code))
+            base_set_size = int(base_set_size_download.get("total_cards", 0))
 
-    return base_set_size, total_set_size
+    return base_set_size, len(mtgjson_set.cards)

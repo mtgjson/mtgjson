@@ -73,7 +73,7 @@ class ScryfallProvider(AbstractProvider):
 
         page_downloaded = 1
         while starting_url:
-            LOGGER.info(f"Downloading page {page_downloaded} -- {starting_url}")
+            LOGGER.debug(f"Downloading page {page_downloaded} -- {starting_url}")
             page_downloaded += 1
 
             response: Dict[str, Any] = self.download(starting_url, params)
