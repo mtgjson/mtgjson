@@ -24,7 +24,7 @@ class ScryfallProvider(AbstractProvider):
     ALL_SETS_URL: str = "https://api.scryfall.com/sets/"
     CARDS_URL: str = "https://api.scryfall.com/cards/"
     VARIATIONS_URL: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}&unique=prints"
-    CARDS_WITHOUT_LIMITS_URL: str = "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named)"
+    CARDS_WITHOUT_LIMITS_URL: str = "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named)%20or%20(o:deck%20o:have%20o:up%20o:to%20o:cards%20o:named)"
     CARDS_IN_BASE_SET_URL: str = "https://api.scryfall.com/cards/search?order=set&q=set:{0}%20is:booster%20unique:prints"
     CARDS_IN_SET: str = (
         "https://api.scryfall.com/cards/search?order=set&q=set:{0}%20unique:prints"
