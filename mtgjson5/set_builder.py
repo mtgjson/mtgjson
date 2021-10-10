@@ -739,7 +739,7 @@ def build_mtgjson_card(
         # Deprecated - Remove in 6.0.0
         mtgjson_card.converted_mana_cost = scryfall_object.get("cmc", "")
     mtgjson_card.edhrec_rank = scryfall_object.get("edhrec_rank")
-    mtgjson_card.finishes = scryfall_object.get("finishes", "")
+    mtgjson_card.finishes = scryfall_object.get("finishes", [])
     mtgjson_card.frame_effects = scryfall_object.get("frame_effects", "")
     mtgjson_card.frame_version = scryfall_object.get("frame", "")
     mtgjson_card.hand = scryfall_object.get("hand_modifier")
@@ -771,6 +771,13 @@ def build_mtgjson_card(
         scryfall_object.get("mtgo_foil_id")
     )
     mtgjson_card.number = scryfall_object.get("collector_number", "0")
+
+    # https://github.com/mtgjson/mtgjson/issues/628
+    if mtgjson_card.set_code.startswith("WC"):
+        signature = get_signature_from_number(mtgjson_card)
+        if signature:
+            mtgjson_card.signature = signature
+            mtgjson_card.finishes.append("signed")
 
     # Handle Promo Types for MTGJSON
     mtgjson_card.promo_types = scryfall_object.get("promo_types", [])
@@ -1247,3 +1254,22 @@ def get_base_and_total_set_sizes(mtgjson_set: MtgjsonSetObject) -> Tuple[int, in
             base_set_size = int(base_set_size_download.get("total_cards", 0))
 
     return base_set_size, len(mtgjson_set.cards)
+
+
+def get_signature_from_number(mtgjson_card: MtgjsonCardObject) -> Optional[str]:
+    """
+    Find the name of the person who signed a World Championship card
+    :param mtgjson_card: Card object to get required data from
+    :returns Name of person who signed card, if applicable
+    """
+    with RESOURCE_PATH.joinpath("world_championship_signatures.json").open() as f:
+        signatures_by_set: Dict[str, Dict[str, str]] = json.load(f)
+
+    if mtgjson_card.set_code not in signatures_by_set:
+        return None
+
+    match = re.match("^([^0-9]+)", mtgjson_card.number)
+    if not match:
+        return None
+
+    return signatures_by_set[mtgjson_card.set_code].get(match.group(1))

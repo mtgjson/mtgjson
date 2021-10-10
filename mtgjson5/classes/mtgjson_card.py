@@ -81,6 +81,7 @@ class MtgjsonCardObject:
     reverse_related: Optional[List[str]]
     rulings: List[MtgjsonRulingObject]
     side: Optional[str]
+    signature: Optional[str]
     subtypes: List[str]
     supertypes: List[str]
     text: str
