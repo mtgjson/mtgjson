@@ -104,6 +104,11 @@ def parse_foreign(
 
         if not card_foreign_entry.name:
             card_foreign_entry.name = foreign_card.get("printed_name")
+
+            # https://github.com/mtgjson/mtgjson/issues/611
+            if set_name.upper() == "IKO" and card_foreign_entry.language == "Japanese":
+                card_foreign_entry.name = str(card_foreign_entry.name).split(" //")[0]
+
         card_foreign_entry.text = foreign_card.get("printed_text")
         card_foreign_entry.flavor_text = foreign_card.get("flavor_text")
         card_foreign_entry.type = foreign_card.get("printed_type_line")
