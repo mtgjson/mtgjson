@@ -428,6 +428,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     )
     add_sealed_uuid(mtgjson_set)
     add_sealed_purchase_url(mtgjson_set)
+    add_token_signatures(mtgjson_set)
 
     mark_duel_decks(set_code, mtgjson_set.cards)
 
@@ -739,7 +740,7 @@ def build_mtgjson_card(
         # Deprecated - Remove in 6.0.0
         mtgjson_card.converted_mana_cost = scryfall_object.get("cmc", "")
     mtgjson_card.edhrec_rank = scryfall_object.get("edhrec_rank")
-    mtgjson_card.finishes = scryfall_object.get("finishes", "")
+    mtgjson_card.finishes = scryfall_object.get("finishes", [])
     mtgjson_card.frame_effects = scryfall_object.get("frame_effects", "")
     mtgjson_card.frame_version = scryfall_object.get("frame", "")
     mtgjson_card.hand = scryfall_object.get("hand_modifier")
@@ -1138,6 +1139,39 @@ def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
     LOGGER.info(f"Finished adding CK details for {mtgjson_set.code}")
 
 
+def add_token_signatures(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    Assign signatures to cards/tokens for sets that have
+    artists sign the cards that are in mass print
+    :param mtgjson_set: MTGJSON Set
+    """
+
+    def add_signature(card: MtgjsonCardObject, sig: str) -> None:
+        """
+        Private Method Signature adder, to keep consistent
+        """
+        card.signature = sig
+        card.finishes.append("signed")
+
+    LOGGER.info(f"Adding signatures to cards for {mtgjson_set.code}")
+    if mtgjson_set.name.endswith("Art Series") and mtgjson_set.code != "MH1":
+        # All Art Series (except MH1) have signature options, up to this point
+        for mtgjson_card in mtgjson_set.tokens:
+            add_signature(mtgjson_card, mtgjson_card.artist)
+    elif mtgjson_set.type == "memorabilia":
+        # Gold Border Memorabilia sets contain signatures
+        for mtgjson_cards in [mtgjson_set.tokens, mtgjson_set.cards]:
+            for mtgjson_card in mtgjson_cards:
+                if mtgjson_card.border_color != "gold":
+                    continue
+
+                signature = get_signature_from_number(mtgjson_card)
+                if signature:
+                    add_signature(mtgjson_card, signature)
+
+    LOGGER.info(f"Finished adding signatures to cards for {mtgjson_set.code}")
+
+
 def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
     """
     Add the MKM components to a set's cards and tokens
@@ -1247,3 +1281,22 @@ def get_base_and_total_set_sizes(mtgjson_set: MtgjsonSetObject) -> Tuple[int, in
             base_set_size = int(base_set_size_download.get("total_cards", 0))
 
     return base_set_size, len(mtgjson_set.cards)
+
+
+def get_signature_from_number(mtgjson_card: MtgjsonCardObject) -> Optional[str]:
+    """
+    Find the name of the person who signed a World Championship card
+    :param mtgjson_card: Card object to get required data from
+    :returns Name of person who signed card, if applicable
+    """
+    with RESOURCE_PATH.joinpath("world_championship_signatures.json").open() as f:
+        signatures_by_set: Dict[str, Dict[str, str]] = json.load(f)
+
+    if mtgjson_card.set_code not in signatures_by_set:
+        return None
+
+    match = re.match("^([^0-9]+)([0-9]+)(.*)", mtgjson_card.number)
+    if not match or (match.group(2) == "0" and match.group(3) == "b"):
+        return None
+
+    return signatures_by_set[mtgjson_card.set_code].get(match.group(1))
