@@ -428,6 +428,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     )
     add_sealed_uuid(mtgjson_set)
     add_sealed_purchase_url(mtgjson_set)
+    add_token_signatures(mtgjson_set)
 
     mark_duel_decks(set_code, mtgjson_set.cards)
 
@@ -771,13 +772,6 @@ def build_mtgjson_card(
         scryfall_object.get("mtgo_foil_id")
     )
     mtgjson_card.number = scryfall_object.get("collector_number", "0")
-
-    # https://github.com/mtgjson/mtgjson/issues/628
-    if mtgjson_card.set_code.startswith("WC"):
-        signature = get_signature_from_number(mtgjson_card)
-        if signature:
-            mtgjson_card.signature = signature
-            mtgjson_card.finishes.append("signed")
 
     # Handle Promo Types for MTGJSON
     mtgjson_card.promo_types = scryfall_object.get("promo_types", [])
@@ -1143,6 +1137,42 @@ def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
             )
 
     LOGGER.info(f"Finished adding CK details for {mtgjson_set.code}")
+
+
+def add_token_signatures(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    Assign signatures to cards/tokens for sets that have
+    artists sign the cards that are in mass print
+    :param mtgjson_set: MTGJSON Set
+    """
+
+    def add_signature(card: MtgjsonCardObject, sig: str) -> None:
+        """
+        Private Method Signature adder, to keep consistent
+        """
+        card.signature = sig
+        card.finishes.append("signed")
+
+    LOGGER.info(f"Adding signatures to cards for {mtgjson_set.code}")
+    if (
+        mtgjson_set.name.endswith("Art Series")
+        and mtgjson_set.release_date > "2019-06-05"
+    ):
+        # All Art Series (except MH1 from 2019-06-05) have signature options
+        for mtgjson_card in mtgjson_set.tokens:
+            add_signature(mtgjson_card, mtgjson_card.artist)
+    elif mtgjson_set.type in {"memorabilia"}:
+        # Gold Border Memorabilia sets contain signatures
+        for mtgjson_cards in [mtgjson_set.tokens, mtgjson_set.cards]:
+            for mtgjson_card in mtgjson_cards:
+                if mtgjson_card.border_color != "gold":
+                    continue
+
+                signature = get_signature_from_number(mtgjson_card)
+                if signature:
+                    add_signature(mtgjson_card, signature)
+
+    LOGGER.info(f"Finished adding signatures to cards for {mtgjson_set.code}")
 
 
 def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:

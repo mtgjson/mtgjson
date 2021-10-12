@@ -1,10 +1,60 @@
 {
-  "WC04": {"ap": "Aeo Paquette", "gn": "Gabriel Nassif", "jn": "Julien Nuijten", "mb": "Manuel Bevand"},
-  "WC03": {"dh": "Dave Humpherys", "dz": "Daniel Zink", "pk": "Peer Kröger", "we": "Wolfgang Eder"},
-  "WC02": {"bk": "Brian Kibler", "cr": "Carlos Romão", "shh": "Sim Han How", "rl": "Raphael Levy"},
-  "WC01": {"ab": "Alex Borteh", "ar": "Antoine Ruel", "jt": "Jan Tomcani", "tvdl": "Tom van de Logt"},
-  "WC00": {"jf": "Jon Finkel", "jk": "Janosch Kühn", "nl": "Nicolas Labarre", "tvdl": "Tom van de Logt"},
-  "WC99": {"js": "Jakub Šlemr", "kb": "Kai Budde", "ml": "Matt Linde", "mlp": "Mark Le Pine"},
-  "WC98": {"bh": "Brian Hacker", "br": "Ben Rubin", "bs": "Brian Selden", "rb": "Randy Buehler"},
-  "WC97": {"jk": "Janosch Kühn", "js": "Jakub Šlemr", "pm": "Paul McCabe", "sg": "Svend Geertsen"}
+  "WC04": {
+    "ap": "Aeo Paquette",
+    "gn": "Gabriel Nassif",
+    "jn": "Julien Nuijten",
+    "mb": "Manuel Bevand"
+  },
+  "WC03": {
+    "dh": "Dave Humpherys",
+    "dz": "Daniel Zink",
+    "pk": "Peer Kröger",
+    "we": "Wolfgang Eder"
+  },
+  "WC02": {
+    "bk": "Brian Kibler",
+    "cr": "Carlos Romão",
+    "shh": "Sim Han How",
+    "rl": "Raphael Levy"
+  },
+  "WC01": {
+    "ab": "Alex Borteh",
+    "ar": "Antoine Ruel",
+    "jt": "Jan Tomcani",
+    "tvdl": "Tom van de Logt"
+  },
+  "WC00": {
+    "jf": "Jon Finkel",
+    "jk": "Janosch Kühn",
+    "nl": "Nicolas Labarre",
+    "tvdl": "Tom van de Logt"
+  },
+  "WC99": {
+    "js": "Jakub Šlemr",
+    "kb": "Kai Budde",
+    "ml": "Matt Linde",
+    "mlp": "Mark Le Pine"
+  },
+  "WC98": {
+    "bh": "Brian Hacker",
+    "br": "Ben Rubin",
+    "bs": "Brian Selden",
+    "rb": "Randy Buehler"
+  },
+  "WC97": {
+    "jk": "Janosch Kühn",
+    "js": "Jakub Šlemr",
+    "pm": "Paul McCabe",
+    "sg": "Svend Geertsen"
+  },
+  "PTC": {
+    "bl": "Bertrand Lestree",
+    "et": "Eric Tam",
+    "gb": "George Baxter",
+    "ll": "Leon Lindback",
+    "mj": "Mark Justice",
+    "ml": "Michael Loconto",
+    "pp": "Preston Poulter",
+    "shr": "Shawn \"Hammer\" Regnier"
+  }
 }
