@@ -1154,14 +1154,11 @@ def add_token_signatures(mtgjson_set: MtgjsonSetObject) -> None:
         card.finishes.append("signed")
 
     LOGGER.info(f"Adding signatures to cards for {mtgjson_set.code}")
-    if (
-        mtgjson_set.name.endswith("Art Series")
-        and mtgjson_set.release_date > "2019-06-05"
-    ):
-        # All Art Series (except MH1 from 2019-06-05) have signature options
+    if mtgjson_set.name.endswith("Art Series") and mtgjson_set.code != "MH1":
+        # All Art Series (except MH1) have signature options, up to this point
         for mtgjson_card in mtgjson_set.tokens:
             add_signature(mtgjson_card, mtgjson_card.artist)
-    elif mtgjson_set.type in {"memorabilia"}:
+    elif mtgjson_set.type == "memorabilia":
         # Gold Border Memorabilia sets contain signatures
         for mtgjson_cards in [mtgjson_set.tokens, mtgjson_set.cards]:
             for mtgjson_card in mtgjson_cards:
@@ -1298,8 +1295,8 @@ def get_signature_from_number(mtgjson_card: MtgjsonCardObject) -> Optional[str]:
     if mtgjson_card.set_code not in signatures_by_set:
         return None
 
-    match = re.match("^([^0-9]+)", mtgjson_card.number)
-    if not match:
+    match = re.match("^([^0-9]+)([0-9]+)(.*)", mtgjson_card.number)
+    if not match or (match.group(2) == "0" and match.group(3) == "b"):
         return None
 
     return signatures_by_set[mtgjson_card.set_code].get(match.group(1))
