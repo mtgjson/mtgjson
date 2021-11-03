@@ -98,7 +98,7 @@ class CardMarketProvider(AbstractProvider):
             all_printings_path, ("identifiers", "mcmId"), ("uuid",)
         )
 
-        price_data = pandas.read_csv(self._get_card_market_data())
+        price_data: pandas.DataFrame = pandas.read_csv(self._get_card_market_data())
         data_frame_columns = list(price_data.columns)
 
         product_id_index = data_frame_columns.index("idProduct")
@@ -106,13 +106,13 @@ class CardMarketProvider(AbstractProvider):
         avg_foil_price_index = data_frame_columns.index("Foil AVG1")
 
         today_dict: Dict[str, MtgjsonPricesObject] = {}
-        for row in price_data.iterrows():
+        for row in pandas.DataFrame(price_data).iterrows():
             columns: List[float] = [
                 -1 if math.isnan(value) else value for value in row[1].tolist()
             ]
 
             product_id = str(int(columns[product_id_index]))
-            if product_id in mtgjson_id_map.keys():
+            if product_id in mtgjson_id_map:
                 mtgjson_uuid = mtgjson_id_map[product_id]
                 avg_sell_price = columns[avg_sell_price_index]
                 avg_foil_price = columns[avg_foil_price_index]
@@ -184,7 +184,7 @@ class CardMarketProvider(AbstractProvider):
         if not self.__keys_found:
             return None
 
-        if set_name.lower() in self.set_map.keys():
+        if set_name.lower() in self.set_map:
             return int(self.set_map[set_name.lower()]["mcmId"])
         return None
 
@@ -199,7 +199,7 @@ class CardMarketProvider(AbstractProvider):
             return None
 
         extras_set_name = f"{set_name.lower()}: extras"
-        if extras_set_name in self.set_map.keys():
+        if extras_set_name in self.set_map:
             return int(self.set_map[extras_set_name]["mcmId"])
         return None
 
@@ -212,7 +212,7 @@ class CardMarketProvider(AbstractProvider):
         if not self.__keys_found:
             return None
 
-        if set_name.lower() in self.set_map.keys():
+        if set_name.lower() in self.set_map:
             return str(self.set_map[set_name.lower()]["mcmName"])
         return None
 
@@ -221,7 +221,7 @@ class CardMarketProvider(AbstractProvider):
         Generate HTTP Header -- Not Used
         :return: Nothing
         """
-        return dict()
+        return {}
 
     def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
         """

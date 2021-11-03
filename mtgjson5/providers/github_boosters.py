@@ -33,7 +33,7 @@ class GitHubBoostersProvider(AbstractProvider):
         Construct the Authorization header
         :return: Authorization header
         """
-        return dict()
+        return {}
 
     def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
         """

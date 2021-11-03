@@ -169,6 +169,6 @@ class ScryfallProvider(AbstractProvider):
         catalog_data = self.download(self.TYPE_CATALOG.format(catalog_key))
         if catalog_data["object"] == "error":
             LOGGER.error(f"Unable to build {catalog_key}. Not found")
-            return list()
+            return []
 
         return list(catalog_data["data"])

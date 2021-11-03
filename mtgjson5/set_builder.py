@@ -107,7 +107,9 @@ def parse_foreign(
 
             # https://github.com/mtgjson/mtgjson/issues/611
             if set_name.upper() == "IKO" and card_foreign_entry.language == "Japanese":
-                card_foreign_entry.name = str(card_foreign_entry.name).split(" //")[0]
+                card_foreign_entry.name = str(card_foreign_entry.name).split(
+                    " //", maxsplit=1
+                )[0]
 
         card_foreign_entry.text = foreign_card.get("printed_text")
         card_foreign_entry.flavor_text = foreign_card.get("flavor_text")
@@ -1195,16 +1197,13 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
             search_cards = mkm_cards
 
         # There are multiple ways MKM represents cards...
-        if mtgjson_card.name.lower() in search_cards.keys():
+        if mtgjson_card.name.lower() in search_cards:
             # First lets see if the card name is found
             card_key = mtgjson_card.name.lower()
-        elif (
-            mtgjson_card.face_name
-            and mtgjson_card.face_name.lower() in search_cards.keys()
-        ):
+        elif mtgjson_card.face_name and mtgjson_card.face_name.lower() in search_cards:
             # If that failed, lets see if the face name is found
             card_key = mtgjson_card.face_name.lower()
-        elif mtgjson_card.name.replace("//", "/").lower() in search_cards.keys():
+        elif mtgjson_card.name.replace("//", "/").lower() in search_cards:
             # Finally, lets check if they used a single slash for split-type cards
             card_key = mtgjson_card.name.replace("//", "/").lower()
         else:

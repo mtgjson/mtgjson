@@ -78,7 +78,7 @@ class MtgjsonEnumValuesObject:
         """
         type_map: Dict[str, Any] = {}
         for object_name, object_values in self.deck_key_struct.items():
-            type_map[object_name] = dict()
+            type_map[object_name] = {}
             for object_field_name in object_values:
                 type_map[object_name][object_field_name] = set()
 
@@ -102,7 +102,7 @@ class MtgjsonEnumValuesObject:
         """
         type_map: Dict[str, Any] = {}
         for object_name, object_values in self.set_key_struct.items():
-            type_map[object_name] = dict()
+            type_map[object_name] = {}
             for object_field_name in object_values:
                 type_map[object_name][object_field_name] = set()
 

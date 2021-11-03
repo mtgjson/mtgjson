@@ -118,11 +118,7 @@ def _compressor(compression_commands: List[List[Union[str, pathlib.Path]]]) -> N
     """
     # Compress the file in parallel outside of Python
     # Multiprocessing cannot be used with gevent
-    processes = [
-        subprocess.Popen(command, stdout=subprocess.DEVNULL)
-        for command in compression_commands
-    ]
-
-    for process in processes:
-        if process.wait() != 0:
-            LOGGER.error(f"Failed to compress {str(process.args)}")
+    for command in compression_commands:
+        with subprocess.Popen(command, stdout=subprocess.DEVNULL) as proc:
+            if proc.wait() != 0:
+                LOGGER.error(f"Failed to compress {str(proc.args)}")

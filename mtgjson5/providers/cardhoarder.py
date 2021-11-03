@@ -157,7 +157,7 @@ class CardHoarderProvider(AbstractProvider):
         :param all_printings_path: AllPrintings to generate mapping from
         :return MTGO to MTGJSON mapping
         """
-        mtgo_to_mtgjson = dict()
+        mtgo_to_mtgjson = {}
         for card in get_all_cards_and_tokens(all_printings_path):
             identifiers = card["identifiers"]
             if "mtgoId" in identifiers:

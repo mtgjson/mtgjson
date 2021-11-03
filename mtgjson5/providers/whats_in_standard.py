@@ -37,7 +37,7 @@ class WhatsInStandardProvider(AbstractProvider):
         Construct the Authorization header -- unused
         :return: Authorization header
         """
-        return dict()
+        return {}
 
     def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
         """

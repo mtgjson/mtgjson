@@ -100,6 +100,8 @@ def retryable_session(
     :param retries: How many retries to attempt
     :return: Session that does downloading
     """
+    session: Union[requests.Session, requests_cache.CachedSession]
+
     if USE_CACHE:
         stack = inspect.stack()
         calling_class = stack[1][0].f_locals["self"].__class__.__name__

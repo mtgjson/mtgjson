@@ -50,7 +50,7 @@ class GathererProvider(AbstractProvider):
         Generate HTTP Header -- Not Used
         :return: Nothing
         """
-        return dict()
+        return {}
 
     @ratelimit.limits(calls=40, period=1)
     def download(
