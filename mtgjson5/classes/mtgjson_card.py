@@ -33,6 +33,7 @@ class MtgjsonCardObject:
     duel_deck: Optional[str]
     edhrec_rank: Optional[int]
     face_converted_mana_cost: float
+    face_flavor_name: Optional[str]
     face_mana_value: float
     face_name: Optional[str]
     finishes: List[str]
