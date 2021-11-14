@@ -66,7 +66,6 @@ def upload_prices_archive(
     :param github_repo_local_path: Local file system file
     :param content: File content
     """
-    return
     if "GitHub" not in config.sections():
         LOGGER.warning("GitHub section not established. Skipping upload")
         return
