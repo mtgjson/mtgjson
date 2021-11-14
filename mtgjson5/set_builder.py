@@ -680,6 +680,12 @@ def build_mtgjson_card(
         # Override face_data from above
         face_data = scryfall_object["card_faces"][face_id]
 
+        if face_data.get("flavor_name"):
+            mtgjson_card.flavor_name = " // ".join(
+                [entry["flavor_name"] for entry in scryfall_object["card_faces"]]
+            )
+            mtgjson_card.face_flavor_name = face_data["flavor_name"]
+
         if "//" in scryfall_object.get("mana_cost", ""):
             mtgjson_card.colors = get_card_colors(
                 scryfall_object["mana_cost"].split("//")[face_id]
