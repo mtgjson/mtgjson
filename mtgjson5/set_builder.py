@@ -873,14 +873,19 @@ def build_mtgjson_card(
             elif face_names.count(face_names[0]) == len(face_names):
                 # Art Series have a unique way of determining the side
                 face_illustration_ids = mtgjson_card.get_illustration_ids()
-                for index in range(len(face_names)):
-                    if (
-                        face_illustration_ids[index]
-                        == mtgjson_card.identifiers.scryfall_illustration_id
-                    ):
-                        # chr(97) = 'a', chr(98) = 'b', ...
-                        mtgjson_card.side = chr(index + 97)
-                        break
+
+                # Some tokens have the same IDs on both sides in AAFR, for example
+                if len(set(face_illustration_ids)) == 1:
+                    mtgjson_card.side = chr(face_id + 97)
+                else:
+                    for index in range(len(face_names)):
+                        if (
+                            face_illustration_ids[index]
+                            == mtgjson_card.identifiers.scryfall_illustration_id
+                        ):
+                            # chr(97) = 'a', chr(98) = 'b', ...
+                            mtgjson_card.side = chr(index + 97)
+                            break
             else:
                 # Standard flip cards and such
                 # chr(97) = 'a', chr(98) = 'b', ...
@@ -1153,7 +1158,8 @@ def add_token_signatures(mtgjson_set: MtgjsonSetObject) -> None:
         Private Method Signature adder, to keep consistent
         """
         card.signature = sig
-        card.finishes.append("signed")
+        if "signed" not in card.finishes:
+            card.finishes.append("signed")
 
     LOGGER.info(f"Adding signatures to cards for {mtgjson_set.code}")
     if mtgjson_set.name.endswith("Art Series") and mtgjson_set.code != "MH1":
