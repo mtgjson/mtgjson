@@ -725,7 +725,9 @@ def build_mtgjson_card(
 
         if face_id == 0:
             for i in range(1, len(scryfall_object["card_faces"])):
-                mtgjson_cards.extend(build_mtgjson_card(scryfall_object, i, is_token))
+                mtgjson_cards.extend(
+                    build_mtgjson_card(scryfall_object, i, is_token, set_release_date)
+                )
 
     # Start of single card builder
     if face_data.get("mana_cost"):
@@ -795,6 +797,9 @@ def build_mtgjson_card(
         for card_type in mtgjson_card.promo_types
         if card_type not in {"starterdeck", "planeswalkerdeck"}
     ]
+
+    if mtgjson_card.number == "40":
+        print("ZACH")
 
     card_release_date = scryfall_object.get("released_at")
     if set_release_date and set_release_date != card_release_date:
