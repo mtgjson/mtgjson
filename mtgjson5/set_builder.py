@@ -712,6 +712,9 @@ def build_mtgjson_card(
             mtgjson_card.mana_value = get_card_cmc(face_data.get("mana_cost", "0"))
             # Deprecated - Remove in 6.0.0
             mtgjson_card.converted_mana_cost = mtgjson_card.mana_value
+        elif scryfall_object["layout"] == "reversible_card":
+            mtgjson_card.mana_value = face_data.get("cmc", 0)
+            mtgjson_card.converted_mana_cost = mtgjson_card.mana_value
 
         mtgjson_card.set_watermark(scryfall_object["card_faces"][0].get("watermark"))
 
