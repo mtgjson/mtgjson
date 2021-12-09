@@ -798,9 +798,6 @@ def build_mtgjson_card(
         if card_type not in {"starterdeck", "planeswalkerdeck"}
     ]
 
-    if mtgjson_card.number == "40":
-        print("ZACH")
-
     card_release_date = scryfall_object.get("released_at")
     if set_release_date and set_release_date != card_release_date:
         mtgjson_card.original_release_date = card_release_date
