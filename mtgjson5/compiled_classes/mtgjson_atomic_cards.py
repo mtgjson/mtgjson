@@ -3,6 +3,7 @@ MTGJSON AtomicCards Object
 """
 import json
 import re
+from collections import defaultdict
 from typing import Any, Dict, List
 
 from ..classes import MtgjsonCardObject
@@ -23,7 +24,7 @@ class MtgjsonAtomicCardsObject:
         """
         Initializer to build up the object
         """
-        self.atomic_cards_dict = {}
+        self.atomic_cards_dict = defaultdict(list)
         self.iterate_all_cards(
             MtgjsonStructuresObject().get_all_compiled_file_names(), cards_to_parse
         )
@@ -94,9 +95,6 @@ class MtgjsonAtomicCardsObject:
             values = self.__name_regex.findall(atomic_card["name"])
             card_name = values[0] if values else atomic_card["name"]
 
-            if card_name not in self.atomic_cards_dict.keys():
-                self.atomic_cards_dict[card_name] = []
-
             should_add_card = True
             for card_entry in self.atomic_cards_dict[card_name]:
                 if card_entry.get("text") == atomic_card.get("text"):
@@ -105,6 +103,7 @@ class MtgjsonAtomicCardsObject:
 
             if should_add_card:
                 self.atomic_cards_dict[card_name].append(atomic_card)
+                self.atomic_cards_dict[card_name].sort(key=lambda x: x.get("side", "z"))
 
             # ForeignData is consumable on all components, but not always
             # included by upstreams. This updates foreignData if necessary
