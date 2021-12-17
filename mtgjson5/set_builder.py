@@ -811,7 +811,7 @@ def build_mtgjson_card(
 
     if scryfall_object.get("layout") == "art_series":
         mtgjson_card.layout = "art_series"
-    elif any(
+    elif "//" not in mtgjson_card.name and any(
         type_line in scryfall_object.get("type_line", "").lower()
         for type_line in ("card", "token")
     ):
