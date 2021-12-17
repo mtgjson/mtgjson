@@ -408,6 +408,9 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     add_mcm_details(mtgjson_set)
     add_card_kingdom_details(mtgjson_set)
 
+    if mtgjson_set.code in {"EMN"}:
+        add_meld_face_parts(mtgjson_set)
+
     base_total_sizes = get_base_and_total_set_sizes(mtgjson_set)
     mtgjson_set.base_set_size = base_total_sizes[0]
     mtgjson_set.total_set_size = base_total_sizes[1]
@@ -1341,3 +1344,49 @@ def get_signature_from_number(mtgjson_card: MtgjsonCardObject) -> Optional[str]:
         return None
 
     return signatures_by_set[mtgjson_card.set_code].get(match.group(1))
+
+
+def add_meld_face_parts(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    Some sets that like to torture us have cards with multiple cards
+    required to summon the grand behemoth. This method creates a
+    static card_parts for each card in that sequence for better
+    processing. Order will be top card, bottom card, combined card
+    ...until Wizards does something else.
+    :param mtgjson_set: MTGJSON Set
+    """
+    LOGGER.info(f"Adding Card Face Parts for {mtgjson_set.code}")
+    for first_card in mtgjson_set.cards:
+        if first_card.layout != "meld":
+            continue
+
+        card_face_parts: List[Optional[str]] = [None, None, None]
+
+        if "a" in first_card.number:
+            card_face_parts[1] = first_card.face_name
+        elif "b" in first_card.number:
+            card_face_parts[2] = first_card.face_name
+        else:
+            card_face_parts[0] = first_card.face_name
+
+        for other_card in mtgjson_set.cards:
+            if (
+                other_card.layout != "meld"
+                or first_card == other_card
+                or other_card.face_name not in first_card.get_names()
+            ):
+                continue
+
+            if "a" in other_card.number:
+                card_face_parts[1] = other_card.face_name
+            elif "b" in other_card.number:
+                card_face_parts[2] = other_card.face_name
+            else:
+                card_face_parts[0] = other_card.face_name
+
+        if any(not x for x in card_face_parts):
+            LOGGER.warning(f"Unable to properly parse Card Parts for {first_card}")
+            continue
+
+        first_card.card_parts = [x for x in card_face_parts if x]
+    LOGGER.info(f"Finished adding Card Face Parts for {mtgjson_set.code}")

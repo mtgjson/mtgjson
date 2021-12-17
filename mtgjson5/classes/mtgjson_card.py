@@ -25,6 +25,7 @@ class MtgjsonCardObject:
     ascii_name: Optional[str]
     availability: MtgjsonGameFormatsObject
     border_color: str
+    card_parts: List[str]
     color_identity: List[str]
     color_indicator: Optional[List[str]]
     colors: List[str]
