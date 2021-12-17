@@ -55,6 +55,7 @@ class MtgjsonCardObject:
     is_online_only: Optional[bool]
     is_oversized: Optional[bool]
     is_promo: Optional[bool]
+    is_rebalanced: Optional[bool]
     is_reprint: Optional[bool]
     is_reserved: Optional[bool]
     is_starter: Optional[bool]
@@ -71,6 +72,7 @@ class MtgjsonCardObject:
     mana_value: float
     name: str
     number: str
+    original_printings: List[str]
     original_release_date: Optional[str]
     original_text: Optional[str]
     original_type: Optional[str]
