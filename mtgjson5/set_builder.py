@@ -412,12 +412,15 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.base_set_size = base_total_sizes[0]
     mtgjson_set.total_set_size = base_total_sizes[1]
 
+    add_other_face_ids(mtgjson_set.cards)
     add_variations_and_alternative_fields(mtgjson_set)
 
     # Build tokens, a little less of a process
     mtgjson_set.tokens = build_base_mtgjson_tokens(
         f"T{set_code}", mtgjson_set.extra_tokens or []
     )
+
+    add_other_face_ids(mtgjson_set.tokens)
 
     mtgjson_set.tcgplayer_group_id = set_data.get("tcgplayer_id")
     mtgjson_set.booster = GitHubBoostersProvider().get_set_booster_data(set_code)
@@ -1003,9 +1006,11 @@ def build_mtgjson_card(
             mtgjson_card.identifiers.tcgplayer_etched_product_id + mtgjson_card.uuid
         )
         # Have to manually insert
-        mtgjson_card.raw_purchase_urls[
-            "tcgplayerEtched"
-        ] = f"https://shop.tcgplayer.com/product/productsearch?id={mtgjson_card.identifiers.tcgplayer_etched_product_id}&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson"
+        mtgjson_card.raw_purchase_urls["tcgplayerEtched"] = (
+            "https://shop.tcgplayer.com/product/productsearch"
+            + f"?id={mtgjson_card.identifiers.tcgplayer_etched_product_id}"
+            + "&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson"
+        )
 
     if is_token:
         reverse_related: List[str] = []
@@ -1031,8 +1036,8 @@ def build_mtgjson_card(
 
 def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None:
     """
-    Set the variations, other_face_ids, and is_alternative
-    statuses for all cards within the set object
+    Set the variations and is_alternative
+    statuses for all cards within the set object.
     :param mtgjson_set: MTGJSON Set Object to modify
     """
     if not mtgjson_set.cards:
@@ -1040,28 +1045,6 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
 
     LOGGER.info(f"Adding variations for {mtgjson_set.code}")
     for this_card in mtgjson_set.cards:
-        # Adds other face ID list
-        if this_card.get_names():
-            this_card.other_face_ids = []
-            for other_card in mtgjson_set.cards:
-                if other_card.face_name not in this_card.get_names():
-                    continue
-
-                if other_card.uuid == this_card.uuid:
-                    continue
-
-                if this_card.layout == "meld":
-                    # Meld cards should account for the other sides
-                    if this_card.side != other_card.side:
-                        this_card.other_face_ids.append(other_card.uuid)
-                elif other_card.number:
-                    # Most split cards should have the same number
-                    if other_card.number == this_card.number:
-                        this_card.other_face_ids.append(other_card.uuid)
-                else:
-                    # No number? No problem, just add it!
-                    this_card.other_face_ids.append(other_card.uuid)
-
         # Adds variations
         variations = [
             item.uuid
@@ -1115,6 +1098,42 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
                 this_card.is_alternative = True
 
     LOGGER.info(f"Finished adding variations for {mtgjson_set.code}")
+
+
+def add_other_face_ids(cards_to_act_on: List[MtgjsonCardObject]) -> None:
+    """
+    Add other face IDs to all cards within a group based on
+    that group. If a duplicate is found, the cards will link
+    via other_face_ids
+    :param cards_to_act_on: Cards to find duplicates of in the group
+    """
+    if not cards_to_act_on:
+        return
+
+    LOGGER.info("Adding otherFaceIds to group")
+    for this_card in cards_to_act_on:
+        # Adds other face ID list
+        if this_card.get_names():
+            this_card.other_face_ids = []
+            for other_card in cards_to_act_on:
+                if other_card.face_name not in this_card.get_names():
+                    continue
+
+                if other_card.uuid == this_card.uuid:
+                    continue
+
+                if this_card.layout == "meld":
+                    # Meld cards should account for the other sides
+                    if this_card.side != other_card.side:
+                        this_card.other_face_ids.append(other_card.uuid)
+                elif other_card.number:
+                    # Most split cards should have the same number
+                    if other_card.number == this_card.number:
+                        this_card.other_face_ids.append(other_card.uuid)
+                else:
+                    # No number? No problem, just add it!
+                    this_card.other_face_ids.append(other_card.uuid)
+    LOGGER.info("Finished adding otherFaceIds to group")
 
 
 def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
