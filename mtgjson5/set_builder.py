@@ -785,6 +785,7 @@ def build_mtgjson_card(
         scryfall_object.get("mtgo_foil_id")
     )
     mtgjson_card.number = scryfall_object.get("collector_number", "0")
+    mtgjson_card.security_stamp = scryfall_object.get("security_stamp")
 
     # Handle Promo Types for MTGJSON
     mtgjson_card.promo_types = scryfall_object.get("promo_types", [])
@@ -903,6 +904,11 @@ def build_mtgjson_card(
                 mtgjson_card.side = chr(face_names.index(mtgjson_card.face_name) + 97)
 
     # Implicit Variables
+    mtgjson_card.is_funny = scryfall_object.get("set_type") in {"funny"} and (
+        mtgjson_card.security_stamp in {"acorn"}
+        if mtgjson_card.set_code in {"UNF"}
+        else True
+    )
     mtgjson_card.is_timeshifted = (
         scryfall_object.get("frame") == "future"
         or mtgjson_card.set_code.lower() == "tsb"
