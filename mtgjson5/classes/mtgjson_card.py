@@ -50,6 +50,7 @@ class MtgjsonCardObject:
     identifiers: MtgjsonIdentifiersObject
     is_alternative: Optional[bool]
     is_full_art: Optional[bool]
+    is_funny: Optional[bool]
     is_online_only: Optional[bool]
     is_oversized: Optional[bool]
     is_promo: Optional[bool]
@@ -81,6 +82,7 @@ class MtgjsonCardObject:
     rarity: str
     reverse_related: Optional[List[str]]
     rulings: List[MtgjsonRulingObject]
+    security_stamp: Optional[str]
     side: Optional[str]
     signature: Optional[str]
     subtypes: List[str]

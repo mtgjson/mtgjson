@@ -35,6 +35,7 @@ class MtgjsonEnumValuesObject:
             "layout",
             "promoTypes",
             "rarity",
+            "securityStamp",
             "side",
             "subtypes",
             "supertypes",
