@@ -142,14 +142,23 @@ class GathererProvider(AbstractProvider):
             ):
                 flavor_lines.append(flavor_box.getText(strip=True))
 
-        text_lines = []
+        original_text_lines = []
         if "Card Text" in label_to_values:
             for textbox in label_to_values["Card Text"].find_all(
                 "div", class_="cardtextbox"
             ):
-                text_lines.append(self._replace_symbols(textbox).getText().strip())
+                textbox_value = self._replace_symbols(textbox).getText().strip()
 
-        original_text: Optional[str] = "\n".join(text_lines).strip() or None
+                # Introduce line breaks when necessary, as Gatherer doesn't provide this all the time
+                textbox_line = textbox_value.replace(card_name, "(CN)")
+                textbox_line = re.sub(
+                    r"([^ ({\"\-−+/>A-Z])([A-Z])", r"\1\n\2", textbox_line
+                )
+                textbox_line = textbox_line.replace("(CN)", card_name)
+
+                original_text_lines.extend(textbox_line.split("\n"))
+
+        original_text: Optional[str] = "\n".join(original_text_lines).strip() or None
         if strip_parentheses and original_text:
             original_text = self.strip_parentheses_from_text(original_text)
 
