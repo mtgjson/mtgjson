@@ -1,6 +1,7 @@
 """
 Decks via GitHub 3rd party provider
 """
+import copy
 import json
 import logging
 import pathlib
@@ -122,7 +123,7 @@ def build_single_card(card: Dict[str, Any]) -> List[Dict[str, Any]]:
         if card["mtgjson_uuid"] == mtgjson_card["uuid"]:
             mtgjson_card["count"] = card["count"]
             mtgjson_card["isFoil"] = card["foil"]
-            cards.append(mtgjson_card)
+            cards.append(copy.deepcopy(mtgjson_card))
 
     if not cards:
         LOGGER.warning(f"No matches found for {card}")
