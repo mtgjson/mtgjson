@@ -293,6 +293,32 @@ def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
     return sorted(mtgjson_rules, key=lambda ruling: ruling.date)
 
 
+def add_rebalanced_to_original_linkage(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    When Wizards rebalances a card, they break the link between
+    the new card and the original card. We will create a two-way
+    linkage back to and from the original card,
+    should that prove useful to the end user.
+    :param mtgjson_set MTGJSON Set object
+    """
+    LOGGER.info(f"Linking rebalanced cards for {mtgjson_set.code}")
+
+    for card in mtgjson_set.cards:
+        if getattr(card, "is_rebalanced", False):
+            original_card_name_to_find = card.name.replace("A-", "")
+
+            original_card_uuids = []
+            for inner_card in mtgjson_set.cards:
+                if inner_card.name == original_card_name_to_find:
+                    # Doubly link these cards
+                    original_card_uuids.append(inner_card.uuid)
+                    if not hasattr(inner_card, "rebalanced_printings"):
+                        inner_card.rebalanced_printings = []
+                    inner_card.rebalanced_printings.append(card.uuid)
+
+            card.original_printings = original_card_uuids
+
+
 def relocate_miscellaneous_tokens(mtgjson_set: MtgjsonSetObject) -> None:
     """
     Sometimes tokens find their way into the main set. This will
@@ -404,6 +430,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
         set_code, set_release_date=mtgjson_set.release_date
     )
     add_is_starter_option(set_code, mtgjson_set.search_uri, mtgjson_set.cards)
+    add_rebalanced_to_original_linkage(mtgjson_set)
     relocate_miscellaneous_tokens(mtgjson_set)
     add_mcm_details(mtgjson_set)
     add_card_kingdom_details(mtgjson_set)
@@ -930,6 +957,10 @@ def build_mtgjson_card(
     mtgjson_card.types = card_types[1]
     mtgjson_card.subtypes = card_types[2]
 
+    if mtgjson_card.name.startswith("A-"):
+        mtgjson_card.is_alternative = True
+        mtgjson_card.is_rebalanced = True
+
     if "Planeswalker" in mtgjson_card.types:
         mtgjson_card.text = re.sub(r"([+−-]?[0-9X]+):", r"[\1]:", mtgjson_card.text)
 
@@ -1324,7 +1355,10 @@ def get_base_and_total_set_sizes(mtgjson_set: MtgjsonSetObject) -> Tuple[int, in
 
             base_set_size = int(base_set_size_download.get("total_cards", 0))
 
-    return base_set_size, len(mtgjson_set.cards)
+    total_set_size = sum(
+        1 for card in mtgjson_set.cards if not getattr(card, "is_rebalanced", False)
+    )
+    return base_set_size, total_set_size
 
 
 def get_signature_from_number(mtgjson_card: MtgjsonCardObject) -> Optional[str]:
