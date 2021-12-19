@@ -296,9 +296,9 @@ def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
 def add_rebalanced_to_original_linkage(mtgjson_set: MtgjsonSetObject) -> None:
     """
     When Wizards rebalances a card, they break the link between
-    the new card and the original card. We will create a one-way
-    linkage back to the original card, should that prove useful
-    to the end user.
+    the new card and the original card. We will create a two-way
+    linkage back to and from the original card,
+    should that prove useful to the end user.
     :param mtgjson_set MTGJSON Set object
     """
     LOGGER.info(f"Linking rebalanced cards for {mtgjson_set.code}")
@@ -310,7 +310,11 @@ def add_rebalanced_to_original_linkage(mtgjson_set: MtgjsonSetObject) -> None:
             original_card_uuids = []
             for inner_card in mtgjson_set.cards:
                 if inner_card.name == original_card_name_to_find:
+                    # Doubly link these cards
                     original_card_uuids.append(inner_card.uuid)
+                    if not hasattr(inner_card, "rebalanced_printings"):
+                        inner_card.rebalanced_printings = []
+                    inner_card.rebalanced_printings.append(card.uuid)
 
             card.original_printings = original_card_uuids
 

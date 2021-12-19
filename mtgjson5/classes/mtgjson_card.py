@@ -83,6 +83,7 @@ class MtgjsonCardObject:
     promo_types: List[str]
     purchase_urls: MtgjsonPurchaseUrlsObject
     rarity: str
+    rebalanced_printings: List[str]
     reverse_related: Optional[List[str]]
     rulings: List[MtgjsonRulingObject]
     security_stamp: Optional[str]
