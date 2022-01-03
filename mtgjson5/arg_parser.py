@@ -3,13 +3,8 @@ MTGJSON Arg Parser to determine what actions to take
 """
 import argparse
 import logging
-import pathlib
+import os
 import sys
-from typing import List
-
-from .compiled_classes import MtgjsonStructuresObject
-from .consts import BAD_FILE_NAMES, OUTPUT_PATH
-from .providers import ScryfallProvider
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,11 +17,17 @@ def parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser("mtgjson5")
 
+    parser.add_argument(
+        "--use-envvars",
+        action="store_true",
+        help="Use environment variables over parser flags for build operations",
+    )
+
     # What set(s) to build
     sets_group = parser.add_mutually_exclusive_group()
     sets_group.add_argument(
-        "-s",
         "--sets",
+        "-s",
         type=str.upper,
         nargs="*",
         metavar="SET",
@@ -34,39 +35,39 @@ def parse_args() -> argparse.Namespace:
         help="Set(s) to build, using Scryfall set code notation. Non-existent sets silently ignored.",
     )
     sets_group.add_argument(
-        "-a",
         "--all-sets",
+        "-a",
         action="store_true",
         help="Build all possible sets, overriding the --sets option.",
     )
 
     parser.add_argument(
-        "-c",
         "--full-build",
+        "-c",
         action="store_true",
         help="Build new prices, MTGSQLive, and compiled outputs like AllPrintings.",
     )
     parser.add_argument(
-        "-x",
         "--resume-build",
+        "-x",
         action="store_true",
         help="While determining what sets to build, ignore individual set files found in the output directory.",
     )
     parser.add_argument(
-        "-z",
         "--compress",
+        "-z",
         action="store_true",
         help="Compress the output folder's contents for distribution.",
     )
     parser.add_argument(
-        "-p",
         "--pretty",
+        "-p",
         action="store_true",
         help="When dumping JSON files, prettify the contents instead of minifying them.",
     )
     parser.add_argument(
-        "-SS",
         "--skip-sets",
+        "-SS",
         type=str.upper,
         nargs="*",
         metavar="SET",
@@ -76,22 +77,34 @@ def parse_args() -> argparse.Namespace:
 
     mtgjson_arg_group = parser.add_argument_group("mtgjson maintainer arguments")
     mtgjson_arg_group.add_argument(
-        "-PB",
         "--price-build",
+        "-PB",
         action="store_true",
         help="Build updated pricing data then exit.",
     )
     mtgjson_arg_group.add_argument(
-        "-R",
         "--referrals",
+        "-R",
         action="store_true",
         help="Create and maintain a referral map for referral linkages.",
     )
     mtgjson_arg_group.add_argument(
-        "-NA",
         "--no-alerts",
+        "-NA",
         action="store_true",
         help="Prevent push notifications from sending when property keys are defined.",
+    )
+    mtgjson_arg_group.add_argument(
+        "--aws-ssm-download-config",
+        type=str,
+        metavar="CONFIG_NAME",
+        help="AWS Parameter Store config name to load in, if local config file is not wanted/available.",
+    )
+    mtgjson_arg_group.add_argument(
+        "--aws-s3-upload-bucket",
+        type=str,
+        metavar="BUCKET_NAME",
+        help="Upload finished results to an S3 bucket.",
     )
 
     # Show help menu if no arguments are passed
@@ -99,78 +112,23 @@ def parse_args() -> argparse.Namespace:
         parser.print_help()
         parser.exit()
 
-    return parser.parse_args()
+    parsed_args = parser.parse_args()
 
+    if parsed_args.use_envvars:
+        LOGGER.info("Using environment variables over parser flags")
+        parsed_args.sets = list(filter(None, os.environ.get("SETS", "").split(",")))
+        parsed_args.all_sets = bool(os.environ.get("ALL_SETS", False))
+        parsed_args.full_build = bool(os.environ.get("FULL_BUILD", False))
+        parsed_args.resume_build = bool(os.environ.get("RESUME_BUILD", False))
+        parsed_args.compress = bool(os.environ.get("COMPRESS", False))
+        parsed_args.pretty = bool(os.environ.get("PRETTY", False))
+        parsed_args.skip_sets = list(
+            filter(None, os.environ.get("SKIP_SETS", "").split(","))
+        )
+        parsed_args.price_build = bool(os.environ.get("PRICE_BUILD", False))
+        parsed_args.referrals = bool(os.environ.get("REFERRALS", False))
+        parsed_args.no_alerts = bool(os.environ.get("NO_ALERTS", False))
+        parsed_args.aws_ssm_download_config = os.environ.get("AWS_SSM_DOWNLOAD_CONFIG")
+        parsed_args.aws_s3_upload_bucket = os.environ.get("AWS_S3_UPLOAD_BUCKET")
 
-def get_sets_already_built() -> List[str]:
-    """
-    Grab sets that have already been compiled by the system
-    :return: List of all set codes found
-    """
-    json_output_files: List[pathlib.Path] = list(OUTPUT_PATH.glob("**/*.json"))
-
-    set_codes_found = list(
-        {file.stem for file in json_output_files}
-        - set(MtgjsonStructuresObject().get_all_compiled_file_names())
-    )
-
-    LOGGER.info(f"Sets Built Already: {', '.join(set_codes_found)}")
-
-    set_codes_found = [
-        set_code[:-1] if set_code[:-1] in BAD_FILE_NAMES else set_code
-        for set_code in set_codes_found
-    ]
-
-    return set_codes_found
-
-
-def get_all_scryfall_sets() -> List[str]:
-    """
-    Grab all sets that Scryfall currently supports
-    :return: Scryfall sets
-    """
-    scryfall_instance = ScryfallProvider()
-    scryfall_sets = scryfall_instance.download(scryfall_instance.ALL_SETS_URL)
-
-    if scryfall_sets["object"] == "error":
-        LOGGER.error(f"Downloading Scryfall data failed: {scryfall_sets}")
-        return []
-
-    # Get _ALL_ Scryfall sets
-    scryfall_set_codes = [set_obj["code"].upper() for set_obj in scryfall_sets["data"]]
-
-    # Remove Scryfall token sets (but leave extra sets)
-    scryfall_set_codes = [
-        set_code
-        for set_code in scryfall_set_codes
-        if not (set_code.startswith("t") and set_code[1:] in scryfall_set_codes)
-    ]
-
-    return sorted(scryfall_set_codes)
-
-
-def get_sets_to_build(args: argparse.Namespace) -> List[str]:
-    """
-    Grab what sets to build given build params
-    :param args: CLI args
-    :return: List of sets to construct, alphabetically
-    """
-    if args.resume_build:
-        # Exclude sets we have already built
-        args.skip_sets.extend(get_sets_already_built())
-
-    if not args.all_sets:
-        # We have a sub-set list, so only return what we want
-        return sorted(list(set(args.sets) - set(args.skip_sets)))
-
-    scryfall_sets = get_all_scryfall_sets()
-
-    # Remove Scryfall token sets (but leave extra sets)
-    non_token_sets = {
-        s for s in scryfall_sets if not (s.startswith("T") and s[1:] in scryfall_sets)
-    }
-
-    # Remove sets to skip
-    return_list = list(non_token_sets - set(args.skip_sets))
-
-    return sorted(return_list)
+    return parsed_args

@@ -7,7 +7,7 @@ import pathlib
 from typing import Any, Dict, List, Union
 
 from ..compiled_classes.mtgjson_all_printings import MtgjsonAllPrintingsObject
-from ..consts import OUTPUT_PATH
+from ..mtgjson_config import MtgjsonConfig
 from ..utils import sort_internal_lists
 from .mtgjson_structures import MtgjsonStructuresObject
 
@@ -59,11 +59,13 @@ class MtgjsonEnumValuesObject:
         )
         self.attr_value_dict.update(set_and_cards)
 
-        decks = self.construct_deck_enums(OUTPUT_PATH.joinpath("decks"))
+        decks = self.construct_deck_enums(MtgjsonConfig().output_path.joinpath("decks"))
         self.attr_value_dict.update(decks)
 
         # Load in pre-generated Keywords content
-        keywords = OUTPUT_PATH.joinpath(MtgjsonStructuresObject().key_words + ".json")
+        keywords = MtgjsonConfig().output_path.joinpath(
+            MtgjsonStructuresObject().key_words + ".json"
+        )
         if not keywords.is_file():
             LOGGER.warning(f"Unable to find {keywords}")
         else:

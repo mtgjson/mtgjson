@@ -1,7 +1,6 @@
 """
 Construct Prices for MTGJSON
 """
-import configparser
 import datetime
 import json
 import logging
@@ -14,7 +13,8 @@ import dateutil.relativedelta
 import git
 import requests
 
-from .consts import CACHE_PATH, OUTPUT_PATH
+from . import constants
+from .mtgjson_config import MtgjsonConfig
 from .providers import (
     CardHoarderProvider,
     CardKingdomProvider,
@@ -27,19 +27,21 @@ LOGGER = logging.getLogger(__name__)
 
 
 def download_prices_archive(
-    config: configparser.ConfigParser,
     github_repo_local_path: pathlib.Path,
 ) -> Dict[str, Dict[str, float]]:
     """
     Grab the contents from a gist file
-    :param config: Keys config
     :param github_repo_local_path: Where to checkout the repo to
     :return: File content
     """
-    github_username = config.get("GitHub", "username")
-    github_api_key = config.get("GitHub", "api_key")
-    github_repo_name = config.get("GitHub", "repo_name")
-    github_file_name = config.get("GitHub", "file_name")
+    if not MtgjsonConfig().has_section("GitHub"):
+        LOGGER.warning("GitHub section not established. Skipping download.")
+        return {}
+
+    github_username = MtgjsonConfig().get("GitHub", "username")
+    github_api_key = MtgjsonConfig().get("GitHub", "api_key")
+    github_repo_name = MtgjsonConfig().get("GitHub", "repo_name")
+    github_file_name = MtgjsonConfig().get("GitHub", "file_name")
 
     github_url = f"https://{github_username}:{github_api_key}@github.com/{github_username}/{github_repo_name}.git"
 
@@ -56,25 +58,23 @@ def download_prices_archive(
 
 
 def upload_prices_archive(
-    config: configparser.ConfigParser,
     github_repo_local_path: pathlib.Path,
     content: Any,
 ) -> None:
     """
     Upload prices archive back to GitHub
-    :param config Config for GitHub
     :param github_repo_local_path: Local file system file
     :param content: File content
     """
-    if "GitHub" not in config.sections():
-        LOGGER.warning("GitHub section not established. Skipping upload")
+    if not MtgjsonConfig().has_section("GitHub"):
+        LOGGER.warning("GitHub section not established. Skipping upload.")
         return
 
     # Config values for GitHub
-    github_username = config.get("GitHub", "username")
-    github_api_token = config.get("GitHub", "api_key")
-    github_file_name = config.get("GitHub", "file_name")
-    github_repo_name = config.get("GitHub", "repo_name")
+    github_username = MtgjsonConfig().get("GitHub", "username")
+    github_api_token = MtgjsonConfig().get("GitHub", "api_key")
+    github_file_name = MtgjsonConfig().get("GitHub", "file_name")
+    github_repo_name = MtgjsonConfig().get("GitHub", "repo_name")
 
     if not (
         github_username and github_api_token and github_file_name and github_repo_name
@@ -155,8 +155,10 @@ def build_today_prices() -> Dict[str, Any]:
     Get today's prices from upstream sources and combine them together
     :return: Today's prices (to be merged into archive)
     """
-    if not OUTPUT_PATH.joinpath("AllPrintings.json").is_file():
-        LOGGER.error(f"Unable to build prices. AllPrintings not found in {OUTPUT_PATH}")
+    if not MtgjsonConfig().output_path.joinpath("AllPrintings.json").is_file():
+        LOGGER.error(
+            f"Unable to build prices. AllPrintings not found in {MtgjsonConfig().output_path}"
+        )
         return {}
 
     card_hoarder = _generate_prices(CardHoarderProvider())
@@ -180,7 +182,7 @@ def _generate_prices(provider: Any) -> Dict[str, Any]:
     """
     try:
         preprocess_prices = provider.generate_today_price_dict(
-            OUTPUT_PATH.joinpath("AllPrintings.json")
+            MtgjsonConfig().output_path.joinpath("AllPrintings.json")
         )
 
         final_prices: Dict[str, Any] = json.loads(
@@ -199,16 +201,15 @@ def get_price_archive_data() -> Dict[str, Dict[str, float]]:
     Download compiled MTGJSON price data
     :return: MTGJSON price data
     """
-    config = TCGPlayerProvider().get_configs()
 
-    if "GitHub" not in config.sections():
-        LOGGER.warning("GitHub section not established. Skipping requests")
+    if not MtgjsonConfig().has_section("GitHub"):
+        LOGGER.warning("GitHub section not established. Skipping requests.")
         return {}
 
     # Get the current working database
     LOGGER.info("Downloading Price Data Repo")
-    github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
-    return download_prices_archive(config, github_local_path)
+    github_local_path = constants.CACHE_PATH.joinpath("GitHub-PricesArchive")
+    return download_prices_archive(github_local_path)
 
 
 def download_old_all_printings() -> None:
@@ -224,8 +225,10 @@ def download_old_all_printings() -> None:
         if chunk:
             file_bytes += chunk
 
-    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
-    with OUTPUT_PATH.joinpath("AllPrintings.json").open("w", encoding="utf8") as f:
+    MtgjsonConfig().output_path.mkdir(parents=True, exist_ok=True)
+    with MtgjsonConfig().output_path.joinpath("AllPrintings.json").open(
+        "w", encoding="utf8"
+    ) as f:
         f.write(lzma.decompress(file_bytes).decode())
 
 
@@ -238,7 +241,7 @@ def build_prices() -> Dict[str, Any]:
     LOGGER.info("Prices Build - Building Prices")
 
     # We'll need AllPrintings.json to handle this
-    if not OUTPUT_PATH.joinpath("AllPrintings.json").is_file():
+    if not MtgjsonConfig().output_path.joinpath("AllPrintings.json").is_file():
         LOGGER.info("AllPrintings not found, attempting to download")
         download_old_all_printings()
 
@@ -262,12 +265,11 @@ def build_prices() -> Dict[str, Any]:
 
     # Push changes to remote database
     LOGGER.info("Uploading price data")
-    config = TCGPlayerProvider().get_configs()
-    github_local_path = CACHE_PATH.joinpath("GitHub-PricesArchive")
-    upload_prices_archive(config, github_local_path, archive_prices)
+    github_local_path = constants.CACHE_PATH.joinpath("GitHub-PricesArchive")
+    upload_prices_archive(github_local_path, archive_prices)
 
     # Return the latest prices
-    CACHE_PATH.joinpath("last_price_build_time").touch()
+    constants.CACHE_PATH.joinpath("last_price_build_time").touch()
     return archive_prices
 
 
@@ -277,7 +279,7 @@ def should_build_new_prices() -> bool:
     is no reason to build them again
     :return: Should prices be rebuilt
     """
-    cache_file = CACHE_PATH.joinpath("last_price_build_time")
+    cache_file = constants.CACHE_PATH.joinpath("last_price_build_time")
 
     if not cache_file.is_file():
         return True

@@ -6,6 +6,7 @@ import logging
 import pathlib
 from typing import Any, Dict, List
 
+from . import constants
 from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject
 from .compiled_classes import (
     MtgjsonAllIdentifiersObject,
@@ -20,12 +21,7 @@ from .compiled_classes import (
     MtgjsonStructuresObject,
     MtgjsonTcgplayerSkusObject,
 )
-from .consts import (
-    HASH_TO_GENERATE,
-    OUTPUT_PATH,
-    SUPPORTED_FORMAT_OUTPUTS,
-    SUPPORTED_SET_TYPES,
-)
+from .mtgjson_config import MtgjsonConfig
 from .price_builder import build_prices, get_price_archive_data, should_build_new_prices
 from .providers import GitHubDecksProvider
 from .utils import get_file_hash
@@ -203,7 +199,9 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     # AllTcgplayerSkus.json
     create_compiled_output(
         MtgjsonStructuresObject().all_tcgplayer_skus,
-        MtgjsonTcgplayerSkusObject(OUTPUT_PATH.joinpath("AllPrintings.json")),
+        MtgjsonTcgplayerSkusObject(
+            MtgjsonConfig().output_path.joinpath("AllPrintings.json")
+        ),
         pretty_print,
     )
 
@@ -294,7 +292,7 @@ def create_compiled_output(
 
 
 def construct_format_map(
-    all_printings_path: pathlib.Path = OUTPUT_PATH.joinpath(
+    all_printings_path: pathlib.Path = MtgjsonConfig().output_path.joinpath(
         f"{MtgjsonStructuresObject().all_printings}.json"
     ),
     normal_sets_only: bool = True,
@@ -308,7 +306,7 @@ def construct_format_map(
     :return: Format Map for future identifications
     """
     format_map: Dict[str, List[str]] = {
-        magic_format: [] for magic_format in SUPPORTED_FORMAT_OUTPUTS
+        magic_format: [] for magic_format in constants.SUPPORTED_FORMAT_OUTPUTS
     }
 
     if not all_printings_path.is_file():
@@ -319,10 +317,13 @@ def construct_format_map(
         content = json.load(file)
 
     for set_code_key, set_code_content in content.get("data", {}).items():
-        if normal_sets_only and set_code_content.get("type") not in SUPPORTED_SET_TYPES:
+        if (
+            normal_sets_only
+            and set_code_content.get("type") not in constants.SUPPORTED_SET_TYPES
+        ):
             continue
 
-        formats_set_legal_in = SUPPORTED_FORMAT_OUTPUTS
+        formats_set_legal_in = constants.SUPPORTED_FORMAT_OUTPUTS
         for card in set_code_content.get("cards"):
             card_legalities = set(card.get("legalities").keys())
             formats_set_legal_in = formats_set_legal_in.intersection(card_legalities)
@@ -334,7 +335,7 @@ def construct_format_map(
 
 
 def construct_atomic_cards_format_map(
-    all_printings_path: pathlib.Path = OUTPUT_PATH.joinpath(
+    all_printings_path: pathlib.Path = MtgjsonConfig().output_path.joinpath(
         f"{MtgjsonStructuresObject().all_printings}.json"
     ),
 ) -> Dict[str, Any]:
@@ -346,7 +347,7 @@ def construct_atomic_cards_format_map(
     :return: Cards in a format map
     """
     format_card_map: Dict[str, List[Dict[str, Any]]] = {
-        magic_format: [] for magic_format in SUPPORTED_FORMAT_OUTPUTS
+        magic_format: [] for magic_format in constants.SUPPORTED_FORMAT_OUTPUTS
     }
 
     if not all_printings_path.is_file():
@@ -389,14 +390,14 @@ def generate_output_file_hashes(directory: pathlib.Path) -> None:
             continue
 
         # Don't hash the hash file...
-        if file.name.endswith(HASH_TO_GENERATE.name):
+        if file.name.endswith(constants.HASH_TO_GENERATE.name):
             continue
 
         generated_hash = get_file_hash(file)
         if not generated_hash:
             continue
 
-        hash_file_name = f"{file.name}.{HASH_TO_GENERATE.name}"
+        hash_file_name = f"{file.name}.{constants.HASH_TO_GENERATE.name}"
         with file.parent.joinpath(hash_file_name).open(
             "w", encoding="utf-8"
         ) as hash_file:
@@ -410,7 +411,7 @@ def write_to_file(file_name: str, file_contents: Any, pretty_print: bool) -> Non
     :param file_contents: Contents to dump
     :param pretty_print: Pretty or minimal
     """
-    write_file = OUTPUT_PATH.joinpath(f"{file_name}.json")
+    write_file = MtgjsonConfig().output_path.joinpath(f"{file_name}.json")
     write_file.parent.mkdir(parents=True, exist_ok=True)
 
     with write_file.open("w", encoding="utf-8") as file:

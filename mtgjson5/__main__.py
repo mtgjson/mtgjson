@@ -5,27 +5,13 @@ import gevent.monkey  # isort:skip
 
 gevent.monkey.patch_all()  # isort:skip
 
-
 import argparse
 import logging
-import sys
 import traceback
 from typing import List, Set, Union
 
-from mtgjson5.arg_parser import get_sets_to_build, parse_args
-from mtgjson5.compress_generator import compress_mtgjson_contents
-from mtgjson5.consts import CONFIG_PATH, MTGJSON_VERSION, OUTPUT_PATH
-from mtgjson5.output_generator import (
-    generate_compiled_output_files,
-    generate_compiled_prices_output,
-    generate_output_file_hashes,
-    write_to_file,
-)
-from mtgjson5.price_builder import build_prices
-from mtgjson5.providers import GitHubMTGSqliteProvider, WhatsInStandardProvider
-from mtgjson5.referral_builder import build_and_write_referral_map, fixup_referral_map
-from mtgjson5.set_builder import build_mtgjson_set
-from mtgjson5.utils import init_logger, send_push_notification
+from mtgjson5 import constants
+from mtgjson5.utils import init_logger
 
 
 def build_mtgjson_sets(
@@ -36,9 +22,17 @@ def build_mtgjson_sets(
     """
     Build each set one-by-one and output them to a file
     :param sets_to_build: Sets to construct
-    :param output_pretty: Should we dump minified?
-    :param include_referrals: Should we include referrals?
+    :param output_pretty: Should we dump minified
+    :param include_referrals: Should we include referrals
     """
+    from mtgjson5.output_generator import write_to_file
+    from mtgjson5.providers import WhatsInStandardProvider
+    from mtgjson5.referral_builder import (
+        build_and_write_referral_map,
+        fixup_referral_map,
+    )
+    from mtgjson5.set_builder import build_mtgjson_set
+
     LOGGER.info(f"Building {len(sets_to_build)} Sets: {', '.join(sets_to_build)}")
 
     # Prime WhatsInStandard lookup
@@ -70,29 +64,40 @@ def validate_config_file_in_place() -> None:
     Check to see if the MTGJSON config file was found.
     If not, kill the system with an error message.
     """
-    if not CONFIG_PATH.exists():
+    if not constants.CONFIG_PATH.exists():
         LOGGER.error(
-            f"{CONFIG_PATH.name} was not found ({CONFIG_PATH}). "
+            f"{constants.CONFIG_PATH.name} was not found ({constants.CONFIG_PATH}). "
             "Please create this file and re-run the program. "
             "You can copy paste the example file into the "
             "correct location and (optionally) fill in your keys."
         )
-        sys.exit(1)
+        raise ValueError("ConfigPath not found")
 
 
 def dispatcher(args: argparse.Namespace) -> None:
     """
     MTGJSON Dispatcher
     """
+    from mtgjson5.compress_generator import compress_mtgjson_contents
+    from mtgjson5.mtgjson_config import MtgjsonConfig
+    from mtgjson5.output_generator import (
+        generate_compiled_output_files,
+        generate_compiled_prices_output,
+        generate_output_file_hashes,
+    )
+    from mtgjson5.output_uploader import MtgjsonUploader
+    from mtgjson5.price_builder import build_prices
+    from mtgjson5.providers import GitHubMTGSqliteProvider, ScryfallProvider
+
     # If a price build, simply build prices and exit
     if args.price_build:
         generate_compiled_prices_output(build_prices(), args.pretty)
         if args.compress:
-            compress_mtgjson_contents(OUTPUT_PATH)
-        generate_output_file_hashes(OUTPUT_PATH)
+            compress_mtgjson_contents(MtgjsonConfig().output_path)
+        generate_output_file_hashes(MtgjsonConfig().output_path)
         return
 
-    sets_to_build = get_sets_to_build(args)
+    sets_to_build = ScryfallProvider().get_sets_to_build(args)
     if sets_to_build:
         build_mtgjson_sets(sets_to_build, args.pretty, args.referrals)
 
@@ -101,18 +106,33 @@ def dispatcher(args: argparse.Namespace) -> None:
         GitHubMTGSqliteProvider().build_sql_and_csv_files()
 
     if args.compress:
-        compress_mtgjson_contents(OUTPUT_PATH)
-    generate_output_file_hashes(OUTPUT_PATH)
+        compress_mtgjson_contents(MtgjsonConfig().output_path)
+    generate_output_file_hashes(MtgjsonConfig().output_path)
+
+    if args.aws_s3_upload_bucket:
+        MtgjsonUploader().upload_directory(
+            MtgjsonConfig().output_path, args.aws_s3_upload_bucket
+        )
 
 
 def main() -> None:
     """
     MTGJSON safe main call
     """
-    LOGGER.info(f"Starting MTGJSON {MTGJSON_VERSION}")
-    args = parse_args()
+    from mtgjson5.arg_parser import parse_args
+    from mtgjson5.mtgjson_config import MtgjsonConfig
+    from mtgjson5.utils import send_push_notification
 
-    validate_config_file_in_place()
+    args = parse_args()
+    if args.aws_ssm_download_config:
+        MtgjsonConfig(args.aws_ssm_download_config)
+    else:
+        validate_config_file_in_place()
+        MtgjsonConfig()
+
+    LOGGER.info(
+        f"Starting {MtgjsonConfig().mtgjson_version} on {constants.MTGJSON_BUILD_DATE}"
+    )
 
     try:
         if not args.no_alerts:
@@ -120,13 +140,13 @@ def main() -> None:
         dispatcher(args)
         if not args.no_alerts:
             send_push_notification("Build finished")
-    except Exception:
-        LOGGER.fatal(f"Exception caught: {traceback.format_exc()}")
+    except Exception as error:
+        LOGGER.fatal(f"Exception caught: {error} {traceback.format_exc()}")
         if not args.no_alerts:
-            send_push_notification(f"Build failed\n{traceback.format_exc()}")
+            send_push_notification(f"Build failed: {error}\n{traceback.format_exc()}")
 
 
 if __name__ == "__main__":
     init_logger()
-    LOGGER = logging.getLogger(__name__)
+    LOGGER: logging.Logger = logging.getLogger(__name__)
     main()

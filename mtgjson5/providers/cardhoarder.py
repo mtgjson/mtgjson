@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Union
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
+from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 from ..utils import get_all_cards_and_tokens, retryable_session
 
@@ -36,17 +37,17 @@ class CardHoarderProvider(AbstractProvider):
         headers: Dict[str, str] = {}
         __keys_found: bool
 
-        config = self.get_configs()
-
-        if "CardHoarder" not in config.sections():
+        if not MtgjsonConfig().has_section("CardHoarder"):
             LOGGER.warning("CardHoarder section not established. Skipping upload")
             self.__keys_found = False
             self.ch_api_url = ""
             return headers
 
-        if config.get("CardHoarder", "token"):
+        if MtgjsonConfig().get("CardHoarder", "token"):
             self.__keys_found = True
-            self.ch_api_url = self.ch_api_url.format(config.get("CardHoarder", "token"))
+            self.ch_api_url = self.ch_api_url.format(
+                MtgjsonConfig().get("CardHoarder", "token")
+            )
         else:
             LOGGER.info("CardHoarder keys values missing. Skipping pricing")
             self.__keys_found = False

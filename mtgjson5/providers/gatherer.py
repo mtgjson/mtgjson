@@ -12,7 +12,7 @@ import requests
 import urllib3.exceptions
 from singleton_decorator import singleton
 
-from ..consts import SYMBOL_MAP
+from .. import constants
 from ..providers.abstract import AbstractProvider
 from ..utils import retryable_session
 
@@ -182,7 +182,7 @@ class GathererProvider(AbstractProvider):
         images = tag_copy.find_all("img")
         for image in images:
             alt = image["alt"]
-            symbol = SYMBOL_MAP.get(alt, alt)
+            symbol = constants.SYMBOL_MAP.get(alt, alt)
             image.replace_with("{" + symbol + "}")
         return tag_copy
 

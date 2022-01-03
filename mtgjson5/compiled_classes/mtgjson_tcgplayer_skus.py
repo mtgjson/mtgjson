@@ -7,8 +7,11 @@ import pathlib
 from collections import defaultdict
 from typing import DefaultDict, Dict, List, Union
 
-from ..providers import TCGPlayerProvider
-from ..providers.tcgplayer import convert_sku_data_enum, get_tcgplayer_sku_data
+from ..providers.tcgplayer import (
+    TCGPlayerProvider,
+    convert_sku_data_enum,
+    get_tcgplayer_sku_data,
+)
 from ..utils import generate_card_mapping
 
 LOGGER = logging.getLogger(__name__)

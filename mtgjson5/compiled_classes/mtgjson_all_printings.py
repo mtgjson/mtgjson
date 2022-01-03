@@ -6,7 +6,7 @@ import pathlib
 from typing import Dict, List
 
 from ..classes import MtgjsonSetObject
-from ..consts import OUTPUT_PATH
+from ..mtgjson_config import MtgjsonConfig
 from .mtgjson_structures import MtgjsonStructuresObject
 
 
@@ -51,7 +51,7 @@ class MtgjsonAllPrintingsObject:
         """
         return [
             file_path
-            for file_path in OUTPUT_PATH.glob("*.json")
+            for file_path in MtgjsonConfig().output_path.glob("*.json")
             if file_path.stem not in files_to_ignore
         ]
 

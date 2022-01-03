@@ -3,10 +3,10 @@ MTGJSON Singular Set Object
 """
 from typing import Any, Dict, List, Optional, Set
 
+from .. import constants
 from ..classes.mtgjson_card import MtgjsonCardObject
 from ..classes.mtgjson_sealed_product import MtgjsonSealedProductObject
 from ..classes.mtgjson_translations import MtgjsonTranslationsObject
-from ..consts import BAD_FILE_NAMES
 from ..utils import to_camel_case
 
 
@@ -93,7 +93,7 @@ class MtgjsonSetObject:
         on Windows.
         :return: Set name an appended underscore, if necessary
         """
-        if self.code in BAD_FILE_NAMES:
+        if self.code in constants.BAD_FILE_NAMES:
             return self.code + "_"
 
         return self.code

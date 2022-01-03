@@ -1,0 +1,53 @@
+name: Generate Docker Container
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        id: checkout-repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Get Branch Name
+        id: branch-name
+        uses: tj-actions/branch-names@v5.1
+
+      - name: Generate Tag
+        id: generate-tag
+        run: |
+          echo "::set-output name=release_tag::mtgjson:$(date +"%Y-%m-%d_%H-%M")-${{ steps.branch-name.outputs.current_branch }}"
+
+      - name: Build Image
+        id: build-image
+        run: docker build --no-cache -t ${{ steps.generate-tag.outputs.release_tag }} .
+
+      - name: Upload Image to GitHub Actions Archive
+        id: upload-gha
+        uses: ishworkh/docker-image-artifact-upload@v1
+        with:
+          image: ${{ steps.generate-tag.outputs.release_tag }}
+
+      - name: Upload Image to Amazon ECR
+        if: ${{ steps.branch-name.outputs.current_branch == 'master' }}
+        id: upload-ecr
+        uses: jwalton/gh-ecr-push@v1
+        with:
+          access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_ECR_UPLOADER }}
+          secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ECR_UPLOADER }}
+          region: us-east-1
+          local-image: ${{ steps.generate-tag.outputs.release_tag }}
+          image: ${{ steps.generate-tag.outputs.release_tag }}, mtgjson:latest

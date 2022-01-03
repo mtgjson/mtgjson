@@ -18,8 +18,9 @@ from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
 from singleton_decorator import singleton
 
+from .. import constants
 from ..classes import MtgjsonPricesObject
-from ..consts import RESOURCE_PATH
+from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping
 
@@ -40,19 +41,17 @@ class CardMarketProvider(AbstractProvider):
     def __init__(self, headers: Dict[str, str] = None):
         super().__init__(headers or {})
 
-        config = self.get_configs()
-
-        if "CardMarket" not in config.sections():
-            LOGGER.warning("CardMarket section not established. Skipping requests")
+        if not MtgjsonConfig().has_section("CardMarket"):
+            LOGGER.warning("CardMarket section not established. Skipping requests.")
             self.__keys_found = False
             return
 
-        os.environ["MKM_APP_TOKEN"] = config.get("CardMarket", "app_token")
-        os.environ["MKM_APP_SECRET"] = config.get("CardMarket", "app_secret")
-        os.environ["MKM_ACCESS_TOKEN"] = config.get(
+        os.environ["MKM_APP_TOKEN"] = MtgjsonConfig().get("CardMarket", "app_token")
+        os.environ["MKM_APP_SECRET"] = MtgjsonConfig().get("CardMarket", "app_secret")
+        os.environ["MKM_ACCESS_TOKEN"] = MtgjsonConfig().get(
             "CardMarket", "mkm_access_token", fallback=""
         )
-        os.environ["MKM_ACCESS_TOKEN_SECRET"] = config.get(
+        os.environ["MKM_ACCESS_TOKEN_SECRET"] = MtgjsonConfig().get(
             "CardMarket", "mkm_access_token_secret", fallback=""
         )
 
@@ -162,7 +161,7 @@ class CardMarketProvider(AbstractProvider):
             }
 
         # Update the set map with manual overrides
-        with RESOURCE_PATH.joinpath("mkm_set_name_fixes.json").open() as f:
+        with constants.RESOURCE_PATH.joinpath("mkm_set_name_fixes.json").open() as f:
             mkm_set_name_fixes = json.load(f)
 
         for old_set_name, new_set_name in mkm_set_name_fixes.items():

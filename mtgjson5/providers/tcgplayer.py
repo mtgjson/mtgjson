@@ -12,6 +12,7 @@ import requests
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
+from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping, parallel_call, retryable_session
 
@@ -121,16 +122,15 @@ class TCGPlayerProvider(AbstractProvider):
         config to contact the server.
         :return: Empty string or current Bearer token
         """
-        config = self.get_configs()
 
-        if "TCGPlayer" not in config.sections():
+        if not MtgjsonConfig().has_section("TCGPlayer"):
             LOGGER.warning("TCGPlayer section not established. Skipping requests")
             self.__keys_found = False
             return ""
 
         if not (
-            config.get("TCGPlayer", "client_id")
-            and config.get("TCGPlayer", "client_secret")
+            MtgjsonConfig().get("TCGPlayer", "client_id")
+            and MtgjsonConfig().get("TCGPlayer", "client_secret")
         ):
             LOGGER.warning("TCGPlayer keys not established. Skipping requests")
             self.__keys_found = False
@@ -141,8 +141,8 @@ class TCGPlayerProvider(AbstractProvider):
             "https://api.tcgplayer.com/token",
             data={
                 "grant_type": "client_credentials",
-                "client_id": config.get("TCGPlayer", "client_id"),
-                "client_secret": config.get("TCGPlayer", "client_secret"),
+                "client_id": MtgjsonConfig().get("TCGPlayer", "client_id"),
+                "client_secret": MtgjsonConfig().get("TCGPlayer", "client_secret"),
             },
         )
 
@@ -150,7 +150,7 @@ class TCGPlayerProvider(AbstractProvider):
             LOGGER.error(f"Unable to contact TCGPlayer. Reason: {tcg_post.reason}")
             return ""
 
-        self.api_version = config.get("TCGPlayer", "api_version")
+        self.api_version = MtgjsonConfig().get("TCGPlayer", "api_version")
         request_as_json = json.loads(tcg_post.text)
 
         return str(request_as_json.get("access_token", ""))

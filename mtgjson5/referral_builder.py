@@ -7,7 +7,7 @@ from typing import List, Pattern, Tuple, Union
 
 from .classes import MtgjsonCardObject, MtgjsonSetObject
 from .classes.mtgjson_sealed_product import MtgjsonSealedProductObject
-from .consts import OUTPUT_PATH
+from .mtgjson_config import MtgjsonConfig
 
 LOGGER = logging.getLogger(__name__)
 
@@ -68,8 +68,10 @@ def write_referral_map(single_set_referral_map: List[Tuple[str, str]]) -> None:
     Dump referral map content to the database
     :param single_set_referral_map: Referrals to dump
     """
-    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
-    with OUTPUT_PATH.joinpath("ReferralMap.json").open("a", encoding="utf-8") as file:
+    MtgjsonConfig().output_path.mkdir(parents=True, exist_ok=True)
+    with MtgjsonConfig().output_path.joinpath("ReferralMap.json").open(
+        "a", encoding="utf-8"
+    ) as file:
         for entry in single_set_referral_map:
             file.write(f"/links/{entry[0]}\t{entry[1]};\n")
 
@@ -78,9 +80,13 @@ def fixup_referral_map() -> None:
     """
     Sort and uniquify the referral map for proper Nginx support
     """
-    with OUTPUT_PATH.joinpath("ReferralMap.json").open(encoding="utf-8") as file:
+    with MtgjsonConfig().output_path.joinpath("ReferralMap.json").open(
+        encoding="utf-8"
+    ) as file:
         lines = list(set(file.readlines()))
         lines = sorted(lines)
 
-    with OUTPUT_PATH.joinpath("ReferralMap.json").open("w", encoding="utf-8") as file:
+    with MtgjsonConfig().output_path.joinpath("ReferralMap.json").open(
+        "w", encoding="utf-8"
+    ) as file:
         file.writelines(lines)
