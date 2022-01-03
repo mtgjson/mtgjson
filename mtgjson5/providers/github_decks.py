@@ -11,7 +11,7 @@ from singleton_decorator import singleton
 
 from ..classes.mtgjson_deck import MtgjsonDeckObject
 from ..compiled_classes.mtgjson_structures import MtgjsonStructuresObject
-from ..consts import OUTPUT_PATH
+from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 from ..utils import parallel_call, retryable_session
 
@@ -25,7 +25,7 @@ class GitHubDecksProvider(AbstractProvider):
     """
 
     decks_api_url: str = "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks_v2.json?raw=true"
-    all_printings_file: pathlib.Path = OUTPUT_PATH.joinpath(
+    all_printings_file: pathlib.Path = MtgjsonConfig().output_path.joinpath(
         f"{MtgjsonStructuresObject().all_printings}.json"
     )
     all_printings_cards: Dict[str, Any]

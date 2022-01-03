@@ -18,14 +18,8 @@ import requests.adapters
 import requests_cache
 import urllib3
 
-from .consts import (
-    CACHE_PATH,
-    CONFIG,
-    HASH_TO_GENERATE,
-    LOG_PATH,
-    MTGJSON_VERSION,
-    USE_CACHE,
-)
+from mtgjson5 import constants
+from mtgjson5.mtgjson_config import MtgjsonConfig
 
 LOGGER = logging.getLogger(__name__)
 
@@ -34,7 +28,7 @@ def init_logger() -> None:
     """
     Initialize the main system logger
     """
-    LOG_PATH.mkdir(parents=True, exist_ok=True)
+    constants.LOG_PATH.mkdir(parents=True, exist_ok=True)
 
     start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
 
@@ -45,7 +39,9 @@ def init_logger() -> None:
         format="[%(levelname)s] %(asctime)s: %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler(str(LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))),
+            logging.FileHandler(
+                str(constants.LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))
+            ),
         ],
     )
     logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -102,10 +98,12 @@ def retryable_session(
     """
     session: Union[requests.Session, requests_cache.CachedSession]
 
-    if USE_CACHE:
+    if MtgjsonConfig().use_cache:
         stack = inspect.stack()
         calling_class = stack[1][0].f_locals["self"].__class__.__name__
-        session = requests_cache.CachedSession(str(CACHE_PATH.joinpath(calling_class)))
+        session = requests_cache.CachedSession(
+            str(constants.CACHE_PATH.joinpath(calling_class))
+        )
     else:
         session = requests.Session()
 
@@ -191,7 +189,7 @@ def get_file_hash(file_to_hash: pathlib.Path, block_size: int = 65536) -> str:
         return ""
 
     # Hash can be adjusted in consts.py file
-    hash_operation = HASH_TO_GENERATE.copy()
+    hash_operation = constants.HASH_TO_GENERATE.copy()
 
     with file_to_hash.open("rb") as file:
         while True:
@@ -224,13 +222,13 @@ def send_push_notification(message: str) -> bool:
     :param message: Message to send
     :return If the message send successfully to everyone
     """
-    if "Pushover" not in CONFIG.sections():
-        LOGGER.warning("Pushover section not established. Skipping alerts")
+    if not MtgjsonConfig().has_section("Pushover"):
+        LOGGER.warning("Pushover section not established. Skipping alerts.")
         return False
 
-    pushover_app_token = CONFIG.get("Pushover", "app_token")
+    pushover_app_token = MtgjsonConfig().get("Pushover", "app_token")
     pushover_app_users = list(
-        filter(None, CONFIG.get("Pushover", "user_tokens").split(","))
+        filter(None, MtgjsonConfig().get("Pushover", "user_tokens").split(","))
     )
 
     if not (pushover_app_token and pushover_app_token):
@@ -244,7 +242,7 @@ def send_push_notification(message: str) -> bool:
             data={
                 "token": pushover_app_token,
                 "user": user,
-                "title": f"MTGJSON {MTGJSON_VERSION}",
+                "title": f"MTGJSON {MtgjsonConfig().mtgjson_version}",
                 "message": message,
             },
         )

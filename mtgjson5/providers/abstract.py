@@ -2,14 +2,14 @@
 API for how providers need to interact with other classes
 """
 import abc
-import configparser
 import datetime
 import logging
 from typing import Any, Dict, Union
 
 import requests_cache
 
-from ..consts import CACHE_PATH, CONFIG, USE_CACHE
+from mtgjson5 import constants
+from mtgjson5.mtgjson_config import MtgjsonConfig
 
 LOGGER = logging.getLogger(__name__)
 
@@ -63,21 +63,13 @@ class AbstractProvider(abc.ABC):
         return cls.class_id
 
     @staticmethod
-    def get_configs() -> configparser.ConfigParser:
-        """
-        Parse the config for this specific setup
-        :return: Parsed config file
-        """
-        return CONFIG
-
-    @staticmethod
     def log_download(response: Any) -> None:
         """
         Log how the URL was acquired
         :param response: Response from Server
         """
         LOGGER.debug(
-            f"Downloaded {response.url} (Cache = {response.from_cache if USE_CACHE else False})"
+            f"Downloaded {response.url} (Cache = {response.from_cache if MtgjsonConfig().use_cache else False})"
         )
 
     # Private Methods
@@ -86,8 +78,8 @@ class AbstractProvider(abc.ABC):
         Initiate the MTGJSON cache for requests
         (Useful for development and re-running often)
         """
-        if USE_CACHE:
-            CACHE_PATH.mkdir(exist_ok=True)
+        if MtgjsonConfig().use_cache:
+            constants.CACHE_PATH.mkdir(exist_ok=True)
             requests_cache.install_cache(
-                str(CACHE_PATH.joinpath(self.get_class_name()))
+                str(constants.CACHE_PATH.joinpath(self.get_class_name()))
             )

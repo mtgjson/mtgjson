@@ -9,7 +9,7 @@ import unicodedata
 import uuid
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-from . import consts
+from . import constants
 from .classes import (
     MtgjsonCardObject,
     MtgjsonForeignDataObject,
@@ -20,14 +20,6 @@ from .classes import (
     MtgjsonRulingObject,
     MtgjsonSealedProductObject,
     MtgjsonSetObject,
-)
-from .consts import (
-    BASIC_LAND_NAMES,
-    CARD_MARKET_BUFFER,
-    FOREIGN_SETS,
-    LANGUAGE_MAP,
-    RESOURCE_PATH,
-    SUPER_TYPES,
 )
 from .providers import (
     CardMarketProvider,
@@ -75,7 +67,7 @@ def parse_foreign(
 
         card_foreign_entry = MtgjsonForeignDataObject()
         try:
-            card_foreign_entry.language = LANGUAGE_MAP[foreign_card["lang"]]
+            card_foreign_entry.language = constants.LANGUAGE_MAP[foreign_card["lang"]]
         except IndexError:
             LOGGER.warning(f"Unable to get language {foreign_card}")
 
@@ -147,7 +139,7 @@ def parse_card_types(card_type: str) -> Tuple[List[str], List[str], List[str]]:
             sub_types = [x.strip() for x in subtypes.split() if x]
 
     for value in supertypes_and_types.split():
-        if value in SUPER_TYPES:
+        if value in constants.SUPER_TYPES:
             super_types.append(value)
         elif value:
             types.append(value)
@@ -363,7 +355,7 @@ def mark_duel_decks(set_code: str, mtgjson_cards: List[MtgjsonCardObject]) -> No
         side_letter_as_number = ord("a")
 
         for card in sorted(mtgjson_cards):
-            if card.name in BASIC_LAND_NAMES:
+            if card.name in constants.BASIC_LAND_NAMES:
                 land_pile_marked = True
             elif any(_type in card.type for _type in ("Token", "Emblem")):
                 continue
@@ -383,7 +375,7 @@ def parse_keyrune_code(url: str) -> str:
     """
     file_stem = pathlib.Path(url).stem.upper()
 
-    with RESOURCE_PATH.joinpath("keyrune_code_overrides.json").open(
+    with constants.RESOURCE_PATH.joinpath("keyrune_code_overrides.json").open(
         encoding="utf-8"
     ) as file:
         upstream_to_keyrune_map: Dict[str, str] = json.load(file)
@@ -468,7 +460,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mark_duel_decks(set_code, mtgjson_set.cards)
 
     # Implicit Variables
-    mtgjson_set.is_foreign_only = mtgjson_set.code in FOREIGN_SETS
+    mtgjson_set.is_foreign_only = mtgjson_set.code in constants.FOREIGN_SETS
     mtgjson_set.is_partial_preview = MtgjsonMetaObject().date < mtgjson_set.release_date
 
     return mtgjson_set
@@ -497,7 +489,7 @@ def add_sealed_uuid(mtgjson_set: MtgjsonSetObject) -> None:
 
 def add_sealed_purchase_url(mtgjson_set: MtgjsonSetObject) -> None:
     """
-    Adds all purhcase urls to each sealed product object within a set
+    Adds all purchase urls to each sealed product object within a set
     :param mtgjson_set: the set to add purchase urls to
     """
     for sealed_product in mtgjson_set.sealed_product:
@@ -1094,7 +1086,7 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
 
         # Add alternative tag
         # Ignore singleton printings in set, as well as basics
-        if not variations or this_card.name in BASIC_LAND_NAMES:
+        if not variations or this_card.name in constants.BASIC_LAND_NAMES:
             continue
 
         # Some hardcoded checking due to inconsistencies upstream
@@ -1189,7 +1181,10 @@ def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
                 entry["normal"]["url"] + mtgjson_card.uuid
             )
             mtgjson_card.raw_purchase_urls.update(
-                {"cardKingdom": entry["normal"]["url"] + consts.CARD_KINGDOM_REFERRAL}
+                {
+                    "cardKingdom": entry["normal"]["url"]
+                    + constants.CARD_KINGDOM_REFERRAL
+                }
             )
 
         if "foil" in entry:
@@ -1198,7 +1193,10 @@ def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
                 entry["foil"]["url"] + mtgjson_card.uuid
             )
             mtgjson_card.raw_purchase_urls.update(
-                {"cardKingdomFoil": entry["foil"]["url"] + consts.CARD_KINGDOM_REFERRAL}
+                {
+                    "cardKingdomFoil": entry["foil"]["url"]
+                    + constants.CARD_KINGDOM_REFERRAL
+                }
             )
 
         if "etched" in entry:
@@ -1209,7 +1207,7 @@ def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
             mtgjson_card.raw_purchase_urls.update(
                 {
                     "cardKingdomEtched": entry["etched"]["url"]
-                    + consts.CARD_KINGDOM_REFERRAL
+                    + constants.CARD_KINGDOM_REFERRAL
                 }
             )
 
@@ -1308,7 +1306,7 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
         mtgjson_card.purchase_urls.cardmarket = url_keygen(
             mtgjson_card.identifiers.mcm_id
             + mtgjson_card.uuid
-            + CARD_MARKET_BUFFER
+            + constants.CARD_MARKET_BUFFER
             + mtgjson_card.identifiers.mcm_meta_id
         )
 
@@ -1322,7 +1320,9 @@ def get_base_and_total_set_sizes(mtgjson_set: MtgjsonSetObject) -> Tuple[int, in
     :return: Amount of cards in set (base, total)
     """
     # Load cache if not loaded
-    with RESOURCE_PATH.joinpath("base_set_sizes.json").open(encoding="utf-8") as f:
+    with constants.RESOURCE_PATH.joinpath("base_set_sizes.json").open(
+        encoding="utf-8"
+    ) as f:
         base_set_size_override = json.load(f)
 
     base_set_size = len(mtgjson_set.cards)
@@ -1367,7 +1367,9 @@ def get_signature_from_number(mtgjson_card: MtgjsonCardObject) -> Optional[str]:
     :param mtgjson_card: Card object to get required data from
     :returns Name of person who signed card, if applicable
     """
-    with RESOURCE_PATH.joinpath("world_championship_signatures.json").open() as f:
+    with constants.RESOURCE_PATH.joinpath(
+        "world_championship_signatures.json"
+    ).open() as f:
         signatures_by_set: Dict[str, Dict[str, str]] = json.load(f)
 
     if mtgjson_card.set_code not in signatures_by_set:

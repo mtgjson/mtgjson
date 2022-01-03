@@ -12,8 +12,8 @@ import bs4
 import requests
 from singleton_decorator import singleton
 
+from .. import constants
 from ..classes import MtgjsonTranslationsObject
-from ..consts import CACHE_PATH, RESOURCE_PATH, WIZARDS_SUPPORTED_LANGUAGES
 from ..providers.abstract import AbstractProvider
 from ..providers.scryfall import ScryfallProvider
 from ..utils import parallel_call, retryable_session
@@ -31,7 +31,7 @@ class WizardsProvider(AbstractProvider):
     )
     translation_table: Dict[str, Dict[str, str]] = {}
     magic_rules: str = ""
-    __translation_table_cache: pathlib.Path = CACHE_PATH.joinpath(
+    __translation_table_cache: pathlib.Path = constants.CACHE_PATH.joinpath(
         "translation_table.json"
     )
     __one_week_ago: int = int(time.time() - 7 * 86400)
@@ -172,7 +172,7 @@ class WizardsProvider(AbstractProvider):
         """
         translation_table: Dict[str, Dict[str, str]] = {}
 
-        for short_code, long_name in WIZARDS_SUPPORTED_LANGUAGES:
+        for short_code, long_name in constants.WIZARDS_SUPPORTED_LANGUAGES:
             self.logger.info(f"Building translations for {long_name}")
             translation_table = self.build_single_language(
                 short_code, long_name, translation_table
@@ -202,7 +202,7 @@ class WizardsProvider(AbstractProvider):
         :param table: Translation Table
         :return: Overridden Translation Table
         """
-        with RESOURCE_PATH.joinpath("translation_overrides.json").open(
+        with constants.RESOURCE_PATH.joinpath("translation_overrides.json").open(
             encoding="utf-8"
         ) as f:
             translation_fixes = json.load(f)
@@ -225,7 +225,7 @@ class WizardsProvider(AbstractProvider):
         :param table: Translation Table
         :return: Fixed Translation Table
         """
-        with RESOURCE_PATH.joinpath("wizards_set_name_fixes.json").open(
+        with constants.RESOURCE_PATH.joinpath("wizards_set_name_fixes.json").open(
             encoding="utf-8"
         ) as f:
             set_name_fixes = json.load(f)

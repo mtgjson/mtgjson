@@ -7,7 +7,7 @@ from collections import defaultdict
 from typing import Any, Dict, List
 
 from ..classes import MtgjsonCardObject
-from ..consts import OUTPUT_PATH
+from ..mtgjson_config import MtgjsonConfig
 from ..utils import to_camel_case
 from .mtgjson_structures import MtgjsonStructuresObject
 
@@ -44,7 +44,7 @@ class MtgjsonAtomicCardsObject:
             self.update_global_card_list(cards_to_load, valid_keys)
             return
 
-        for set_file in OUTPUT_PATH.glob("*.json"):
+        for set_file in MtgjsonConfig().output_path.glob("*.json"):
             if set_file.stem in files_to_ignore:
                 continue
 

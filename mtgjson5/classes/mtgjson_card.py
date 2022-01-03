@@ -4,6 +4,7 @@ MTGJSON Singular Card Object
 import json
 from typing import Any, Dict, List, Optional, Set
 
+from .. import constants
 from ..classes.mtgjson_foreign_data import MtgjsonForeignDataObject
 from ..classes.mtgjson_game_formats import MtgjsonGameFormatsObject
 from ..classes.mtgjson_identifiers import MtgjsonIdentifiersObject
@@ -12,7 +13,6 @@ from ..classes.mtgjson_legalities import MtgjsonLegalitiesObject
 from ..classes.mtgjson_prices import MtgjsonPricesObject
 from ..classes.mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
 from ..classes.mtgjson_rulings import MtgjsonRulingObject
-from ..consts import RESOURCE_PATH
 from ..utils import to_camel_case
 
 
@@ -276,7 +276,7 @@ class MtgjsonCardObject:
             return
 
         if not self.__watermark_resource:
-            with RESOURCE_PATH.joinpath("set_code_watermarks.json").open(
+            with constants.RESOURCE_PATH.joinpath("set_code_watermarks.json").open(
                 encoding="utf-8"
             ) as f:
                 self.__watermark_resource = json.load(f)

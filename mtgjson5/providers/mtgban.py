@@ -6,6 +6,7 @@ from typing import Any, Dict, Union
 
 from singleton_decorator import singleton
 
+from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 from ..utils import retryable_session
 
@@ -36,16 +37,15 @@ class MTGBanProvider(AbstractProvider):
         headers: Dict[str, str] = {}
         __keys_found: bool
 
-        config = self.get_configs()
-        if "MTGBan" not in config.sections():
+        if not MtgjsonConfig().has_section("MTGBan"):
             LOGGER.warning("MTGBan section not established. Skipping alerts")
             self.__keys_found = False
             self.api_url = ""
             return headers
 
-        if config.get("MTGBan", "api_key"):
+        if MtgjsonConfig().has_option("MTGBan", "api_key"):
             self.__keys_found = True
-            self.api_url = self.api_url.format(config.get("MTGBan", "api_key"))
+            self.api_url = self.api_url.format(MtgjsonConfig().get("MTGBan", "api_key"))
         else:
             LOGGER.info("MTGBan keys values missing. Skipping imports")
             self.__keys_found = False

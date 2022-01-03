@@ -12,8 +12,9 @@ from typing import Any, Dict, Union
 import git
 from singleton_decorator import singleton
 
+from .. import constants
 from ..compiled_classes.mtgjson_structures import MtgjsonStructuresObject
-from ..consts import CACHE_PATH, OUTPUT_PATH
+from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 
 LOGGER = logging.getLogger(__name__)
@@ -26,10 +27,10 @@ class GitHubMTGSqliteProvider(AbstractProvider):
     """
 
     repo_url: str = "https://github.com/mtgjson/mtgsqlive/"
-    all_printings_file: pathlib.Path = OUTPUT_PATH.joinpath(
+    all_printings_file: pathlib.Path = MtgjsonConfig().output_path.joinpath(
         f"{MtgjsonStructuresObject().all_printings}.json"
     )
-    temp_download_path: pathlib.Path = CACHE_PATH.joinpath("GitHub-MTGSQLive")
+    temp_download_path: pathlib.Path = constants.CACHE_PATH.joinpath("GitHub-MTGSQLive")
 
     def __init__(self) -> None:
         """
@@ -77,7 +78,7 @@ class GitHubMTGSqliteProvider(AbstractProvider):
                     "-i",
                     self.all_printings_file,
                     "-o",
-                    OUTPUT_PATH,
+                    MtgjsonConfig().output_path,
                     "--all",
                 ],
             )

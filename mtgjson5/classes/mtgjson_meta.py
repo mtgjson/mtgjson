@@ -4,7 +4,8 @@ MTGJSON Meta Object
 import datetime
 from typing import Any, Dict, Union
 
-from ..consts import MTGJSON_BUILD_DATE, MTGJSON_VERSION
+from .. import constants
+from ..mtgjson_config import MtgjsonConfig
 from ..utils import to_camel_case
 
 
@@ -18,8 +19,8 @@ class MtgjsonMetaObject:
 
     def __init__(
         self,
-        date: Union[str, datetime.datetime] = MTGJSON_BUILD_DATE,
-        version: str = MTGJSON_VERSION,
+        date: Union[str, datetime.datetime] = constants.MTGJSON_BUILD_DATE,
+        version: str = MtgjsonConfig().mtgjson_version,
     ) -> None:
         self.date = date if isinstance(date, str) else date.strftime("%Y-%m-%d")
         self.version = version

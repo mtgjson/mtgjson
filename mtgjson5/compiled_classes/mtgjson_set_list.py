@@ -4,7 +4,7 @@ MTGJSON SetList Object
 import json
 from typing import Any, Dict, List
 
-from ..consts import OUTPUT_PATH
+from ..mtgjson_config import MtgjsonConfig
 from .mtgjson_structures import MtgjsonStructuresObject
 
 
@@ -35,7 +35,7 @@ class MtgjsonSetListObject:
         """
         all_sets_data: List[Dict[str, str]] = []
 
-        for set_file in OUTPUT_PATH.glob("*.json"):
+        for set_file in MtgjsonConfig().output_path.glob("*.json"):
             if set_file.stem in files_to_ignore:
                 continue
 
