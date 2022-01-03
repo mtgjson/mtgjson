@@ -130,3 +130,5 @@ stocks_data.json
 .*_cache/
 flamegraph.pl
 stacksampler.py
+
+.run/
