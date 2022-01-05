@@ -42,12 +42,16 @@ class MtgjsonConfig(metaclass=Singleton):
         try:
             self.mtgjson_version = self.config_parser.get("MTGJSON", "version")
             if aws_ssm_config_name:
-                self.mtgjson_version += f"+{constants.MTGJSON_BUILD_DATE.strip('-')}"
+                self.mtgjson_version += (
+                    f"+{constants.MTGJSON_BUILD_DATE.replace('-', '')}"
+                )
         except configparser.NoSectionError:
             self.logger.warning(
                 "Key 'version' is missing from Section 'MTGJSON' in config file"
             )
-            self.mtgjson_version = f"5.X.X+{constants.MTGJSON_BUILD_DATE.strip('-')}"
+            self.mtgjson_version = (
+                f"5.X.X+{constants.MTGJSON_BUILD_DATE.replace('-', '')}"
+            )
 
         self.use_cache = self.get_boolean("MTGJSON", "use_cache", fallback=False)
         self.output_path = constants.ENV_OUT_PATH.joinpath(
