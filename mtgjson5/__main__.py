@@ -80,12 +80,12 @@ def dispatcher(args: argparse.Namespace) -> None:
     """
     from mtgjson5.compress_generator import compress_mtgjson_contents
     from mtgjson5.mtgjson_config import MtgjsonConfig
+    from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
     from mtgjson5.output_generator import (
         generate_compiled_output_files,
         generate_compiled_prices_output,
         generate_output_file_hashes,
     )
-    from mtgjson5.output_uploader import MtgjsonUploader
     from mtgjson5.price_builder import build_prices
     from mtgjson5.providers import GitHubMTGSqliteProvider, ScryfallProvider
 
@@ -110,7 +110,7 @@ def dispatcher(args: argparse.Namespace) -> None:
     generate_output_file_hashes(MtgjsonConfig().output_path)
 
     if args.aws_s3_upload_bucket:
-        MtgjsonUploader().upload_directory(
+        MtgjsonS3Handler().upload_directory(
             MtgjsonConfig().output_path, args.aws_s3_upload_bucket
         )
 
