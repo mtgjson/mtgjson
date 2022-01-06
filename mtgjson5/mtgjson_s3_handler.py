@@ -39,7 +39,7 @@ class MtgjsonS3Handler:
             return True
         except botocore.exceptions.ClientError as error:
             self.logger.error(
-                f"Failed to download s3://{bucket_name}/{bucket_object_path}", error
+                f"Failed to download s3://{bucket_name}/{bucket_object_path}: {error}"
             )
             return False
 
@@ -55,6 +55,7 @@ class MtgjsonS3Handler:
         :param local_file_path: Path on local system to upload
         :param bucket_name: S3 Bucket to upload to
         :param bucket_object_path: Path in S3 Bucket to upload to
+        :param tags: Tags to upload with
         :returns True if upload succeeded
         """
         try:
@@ -70,20 +71,28 @@ class MtgjsonS3Handler:
             return True
         except botocore.exceptions.ClientError as error:
             self.logger.error(
-                f"Failed to upload {local_file_path} to s3://{bucket_name}/{bucket_object_path}",
-                error,
+                f"Failed to upload {local_file_path} to s3://{bucket_name}/{bucket_object_path}: {error}"
             )
         return False
 
-    def upload_directory(self, directory_path: pathlib.Path, bucket_name: str) -> None:
+    def upload_directory(
+        self,
+        directory_path: pathlib.Path,
+        bucket_name: str,
+        tags: Optional[Dict[str, str]] = None,
+    ) -> None:
         """
         Upload a directory to S3
         :param directory_path: Path on local system to recursively upload
         :param bucket_name: S3 Bucket to upload to
+        :param tags: Tags to upload each file with
         """
         self.logger.info(f"Uploading {directory_path} contents to {bucket_name}")
         for item in directory_path.glob("**/*"):
             if item.is_file():
                 self.upload_file(
-                    str(item), bucket_name, str(item.relative_to(directory_path.parent))
+                    str(item),
+                    bucket_name,
+                    str(item.relative_to(directory_path.parent)),
+                    tags,
                 )

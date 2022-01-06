@@ -117,9 +117,13 @@ def get_price_archive_data(
 
     temp_zip_file = constants.CACHE_PATH.joinpath("temp.tar.xz")
 
-    MtgjsonS3Handler().download_file(
+    downloaded_successfully = MtgjsonS3Handler().download_file(
         bucket_name, bucket_object_path, str(temp_zip_file)
     )
+    if not downloaded_successfully:
+        LOGGER.warning("Download of current price data failed")
+        return {}
+
     with lzma.open(temp_zip_file) as file:
         contents = dict(json.load(file))
 
@@ -208,6 +212,4 @@ def build_prices() -> Dict[str, Any]:
     MtgjsonS3Handler().upload_file(str(local_zip_file), bucket_name, bucket_object_path)
     local_zip_file.unlink()
 
-    # Return the latest prices
-    constants.CACHE_PATH.joinpath("last_price_build_time").touch()
     return archive_prices

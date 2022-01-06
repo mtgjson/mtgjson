@@ -111,7 +111,7 @@ def dispatcher(args: argparse.Namespace) -> None:
 
     if args.aws_s3_upload_bucket:
         MtgjsonS3Handler().upload_directory(
-            MtgjsonConfig().output_path, args.aws_s3_upload_bucket
+            MtgjsonConfig().output_path, args.aws_s3_upload_bucket, {"Prunable": "true"}
         )
 
 
