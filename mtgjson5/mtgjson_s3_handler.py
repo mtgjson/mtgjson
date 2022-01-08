@@ -49,6 +49,7 @@ class MtgjsonS3Handler:
         bucket_name: str,
         bucket_object_path: str,
         tags: Optional[Dict[str, str]] = None,
+        cache_ttl_sec: int = 86400,
     ) -> bool:
         """
         Upload a file to S3
@@ -56,14 +57,16 @@ class MtgjsonS3Handler:
         :param bucket_name: S3 Bucket to upload to
         :param bucket_object_path: Path in S3 Bucket to upload to
         :param tags: Tags to upload with
+        :param cache_ttl_sec: How long to tell browsers to cache the file for (Default: 1 day)
         :returns True if upload succeeded
         """
         try:
+            extra_args = {"CacheControl": f"max-age={cache_ttl_sec}"}
+            if tags:
+                extra_args["Tagging"] = urllib.parse.urlencode(tags)
+
             self.s3_client.upload_file(
-                local_file_path,
-                bucket_name,
-                bucket_object_path,
-                ExtraArgs={"Tagging": urllib.parse.urlencode(tags)} if tags else {},
+                local_file_path, bucket_name, bucket_object_path, ExtraArgs=extra_args
             )
             self.logger.info(
                 f"Successfully uploaded {local_file_path} to s3://{bucket_name}/{bucket_object_path}"
