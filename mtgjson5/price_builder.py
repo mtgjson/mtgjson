@@ -6,15 +6,15 @@ import json
 import logging
 import lzma
 import pathlib
-import shutil
+import sys
 from typing import Any, Dict
 
 import dateutil.relativedelta
-import git
 import requests
 
 from . import constants
 from .mtgjson_config import MtgjsonConfig
+from .mtgjson_s3_handler import MtgjsonS3Handler
 from .providers import (
     CardHoarderProvider,
     CardKingdomProvider,
@@ -24,97 +24,6 @@ from .providers import (
 from .utils import deep_merge_dictionaries
 
 LOGGER = logging.getLogger(__name__)
-
-
-def download_prices_archive(
-    github_repo_local_path: pathlib.Path,
-) -> Dict[str, Dict[str, float]]:
-    """
-    Grab the contents from a gist file
-    :param github_repo_local_path: Where to checkout the repo to
-    :return: File content
-    """
-    if not MtgjsonConfig().has_section("GitHub"):
-        LOGGER.warning("GitHub section not established. Skipping download.")
-        return {}
-
-    github_username = MtgjsonConfig().get("GitHub", "username")
-    github_api_key = MtgjsonConfig().get("GitHub", "api_key")
-    github_repo_name = MtgjsonConfig().get("GitHub", "repo_name")
-    github_file_name = MtgjsonConfig().get("GitHub", "file_name")
-
-    github_url = f"https://{github_username}:{github_api_key}@github.com/{github_username}/{github_repo_name}.git"
-
-    if github_repo_local_path.is_dir():
-        LOGGER.info("Deleting Old Price Data Repo")
-        shutil.rmtree(github_repo_local_path)
-
-    LOGGER.info("Cloning Price Data Repo")
-    git_sh = git.cmd.Git()
-    git_sh.clone(github_url, github_repo_local_path, depth=1)
-
-    with lzma.open(github_repo_local_path.joinpath(github_file_name)) as file:
-        return dict(json.load(file))
-
-
-def upload_prices_archive(
-    github_repo_local_path: pathlib.Path,
-    content: Any,
-) -> None:
-    """
-    Upload prices archive back to GitHub
-    :param github_repo_local_path: Local file system file
-    :param content: File content
-    """
-    if not MtgjsonConfig().has_section("GitHub"):
-        LOGGER.warning("GitHub section not established. Skipping upload.")
-        return
-
-    # Config values for GitHub
-    github_username = MtgjsonConfig().get("GitHub", "username")
-    github_api_token = MtgjsonConfig().get("GitHub", "api_key")
-    github_file_name = MtgjsonConfig().get("GitHub", "file_name")
-    github_repo_name = MtgjsonConfig().get("GitHub", "repo_name")
-
-    if not (
-        github_username and github_api_token and github_file_name and github_repo_name
-    ):
-        LOGGER.warning("GitHub key values missing. Skipping upload")
-        return
-
-    # Compress the file to upload for speed and storage savings
-    with lzma.open(github_repo_local_path.joinpath(github_file_name), "w") as file:
-        file.write(json.dumps(content).encode("utf-8"))
-
-    try:
-        repo = git.Repo(github_repo_local_path)
-
-        # Update remote to allow pushing
-        repo.git.remote(
-            "set-url",
-            "origin",
-            f"https://{github_username}:{github_api_token}@github.com/{github_username}/{github_repo_name}.git",
-        )
-
-        repo.git.commit("-am", "auto-push")
-        origin = repo.remote()
-        push_results = origin.push()
-
-        if not push_results:
-            LOGGER.error("A critical failure happened with GitHub push")
-            return
-
-        push_result = push_results[0]
-        if push_result.flags & push_result.ERROR == push_result.ERROR:
-            LOGGER.error(f"Push to GitHub failed: {push_result.summary}")
-            return
-
-        LOGGER.info("Pushed changes to GitHub repo")
-    except git.GitCommandError:
-        LOGGER.warning("No changes found to GitHub repo, skipping")
-        return
-
-    shutil.rmtree(github_repo_local_path)
 
 
 def prune_prices_archive(content: Dict[str, Any], months: int = 3) -> None:
@@ -196,20 +105,46 @@ def _generate_prices(provider: Any) -> Dict[str, Any]:
         return {}
 
 
-def get_price_archive_data() -> Dict[str, Dict[str, float]]:
+def get_price_archive_data(
+    bucket_name: str,
+    bucket_object_path: str,
+) -> Dict[str, Dict[str, float]]:
     """
     Download compiled MTGJSON price data
     :return: MTGJSON price data
     """
+    LOGGER.info("Downloading Current Price Data File")
 
-    if not MtgjsonConfig().has_section("GitHub"):
-        LOGGER.warning("GitHub section not established. Skipping requests.")
+    temp_zip_file = constants.CACHE_PATH.joinpath("temp.tar.xz")
+
+    downloaded_successfully = MtgjsonS3Handler().download_file(
+        bucket_name, bucket_object_path, str(temp_zip_file)
+    )
+    if not downloaded_successfully:
+        LOGGER.warning("Download of current price data failed")
         return {}
 
-    # Get the current working database
-    LOGGER.info("Downloading Price Data Repo")
-    github_local_path = constants.CACHE_PATH.joinpath("GitHub-PricesArchive")
-    return download_prices_archive(github_local_path)
+    with lzma.open(temp_zip_file) as file:
+        contents = dict(json.load(file))
+
+    temp_zip_file.unlink()
+    return contents
+
+
+def write_price_archive_data(
+    local_save_path: pathlib.Path, price_data: Dict[str, Any]
+) -> None:
+    """
+    Write price data to a compressed archive file
+    :param local_save_path: Where to save compressed archive file
+    :param price_data: Data to compress into that archive file
+    """
+    local_save_path.parent.mkdir(parents=True, exist_ok=True)
+
+    LOGGER.info(f"Compressing {sys.getsizeof(price_data)} bytes for uploading")
+    with lzma.open(local_save_path, "w") as file:
+        file.write(json.dumps(price_data).encode("utf-8"))
+    LOGGER.info(f"Finished compressing content to {local_save_path}")
 
 
 def download_old_all_printings() -> None:
@@ -248,43 +183,33 @@ def build_prices() -> Dict[str, Any]:
     # Get today's price database
     LOGGER.info("Building new price data")
     today_prices = build_today_prices()
-
     if not today_prices:
         LOGGER.warning("Pricing information failed to generate")
         return {}
 
-    archive_prices = get_price_archive_data()
+    if not MtgjsonConfig().has_section("Prices"):
+        return today_prices
+
+    bucket_name = MtgjsonConfig().get("Prices", "bucket_name")
+    bucket_object_path = MtgjsonConfig().get("Prices", "bucket_object_path")
+
+    archive_prices = get_price_archive_data(bucket_name, bucket_object_path)
 
     # Update local copy of database
-    LOGGER.info("Merging price data")
+    LOGGER.info("Merging old and new price data")
     archive_prices = deep_merge_dictionaries(archive_prices, today_prices)
 
     # Prune local copy of database
     LOGGER.info("Pruning price data")
     prune_prices_archive(archive_prices)
 
+    LOGGER.info("Compressing price data")
+    local_zip_file = constants.CACHE_PATH.joinpath(bucket_object_path)
+    write_price_archive_data(local_zip_file, archive_prices)
+
     # Push changes to remote database
     LOGGER.info("Uploading price data")
-    github_local_path = constants.CACHE_PATH.joinpath("GitHub-PricesArchive")
-    upload_prices_archive(github_local_path, archive_prices)
+    MtgjsonS3Handler().upload_file(str(local_zip_file), bucket_name, bucket_object_path)
+    local_zip_file.unlink()
 
-    # Return the latest prices
-    constants.CACHE_PATH.joinpath("last_price_build_time").touch()
     return archive_prices
-
-
-def should_build_new_prices() -> bool:
-    """
-    Determine if prices were built recently enough that there
-    is no reason to build them again
-    :return: Should prices be rebuilt
-    """
-    cache_file = constants.CACHE_PATH.joinpath("last_price_build_time")
-
-    if not cache_file.is_file():
-        return True
-
-    stat_time = cache_file.stat().st_mtime
-    last_price_build_time = datetime.datetime.fromtimestamp(stat_time)
-    twelve_hours_ago = datetime.datetime.now() - datetime.timedelta(hours=12)
-    return twelve_hours_ago > last_price_build_time

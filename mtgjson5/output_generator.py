@@ -22,7 +22,7 @@ from .compiled_classes import (
     MtgjsonTcgplayerSkusObject,
 )
 from .mtgjson_config import MtgjsonConfig
-from .price_builder import build_prices, get_price_archive_data, should_build_new_prices
+from .price_builder import build_prices
 from .providers import GitHubDecksProvider
 from .utils import get_file_hash
 
@@ -37,6 +37,7 @@ def generate_compiled_prices_output(
     :param price_data: Data to dump
     :param pretty_print: Pretty or minimal
     """
+    LOGGER.info("Building Prices")
     create_compiled_output(
         MtgjsonStructuresObject().all_prices,
         price_data,
@@ -142,24 +143,6 @@ def build_atomic_specific_files(pretty_print: bool) -> None:
     )
 
 
-def build_price_specific_files(pretty_print: bool) -> None:
-    """
-    Build prices related files (in this case, only one file)
-    :param pretty_print: Should outputs be pretty or minimal
-    """
-    # If a full build, build prices then build sets
-    # Otherwise just load up the prices cache
-    if should_build_new_prices():
-        LOGGER.info("Full Build - Building Prices")
-        price_data_cache = build_prices()
-    else:
-        LOGGER.info("Full Build - Installing Price Cache")
-        price_data_cache = get_price_archive_data()
-
-    # AllPrices.json
-    generate_compiled_prices_output(price_data_cache, pretty_print)
-
-
 def build_all_printings_files(pretty_print: bool) -> None:
     """
     Construct all entities that rely upon AllPrintings
@@ -206,7 +189,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     )
 
     # AllPrices.json
-    build_price_specific_files(pretty_print)
+    generate_compiled_prices_output(build_prices(), pretty_print)
 
     # CompiledList.json
     create_compiled_output(
