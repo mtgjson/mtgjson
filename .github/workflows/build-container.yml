@@ -42,7 +42,7 @@ jobs:
           image: ${{ steps.generate-tag.outputs.release_tag }}
 
       - name: Upload Image to Amazon ECR
-        # if: ${{ steps.branch-name.outputs.current_branch == 'master' }}
+        if: ${{ steps.branch-name.outputs.current_branch == 'master' }}
         id: upload-ecr
         uses: jwalton/gh-ecr-push@v1
         with:
