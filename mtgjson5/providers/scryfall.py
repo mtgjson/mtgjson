@@ -116,7 +116,7 @@ class ScryfallProvider(AbstractProvider):
                 LOGGER.warning("Scryfall 504 error, sleeping...")
             else:
                 LOGGER.error(
-                    f'Unable to convert response: "{response.text}" to JSON for URL: {url} -> {error}'
+                    f"Unable to convert response to JSON for URL: {url} -> {error}; Message = {response.text}"
                 )
 
             time.sleep(5)
