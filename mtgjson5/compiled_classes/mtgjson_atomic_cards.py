@@ -59,6 +59,10 @@ class MtgjsonAtomicCardsObject:
                 for token in file_content.get("data", {}).get("tokens", [])
                 if token.get("type") == "Dungeon"
             ]
+            for dungeon in dungeons:
+                dungeon["manaValue"] = 0.0
+                dungeon["convertedManaCost"] = 0.0
+
             valid_cards.extend(dungeons)
 
             self.update_global_card_list(
