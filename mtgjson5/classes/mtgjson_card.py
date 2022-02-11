@@ -216,12 +216,36 @@ class MtgjsonCardObject:
         :param other: Other card
         :return: Less than or not
         """
-        try:
-            if int(self.number) == int(other.number):
-                return (self.side or "") < (other.side or "")
-            return int(self.number) < int(other.number)
-        except ValueError:
-            return bool(self.number < other.number)
+        self_side = self.side or ""
+        other_side = other.side or ""
+
+        if self.number == other.number:
+            return self_side < other_side
+
+        self_number_clean = "".join(filter(str.isdigit, self.number))
+        self_number_clean_int = int(self_number_clean)
+
+        other_number_clean = "".join(filter(str.isdigit, other.number))
+        other_number_clean_int = int(other_number_clean)
+
+        if self.number == self_number_clean and other.number == other_number_clean:
+            if self_number_clean_int == other_number_clean_int:
+                return self_side < other_side
+            return self_number_clean_int < other_number_clean_int
+
+        if self.number == self_number_clean:
+            if self_number_clean_int == other_number_clean_int:
+                return True
+            return self_number_clean_int < other_number_clean_int
+
+        if other.number == other_number_clean:
+            if self_number_clean_int == other_number_clean_int:
+                return False
+            return self_number_clean_int < other_number_clean_int
+
+        if self_number_clean == other_number_clean:
+            return self_side < other_side
+        return self_number_clean_int < other_number_clean_int
 
     def set_illustration_ids(self, illustration_ids: List[str]) -> None:
         """
