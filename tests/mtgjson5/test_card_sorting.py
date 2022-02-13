@@ -15,6 +15,7 @@ def test_card_sorting():
         ("F2", "10b", "b"),
         ("G", "11", None),
         ("H", "20", None),
+        ("I", "", None),
     ]
 
     test_group = []
