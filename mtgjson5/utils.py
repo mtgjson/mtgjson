@@ -253,27 +253,6 @@ def send_push_notification(message: str) -> bool:
     return all_succeeded
 
 
-def deep_merge_dictionaries(
-    first_dict: Dict[str, Any], *other_dicts: Dict[str, Any]
-) -> Dict[str, Any]:
-    """
-    Merge N dictionaries together, recursively
-    :param first_dict: Left hand dictionary
-    :param other_dicts: Right hand dictionaries
-    :return: Combined Dictionaries
-    """
-    result = first_dict.copy()
-
-    for dictionary in other_dicts:
-        for key, new in dictionary.items():
-            old = result.get(key)
-            if isinstance(old, dict) and isinstance(new, dict):
-                new = deep_merge_dictionaries(old, new)
-            result[key] = new
-
-    return result
-
-
 def get_all_cards_and_tokens_from_content(
     all_printings_content: Dict[str, Any]
 ) -> List[Dict[str, Any]]:

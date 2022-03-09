@@ -432,7 +432,7 @@ def get_tcgplayer_buylist_prices_map(
                 LOGGER.debug(f"TCGPlayer ProductId {product_id} not found")
                 continue
 
-            if key not in prices_map.keys():
+            if key not in prices_map:
                 prices_map[key] = MtgjsonPricesObject(
                     "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
                 )
@@ -476,7 +476,7 @@ def get_tcgplayer_prices_map(
         is_non_foil = tcgplayer_object["subTypeName"] == "Normal"
         card_price = tcgplayer_object["marketPrice"]
 
-        if key not in prices_map.keys():
+        if key not in prices_map:
             prices_map[key] = MtgjsonPricesObject(
                 "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
             )

@@ -116,7 +116,7 @@ class CardMarketProvider(AbstractProvider):
                 avg_sell_price = columns[avg_sell_price_index]
                 avg_foil_price = columns[avg_foil_price_index]
 
-                if mtgjson_uuid not in today_dict.keys():
+                if mtgjson_uuid not in today_dict:
                     if avg_sell_price == -1 and avg_foil_price == -1:
                         continue
 

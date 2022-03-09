@@ -6,10 +6,11 @@ import json
 import logging
 import lzma
 import pathlib
-import sys
+import subprocess
 from typing import Any, Dict
 
 import dateutil.relativedelta
+import mergedeep
 import requests
 
 from . import constants
@@ -21,7 +22,6 @@ from .providers import (
     CardMarketProvider,
     TCGPlayerProvider,
 )
-from .utils import deep_merge_dictionaries
 
 LOGGER = logging.getLogger(__name__)
 
@@ -75,9 +75,8 @@ def build_today_prices() -> Dict[str, Any]:
     card_market = _generate_prices(CardMarketProvider())
     card_kingdom = _generate_prices(CardKingdomProvider())
 
-    final_results = deep_merge_dictionaries(
-        card_hoarder, tcgplayer, card_market, card_kingdom
-    )
+    final_results: Dict[str, Any] = {}
+    mergedeep.merge(final_results, card_hoarder, tcgplayer, card_market, card_kingdom)
 
     return final_results
 
@@ -115,6 +114,7 @@ def get_price_archive_data(
     """
     LOGGER.info("Downloading Current Price Data File")
 
+    constants.CACHE_PATH.mkdir(parents=True, exist_ok=True)
     temp_zip_file = constants.CACHE_PATH.joinpath("temp.tar.xz")
 
     downloaded_successfully = MtgjsonS3Handler().download_file(
@@ -140,11 +140,20 @@ def write_price_archive_data(
     :param price_data: Data to compress into that archive file
     """
     local_save_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_save_path = local_save_path.parent.joinpath(local_save_path.stem)
 
-    LOGGER.info(f"Compressing {sys.getsizeof(price_data)} bytes for uploading")
-    with lzma.open(local_save_path, "w") as file:
-        file.write(json.dumps(price_data).encode("utf-8"))
-    LOGGER.info(f"Finished compressing content to {local_save_path}")
+    LOGGER.info(f"Dumping price data to {tmp_save_path}")
+    with tmp_save_path.open("w") as temp_file:
+        json.dump(price_data, temp_file)
+    LOGGER.info(
+        f"Finished writing to {tmp_save_path} (Size = {tmp_save_path.stat().st_size} bytes)"
+    )
+
+    LOGGER.info(f"Compressing {tmp_save_path} for upload")
+    subprocess.check_call(["xz", str(tmp_save_path)])
+    LOGGER.info(
+        f"Finished compressing content to {local_save_path} (Size = {local_save_path.stat().st_size} bytes)"
+    )
 
 
 def download_old_all_printings() -> None:
@@ -197,7 +206,8 @@ def build_prices() -> Dict[str, Any]:
 
     # Update local copy of database
     LOGGER.info("Merging old and new price data")
-    archive_prices = deep_merge_dictionaries(archive_prices, today_prices)
+    mergedeep.merge(archive_prices, today_prices)
+    del today_prices
 
     # Prune local copy of database
     LOGGER.info("Pruning price data")
