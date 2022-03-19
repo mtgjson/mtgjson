@@ -83,8 +83,8 @@ def fixup_referral_map() -> None:
     with MtgjsonConfig().output_path.joinpath("ReferralMap.json").open(
         encoding="utf-8"
     ) as file:
-        lines = list(set(file.readlines()))
-        lines = sorted(lines)
+        uniq_map = dict(line.split("\t", 1) for line in file.readlines())
+        lines = sorted([f"{key}\t{value}" for key, value in uniq_map.items()])
 
     with MtgjsonConfig().output_path.joinpath("ReferralMap.json").open(
         "w", encoding="utf-8"
