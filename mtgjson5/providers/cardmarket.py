@@ -112,23 +112,24 @@ class CardMarketProvider(AbstractProvider):
 
             product_id = str(int(columns[product_id_index]))
             if product_id in mtgjson_id_map:
-                mtgjson_uuid = mtgjson_id_map[product_id]
-                avg_sell_price = columns[avg_sell_price_index]
-                avg_foil_price = columns[avg_foil_price_index]
+                mtgjson_uuids = mtgjson_id_map[product_id]
+                for mtgjson_uuid in mtgjson_uuids:
+                    avg_sell_price = columns[avg_sell_price_index]
+                    avg_foil_price = columns[avg_foil_price_index]
 
-                if mtgjson_uuid not in today_dict:
-                    if avg_sell_price == -1 and avg_foil_price == -1:
-                        continue
+                    if mtgjson_uuid not in today_dict:
+                        if avg_sell_price == -1 and avg_foil_price == -1:
+                            continue
 
-                    today_dict[mtgjson_uuid] = MtgjsonPricesObject(
-                        "paper", "cardmarket", self.today_date, "EUR"
-                    )
+                        today_dict[mtgjson_uuid] = MtgjsonPricesObject(
+                            "paper", "cardmarket", self.today_date, "EUR"
+                        )
 
-                if avg_sell_price != -1:
-                    today_dict[mtgjson_uuid].sell_normal = avg_sell_price
+                    if avg_sell_price != -1:
+                        today_dict[mtgjson_uuid].sell_normal = avg_sell_price
 
-                if avg_foil_price != -1:
-                    today_dict[mtgjson_uuid].sell_foil = avg_foil_price
+                    if avg_foil_price != -1:
+                        today_dict[mtgjson_uuid].sell_foil = avg_foil_price
 
         return today_dict
 

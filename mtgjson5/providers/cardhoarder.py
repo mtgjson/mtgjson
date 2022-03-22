@@ -3,7 +3,8 @@ CardHoarder 3rd party provider
 """
 import logging
 import pathlib
-from typing import Any, Dict, List, Union
+from collections import defaultdict
+from typing import Any, Dict, List, Set, Union
 
 from singleton_decorator import singleton
 
@@ -71,7 +72,7 @@ class CardHoarderProvider(AbstractProvider):
         return response.content.decode()
 
     def convert_cardhoarder_to_mtgjson(
-        self, url_to_parse: str, mtgo_to_mtgjson_map: Dict[str, str]
+        self, url_to_parse: str, mtgo_to_mtgjson_map: Dict[str, Set[str]]
     ) -> Dict[str, float]:
         """
         Download CardHoarder cards and convert them into a more
@@ -90,9 +91,9 @@ class CardHoarderProvider(AbstractProvider):
             card_row = file_row.split("\t")
 
             mtgo_id = card_row[0]
-            card_uuid = mtgo_to_mtgjson_map.get(mtgo_id)
+            card_uuids = mtgo_to_mtgjson_map.get(mtgo_id)
 
-            if not card_uuid:
+            if not card_uuids:
                 LOGGER.debug(f"CardHoarder {card_row} unable to be mapped, skipping")
                 continue
 
@@ -100,7 +101,8 @@ class CardHoarderProvider(AbstractProvider):
                 LOGGER.warning(f"CardHoarder entry {card_row} malformed, skipping")
                 continue
 
-            mtgjson_price_map[card_uuid] = float(card_row[5])
+            for card_uuid in card_uuids:
+                mtgjson_price_map[card_uuid] = float(card_row[5])
 
         return mtgjson_price_map
 
@@ -152,18 +154,20 @@ class CardHoarderProvider(AbstractProvider):
                 semi_completed_data[key].sell_foil = float(value)
 
     @staticmethod
-    def get_mtgo_to_mtgjson_map(all_printings_path: pathlib.Path) -> Dict[str, str]:
+    def get_mtgo_to_mtgjson_map(
+        all_printings_path: pathlib.Path,
+    ) -> Dict[str, Set[str]]:
         """
         Construct a mapping from MTGO IDs (Regular & Foil) to MTGJSON UUIDs
         :param all_printings_path: AllPrintings to generate mapping from
         :return MTGO to MTGJSON mapping
         """
-        mtgo_to_mtgjson = {}
+        mtgo_to_mtgjson: Dict[str, Set[str]] = defaultdict(set)
         for card in get_all_cards_and_tokens(all_printings_path):
             identifiers = card["identifiers"]
             if "mtgoId" in identifiers:
-                mtgo_to_mtgjson[identifiers["mtgoId"]] = card["uuid"]
+                mtgo_to_mtgjson[identifiers["mtgoId"]].add(card["uuid"])
             if "mtgoFoilId" in identifiers:
-                mtgo_to_mtgjson[identifiers["mtgoFoilId"]] = card["uuid"]
+                mtgo_to_mtgjson[identifiers["mtgoFoilId"]].add(card["uuid"])
 
         return mtgo_to_mtgjson
