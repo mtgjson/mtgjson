@@ -79,18 +79,18 @@ class CardKingdomProvider(AbstractProvider):
             if card_id not in card_kingdom_id_to_mtgjson:
                 continue
 
-            mtgjson_uuid = card_kingdom_id_to_mtgjson[card_id]
+            mtgjson_uuids = card_kingdom_id_to_mtgjson[card_id]
+            for mtgjson_uuid in mtgjson_uuids:
+                if mtgjson_uuid not in today_dict:
+                    today_dict[mtgjson_uuid] = MtgjsonPricesObject(
+                        "paper", "cardkingdom", self.today_date, "USD"
+                    )
 
-            if mtgjson_uuid not in today_dict:
-                today_dict[mtgjson_uuid] = MtgjsonPricesObject(
-                    "paper", "cardkingdom", self.today_date, "USD"
-                )
-
-            if card["is_foil"] == "true":
-                today_dict[mtgjson_uuid].sell_foil = float(card["price_retail"])
-                today_dict[mtgjson_uuid].buy_foil = float(card["price_buy"])
-            else:
-                today_dict[mtgjson_uuid].sell_normal = float(card["price_retail"])
-                today_dict[mtgjson_uuid].buy_normal = float(card["price_buy"])
+                if card["is_foil"] == "true":
+                    today_dict[mtgjson_uuid].sell_foil = float(card["price_retail"])
+                    today_dict[mtgjson_uuid].buy_foil = float(card["price_buy"])
+                else:
+                    today_dict[mtgjson_uuid].sell_normal = float(card["price_retail"])
+                    today_dict[mtgjson_uuid].buy_normal = float(card["price_buy"])
 
         return today_dict

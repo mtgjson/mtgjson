@@ -10,7 +10,7 @@ import logging
 import os
 import pathlib
 import time
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 import gevent.pool
 import requests
@@ -292,7 +292,7 @@ def generate_card_mapping(
     all_printings_path: pathlib.Path,
     left_side_components: Tuple[str, ...],
     right_side_components: Tuple[str, ...],
-) -> Dict[str, Any]:
+) -> Dict[str, Set[Any]]:
     """
     Construct a mapping from one component of the card to another.
     The components are nested ops to get to the final value.
@@ -301,7 +301,7 @@ def generate_card_mapping(
     :param right_side_components: Inner right hand side components ([foo, bar] => card[foo][bar])
     :return Dict mapping from left components => right components
     """
-    dump_map: Dict[str, Any] = {}
+    dump_map: Dict[str, Set[Any]] = collections.defaultdict(set)
 
     for card in get_all_cards_and_tokens(all_printings_path):
         try:
@@ -313,7 +313,7 @@ def generate_card_mapping(
             for inside_component in right_side_components:
                 value = value[inside_component]
 
-            dump_map[str(key)] = value
+            dump_map[str(key)].add(value)
         except KeyError:
             pass
 

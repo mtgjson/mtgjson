@@ -5,7 +5,7 @@ MTGJSON TcgplayerSkus Object
 import logging
 import pathlib
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Union
+from typing import DefaultDict, Dict, List, Set, Union
 
 from ..providers.tcgplayer import (
     TCGPlayerProvider,
@@ -38,13 +38,13 @@ class MtgjsonTcgplayerSkusObject:
             tcgplayer_sku_data = get_tcgplayer_sku_data(group)
             for product in tcgplayer_sku_data:
                 product_id = str(product["productId"])
-                normal_key = tcg_normal_to_mtgjson_map.get(product_id)
-                etched_key = tcg_etched_to_mtgjson_map.get(product_id)
-                if normal_key:
+                normal_keys: Set[str] = tcg_normal_to_mtgjson_map.get(product_id, set())
+                etched_keys: Set[str] = tcg_etched_to_mtgjson_map.get(product_id, set())
+                for normal_key in normal_keys:
                     self.enhanced_tcgplayer_skus[normal_key].extend(
                         convert_sku_data_enum(product)
                     )
-                if etched_key:
+                for etched_key in etched_keys:
                     self.enhanced_tcgplayer_skus[etched_key].extend(
                         convert_sku_data_enum(product)
                     )
