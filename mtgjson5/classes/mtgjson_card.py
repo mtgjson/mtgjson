@@ -24,6 +24,7 @@ class MtgjsonCardObject:
     artist: str
     ascii_name: Optional[str]
     availability: MtgjsonGameFormatsObject
+    booster_types: List[str]
     border_color: str
     card_parts: List[str]
     color_identity: List[str]

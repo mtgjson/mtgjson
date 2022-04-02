@@ -799,6 +799,13 @@ def build_mtgjson_card(
     mtgjson_card.is_textless = scryfall_object.get("textless")
     mtgjson_card.life = scryfall_object.get("life_modifier")
 
+    # Future expansion to support set and collector booster types
+    mtgjson_card.booster_types = []
+    if scryfall_object.get("booster", False):
+        mtgjson_card.booster_types.append("draft")
+    if any(deck_type in scryfall_object.get("promo_types", []) for deck_type in ("starterdeck", "planeswalkerdeck")):
+        mtgjson_card.booster_types.append("deck")
+
     mtgjson_card.identifiers.mcm_id = get_str_or_none(
         scryfall_object.get("cardmarket_id")
     )
