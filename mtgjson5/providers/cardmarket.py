@@ -162,7 +162,9 @@ class CardMarketProvider(AbstractProvider):
             }
 
         # Update the set map with manual overrides
-        with constants.RESOURCE_PATH.joinpath("mkm_set_name_fixes.json").open() as f:
+        with constants.RESOURCE_PATH.joinpath("mkm_set_name_fixes.json").open(
+            encoding="utf-8"
+        ) as f:
             mkm_set_name_fixes = json.load(f)
 
         for old_set_name, new_set_name in mkm_set_name_fixes.items():

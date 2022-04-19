@@ -1380,9 +1380,9 @@ def get_signature_from_number(mtgjson_card: MtgjsonCardObject) -> Optional[str]:
     :param mtgjson_card: Card object to get required data from
     :returns Name of person who signed card, if applicable
     """
-    with constants.RESOURCE_PATH.joinpath(
-        "world_championship_signatures.json"
-    ).open() as f:
+    with constants.RESOURCE_PATH.joinpath("world_championship_signatures.json").open(
+        encoding="utf-8"
+    ) as f:
         signatures_by_set: Dict[str, Dict[str, str]] = json.load(f)
 
     if mtgjson_card.set_code not in signatures_by_set:
