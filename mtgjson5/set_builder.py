@@ -799,6 +799,16 @@ def build_mtgjson_card(
     mtgjson_card.is_textless = scryfall_object.get("textless")
     mtgjson_card.life = scryfall_object.get("life_modifier")
 
+    # Future expansion to support set and collector booster types
+    mtgjson_card.booster_types = []
+    if scryfall_object.get("booster", False):
+        mtgjson_card.booster_types.append("draft")
+    if any(
+        deck_type in scryfall_object.get("promo_types", [])
+        for deck_type in ("starterdeck", "planeswalkerdeck")
+    ):
+        mtgjson_card.booster_types.append("deck")
+
     mtgjson_card.identifiers.mcm_id = get_str_or_none(
         scryfall_object.get("cardmarket_id")
     )
@@ -1373,9 +1383,9 @@ def get_signature_from_number(mtgjson_card: MtgjsonCardObject) -> Optional[str]:
     :param mtgjson_card: Card object to get required data from
     :returns Name of person who signed card, if applicable
     """
-    with constants.RESOURCE_PATH.joinpath(
-        "world_championship_signatures.json"
-    ).open() as f:
+    with constants.RESOURCE_PATH.joinpath("world_championship_signatures.json").open(
+        encoding="utf-8"
+    ) as f:
         signatures_by_set: Dict[str, Dict[str, str]] = json.load(f)
 
     if mtgjson_card.set_code not in signatures_by_set:

@@ -1,14 +1,15 @@
-black~=22.1.0
+black~=22.3.0
 isort~=5.10.1
 mypy~=0.931
-pylint~=2.12.2
-pytest~=7.0.1
+pylint~=2.13.5
+pytest~=7.0.1; python_version == '3.6'
+pytest~=7.1.1; python_version >= '3.7'
 pytest-cov~=3.0.0
 pytest-mock~=3.6.1; python_version == '3.6'
 pytest-mock~=3.7.0; python_version >= '3.7'
 setuptools~=59.6.0; python_version == '3.6'
-setuptools~=60.9.3; python_version >= '3.7'
-tox~=3.24.5
+setuptools~=62.1.0; python_version >= '3.7'
+tox~=3.25.0
 
 types-PyYAML~=6.0.4
 types-python-dateutil~=2.8.9
