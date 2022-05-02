@@ -986,15 +986,20 @@ def build_mtgjson_card(
         for a_part in sorted(
             scryfall_object["all_parts"], key=lambda part: part["component"]  # type: ignore
         ):
-            if a_part["component"] != "token":
-                if "//" in a_part.get("name"):
-                    mtgjson_card.set_names(a_part.get("name").split("//"))
-                    break
+            if a_part["component"] == "token":
+                continue
 
-                # This is a meld only-fix, so we ignore tokens/combo pieces
-                if "meld" in a_part["component"]:
-                    meld_object.append(a_part["component"])
-                    mtgjson_card.append_names(a_part.get("name"))
+            # This is a meld only-fix, so we ignore tokens/combo pieces
+            if a_part["component"].startswith("meld"):
+                meld_object.append(a_part["component"])
+                mtgjson_card.append_names(a_part.get("name"))
+                continue
+
+            # There are a handful of cards that have multiple incorrect listings
+            # in their parts, such as rebalanced (Alrund) and same card double flipped (Zndrsplt)
+            if mtgjson_card.name in a_part.get("name") and "//" in a_part.get("name"):
+                mtgjson_card.set_names(a_part.get("name").split("//"))
+                break
 
         # If the only entry is the original card, empty the names array
         if (
