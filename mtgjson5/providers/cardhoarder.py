@@ -127,6 +127,7 @@ class CardHoarderProvider(AbstractProvider):
 
         db_contents: Dict[str, MtgjsonPricesObject] = {}
 
+        LOGGER.info("Building CardHoarder retail data")
         self._construct_for_cards(db_contents, normal_cards, True)
         self._construct_for_cards(db_contents, foil_cards)
         return db_contents

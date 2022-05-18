@@ -97,6 +97,7 @@ class CardMarketProvider(AbstractProvider):
             all_printings_path, ("identifiers", "mcmId"), ("uuid",)
         )
 
+        LOGGER.info("Building CardMarket retail data")
         price_data: pandas.DataFrame = pandas.read_csv(self._get_card_market_data())
         data_frame_columns = list(price_data.columns)
 
