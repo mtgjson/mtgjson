@@ -10,6 +10,7 @@ from .github_boosters import GitHubBoostersProvider
 from .github_decks import GitHubDecksProvider
 from .github_mtgsqlite import GitHubMTGSqliteProvider
 from .mtgban import MTGBanProvider
+from .multiversebridge import MultiverseBridgeProvider
 from .scryfall import ScryfallProvider
 from .tcgplayer import TCGPlayerProvider
 from .whats_in_standard import WhatsInStandardProvider

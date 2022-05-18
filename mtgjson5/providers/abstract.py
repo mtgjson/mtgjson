@@ -2,13 +2,15 @@
 API for how providers need to interact with other classes
 """
 import abc
+import copy
 import datetime
 import logging
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 import requests_cache
 
 from mtgjson5 import constants
+from mtgjson5.classes import MtgjsonPricesObject
 from mtgjson5.mtgjson_config import MtgjsonConfig
 
 LOGGER = logging.getLogger(__name__)
@@ -83,3 +85,52 @@ class AbstractProvider(abc.ABC):
             requests_cache.install_cache(
                 str(constants.CACHE_PATH.joinpath(self.get_class_name()))
             )
+
+    @staticmethod
+    def generic_generate_today_price_dict(
+        third_party_to_mtgjson: Dict[str, Set[Any]],
+        price_data_rows: List[Dict[str, Any]],
+        card_platform_id_key: str,
+        default_prices_object: MtgjsonPricesObject,
+        foil_key: str,
+        retail_key: Optional[str] = None,
+        buy_key: Optional[str] = None,
+    ) -> Dict[str, MtgjsonPricesObject]:
+        """
+        Generically convert price data to MTGJSON data format
+        :param third_party_to_mtgjson: Mapping of 3rdPartyID to MTGJSON ID(s)
+        :param price_data_rows: Rows from 3rd Party provider with price data
+        :param card_platform_id_key: ID in each price data row to get the 3rd Party ID from
+        :param default_prices_object: Default prices object for the price points
+        :param foil_key: ID in each price data row to determine if card is foil or non-foil
+        :param retail_key: Optional determination key to see if we have sell prices
+        :param buy_key: Optional determination key to see if we have buy prices
+        :return Today's price setup in MTGJSON Price Format
+        """
+
+        today_dict: Dict[str, MtgjsonPricesObject] = {}
+
+        for data_row in price_data_rows:
+            third_party_id = str(data_row[card_platform_id_key])
+            if third_party_id not in third_party_to_mtgjson:
+                continue
+
+            mtgjson_uuids = third_party_to_mtgjson[third_party_id]
+            for mtgjson_uuid in mtgjson_uuids:
+                if mtgjson_uuid not in today_dict:
+                    today_dict[mtgjson_uuid] = copy.copy(default_prices_object)
+
+                if data_row[foil_key] == "true":
+                    if retail_key:
+                        today_dict[mtgjson_uuid].sell_foil = float(data_row[retail_key])
+                    if buy_key:
+                        today_dict[mtgjson_uuid].buy_foil = float(data_row[buy_key])
+                else:
+                    if retail_key:
+                        today_dict[mtgjson_uuid].sell_normal = float(
+                            data_row[retail_key]
+                        )
+                    if buy_key:
+                        today_dict[mtgjson_uuid].buy_normal = float(data_row[buy_key])
+
+        return today_dict

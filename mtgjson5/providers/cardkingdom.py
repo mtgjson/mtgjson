@@ -58,6 +58,7 @@ class CardKingdomProvider(AbstractProvider):
         :return MTGJSON prices single day structure
         """
         request_api_response: Dict[str, Any] = self.download(self.api_url)
+        price_data_rows = request_api_response.get("data", [])
 
         # Start with non-foil IDs
         card_kingdom_id_to_mtgjson = generate_card_mapping(
@@ -71,26 +72,17 @@ class CardKingdomProvider(AbstractProvider):
             )
         )
 
-        today_dict: Dict[str, MtgjsonPricesObject] = {}
+        default_prices_obj = MtgjsonPricesObject(
+            "paper", "cardkingdom", self.today_date, "USD"
+        )
 
-        card_rows = request_api_response.get("data", [])
-        for card in card_rows:
-            card_id = str(card["id"])
-            if card_id not in card_kingdom_id_to_mtgjson:
-                continue
-
-            mtgjson_uuids = card_kingdom_id_to_mtgjson[card_id]
-            for mtgjson_uuid in mtgjson_uuids:
-                if mtgjson_uuid not in today_dict:
-                    today_dict[mtgjson_uuid] = MtgjsonPricesObject(
-                        "paper", "cardkingdom", self.today_date, "USD"
-                    )
-
-                if card["is_foil"] == "true":
-                    today_dict[mtgjson_uuid].sell_foil = float(card["price_retail"])
-                    today_dict[mtgjson_uuid].buy_foil = float(card["price_buy"])
-                else:
-                    today_dict[mtgjson_uuid].sell_normal = float(card["price_retail"])
-                    today_dict[mtgjson_uuid].buy_normal = float(card["price_buy"])
-
-        return today_dict
+        LOGGER.info("Building CardKingdom buylist & retail data")
+        return super().generic_generate_today_price_dict(
+            third_party_to_mtgjson=card_kingdom_id_to_mtgjson,
+            price_data_rows=price_data_rows,
+            card_platform_id_key="id",
+            default_prices_object=default_prices_obj,
+            foil_key="is_foil",
+            retail_key="price_retail",
+            buy_key="price_buy",
+        )

@@ -14,9 +14,11 @@ class MtgjsonIdentifiersObject:
     card_kingdom_etched_id: Optional[str]
     card_kingdom_foil_id: Optional[str]
     card_kingdom_id: Optional[str]
+    cardsphere_id: Optional[str]
     mcm_id: Optional[str]
     mcm_meta_id: Optional[str]
     mtg_arena_id: Optional[str]
+    mtgjson_v4_id: Optional[str]
     mtgo_foil_id: Optional[str]
     mtgo_id: Optional[str]
     multiverse_id: Optional[str]
@@ -25,7 +27,6 @@ class MtgjsonIdentifiersObject:
     scryfall_oracle_id: Optional[str]
     tcgplayer_etched_product_id: Optional[str]
     tcgplayer_product_id: Optional[str]
-    mtgjson_v4_id: Optional[str]
 
     def __init__(self) -> None:
         """
