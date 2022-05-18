@@ -19,6 +19,7 @@ class MtgjsonSetObject:
     block: str
     booster: Optional[Dict[str, Any]]
     cards: List[MtgjsonCardObject]
+    cardsphere_set_id: Optional[int]
     code: str
     code_v3: str
     is_foreign_only: bool
