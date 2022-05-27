@@ -22,27 +22,11 @@ from .compiled_classes import (
     MtgjsonTcgplayerSkusObject,
 )
 from .mtgjson_config import MtgjsonConfig
-from .price_builder import build_prices
+from .price_builder import build_prices, build_today_prices
 from .providers import GitHubDecksProvider
 from .utils import get_file_hash
 
 LOGGER = logging.getLogger(__name__)
-
-
-def generate_compiled_prices_output(
-    price_data: Dict[str, Dict[str, float]], pretty_print: bool
-) -> None:
-    """
-    Dump AllPrices to a file
-    :param price_data: Data to dump
-    :param pretty_print: Pretty or minimal
-    """
-    LOGGER.info("Building Prices")
-    create_compiled_output(
-        MtgjsonStructuresObject().all_prices,
-        price_data,
-        pretty_print,
-    )
 
 
 def build_format_specific_files(
@@ -169,6 +153,29 @@ def build_all_printings_files(pretty_print: bool) -> None:
     )
 
 
+def build_price_files(pretty_print: bool = False) -> None:
+    """
+    Construct price files
+    :param pretty_print: Pretty or minimal
+    """
+    LOGGER.info("Building Prices")
+    today_prices = build_today_prices()
+
+    # AllPricesToday.json
+    create_compiled_output(
+        MtgjsonStructuresObject().all_prices_today,
+        today_prices,
+        pretty_print,
+    )
+
+    # AllPrices.json
+    create_compiled_output(
+        MtgjsonStructuresObject().all_prices,
+        build_prices(today_prices),
+        pretty_print,
+    )
+
+
 def generate_compiled_output_files(pretty_print: bool) -> None:
     """
     Create and dump all compiled outputs
@@ -188,8 +195,8 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
         pretty_print,
     )
 
-    # AllPrices.json
-    generate_compiled_prices_output(build_prices(), pretty_print)
+    # AllPrices, AllPricesToday
+    build_price_files(pretty_print)
 
     # CompiledList.json
     create_compiled_output(

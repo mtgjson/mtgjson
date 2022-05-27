@@ -54,6 +54,7 @@ class MtgjsonStructuresObject(metaclass=Singleton):
         self.all_printings = "AllPrintings"
         self.atomic_cards = "AtomicCards"
         self.all_prices = "AllPrices"
+        self.all_prices_today = "AllPricesToday"
         self.all_csvs_directory = "AllPrintingsCSVFiles"
         self.all_decks_directory = "AllDeckFiles"
         self.all_sets_directory = "AllSetFiles"

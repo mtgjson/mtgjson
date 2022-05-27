@@ -7,7 +7,7 @@ import logging
 import lzma
 import pathlib
 import subprocess
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import dateutil.relativedelta
 import mergedeep
@@ -65,11 +65,10 @@ def build_today_prices() -> Dict[str, Any]:
     Get today's prices from upstream sources and combine them together
     :return: Today's prices (to be merged into archive)
     """
+    # We'll need AllPrintings.json to handle this
     if not MtgjsonConfig().output_path.joinpath("AllPrintings.json").is_file():
-        LOGGER.error(
-            f"Unable to build prices. AllPrintings not found in {MtgjsonConfig().output_path}"
-        )
-        return {}
+        LOGGER.info("AllPrintings not found, downloading to build today's prices")
+        download_old_all_printings()
 
     card_hoarder = _generate_prices(CardHoarderProvider())
     tcgplayer = _generate_prices(TCGPlayerProvider())
@@ -180,7 +179,7 @@ def download_old_all_printings() -> None:
         f.write(lzma.decompress(file_bytes).decode())
 
 
-def build_prices() -> Dict[str, Any]:
+def build_prices(today_prices: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     The full build prices operation
     Prune & Update remote database
@@ -190,15 +189,18 @@ def build_prices() -> Dict[str, Any]:
 
     # We'll need AllPrintings.json to handle this
     if not MtgjsonConfig().output_path.joinpath("AllPrintings.json").is_file():
-        LOGGER.info("AllPrintings not found, attempting to download")
+        LOGGER.info("AllPrintings not found, downloading to build all prices")
         download_old_all_printings()
 
     # Get today's price database
-    LOGGER.info("Building new price data")
-    today_prices = build_today_prices()
-    if not today_prices:
-        LOGGER.warning("Pricing information failed to generate")
-        return {}
+    if today_prices is not None:
+        LOGGER.info("Loading today's prices from input arg")
+    else:
+        LOGGER.info("Building today's price data")
+        today_prices = build_today_prices()
+        if not today_prices:
+            LOGGER.warning("Pricing information failed to generate")
+            return {}
 
     if not MtgjsonConfig().has_section("Prices"):
         return today_prices
