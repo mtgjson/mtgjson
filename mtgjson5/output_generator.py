@@ -398,19 +398,8 @@ def write_to_file(file_name: str, file_contents: Any, pretty_print: bool) -> Non
     write_file.parent.mkdir(parents=True, exist_ok=True)
 
     with write_file.open("w", encoding="utf-8") as file:
-        # Pre-sort the data object, as we want this in a particular order
-        data_object = json.loads(
-            json.dumps(
-                file_contents,
-                sort_keys=True,
-                ensure_ascii=False,
-                default=lambda o: o.to_json(),
-            )
-        )
-
-        # We want META to be at the top of the file, so we can't sort down here
         json.dump(
-            obj={"meta": MtgjsonMetaObject(), "data": data_object},
+            obj={"meta": MtgjsonMetaObject(), "data": file_contents},
             fp=file,
             indent=(4 if pretty_print else None),
             ensure_ascii=False,
