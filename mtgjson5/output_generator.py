@@ -39,9 +39,7 @@ def generate_compiled_prices_output(
     """
     LOGGER.info("Building Prices")
     create_compiled_output(
-        MtgjsonStructuresObject().all_prices,
-        price_data,
-        pretty_print,
+        MtgjsonStructuresObject().all_prices, price_data, pretty_print, sort_keys=False
     )
 
 
@@ -261,16 +259,17 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
 
 
 def create_compiled_output(
-    compiled_name: str, compiled_object: Any, pretty_print: bool
+    compiled_name: str, compiled_object: Any, pretty_print: bool, sort_keys: bool = True
 ) -> None:
     """
     Log and write out a compiled output file
     :param compiled_name: What file to save
     :param compiled_object: What content to write
     :param pretty_print: Pretty or minimal
+    :param sort_keys: Sort the data keys before dumping
     """
     LOGGER.info(f"Generating {compiled_name}")
-    write_to_file(compiled_name, compiled_object, pretty_print)
+    write_to_file(compiled_name, compiled_object, pretty_print, sort_keys)
     LOGGER.debug(f"Finished Generating {compiled_name}")
 
 
@@ -387,15 +386,29 @@ def generate_output_file_hashes(directory: pathlib.Path) -> None:
             hash_file.write(generated_hash)
 
 
-def write_to_file(file_name: str, file_contents: Any, pretty_print: bool) -> None:
+def write_to_file(
+    file_name: str, file_contents: Any, pretty_print: bool, sort_keys: bool = True
+) -> None:
     """
     Dump content to a file in the outputs directory
     :param file_name: File to dump to
     :param file_contents: Contents to dump
     :param pretty_print: Pretty or minimal
+    :param sort_keys: Should data keys be sorted
     """
     write_file = MtgjsonConfig().output_path.joinpath(f"{file_name}.json")
     write_file.parent.mkdir(parents=True, exist_ok=True)
+
+    if sort_keys:
+        # NOTE: Super large files will cause this to run out of memory
+        file_contents = json.loads(
+            json.dumps(
+                file_contents,
+                sort_keys=True,
+                ensure_ascii=False,
+                default=lambda o: o.to_json(),
+            )
+        )
 
     with write_file.open("w", encoding="utf-8") as file:
         json.dump(
