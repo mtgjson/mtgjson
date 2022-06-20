@@ -4,6 +4,7 @@ Scryfall 3rd party provider
 import argparse
 import logging
 import pathlib
+import re
 import time
 from typing import Any, Dict, List, Optional, Set, Union
 
@@ -27,7 +28,7 @@ class ScryfallProvider(AbstractProvider):
     class_id: str = "sf"
     ALL_SETS_URL: str = "https://api.scryfall.com/sets/"
     CARDS_URL: str = "https://api.scryfall.com/cards/"
-    VARIATIONS_URL: str = "https://api.scryfall.com/cards/search?q=is%3Avariation%20set%3A{0}&unique=prints"
+    CARDS_URL_ALL_DETAIL_BY_SET_CODE: str = "https://api.scryfall.com/cards/search?include_extras=true&include_variations=true&order=set&q=e%3A{}&unique=prints"
     CARDS_WITHOUT_LIMITS_URL: str = "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named)%20or%20(o:deck%20o:have%20o:up%20o:to%20o:cards%20o:named)"
     CARDS_IN_BASE_SET_URL: str = "https://api.scryfall.com/cards/search?order=set&q=set:{0}%20is:booster%20unique:prints"
     CARDS_IN_SET: str = (
@@ -75,6 +76,8 @@ class ScryfallProvider(AbstractProvider):
         all_cards: List[Dict[str, Any]] = []
 
         page_downloaded = 1
+        starting_url = f"{starting_url}&page={page_downloaded}"
+
         while starting_url:
             LOGGER.debug(f"Downloading page {page_downloaded} -- {starting_url}")
             page_downloaded += 1
@@ -92,7 +95,9 @@ class ScryfallProvider(AbstractProvider):
             if not response.get("has_more"):
                 break
 
-            starting_url = str(response.get("next_page"))
+            starting_url = re.sub(
+                r"&page=\d+", f"&page={page_downloaded}", starting_url, count=1
+            )
 
         return all_cards
 
@@ -129,21 +134,8 @@ class ScryfallProvider(AbstractProvider):
         :return: List of all card objects
         """
         LOGGER.info(f"Downloading {set_code} cards")
-        set_api_json: Dict[str, Any] = self.download(self.ALL_SETS_URL + set_code)
-        if set_api_json["object"] == "error":
-            if set_api_json["details"].startswith("No Magic set found"):
-                LOGGER.info(f"Downloading {set_code} cards failed -- Set not found")
-            else:
-                LOGGER.error(f'Scryfall download failure: {set_api_json["details"]}')
-            return []
-
-        # All cards in the set structure
-        scryfall_cards: List[Dict[str, Any]] = []
-
-        # Download both normal card and variations
-        scryfall_cards.extend(self.download_all_pages(set_api_json.get("search_uri")))
-        scryfall_cards.extend(
-            self.download_all_pages(self.VARIATIONS_URL.format(set_code))
+        scryfall_cards = self.download_all_pages(
+            self.CARDS_URL_ALL_DETAIL_BY_SET_CODE.format(set_code)
         )
 
         # Return sorted by card name, and by card number if the same name is found
