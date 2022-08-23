@@ -307,6 +307,10 @@ def construct_format_map(
 
         formats_set_legal_in = constants.SUPPORTED_FORMAT_OUTPUTS
         for card in set_code_content.get("cards"):
+            # Don't include Alchemy cards in determining legality
+            if card.get("name", "").startswith("A-"):
+                continue
+
             card_legalities = set(card.get("legalities").keys())
             formats_set_legal_in = formats_set_legal_in.intersection(card_legalities)
 
