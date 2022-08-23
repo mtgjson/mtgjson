@@ -1,5 +1,6 @@
 beautifulsoup4~=4.11.1
-boto3~=1.24.57
+boto3~=1.23.10; python_version == '3.6'
+boto3~=1.24.57; python_version >= '3.7'
 botocore~=1.27.57
 gevent~=21.12.0
 GitPython~=3.1.20; python_version == '3.6'
