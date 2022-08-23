@@ -66,7 +66,7 @@ class GathererProvider(AbstractProvider):
         session.headers.update(self.session_header)
 
         try:
-            response = session.get(url, params=params)
+            response = session.get(url, params=params, verify=False)
         except (
             urllib3.exceptions.MaxRetryError,
             requests.exceptions.RetryError,
