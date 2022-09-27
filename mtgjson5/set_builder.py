@@ -1386,7 +1386,8 @@ def get_base_and_total_set_sizes(mtgjson_set: MtgjsonSetObject) -> Tuple[int, in
         if mtgjson_set.release_date > "2019-10-01":
             for card in mtgjson_set.cards:
                 if "boosterfun" in card.promo_types:
-                    base_set_size = int(card.number) - 1
+                    card_number = re.findall(r"([0-9]+)", card.number)[0]
+                    base_set_size = int(card_number) - 1
                     break
         else:
             # Download on the fly
