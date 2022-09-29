@@ -775,6 +775,7 @@ def build_mtgjson_card(
 
     # Explicit Variables -- Based on the entire card object
 
+    mtgjson_card.attraction_lights = scryfall_object.get("attraction_lights")
     mtgjson_card.border_color = scryfall_object.get("border_color", "")
     mtgjson_card.color_identity = scryfall_object.get("color_identity", "")
     if not hasattr(mtgjson_card, "mana_value"):
