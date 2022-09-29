@@ -23,6 +23,7 @@ class MtgjsonCardObject:
 
     artist: str
     ascii_name: Optional[str]
+    attraction_lights: Optional[List[str]]
     availability: MtgjsonGameFormatsObject
     booster_types: List[str]
     border_color: str
