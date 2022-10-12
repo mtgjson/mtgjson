@@ -26,9 +26,7 @@ class WizardsProvider(AbstractProvider):
     """
 
     TRANSLATION_URL: str = "https://magic.wizards.com/{}/products/card-set-archive"
-    magic_rules_url: str = (
-        "https://magic.wizards.com/en/game-info/gameplay/rules-and-formats/rules"
-    )
+    magic_rules_url: str = "https://magic.wizards.com/en/rules"
     translation_table: Dict[str, Dict[str, str]] = {}
     magic_rules: str = ""
     __translation_table_cache: pathlib.Path = constants.CACHE_PATH.joinpath(
@@ -257,7 +255,9 @@ class WizardsProvider(AbstractProvider):
         # Also split up the regex find so we only have the URL
         self.magic_rules_url = str(re.findall(r"href=\".*\.txt\"", response)[0][6:-1])
         response = (
-            self.download(self.magic_rules_url).content.decode().replace("â€™", "'")
+            self.download(self.magic_rules_url)
+            .content.decode("utf-8", "ignore")
+            .replace("â€™", "'")
         )
 
         self.magic_rules = "\n".join(response.splitlines())
