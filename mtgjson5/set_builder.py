@@ -428,7 +428,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     add_mcm_details(mtgjson_set)
     add_card_kingdom_details(mtgjson_set)
 
-    if mtgjson_set.code in {"EMN"}:
+    if mtgjson_set.code in {"EMN", "BRO"}:
         add_meld_face_parts(mtgjson_set)
 
     base_total_sizes = get_base_and_total_set_sizes(mtgjson_set)
