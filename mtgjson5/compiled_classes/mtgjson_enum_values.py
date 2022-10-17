@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Union
 
 from ..compiled_classes.mtgjson_all_printings import MtgjsonAllPrintingsObject
 from ..mtgjson_config import MtgjsonConfig
+from ..providers import tcgplayer
 from ..utils import sort_internal_lists
 from .mtgjson_structures import MtgjsonStructuresObject
 
@@ -72,6 +73,18 @@ class MtgjsonEnumValuesObject:
             with keywords.open(encoding="utf-8") as file:
                 content = json.load(file).get("data", {})
             self.attr_value_dict.update({"keywords": content})
+
+        # Add TCGPlayer SKUs
+        self.attr_value_dict.update(
+            {
+                "tcgplayerSkus": {
+                    "finishes": [key.name for key in tcgplayer.CardFinish],
+                    "conditions": [key.name for key in tcgplayer.CardCondition],
+                    "printings": [key.name for key in tcgplayer.CardPrinting],
+                    "languages": [key.name for key in tcgplayer.CardLanguage],
+                }
+            }
+        )
 
     def construct_deck_enums(self, decks_directory: pathlib.Path) -> Dict[str, Any]:
         """
