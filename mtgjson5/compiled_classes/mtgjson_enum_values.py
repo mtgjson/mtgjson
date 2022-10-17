@@ -25,6 +25,7 @@ class MtgjsonEnumValuesObject:
     set_key_struct = {
         "card": [
             "availability",
+            "boosterTypes",
             "borderColor",
             "colorIdentity",
             "colorIndicator",
@@ -33,6 +34,7 @@ class MtgjsonEnumValuesObject:
             "finishes",
             "frameEffects",
             "frameVersion",
+            "language",
             "layout",
             "promoTypes",
             "rarity",
