@@ -17,6 +17,7 @@ from .classes import (
     MtgjsonLeadershipSkillsObject,
     MtgjsonLegalitiesObject,
     MtgjsonMetaObject,
+    MtgjsonRelatedCardsObject,
     MtgjsonRulingObject,
     MtgjsonSealedProductObject,
     MtgjsonSetObject,
@@ -1064,13 +1065,7 @@ def build_mtgjson_card(
             + "&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson"
         )
 
-    if is_token:
-        reverse_related: List[str] = []
-        if "all_parts" in scryfall_object:
-            for a_part in scryfall_object["all_parts"]:
-                if a_part.get("name") != mtgjson_card.name:
-                    reverse_related.append(a_part.get("name"))
-        mtgjson_card.reverse_related = reverse_related
+    add_related_cards(scryfall_object, mtgjson_card, is_token)
 
     # Gatherer Calls -- SLOWWWWW
     if mtgjson_card.identifiers.multiverse_id:
@@ -1477,3 +1472,34 @@ def add_meld_face_parts(mtgjson_set: MtgjsonSetObject) -> None:
 
         first_card.card_parts = [x for x in card_face_parts if x]
     LOGGER.info(f"Finished adding Card Face Parts for {mtgjson_set.code}")
+
+
+def add_related_cards(
+    scryfall_object: Dict[str, Any], mtgjson_card: MtgjsonCardObject, is_token: bool
+) -> None:
+    """
+    Add related card entities to the MTGJSON Card
+    :param scryfall_object: Scryfall data object
+    :param mtgjson_card: MTGJSON Card object to modify
+    :param is_token: Is the MTGJSON Card a token or not
+    """
+    related_cards = MtgjsonRelatedCardsObject()
+
+    if is_token:
+        reverse_related: List[str] = []
+        if "all_parts" in scryfall_object:
+            for a_part in scryfall_object["all_parts"]:
+                if a_part.get("name") != mtgjson_card.name:
+                    reverse_related.append(a_part.get("name"))
+        mtgjson_card.reverse_related = reverse_related
+        related_cards.reverse_related = reverse_related
+
+    if "alchemy" in scryfall_object["set_type"]:
+        alchemy_cards = ScryfallProvider().get_alchemy_cards_with_spellbooks()
+        if mtgjson_card.name in alchemy_cards:
+            related_cards.spellbook = ScryfallProvider().get_card_names_in_spellbook(
+                mtgjson_card.name
+            )
+
+    if related_cards.present():
+        mtgjson_card.related_cards = related_cards

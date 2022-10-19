@@ -35,11 +35,13 @@ class ScryfallProvider(AbstractProvider):
         "https://api.scryfall.com/cards/search?order=set&q=set:{0}%20unique:prints"
     )
     TYPE_CATALOG: str = "https://api.scryfall.com/catalog/{0}"
+    CARDS_WITH_ALCHEMY_SPELLBOOK_URL = "https://api.scryfall.com/cards/search?q=is:alchemy%20and%20oracle:/conjure|draft|%27s%20spellbook/"
+    SPELLBOOK_SEARCH_URL = "https://api.scryfall.com/cards/search?q=spellbook:%22{}%22"
     cards_without_limits: Set[str]
 
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
-        self.cards_without_limits = self.generate_cards_without_limits()
+        self.cards_without_limits = set(self.generate_cards_without_limits())
 
     def _build_http_header(self) -> Dict[str, str]:
         """
@@ -143,17 +145,29 @@ class ScryfallProvider(AbstractProvider):
             scryfall_cards, key=lambda card: (card["name"], card["collector_number"])
         )
 
-    def generate_cards_without_limits(self) -> Set[str]:
+    def generate_cards_without_limits(self) -> List[str]:
         """
         Grab all cards that can have as many copies
         in a deck as the player wants
         :return: Set of valid cards
         """
 
-        return {
-            card["name"]
-            for card in self.download(self.CARDS_WITHOUT_LIMITS_URL)["data"]
-        }
+        return self.__get_card_names(self.CARDS_WITHOUT_LIMITS_URL)
+
+    def get_alchemy_cards_with_spellbooks(self) -> List[str]:
+        """
+        Grab all cards that have alchemy spellbooks associated
+        :return Set of valid cards
+        """
+        return self.__get_card_names(self.CARDS_WITH_ALCHEMY_SPELLBOOK_URL)
+
+    def get_card_names_in_spellbook(self, card_name: str) -> List[str]:
+        """
+        Grab all cards that are within a specific card_name's alchemy spellbook
+        :param card_name Card to find spellbook entries for
+        :return Set of spellbook cards
+        """
+        return self.__get_card_names(self.SPELLBOOK_SEARCH_URL.format(card_name))
 
     def get_catalog_entry(self, catalog_key: str) -> List[str]:
         """
@@ -244,3 +258,11 @@ class ScryfallProvider(AbstractProvider):
         return_list = list(non_token_sets - set(args.skip_sets))
 
         return sorted(return_list)
+
+    def __get_card_names(self, url: str) -> List[str]:
+        """
+        Get the card names from a URL search
+        :param url: URL on Scryfall to query
+        :return All unique card names found
+        """
+        return list({card["name"] for card in self.download(url).get("data", {})})
