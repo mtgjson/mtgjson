@@ -80,10 +80,10 @@ class MtgjsonEnumValuesObject:
         self.attr_value_dict.update(
             {
                 "tcgplayerSkus": {
+                    "condition": [key.name for key in tcgplayer.CardCondition],
                     "finishes": [key.name for key in tcgplayer.CardFinish],
-                    "conditions": [key.name for key in tcgplayer.CardCondition],
-                    "printings": [key.name for key in tcgplayer.CardPrinting],
-                    "languages": [key.name for key in tcgplayer.CardLanguage],
+                    "language": [key.name for key in tcgplayer.CardLanguage],
+                    "printing": [key.name for key in tcgplayer.CardPrinting],
                 }
             }
         )
