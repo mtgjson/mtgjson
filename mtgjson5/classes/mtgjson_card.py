@@ -12,6 +12,7 @@ from ..classes.mtgjson_leadership_skills import MtgjsonLeadershipSkillsObject
 from ..classes.mtgjson_legalities import MtgjsonLegalitiesObject
 from ..classes.mtgjson_prices import MtgjsonPricesObject
 from ..classes.mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
+from ..classes.mtgjson_related_cards import MtgjsonRelatedCardsObject
 from ..classes.mtgjson_rulings import MtgjsonRulingObject
 from ..utils import to_camel_case
 
@@ -87,6 +88,7 @@ class MtgjsonCardObject:
     purchase_urls: MtgjsonPurchaseUrlsObject
     rarity: str
     rebalanced_printings: List[str]
+    related_cards: MtgjsonRelatedCardsObject
     reverse_related: Optional[List[str]]
     rulings: List[MtgjsonRulingObject]
     security_stamp: Optional[str]

@@ -13,6 +13,7 @@ from .mtgjson_legalities import MtgjsonLegalitiesObject
 from .mtgjson_meta import MtgjsonMetaObject
 from .mtgjson_prices import MtgjsonPricesObject
 from .mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
+from .mtgjson_related_cards import MtgjsonRelatedCardsObject
 from .mtgjson_rulings import MtgjsonRulingObject
 from .mtgjson_sealed_product import MtgjsonSealedProductObject
 from .mtgjson_set import MtgjsonSetObject
