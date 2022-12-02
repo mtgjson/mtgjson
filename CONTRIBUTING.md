@@ -10,16 +10,16 @@ If you're not a software developer, but want to help the project in some way, we
 
 Here at MTGJSON, we recommend all of our developers check out [PyCharm](https://jetbrains.com/pycharm/). While any IDE or notepad can be used, we found that the JetBrains environment is intuitive and easy to understand.
 
-In addition to PyCharm, you'll need to install Python 3. We develop actively on the latest release of Python, but aim for compatibility with Python 3.6.
+In addition to PyCharm, you'll need to install Python 3. We develop actively on the latest release of Python, but aim for compatibility with all supported 3.x versions.
 
 - Mac: `brew install python3`
-- Linux: `sudo apt-get install python3.7`
+- Linux: `sudo apt-get install python3.11`
 - Windows: [Download Python 3](https://www.python.org/downloads/)
 
 ### Python venv
 
 If you want to work in a venv, you may follow this commands:
-* `python3.7 -m venv venv`
+* `python3.11 -m venv venv`
   * Use another `python` binary to use it's respective version
 * `source venv/bin/activate`
 * `pip install -r requirements.txt`

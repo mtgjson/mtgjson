@@ -69,10 +69,12 @@ While MTGJSON will work on Windows, Mac, and Linux, we prefer working within the
 - For **Windows** based build boxes, your build box should have at least 4 cores and 8 GiB of RAM available.
 
 #### Install Python3
-MTGJSON is built on and tested against a wide range of Python3 verisons. Currently, we maintain support for the following versions:
-- Python 3.6
+MTGJSON is built on and tested against a wide range of Python3 versions. Currently, we maintain support for the following versions:
 - Python 3.7
 - Python 3.8
+- Python 3.9
+- Python 3.10
+- Python 3.11
 
 #### Install MTGJSON
 ##### Local Installation
