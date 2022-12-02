@@ -159,6 +159,7 @@ class MtgjsonCardObject:
         "hand",
         "has_alternative_deck_limit",
         "identifiers",
+        "is_funny",
         "is_reserved",
         "keywords",
         "layout",
