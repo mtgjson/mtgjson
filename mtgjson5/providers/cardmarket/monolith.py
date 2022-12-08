@@ -18,11 +18,11 @@ from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
 from singleton_decorator import singleton
 
-from .. import constants
-from ..classes import MtgjsonPricesObject
-from ..mtgjson_config import MtgjsonConfig
-from ..providers.abstract import AbstractProvider
-from ..utils import generate_card_mapping
+from ... import constants
+from ...classes import MtgjsonPricesObject
+from ...mtgjson_config import MtgjsonConfig
+from ...providers.abstract import AbstractProvider
+from ...utils import generate_card_mapping
 
 LOGGER = logging.getLogger(__name__)
 

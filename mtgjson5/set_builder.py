@@ -24,6 +24,7 @@ from .classes import (
 )
 from .providers import (
     CardMarketProvider,
+    CardMarketProviderSetNameTranslations,
     GathererProvider,
     GitHubBoostersProvider,
     MTGBanProvider,
@@ -31,7 +32,6 @@ from .providers import (
     ScryfallProvider,
     TCGPlayerProvider,
     WhatsInStandardProvider,
-    WizardsProvider,
 )
 from .utils import get_str_or_none, parallel_call, url_keygen
 
@@ -415,8 +415,10 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.mcm_name = CardMarketProvider().get_set_name(mtgjson_set.name)
     mtgjson_set.mcm_id = CardMarketProvider().get_set_id(mtgjson_set.name)
     mtgjson_set.mcm_id_extras = CardMarketProvider().get_extras_set_id(mtgjson_set.name)
-    mtgjson_set.translations = WizardsProvider().get_translation_for_set(
-        mtgjson_set.code
+    mtgjson_set.translations = (
+        CardMarketProviderSetNameTranslations().get_set_translation_object(
+            mtgjson_set.code
+        )
     )
 
     # Building cards is a process
