@@ -54,7 +54,7 @@ class GathererProvider(AbstractProvider):
 
     @ratelimit.limits(calls=40, period=1)
     def download(
-        self, url: str, params: Dict[str, Union[str, int]] = None
+        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
     ) -> Optional[requests.Response]:
         """
         Download a file from gather, with a rate limit

@@ -14,8 +14,6 @@ persistent=yes
 # --disable=W"
 disable=
     broad-except,
-    C0326,
-    C0330,
     duplicate-code,
     import-outside-toplevel,
     line-too-long,

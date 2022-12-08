@@ -126,7 +126,7 @@ def retryable_session(
 def parallel_call(
     function: Callable,
     args: Any,
-    repeatable_args: Union[Tuple[Any, ...], List[Any]] = None,
+    repeatable_args: Optional[Union[Tuple[Any, ...], List[Any]]] = None,
     fold_list: bool = False,
     fold_dict: bool = False,
     force_starmap: bool = False,
@@ -245,6 +245,7 @@ def send_push_notification(message: str) -> bool:
                 "title": f"MTGJSON {MtgjsonConfig().mtgjson_version}",
                 "message": message,
             },
+            timeout=60,
         )
         if not response.ok:
             LOGGER.warning(f"Error sending Pushover notification: {response.text}")

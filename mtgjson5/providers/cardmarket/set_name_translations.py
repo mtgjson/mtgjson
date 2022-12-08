@@ -33,7 +33,9 @@ class CardMarketProviderSetNameTranslations(AbstractProvider):
     def _build_http_header(self) -> Dict[str, str]:
         raise NotImplementedError()
 
-    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
+    def download(
+        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+    ) -> Any:
         raise NotImplementedError()
 
     def get_set_translation_object(self, set_code: str) -> MtgjsonTranslationsObject:

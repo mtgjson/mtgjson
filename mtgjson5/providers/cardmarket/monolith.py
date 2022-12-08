@@ -38,7 +38,7 @@ class CardMarketProvider(AbstractProvider):
 
     __keys_found: bool
 
-    def __init__(self, headers: Dict[str, str] = None):
+    def __init__(self, headers: Optional[Dict[str, str]] = None):
         super().__init__(headers or {})
 
         if not MtgjsonConfig().has_section("CardMarket"):
@@ -226,7 +226,9 @@ class CardMarketProvider(AbstractProvider):
         """
         return {}
 
-    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
+    def download(
+        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+    ) -> Any:
         """
         Download Content -- Not Used
         :param url:

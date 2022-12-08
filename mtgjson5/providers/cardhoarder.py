@@ -4,7 +4,7 @@ CardHoarder 3rd party provider
 import logging
 import pathlib
 from collections import defaultdict
-from typing import Any, Dict, List, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 from singleton_decorator import singleton
 
@@ -56,7 +56,9 @@ class CardHoarderProvider(AbstractProvider):
 
         return headers
 
-    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
+    def download(
+        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+    ) -> Any:
         """
         Download content from Scryfall
         Api calls always return JSON from Scryfall

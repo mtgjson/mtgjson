@@ -3,7 +3,7 @@ MTGJSON AllPrintings Object
 """
 import json
 import pathlib
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from ..classes import MtgjsonSetObject
 from ..mtgjson_config import MtgjsonConfig
@@ -27,7 +27,9 @@ class MtgjsonAllPrintingsObject:
         )
         self.iterate_all_sets(files_to_build)
 
-    def get_set_contents(self, sets: List[str] = None) -> Dict[str, MtgjsonSetObject]:
+    def get_set_contents(
+        self, sets: Optional[List[str]] = None
+    ) -> Dict[str, MtgjsonSetObject]:
         """
         Give the contents of certain sets. Empty for all sets.
         :param sets: Sets to get. Empty for all sets.

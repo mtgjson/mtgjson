@@ -144,6 +144,7 @@ class TCGPlayerProvider(AbstractProvider):
                 "client_id": MtgjsonConfig().get("TCGPlayer", "client_id"),
                 "client_secret": MtgjsonConfig().get("TCGPlayer", "client_secret"),
             },
+            timeout=60,
         )
 
         if not tcg_post.ok:
@@ -155,7 +156,9 @@ class TCGPlayerProvider(AbstractProvider):
 
         return str(request_as_json.get("access_token", ""))
 
-    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
+    def download(
+        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+    ) -> Any:
         """
         Download content from Scryfall
         Api calls always return JSON from Scryfall

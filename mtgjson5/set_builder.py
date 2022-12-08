@@ -507,7 +507,7 @@ def add_sealed_purchase_url(mtgjson_set: MtgjsonSetObject) -> None:
 
 def build_base_mtgjson_cards(
     set_code: str,
-    additional_cards: List[Dict[str, Any]] = None,
+    additional_cards: Optional[List[Dict[str, Any]]] = None,
     is_token: bool = False,
     set_release_date: str = "",
 ) -> List[MtgjsonCardObject]:
