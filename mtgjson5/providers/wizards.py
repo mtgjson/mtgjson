@@ -4,7 +4,7 @@ Wizards Site 3rd party provider
 import logging
 import re
 import time
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import requests
 from singleton_decorator import singleton
@@ -36,7 +36,7 @@ class WizardsProvider(AbstractProvider):
         return {}
 
     def download(
-        self, url: str, params: Dict[str, Union[str, int]] = None
+        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
     ) -> requests.Response:
         """
         Download from Wizard's website

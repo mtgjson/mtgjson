@@ -4,7 +4,7 @@ MTGJSON AtomicCards Object
 import json
 import re
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from ..classes import MtgjsonCardObject
 from ..mtgjson_config import MtgjsonConfig
@@ -20,7 +20,7 @@ class MtgjsonAtomicCardsObject:
     atomic_cards_dict: Dict[str, List[Dict[str, Any]]]
     __name_regex = re.compile(r"^([^\n]+) \([a-z]\)$")
 
-    def __init__(self, cards_to_parse: List[Dict[str, Any]] = None) -> None:
+    def __init__(self, cards_to_parse: Optional[List[Dict[str, Any]]] = None) -> None:
         """
         Initializer to build up the object
         """
@@ -30,7 +30,9 @@ class MtgjsonAtomicCardsObject:
         )
 
     def iterate_all_cards(
-        self, files_to_ignore: List[str], cards_to_load: List[Dict[str, Any]] = None
+        self,
+        files_to_ignore: List[str],
+        cards_to_load: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """
         Iterate and all all MTGJSON sets to the dictionary

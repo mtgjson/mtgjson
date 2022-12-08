@@ -7,7 +7,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 import git
 from singleton_decorator import singleton
@@ -46,7 +46,9 @@ class GitHubMTGSqliteProvider(AbstractProvider):
         """
         return {}
 
-    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
+    def download(
+        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+    ) -> Any:
         """
         Download content from GitHub
         :param url: Download URL

@@ -5,7 +5,7 @@ import copy
 import json
 import logging
 import pathlib
-from typing import Any, Dict, Iterator, List, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 from singleton_decorator import singleton
 
@@ -43,7 +43,9 @@ class GitHubDecksProvider(AbstractProvider):
         """
         return {}
 
-    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
+    def download(
+        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+    ) -> Any:
         """
         Download content from GitHub
         :param url: Download URL

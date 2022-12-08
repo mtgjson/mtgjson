@@ -167,7 +167,7 @@ def download_old_all_printings() -> None:
     """
     file_bytes = b""
     file_data = requests.get(
-        "https://mtgjson.com/api/v5/AllPrintings.json.xz", stream=True
+        "https://mtgjson.com/api/v5/AllPrintings.json.xz", stream=True, timeout=60
     )
     for chunk in file_data.iter_content(chunk_size=1024 * 36):
         if chunk:

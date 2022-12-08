@@ -4,7 +4,7 @@ MultiverseBridge 3rd party provider
 import logging
 import pathlib
 import time
-from typing import Any, Dict, List, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 from singleton_decorator import singleton
 
@@ -37,7 +37,9 @@ class MultiverseBridgeProvider(AbstractProvider):
     def _build_http_header(self) -> Dict[str, str]:
         return {}
 
-    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
+    def download(
+        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+    ) -> Any:
         session = retryable_session()
         session.headers.update(self.session_header)
         response = session.get(url)

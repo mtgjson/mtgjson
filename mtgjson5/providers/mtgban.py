@@ -2,7 +2,7 @@
 MTGBan 3rd party provider
 """
 import logging
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from singleton_decorator import singleton
 
@@ -53,7 +53,9 @@ class MTGBanProvider(AbstractProvider):
 
         return headers
 
-    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
+    def download(
+        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+    ) -> Any:
         """
         Download a URL
         :param url: URL to download from

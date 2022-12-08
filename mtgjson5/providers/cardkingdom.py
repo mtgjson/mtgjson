@@ -3,7 +3,7 @@ Card Kingdom 3rd party provider
 """
 import logging
 import pathlib
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from singleton_decorator import singleton
 
@@ -35,7 +35,9 @@ class CardKingdomProvider(AbstractProvider):
         """
         return {}
 
-    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
+    def download(
+        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+    ) -> Any:
         """
         Download content
         Api calls always return JSON

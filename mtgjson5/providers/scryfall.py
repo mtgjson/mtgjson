@@ -67,7 +67,9 @@ class ScryfallProvider(AbstractProvider):
         return headers
 
     def download_all_pages(
-        self, starting_url: Optional[str], params: Dict[str, Union[str, int]] = None
+        self,
+        starting_url: Optional[str],
+        params: Optional[Dict[str, Union[str, int]]] = None,
     ) -> List[Dict[str, Any]]:
         """
         Connects to Scryfall API and goes through all redirects to get the
@@ -105,7 +107,9 @@ class ScryfallProvider(AbstractProvider):
 
     @ratelimit.sleep_and_retry
     @ratelimit.limits(calls=40, period=1)
-    def download(self, url: str, params: Dict[str, Union[str, int]] = None) -> Any:
+    def download(
+        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+    ) -> Any:
         """
         Download content from Scryfall
         Api calls always return JSON from Scryfall

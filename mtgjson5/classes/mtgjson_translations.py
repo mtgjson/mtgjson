@@ -20,7 +20,7 @@ class MtgjsonTranslationsObject:
     russian: Optional[str]
     spanish: Optional[str]
 
-    def __init__(self, active_dict: Dict[str, str] = None) -> None:
+    def __init__(self, active_dict: Optional[Dict[str, str]] = None) -> None:
         """
         Initializer, for each language, given the contents
         """
