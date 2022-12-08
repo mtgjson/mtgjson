@@ -1,12 +1,8 @@
 """Test the CardMarket provider."""
 
-import pytest_mock
 import pytest
 
-from mtgjson5.arg_parser import parse_args
-from mtgjson5.providers.cardmarket import CardMarketProvider
-from typing import Dict
-from singleton_decorator import singleton
+from mtgjson5.providers.cardmarket.monolith import CardMarketProvider
 
 testdata = [
     pytest.param(

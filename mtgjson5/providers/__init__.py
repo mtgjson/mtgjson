@@ -4,7 +4,8 @@ Provider Dispatcher
 
 from .cardhoarder import CardHoarderProvider
 from .cardkingdom import CardKingdomProvider
-from .cardmarket import CardMarketProvider
+from .cardmarket.monolith import CardMarketProvider
+from .cardmarket.set_name_translations import CardMarketProviderSetNameTranslations
 from .gatherer import GathererProvider
 from .github_boosters import GitHubBoostersProvider
 from .github_decks import GitHubDecksProvider
