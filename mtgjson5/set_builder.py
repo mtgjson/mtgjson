@@ -25,6 +25,7 @@ from .classes import (
 from .providers import (
     CardMarketProvider,
     CardMarketProviderSetNameTranslations,
+    EdhrecProviderCardRanks,
     GathererProvider,
     GitHubBoostersProvider,
     MTGBanProvider,
@@ -786,6 +787,9 @@ def build_mtgjson_card(
         # Deprecated - Remove in 6.0.0
         mtgjson_card.converted_mana_cost = scryfall_object.get("cmc", "")
     mtgjson_card.edhrec_rank = scryfall_object.get("edhrec_rank")
+    mtgjson_card.edhrec_saltiness = EdhrecProviderCardRanks().get_salt_rating(
+        mtgjson_card.name
+    )
     mtgjson_card.finishes = scryfall_object.get("finishes", [])
     mtgjson_card.frame_effects = scryfall_object.get("frame_effects", "")
     mtgjson_card.frame_version = scryfall_object.get("frame", "")
