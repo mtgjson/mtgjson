@@ -18,6 +18,8 @@ class MtgjsonIdentifiersObject:
     mcm_id: Optional[str]
     mcm_meta_id: Optional[str]
     mtg_arena_id: Optional[str]
+    mtgjson_foil_version_id: Optional[str]
+    mtgjson_non_foil_version_id: Optional[str]
     mtgjson_v4_id: Optional[str]
     mtgo_foil_id: Optional[str]
     mtgo_id: Optional[str]
