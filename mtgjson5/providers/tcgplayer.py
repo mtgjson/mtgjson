@@ -219,6 +219,13 @@ class TCGPlayerProvider(AbstractProvider):
         tcg_to_mtgjson_map = generate_card_mapping(
             all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
         )
+        tcg_to_mtgjson_map.update(
+            generate_card_mapping(
+                all_printings_path,
+                ("identifiers", "tcgplayerEtchedProductId"),
+                ("uuid",),
+            )
+        )
 
         LOGGER.info("Building TCGPlayer buylist data")
         buylist_dict = parallel_call(
