@@ -9,6 +9,9 @@ app_secret=
 mkm_access_token=
 mkm_access_token_secret=
 
+[EDHRec]
+api_url=
+
 [GitHub]
 username=
 api_key=
