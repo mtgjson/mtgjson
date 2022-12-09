@@ -946,7 +946,7 @@ def build_mtgjson_card(
                     mtgjson_card.identifiers.scryfall_illustration_id is None
                     and "Missing" in face_illustration_ids
                 ):
-                    mtgjson_card.side = "b"
+                    mtgjson_card.side = chr(face_id + 97)
             else:
                 # Standard flip cards and such
                 # chr(97) = 'a', chr(98) = 'b', ...
