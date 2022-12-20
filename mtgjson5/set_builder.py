@@ -26,6 +26,7 @@ from .providers import (
     CardMarketProvider,
     CardMarketProviderSetNameTranslations,
     EdhrecProviderCardRanks,
+    FandomProviderSecretLair,
     GathererProvider,
     GitHubBoostersProvider,
     MTGBanProvider,
@@ -437,6 +438,9 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
 
     if mtgjson_set.code in {"EMN", "BRO"}:
         add_meld_face_parts(mtgjson_set)
+
+    if mtgjson_set.code in {"SLD"}:
+        add_secret_lair_names(mtgjson_set)
 
     base_total_sizes = get_base_and_total_set_sizes(mtgjson_set)
     mtgjson_set.base_set_size = base_total_sizes[0]
@@ -1511,6 +1515,20 @@ def add_meld_face_parts(mtgjson_set: MtgjsonSetObject) -> None:
 
         first_card.card_parts = [x for x in card_face_parts if x]
     LOGGER.info(f"Finished adding Card Face Parts for {mtgjson_set.code}")
+
+
+def add_secret_lair_names(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    Secret Lairs don't have a native way to know what printing(s) they were in,
+    so we will map them to the Fandom wiki to support this functionality
+    :param mtgjson_set: MTGJSON Set Object
+    """
+    LOGGER.info(f"Linking Secret Lair Drops to {mtgjson_set.code}")
+    relation_map = FandomProviderSecretLair().download()
+    for card in mtgjson_set.cards:
+        if card.number in relation_map:
+            card.subset = [relation_map[card.number]]
+    LOGGER.info(f"Finished Linking Secret Lair Drops to {mtgjson_set.code}")
 
 
 def add_related_cards(

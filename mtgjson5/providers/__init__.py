@@ -7,6 +7,7 @@ from .cardkingdom import CardKingdomProvider
 from .cardmarket.monolith import CardMarketProvider
 from .cardmarket.set_name_translations import CardMarketProviderSetNameTranslations
 from .edhrec.card_ranks import EdhrecProviderCardRanks
+from .fandom.secret_lair import FandomProviderSecretLair
 from .gatherer import GathererProvider
 from .github_boosters import GitHubBoostersProvider
 from .github_decks import GitHubDecksProvider
