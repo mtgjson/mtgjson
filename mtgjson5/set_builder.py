@@ -432,6 +432,9 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     add_mcm_details(mtgjson_set)
     add_card_kingdom_details(mtgjson_set)
 
+    if mtgjson_set.code in {"CN2", "FRF", "ONS", "10E", "UNH"}:
+        link_same_card_different_details(mtgjson_set)
+
     if mtgjson_set.code in {"EMN", "BRO"}:
         add_meld_face_parts(mtgjson_set)
 
@@ -1187,6 +1190,36 @@ def add_other_face_ids(cards_to_act_on: List[MtgjsonCardObject]) -> None:
                     # No number? No problem, just add it!
                     this_card.other_face_ids.append(other_card.uuid)
     LOGGER.info("Finished adding otherFaceIds to group")
+
+
+def link_same_card_different_details(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    In several Magic sets, the foil and non-foil printings have different text
+    (See 10th Edition, for example). If that's the case, we will link the
+    Foil and NonFoil versions together in the identifiers for easier user management
+    :param mtgjson_set: MTGJSON Set
+    """
+    LOGGER.info(f"Linking multiple printings for {mtgjson_set.code}")
+    cards_seen = {}
+
+    for mtgjson_card in mtgjson_set.cards:
+        if mtgjson_card.identifiers.scryfall_illustration_id not in cards_seen:
+            cards_seen[mtgjson_card.identifiers.scryfall_illustration_id] = mtgjson_card
+            continue
+
+        other_mtgjson_card = cards_seen[
+            mtgjson_card.identifiers.scryfall_illustration_id
+        ]
+        if "nonfoil" in mtgjson_card.finishes:
+            other_mtgjson_card.identifiers.mtgjson_non_foil_version_id = (
+                mtgjson_card.uuid
+            )
+            mtgjson_card.identifiers.mtgjson_foil_version_id = other_mtgjson_card.uuid
+        else:
+            other_mtgjson_card.identifiers.mtgjson_foil_version_id = mtgjson_card.uuid
+            mtgjson_card.identifiers.mtgjson_non_foil_version_id = (
+                other_mtgjson_card.uuid
+            )
 
 
 def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
