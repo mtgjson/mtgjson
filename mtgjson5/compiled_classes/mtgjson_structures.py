@@ -3,11 +3,13 @@ MTGJSON Internal Object for Output Files
 """
 from typing import Any, Dict, List
 
-from ..singleton import Singleton
+from singleton_decorator import singleton
+
 from ..utils import to_camel_case
 
 
-class MtgjsonStructuresObject(metaclass=Singleton):
+@singleton
+class MtgjsonStructuresObject:
     """
     MTGJSON Internal Object for Output Files
     """

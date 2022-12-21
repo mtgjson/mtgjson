@@ -8,12 +8,13 @@ from typing import Optional
 
 import boto3
 import botocore.exceptions
+from singleton_decorator import singleton
 
 from mtgjson5 import constants
-from mtgjson5.singleton import Singleton
 
 
-class MtgjsonConfig(metaclass=Singleton):
+@singleton
+class MtgjsonConfig:
     """
     Configuration Class that loads in the appropriate configuration file
     and provides the contents for the running program
