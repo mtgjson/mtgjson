@@ -5,7 +5,7 @@ import re
 import string
 from typing import Any, Dict, List, Match, Optional
 
-from ..providers.scryfall import ScryfallProvider
+from ..providers.scryfall.monolith import ScryfallProvider
 from ..providers.wizards import WizardsProvider
 from ..utils import parse_magic_rules_subset, to_camel_case
 

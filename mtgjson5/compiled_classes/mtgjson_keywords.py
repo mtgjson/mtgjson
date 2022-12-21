@@ -3,7 +3,7 @@ MTGJSON Keywords Object
 """
 from typing import Any, Dict, List
 
-from ..providers.scryfall import ScryfallProvider
+from ..providers.scryfall.monolith import ScryfallProvider
 from ..utils import to_camel_case
 
 

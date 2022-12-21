@@ -32,6 +32,7 @@ from .providers import (
     MTGBanProvider,
     MultiverseBridgeProvider,
     ScryfallProvider,
+    ScryfallProviderSetLanguageDetector,
     TCGPlayerProvider,
     WhatsInStandardProvider,
 )
@@ -414,6 +415,11 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.is_foil_only = set_data.get("foil_only", "")
     mtgjson_set.is_non_foil_only = set_data.get("nonfoil_only", "")
     mtgjson_set.search_uri = set_data["search_uri"]
+    mtgjson_set.languages = (
+        ScryfallProviderSetLanguageDetector().get_set_printing_languages(
+            mtgjson_set.code
+        )
+    )
     mtgjson_set.mcm_name = CardMarketProvider().get_set_name(mtgjson_set.name)
     mtgjson_set.mcm_id = CardMarketProvider().get_set_id(mtgjson_set.name)
     mtgjson_set.mcm_id_extras = CardMarketProvider().get_extras_set_id(mtgjson_set.name)
