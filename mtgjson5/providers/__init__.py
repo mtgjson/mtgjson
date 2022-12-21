@@ -14,7 +14,8 @@ from .github_decks import GitHubDecksProvider
 from .github_mtgsqlite import GitHubMTGSqliteProvider
 from .mtgban import MTGBanProvider
 from .multiversebridge import MultiverseBridgeProvider
-from .scryfall import ScryfallProvider
+from .scryfall.monolith import ScryfallProvider
+from .scryfall.set_language_detector import ScryfallProviderSetLanguageDetector
 from .tcgplayer import TCGPlayerProvider
 from .whats_in_standard import WhatsInStandardProvider
 from .wizards import WizardsProvider

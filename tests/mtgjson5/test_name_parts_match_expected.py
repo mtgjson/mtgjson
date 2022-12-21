@@ -15,7 +15,7 @@ import mtgjson5.providers
     ],
 )
 def test(card_name, scryfall_uuid):
-    scryfall_data = mtgjson5.providers.scryfall.ScryfallProvider().download(
+    scryfall_data = mtgjson5.providers.scryfall.monolith.ScryfallProvider().download(
         f"https://api.scryfall.com/cards/{scryfall_uuid}",
         {"format": "json"},
     )

@@ -5,7 +5,7 @@ import datetime
 import hashlib
 import os
 import pathlib
-from typing import Dict, List, Set, Tuple
+from typing import Dict, Set
 
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson5").joinpath("resources")
@@ -70,19 +70,6 @@ LANGUAGE_MAP: Dict[str, str] = {
     "ph": "Phyrexian",
     "px": "Phyrexian",
 }
-WIZARDS_SUPPORTED_LANGUAGES: List[Tuple[str, str]] = [
-    ("zh-hans", "Chinese Simplified"),
-    ("zh-hant", "Chinese Traditional"),
-    ("fr", "French"),
-    ("de", "German"),
-    ("it", "Italian"),
-    ("ja", "Japanese"),
-    ("ko", "Korean"),
-    ("pt-br", "Portuguese (Brazil)"),
-    ("ru", "Russian"),
-    ("es", "Spanish"),
-    ("en", "English"),
-]
 SYMBOL_MAP: Dict[str, str] = {
     "White": "W",
     "Blue": "U",

@@ -28,6 +28,7 @@ class MtgjsonSetObject:
     is_online_only: bool
     is_partial_preview: bool
     keyrune_code: str
+    languages: List[str]
     mcm_id: Optional[int]
     mcm_id_extras: Optional[int]
     mcm_name: Optional[str]
