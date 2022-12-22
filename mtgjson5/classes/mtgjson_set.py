@@ -39,6 +39,7 @@ class MtgjsonSetObject:
     tcgplayer_group_id: Optional[int]
     sealed_product: List[MtgjsonSealedProductObject]
     tokens: List[MtgjsonCardObject]
+    token_set_code: Optional[str]
     total_set_size: int
     translations: MtgjsonTranslationsObject
     type: str

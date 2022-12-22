@@ -459,6 +459,8 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.tokens = build_base_mtgjson_tokens(
         f"T{set_code}", mtgjson_set.extra_tokens or []
     )
+    if mtgjson_set.tokens:
+        mtgjson_set.token_set_code = mtgjson_set.tokens[0].set_code
 
     add_other_face_ids(mtgjson_set.tokens)
 
