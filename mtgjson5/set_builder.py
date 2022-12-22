@@ -984,7 +984,11 @@ def build_mtgjson_card(
     mtgjson_card.printings = parse_printings(
         scryfall_object["prints_search_uri"].replace("%22", "")
     )
-    mtgjson_card.legalities = parse_legalities(scryfall_object["legalities"])
+    mtgjson_card.legalities = parse_legalities(
+        scryfall_object["legalities"]
+        if scryfall_object.get("set_type") not in ["funny", "memorabilia"]
+        else {}
+    )
     mtgjson_card.rulings = parse_rulings(scryfall_object["rulings_uri"])
 
     card_types = parse_card_types(mtgjson_card.type)
