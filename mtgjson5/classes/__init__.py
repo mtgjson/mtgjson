@@ -15,6 +15,10 @@ from .mtgjson_prices import MtgjsonPricesObject
 from .mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
 from .mtgjson_related_cards import MtgjsonRelatedCardsObject
 from .mtgjson_rulings import MtgjsonRulingObject
-from .mtgjson_sealed_product import MtgjsonSealedProductObject
+from .mtgjson_sealed_product import (
+    MtgjsonSealedProductCategory,
+    MtgjsonSealedProductObject,
+    MtgjsonSealedProductSubtype,
+)
 from .mtgjson_set import MtgjsonSetObject
 from .mtgjson_translations import MtgjsonTranslationsObject
