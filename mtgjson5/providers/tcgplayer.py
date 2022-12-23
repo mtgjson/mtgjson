@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 import requests
 from singleton_decorator import singleton
 
+from .. import constants
 from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
@@ -276,9 +277,19 @@ class TCGPlayerProvider(AbstractProvider):
 
         mtgjson_sealed_products = []
 
+        with constants.RESOURCE_PATH.joinpath("sealed_name_fixes.json").open(
+            encoding="utf-8"
+        ) as f:
+            sealed_name_fixes = json.load(f)
+
         for product in sealed_data:
             sealed_product = MtgjsonSealedProductObject()
+
             sealed_product.name = product["cleanName"]
+            for tag, fix in sealed_name_fixes.items():
+                if tag in sealed_product.name:
+                    sealed_product.name = sealed_product.name.replace(tag, fix)
+
             sealed_product.identifiers.tcgplayer_product_id = str(product["productId"])
             sealed_product.release_date = product["presaleInfo"].get("releasedOn")
             if sealed_product.release_date is not None:
