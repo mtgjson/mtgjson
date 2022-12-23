@@ -106,6 +106,13 @@ class TCGPlayerProvider(AbstractProvider):
         "3x Magic Booster Packs",
         "Booster Battle Pack",
     ]
+    product_default_size = {
+        "set": 30,
+        "collector": 12,
+        "draft": 36,
+        "jumpstart": 18,
+        "theme": 12,
+    }
 
     def __init__(self) -> None:
         """
@@ -452,7 +459,7 @@ class TCGPlayerProvider(AbstractProvider):
         return MtgjsonSealedProductSubtype.UNKNOWN
 
     def generate_mtgjson_sealed_product_objects(
-        self, group_id: Optional[int]
+        self, group_id: Optional[int], set_code: str
     ) -> List[MtgjsonSealedProductObject]:
         """
         Builds MTGJSON Sealed Product Objects from TCGPlayer data
@@ -476,6 +483,11 @@ class TCGPlayerProvider(AbstractProvider):
         ) as f:
             sealed_name_fixes = json.load(f)
 
+        with constants.RESOURCE_PATH.joinpath("sealed_name_fixes.json").open(
+            encoding="utf-8"
+        ) as f:
+            booster_box_size_overrides = json.load(f)
+
         for product in sealed_data:
             sealed_product = MtgjsonSealedProductObject()
 
@@ -497,6 +509,16 @@ class TCGPlayerProvider(AbstractProvider):
             LOGGER.debug(
                 f"{sealed_product.name}: {sealed_product.category.value}.{sealed_product.subtype.value}"
             )
+
+            if sealed_product.category == MtgjsonSealedProductCategory.BOOSTER_BOX:
+                sealed_product.product_size = int(
+                    booster_box_size_overrides.get(
+                        sealed_product.subtype.value, {}
+                    ).get(
+                        set_code,
+                        self.product_default_size.get(sealed_product.subtype.value, 0),
+                    )
+                )
 
             if sealed_product.release_date is not None:
                 sealed_product.release_date = sealed_product.release_date[0:10]
