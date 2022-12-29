@@ -712,7 +712,9 @@ def build_mtgjson_card(
     mtgjson_card.flavor_name = scryfall_object.get("flavor_name")
     mtgjson_card.set_code = scryfall_object["set"].upper()
     mtgjson_card.identifiers.scryfall_id = scryfall_object["id"]
-    mtgjson_card.identifiers.scryfall_oracle_id = scryfall_object.get("oracle_id")
+    mtgjson_card.identifiers.scryfall_oracle_id = (
+        scryfall_object.get("oracle_id")
+    ) or scryfall_object["card_faces"][face_id].get("oracle_id")
 
     # Handle atypical cards
     face_data = scryfall_object
