@@ -986,7 +986,7 @@ def build_mtgjson_card(
     )
     mtgjson_card.legalities = parse_legalities(
         scryfall_object["legalities"]
-        if scryfall_object.get("set_type") not in ["funny", "memorabilia"]
+        if scryfall_object.get("set_type") not in ["memorabilia"]
         else {}
     )
     mtgjson_card.rulings = parse_rulings(scryfall_object["rulings_uri"])
