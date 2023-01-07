@@ -35,7 +35,7 @@ class MtgjsonAtomicCardsObject:
         cards_to_load: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """
-        Iterate and all all MTGJSON sets to the dictionary
+        Iterate all MTGJSON sets in the dictionary
         indexed by file name
         :param files_to_ignore: Files to skip
         :param cards_to_load: Cards to use instead of files
@@ -111,6 +111,9 @@ class MtgjsonAtomicCardsObject:
             should_add_card = True
             for card_entry in self.atomic_cards_dict[card_name]:
                 if card_entry.get("text") == atomic_card.get("text"):
+                    # Some printings might not have legalities, so we ensure they're established
+                    if not card_entry.get("legalities"):
+                        card_entry["legalities"] = atomic_card.get("legalities")
                     should_add_card = False
                     break
 
