@@ -470,7 +470,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     # Build sealed product using the TCGPlayer data
     mtgjson_set.sealed_product = (
         TCGPlayerProvider().generate_mtgjson_sealed_product_objects(
-            mtgjson_set.tcgplayer_group_id
+            mtgjson_set.tcgplayer_group_id, mtgjson_set.code
         )
     )
     add_sealed_uuid(mtgjson_set)
