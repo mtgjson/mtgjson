@@ -483,7 +483,7 @@ class TCGPlayerProvider(AbstractProvider):
         ) as f:
             sealed_name_fixes = json.load(f)
 
-        with constants.RESOURCE_PATH.joinpath("booser_box_size_overrides.json").open(
+        with constants.RESOURCE_PATH.joinpath("booster_box_size_overrides.json").open(
             encoding="utf-8"
         ) as f:
             booster_box_size_overrides = json.load(f)
