@@ -83,6 +83,12 @@ def parse_args() -> argparse.Namespace:
         help="Build updated pricing data then exit.",
     )
     mtgjson_arg_group.add_argument(
+        "--sales-data-build",
+        "-SB",
+        action="store_true",
+        help="Build TCGPlayer latest sale data then exit",
+    )
+    mtgjson_arg_group.add_argument(
         "--referrals",
         "-R",
         action="store_true",

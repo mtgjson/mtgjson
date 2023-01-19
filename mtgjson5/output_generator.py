@@ -19,10 +19,11 @@ from .compiled_classes import (
     MtgjsonKeywordsObject,
     MtgjsonSetListObject,
     MtgjsonStructuresObject,
+    MtgjsonTcgplayerSalesHistoryObject,
     MtgjsonTcgplayerSkusObject,
 )
 from .mtgjson_config import MtgjsonConfig
-from .price_builder import build_prices
+from .price_builder import build_prices, download_live_mtgjson_file
 from .providers import GitHubDecksProvider
 from .utils import get_file_hash
 
@@ -167,6 +168,28 @@ def build_all_printings_files(pretty_print: bool) -> None:
     )
 
 
+def generate_sales_data_compiled_output(pretty_print: bool) -> None:
+    """
+    Create and dump TCGPlayer latest sales data output file
+    :param pretty_print: Pretty or minimal
+    """
+    LOGGER.info("Building Latest Sales Data")
+    if not MtgjsonConfig().output_path.joinpath("AllPrintings.json").exists():
+        download_live_mtgjson_file("AllPrintings.json")
+    if not MtgjsonConfig().output_path.joinpath("TcgplayerSkus.json").exists():
+        download_live_mtgjson_file("TcgplayerSkus.json")
+
+    create_compiled_output(
+        MtgjsonStructuresObject().all_tcgplayer_sales,
+        MtgjsonTcgplayerSalesHistoryObject(
+            MtgjsonConfig().output_path.joinpath("AllPrintings.json"),
+            MtgjsonConfig().output_path.joinpath("TcgplayerSkus.json"),
+        ),
+        pretty_print,
+    )
+    LOGGER.info("Finished Building Latest Sales Data")
+
+
 def generate_compiled_output_files(pretty_print: bool) -> None:
     """
     Create and dump all compiled outputs
@@ -177,7 +200,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     # AllPrintings, <FORMAT>, & AllIdentifiers
     build_all_printings_files(pretty_print)
 
-    # AllTcgplayerSkus.json
+    # TcgplayerSkus.json
     create_compiled_output(
         MtgjsonStructuresObject().all_tcgplayer_skus,
         MtgjsonTcgplayerSkusObject(

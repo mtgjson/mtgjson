@@ -85,33 +85,46 @@ We intend to put MTGJSON5 on the pip package archive in the near future, once th
 #### Using MTGJSON
 A fully up-to-date help menu can be achieved via `python3 -m mtgjson5 -h`, but for your convenience here is a recent rundown:  
 ```
-usage: mtgjson5 [-h] [-s [SET [SET ...]] | -a] [-c] [-x] [-z] [-p]
-                [-SS [SET [SET ...]]] [-PB] [-R] [-NA]
+usage: mtgjson5 [-h] [--use-envvars] [--sets [SET ...] | --all-sets]
+                [--full-build] [--resume-build] [--compress] [--pretty]
+                [--skip-sets [SET ...]] [--price-build] [--sales-data-build]
+                [--referrals] [--no-alerts]
+                [--aws-ssm-download-config CONFIG_NAME]
+                [--aws-s3-upload-bucket BUCKET_NAME]
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
-  -s [SET [SET ...]], --sets [SET [SET ...]]
+  --use-envvars         Use environment variables over parser flags for build
+                        operations
+  --sets [SET ...], -s [SET ...]
                         Set(s) to build, using Scryfall set code notation.
                         Non-existent sets silently ignored.
-  -a, --all-sets        Build all possible sets, overriding the --sets option.
-  -c, --full-build      Build new prices, MTGSQLive, and compiled outputs like
+  --all-sets, -a        Build all possible sets, overriding the --sets option.
+  --full-build, -c      Build new prices, MTGSQLive, and compiled outputs like
                         AllPrintings.
-  -x, --resume-build    While determining what sets to build, ignore
+  --resume-build, -x    While determining what sets to build, ignore
                         individual set files found in the output directory.
-  -z, --compress        Compress the output folder's contents for
+  --compress, -z        Compress the output folder's contents for
                         distribution.
-  -p, --pretty          When dumping JSON files, prettify the contents instead
+  --pretty, -p          When dumping JSON files, prettify the contents instead
                         of minifying them.
-  -SS [SET [SET ...]], --skip-sets [SET [SET ...]]
+  --skip-sets [SET ...], -SS [SET ...]
                         Purposely exclude sets from the build that may have
                         been set using --sets or --all-sets.
 
 mtgjson maintainer arguments:
-  -PB, --price-build    Build updated pricing data then exit.
-  -R, --referrals       Create and maintain a referral map for referral
+  --price-build, -PB    Build updated pricing data then exit.
+  --sales-data-build, -SB
+                        Build TCGPlayer latest sale data then exit
+  --referrals, -R       Create and maintain a referral map for referral
                         linkages.
-  -NA, --no-alerts      Prevent push notifications from sending when property
+  --no-alerts, -NA      Prevent push notifications from sending when property
                         keys are defined.
+  --aws-ssm-download-config CONFIG_NAME
+                        AWS Parameter Store config name to load in, if local
+                        config file is not wanted/available.
+  --aws-s3-upload-bucket BUCKET_NAME
+                        Upload finished results to an S3 bucket.
 ```
 
 #### MTGJSON Environment Variables

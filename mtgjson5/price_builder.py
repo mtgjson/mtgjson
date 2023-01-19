@@ -160,21 +160,21 @@ def write_price_archive_data(
     )
 
 
-def download_old_all_printings() -> None:
+def download_live_mtgjson_file(file_name: str) -> None:
     """
-    Download the hosted version of AllPrintings from MTGJSON
+    Download the hosted version of a MTGJSON file
     for future consumption
     """
     file_bytes = b""
     file_data = requests.get(
-        "https://mtgjson.com/api/v5/AllPrintings.json.xz", stream=True, timeout=60
+        f"https://mtgjson.com/api/v5/{file_name}.xz", stream=True, timeout=60
     )
     for chunk in file_data.iter_content(chunk_size=1024 * 36):
         if chunk:
             file_bytes += chunk
 
     MtgjsonConfig().output_path.mkdir(parents=True, exist_ok=True)
-    with MtgjsonConfig().output_path.joinpath("AllPrintings.json").open(
+    with MtgjsonConfig().output_path.joinpath(file_name).open(
         "w", encoding="utf8"
     ) as f:
         f.write(lzma.decompress(file_bytes).decode())
@@ -191,7 +191,7 @@ def build_prices() -> Dict[str, Any]:
     # We'll need AllPrintings.json to handle this
     if not MtgjsonConfig().output_path.joinpath("AllPrintings.json").is_file():
         LOGGER.info("AllPrintings not found, attempting to download")
-        download_old_all_printings()
+        download_live_mtgjson_file("AllPrintings.json")
 
     # Get today's price database
     LOGGER.info("Building new price data")

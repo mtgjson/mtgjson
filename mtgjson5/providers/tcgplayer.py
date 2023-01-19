@@ -55,6 +55,18 @@ class CardCondition(enum.Enum):
     UNOPENED = 6
 
 
+class CardConditionV2(enum.Enum):
+    """
+    TCGPlayer Card Conditions for API V2
+    """
+
+    NEAR_MINT = "Near Mint"
+    LIGHTLY_PLAYED = "Lightly Played"
+    MODERATELY_PLAYED = "Moderately Played"
+    HEAVILY_PLAYED = "Heavily Played"
+    DAMAGED = "Damaged"
+
+
 class CardPrinting(enum.Enum):
     """
     TCGPlayer Printing IDs
@@ -62,6 +74,15 @@ class CardPrinting(enum.Enum):
 
     NON_FOIL = 1
     FOIL = 2
+
+
+class CardPrintingV2(enum.Enum):
+    """
+    TCGPlayer Printing for API V2
+    """
+
+    FOIL = "Foil"
+    NON_FOIL = "Normal"
 
 
 class CardLanguage(enum.Enum):
@@ -80,6 +101,24 @@ class CardLanguage(enum.Enum):
     PORTUGUESE_BRAZIL = 9
     RUSSIAN = 10
     SPANISH = 11
+
+
+class CardLanguageV2(enum.Enum):
+    """
+    TCGPlayer Languages for API V2
+    """
+
+    ENGLISH = "English"
+    CHINESE_SIMPLIFIED = "Chinese (S)"
+    CHINESE_TRADITIONAL = "Chinese (T)"
+    FRENCH = "French"
+    GERMAN = "German"
+    ITALIAN = "Italian"
+    JAPANESE = "Japanese"
+    KOREAN = "Korean"
+    PORTUGUESE_BRAZIL = "Portuguese"
+    RUSSIAN = "Russian"
+    SPANISH = "Spanish"
 
 
 @singleton
