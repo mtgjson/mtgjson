@@ -1118,6 +1118,8 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
         return
 
     LOGGER.info(f"Adding variations for {mtgjson_set.code}")
+
+    distinct_card_printings_found: Set[str] = set()
     for this_card in mtgjson_set.cards:
         # Adds variations
         variations = [
@@ -1137,39 +1139,17 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
         if not variations or this_card.name in constants.BASIC_LAND_NAMES:
             continue
 
-        # Some hardcoded checking due to inconsistencies upstream
-        if mtgjson_set.code.upper() in {"UNH", "10E"}:
-            # Check for duplicates, mark the foils
-            if (
-                len(variations) >= 1
-                and this_card.has_foil
-                and not this_card.has_non_foil
-            ):
-                this_card.is_alternative = True
-        elif mtgjson_set.code.upper() in {"CN2", "BBD", "JMP", "2XM", "2X2", "DMR"}:
-            # Check for set number > set size, remove asterisk before comparison
-            card_number = int(this_card.number.replace(chr(9733), ""))
-            if card_number > mtgjson_set.base_set_size:
-                this_card.is_alternative = True
-        elif mtgjson_set.code.upper() in {"CMR"}:
-            # Mark duplicated non-promotional identical cards
-            for other_card in mtgjson_set.cards:
-                if (
-                    other_card.uuid == this_card.uuid
-                    or other_card.name != this_card.name
-                    or other_card.promo_types
-                    or this_card.promo_types
-                ):
-                    continue
+        # In each set, a card has to be unique by all of these attributes
+        # otherwise, it's an alternative printing
+        distinct_card_printing = (
+            f"{this_card.name}|{this_card.border_color}|{this_card.frame_version}|"
+            f"{','.join(this_card.frame_effects)}|{','.join(this_card.finishes)}"
+        )
 
-                # Check for set number > set size, remove asterisk before comparison
-                card_number = int(this_card.number.replace(chr(9733), ""))
-                if card_number > mtgjson_set.base_set_size:
-                    this_card.is_alternative = True
+        if distinct_card_printing in distinct_card_printings_found:
+            this_card.is_alternative = True
         else:
-            # Check for an asterisk in the number
-            if chr(9733) in this_card.number:
-                this_card.is_alternative = True
+            distinct_card_printings_found.add(distinct_card_printing)
 
     LOGGER.info(f"Finished adding variations for {mtgjson_set.code}")
 
