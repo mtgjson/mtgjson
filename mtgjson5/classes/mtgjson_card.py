@@ -62,7 +62,7 @@ class MtgjsonCardObject:
     is_rebalanced: Optional[bool]
     is_reprint: Optional[bool]
     is_reserved: Optional[bool]
-    is_starter: Optional[bool]
+    is_starter: Optional[bool]  # Deprecated - Remove in 5.3.0
     is_story_spotlight: Optional[bool]
     is_textless: Optional[bool]
     is_timeshifted: Optional[bool]
