@@ -114,10 +114,17 @@ class MtgjsonAtomicCardsObject:
                     # Some printings might not have legalities, so we ensure they're established
                     if not card_entry.get("legalities"):
                         card_entry["legalities"] = atomic_card.get("legalities")
+                    # If the newly added card is the original printing, lets set it
+                    if not card.get("isReprint"):
+                        card_entry["firstPrinting"] = card.get("setCode")
                     should_add_card = False
                     break
 
             if should_add_card:
+                # Sometimes, the first card added _is_ the original printing
+                if not card.get("isReprint"):
+                    atomic_card["firstPrinting"] = card.get("setCode")
+
                 self.atomic_cards_dict[card_name].append(atomic_card)
                 self.atomic_cards_dict[card_name].sort(key=lambda x: x.get("side", "z"))
 
