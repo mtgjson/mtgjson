@@ -42,6 +42,7 @@ class MtgjsonCardObject:
     face_mana_value: float
     face_name: Optional[str]
     finishes: List[str]
+    first_printing: Optional[str]
     flavor_name: Optional[str]
     flavor_text: Optional[str]
     foreign_data: List[MtgjsonForeignDataObject]
