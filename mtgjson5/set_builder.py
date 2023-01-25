@@ -1143,8 +1143,10 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
         # otherwise, it's an alternative printing
         distinct_card_printing = (
             f"{this_card.name}|{this_card.border_color}|{this_card.frame_version}|"
-            f"{','.join(this_card.frame_effects)}|{','.join(this_card.finishes)}"
+            f"{','.join(this_card.frame_effects)}"
         )
+        if this_card.set_code in {"UNH", "10E"}:
+            distinct_card_printing += f"|{','.join(this_card.finishes)}"
 
         if distinct_card_printing in distinct_card_printings_found:
             this_card.is_alternative = True
