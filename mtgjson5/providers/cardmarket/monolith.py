@@ -63,7 +63,7 @@ class CardMarketProvider(AbstractProvider):
         self.__keys_found = True
 
         self.connection = Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"])
-        self.set_map = {}
+        self.set_map = dict()
         self.__init_set_map()
 
     def _get_card_market_data(self) -> io.StringIO:

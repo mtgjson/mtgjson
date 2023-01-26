@@ -54,7 +54,7 @@ class ScryfallProvider(AbstractProvider):
             )
             return {}
 
-        if not MtgjsonConfig().get("Scryfall", "client_secret"):
+        if not MtgjsonConfig().has_option("Scryfall", "client_secret"):
             LOGGER.warning(
                 "Scryfall keys values missing. Defaulting to non-authorized mode"
             )
