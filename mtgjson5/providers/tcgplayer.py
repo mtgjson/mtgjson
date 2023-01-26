@@ -466,11 +466,12 @@ class TCGPlayerProvider(AbstractProvider):
         return MtgjsonSealedProductSubtype.UNKNOWN
 
     def generate_mtgjson_sealed_product_objects(
-        self, group_id: Optional[int], set_code: str
+        self, group_id: Optional[int], set_code: str, wc_set: bool
     ) -> List[MtgjsonSealedProductObject]:
         """
         Builds MTGJSON Sealed Product Objects from TCGPlayer data
         :param group_id: group id for the set to get data for
+        :param wc_set: bool to tell if a set is a world champion set or not
         :return: A list of MtgjsonSealedProductObject for a given set
         """
         if not self.__keys_found:
@@ -482,6 +483,13 @@ class TCGPlayerProvider(AbstractProvider):
             return []
 
         sealed_data = get_tcgplayer_sealed_data(group_id)
+
+        if wc_set:
+            correct_data = []
+            for product in sealed_data:
+                if set_code[:-2] in product["cleanName"]:
+                    correct_data.append(product)
+            sealed_data = correct_data
 
         mtgjson_sealed_products = []
 
