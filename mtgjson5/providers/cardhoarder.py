@@ -44,7 +44,7 @@ class CardHoarderProvider(AbstractProvider):
             self.ch_api_url = ""
             return headers
 
-        if MtgjsonConfig().get("CardHoarder", "token"):
+        if MtgjsonConfig().has_option("CardHoarder", "token"):
             self.__keys_found = True
             self.ch_api_url = self.ch_api_url.format(
                 MtgjsonConfig().get("CardHoarder", "token")

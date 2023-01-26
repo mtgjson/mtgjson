@@ -40,7 +40,7 @@ class EdhrecProviderCardRanks(AbstractProvider):
 
     def _build_http_header(self) -> Dict[str, str]:
         self.__keys_found = MtgjsonConfig().has_option("EDHRec", "api_url")
-        self.__api_url = MtgjsonConfig().get("EDHRec", "api_url", "")
+        self.__api_url = MtgjsonConfig().get("EDHRec", "api_url")
 
         if not self.__keys_found:
             LOGGER.info("EDHRec keys values missing. Skipping imports")
