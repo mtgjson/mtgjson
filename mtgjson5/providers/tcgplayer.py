@@ -274,7 +274,7 @@ class TCGPlayerProvider(AbstractProvider):
     ) -> MtgjsonSealedProductCategory:
         """
         Best-effort to parse the product name and determine the sealed product category
-        :param product_name Name of the product from TCG
+        :param product_name Name of the product from TCG, must be lowercase
         :return: category
         """
 
@@ -290,6 +290,7 @@ class TCGPlayerProvider(AbstractProvider):
                 "bundle case",
                 "display case",
                 "intro display",
+                "intro pack display",
                 "pack box",
                 "pack case",
                 "tournament pack display",
@@ -385,6 +386,7 @@ class TCGPlayerProvider(AbstractProvider):
             tag in product_name
             for tag in [
                 "challenge deck",
+                "challenger deck",
                 "championship deck",
                 "event deck",
                 "guild kit",
