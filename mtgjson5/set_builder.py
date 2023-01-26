@@ -468,11 +468,14 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.booster = GitHubBoostersProvider().get_set_booster_data(set_code)
 
     # Build sealed product using the TCGPlayer data
+    wc_set = mtgjson_set.code in ["WC97", "WC98", "WC99", "WC00", "WC01", "WC02", "WC03", "WC04"]
+
     mtgjson_set.sealed_product = (
         TCGPlayerProvider().generate_mtgjson_sealed_product_objects(
-            mtgjson_set.tcgplayer_group_id, mtgjson_set.code
+            mtgjson_set.tcgplayer_group_id, mtgjson_set.code, wc_set
         )
     )
+
     add_sealed_uuid(mtgjson_set)
     add_sealed_purchase_url(mtgjson_set)
     add_token_signatures(mtgjson_set)
