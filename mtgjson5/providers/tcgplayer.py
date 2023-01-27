@@ -461,12 +461,12 @@ class TCGPlayerProvider(AbstractProvider):
         return MtgjsonSealedProductSubtype.UNKNOWN
 
     def generate_mtgjson_sealed_product_objects(
-        self, group_id: Optional[int], set_code: str, wc_set: bool
+        self, group_id: Optional[int], set_code: str
     ) -> List[MtgjsonSealedProductObject]:
         """
         Builds MTGJSON Sealed Product Objects from TCGPlayer data
         :param group_id: group id for the set to get data for
-        :param wc_set: bool to tell if a set is a world champion set or not
+        :param set_code: short abbreviation for the set name
         :return: A list of MtgjsonSealedProductObject for a given set
         """
         if not self.__keys_found:
@@ -479,12 +479,15 @@ class TCGPlayerProvider(AbstractProvider):
 
         sealed_data = get_tcgplayer_sealed_data(group_id)
 
-        if wc_set:
-            correct_data = []
-            for product in sealed_data:
-                if set_code[:-2] in product["cleanName"]:
-                    correct_data.append(product)
-            sealed_data = correct_data
+        # adjust for worlds decks
+        if set_code in ["WC97", "WC98", "WC99", "WC00", "WC01", "WC02", "WC03", "WC04"]:
+            sealed_data = [product for product in sealed_data if set_code[:-2] in product["cleanName"]]
+
+        # adjust for mystery booster
+        if set_code == "CMB1":
+            sealed_data = [product for product in sealed_data if "2021" not in product["cleanName"]]
+        elif set_code == "CMB2":
+            sealed_data = [product for product in sealed_data if "2021" in product["cleanName"]]
 
         mtgjson_sealed_products = []
 
