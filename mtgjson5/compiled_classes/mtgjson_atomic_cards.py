@@ -111,9 +111,11 @@ class MtgjsonAtomicCardsObject:
             should_add_card = True
             for card_entry in self.atomic_cards_dict[card_name]:
                 if card_entry.get("text") == atomic_card.get("text"):
-                    # Some printings might not have legalities, so we ensure they're established
-                    if not card_entry.get("legalities"):
-                        card_entry["legalities"] = atomic_card.get("legalities")
+                    # Some printings might not have foreign data or legalities, so we ensure they're established
+                    for field_to_copy in ["foreignData", "legalities"]:
+                        if not card_entry.get(field_to_copy):
+                            card_entry[field_to_copy] = atomic_card.get(field_to_copy)
+
                     # If the newly added card is the original printing, lets set it
                     if not card.get("isReprint"):
                         card_entry["firstPrinting"] = card.get("setCode")
