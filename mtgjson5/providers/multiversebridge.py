@@ -52,9 +52,6 @@ class MultiverseBridgeProvider(AbstractProvider):
             )
             time.sleep(5)
             return self.download(url, params)
-        LOGGER.info(
-                f"RESPONSE: {response.status_code}\n\n{response.url}\n\n{response.content}\n\n{response.text}\n\n{response.raw}"
-            )
 
         try:
             return response.json()
@@ -62,14 +59,14 @@ class MultiverseBridgeProvider(AbstractProvider):
             LOGGER.error(
                 f"Unable to decode {response.url} with body {response.content}: {error}"
             )
-            sys.exit(1)
+            return None
 
     def parse_rosetta_stone_cards(self, rosetta_rows: Dict[str, Any]) -> None:
         """
         Convert Rosetta Stone Card data into an index-able hashmap
         :param rosetta_rows: Rows from the API
         """
-        for rosetta_row in rosetta_rows["cards"]:
+        for rosetta_row in rosetta_rows.get("cards"):
             self.rosetta_stone_cards[rosetta_row["scryfall_id"]] = rosetta_row
 
     def parse_rosetta_stone_sets(self, rosetta_rows: List[Dict[str, Any]]) -> None:
