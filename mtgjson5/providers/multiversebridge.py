@@ -3,9 +3,11 @@ MultiverseBridge 3rd party provider
 """
 import logging
 import pathlib
+import sys
 import time
 from typing import Any, Dict, List, Optional, Set, Union
 
+import requests.exceptions
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
@@ -50,7 +52,14 @@ class MultiverseBridgeProvider(AbstractProvider):
             )
             time.sleep(5)
             return self.download(url, params)
-        return response.json()
+
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError as error:
+            LOGGER.error(
+                f"Unable to decode {response.url} with body {response.text}: {error}"
+            )
+            sys.exit(1)
 
     def parse_rosetta_stone_cards(self, rosetta_rows: Dict[str, Any]) -> None:
         """
