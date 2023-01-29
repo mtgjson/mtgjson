@@ -52,12 +52,15 @@ class MultiverseBridgeProvider(AbstractProvider):
             )
             time.sleep(5)
             return self.download(url, params)
+        LOGGER.info(
+                f"RESPONSE: {response.status_code}\n\n{response.url}\n\n{response.content}\n\n{response.text}\n\n{response.raw}"
+            )
 
         try:
             return response.json()
         except requests.exceptions.JSONDecodeError as error:
             LOGGER.error(
-                f"Unable to decode {response.url} with body {response.text}: {error}"
+                f"Unable to decode {response.url} with body {response.content}: {error}"
             )
             sys.exit(1)
 
