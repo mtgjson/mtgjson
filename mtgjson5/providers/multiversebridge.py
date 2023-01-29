@@ -59,7 +59,7 @@ class MultiverseBridgeProvider(AbstractProvider):
             LOGGER.error(
                 f"Unable to decode {response.url} with body {response.content}: {error}"
             )
-            return None
+            return {}
 
     def parse_rosetta_stone_cards(self, rosetta_rows: Dict[str, Any]) -> None:
         """
