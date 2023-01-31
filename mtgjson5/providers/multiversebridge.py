@@ -23,7 +23,7 @@ class MultiverseBridgeProvider(AbstractProvider):
 
     class_id: str = "mb"
 
-    ROSETTA_STONE_CARDS_URL = "https://www.multiversebridge.com/api/v1/cards"
+    ROSETTA_STONE_CARDS_URL = "https://www.dropbox.com/s/m4vfthtuguxeacy/all_ids.json?dl=1"
     ROSETTA_STONE_SETS_URL = "https://www.multiversebridge.com/api/v1/sets"
     ROSETTA_STONE_PRICES_URL = "https://cdn.multiversebridge.com/mtgjson_build.json"
     rosetta_stone_cards: Dict[str, Any]
