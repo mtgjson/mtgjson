@@ -791,7 +791,7 @@ def build_mtgjson_card(
         mtgjson_card.colors = (
             face_data["colors"]
             if "colors" in face_data.keys()
-            else scryfall_object["colors"]
+            else scryfall_object.get("colors", [])
         )
 
     # Explicit Variables -- Based on the entire card object
