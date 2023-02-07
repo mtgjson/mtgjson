@@ -119,9 +119,11 @@ class GathererProvider(AbstractProvider):
 
                 card_number_to_multiverse_id[row_card_number] = row_card_multiverse_id
 
-            last_paging_value = soup.find("div", class_="pagingcontrols").find_all("a")[
-                -1
-            ]
+            last_paging_value = soup.find("div", class_="pagingcontrols").find_all("a")
+            if not last_paging_value:
+                break
+            last_paging_value = last_paging_value[-1]
+
             is_last_page = (
                 "underline" in last_paging_value.get("style", "")
                 or ">" not in last_paging_value.text
