@@ -37,6 +37,7 @@ class GathererProvider(AbstractProvider):
     """
 
     GATHERER_CARD = "https://gatherer.wizards.com/Pages/Card/Details.aspx"
+    SET_CHECKLIST_URL = "https://gatherer.wizards.com/Pages/Search/Default.aspx?page={}&output=checklist&set=[%22{}%22]"
     SETS_TO_REMOVE_PARENTHESES = {"10E"}
 
     def __init__(self) -> None:
@@ -83,6 +84,52 @@ class GathererProvider(AbstractProvider):
 
         self.log_download(response)
         return response
+
+    def get_collector_number_to_multiverse_id_mapping(
+        self, set_name: str
+    ) -> Dict[str, str]:
+        """
+        Generate a mapping between card collector numbers and their MultiverseId number for
+        backup processing, if our other providers are lacking this data
+        :param set_name: Set name, as Gatherer doesn't like set codes
+        :returns Mapping of collector number to Multiverse ID
+        """
+        card_number_to_multiverse_id = {}
+
+        for page_number in range(0, 10):
+            response = self.download(
+                self.SET_CHECKLIST_URL.format(page_number, set_name)
+            )
+
+            soup = bs4.BeautifulSoup(response.text, "html.parser")
+
+            checklist_tables = soup.find("table", class_="checklist")
+            if not checklist_tables:
+                break
+
+            cards = checklist_tables.find_all("tr", class_="cardItem")
+            for card in cards:
+                row_card_number = card.find("td", class_="number").text
+                row_card_multiverse_id = (
+                    card.find("td", class_="name")
+                    .find("a")
+                    .get("href", "")
+                    .split("=", 2)[-1]
+                )
+
+                card_number_to_multiverse_id[row_card_number] = row_card_multiverse_id
+
+            last_paging_value = soup.find("div", class_="pagingcontrols").find_all("a")[
+                -1
+            ]
+            is_last_page = (
+                "underline" in last_paging_value.get("style", "")
+                or ">" not in last_paging_value.text
+            )
+            if is_last_page:
+                break
+
+        return card_number_to_multiverse_id
 
     def get_cards(self, multiverse_id: str, set_code: str = "") -> List[GathererCard]:
         """
