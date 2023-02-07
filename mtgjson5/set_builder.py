@@ -439,6 +439,9 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     add_mcm_details(mtgjson_set)
     add_card_kingdom_details(mtgjson_set)
 
+    if not any(card.identifiers.multiverse_id for card in mtgjson_set.cards):
+        add_slow_gatherer_multiverse_ids_if_necessary(mtgjson_set)
+
     if mtgjson_set.code in {"CN2", "FRF", "ONS", "10E", "UNH"}:
         link_same_card_different_details(mtgjson_set)
 
@@ -486,6 +489,27 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.is_partial_preview = MtgjsonMetaObject().date < mtgjson_set.release_date
 
     return mtgjson_set
+
+
+def add_slow_gatherer_multiverse_ids_if_necessary(
+    mtgjson_set: MtgjsonSetObject,
+) -> None:
+    """
+    If our upstream providers are lacking Multiverse IDs, we can manually pull them
+    from Gatherer ourselves, albeit a relatively slow operation.
+    :param mtgjson_set: the set to add multiverse ids to
+    """
+    LOGGER.info(f"Attempting to add Multiverse IDs to {mtgjson_set.code}")
+    card_number_to_multiverse_ids = (
+        GathererProvider().get_collector_number_to_multiverse_id_mapping(
+            mtgjson_set.name
+        )
+    )
+    for card in mtgjson_set.cards:
+        LOGGER.info(
+            f"Adding backup Multiverse ID {card_number_to_multiverse_ids.get(card.number)} to {card.name}"
+        )
+        card.identifiers.multiverse_id = card_number_to_multiverse_ids.get(card.number)
 
 
 def build_base_mtgjson_tokens(
