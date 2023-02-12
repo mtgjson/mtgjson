@@ -22,7 +22,7 @@ class MtgjsonEnumValuesObject:
 
     attr_value_dict: Dict[str, Union[Dict[str, List[str]], List[str]]]
 
-    set_key_struct = {
+    set_key_struct: Dict[str, Union[List[str], Dict[str, List[str]]]] = {
         "card": [
             "availability",
             "boosterTypes",
@@ -45,8 +45,11 @@ class MtgjsonEnumValuesObject:
             "types",
             "watermark",
         ],
-        "set": ["type", "languages"],
         "foreignData": ["language"],
+        "set": ["type", "languages"],
+        "setInner": {
+            "sealedProduct": ["category", "subtype"],
+        },
     }
 
     deck_key_struct = {"deck": ["type"]}
@@ -132,6 +135,20 @@ class MtgjsonEnumValuesObject:
                         type_map["set"][set_contents_key].update(value)
                     else:
                         type_map["set"][set_contents_key].add(value)
+                elif set_contents_key in self.set_key_struct["setInner"]:
+                    for set_inner_field in self.set_key_struct["setInner"][
+                        set_contents_key
+                    ]:
+                        if set_inner_field not in type_map:
+                            type_map[set_inner_field] = set()
+
+                        for inner_struct in set_contents.get(set_contents_key):
+                            value = inner_struct.get(set_inner_field)
+
+                            if isinstance(value, list):
+                                type_map[set_inner_field].update(value)
+                            else:
+                                type_map[set_inner_field].add(value)
 
             match_keys = set(self.set_key_struct["card"]).union(
                 set(self.set_key_struct.keys())
