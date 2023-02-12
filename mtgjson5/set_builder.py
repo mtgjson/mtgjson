@@ -1547,7 +1547,7 @@ def add_secret_lair_names(mtgjson_set: MtgjsonSetObject) -> None:
     relation_map = FandomProviderSecretLair().download()
     for card in mtgjson_set.cards:
         if card.number in relation_map:
-            card.subset = [relation_map[card.number]]
+            card.subsets = [relation_map[card.number]]
     LOGGER.info(f"Finished Linking Secret Lair Drops to {mtgjson_set.code}")
 
 
