@@ -45,7 +45,7 @@ class MtgjsonEnumValuesObject:
             "types",
             "watermark",
         ],
-        "set": ["type", "languages"],
+        "set": ["type", "languages", "category", "subtype"],
         "foreignData": ["language"],
     }
 
