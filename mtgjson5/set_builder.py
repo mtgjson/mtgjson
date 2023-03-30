@@ -451,6 +451,8 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     if mtgjson_set.code in {"SLD"}:
         add_secret_lair_names(mtgjson_set)
 
+    mtgjson_set.has_boosterfun = mtgjson_set.code in {"ELD", "THB", "IKO", "M21", "ZNR", "KHM", "STX", "AFR", "MID", "VOW", "NEO", "SNC", "DMU", "BRO", "ONE", "MOM", "2XM", "2X2", "DMR", "MH2", "CMR", "CLB", "UNF", "BOT", "BRR"}
+
     base_total_sizes = get_base_and_total_set_sizes(mtgjson_set)
     mtgjson_set.base_set_size = base_total_sizes[0]
     mtgjson_set.total_set_size = base_total_sizes[1]

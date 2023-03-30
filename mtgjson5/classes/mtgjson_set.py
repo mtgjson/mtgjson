@@ -22,6 +22,7 @@ class MtgjsonSetObject:
     cardsphere_set_id: Optional[int]
     code: str
     code_v3: str
+    has_boosterfun: bool
     is_foreign_only: bool
     is_foil_only: bool
     is_non_foil_only: bool
