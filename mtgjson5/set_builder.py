@@ -923,6 +923,7 @@ def build_mtgjson_card(
 
     # Explicit Variables -- Based on the face of the card
     mtgjson_card.loyalty = face_data.get("loyalty")
+    mtgjson_card.defense = face_data.get("defense")
 
     ascii_name = (
         unicodedata.normalize("NFD", mtgjson_card.name)
