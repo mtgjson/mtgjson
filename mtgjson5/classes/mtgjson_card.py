@@ -34,7 +34,7 @@ class MtgjsonCardObject:
     colors: List[str]
     converted_mana_cost: float
     count: int
-    defense: str
+    defense: Optional[str]
     duel_deck: Optional[str]
     edhrec_rank: Optional[int]
     edhrec_saltiness: Optional[float]
