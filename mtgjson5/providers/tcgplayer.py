@@ -471,6 +471,7 @@ class TCGPlayerProvider(AbstractProvider):
         """
         Builds MTGJSON Sealed Product Objects from TCGPlayer data
         :param group_id: group id for the set to get data for
+        :param set_code: short abbreviation for the set name
         :return: A list of MtgjsonSealedProductObject for a given set
         """
         if not self.__keys_found:
@@ -482,6 +483,16 @@ class TCGPlayerProvider(AbstractProvider):
             return []
 
         sealed_data = get_tcgplayer_sealed_data(group_id)
+
+        # adjust for worlds decks by looking at the last two digits being present in product name
+        if set_code in ["WC97", "WC98", "WC99", "WC00", "WC01", "WC02", "WC03", "WC04"]:
+            sealed_data = [product for product in sealed_data if set_code[:-2] in product["cleanName"]]
+
+        # adjust for mystery booster
+        if set_code == "CMB1":
+            sealed_data = [product for product in sealed_data if "2021" not in product["cleanName"]]
+        elif set_code == "CMB2":
+            sealed_data = [product for product in sealed_data if "2021" in product["cleanName"]]
 
         mtgjson_sealed_products = []
 
