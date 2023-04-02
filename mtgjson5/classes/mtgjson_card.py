@@ -79,6 +79,7 @@ class MtgjsonCardObject:
     mana_value: float
     name: str
     number: str
+    orientation: Optional[str]
     original_printings: List[str]
     original_release_date: Optional[str]
     original_text: Optional[str]

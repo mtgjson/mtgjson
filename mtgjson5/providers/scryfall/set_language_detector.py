@@ -3,9 +3,10 @@ from typing import Any, Dict, List, Optional, Union
 
 from singleton_decorator import singleton
 
-from mtgjson5.constants import LANGUAGE_MAP
-from mtgjson5.providers.abstract import AbstractProvider
-from mtgjson5.utils import retryable_session
+from ...constants import LANGUAGE_MAP
+from ...providers.abstract import AbstractProvider
+from ...providers.scryfall import sf_utils
+from ...utils import retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
         super().__init__(self._build_http_header())
 
     def _build_http_header(self) -> Dict[str, str]:
-        return {}
+        return sf_utils.build_http_header()
 
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None

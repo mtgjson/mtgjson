@@ -32,6 +32,7 @@ from .providers import (
     MTGBanProvider,
     MultiverseBridgeProvider,
     ScryfallProvider,
+    ScryfallProviderOrientationDetector,
     ScryfallProviderSetLanguageDetector,
     TCGPlayerProvider,
     WhatsInStandardProvider,
@@ -483,6 +484,9 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     add_multiverse_bridge_ids(mtgjson_set)
 
     mark_duel_decks(set_code, mtgjson_set.cards)
+
+    if "Art Series" in mtgjson_set.name:
+        add_orientations(mtgjson_set)
 
     # Implicit Variables
     mtgjson_set.is_foreign_only = mtgjson_set.code in constants.FOREIGN_SETS
@@ -1536,6 +1540,26 @@ def add_meld_face_parts(mtgjson_set: MtgjsonSetObject) -> None:
 
         first_card.card_parts = [x for x in card_face_parts if x]
     LOGGER.info(f"Finished adding Card Face Parts for {mtgjson_set.code}")
+
+
+def add_orientations(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    Card token orientations are a bit non-standard, so we'll need
+    a way to figure this out. This will update in-line
+    :param mtgjson_set: MTGJSON Set Object
+    """
+    LOGGER.info(f"Adding Token Orientations to {mtgjson_set.code}")
+    uuid_to_orientation_map = (
+        ScryfallProviderOrientationDetector().get_uuid_to_orientation_map(
+            mtgjson_set.code
+        )
+    )
+    for token in mtgjson_set.tokens:
+        if token.identifiers.scryfall_id:
+            token.orientation = uuid_to_orientation_map.get(
+                token.identifiers.scryfall_id
+            )
+    LOGGER.info(f"Finished Token Orientations to {mtgjson_set.code}")
 
 
 def add_secret_lair_names(mtgjson_set: MtgjsonSetObject) -> None:
