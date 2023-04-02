@@ -15,6 +15,7 @@ from ... import constants
 from ...mtgjson_config import MtgjsonConfig
 from ...providers.abstract import AbstractProvider
 from ...utils import retryable_session
+from . import sf_utils
 
 LOGGER = logging.getLogger(__name__)
 
@@ -44,27 +45,7 @@ class ScryfallProvider(AbstractProvider):
         self.cards_without_limits = set(self.generate_cards_without_limits())
 
     def _build_http_header(self) -> Dict[str, str]:
-        """
-        Construct the Authorization header for Scryfall
-        :return: Authorization header
-        """
-        if not MtgjsonConfig().has_section("Scryfall"):
-            LOGGER.warning(
-                "Scryfall section not established. Defaulting to non-authorized mode"
-            )
-            return {}
-
-        if not MtgjsonConfig().has_option("Scryfall", "client_secret"):
-            LOGGER.warning(
-                "Scryfall keys values missing. Defaulting to non-authorized mode"
-            )
-            return {}
-
-        headers: Dict[str, str] = {
-            "Authorization": f"Bearer {MtgjsonConfig().get('Scryfall', 'client_secret')}",
-            "Connection": "Keep-Alive",
-        }
-        return headers
+        return sf_utils.build_http_header()
 
     def download_all_pages(
         self,
