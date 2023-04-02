@@ -484,7 +484,7 @@ class TCGPlayerProvider(AbstractProvider):
 
         sealed_data = get_tcgplayer_sealed_data(group_id)
 
-        # adjust for worlds decks
+        # adjust for worlds decks by looking at the last two digits being present in product name
         if set_code in ["WC97", "WC98", "WC99", "WC00", "WC01", "WC02", "WC03", "WC04"]:
             sealed_data = [product for product in sealed_data if set_code[:-2] in product["cleanName"]]
 

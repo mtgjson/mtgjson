@@ -476,7 +476,6 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
             mtgjson_set.tcgplayer_group_id, mtgjson_set.code
         )
     )
-
     add_sealed_uuid(mtgjson_set)
     add_sealed_purchase_url(mtgjson_set)
     add_token_signatures(mtgjson_set)
