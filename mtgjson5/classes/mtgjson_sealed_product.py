@@ -72,7 +72,8 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     UNKNOWN = ""
 
     # Typically for booster_box and booster_pack
-    DRAFT = "draft"
+    # These should match the booster values in Booster
+    DEFAULT = "default"
     SET = "set"
     COLLECTOR = "collector"
     JUMPSTART = "jumpstart"
