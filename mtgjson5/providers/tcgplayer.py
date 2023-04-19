@@ -109,7 +109,7 @@ class TCGPlayerProvider(AbstractProvider):
     product_default_size = {
         "set": 30,
         "collector": 12,
-        "draft": 36,
+        "default": 36,
         "jumpstart": 18,
         "theme": 12,
     }
@@ -457,12 +457,12 @@ class TCGPlayerProvider(AbstractProvider):
             if subtype.value.replace("_", " ") in product_name:
                 return subtype
 
-        # Special handling because sometimes 'draft' is not tagged
+        # Special handling because sometimes 'default' is not tagged
         if category in [
             MtgjsonSealedProductCategory.BOOSTER_BOX,
             MtgjsonSealedProductCategory.BOOSTER_PACK,
         ]:
-            return MtgjsonSealedProductSubtype.DRAFT
+            return MtgjsonSealedProductSubtype.DEFAULT
         return MtgjsonSealedProductSubtype.UNKNOWN
 
     def generate_mtgjson_sealed_product_objects(

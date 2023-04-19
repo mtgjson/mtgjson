@@ -859,7 +859,7 @@ def build_mtgjson_card(
     # Future expansion to support set and collector booster types
     mtgjson_card.booster_types = []
     if scryfall_object.get("booster", False):
-        mtgjson_card.booster_types.append("draft")
+        mtgjson_card.booster_types.append("default")
     if any(
         deck_type in scryfall_object.get("promo_types", [])
         for deck_type in ("starterdeck", "planeswalkerdeck")
