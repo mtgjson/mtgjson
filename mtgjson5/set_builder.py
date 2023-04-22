@@ -20,6 +20,8 @@ from .classes import (
     MtgjsonRelatedCardsObject,
     MtgjsonRulingObject,
     MtgjsonSealedProductObject,
+    MtgjsonSealedProductCategory,
+    MtgjsonSealedProductSubtype,
     MtgjsonSetObject,
 )
 from .providers import (
@@ -477,6 +479,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
             mtgjson_set.tcgplayer_group_id, mtgjson_set.code
         )
     )
+    build_sealed_overrides(mtgjson_set)
     add_sealed_uuid(mtgjson_set)
     add_sealed_purchase_url(mtgjson_set)
     add_token_signatures(mtgjson_set)
@@ -526,6 +529,35 @@ def build_base_mtgjson_tokens(
     :return: Completed card objects
     """
     return build_base_mtgjson_cards(set_code, added_tokens, True)
+
+
+def build_sealed_overrides(mtgjson_set: MtgjsonSetObject) -> None:
+	"""
+	Parses resources/sealed_product_overrides.json into each set. 
+	:param mtgjson_set: the set to add override elements to
+	"""
+
+	additional_products = json.load("resources/additional_sealed_product.json")
+	for sealed_product in additional_products.get(mtgjson_set.code, []):
+		product_obj = MtgjsonSealedProductObject()
+		product_obj.name = sealed_product["name"]
+		product_obj.release_date = sealed_product.get("release_date", None)
+
+		try:
+			product_obj.category = getattr(MtgjsonSealedProductCategory,
+										   sealed_product.get("category",
+															  "UNKNOWN").upper())
+		except:
+			product_obj.category = MtgjsonSealedProductCategory.UNKNOWN
+		try:
+			product_obj.subtype = getattr(MtgjsonSealedProductSubtype,
+										  sealed_product.get("subtype",
+															 "UNKNOWN").upper())
+		except:
+			product_obj.subtype = MtgjsonSealedProductSubtype.UNKNOWN
+
+		sealed_product.raw_purchase_urls = sealed_product.get("purchase_url", [])
+		mtgjson_set.sealed_product.append(product_obj)
 
 
 def add_sealed_uuid(mtgjson_set: MtgjsonSetObject) -> None:
