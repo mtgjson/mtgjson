@@ -1,13 +1,13 @@
 {
-	"2ed": [
-		{
-			"name": "Unlimited Starter Deck Display",
-			"category": "deck_box",
-			"subtype": "starter",
-			"release_date": null,
-			"purchase_url": {
-				"cardkingdom": "https://www.cardkingdom.com/mtg-sealed/unlimited-starter-deck-display"
-			}
-		}
-	]
+    "2ed": [
+        {
+            "name": "Unlimited Starter Deck Display",
+            "category": "deck_box",
+            "subtype": "starter",
+            "release_date": null,
+            "purchase_url": {
+                "cardkingdom": "https://www.cardkingdom.com/mtg-sealed/unlimited-starter-deck-display"
+            }
+        }
+    ]
 }
