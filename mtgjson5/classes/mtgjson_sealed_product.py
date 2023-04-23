@@ -126,6 +126,7 @@ class MtgjsonSealedProductObject:
     release_date: Optional[str]
     category: Optional[MtgjsonSealedProductCategory]
     subtype: Optional[MtgjsonSealedProductSubtype]
+    contents: Optional[Dict[str, Any]]
     product_size: Optional[int]
     __skip_keys = [
         "raw_purchase_urls",
