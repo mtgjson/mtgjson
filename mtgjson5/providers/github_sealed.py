@@ -90,6 +90,14 @@ class GitHubSealedProvider(AbstractProvider):
 
             sealed_product.raw_purchase_urls = sealed_product.get("purchase_url", [])
             products_list.append(product_obj)
+
+            for location, identifier in sealed_product.get("identifiers", {}).items():
+            	try:
+            		setattr(product_obj.identifiers, location, identifier)
+            	except:
+            		LOGGER.error(
+            			f"Error loading product identifier for {product_obj.name} - {location} - {identifier}"
+            		)
         return products_list
     
     def apply_sealed_contents_data(self, set_code: str, mtgjson_set: MtgjsonSetObject) ->  None
