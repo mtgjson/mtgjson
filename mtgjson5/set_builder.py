@@ -480,9 +480,13 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
         )
     )
     CardKingdomSealedProvider().update_sealed_product(
-    	mtgjson_set.name, mtgjson_set.sealed_product
+        mtgjson_set.name, mtgjson_set.sealed_product
     )
-    GitHubSealedProvider().apply_sealed_contents_data(set_code, mtgjson_set)
+    sealed_provider = GitHubSealedProvider()
+    mtgjson_set.sealed_product.extend(
+        sealed_provider.get_sealed_products_data(set_code)
+    )
+    sealed_provider.apply_sealed_contents_data(set_code, mtgjson_set)
     add_sealed_uuid(mtgjson_set)
     add_sealed_purchase_url(mtgjson_set)
     add_token_signatures(mtgjson_set)

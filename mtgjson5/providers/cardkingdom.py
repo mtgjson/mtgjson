@@ -92,13 +92,13 @@ class CardKingdomProvider(AbstractProvider):
 
 @singleton
 class CardKingdomSealedProvider(AbstractProvider):
-	"""
-	Separate provider for Card Kingdom sealed products
-	"""
-	
-	api_url: str = "https://api.cardkingdom.com/api/sealed_pricelist"
-	
-	def __init__(self) -> None:
+    """
+    Separate provider for Card Kingdom sealed products
+    """
+    
+    api_url: str = "https://api.cardkingdom.com/api/sealed_pricelist"
+    
+    def __init__(self) -> None:
         """
         Initializer
         """
@@ -111,7 +111,7 @@ class CardKingdomSealedProvider(AbstractProvider):
         """
         return {}
 
-	def determine_mtgjson_sealed_product_category(
+    def determine_mtgjson_sealed_product_category(
         self, product_name: str
     ) -> MtgjsonSealedProductCategory:
         """
@@ -302,11 +302,11 @@ class CardKingdomSealedProvider(AbstractProvider):
             return MtgjsonSealedProductSubtype.DEFAULT
         return MtgjsonSealedProductSubtype.UNKNOWN
 
-	def get_cardkingdom_sealed_data(self):
-		"""
-		Download data from url
-		"""
-		session = retryable_session()
+    def get_cardkingdom_sealed_data(self):
+        """
+        Download data from url
+        """
+        session = retryable_session()
 
         response = session.get(self.api_url)
         self.log_download(response)
@@ -348,20 +348,20 @@ class CardKingdomSealedProvider(AbstractProvider):
         existing_names = set([product.name for product in sealed_products])
 
         for product in sealed_data:
-        	if product["edition"] != set_name:
-        		continue
-        	
-        	if product["name"] in existing_names:
-        		LOGGER.debug(
-        			f"{sealed_product.name}: adding CardKingdom values"
-        		)
-        		sealed_product = next(
-        			p for p in sealed_products if p.name == product['name']
-        		)
-        		sealed_product.raw_purchase_urls["cardKingdom"] = product["url"]
-        		sealed_product.identifiers.card_kingdom_id = str(product["id"])
-        		continue
-        	
+            if product["edition"] != set_name:
+                continue
+            
+            if product["name"] in existing_names:
+                LOGGER.debug(
+                    f"{sealed_product.name}: adding CardKingdom values"
+                )
+                sealed_product = next(
+                    p for p in sealed_products if p.name == product['name']
+                )
+                sealed_product.raw_purchase_urls["cardKingdom"] = product["url"]
+                sealed_product.identifiers.card_kingdom_id = str(product["id"])
+                continue
+            
             sealed_product = MtgjsonSealedProductObject()
 
             sealed_product.name = product["name"]
