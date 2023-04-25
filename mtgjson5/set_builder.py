@@ -25,6 +25,7 @@ from .classes import (
 from .providers import (
     CardMarketProvider,
     CardMarketProviderSetNameTranslations,
+    CardKingdomSealedProvider,
     EdhrecProviderCardRanks,
     FandomProviderSecretLair,
     GathererProvider,
