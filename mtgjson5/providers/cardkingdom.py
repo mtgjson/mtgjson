@@ -3,11 +3,18 @@ Card Kingdom 3rd party provider
 """
 import logging
 import pathlib
-from typing import Any, Dict, Optional, Union
+import json
+from typing import Any, Dict, Optional, Union, List
 
 from singleton_decorator import singleton
 
-from ..classes import MtgjsonPricesObject
+from .. import constants
+from ..classes import (
+    MtgjsonPricesObject,
+    MtgjsonSealedProductCategory,
+    MtgjsonSealedProductObject,
+    MtgjsonSealedProductSubtype,
+)
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping, retryable_session
 
@@ -21,6 +28,11 @@ class CardKingdomProvider(AbstractProvider):
     """
 
     api_url: str = "https://api.cardkingdom.com/api/pricelist"
+    sealed_url: str = "https://api.cardkingdom.com/api/sealed_pricelist"
+    
+    edition_translator: Dict[str, str] = {
+        "Unlimited Edition": "Unlimited"
+    }
 
     def __init__(self) -> None:
         """
@@ -88,28 +100,6 @@ class CardKingdomProvider(AbstractProvider):
             retail_key="price_retail",
             buy_key="price_buy",
         )
-
-
-@singleton
-class CardKingdomSealedProvider(AbstractProvider):
-    """
-    Separate provider for Card Kingdom sealed products
-    """
-    
-    api_url: str = "https://api.cardkingdom.com/api/sealed_pricelist"
-    
-    def __init__(self) -> None:
-        """
-        Initializer
-        """
-        super().__init__(self._build_http_header())
-
-    def _build_http_header(self) -> Dict[str, str]:
-        """
-        Construct the Authorization header
-        :return: Authorization header
-        """
-        return {}
 
     def determine_mtgjson_sealed_product_category(
         self, product_name: str
@@ -302,22 +292,6 @@ class CardKingdomSealedProvider(AbstractProvider):
             return MtgjsonSealedProductSubtype.DEFAULT
         return MtgjsonSealedProductSubtype.UNKNOWN
 
-    def get_cardkingdom_sealed_data(self):
-        """
-        Download data from url
-        """
-        session = retryable_session()
-
-        response = session.get(self.api_url)
-        self.log_download(response)
-        if response.ok:
-            return response.json()
-
-        LOGGER.error(
-            f"Error downloading GitHub Boosters: {response} --- {response.text}"
-        )
-        return {}
-
     def update_sealed_product(
         self, set_name: str, sealed_products: List[MtgjsonSealedProductObject]
     ) -> List[MtgjsonSealedProductObject]:
@@ -327,11 +301,9 @@ class CardKingdomSealedProvider(AbstractProvider):
         :param set_code: short abbreviation for the set name
         :return: A list of MtgjsonSealedProductObject for a given set
         """
-        if not self.__keys_found:
-            LOGGER.warning("Keys not found for Card Kingdom, skipping")
-            return []
 
-        sealed_data = get_cardkingdom_sealed_data()
+        sealed_data = self.download(self.sealed_url)
+        LOGGER.debug("Found {0} sealed products".format(len(sealed_data["data"])))
 
         mtgjson_sealed_products = []
 
@@ -347,16 +319,25 @@ class CardKingdomSealedProvider(AbstractProvider):
             
         existing_names = set([product.name for product in sealed_products])
 
-        for product in sealed_data:
-            if product["edition"] != set_name:
+        updated_set_name = self.edition_translator.get(set_name, set_name)
+        LOGGER.debug(", ".join(set([product["edition"] for product in sealed_data["data"]])))
+        LOGGER.debug(", ".join([set_name, updated_set_name]))
+
+        for product in sealed_data["data"]:
+            if product["edition"] != updated_set_name:
                 continue
             
-            if product["name"] in existing_names:
+            product_name = product["name"]
+            for tag, fix in sealed_name_fixes.items():
+                if tag in product_name:
+                    product_name = product_name.replace(tag, fix)
+            
+            if product_name in existing_names:
                 LOGGER.debug(
                     f"{sealed_product.name}: adding CardKingdom values"
                 )
                 sealed_product = next(
-                    p for p in sealed_products if p.name == product['name']
+                    p for p in sealed_products if p.name == product_name
                 )
                 sealed_product.raw_purchase_urls["cardKingdom"] = product["url"]
                 sealed_product.identifiers.card_kingdom_id = str(product["id"])
@@ -364,10 +345,7 @@ class CardKingdomSealedProvider(AbstractProvider):
             
             sealed_product = MtgjsonSealedProductObject()
 
-            sealed_product.name = product["name"]
-            for tag, fix in sealed_name_fixes.items():
-                if tag in sealed_product.name:
-                    sealed_product.name = sealed_product.name.replace(tag, fix)
+            sealed_product.name = product_name
 
             sealed_product.identifiers.card_kingdom_id = str(product["id"])
 
@@ -381,19 +359,6 @@ class CardKingdomSealedProvider(AbstractProvider):
             LOGGER.debug(
                 f"{sealed_product.name}: {sealed_product.category.value}.{sealed_product.subtype.value}"
             )
-
-            if sealed_product.category == MtgjsonSealedProductCategory.BOOSTER_BOX:
-                sealed_product.product_size = int(
-                    booster_box_size_overrides.get(
-                        sealed_product.subtype.value, {}
-                    ).get(
-                        set_code,
-                        self.product_default_size.get(sealed_product.subtype.value, 0),
-                    )
-                )
-
-            if sealed_product.release_date is not None:
-                sealed_product.release_date = sealed_product.release_date[0:10]
             sealed_product.raw_purchase_urls["cardKingdom"] = product["url"]
             mtgjson_sealed_products.append(sealed_product)
 

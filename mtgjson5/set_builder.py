@@ -25,7 +25,7 @@ from .classes import (
 from .providers import (
     CardMarketProvider,
     CardMarketProviderSetNameTranslations,
-    CardKingdomSealedProvider,
+    CardKingdomProvider,
     EdhrecProviderCardRanks,
     FandomProviderSecretLair,
     GathererProvider,
@@ -479,7 +479,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
             mtgjson_set.tcgplayer_group_id, mtgjson_set.code
         )
     )
-    CardKingdomSealedProvider().update_sealed_product(
+    CardKingdomProvider().update_sealed_product(
         mtgjson_set.name, mtgjson_set.sealed_product
     )
     sealed_provider = GitHubSealedProvider()
@@ -553,9 +553,13 @@ def add_sealed_purchase_url(mtgjson_set: MtgjsonSetObject) -> None:
     :param mtgjson_set: the set to add purchase urls to
     """
     for sealed_product in mtgjson_set.sealed_product:
-        if sealed_product.identifiers.tcgplayer_product_id:
+        if hasattr(sealed_product.identifiers, "tcgplayer_product_id"):
             sealed_product.purchase_urls.tcgplayer = url_keygen(
                 sealed_product.identifiers.tcgplayer_product_id + sealed_product.uuid
+            )
+        if "cardKingdom" in sealed_product.raw_purchase_urls:
+            sealed_product.purchase_urls.card_kingdom = url_keygen(
+                sealed_product.raw_purchase_urls["cardKingdom"]
             )
 
 
