@@ -77,6 +77,7 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     SET = "set"
     COLLECTOR = "collector"
     JUMPSTART = "jumpstart"
+    EPILOGUE = "epilogue"
 
     # Typically for deck
     THEME = "theme"

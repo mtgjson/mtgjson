@@ -112,6 +112,7 @@ class TCGPlayerProvider(AbstractProvider):
         "default": 36,
         "jumpstart": 18,
         "theme": 12,
+        "epilogue": 24,
     }
 
     def __init__(self) -> None:
