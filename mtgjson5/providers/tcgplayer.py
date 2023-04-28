@@ -488,13 +488,21 @@ class TCGPlayerProvider(AbstractProvider):
 
         # adjust for worlds decks by looking at the last two digits being present in product name
         if set_code in ["WC97", "WC98", "WC99", "WC00", "WC01", "WC02", "WC03", "WC04"]:
-            sealed_data = [product for product in sealed_data if set_code[:-2] in product["cleanName"]]
+            sealed_data = [
+                product
+                for product in sealed_data
+                if set_code[:-2] in product["cleanName"]
+            ]
 
         # adjust for mystery booster
         if set_code == "CMB1":
-            sealed_data = [product for product in sealed_data if "2021" not in product["cleanName"]]
+            sealed_data = [
+                product for product in sealed_data if "2021" not in product["cleanName"]
+            ]
         elif set_code == "CMB2":
-            sealed_data = [product for product in sealed_data if "2021" in product["cleanName"]]
+            sealed_data = [
+                product for product in sealed_data if "2021" in product["cleanName"]
+            ]
 
         mtgjson_sealed_products = []
 
