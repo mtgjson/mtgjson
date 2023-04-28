@@ -310,6 +310,18 @@ class TCGPlayerProvider(AbstractProvider):
         ):
             return MtgjsonSealedProductCategory.BOOSTER_BOX
 
+        # Needs to be before BOOSTER_PACK due to aliasing
+        if any(
+            tag in product_name
+            for tag in [
+                "blister pack",
+                "booster draft pack",
+                "booster packs draft set",
+                "multipack",
+            ]
+        ):
+            return MtgjsonSealedProductCategory.DRAFT_SET
+
         if any(
             tag in product_name
             for tag in [
@@ -329,17 +341,6 @@ class TCGPlayerProvider(AbstractProvider):
 
         if "prerelease" in product_name:
             return MtgjsonSealedProductCategory.PRERELEASE_PACK
-
-        if any(
-            tag in product_name
-            for tag in [
-                "blister pack",
-                "draft pack",
-                "draft set",
-                "multipack",
-            ]
-        ):
-            return MtgjsonSealedProductCategory.DRAFT_SET
 
         if any(
             tag in product_name
@@ -461,6 +462,7 @@ class TCGPlayerProvider(AbstractProvider):
         if category in [
             MtgjsonSealedProductCategory.BOOSTER_BOX,
             MtgjsonSealedProductCategory.BOOSTER_PACK,
+            MtgjsonSealedProductCategory.DRAFT_SET,
         ]:
             return MtgjsonSealedProductSubtype.DEFAULT
         return MtgjsonSealedProductSubtype.UNKNOWN
