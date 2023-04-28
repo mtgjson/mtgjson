@@ -539,6 +539,11 @@ class TCGPlayerProvider(AbstractProvider):
                         self.product_default_size.get(sealed_product.subtype.value, 0),
                     )
                 )
+            elif sealed_product.category == MtgjsonSealedProductCategory.DRAFT_SET:
+                # Use the last number found in the name to skip years and multipliers
+                numbers = re.findall(r"[0-9]+", sealed_product.name)
+                if numbers:
+                    sealed_product.product_size = int(numbers.pop())
 
             if sealed_product.release_date is not None:
                 sealed_product.release_date = sealed_product.release_date[0:10]
