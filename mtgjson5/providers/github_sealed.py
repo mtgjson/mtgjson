@@ -112,4 +112,9 @@ class GitHubSealedProvider(AbstractProvider):
         if not set_contents:
         	return
         for product in mtgjson_set.sealed_product:
-            product.contents = set_contents.get(product.name, None)
+        	product_contents = set_contents.get(product.name, False)
+        	if product_contents:
+        		size = product_contents.pop("size", False)
+        		if size:
+        			product.product_size = size
+            	product.contents = product_contents
