@@ -310,6 +310,18 @@ class TCGPlayerProvider(AbstractProvider):
         ):
             return MtgjsonSealedProductCategory.BOOSTER_BOX
 
+        # Needs to be before BOOSTER_PACK due to aliasing
+        if any(
+            tag in product_name
+            for tag in [
+                "blister pack",
+                "booster draft pack",
+                "booster packs draft set",
+                "multipack",
+            ]
+        ):
+            return MtgjsonSealedProductCategory.DRAFT_SET
+
         if any(
             tag in product_name
             for tag in [
@@ -329,17 +341,6 @@ class TCGPlayerProvider(AbstractProvider):
 
         if "prerelease" in product_name:
             return MtgjsonSealedProductCategory.PRERELEASE_PACK
-
-        if any(
-            tag in product_name
-            for tag in [
-                "blister pack",
-                "draft pack",
-                "draft set",
-                "multipack",
-            ]
-        ):
-            return MtgjsonSealedProductCategory.DRAFT_SET
 
         if any(
             tag in product_name
@@ -461,6 +462,7 @@ class TCGPlayerProvider(AbstractProvider):
         if category in [
             MtgjsonSealedProductCategory.BOOSTER_BOX,
             MtgjsonSealedProductCategory.BOOSTER_PACK,
+            MtgjsonSealedProductCategory.DRAFT_SET,
         ]:
             return MtgjsonSealedProductSubtype.DEFAULT
         return MtgjsonSealedProductSubtype.UNKNOWN
@@ -486,13 +488,21 @@ class TCGPlayerProvider(AbstractProvider):
 
         # adjust for worlds decks by looking at the last two digits being present in product name
         if set_code in ["WC97", "WC98", "WC99", "WC00", "WC01", "WC02", "WC03", "WC04"]:
-            sealed_data = [product for product in sealed_data if set_code[:-2] in product["cleanName"]]
+            sealed_data = [
+                product
+                for product in sealed_data
+                if set_code[:-2] in product["cleanName"]
+            ]
 
         # adjust for mystery booster
         if set_code == "CMB1":
-            sealed_data = [product for product in sealed_data if "2021" not in product["cleanName"]]
+            sealed_data = [
+                product for product in sealed_data if "2021" not in product["cleanName"]
+            ]
         elif set_code == "CMB2":
-            sealed_data = [product for product in sealed_data if "2021" in product["cleanName"]]
+            sealed_data = [
+                product for product in sealed_data if "2021" in product["cleanName"]
+            ]
 
         mtgjson_sealed_products = []
 
@@ -537,6 +547,11 @@ class TCGPlayerProvider(AbstractProvider):
                         self.product_default_size.get(sealed_product.subtype.value, 0),
                     )
                 )
+            elif sealed_product.category == MtgjsonSealedProductCategory.DRAFT_SET:
+                # Use the last number found in the name to skip years and multipliers
+                numbers = re.findall(r"[0-9]+", sealed_product.name)
+                if numbers:
+                    sealed_product.product_size = int(numbers.pop())
 
             if sealed_product.release_date is not None:
                 sealed_product.release_date = sealed_product.release_date[0:10]
