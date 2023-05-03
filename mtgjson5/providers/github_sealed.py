@@ -23,8 +23,8 @@ class GitHubSealedProvider(AbstractProvider):
     """
     GitHubSealedProvider container
     """
-    sealed_contents_url: str = "https://github.com/axxroytovu/mtg-sealed-contents/blob/main/outputs/contents.json?raw=true"
-    sealed_products_url: str = "https://github.com/axxroytovu/mtg-sealed-contents/blob/main/outputs/products.json?raw=true"
+    sealed_contents_url: str = "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/contents.json?raw=true"
+    sealed_products_url: str = "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/products.json?raw=true"
     sealed_products: Dict[str, Any]
     sealed_contents: Dict[str, Any]
     
@@ -93,12 +93,12 @@ class GitHubSealedProvider(AbstractProvider):
             products_list.append(product_obj)
 
             for location, identifier in sealed_product.get("identifiers", {}).items():
-            	try:
-            		setattr(product_obj.identifiers, location, identifier)
-            	except:
-            		LOGGER.error(
-            			f"Error loading product identifier for {product_obj.name} - {location} - {identifier}"
-            		)
+                try:
+                    setattr(product_obj.identifiers, location, identifier)
+                except:
+                    LOGGER.error(
+                        f"Error loading product identifier for {product_obj.name} - {location} - {identifier}"
+                    )
         return products_list
     
     def apply_sealed_contents_data(self, set_code: str, mtgjson_set: MtgjsonSetObject) ->  None:
@@ -110,11 +110,14 @@ class GitHubSealedProvider(AbstractProvider):
         LOGGER.info(f"Adding sealed product contents to {set_code}")
         set_contents = self.sealed_contents.get(set_code.lower(), False)
         if not set_contents:
-        	return
+            return
         for product in mtgjson_set.sealed_product:
-        	product_contents = set_contents.get(product.name, False)
-        	if product_contents:
-        		size = product_contents.pop("size", False)
-        		if size:
-        			product.product_size = size
-            	product.contents = product_contents
+            product_contents = set_contents.get(product.name, False)
+            if product_contents:
+                size = product_contents.pop("size", False)
+                if size:
+                    product.product_size = size
+                card_count = product_contents.pop("card_count", False)
+                if card_count:
+                    product.card_count = card_count
+                product.contents = product_contents
