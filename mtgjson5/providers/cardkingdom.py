@@ -31,7 +31,65 @@ class CardKingdomProvider(AbstractProvider):
     sealed_url: str = "https://api.cardkingdom.com/api/sealed_pricelist"
     
     edition_translator: Dict[str, str] = {
-        "Unlimited Edition": "Unlimited"
+        "2017 gift pack": 'gift pack 2017',
+        "portal three kingdoms": 'portal 3k',
+        "magic 2015": '2015 core set',
+        "warhammer 40,000 commander": 'universes beyond: warhammer 40,000',
+        "beatdown box set": 'beatdown',
+        'secret lair drop': 'secret lair',
+        'intl. collectors’ edition': 'collectors ed intl',
+        'ninth edition': '9th edition',
+        'archenemy: nicol bolas': 'archenemy - nicol bolas',
+        'deckmasters': 'deckmaster',
+        "the brothers' war commander": "the brothers' war commander decks",
+        'magic 2012': '2012 core set',
+        'global series jiang yanggu & mu yanling': 'global series: jiang yanggu & mu yanling',
+        'modern event deck 2014': 'modern event deck',
+        'crimson vow commander': 'innistrad: crimson vow commander decks',
+        'ravnica: city of guilds': 'ravnica',
+        'march of the machine commander': 'march of the machine commander decks',
+        'premium deck series: fire and lightning': 'premium deck series: fire & lightning',
+        'kaldheim commander': 'kaldheim commander decks',
+        '30th anniversary edition': 'magic 30th anniversary edition',
+        'duel decks anthology: elves vs. goblins': 'duel decks: anthology',
+        'battle royale box set': 'battle royale',
+        'magic 2010': '2010 core set',
+        'portal second age': 'portal ii',
+        'guilds of ravnica': ['guilds of ravnica', 'guilds of ravnica: guild kits'],
+        'rivals of ixalan': ['rivals of ixalan', 'challenger decks 2018'],
+        'limited edition beta': 'beta',
+        'phyrexia: all will be one commander': 'phyrexia: all will be one commander decks',
+        'world championship decks 1997': 'world championships',
+        'magic 2013': '2013 core set',
+        'classic sixth edition': '6th edition',
+        'mystery booster': 'mystery booster/the list',
+        'dominaria united commander': 'dominaria united commander decks',
+        'theros beyond death': ['theros beyond death', 'challenger decks 2020'],
+        'tenth edition': '10th edition',
+        'ravnica allegiance': ['ravnica allegiance: guild kits', 'ravnica allegiance', 'challenger decks 2019'],
+        'collectors’ edition': 'collectors ed',
+        'fourth edition': '4th edition',
+        'revised edition': '3rd edition',
+        'vanguard series': 'vanguard',
+        'unlimited edition': 'unlimited',
+        'commander 2011': 'commander',
+        'commander anthology volume ii': 'commander anthology vol. ii',
+        'zendikar rising commander': 'zendikar rising commander decks',
+        'eighth edition': '8th edition',
+        'conspiracy: take the crown': 'conspiracy - take the crown',
+        'limited edition alpha': 'alpha',
+        'magic 2011': '2011 core set',
+        'kaldheim': ['kaldheim', 'challenger decks 2021'],
+        'midnight hunt commander': 'innistrad: midnight hunt commander decks',
+        'neon dynasty commander': 'kamigawa: neon dynasty commander decks',
+        'san diego comic-con 2014': 'promotional',
+        'mythic edition': 'masterpiece series: mythic edition',
+        'seventh edition': '7th edition',
+        'forgotten realms commander': 'adventures in the forgotten realms commander decks',
+        'fifth edition': '5th edition',
+        'magic 2014': '2014 core set',
+        'new capenna commander': 'streets of new capenna commander decks',
+        #'starter kits' - don't know where to put these
     }
 
     def __init__(self) -> None:
@@ -294,7 +352,7 @@ class CardKingdomProvider(AbstractProvider):
 
     def update_sealed_product(
         self, set_name: str, sealed_products: List[MtgjsonSealedProductObject]
-    ) -> List[MtgjsonSealedProductObject]:
+    ) -> None:
         """
         Builds MTGJSON Sealed Product Objects from Card Kingdom data
         :param group_id: group id for the set to get data for
@@ -319,13 +377,20 @@ class CardKingdomProvider(AbstractProvider):
             
         existing_names = set([product.name for product in sealed_products])
 
-        updated_set_name = self.edition_translator.get(set_name, set_name)
+        updated_set_name = self.edition_translator.get(set_name.lower(), set_name.lower())
         LOGGER.debug(", ".join(set([product["edition"] for product in sealed_data["data"]])))
-        LOGGER.debug(", ".join([set_name, updated_set_name]))
+        try:
+        	LOGGER.debug(", ".join([set_name, updated_set_name]))
+        except TypeError:
+        	LOGGER.debug(", ".join([set_name] + updated_set_name))
 
         for product in sealed_data["data"]:
-            if product["edition"] != updated_set_name:
-                continue
+            if isinstance(updated_set_name, list): 
+                if product["edition"].lower() not in updated_set_name:
+                    continue
+            else:
+                if product["edition"].lower() != updated_set_name:
+                    continue
             
             product_name = product["name"]
             for tag, fix in sealed_name_fixes.items():
