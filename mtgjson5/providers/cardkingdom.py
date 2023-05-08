@@ -379,7 +379,7 @@ class CardKingdomProvider(AbstractProvider):
             LOGGER.debug(
                 f"{sealed_product.name}: {sealed_product.category.value}.{sealed_product.subtype.value}"
             )
-            sealed_product.raw_purchase_urls["cardKingdom"] = product["url"]
+            sealed_product.raw_purchase_urls["cardKingdom"] = sealed_data["meta"]["base_url"] + product["url"]
             mtgjson_sealed_products.append(sealed_product)
 
         sealed_products.extend(mtgjson_sealed_products)
