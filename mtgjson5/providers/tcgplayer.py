@@ -447,6 +447,10 @@ class TCGPlayerProvider(AbstractProvider):
             ):
                 continue
 
+            # Prevent assigning 'set' or 'draft_set' to Core Set editions
+            if "core set" in product_name and "set" in subtype.value:
+                continue
+
             # Prevent assigning 'set' (for set boosters) to unrelated categories
             if subtype is MtgjsonSealedProductSubtype.SET and (
                 category is not MtgjsonSealedProductCategory.BOOSTER_PACK
