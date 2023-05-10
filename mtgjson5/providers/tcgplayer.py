@@ -451,6 +451,13 @@ class TCGPlayerProvider(AbstractProvider):
             if "core set" in product_name and "set" in subtype.value:
                 continue
 
+            # Skip 'collector' for this set, since they weren't introduced it yet
+            if (
+                "ravnica allegiance" in product_name
+                and subtype is MtgjsonSealedProductSubtype.COLLECTOR
+            ):
+                continue
+
             # Prevent assigning 'set' (for set boosters) to unrelated categories
             if subtype is MtgjsonSealedProductSubtype.SET and (
                 category is not MtgjsonSealedProductCategory.BOOSTER_PACK
