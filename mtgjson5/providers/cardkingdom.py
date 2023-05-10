@@ -65,9 +65,9 @@ class CardKingdomProvider(AbstractProvider):
         """
         Cleans and strips sealed product names for easier comparison.
         """
-		name = re.sub(r'[^\w\s]', '', product_name)
-		name = re.sub(' +', ' ', name)
-		return name.lower()
+        name = re.sub(r'[^\w\s]', '', product_name)
+        name = re.sub(' +', ' ', name)
+        return name.lower()
 
     def generate_today_price_dict(
         self, all_printings_path: pathlib.Path
@@ -337,12 +337,8 @@ class CardKingdomProvider(AbstractProvider):
             LOGGER.debug(", ".join([set_name] + updated_set_name))
 
         for product in sealed_data["data"]:
-            if isinstance(updated_set_name, list): 
-                if product["edition"].lower() not in updated_set_name:
-                    continue
-            else:
-                if product["edition"].lower() != updated_set_name:
-                    continue
+            if product["edition"].lower() != updated_set_name:
+                continue
             
             product_name = product["name"]
             for tag, fix in sealed_name_fixes.items():
