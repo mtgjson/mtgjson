@@ -317,20 +317,15 @@ class CardKingdomProvider(AbstractProvider):
         ) as f:
             sealed_name_fixes = json.load(f)
 
-        with constants.RESOURCE_PATH.joinpath("booster_box_size_overrides.json").open(
-            encoding="utf-8"
-        ) as f:
-            booster_box_size_overrides = json.load(f)
-
         with constants.RESOURCE_PATH.joinpath("cardkingdom_sealed_name_mapping.json").open(
             encoding="utf-8"
         ) as f:
             cardkingdom_sealed_translator = json.load(f)
             
-        existing_names = set([strip_sealed_name(product.name) for product in sealed_products])
+        existing_names = {self.strip_sealed_name(product.name) for product in sealed_products}
 
         updated_set_name = cardkingdom_sealed_translator["editions"].get(set_name.lower(), set_name.lower())
-        LOGGER.debug(", ".join(set([product["edition"] for product in sealed_data["data"]])))
+        LOGGER.debug(", ".join({product["edition"] for product in sealed_data["data"]}))
         try:
             LOGGER.debug(", ".join([set_name, updated_set_name]))
         except TypeError:
@@ -345,7 +340,7 @@ class CardKingdomProvider(AbstractProvider):
                 if tag in product_name:
                     product_name = product_name.replace(tag, fix)
             
-            check_name = strip_sealed_name(product_name)
+            check_name = self.strip_sealed_name(product_name)
             check_name = cardkingdom_sealed_translator["products"].get(check_name, check_name)
             
             if check_name in existing_names:
@@ -353,7 +348,7 @@ class CardKingdomProvider(AbstractProvider):
                     f"{sealed_product.name}: adding CardKingdom values"
                 )
                 sealed_product = next(
-                    p for p in sealed_products if strip_sealed_name(p.name) == check_name
+                    p for p in sealed_products if self.strip_sealed_name(p.name) == check_name
                 )
                 sealed_product.raw_purchase_urls["cardKingdom"] = product["url"]
                 sealed_product.identifiers.card_kingdom_id = str(product["id"])
