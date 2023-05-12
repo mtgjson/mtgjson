@@ -310,7 +310,7 @@ class CardKingdomProvider(AbstractProvider):
         sealed_data = self.download(self.sealed_url)
         LOGGER.debug("Found {0} sealed products".format(len(sealed_data["data"])))
 
-        mtgjson_sealed_products = []
+        cardkingdom_sealed_products = []
 
         with constants.RESOURCE_PATH.joinpath("sealed_name_fixes.json").open(
             encoding="utf-8"
@@ -322,7 +322,7 @@ class CardKingdomProvider(AbstractProvider):
         ) as f:
             cardkingdom_sealed_translator = json.load(f)
             
-        existing_names = {self.strip_sealed_name(product.name) for product in sealed_products}
+        existing_names = {self.strip_sealed_name(product.name): product for product in sealed_products}
 
         updated_set_name = cardkingdom_sealed_translator["editions"].get(set_name.lower(), set_name.lower())
         LOGGER.debug(", ".join({product["edition"] for product in sealed_data["data"]}))
@@ -347,9 +347,7 @@ class CardKingdomProvider(AbstractProvider):
                 LOGGER.debug(
                     f"{sealed_product.name}: adding CardKingdom values"
                 )
-                sealed_product = next(
-                    p for p in sealed_products if self.strip_sealed_name(p.name) == check_name
-                )
+                sealed_product = existing_names[check_name]
                 sealed_product.raw_purchase_urls["cardKingdom"] = product["url"]
                 sealed_product.identifiers.card_kingdom_id = str(product["id"])
                 continue
@@ -371,6 +369,6 @@ class CardKingdomProvider(AbstractProvider):
                 f"{sealed_product.name}: {sealed_product.category.value}.{sealed_product.subtype.value}"
             )
             sealed_product.raw_purchase_urls["cardKingdom"] = sealed_data["meta"]["base_url"] + product["url"]
-            mtgjson_sealed_products.append(sealed_product)
+            cardkingdom_sealed_products.append(sealed_product)
 
-        sealed_products.extend(mtgjson_sealed_products)
+        sealed_products.extend(cardkingdom_sealed_products)
