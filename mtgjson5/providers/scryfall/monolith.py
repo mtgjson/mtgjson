@@ -5,10 +5,12 @@ import argparse
 import logging
 import pathlib
 import re
+import sys
 import time
 from typing import Any, Dict, List, Optional, Set, Union
 
 import ratelimit
+import requests.exceptions
 from singleton_decorator import singleton
 
 from ... import constants
@@ -89,18 +91,33 @@ class ScryfallProvider(AbstractProvider):
     @ratelimit.sleep_and_retry
     @ratelimit.limits(calls=40, period=1)
     def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+        self,
+        url: str,
+        params: Optional[Dict[str, Union[str, int]]] = None,
+        retry_ttl: int = 3,
     ) -> Any:
         """
         Download content from Scryfall
         Api calls always return JSON from Scryfall
         :param url: URL to download from
         :param params: Options for URL download
+        :param retry_ttl: How many times to retry if Chunk Error
         """
         session = retryable_session()
         session.headers.update(self.session_header)
-        response = session.get(url)
-        self.log_download(response)
+
+        try:
+            response = session.get(url)
+            self.log_download(response)
+        except requests.exceptions.ChunkedEncodingError as error:
+            if retry_ttl:
+                LOGGER.warning(f"Download failed: {error}... Retrying")
+                time.sleep(3 - retry_ttl)
+                return self.download(url, params, retry_ttl - 1)
+
+            LOGGER.error(f"Download failed: {error}... Maxed out retries")
+            sys.exit(1)
+
         try:
             return response.json()
         except ValueError as error:
