@@ -344,11 +344,11 @@ class CardKingdomProvider(AbstractProvider):
             check_name = cardkingdom_sealed_translator["products"].get(check_name, check_name)
             
             if check_name in existing_names:
+                sealed_product = existing_names[check_name]
                 LOGGER.debug(
                     f"{sealed_product.name}: adding CardKingdom values"
                 )
-                sealed_product = existing_names[check_name]
-                sealed_product.raw_purchase_urls["cardKingdom"] = product["url"]
+                sealed_product.raw_purchase_urls["cardKingdom"] = sealed_data["meta"]["base_url"] + product["url"]
                 sealed_product.identifiers.card_kingdom_id = str(product["id"])
                 continue
             
