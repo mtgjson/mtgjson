@@ -308,7 +308,8 @@ class CardKingdomProvider(AbstractProvider):
         """
 
         sealed_data = self.download(self.sealed_url)
-        LOGGER.debug("Found {0} sealed products".format(len(sealed_data["data"])))
+        num_sealed = len(sealed_data['data'])
+        LOGGER.debug(f"Found {num_sealed} sealed products")
 
         cardkingdom_sealed_products = []
 
