@@ -126,7 +126,9 @@ class MtgjsonSealedProductObject:
     release_date: Optional[str]
     category: Optional[MtgjsonSealedProductCategory]
     subtype: Optional[MtgjsonSealedProductSubtype]
-    product_size: Optional[int]
+    contents: Optional[Dict[str, Any]]  # Enumerated product contents
+    product_size: Optional[int]  # Number of packs in a booster box [DEPRECATED]
+    card_count: Optional[int]  # Number of cards in a booster pack or deck
     __skip_keys = [
         "raw_purchase_urls",
     ]
@@ -145,5 +147,8 @@ class MtgjsonSealedProductObject:
         return {
             to_camel_case(key): value
             for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value) and key not in self.__skip_keys
+            if "__" not in key
+            and not callable(value)
+            and key not in self.__skip_keys
+            and value
         }

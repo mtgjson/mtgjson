@@ -23,12 +23,14 @@ from .classes import (
     MtgjsonSetObject,
 )
 from .providers import (
+    CardKingdomProvider,
     CardMarketProvider,
     CardMarketProviderSetNameTranslations,
     EdhrecProviderCardRanks,
     FandomProviderSecretLair,
     GathererProvider,
     GitHubBoostersProvider,
+    GitHubSealedProvider,
     MTGBanProvider,
     MultiverseBridgeProvider,
     ScryfallProvider,
@@ -477,6 +479,14 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
             mtgjson_set.tcgplayer_group_id, mtgjson_set.code
         )
     )
+    CardKingdomProvider().update_sealed_product(
+        mtgjson_set.name, mtgjson_set.sealed_product
+    )
+    sealed_provider = GitHubSealedProvider()
+    mtgjson_set.sealed_product.extend(
+        sealed_provider.get_sealed_products_data(set_code)
+    )
+    sealed_provider.apply_sealed_contents_data(set_code, mtgjson_set)
     add_sealed_uuid(mtgjson_set)
     add_sealed_purchase_url(mtgjson_set)
     add_token_signatures(mtgjson_set)
@@ -543,9 +553,16 @@ def add_sealed_purchase_url(mtgjson_set: MtgjsonSetObject) -> None:
     :param mtgjson_set: the set to add purchase urls to
     """
     for sealed_product in mtgjson_set.sealed_product:
-        if sealed_product.identifiers.tcgplayer_product_id:
+        if (
+            hasattr(sealed_product.identifiers, "tcgplayer_product_id")
+            and sealed_product.identifiers.tcgplayer_product_id
+        ):
             sealed_product.purchase_urls.tcgplayer = url_keygen(
                 sealed_product.identifiers.tcgplayer_product_id + sealed_product.uuid
+            )
+        if "cardKingdom" in sealed_product.raw_purchase_urls:
+            sealed_product.purchase_urls.card_kingdom = url_keygen(
+                sealed_product.raw_purchase_urls["cardKingdom"]
             )
 
 
