@@ -2,18 +2,18 @@
 Sealed Products via GitHub 3rd party provider
 """
 import logging
-from typing import Any, Dict, Optional, Union, List
+from typing import Any, Dict, List, Optional, Union
 
 from singleton_decorator import singleton
 
-from ..providers.abstract import AbstractProvider
-from ..utils import retryable_session
 from ..classes import (
     MtgjsonSealedProductCategory,
     MtgjsonSealedProductObject,
     MtgjsonSealedProductSubtype,
-    MtgjsonSetObject
+    MtgjsonSetObject,
 )
+from ..providers.abstract import AbstractProvider
+from ..utils import retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -23,11 +23,12 @@ class GitHubSealedProvider(AbstractProvider):
     """
     GitHubSealedProvider container
     """
+
     sealed_contents_url: str = "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/contents.json?raw=true"
     sealed_products_url: str = "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/products.json?raw=true"
     sealed_products: Dict[str, Any]
     sealed_contents: Dict[str, Any]
-    
+
     def __init__(self) -> None:
         """
         Initializer
@@ -63,7 +64,9 @@ class GitHubSealedProvider(AbstractProvider):
         )
         return {}
 
-    def get_sealed_products_data(self, set_code: str) -> List[MtgjsonSealedProductObject]:
+    def get_sealed_products_data(
+        self, set_code: str
+    ) -> List[MtgjsonSealedProductObject]:
         """
         Grab an individual set's additional sealed products, if it exists
         :param set_code: Set to pull data from
@@ -71,21 +74,25 @@ class GitHubSealedProvider(AbstractProvider):
         """
         LOGGER.info(f"Getting booster data for {set_code}")
         products_list = []
-        for sealed_product_name, sealed_product in self.sealed_products.get(set_code.lower(), {}).items():
+        for sealed_product_name, sealed_product in self.sealed_products.get(
+            set_code.lower(), {}
+        ).items():
             product_obj = MtgjsonSealedProductObject()
             product_obj.name = sealed_product_name
-            product_obj.release_date = sealed_product.get("release_date", None)
+            product_obj.release_date = sealed_product.get("release_date")
 
             try:
-                product_obj.category = getattr(MtgjsonSealedProductCategory,
-                                               sealed_product.get("category",
-                                                                  "UNKNOWN").upper())
+                product_obj.category = getattr(
+                    MtgjsonSealedProductCategory,
+                    sealed_product.get("category", "UNKNOWN").upper(),
+                )
             except AttributeError:
                 product_obj.category = MtgjsonSealedProductCategory.UNKNOWN
             try:
-                product_obj.subtype = getattr(MtgjsonSealedProductSubtype,
-                                              sealed_product.get("subtype",
-                                                                 "UNKNOWN").upper())
+                product_obj.subtype = getattr(
+                    MtgjsonSealedProductSubtype,
+                    sealed_product.get("subtype", "UNKNOWN").upper(),
+                )
             except AttributeError:
                 product_obj.subtype = MtgjsonSealedProductSubtype.UNKNOWN
 
@@ -95,24 +102,27 @@ class GitHubSealedProvider(AbstractProvider):
             for location, identifier in sealed_product.get("identifiers", {}).items():
                 setattr(product_obj.identifiers, location, identifier)
         return products_list
-    
-    def apply_sealed_contents_data(self, set_code: str, mtgjson_set: MtgjsonSetObject) ->  None:
+
+    def apply_sealed_contents_data(
+        self, set_code: str, mtgjson_set: MtgjsonSetObject
+    ) -> None:
         """
         Adds the sealed contents to each element of sealed_products.
         :param set_code: Code of set to update
         :param mtgjson_set: Set object to update
         """
         LOGGER.info(f"Adding sealed product contents to {set_code}")
-        set_contents = self.sealed_contents.get(set_code.lower(), False)
+        set_contents = self.sealed_contents.get(set_code.lower())
         if not set_contents:
             return
+
         for product in mtgjson_set.sealed_product:
-            product_contents = set_contents.get(product.name, False)
+            product_contents = set_contents.get(product.name)
             if product_contents:
-                size = product_contents.pop("size", False)
+                size = product_contents.pop("size")
                 if size:
                     product.product_size = size
-                card_count = product_contents.pop("card_count", False)
+                card_count = product_contents.pop("card_count")
                 if card_count:
                     product.card_count = card_count
                 product.contents = product_contents

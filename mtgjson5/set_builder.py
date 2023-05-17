@@ -23,9 +23,9 @@ from .classes import (
     MtgjsonSetObject,
 )
 from .providers import (
+    CardKingdomProvider,
     CardMarketProvider,
     CardMarketProviderSetNameTranslations,
-    CardKingdomProvider,
     EdhrecProviderCardRanks,
     FandomProviderSecretLair,
     GathererProvider,
@@ -553,8 +553,10 @@ def add_sealed_purchase_url(mtgjson_set: MtgjsonSetObject) -> None:
     :param mtgjson_set: the set to add purchase urls to
     """
     for sealed_product in mtgjson_set.sealed_product:
-        if (hasattr(sealed_product.identifiers, "tcgplayer_product_id") and
-                sealed_product.identifiers.tcgplayer_product_id):
+        if (
+            hasattr(sealed_product.identifiers, "tcgplayer_product_id")
+            and sealed_product.identifiers.tcgplayer_product_id
+        ):
             sealed_product.purchase_urls.tcgplayer = url_keygen(
                 sealed_product.identifiers.tcgplayer_product_id + sealed_product.uuid
             )
