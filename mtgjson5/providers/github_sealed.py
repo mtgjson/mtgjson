@@ -119,10 +119,8 @@ class GitHubSealedProvider(AbstractProvider):
         for product in mtgjson_set.sealed_product:
             product_contents = set_contents.get(product.name)
             if product_contents:
-                size = product_contents.pop("size")
-                if size:
-                    product.product_size = size
-                card_count = product_contents.pop("card_count")
-                if card_count:
-                    product.card_count = card_count
+                if "size" in product_contents:
+                    product.product_size = product_contents.pop("size")
+                if "card_count" in product_contents:
+                    product.card_count = product_contents.pop("card_count")
                 product.contents = product_contents
