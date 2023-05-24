@@ -87,14 +87,14 @@ class GitHubSealedProvider(AbstractProvider):
                     sealed_product.get("category", "UNKNOWN").upper(),
                 )
             except AttributeError:
-                product_obj.category = MtgjsonSealedProductCategory.UNKNOWN
+                product_obj.category = None
             try:
                 product_obj.subtype = getattr(
                     MtgjsonSealedProductSubtype,
                     sealed_product.get("subtype", "UNKNOWN").upper(),
                 )
             except AttributeError:
-                product_obj.subtype = MtgjsonSealedProductSubtype.UNKNOWN
+                product_obj.subtype = None
 
             product_obj.raw_purchase_urls = sealed_product.get("purchase_url", {})
             products_list.append(product_obj)

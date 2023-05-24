@@ -94,7 +94,7 @@ class MtgjsonCardObject:
     rebalanced_printings: List[str]
     related_cards: MtgjsonRelatedCardsObject
     reverse_related: Optional[List[str]]
-    rulings: List[MtgjsonRulingObject]
+    rulings: Optional[List[MtgjsonRulingObject]]
     security_stamp: Optional[str]
     side: Optional[str]
     signature: Optional[str]
@@ -125,7 +125,6 @@ class MtgjsonCardObject:
         "has_non_foil",
         "color_identity",
         "colors",
-        "rulings",
         "converted_mana_cost",
         "mana_value",
         "face_converted_mana_cost",
