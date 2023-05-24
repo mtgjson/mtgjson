@@ -15,7 +15,7 @@ class MtgjsonSealedProductCategory(enum.Enum):
     """
 
     # ¯\_(ツ)_/¯
-    UNKNOWN = ""
+    UNKNOWN = None
 
     # A box containing a variable amount of sealed product
     CASE = "case"
@@ -56,7 +56,7 @@ class MtgjsonSealedProductCategory(enum.Enum):
     # A group of packs or decks
     SUBSET = "subset"
 
-    def to_json(self) -> str:
+    def to_json(self) -> Any:
         """
         Support json.dump()
         :return: JSON serialized object
@@ -69,7 +69,7 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     MTGJSON Sealed Product Subtype
     """
 
-    UNKNOWN = ""
+    UNKNOWN = None
 
     # Typically for booster_box and booster_pack
     # These should match the booster values in Booster
@@ -105,7 +105,7 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     CLASH = "clash"
     BATTLE = "battle_pack"
 
-    def to_json(self) -> str:
+    def to_json(self) -> Any:
         """
         Support json.dump()
         :return: JSON serialized object

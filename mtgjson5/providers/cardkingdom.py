@@ -108,7 +108,7 @@ class CardKingdomProvider(AbstractProvider):
 
     def determine_mtgjson_sealed_product_category(
         self, product_name: str
-    ) -> MtgjsonSealedProductCategory:
+    ) -> Optional[MtgjsonSealedProductCategory]:
         """
         Best-effort to parse the product name and determine the sealed product category
         :param product_name Name of the product from TCG, must be lowercase
@@ -252,23 +252,23 @@ class CardKingdomProvider(AbstractProvider):
         if "land station" in product_name:
             return MtgjsonSealedProductCategory.LAND_STATION
 
-        return MtgjsonSealedProductCategory.UNKNOWN
+        return None
 
     # Best-effort to parse the product name and determine the sealed product category
     def determine_mtgjson_sealed_product_subtype(
-        self, product_name: str, category: MtgjsonSealedProductCategory
-    ) -> MtgjsonSealedProductSubtype:
+        self, product_name: str, category: Optional[MtgjsonSealedProductCategory]
+    ) -> Optional[MtgjsonSealedProductSubtype]:
         """
         Best-effort to parse the product name and determine the sealed product subtype
         :param product_name Name of the product from TCG
         :param category Category as parsed from determine_mtgjson_sealed_product_category()
         :return: subtype
         """
-        if category == MtgjsonSealedProductCategory.UNKNOWN:
-            return MtgjsonSealedProductSubtype.UNKNOWN
+        if not category:
+            return None
 
         for subtype in MtgjsonSealedProductSubtype:
-            if subtype is MtgjsonSealedProductSubtype.UNKNOWN:
+            if not subtype:
                 continue
 
             # Prevent aliasing from Eventide
@@ -286,7 +286,7 @@ class CardKingdomProvider(AbstractProvider):
                 continue
 
             # Do the replace to use the tag as text
-            if subtype.value.replace("_", " ") in product_name:
+            if subtype.value and subtype.value.replace("_", " ") in product_name:
                 return subtype
 
         # Special handling because sometimes 'default' is not tagged
@@ -295,7 +295,7 @@ class CardKingdomProvider(AbstractProvider):
             MtgjsonSealedProductCategory.BOOSTER_PACK,
         ]:
             return MtgjsonSealedProductSubtype.DEFAULT
-        return MtgjsonSealedProductSubtype.UNKNOWN
+        return None
 
     def update_sealed_product(
         self, set_name: str, sealed_products: List[MtgjsonSealedProductObject]
@@ -375,7 +375,7 @@ class CardKingdomProvider(AbstractProvider):
             )
 
             LOGGER.debug(
-                f"{sealed_product.name}: {sealed_product.category.value}.{sealed_product.subtype.value}"
+                f"{sealed_product.name}: {sealed_product.category}.{sealed_product.subtype}"
             )
             sealed_product.raw_purchase_urls["cardKingdom"] = (
                 sealed_data["meta"]["base_url"]

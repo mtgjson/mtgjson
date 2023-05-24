@@ -276,7 +276,7 @@ class TCGPlayerProvider(AbstractProvider):
 
     def determine_mtgjson_sealed_product_category(
         self, product_name: str
-    ) -> MtgjsonSealedProductCategory:
+    ) -> Optional[MtgjsonSealedProductCategory]:
         """
         Best-effort to parse the product name and determine the sealed product category
         :param product_name Name of the product from TCG, must be lowercase
@@ -421,23 +421,23 @@ class TCGPlayerProvider(AbstractProvider):
         if "land station" in product_name:
             return MtgjsonSealedProductCategory.LAND_STATION
 
-        return MtgjsonSealedProductCategory.UNKNOWN
+        return None
 
     # Best-effort to parse the product name and determine the sealed product category
     def determine_mtgjson_sealed_product_subtype(
-        self, product_name: str, category: MtgjsonSealedProductCategory
-    ) -> MtgjsonSealedProductSubtype:
+        self, product_name: str, category: Optional[MtgjsonSealedProductCategory]
+    ) -> Optional[MtgjsonSealedProductSubtype]:
         """
         Best-effort to parse the product name and determine the sealed product subtype
         :param product_name Name of the product from TCG
         :param category Category as parsed from determine_mtgjson_sealed_product_category()
         :return: subtype
         """
-        if category == MtgjsonSealedProductCategory.UNKNOWN:
-            return MtgjsonSealedProductSubtype.UNKNOWN
+        if not category:
+            return None
 
         for subtype in MtgjsonSealedProductSubtype:
-            if subtype is MtgjsonSealedProductSubtype.UNKNOWN:
+            if not subtype:
                 continue
 
             # Prevent aliasing from Eventide
@@ -466,7 +466,7 @@ class TCGPlayerProvider(AbstractProvider):
                 continue
 
             # Do the replace to use the tag as text
-            if subtype.value.replace("_", " ") in product_name:
+            if subtype.value and subtype.value.replace("_", " ") in product_name:
                 return subtype
 
         # Special handling because sometimes 'default' is not tagged
@@ -476,7 +476,7 @@ class TCGPlayerProvider(AbstractProvider):
             MtgjsonSealedProductCategory.DRAFT_SET,
         ]:
             return MtgjsonSealedProductSubtype.DEFAULT
-        return MtgjsonSealedProductSubtype.UNKNOWN
+        return None
 
     def generate_mtgjson_sealed_product_objects(
         self, group_id: Optional[int], set_code: str
@@ -546,16 +546,17 @@ class TCGPlayerProvider(AbstractProvider):
             )
 
             LOGGER.debug(
-                f"{sealed_product.name}: {sealed_product.category.value}.{sealed_product.subtype.value}"
+                f"{sealed_product.name}: {sealed_product.category}.{sealed_product.subtype}"
             )
 
             if sealed_product.category == MtgjsonSealedProductCategory.BOOSTER_BOX:
+                subtype_value = (
+                    sealed_product.subtype.value if sealed_product.subtype else ""
+                )
                 sealed_product.product_size = int(
-                    booster_box_size_overrides.get(
-                        sealed_product.subtype.value, {}
-                    ).get(
+                    booster_box_size_overrides.get(subtype_value, {}).get(
                         set_code,
-                        self.product_default_size.get(sealed_product.subtype.value, 0),
+                        self.product_default_size.get(subtype_value, 0),
                     )
                 )
             elif sealed_product.category == MtgjsonSealedProductCategory.DRAFT_SET:
