@@ -10,8 +10,12 @@ import logging
 import traceback
 from typing import List, Set, Union
 
+import urllib3.exceptions
+
 from mtgjson5 import constants
 from mtgjson5.utils import init_logger
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def build_mtgjson_sets(

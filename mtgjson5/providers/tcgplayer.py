@@ -437,7 +437,7 @@ class TCGPlayerProvider(AbstractProvider):
             return None
 
         for subtype in MtgjsonSealedProductSubtype:
-            if not subtype:
+            if not subtype or not subtype.value:
                 continue
 
             # Prevent aliasing from Eventide

@@ -264,11 +264,11 @@ class CardKingdomProvider(AbstractProvider):
         :param category Category as parsed from determine_mtgjson_sealed_product_category()
         :return: subtype
         """
-        if not category:
+        if not category or not category.value:
             return None
 
         for subtype in MtgjsonSealedProductSubtype:
-            if not subtype:
+            if not subtype or not subtype.value:
                 continue
 
             # Prevent aliasing from Eventide

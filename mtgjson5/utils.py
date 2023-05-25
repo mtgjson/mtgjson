@@ -172,7 +172,7 @@ def sort_internal_lists(data: Any) -> Any:
         for key, value in data.items():
             data[key] = sort_internal_lists(value)
     elif isinstance(data, (set, list)):
-        return sorted(list(data))
+        return sorted([x for x in list(data) if x is not None])
 
     return data
 
