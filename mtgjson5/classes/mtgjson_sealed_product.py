@@ -56,12 +56,14 @@ class MtgjsonSealedProductCategory(enum.Enum):
     # A group of packs or decks
     SUBSET = "subset"
 
-    def to_json(self) -> Any:
+    def to_json(self) -> Optional[str]:
         """
         Support json.dump()
         :return: JSON serialized object
         """
-        return self.value
+        if self.value:
+            return str(self.value)
+        return None
 
 
 class MtgjsonSealedProductSubtype(enum.Enum):
@@ -105,12 +107,14 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     CLASH = "clash"
     BATTLE = "battle_pack"
 
-    def to_json(self) -> Any:
+    def to_json(self) -> Optional[str]:
         """
         Support json.dump()
         :return: JSON serialized object
         """
-        return self.value
+        if self.value:
+            return str(self.value)
+        return None
 
 
 class MtgjsonSealedProductObject:
