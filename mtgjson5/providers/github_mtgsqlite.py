@@ -78,7 +78,7 @@ class GitHubMTGSqliteProvider(AbstractProvider):
                     "-m",
                     "mtgsqlive",
                     "-i",
-                    self.all_printings_file,
+                    MtgjsonConfig().output_path,
                     "-o",
                     MtgjsonConfig().output_path,
                     "--all",
