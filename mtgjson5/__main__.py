@@ -107,7 +107,7 @@ def dispatcher(args: argparse.Namespace) -> None:
 
     if args.full_build:
         generate_compiled_output_files(args.pretty)
-        GitHubMTGSqliteProvider().build_sql_and_csv_files()
+        GitHubMTGSqliteProvider().build_alternative_formats()
 
     if args.compress:
         compress_mtgjson_contents(MtgjsonConfig().output_path)

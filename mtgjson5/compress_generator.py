@@ -31,13 +31,21 @@ def compress_mtgjson_contents(directory: pathlib.Path) -> None:
     for deck_file in deck_files:
         _compress_mtgjson_file(deck_file)
 
-    sql_files = list(directory.glob("*.sql")) + list(directory.glob("*.sqlite"))
+    sql_files = (
+        list(directory.glob("*.sql"))
+        + list(directory.glob("*.sqlite"))
+        + list(directory.glob("*.psql"))
+    )
     for sql_file in sql_files:
         _compress_mtgjson_file(sql_file)
 
     csv_files = list(directory.joinpath("csv").glob("*.csv"))
     for csv_file in csv_files:
         _compress_mtgjson_file(csv_file)
+
+    parquet_files = list(directory.joinpath("parquet").glob("*.parquet"))
+    for parquet_file in parquet_files:
+        _compress_mtgjson_file(parquet_file)
 
     compiled_files = [
         file
@@ -60,6 +68,11 @@ def compress_mtgjson_contents(directory: pathlib.Path) -> None:
     if csv_files:
         _compress_mtgjson_directory(
             csv_files, directory, MtgjsonStructuresObject().all_csvs_directory
+        )
+
+    if parquet_files:
+        _compress_mtgjson_directory(
+            parquet_files, directory, MtgjsonStructuresObject().all_parquets_directory
         )
 
     LOGGER.info(f"Finished compression on {directory.name}")
