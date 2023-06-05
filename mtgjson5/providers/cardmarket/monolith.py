@@ -274,6 +274,8 @@ class CardMarketProvider(AbstractProvider):
             # Split cards get two entries
             for name in set_content["enName"].split("//"):
                 name_no_special_chars = name.strip().lower()
+                if "token" in name_no_special_chars:
+                    name_no_special_chars = name_no_special_chars.split(" (", 1)
                 set_in_progress[name_no_special_chars] = set_content
 
         return set_in_progress
