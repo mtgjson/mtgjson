@@ -52,4 +52,4 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
             LANGUAGE_MAP.get(card.get("lang")) for card in lang_response.get("data", [])
         }
 
-        return list(filter(None, set_languages))
+        return list(sorted(filter(None, set_languages)))
