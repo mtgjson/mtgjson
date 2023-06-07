@@ -30,16 +30,27 @@ LOGGER = logging.getLogger(__name__)
 
 
 def generate_compiled_prices_output(
-    price_data: Dict[str, Dict[str, float]], pretty_print: bool
+    all_price_data: Dict[str, Any], today_price_data: Dict[str, Any], pretty_print: bool
 ) -> None:
     """
     Dump AllPrices to a file
-    :param price_data: Data to dump
+    :param all_price_data: Data to dump for larger file
+    :param today_price_data: data to dump for smaller file
     :param pretty_print: Pretty or minimal
     """
     LOGGER.info("Building Prices")
     create_compiled_output(
-        MtgjsonStructuresObject().all_prices, price_data, pretty_print, sort_keys=False
+        MtgjsonStructuresObject().all_prices,
+        all_price_data,
+        pretty_print,
+        sort_keys=False,
+    )
+
+    create_compiled_output(
+        MtgjsonStructuresObject().all_prices_today,
+        today_price_data,
+        pretty_print,
+        sort_keys=False,
     )
 
 
@@ -187,7 +198,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     )
 
     # AllPrices.json
-    generate_compiled_prices_output(build_prices(), pretty_print)
+    generate_compiled_prices_output(*build_prices(), pretty_print)
 
     # CompiledList.json
     create_compiled_output(
