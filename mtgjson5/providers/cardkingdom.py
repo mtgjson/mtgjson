@@ -341,7 +341,7 @@ class CardKingdomProvider(AbstractProvider):
                 continue
             
             skip_products = ["Pure Bulk:", "Complete Set", "Complete FOIL Set"]
-            if any([s in product["name"] for s in skip_products]):
+            if any(s in product["name"] for s in skip_products):
                 continue
 
             product_name = product["name"]
