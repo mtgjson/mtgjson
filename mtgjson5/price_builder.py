@@ -7,7 +7,7 @@ import logging
 import lzma
 import pathlib
 import subprocess
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import dateutil.relativedelta
 import mergedeep
@@ -180,7 +180,7 @@ def download_old_all_printings() -> None:
         f.write(lzma.decompress(file_bytes).decode())
 
 
-def build_prices() -> Dict[str, Any]:
+def build_prices() -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
     The full build prices operation
     Prune & Update remote database
@@ -198,10 +198,10 @@ def build_prices() -> Dict[str, Any]:
     today_prices = build_today_prices()
     if not today_prices:
         LOGGER.warning("Pricing information failed to generate")
-        return {}
+        return {}, {}
 
     if not MtgjsonConfig().has_section("Prices"):
-        return today_prices
+        return today_prices, today_prices
 
     bucket_name = MtgjsonConfig().get("Prices", "bucket_name")
     bucket_object_path = MtgjsonConfig().get("Prices", "bucket_object_path")
@@ -211,7 +211,6 @@ def build_prices() -> Dict[str, Any]:
     # Update local copy of database
     LOGGER.info("Merging old and new price data")
     mergedeep.merge(archive_prices, today_prices)
-    del today_prices
 
     # Prune local copy of database
     LOGGER.info("Pruning price data")
@@ -226,4 +225,4 @@ def build_prices() -> Dict[str, Any]:
     MtgjsonS3Handler().upload_file(str(local_zip_file), bucket_name, bucket_object_path)
     local_zip_file.unlink()
 
-    return archive_prices
+    return archive_prices, today_prices
