@@ -5,10 +5,12 @@ import copy
 import json
 import logging
 import pathlib
+from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional, Union
 
 from singleton_decorator import singleton
 
+from ..classes import MtgjsonSetDeckObject
 from ..classes.mtgjson_deck import MtgjsonDeckObject
 from ..compiled_classes.mtgjson_structures import MtgjsonStructuresObject
 from ..mtgjson_config import MtgjsonConfig
@@ -29,12 +31,14 @@ class GitHubDecksProvider(AbstractProvider):
         f"{MtgjsonStructuresObject().all_printings}.json"
     )
     all_printings_cards: Dict[str, Any]
+    decks_by_set: Dict[str, List[MtgjsonSetDeckObject]]
 
     def __init__(self) -> None:
         """
         Initializer
         """
         super().__init__(self._build_http_header())
+        self.decks_by_set = defaultdict(list)
 
     def _build_http_header(self) -> Dict[str, str]:
         """
@@ -42,6 +46,30 @@ class GitHubDecksProvider(AbstractProvider):
         :return: Authorization header
         """
         return {}
+
+    def get_decks_in_set(self, set_code: str) -> List[MtgjsonSetDeckObject]:
+        """
+        Get individual decks within a specific set, from cache
+        Builds up cache if not set
+        :param set_code Set code to get decks for
+        :return Decks in set code
+        """
+        if not self.decks_by_set:
+            for deck in self.download(self.decks_api_url):
+                mtgjson_set_deck = MtgjsonSetDeckObject(deck["name"])
+
+                for card in deck.get("cards", []):
+                    mtgjson_set_deck.cards.append(
+                        MtgjsonSetDeckObject.MtgjsonSetDeckCardObject(
+                            card["mtgjson_uuid"],
+                            card["count"],
+                            "foil" if card["foil"] else "nonfoil",
+                        )
+                    )
+
+                self.decks_by_set[deck.get("set_code").upper()].append(mtgjson_set_deck)
+
+        return self.decks_by_set.get(set_code, [])
 
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None

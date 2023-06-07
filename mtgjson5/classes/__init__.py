@@ -21,4 +21,5 @@ from .mtgjson_sealed_product import (
     MtgjsonSealedProductSubtype,
 )
 from .mtgjson_set import MtgjsonSetObject
+from .mtgjson_set_deck import MtgjsonSetDeckObject
 from .mtgjson_translations import MtgjsonTranslationsObject
