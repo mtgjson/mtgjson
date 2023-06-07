@@ -39,29 +39,29 @@ class MtgjsonSetDeckObject:
             }
 
     name: str
-    uuid: Optional[str]
+    sealed_product_uuids: Optional[List[str]]
     cards: List[MtgjsonSetDeckCardObject]
-
     __alpha_numeric_name: str
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, sealed_product_uuids: Optional[List[str]]) -> None:
         self.name = name
-        self.uuid = None
+        self.sealed_product_uuids = sealed_product_uuids
         self.cards = []
         self.__alpha_numeric_name = re.sub(r"[^A-Za-z0-9 ]+", "", self.name).lower()
 
-    def update_uuid(
+    def add_sealed_product_uuids(
         self, mtgjson_set_sealed_products: List[MtgjsonSealedProductObject]
     ) -> None:
         """
         Update the UUID for the deck to link back to sealed product, if able
         :param mtgjson_set_sealed_products MTGJSON Set Sealed Products for this Set
         """
-        for sealed_product_entry in mtgjson_set_sealed_products:
-            sealed_name = sealed_product_entry.name.lower()
-            if self.__alpha_numeric_name in sealed_name:
-                self.uuid = sealed_product_entry.uuid
-                break
+        if not self.sealed_product_uuids:
+            for sealed_product_entry in mtgjson_set_sealed_products:
+                sealed_name = sealed_product_entry.name.lower()
+                if self.__alpha_numeric_name in sealed_name:
+                    self.sealed_product_uuids = [sealed_product_entry.uuid]
+                    break
 
     def to_json(self) -> Dict[str, Any]:
         """

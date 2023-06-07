@@ -27,6 +27,7 @@ class GitHubDecksProvider(AbstractProvider):
     """
 
     decks_api_url: str = "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks_v2.json?raw=true"
+    decks_uuid_api_url: str = "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/deck_map.json?raw=True"
     all_printings_file: pathlib.Path = MtgjsonConfig().output_path.joinpath(
         f"{MtgjsonStructuresObject().all_printings}.json"
     )
@@ -55,8 +56,12 @@ class GitHubDecksProvider(AbstractProvider):
         :return Decks in set code
         """
         if not self.decks_by_set:
+            decks_uuid_content = self.download(self.decks_uuid_api_url)
             for deck in self.download(self.decks_api_url):
-                mtgjson_set_deck = MtgjsonSetDeckObject(deck["name"])
+                sealed_uuids = decks_uuid_content.get(set_code.lower(), {}).get(
+                    deck["name"]
+                )
+                mtgjson_set_deck = MtgjsonSetDeckObject(deck["name"], sealed_uuids)
 
                 for card in deck.get("cards", []):
                     mtgjson_set_deck.cards.append(

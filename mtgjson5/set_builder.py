@@ -498,7 +498,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
 
     mtgjson_set.decks = GitHubDecksProvider().get_decks_in_set(set_code)
     for mtgjson_set_deck in mtgjson_set.decks:
-        mtgjson_set_deck.update_uuid(mtgjson_set.sealed_product)
+        mtgjson_set_deck.add_sealed_product_uuids(mtgjson_set.sealed_product)
 
     if "Art Series" in mtgjson_set.name:
         add_orientations(mtgjson_set)
