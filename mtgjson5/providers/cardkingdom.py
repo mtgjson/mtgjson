@@ -339,6 +339,10 @@ class CardKingdomProvider(AbstractProvider):
         for product in sealed_data["data"]:
             if product["edition"].lower() != updated_set_name:
                 continue
+            
+            skip_products = ["Pure Bulk:", "Complete Set", "Complete FOIL Set"]
+            if any(s in product["name"] for s in skip_products):
+                continue
 
             product_name = product["name"]
             for tag, fix in sealed_name_fixes.items():

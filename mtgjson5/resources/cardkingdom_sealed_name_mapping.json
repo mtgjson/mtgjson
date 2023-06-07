@@ -295,13 +295,20 @@
         "zendikar intro pack the adventurers": "zendikar intro pack green the adventurers",
         "odyssey theme deck trounceomatic": "odyssey theme deck trounce o matic",
         "odyssey theme deck onetwo punch": "odyssey theme deck one two punch",
-        "warhammer 40000 commander deck forces of the imperium": "universes beyond warhammer 40000 forces of the imperium commander deck",
-        "warhammer 40000 commander deck tyranid swarm": "universes beyond warhammer 40000 tyranid swarm commander deck",
-        "warhammer 40000 commander deck necron dynasties": "universes beyond warhammer 40000 necron dynasties commander deck",
-        "warhammer 40000 commander deck the ruinous powers": "universes beyond warhammer 40000 the ruinous powers commander deck",
-        "warhammer 40000 collectors edition commander deck tyranid swarm": "universes beyond warhammer 40000 tyranid swarm commander deck collectors edition",
-        "warhammer 40000 collectors edition commander deck the ruinous powers": "universes beyond warhammer 40000 the ruinous powers commander deck collectors edition",
-        "warhammer 40000 collectors edition commander deck necron dynasties": "universes beyond warhammer 40000 necron dynasties commander deck collectors edition",
-        "warhammer 40000 collectors edition commander deck forces of the imperium": "universes beyond warhammer 40000 forces of the imperium commander deck collectors edition"
+        "warhammer 40000 commander deck forces of the imperium": "warhammer 40000 forces of the imperium commander deck",
+        "warhammer 40000 commander deck tyranid swarm": "warhammer 40000 tyranid swarm commander deck",
+        "warhammer 40000 commander deck necron dynasties": "warhammer 40000 necron dynasties commander deck",
+        "warhammer 40000 commander deck the ruinous powers": "warhammer 40000 the ruinous powers commander deck",
+        "warhammer 40000 collectors edition commander deck tyranid swarm": "warhammer 40000 tyranid swarm commander deck collectors edition",
+        "warhammer 40000 collectors edition commander deck the ruinous powers": "warhammer 40000 the ruinous powers commander deck collectors edition",
+        "warhammer 40000 collectors edition commander deck necron dynasties": "warhammer 40000 necron dynasties commander deck collectors edition",
+        "warhammer 40000 collectors edition commander deck forces of the imperium": "warhammer 40000 forces of the imperium commander deck collectors edition",
+        "portal three kingdoms theme deck shu kingdom": "portal three kingdoms shu kingdom theme deck",
+        "portal three kingdoms theme deck wei kingdom": "portal three kingdoms wei kingdom theme deck",
+        "portal three kingdoms theme deck wu kingdom": "portal three kingdoms wu kingdom theme deck",
+        "commander 2018 adaptive enchantment": "commander 2018 deck adaptive enchantment",
+        "commander 2018 exquisite invention": "commander 2018 deck exquisite invention",
+        "commander 2018 natures vengeance": "commander 2018 deck natures vengeance",
+        "commander 2018 subjective reality": "commander 2018 deck subjective reality"
     }
 }
