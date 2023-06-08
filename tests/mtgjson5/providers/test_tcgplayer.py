@@ -3,8 +3,7 @@ from typing import Tuple, List
 
 import pytest
 
-from mtgjson5.classes import MtgjsonSealedProductCategory
-from mtgjson5.providers import TCGPlayerProvider
+from mtgjson5.classes import MtgjsonSealedProductCategory, MtgjsonSealedProductObject
 
 testdata: List[Tuple[str, MtgjsonSealedProductCategory]] = [
     ("Double Masters - Booster Box Case", MtgjsonSealedProductCategory.CASE),
@@ -36,4 +35,4 @@ testdata: List[Tuple[str, MtgjsonSealedProductCategory]] = [
 @pytest.mark.parametrize("product_name,expected", testdata)
 def test_determine_mtgjson_sealed_product_category(product_name, expected):
     """Test the function that decides what the type is for a sealed product"""
-    assert TCGPlayerProvider().determine_mtgjson_sealed_product_category(product_name.lower()) == expected
+    assert MtgjsonSealedProductObject().determine_mtgjson_sealed_product_category(product_name.lower()) == expected
