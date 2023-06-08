@@ -637,7 +637,12 @@ def get_tcgplayer_sealed_data(group_id: Optional[int]) -> List[Dict[str, Any]]:
             # No more entries
             break
 
-        response = json.loads(api_response)
+        try:
+            response = json.loads(api_response)
+        except json.decoder.JSONDecodeError:
+            LOGGER.error(f"Unable to decode TCGPlayer API Response {api_response}")
+            break
+
         if not response["results"]:
             LOGGER.warning(f"Issue with Sealed Product for Group ID: {group_id}")
             break

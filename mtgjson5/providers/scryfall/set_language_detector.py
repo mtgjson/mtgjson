@@ -1,6 +1,8 @@
 import logging
+import time
 from typing import Any, Dict, List, Optional, Union
 
+import requests
 from singleton_decorator import singleton
 
 from ...constants import LANGUAGE_MAP
@@ -23,11 +25,25 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
         return sf_utils.build_http_header()
 
     def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+        self,
+        url: str,
+        params: Optional[Dict[str, Union[str, int]]] = None,
+        retry_ttl: int = 3,
     ) -> Any:
         session = retryable_session()
-        response = session.get(url)
-        self.log_download(response)
+
+        try:
+            response = session.get(url)
+            self.log_download(response)
+        except requests.exceptions.ChunkedEncodingError as error:
+            if retry_ttl:
+                LOGGER.warning(f"Download failed: {error}... Retrying")
+                time.sleep(3 - retry_ttl)
+                return self.download(url, params, retry_ttl - 1)
+
+            LOGGER.error(f"Download failed: {error}... Maxed out retries")
+            return {}
+
         return response.json()
 
     def get_set_printing_languages(self, set_code: str) -> List[str]:
