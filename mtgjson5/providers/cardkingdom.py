@@ -12,9 +12,7 @@ from singleton_decorator import singleton
 from .. import constants
 from ..classes import (
     MtgjsonPricesObject,
-    MtgjsonSealedProductCategory,
     MtgjsonSealedProductObject,
-    MtgjsonSealedProductSubtype,
 )
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping, retryable_session
