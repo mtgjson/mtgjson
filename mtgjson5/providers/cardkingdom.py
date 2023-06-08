@@ -12,9 +12,7 @@ from singleton_decorator import singleton
 from .. import constants
 from ..classes import (
     MtgjsonPricesObject,
-    MtgjsonSealedProductCategory,
     MtgjsonSealedProductObject,
-    MtgjsonSealedProductSubtype,
 )
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping, retryable_session
@@ -106,197 +104,6 @@ class CardKingdomProvider(AbstractProvider):
             buy_key="price_buy",
         )
 
-    def determine_mtgjson_sealed_product_category(
-        self, product_name: str
-    ) -> Optional[MtgjsonSealedProductCategory]:
-        """
-        Best-effort to parse the product name and determine the sealed product category
-        :param product_name Name of the product from TCG, must be lowercase
-        :return: category
-        """
-
-        # The order of the checks is important: for example, we need to catch all 'case'
-        # products before everything else, since "booster box case" would be caught in
-        # the 'booster box' check. The same applies to several sub products, such as
-        # 'prerelease' (vs guild kit), 'box set' (vs set boosters), and so on.
-        if any(
-            tag in product_name
-            for tag in [
-                "booster case",
-                "box case",
-                "bundle case",
-                "display case",
-                "intro display",
-                "intro pack display",
-                "pack box",
-                "pack case",
-                "tournament pack display",
-                "vip edition box",
-            ]
-        ):
-            return MtgjsonSealedProductCategory.CASE
-
-        if any(
-            tag in product_name
-            for tag in ["booster box", "booster display", "mythic edition"]
-        ):
-            return MtgjsonSealedProductCategory.BOOSTER_BOX
-
-        if any(
-            tag in product_name
-            for tag in [
-                "booster pack",
-                "booster retail pack",
-                "box topper",
-                "hanger pack",
-                "omega pack",
-                "promo pack",
-                "theme booster",
-                "vip edition pack",
-            ]
-        ):
-            if "set of" in product_name:
-                return MtgjsonSealedProductCategory.SUBSET
-            return MtgjsonSealedProductCategory.BOOSTER_PACK
-
-        if "prerelease" in product_name:
-            return MtgjsonSealedProductCategory.PRERELEASE_PACK
-
-        if any(
-            tag in product_name
-            for tag in [
-                "blister pack",
-                "draft pack",
-                "draft set",
-                "multipack",
-            ]
-        ):
-            return MtgjsonSealedProductCategory.DRAFT_SET
-
-        if any(
-            tag in product_name
-            for tag in [
-                "booster battle pack",
-                "clash pack",
-                "fourth edition gift box",
-                "quick start set",
-                "two player starter",
-            ]
-        ):
-            return MtgjsonSealedProductCategory.TWO_PLAYER_STARTER_SET
-
-        if any(
-            tag in product_name
-            for tag in [
-                "box set",
-                "builders toolkit",
-                "commander collection",
-                "deckmasters tin",
-                "deluxe collection",
-                "edition box",
-                "game night",
-                "global series",
-                "hascon",
-                "modern event deck",
-                "planechase",
-                "planeswalker set",
-                "premium deck series",
-                "sdcc",
-                "secret lair",
-                "signature spellbook",
-            ]
-        ):
-            # In this section, only Planechase may have a "set of"
-            if "planechase" in product_name and "set of" in product_name:
-                return MtgjsonSealedProductCategory.CASE
-            return MtgjsonSealedProductCategory.BOX_SET
-
-        if "commander" in product_name or "brawl deck" in product_name:
-            if "set of" in product_name:
-                return MtgjsonSealedProductCategory.CASE
-            return MtgjsonSealedProductCategory.COMMANDER_DECK
-
-        if "deck box" in product_name or "deck display" in product_name:
-            return MtgjsonSealedProductCategory.DECK_BOX
-
-        if any(
-            tag in product_name
-            for tag in [
-                "challenge deck",
-                "challenger deck",
-                "championship deck",
-                "event deck",
-                "guild kit",
-                "intro pack",
-                "planeswalker deck",
-                "starter deck",
-                "theme deck",
-                "tournament deck",
-                "tournament pack",
-            ]
-        ):
-            if "set of" in product_name:
-                return MtgjsonSealedProductCategory.SUBSET
-            return MtgjsonSealedProductCategory.DECK
-
-        if any(
-            tag in product_name
-            for tag in [
-                "bundle",
-                "fat pack",
-                "gift box",
-            ]
-        ):
-            return MtgjsonSealedProductCategory.BUNDLE
-
-        if "land station" in product_name:
-            return MtgjsonSealedProductCategory.LAND_STATION
-
-        return None
-
-    # Best-effort to parse the product name and determine the sealed product category
-    def determine_mtgjson_sealed_product_subtype(
-        self, product_name: str, category: Optional[MtgjsonSealedProductCategory]
-    ) -> Optional[MtgjsonSealedProductSubtype]:
-        """
-        Best-effort to parse the product name and determine the sealed product subtype
-        :param product_name Name of the product from TCG
-        :param category Category as parsed from determine_mtgjson_sealed_product_category()
-        :return: subtype
-        """
-        if not category or not category.value:
-            return None
-
-        for subtype in MtgjsonSealedProductSubtype:
-            if not subtype or not subtype.value:
-                continue
-
-            # Prevent aliasing from Eventide
-            if (
-                subtype is MtgjsonSealedProductSubtype.EVENT
-                and category is not MtgjsonSealedProductCategory.DECK
-            ):
-                continue
-
-            # Prevent assigning 'set' (for set boosters) to unrelated categories
-            if subtype is MtgjsonSealedProductSubtype.SET and (
-                category is not MtgjsonSealedProductCategory.BOOSTER_PACK
-                and category is not MtgjsonSealedProductCategory.BOOSTER_BOX
-            ):
-                continue
-
-            # Do the replace to use the tag as text
-            if subtype.value and subtype.value.replace("_", " ") in product_name:
-                return subtype
-
-        # Special handling because sometimes 'default' is not tagged
-        if category in [
-            MtgjsonSealedProductCategory.BOOSTER_BOX,
-            MtgjsonSealedProductCategory.BOOSTER_PACK,
-        ]:
-            return MtgjsonSealedProductSubtype.DEFAULT
-        return None
-
     def update_sealed_product(
         self, set_name: str, sealed_products: List[MtgjsonSealedProductObject]
     ) -> None:
@@ -371,10 +178,10 @@ class CardKingdomProvider(AbstractProvider):
 
             sealed_product.identifiers.card_kingdom_id = str(product["id"])
 
-            sealed_product.category = self.determine_mtgjson_sealed_product_category(
+            sealed_product.category = sealed_product.determine_mtgjson_sealed_product_category(
                 sealed_product.name.lower()
             )
-            sealed_product.subtype = self.determine_mtgjson_sealed_product_subtype(
+            sealed_product.subtype = sealed_product.determine_mtgjson_sealed_product_subtype(
                 sealed_product.name.lower(), sealed_product.category
             )
 
