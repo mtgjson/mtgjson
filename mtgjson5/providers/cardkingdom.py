@@ -147,8 +147,8 @@ class CardKingdomProvider(AbstractProvider):
             if product["edition"].lower() != updated_set_name:
                 continue
 
-            skip_products = ["Pure Bulk:", "Complete Set", "Complete FOIL Set"]
-            if any(s in product["name"] for s in skip_products):
+            skip_products = ["pure bulk:", "complete set", "complete foil set"]
+            if any(s in product["name"].lower() for s in skip_products):
                 continue
 
             product_name = product["name"]
