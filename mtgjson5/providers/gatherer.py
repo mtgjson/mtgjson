@@ -72,6 +72,7 @@ class GathererProvider(AbstractProvider):
             urllib3.exceptions.MaxRetryError,
             requests.exceptions.RetryError,
             requests.exceptions.SSLError,
+            requests.exceptions.ConnectionError,
         ) as exception:
             LOGGER.warning(f"Unable to get {url} with {params}: {exception}")
             return None
