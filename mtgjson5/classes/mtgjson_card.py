@@ -198,6 +198,7 @@ class MtgjsonCardObject:
         self.is_token = is_token
         self.colors = []
         self.artist = ""
+        self.artist_ids = None
         self.layout = ""
         self.watermark = None
         self.__watermark_resource = {}
