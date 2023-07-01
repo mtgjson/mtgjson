@@ -30,6 +30,7 @@ class ScryfallProvider(AbstractProvider):
 
     class_id: str = "sf"
     ALL_SETS_URL: str = "https://api.scryfall.com/sets/"
+    SINGLE_SET_URL: str = f"{ALL_SETS_URL}{{0}}"
     CARDS_URL: str = "https://api.scryfall.com/cards/"
     CARDS_URL_ALL_DETAIL_BY_SET_CODE: str = "https://api.scryfall.com/cards/search?include_extras=true&include_variations=true&order=set&q=e%3A{}&unique=prints"
     CARDS_WITHOUT_LIMITS_URL: str = "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named)%20or%20(o:deck%20o:have%20o:up%20o:to%20o:cards%20o:named)"
