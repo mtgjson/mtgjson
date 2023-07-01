@@ -23,6 +23,7 @@ class MtgjsonCardObject:
     """
 
     artist: str
+    artist_ids: Optional[List[str]]
     ascii_name: Optional[str]
     attraction_lights: Optional[List[str]]
     availability: MtgjsonGameFormatsObject
@@ -197,6 +198,7 @@ class MtgjsonCardObject:
         self.is_token = is_token
         self.colors = []
         self.artist = ""
+        self.artist_ids = None
         self.layout = ""
         self.watermark = None
         self.__watermark_resource = {}
