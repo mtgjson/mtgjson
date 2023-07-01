@@ -924,7 +924,7 @@ def build_mtgjson_card(
     if not mtgjson_card.artist:
         mtgjson_card.artist = scryfall_object.get("artist", "")
     if not mtgjson_card.artist_ids:
-        mtgjson_card.artist = scryfall_object.get("artist_ids", "")
+        mtgjson_card.artist_ids = scryfall_object.get("artist_ids", "")
     if not mtgjson_card.watermark:
         mtgjson_card.set_watermark(face_data.get("watermark"))
 
