@@ -1478,23 +1478,30 @@ def get_base_and_total_set_sizes(mtgjson_set: MtgjsonSetObject) -> Tuple[int, in
         # Manual correction
         base_set_size = int(base_set_size_override[mtgjson_set.code.upper()])
     else:
-        # Download on the fly
-        base_set_size_download = ScryfallProvider().download(
-            ScryfallProvider().SINGLE_SET_URL.format(mtgjson_set.code.upper())
-        )
-
-        if base_set_size_download:
-            # Download on the fly, if it exists
-            base_set_size = int(base_set_size_download.get("printed_size", 0))
-        elif mtgjson_set.release_date > "2019-10-01":
-            # Use knowledge of Boosterfun being the first non-numbered card
-            # in the set to identify the true base set size
-            # BoosterFun started with Throne of Eldraine in Oct 2019
+        # Use knowledge of Boosterfun being the first non-numbered card
+        # in the set to identify the true base set size
+        # BoosterFun started with Throne of Eldraine in Oct 2019
+        if mtgjson_set.release_date > "2019-10-01":
             for card in mtgjson_set.cards:
                 if "boosterfun" in card.promo_types:
                     card_number = re.findall(r"([0-9]+)", card.number)[0]
                     base_set_size = int(card_number) - 1
                     break
+        else:
+            # Download on the fly
+            base_set_size_download = ScryfallProvider().download(
+                ScryfallProvider().CARDS_IN_BASE_SET_URL.format(
+                    mtgjson_set.code.upper()
+                )
+            )
+
+            # Wasn't able to determine, so use all cards instead
+            if base_set_size_download["object"] == "error":
+                base_set_size_download = ScryfallProvider().download(
+                    ScryfallProvider().CARDS_IN_SET.format(mtgjson_set.code.upper())
+                )
+
+            base_set_size = int(base_set_size_download.get("total_cards", 0))
 
     total_set_size = sum(
         1 for card in mtgjson_set.cards if not getattr(card, "is_rebalanced", False)
