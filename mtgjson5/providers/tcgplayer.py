@@ -333,15 +333,11 @@ class TCGPlayerProvider(AbstractProvider):
             sealed_product.identifiers.tcgplayer_product_id = str(product["productId"])
             sealed_product.release_date = product["presaleInfo"].get("releasedOn")
 
-            sealed_product.category = (
-                sealed_product.determine_mtgjson_sealed_product_category(
-                    sealed_product.name.lower()
-                )
+            sealed_product.category = sealed_product.determine_mtgjson_sealed_product_category(
+                sealed_product.name.lower()
             )
-            sealed_product.subtype = (
-                sealed_product.determine_mtgjson_sealed_product_subtype(
-                    sealed_product.name.lower(), sealed_product.category
-                )
+            sealed_product.subtype = sealed_product.determine_mtgjson_sealed_product_subtype(
+                sealed_product.name.lower(), sealed_product.category
             )
 
             LOGGER.debug(

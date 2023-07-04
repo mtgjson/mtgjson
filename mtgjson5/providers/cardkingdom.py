@@ -10,7 +10,10 @@ from typing import Any, Dict, List, Optional, Union
 from singleton_decorator import singleton
 
 from .. import constants
-from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
+from ..classes import (
+    MtgjsonPricesObject,
+    MtgjsonSealedProductObject,
+)
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping, retryable_session
 
@@ -175,15 +178,11 @@ class CardKingdomProvider(AbstractProvider):
 
             sealed_product.identifiers.card_kingdom_id = str(product["id"])
 
-            sealed_product.category = (
-                sealed_product.determine_mtgjson_sealed_product_category(
-                    sealed_product.name.lower()
-                )
+            sealed_product.category = sealed_product.determine_mtgjson_sealed_product_category(
+                sealed_product.name.lower()
             )
-            sealed_product.subtype = (
-                sealed_product.determine_mtgjson_sealed_product_subtype(
-                    sealed_product.name.lower(), sealed_product.category
-                )
+            sealed_product.subtype = sealed_product.determine_mtgjson_sealed_product_subtype(
+                sealed_product.name.lower(), sealed_product.category
             )
 
             LOGGER.debug(
