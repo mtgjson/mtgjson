@@ -1,0 +1,14 @@
+[
+    {
+        "name":"Duel Decks: Anthology",
+        "code":"dd3",
+        "set_type":"duel_deck",
+        "icon_svg_uri":"https://svgs.scryfall.io/sets/star.svg?1688356800",
+        "released_at":"2014-12-05",
+        "digital":false,
+        "nonfoil_only":false,
+        "foil_only":false,
+        "search_uri":"https://api.scryfall.com/cards/search?include_extras=true\u0026include_variations=true\u0026order=set\u0026q=e%3Add3\u0026unique=prints",
+        "tcgplayer_id":1490
+    }
+]

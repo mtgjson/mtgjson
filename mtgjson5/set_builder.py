@@ -404,7 +404,13 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     # Ensure we have a header for this set
     set_data = get_scryfall_set_data(set_code)
     if not set_data:
-        return None
+        with constants.RESOURCE_PATH.joinpath("additional_sets.json").open(
+            encoding="utf-8"
+        ) as f:
+            additonal_sets_data = json.load(f)
+            set_data = additional_sets_data.get(set_code, False)
+        if not set_data:
+            return None
 
     # Explicit Variables
     mtgjson_set.name = set_data["name"].strip()
