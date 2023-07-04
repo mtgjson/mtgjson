@@ -109,7 +109,7 @@ def dispatcher(args: argparse.Namespace) -> None:
         ) as f:
             additional_set_keys = set(json.load(f).keys())
             additional_set_keys -= set(args.skip_sets)
-            sets_to_build += list(additional_set_keys)
+            sets_to_build = list(set(sets_to_build) + additional_set_keys)
     if sets_to_build:
         build_mtgjson_sets(sets_to_build, args.pretty, args.referrals)
 
