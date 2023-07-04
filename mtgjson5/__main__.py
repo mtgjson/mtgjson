@@ -102,6 +102,13 @@ def dispatcher(args: argparse.Namespace) -> None:
         return
 
     sets_to_build = ScryfallProvider().get_sets_to_build(args)
+    if args.all_sets:
+		with constants.RESOURCE_PATH.joinpath("additional_sets.json").open(
+			encoding="utf-8"
+		) as f:
+			additional_set_keys = set(json.load(f).keys())
+			additional_set_keys -= set(args.skip_sets)
+			sets_to_build += list(additional_set_keys)
     if sets_to_build:
         build_mtgjson_sets(sets_to_build, args.pretty, args.referrals)
 

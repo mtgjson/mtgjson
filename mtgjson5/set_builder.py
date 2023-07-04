@@ -408,7 +408,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
             encoding="utf-8"
         ) as f:
             additonal_sets_data = json.load(f)
-            set_data = additional_sets_data.get(set_code, False)
+            set_data = additional_sets_data.get(set_code.lower(), False)
         if not set_data:
             return None
 
