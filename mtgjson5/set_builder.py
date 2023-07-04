@@ -407,7 +407,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
         with constants.RESOURCE_PATH.joinpath("additional_sets.json").open(
             encoding="utf-8"
         ) as f:
-            additonal_sets_data = json.load(f)
+            additional_sets_data = json.load(f)
             set_data = additional_sets_data.get(set_code.lower(), False)
         if not set_data:
             return None
