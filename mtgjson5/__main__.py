@@ -13,7 +13,7 @@ from typing import List, Set, Union
 import urllib3.exceptions
 
 from mtgjson5 import constants
-from mtgjson5.utils import init_logger
+from mtgjson5.utils import init_logger, load_local_set_data
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -102,6 +102,10 @@ def dispatcher(args: argparse.Namespace) -> None:
         return
 
     sets_to_build = ScryfallProvider().get_sets_to_build(args)
+    if args.all_sets:
+        additional_set_keys = set(load_local_set_data().keys())
+        additional_set_keys -= set(args.skip_sets)
+        sets_to_build = list(set(sets_to_build).union(additional_set_keys))
     if sets_to_build:
         build_mtgjson_sets(sets_to_build, args.pretty, args.referrals)
 

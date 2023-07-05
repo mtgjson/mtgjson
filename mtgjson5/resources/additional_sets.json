@@ -1,0 +1,70 @@
+{
+    "DD3": {
+        "name":"Duel Decks: Anthology",
+        "code":"dd3",
+        "set_type":"duel_deck",
+        "icon_svg_uri":"https://svgs.scryfall.io/sets/star.svg",
+        "released_at":"2014-12-05",
+        "digital":false,
+        "nonfoil_only":false,
+        "foil_only":false,
+        "search_uri":"https://api.scryfall.com/cards/search?include_extras=true\u0026include_variations=true\u0026order=set\u0026q=e%3Add3\u0026unique=prints",
+        "tcgplayer_id":1490
+    },
+    "Q01": {
+        "name":"Challenger Decks 2018",
+        "code":"q01",
+        "set_type":"box",
+        "icon_svg_uri":"https://svgs.scryfall.io/sets/default.svg",
+        "released_at":"2018-04-06",
+        "digital":false,
+        "nonfoil_only":false,
+        "foil_only":false,
+        "search_uri":"https://api.scryfall.com/cards/search?include_extras=true\u0026include_variations=true\u0026order=set\u0026q=e%3Aq01\u0026unique=prints",
+        "tcgplayer_id":2203
+    },
+    "Q02": {
+        "name":"Challenger Decks 2019",
+        "code":"q02",
+        "set_type":"box",
+        "icon_svg_uri":"https://svgs.scryfall.io/sets/default.svg",
+        "released_at":"2019-04-12",
+        "digital":false,
+        "nonfoil_only":false,
+        "foil_only":false,
+        "search_uri":"https://api.scryfall.com/cards/search?include_extras=true\u0026include_variations=true\u0026order=set\u0026q=e%3Aq02\u0026unique=prints"
+    },
+    "Q03": {
+        "name":"Challenger Decks 2019 Japan",
+        "code":"q03",
+        "set_type":"box",
+        "icon_svg_uri":"https://svgs.scryfall.io/sets/default.svg",
+        "released_at":"2019-11-08",
+        "digital":false,
+        "nonfoil_only":false,
+        "foil_only":false,
+        "search_uri":"https://api.scryfall.com/cards/search?include_extras=true\u0026include_variations=true\u0026order=set\u0026q=e%3Aq03\u0026unique=prints"
+    },
+    "Q04": {
+        "name":"Challenger Decks 2020",
+        "code":"q04",
+        "set_type":"box",
+        "icon_svg_uri":"https://svgs.scryfall.io/sets/default.svg",
+        "released_at":"2020-03-27",
+        "digital":false,
+        "nonfoil_only":false,
+        "foil_only":false,
+        "search_uri":"https://api.scryfall.com/cards/search?include_extras=true\u0026include_variations=true\u0026order=set\u0026q=e%3Aq04\u0026unique=prints"
+    },
+    "Q05": {
+        "name":"Challenger Decks 2021",
+        "code":"q05",
+        "set_type":"box",
+        "icon_svg_uri":"https://svgs.scryfall.io/sets/default.svg",
+        "released_at":"2021-03-02",
+        "digital":false,
+        "nonfoil_only":false,
+        "foil_only":false,
+        "search_uri":"https://api.scryfall.com/cards/search?include_extras=true\u0026include_variations=true\u0026order=set\u0026q=e%3Aq05\u0026unique=prints"
+    }
+}

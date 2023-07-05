@@ -319,3 +319,14 @@ def generate_card_mapping(
             pass
 
     return dump_map
+
+
+def load_local_set_data() -> Dict[str, Dict[str, Any]]:
+    """
+    Loads the local set data
+    """
+    with constants.RESOURCE_PATH.joinpath("additional_sets.json").open(
+        encoding="utf-8"
+    ) as f:
+        data: Dict[str, Dict[str, Any]] = json.load(f)
+    return data

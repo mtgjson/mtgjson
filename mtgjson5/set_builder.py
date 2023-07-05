@@ -40,7 +40,7 @@ from .providers import (
     TCGPlayerProvider,
     WhatsInStandardProvider,
 )
-from .utils import get_str_or_none, parallel_call, url_keygen
+from .utils import get_str_or_none, load_local_set_data, parallel_call, url_keygen
 
 LOGGER = logging.getLogger(__name__)
 
@@ -404,7 +404,10 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     # Ensure we have a header for this set
     set_data = get_scryfall_set_data(set_code)
     if not set_data:
-        return None
+        additional_sets_data = load_local_set_data()
+        set_data = additional_sets_data.get(set_code.upper())
+        if not set_data:
+            return None
 
     # Explicit Variables
     mtgjson_set.name = set_data["name"].strip()
