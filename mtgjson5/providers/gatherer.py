@@ -102,6 +102,9 @@ class GathererProvider(AbstractProvider):
                 self.SET_CHECKLIST_URL.format(page_number, set_name)
             )
 
+            if not response:
+                continue
+
             soup = bs4.BeautifulSoup(response.text, "html.parser")
 
             checklist_tables = soup.find("table", class_="checklist")
