@@ -66,5 +66,16 @@
         "nonfoil_only":false,
         "foil_only":false,
         "search_uri":"https://api.scryfall.com/cards/search?include_extras=true\u0026include_variations=true\u0026order=set\u0026q=e%3Aq05\u0026unique=prints"
+    },
+    "Q08": {
+        "name":"Pioneer Challenger Decks 2022",
+        "code":"q08",
+        "set_type":"box",
+        "icon_svg_uri":"https://svgs.scryfall.io/sets/default.svg",
+        "released_at":"2022-11-04",
+        "digital":false,
+        "nonfoil_only":false,
+        "foil_only":false,
+        "search_uri":"https://api.scryfall.com/cards/search?include_extras=true\u0026include_variations=true\u0026order=set\u0026q=e%3Aq08\u0026unique=prints"
     }
 }
