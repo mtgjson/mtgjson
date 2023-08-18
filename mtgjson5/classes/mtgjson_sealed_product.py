@@ -200,6 +200,7 @@ class MtgjsonSealedProductObject:
                 "blister pack",
                 "booster draft pack",
                 "booster packs draft set",
+                "draft booster pack 3 pack",
                 "multipack",
             ]
         ):
