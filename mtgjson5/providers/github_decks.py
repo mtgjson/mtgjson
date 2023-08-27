@@ -63,14 +63,15 @@ class GitHubDecksProvider(AbstractProvider):
                 )
                 mtgjson_set_deck = MtgjsonSetDeckObject(deck["name"], sealed_uuids)
 
-                for card in deck.get("cards", []):
-                    mtgjson_set_deck.cards.append(
-                        MtgjsonSetDeckObject.MtgjsonSetDeckCardObject(
-                            card["mtgjson_uuid"],
-                            card["count"],
-                            "foil" if card["foil"] else "nonfoil",
+                for card_key in ["cards", "commander", "sideboard"]:
+                    for card in deck.get(card_key, []):
+                        mtgjson_set_deck.cards.append(
+                            MtgjsonSetDeckObject.MtgjsonSetDeckCardObject(
+                                card["mtgjson_uuid"],
+                                card["count"],
+                                "foil" if card["foil"] else "nonfoil",
+                            )
                         )
-                    )
 
                 self.decks_by_set[deck.get("set_code").upper()].append(mtgjson_set_deck)
 
