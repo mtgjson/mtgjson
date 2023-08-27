@@ -99,6 +99,7 @@ class MtgjsonCardObject:
     security_stamp: Optional[str]
     side: Optional[str]
     signature: Optional[str]
+    source_products: Optional[Dict[str, List[str]]]
     subsets: Optional[List[str]]
     subtypes: List[str]
     supertypes: List[str]
