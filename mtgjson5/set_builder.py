@@ -30,6 +30,7 @@ from .providers import (
     FandomProviderSecretLair,
     GathererProvider,
     GitHubBoostersProvider,
+    GitHubCardSealedProductsProvider,
     GitHubDecksProvider,
     GitHubSealedProvider,
     MTGBanProvider,
@@ -502,6 +503,8 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.decks = GitHubDecksProvider().get_decks_in_set(set_code)
     for mtgjson_set_deck in mtgjson_set.decks:
         mtgjson_set_deck.add_sealed_product_uuids(mtgjson_set.sealed_product)
+
+    add_card_products_to_cards(mtgjson_set)
 
     if "Art Series" in mtgjson_set.name:
         add_orientations(mtgjson_set)
@@ -1642,3 +1645,16 @@ def add_related_cards(
 
     if related_cards.present():
         mtgjson_card.related_cards = related_cards
+
+
+def add_card_products_to_cards(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    Add what product(s) each card can be found in, using sealedProduct UUIDs
+    :param mtgjson_set MTGJSON Set object to modify in place
+    """
+    for card_entity in mtgjson_set.cards + mtgjson_set.tokens:
+        card_entity.source_products = (
+            GitHubCardSealedProductsProvider().get_products_card_found_in(
+                card_entity.uuid
+            )
+        )
