@@ -919,7 +919,7 @@ def build_mtgjson_card(
     mtgjson_card.promo_types = [
         card_type
         for card_type in mtgjson_card.promo_types
-        if card_type not in {"starterdeck", "planeswalkerdeck"}
+        if card_type not in {"planeswalkerdeck"}
     ]
 
     card_release_date = scryfall_object.get("released_at")
