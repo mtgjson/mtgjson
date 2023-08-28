@@ -38,8 +38,10 @@ class ScryfallProvider(AbstractProvider):
         "https://api.scryfall.com/cards/search?order=set&q=set:{0}%20unique:prints"
     )
     TYPE_CATALOG: str = "https://api.scryfall.com/catalog/{0}"
-    CARDS_WITH_ALCHEMY_SPELLBOOK_URL = "https://api.scryfall.com/cards/search?q=is:alchemy%20and%20oracle:/conjure|draft|%27s%20spellbook/"
-    SPELLBOOK_SEARCH_URL = "https://api.scryfall.com/cards/search?q=spellbook:%22{}%22"
+    CARDS_WITH_ALCHEMY_SPELLBOOK_URL = "https://api.scryfall.com/cards/search?q=is:alchemy%20and%20oracle:/conjure|draft|%27s%20spellbook/&include_extras=true"
+    SPELLBOOK_SEARCH_URL = (
+        "https://api.scryfall.com/cards/search?q=spellbook:%22{}%22&include_extras=true"
+    )
     cards_without_limits: Set[str]
 
     def __init__(self) -> None:
