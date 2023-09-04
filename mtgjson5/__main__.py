@@ -107,7 +107,7 @@ def dispatcher(args: argparse.Namespace) -> None:
         additional_set_keys -= set(args.skip_sets)
         sets_to_build = list(set(sets_to_build).union(additional_set_keys))
     if sets_to_build:
-        build_mtgjson_sets(sets_to_build, args.pretty, args.referrals)
+        build_mtgjson_sets(sorted(sets_to_build), args.pretty, args.referrals)
 
     if args.full_build:
         generate_compiled_output_files(args.pretty)
