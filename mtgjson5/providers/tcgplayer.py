@@ -443,7 +443,9 @@ def get_tcgplayer_sealed_data(group_id: Optional[int]) -> List[Dict[str, Any]]:
             break
 
         if not response["results"]:
-            LOGGER.warning(f"Issue with Sealed Product for Group ID: {group_id}")
+            LOGGER.warning(
+                f"Issue with Sealed Product for Group ID: {group_id}: {response}"
+            )
             break
 
         magic_set_sealed_data.extend(response["results"])

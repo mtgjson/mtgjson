@@ -101,7 +101,9 @@ def parse_foreign(
             foreign_card = foreign_card["card_faces"][face]
             card_foreign_entry.face_name = foreign_card.get("printed_name")
             if not card_foreign_entry.face_name:
-                LOGGER.warning(f"Unable to resolve name for {foreign_card}")
+                LOGGER.info(
+                    f"Unable to resolve face_name for {foreign_card}, using name"
+                )
                 card_foreign_entry.face_name = foreign_card.get("name")
 
         if not card_foreign_entry.name:
@@ -184,7 +186,7 @@ def get_scryfall_set_data(set_code: str) -> Optional[Dict[str, Any]]:
     )
 
     if set_data["object"] == "error":
-        LOGGER.error(f"Failed to download {set_code}")
+        LOGGER.warning(f"Failed to download {set_code}")
         return None
 
     return set_data
@@ -1652,7 +1654,13 @@ def add_card_products_to_cards(mtgjson_set: MtgjsonSetObject) -> None:
     Add what product(s) each card can be found in, using sealedProduct UUIDs
     :param mtgjson_set MTGJSON Set object to modify in place
     """
-    for card_entity in mtgjson_set.cards + mtgjson_set.tokens:
+    for card_entity in mtgjson_set.cards:
+        card_entity.source_products = (
+            GitHubCardSealedProductsProvider().get_products_card_found_in(
+                card_entity.uuid
+            )
+        )
+    for card_entity in mtgjson_set.tokens:
         card_entity.source_products = (
             GitHubCardSealedProductsProvider().get_products_card_found_in(
                 card_entity.uuid
