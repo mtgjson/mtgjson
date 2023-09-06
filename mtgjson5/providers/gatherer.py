@@ -53,7 +53,7 @@ class GathererProvider(AbstractProvider):
         """
         return {}
 
-    @ratelimit.limits(calls=40, period=1)
+    @ratelimit.limits(calls=60, period=1)
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
     ) -> Optional[requests.Response]:
@@ -63,7 +63,7 @@ class GathererProvider(AbstractProvider):
         :param params: URL parameters
         :return URL response
         """
-        session = retryable_session(retries=3)
+        session = retryable_session(retries=2)
         session.headers.update(self.session_header)
 
         try:
