@@ -458,9 +458,6 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     add_rebalanced_to_original_linkage(mtgjson_set)
     relocate_miscellaneous_tokens(mtgjson_set)
 
-    if not any(card.identifiers.multiverse_id for card in mtgjson_set.cards):
-        add_slow_gatherer_multiverse_ids_if_necessary(mtgjson_set)
-
     if mtgjson_set.code in {"CN2", "FRF", "ONS", "10E", "UNH"}:
         link_same_card_different_details(mtgjson_set)
 
@@ -527,27 +524,6 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.is_partial_preview = MtgjsonMetaObject().date < mtgjson_set.release_date
 
     return mtgjson_set
-
-
-def add_slow_gatherer_multiverse_ids_if_necessary(
-    mtgjson_set: MtgjsonSetObject,
-) -> None:
-    """
-    If our upstream providers are lacking Multiverse IDs, we can manually pull them
-    from Gatherer ourselves, albeit a relatively slow operation.
-    :param mtgjson_set: the set to add multiverse ids to
-    """
-    LOGGER.info(f"Attempting to add Multiverse IDs to {mtgjson_set.code}")
-    card_number_to_multiverse_ids = (
-        GathererProvider().get_collector_number_to_multiverse_id_mapping(
-            mtgjson_set.name
-        )
-    )
-    for card in mtgjson_set.cards:
-        LOGGER.info(
-            f"Adding backup Multiverse ID {card_number_to_multiverse_ids.get(card.number)} to {card.name}"
-        )
-        card.identifiers.multiverse_id = card_number_to_multiverse_ids.get(card.number)
 
 
 def build_base_mtgjson_tokens(
@@ -1169,14 +1145,14 @@ def build_mtgjson_card(
 
     add_related_cards(scryfall_object, mtgjson_card, is_token)
 
-    # Gatherer Calls -- SLOWWWWW
+    # Gatherer Calls -- Pulled from prebuilt cache
     if mtgjson_card.identifiers.multiverse_id:
         gatherer_cards = GathererProvider().get_cards(
-            mtgjson_card.identifiers.multiverse_id, mtgjson_card.set_code.lower()
+            mtgjson_card.identifiers.multiverse_id
         )
         if len(gatherer_cards) > face_id:
-            mtgjson_card.original_type = gatherer_cards[face_id].original_types
-            mtgjson_card.original_text = gatherer_cards[face_id].original_text
+            mtgjson_card.original_type = gatherer_cards[face_id].get("original_types")
+            mtgjson_card.original_text = gatherer_cards[face_id].get("original_text")
 
     mtgjson_cards.append(mtgjson_card)
 
