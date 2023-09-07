@@ -151,3 +151,4 @@ SUPPORTED_SET_TYPES: Set[str] = {
     "commander",
     "masters",
 }
+MULTI_WORD_SUB_TYPES: Set[str] = {"Time Lord"}

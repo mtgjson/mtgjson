@@ -144,11 +144,22 @@ def parse_card_types(card_type: str) -> Tuple[List[str], List[str], List[str]]:
         subtypes: str = split_type[1]
 
         # Planes are an entire sub-type, whereas normal cards
-        # are split by spaces
+        # are split by spaces... until they aren't #WHO
         if card_type.startswith("Plane"):
             sub_types = [subtypes.strip()]
         else:
+            special_case_found = False
+            for special_case in constants.MULTI_WORD_SUB_TYPES:
+                if special_case in subtypes:
+                    subtypes = subtypes.replace(
+                        special_case, special_case.replace(" ", "!")
+                    )
+                    special_case_found = True
+
             sub_types = [x.strip() for x in subtypes.split() if x]
+            if special_case_found:
+                for i, sub_type in enumerate(sub_types):
+                    sub_types[i] = sub_type.replace("!", " ")
 
     for value in supertypes_and_types.split():
         if value in constants.SUPER_TYPES:
