@@ -60,7 +60,8 @@ class CardKingdomProvider(AbstractProvider):
         """
         Cleans and strips sealed product names for easier comparison.
         """
-        name = re.sub(r"[^\w\s]", "", product_name)
+        name = product_name.strip()
+        name = re.sub(r"[^\w\s]", "", name)
         name = re.sub(" +", " ", name)
         return name.lower()
 
