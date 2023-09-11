@@ -70,6 +70,7 @@ class GitHubDecksProvider(AbstractProvider):
                                 card["mtgjson_uuid"],
                                 card["count"],
                                 "foil" if card["foil"] else "nonfoil",
+                                [card_key] if card_key == "commander" else None
                             )
                         )
 

@@ -21,11 +21,13 @@ class MtgjsonSetDeckObject:
         uuid: str
         count: int
         finish: str
+        tags: Optional[List[str]]
 
-        def __init__(self, uuid: str, count: int, finish: str) -> None:
+        def __init__(self, uuid: str, count: int, finish: str, tags: List[str]) -> None:
             self.uuid = uuid
             self.count = count
             self.finish = finish
+            self.tags = tags
 
         def to_json(self) -> Dict[str, Any]:
             """
@@ -36,6 +38,7 @@ class MtgjsonSetDeckObject:
                 to_camel_case(key): value
                 for key, value in self.__dict__.items()
                 if "__" not in key and not callable(value)
+                and value
             }
 
     name: str
