@@ -511,8 +511,6 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mark_duel_decks(set_code, mtgjson_set.cards)
 
     mtgjson_set.decks = GitHubDecksProvider().get_decks_in_set(set_code)
-    for mtgjson_set_deck in mtgjson_set.decks:
-        mtgjson_set_deck.add_sealed_product_uuids(mtgjson_set.sealed_product)
 
     add_card_products_to_cards(mtgjson_set)
 

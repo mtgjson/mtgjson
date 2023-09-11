@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Optional, Set
 
 from .. import constants
 from ..classes.mtgjson_card import MtgjsonCardObject
+from ..classes.mtgjson_deck import MtgjsonDeckObject
 from ..classes.mtgjson_sealed_product import MtgjsonSealedProductObject
-from ..classes.mtgjson_set_deck import MtgjsonSetDeckObject
 from ..classes.mtgjson_translations import MtgjsonTranslationsObject
 from ..utils import to_camel_case
 
@@ -23,7 +23,7 @@ class MtgjsonSetObject:
     cardsphere_set_id: Optional[int]
     code: str
     code_v3: str
-    decks: List[MtgjsonSetDeckObject]
+    decks: List[MtgjsonDeckObject]
     is_foreign_only: bool
     is_foil_only: bool
     is_non_foil_only: bool
