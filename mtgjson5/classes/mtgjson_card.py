@@ -57,6 +57,7 @@ class MtgjsonCardObject:
     has_non_foil: Optional[bool]  # Deprecated - Remove in 5.3.0
     identifiers: MtgjsonIdentifiersObject
     is_alternative: Optional[bool]
+    is_foil: Optional[bool]
     is_full_art: Optional[bool]
     is_funny: Optional[bool]
     is_online_only: Optional[bool]

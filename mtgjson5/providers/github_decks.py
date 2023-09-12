@@ -10,7 +10,7 @@ from typing import Any, Dict, Iterator, List, Optional, Union
 
 from singleton_decorator import singleton
 
-from ..classes import MtgjsonSetDeckObject
+from ..classes import MtgjsonCardObject
 from ..classes.mtgjson_deck import MtgjsonDeckObject
 from ..compiled_classes.mtgjson_structures import MtgjsonStructuresObject
 from ..mtgjson_config import MtgjsonConfig
@@ -32,7 +32,7 @@ class GitHubDecksProvider(AbstractProvider):
         f"{MtgjsonStructuresObject().all_printings}.json"
     )
     all_printings_cards: Dict[str, Any]
-    decks_by_set: Dict[str, List[MtgjsonSetDeckObject]]
+    decks_by_set: Dict[str, List[MtgjsonDeckObject]]
 
     def __init__(self) -> None:
         """
@@ -48,7 +48,23 @@ class GitHubDecksProvider(AbstractProvider):
         """
         return {}
 
-    def get_decks_in_set(self, set_code: str) -> List[MtgjsonSetDeckObject]:
+    @staticmethod
+    def _build_mtgjson_deck_card(card: Dict[str, Any]) -> MtgjsonCardObject:
+        """
+        Create a MTGJSON card, specialized for in-line decks
+        :param card: Card dict to ETL into MTGJSON Card
+        :returns MtgjsonCardObject, but lite
+        """
+        mtgjson_card = MtgjsonCardObject()
+        mtgjson_card.uuid = card["mtgjson_uuid"]
+        mtgjson_card.count = card["count"]
+        mtgjson_card.is_foil = card["foil"]
+        del mtgjson_card.colors
+        del mtgjson_card.identifiers
+        del mtgjson_card.purchase_urls
+        return mtgjson_card
+
+    def get_decks_in_set(self, set_code: str) -> List[MtgjsonDeckObject]:
         """
         Get individual decks within a specific set, from cache
         Builds up cache if not set
@@ -61,19 +77,23 @@ class GitHubDecksProvider(AbstractProvider):
                 sealed_uuids = decks_uuid_content.get(set_code.lower(), {}).get(
                     deck["name"]
                 )
-                mtgjson_set_deck = MtgjsonSetDeckObject(deck["name"], sealed_uuids)
 
-                for card_key in ["cards", "commander", "sideboard"]:
-                    for card in deck.get(card_key, []):
-                        mtgjson_set_deck.cards.append(
-                            MtgjsonSetDeckObject.MtgjsonSetDeckCardObject(
-                                card["mtgjson_uuid"],
-                                card["count"],
-                                "foil" if card["foil"] else "nonfoil",
-                            )
-                        )
+                mtgjson_deck = MtgjsonDeckObject(deck["name"], sealed_uuids)
+                mtgjson_deck.code = deck["set_code"].upper()
+                mtgjson_deck.set_sanitized_name(mtgjson_deck.name)
+                mtgjson_deck.type = deck["type"]
+                mtgjson_deck.release_date = deck["release_date"]
 
-                self.decks_by_set[deck.get("set_code").upper()].append(mtgjson_set_deck)
+                zip_list = [
+                    ("cards", mtgjson_deck.main_board),
+                    ("sideboard", mtgjson_deck.side_board),
+                    ("commander", mtgjson_deck.commander),
+                ]
+                for decks_key, mtgjson_deck_list in zip_list:
+                    for card in deck.get(decks_key, []):
+                        mtgjson_deck_list.append(self._build_mtgjson_deck_card(card))
+
+                self.decks_by_set[deck.get("set_code").upper()].append(mtgjson_deck)
 
         return self.decks_by_set.get(set_code, [])
 
