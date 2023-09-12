@@ -134,7 +134,6 @@ class MtgjsonCardObject:
         "face_mana_value",
         "foreign_data",
         "reverse_related",
-        "is_foil",
     }
 
     __remove_for_tokens = {
