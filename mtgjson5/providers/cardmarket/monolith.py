@@ -264,18 +264,23 @@ class CardMarketProvider(AbstractProvider):
 
         # {SetNum: Object, ... }
         set_in_progress = {}
-        for set_content in mkm_resp.json()["single"]:
-            if not set_content["number"]:
-                set_content["number"] = ""
+        try:
+            for set_content in mkm_resp.json()["single"]:
+                if not set_content["number"]:
+                    set_content["number"] = ""
 
-            # Remove leading zeroes
-            set_content["number"].lstrip("0")
+                # Remove leading zeroes
+                set_content["number"].lstrip("0")
 
-            # Split cards get two entries
-            for name in set_content["enName"].split("//"):
-                name_no_special_chars = name.strip().lower()
-                if "token" in name_no_special_chars:
-                    name_no_special_chars = name_no_special_chars.split(" (", 1)[0]
-                set_in_progress[name_no_special_chars] = set_content
+                # Split cards get two entries
+                for name in set_content["enName"].split("//"):
+                    name_no_special_chars = name.strip().lower()
+                    if "token" in name_no_special_chars:
+                        name_no_special_chars = name_no_special_chars.split(" (", 1)[0]
+                    set_in_progress[name_no_special_chars] = set_content
+        except json.JSONDecodeError as exception:
+            LOGGER.warning(
+                f"MKM had a parsing failure trying to build {mcm_id}: {exception}"
+            )
 
         return set_in_progress
