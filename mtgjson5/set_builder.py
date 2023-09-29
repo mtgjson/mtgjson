@@ -34,7 +34,6 @@ from .providers import (
     GitHubDecksProvider,
     GitHubSealedProvider,
     MTGBanProvider,
-    MultiverseBridgeProvider,
     ScryfallProvider,
     ScryfallProviderOrientationDetector,
     ScryfallProviderSetLanguageDetector,
@@ -505,8 +504,6 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     add_sealed_uuid(mtgjson_set)
     add_sealed_purchase_url(mtgjson_set)
     add_token_signatures(mtgjson_set)
-
-    add_multiverse_bridge_ids(mtgjson_set)
 
     mark_duel_decks(set_code, mtgjson_set.cards)
 
@@ -1356,30 +1353,6 @@ def add_token_signatures(mtgjson_set: MtgjsonSetObject) -> None:
                     add_signature(mtgjson_card, signature)
 
     LOGGER.info(f"Finished adding signatures to cards for {mtgjson_set.code}")
-
-
-def add_multiverse_bridge_ids(mtgjson_set: MtgjsonSetObject) -> None:
-    """
-    There are extra IDs that can be useful for the community to have
-    knowledge of. This step will incorporate all of those IDs
-    """
-    LOGGER.info(f"Adding MultiverseBridge details for {mtgjson_set.code}")
-    rosetta_stone_cards = MultiverseBridgeProvider().get_rosetta_stone_cards()
-    for mtgjson_card in mtgjson_set.cards:
-        if mtgjson_card.identifiers.scryfall_id not in rosetta_stone_cards:
-            LOGGER.warning(
-                f"MultiverseBridge missing {mtgjson_card.name} in {mtgjson_card.set_code}"
-            )
-            continue
-        mtgjson_card.identifiers.cardsphere_id = str(
-            rosetta_stone_cards[mtgjson_card.identifiers.scryfall_id]["cs_id"]
-        )
-
-    mtgjson_set.cardsphere_set_id = (
-        MultiverseBridgeProvider()
-        .get_rosetta_stone_sets()
-        .get(mtgjson_set.code.upper())
-    )
 
 
 def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:

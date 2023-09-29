@@ -20,7 +20,6 @@ from .providers import (
     CardHoarderProvider,
     CardKingdomProvider,
     CardMarketProvider,
-    MultiverseBridgeProvider,
     TCGPlayerProvider,
 )
 
@@ -75,12 +74,9 @@ def build_today_prices() -> Dict[str, Any]:
     tcgplayer = _generate_prices(TCGPlayerProvider())
     card_market = _generate_prices(CardMarketProvider())
     card_kingdom = _generate_prices(CardKingdomProvider())
-    cardsphere = _generate_prices(MultiverseBridgeProvider())
 
     final_results: Dict[str, Any] = {}
-    mergedeep.merge(
-        final_results, card_hoarder, tcgplayer, card_market, card_kingdom, cardsphere
-    )
+    mergedeep.merge(final_results, card_hoarder, tcgplayer, card_market, card_kingdom)
 
     return final_results
 
