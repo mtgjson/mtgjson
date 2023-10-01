@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 from typing import Any, Dict, List, Optional, Union
@@ -44,7 +45,13 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
             LOGGER.error(f"Download failed: {error}... Maxed out retries")
             return {}
 
-        return response.json()
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError as exception:
+            LOGGER.error(
+                f"Unable to return {url} with {params} response: {response.text} exception: {exception}"
+            )
+            return None
 
     def get_set_printing_languages(self, set_code: str) -> List[str]:
         first_card_response = self.download(self.FIRST_CARD_URL.format(set_code))
