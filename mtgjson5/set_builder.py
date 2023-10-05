@@ -23,6 +23,7 @@ from .classes import (
     MtgjsonSetObject,
 )
 from .providers import (
+    CardKingdomProvider,
     CardMarketProvider,
     CardMarketProviderSetNameTranslations,
     EdhrecProviderCardRanks,
@@ -487,6 +488,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
 
     sealed_provider = GitHubSealedProvider()
     mtgjson_set.sealed_product = sealed_provider.get_sealed_products_data(set_code)
+    CardKingdomProvider().update_sealed_urls(mtgjson_set.sealed_product)
 
     sealed_provider.apply_sealed_contents_data(set_code, mtgjson_set)
     add_sealed_uuid(mtgjson_set)
@@ -546,7 +548,6 @@ def add_sealed_purchase_url(mtgjson_set: MtgjsonSetObject) -> None:
         if "cardKingdom" in sealed_product.raw_purchase_urls:
             sealed_product.purchase_urls.card_kingdom = url_keygen(
                 sealed_product.raw_purchase_urls["cardKingdom"]
-                + constants.CARD_KINGDOM_REFERRAL
             )
 
 

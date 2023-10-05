@@ -4,11 +4,12 @@ Card Kingdom 3rd party provider
 import logging
 import pathlib
 import re
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from singleton_decorator import singleton
 
-from ..classes import MtgjsonPricesObject
+from .. import constants
+from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping, retryable_session
 
@@ -98,3 +99,29 @@ class CardKingdomProvider(AbstractProvider):
             retail_key="price_retail",
             buy_key="price_buy",
         )
+
+    def update_sealed_urls(
+        self, sealed_products: List[MtgjsonSealedProductObject]
+    ) -> None:
+        """
+        Queries the CK sealed product API to add URLs to any sealed product with a
+        Card Kingdom ID.
+        """
+
+        api_data = self.download(self.sealed_url)
+
+        for product in sealed_products:
+            try:
+                ck_id = product.identifiers.card_kingdom_id
+            except AttributeError:
+                continue
+            for remote_product in api_data["data"]:
+                if str(remote_product["id"]) == ck_id:
+                    product.raw_purchase_urls["cardKingdom"] = (
+                        api_data["meta"]["base_url"]
+                        + remote_product["url"]
+                        + constants.CARD_KINGDOM_REFERRAL
+                    )
+                    break
+            else:
+                LOGGER.debug(f"No Card Kingdom URL found for product {product.name}")
