@@ -330,3 +330,13 @@ def load_local_set_data() -> Dict[str, Dict[str, Any]]:
     ) as f:
         data: Dict[str, Dict[str, Any]] = json.load(f)
     return data
+
+
+def recursive_sort(unsorted_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Recursively sort a dictionary's inner keys and values, as necessary
+    """
+    return {
+        key: recursive_sort(value) if isinstance(value, Dict) else value
+        for key, value in sorted(unsorted_dict.items())
+    }
