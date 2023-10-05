@@ -304,7 +304,7 @@ def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
         mtgjson_rule = MtgjsonRulingObject(sf_rule["published_at"], sf_rule["comment"])
         mtgjson_rules.append(mtgjson_rule)
 
-    return sorted(mtgjson_rules, key=lambda ruling: ruling.date)
+    return sorted(mtgjson_rules, key=lambda ruling: (ruling.date, ruling.text))
 
 
 def add_rebalanced_to_original_linkage(mtgjson_set: MtgjsonSetObject) -> None:
@@ -1593,14 +1593,14 @@ def add_related_cards(
             for a_part in scryfall_object["all_parts"]:
                 if a_part.get("name") != mtgjson_card.name:
                     reverse_related.append(a_part.get("name"))
-        mtgjson_card.reverse_related = reverse_related
-        related_cards.reverse_related = reverse_related
+        mtgjson_card.reverse_related = sorted(reverse_related)
+        related_cards.reverse_related = sorted(reverse_related)
 
     if "alchemy" in scryfall_object["set_type"]:
         alchemy_cards = ScryfallProvider().get_alchemy_cards_with_spellbooks()
         if mtgjson_card.name in alchemy_cards:
-            related_cards.spellbook = ScryfallProvider().get_card_names_in_spellbook(
-                mtgjson_card.name
+            related_cards.spellbook = sorted(
+                ScryfallProvider().get_card_names_in_spellbook(mtgjson_card.name)
             )
 
     if related_cards.present():
