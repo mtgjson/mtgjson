@@ -75,6 +75,7 @@ MTGJSON is built on and tested against a wide range of Python3 versions. Current
 - Python 3.9
 - Python 3.10
 - Python 3.11
+- Python 3.12
 
 #### Install MTGJSON
 ##### Local Installation
