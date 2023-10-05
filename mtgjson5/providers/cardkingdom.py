@@ -1,16 +1,14 @@
 """
 Card Kingdom 3rd party provider
 """
-import json
 import logging
 import pathlib
 import re
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from singleton_decorator import singleton
 
-from .. import constants
-from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
+from ..classes import MtgjsonPricesObject
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping, retryable_session
 
@@ -100,100 +98,3 @@ class CardKingdomProvider(AbstractProvider):
             retail_key="price_retail",
             buy_key="price_buy",
         )
-
-    def update_sealed_product(
-        self, set_name: str, sealed_products: List[MtgjsonSealedProductObject]
-    ) -> None:
-        """
-        Builds MTGJSON Sealed Product Objects from Card Kingdom data
-        :param group_id: group id for the set to get data for
-        :param set_code: short abbreviation for the set name
-        :return: A list of MtgjsonSealedProductObject for a given set
-        """
-
-        sealed_data = self.download(self.sealed_url)
-        num_sealed = len(sealed_data["data"])
-        LOGGER.debug(f"Found {num_sealed} sealed products")
-
-        cardkingdom_sealed_products = []
-
-        with constants.RESOURCE_PATH.joinpath("sealed_name_fixes.json").open(
-            encoding="utf-8"
-        ) as f:
-            sealed_name_fixes = json.load(f)
-
-        with constants.RESOURCE_PATH.joinpath(
-            "cardkingdom_sealed_name_mapping.json"
-        ).open(encoding="utf-8") as f:
-            cardkingdom_sealed_translator = json.load(f)
-
-        existing_names = {
-            self.strip_sealed_name(product.name): product for product in sealed_products
-        }
-
-        updated_set_name = cardkingdom_sealed_translator["editions"].get(
-            set_name.lower(), set_name.lower()
-        )
-        LOGGER.debug(", ".join({product["edition"] for product in sealed_data["data"]}))
-        try:
-            LOGGER.debug(", ".join([set_name, updated_set_name]))
-        except TypeError:
-            LOGGER.debug(", ".join([set_name] + updated_set_name))
-
-        for product in sealed_data["data"]:
-            if product["edition"].lower() != updated_set_name:
-                continue
-
-            skip_products = ["pure bulk:", "complete set", "complete foil set"]
-            if any(s in product["name"].lower() for s in skip_products):
-                continue
-
-            product_name = product["name"]
-            for tag, fix in sealed_name_fixes.items():
-                if tag in product_name:
-                    product_name = product_name.replace(tag, fix)
-
-            check_name = self.strip_sealed_name(product_name)
-            check_name = cardkingdom_sealed_translator["products"].get(
-                check_name, check_name
-            )
-
-            if check_name in existing_names:
-                sealed_product = existing_names[check_name]
-                LOGGER.debug(f"{sealed_product.name}: adding CardKingdom values")
-                sealed_product.raw_purchase_urls["cardKingdom"] = (
-                    sealed_data["meta"]["base_url"]
-                    + product["url"]
-                    + constants.CARD_KINGDOM_REFERRAL
-                )
-                sealed_product.identifiers.card_kingdom_id = str(product["id"])
-                continue
-
-            sealed_product = MtgjsonSealedProductObject()
-
-            sealed_product.name = product_name
-
-            sealed_product.identifiers.card_kingdom_id = str(product["id"])
-
-            sealed_product.category = (
-                sealed_product.determine_mtgjson_sealed_product_category(
-                    sealed_product.name.lower()
-                )
-            )
-            sealed_product.subtype = (
-                sealed_product.determine_mtgjson_sealed_product_subtype(
-                    sealed_product.name.lower(), sealed_product.category
-                )
-            )
-
-            LOGGER.debug(
-                f"{sealed_product.name}: {sealed_product.category}.{sealed_product.subtype}"
-            )
-            sealed_product.raw_purchase_urls["cardKingdom"] = (
-                sealed_data["meta"]["base_url"]
-                + product["url"]
-                + constants.CARD_KINGDOM_REFERRAL
-            )
-            cardkingdom_sealed_products.append(sealed_product)
-
-        sealed_products.extend(cardkingdom_sealed_products)

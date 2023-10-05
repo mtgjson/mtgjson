@@ -22,7 +22,7 @@ from .classes import (
     MtgjsonSealedProductObject,
     MtgjsonSetObject,
 )
-from .providers import (  # CardKingdomProvider,; TCGPlayerProvider,
+from .providers import (
     CardMarketProvider,
     CardMarketProviderSetNameTranslations,
     EdhrecProviderCardRanks,
@@ -485,15 +485,6 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.tcgplayer_group_id = set_data.get("tcgplayer_id")
     mtgjson_set.booster = GitHubBoostersProvider().get_set_booster_data(set_code)
 
-    # Build sealed product using the TCGPlayer data
-    # mtgjson_set.sealed_product = (
-    #     TCGPlayerProvider().generate_mtgjson_sealed_product_objects(
-    #         mtgjson_set.tcgplayer_group_id, mtgjson_set.code
-    #     )
-    # )
-    # CardKingdomProvider().update_sealed_product(
-    #     mtgjson_set.name, mtgjson_set.sealed_product
-    # )
     sealed_provider = GitHubSealedProvider()
     mtgjson_set.sealed_product = sealed_provider.get_sealed_products_data(set_code)
 
