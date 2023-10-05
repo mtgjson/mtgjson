@@ -546,6 +546,7 @@ def add_sealed_purchase_url(mtgjson_set: MtgjsonSetObject) -> None:
         if "cardKingdom" in sealed_product.raw_purchase_urls:
             sealed_product.purchase_urls.card_kingdom = url_keygen(
                 sealed_product.raw_purchase_urls["cardKingdom"]
+                + constants.CARD_KINGDOM_REFERRAL
             )
 
 
