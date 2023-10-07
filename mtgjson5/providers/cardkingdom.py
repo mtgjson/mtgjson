@@ -112,17 +112,19 @@ class CardKingdomProvider(AbstractProvider):
         api_data = self.download(self.sealed_url)
 
         for product in sealed_products:
-            try:
-                ck_id = product.identifiers.card_kingdom_id
-            except AttributeError:
-                continue
-            for remote_product in api_data["data"]:
-                if str(remote_product["id"]) == ck_id:
-                    product.raw_purchase_urls["cardKingdom"] = (
-                        api_data["meta"]["base_url"]
-                        + remote_product["url"]
-                        + constants.CARD_KINGDOM_REFERRAL
+            if (
+                hasattr(product.identifiers, "card_kingdom_id")
+                and product.identifiers.card_kingdom_id
+            ):
+                for remote_product in api_data["data"]:
+                    if str(remote_product["id"]) == product.identifiers.card_kingdom_id:
+                        product.raw_purchase_urls["cardKingdom"] = (
+                            api_data["meta"]["base_url"]
+                            + remote_product["url"]
+                            + constants.CARD_KINGDOM_REFERRAL
+                        )
+                        break
+                else:
+                    LOGGER.debug(
+                        f"No Card Kingdom URL found for product {product.name}"
                     )
-                    break
-            else:
-                LOGGER.debug(f"No Card Kingdom URL found for product {product.name}")

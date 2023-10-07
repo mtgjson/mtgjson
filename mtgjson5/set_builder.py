@@ -542,6 +542,10 @@ def add_sealed_purchase_url(mtgjson_set: MtgjsonSetObject) -> None:
             hasattr(sealed_product.identifiers, "tcgplayer_product_id")
             and sealed_product.identifiers.tcgplayer_product_id
         ):
+            sealed_product.raw_purchase_urls[
+                "tcgplayer"
+            ] = f"https://shop.tcgplayer.com/product/productsearch?id={sealed_product.identifiers.tcgplayer_product_id}&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson"
+
             sealed_product.purchase_urls.tcgplayer = url_keygen(
                 sealed_product.identifiers.tcgplayer_product_id + sealed_product.uuid
             )
