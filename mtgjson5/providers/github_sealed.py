@@ -72,7 +72,7 @@ class GitHubSealedProvider(AbstractProvider):
         :param set_code: Set to pull data from
         :return sealed product list, if applicable
         """
-        LOGGER.info(f"Getting booster data for {set_code}")
+        LOGGER.info(f"Getting sealed product data for {set_code}")
         products_list = []
         for sealed_product_name, sealed_product in self.sealed_products.get(
             set_code.lower(), {}
@@ -100,7 +100,7 @@ class GitHubSealedProvider(AbstractProvider):
             products_list.append(product_obj)
 
             for location, identifier in sealed_product.get("identifiers", {}).items():
-                setattr(product_obj.identifiers, location, identifier)
+                setattr(product_obj.identifiers, location, str(identifier))
         return products_list
 
     def apply_sealed_contents_data(
