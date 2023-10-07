@@ -100,12 +100,12 @@ class GitHubSealedProvider(AbstractProvider):
             products_list.append(product_obj)
 
             for location, identifier in sealed_product.get("identifiers", {}).items():
-            	if location == "cardKingdomId":
-            		product_obj.identifiers.card_kingdom_id = str(identifier)
-            	elif location == "tcgplayerProductId":
-            		product_obj.identifiers.tcgplayer_product_id = str(identifier)
-            	else:
-                	setattr(product_obj.identifiers, location, str(identifier))
+                if location == "cardKingdomId":
+                    product_obj.identifiers.card_kingdom_id = str(identifier)
+                elif location == "tcgplayerProductId":
+                    product_obj.identifiers.tcgplayer_product_id = str(identifier)
+                else:
+                    setattr(product_obj.identifiers, location, str(identifier))
         return products_list
 
     def apply_sealed_contents_data(
