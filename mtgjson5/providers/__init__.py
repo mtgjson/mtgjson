@@ -15,6 +15,7 @@ from .github_decks import GitHubDecksProvider
 from .github_mtgsqlite import GitHubMTGSqliteProvider
 from .github_sealed import GitHubSealedProvider
 from .mtgban import MTGBanProvider
+from .multiversebridge import MultiverseBridgeProvider
 from .scryfall.monolith import ScryfallProvider
 from .scryfall.orientation_detector import ScryfallProviderOrientationDetector
 from .scryfall.set_language_detector import ScryfallProviderSetLanguageDetector
