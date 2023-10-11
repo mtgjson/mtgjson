@@ -7,9 +7,7 @@ import inspect
 import itertools
 import json
 import logging
-import os
 import pathlib
-import time
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 import gevent.pool
@@ -22,29 +20,6 @@ from mtgjson5 import constants
 from mtgjson5.mtgjson_config import MtgjsonConfig
 
 LOGGER = logging.getLogger(__name__)
-
-
-def init_logger() -> None:
-    """
-    Initialize the main system logger
-    """
-    constants.LOG_PATH.mkdir(parents=True, exist_ok=True)
-
-    start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
-
-    logging.basicConfig(
-        level=logging.DEBUG
-        if os.environ.get("MTGJSON5_DEBUG", "").lower() in ["true", "1"]
-        else logging.INFO,
-        format="[%(levelname)s] %(asctime)s: %(message)s",
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler(
-                str(constants.LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))
-            ),
-        ],
-    )
-    logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 
 def url_keygen(unique_seed: Union[int, str], with_leading: bool = True) -> str:
