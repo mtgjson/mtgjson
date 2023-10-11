@@ -107,6 +107,7 @@ class CardKingdomProvider(AbstractProvider):
         """
         Queries the CK sealed product API to add URLs to any sealed product with a
         Card Kingdom ID.
+        :param sealed_products: Sealed products within the set
         """
 
         api_data = self.download(self.sealed_url)
