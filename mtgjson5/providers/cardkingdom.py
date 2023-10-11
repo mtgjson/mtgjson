@@ -107,22 +107,24 @@ class CardKingdomProvider(AbstractProvider):
         """
         Queries the CK sealed product API to add URLs to any sealed product with a
         Card Kingdom ID.
+        :param sealed_products: Sealed products within the set
         """
 
         api_data = self.download(self.sealed_url)
 
         for product in sealed_products:
-            try:
-                ck_id = product.identifiers.card_kingdom_id
-            except AttributeError:
+            if not product.identifiers.card_kingdom_id:
                 continue
+
+            if not api_data["data"]:
+                LOGGER.debug(f"No Card Kingdom URL found for product {product.name}")
+                continue
+
             for remote_product in api_data["data"]:
-                if str(remote_product["id"]) == ck_id:
+                if str(remote_product["id"]) == product.identifiers.card_kingdom_id:
                     product.raw_purchase_urls["cardKingdom"] = (
                         api_data["meta"]["base_url"]
                         + remote_product["url"]
                         + constants.CARD_KINGDOM_REFERRAL
                     )
                     break
-            else:
-                LOGGER.debug(f"No Card Kingdom URL found for product {product.name}")

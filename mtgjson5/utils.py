@@ -60,12 +60,23 @@ def url_keygen(unique_seed: Union[int, str], with_leading: bool = True) -> str:
 
 def to_camel_case(snake_str: str) -> str:
     """
-    Convert "snake_case" => "snakeCase"
+    Convert "snake_case" => "camelCase"
     :param snake_str: Snake String
     :return: Camel String
     """
     components = snake_str.split("_")
     return components[0] + "".join(x.title() for x in components[1:])
+
+
+def to_snake_case(camel_str: str) -> str:
+    """
+    Convert "camelCase" => "snake_case"
+    :param camel_str: Camel String
+    :return: Snake String
+    """
+    return "".join(
+        ["_" + char.lower() if char.isupper() else char for char in camel_str]
+    ).lstrip("_")
 
 
 def parse_magic_rules_subset(

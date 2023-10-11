@@ -38,6 +38,7 @@ from .providers import (
     ScryfallProvider,
     ScryfallProviderOrientationDetector,
     ScryfallProviderSetLanguageDetector,
+    TCGPlayerProvider,
     WhatsInStandardProvider,
 )
 from .utils import get_str_or_none, load_local_set_data, parallel_call, url_keygen
@@ -487,13 +488,17 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.tcgplayer_group_id = set_data.get("tcgplayer_id")
     mtgjson_set.booster = GitHubBoostersProvider().get_set_booster_data(set_code)
 
-    sealed_provider = GitHubSealedProvider()
-    mtgjson_set.sealed_product = sealed_provider.get_sealed_products_data(set_code)
+    mtgjson_set.sealed_product = GitHubSealedProvider().get_sealed_products_data(
+        set_code
+    )
     CardKingdomProvider().update_sealed_urls(mtgjson_set.sealed_product)
+    GitHubSealedProvider().apply_sealed_contents_data(
+        set_code, mtgjson_set.sealed_product
+    )
+    add_sealed_uuid(mtgjson_set.sealed_product)
+    TCGPlayerProvider().update_sealed_urls(mtgjson_set.sealed_product)
+    add_sealed_purchase_url(mtgjson_set.sealed_product)
 
-    sealed_provider.apply_sealed_contents_data(set_code, mtgjson_set)
-    add_sealed_uuid(mtgjson_set)
-    add_sealed_purchase_url(mtgjson_set)
     add_token_signatures(mtgjson_set)
 
     add_multiverse_bridge_ids(mtgjson_set)
@@ -526,25 +531,28 @@ def build_base_mtgjson_tokens(
     return build_base_mtgjson_cards(set_code, added_tokens, True)
 
 
-def add_sealed_uuid(mtgjson_set: MtgjsonSetObject) -> None:
+def add_sealed_uuid(sealed_products: List[MtgjsonSealedProductObject]) -> None:
     """
     Adds all uuids to each sealed product object within a set
-    :param mtgjson_set: the set to add sealed uuids to
+    :param sealed_products: Sealed products within the set
     """
-    for sealed_product in mtgjson_set.sealed_product:
+    for sealed_product in sealed_products:
         add_uuid(sealed_product)
 
 
-def add_sealed_purchase_url(mtgjson_set: MtgjsonSetObject) -> None:
+def add_sealed_purchase_url(sealed_products: List[MtgjsonSealedProductObject]) -> None:
     """
     Adds all purchase urls to each sealed product object within a set
-    :param mtgjson_set: the set to add purchase urls to
+    :param sealed_products: Sealed products within the set
     """
-    for sealed_product in mtgjson_set.sealed_product:
-        if (
-            hasattr(sealed_product.identifiers, "tcgplayer_product_id")
-            and sealed_product.identifiers.tcgplayer_product_id
-        ):
+    for sealed_product in sealed_products:
+        if sealed_product.identifiers.tcgplayer_product_id:
+            sealed_product.raw_purchase_urls[
+                "tcgplayer"
+            ] = TCGPlayerProvider().product_url.format(
+                sealed_product.identifiers.tcgplayer_product_id
+            )
+
             sealed_product.purchase_urls.tcgplayer = url_keygen(
                 sealed_product.identifiers.tcgplayer_product_id + sealed_product.uuid
             )

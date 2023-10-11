@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 import requests
 from singleton_decorator import singleton
 
-from ..classes import MtgjsonPricesObject
+from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping, parallel_call, retryable_session
@@ -107,6 +107,7 @@ class TCGPlayerProvider(AbstractProvider):
         "jumpstart": 18,
         "theme": 12,
     }
+    product_url = "https://shop.tcgplayer.com/product/productsearch?id={}&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson"
 
     def __init__(self) -> None:
         """
@@ -267,6 +268,21 @@ class TCGPlayerProvider(AbstractProvider):
                 combined_listings[key] = value
 
         return dict(combined_listings)
+
+    @staticmethod
+    def update_sealed_urls(sealed_products: List[MtgjsonSealedProductObject]) -> None:
+        """
+        Queries the TCGPlayer sealed product API to add URLs to any sealed product with a
+        TCGPlayer ID.
+        :param sealed_products: Sealed products within the set
+        """
+        for sealed_product in sealed_products:
+            if sealed_product.identifiers.tcgplayer_product_id:
+                sealed_product.raw_purchase_urls[
+                    "tcgplayer"
+                ] = TCGPlayerProvider().product_url.format(
+                    sealed_product.identifiers.tcgplayer_product_id
+                )
 
 
 def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict[str, Any]]:
