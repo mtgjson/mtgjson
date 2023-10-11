@@ -35,12 +35,23 @@ def url_keygen(unique_seed: Union[int, str], with_leading: bool = True) -> str:
 
 def to_camel_case(snake_str: str) -> str:
     """
-    Convert "snake_case" => "snakeCase"
+    Convert "snake_case" => "camelCase"
     :param snake_str: Snake String
     :return: Camel String
     """
     components = snake_str.split("_")
     return components[0] + "".join(x.title() for x in components[1:])
+
+
+def to_snake_case(camel_str: str) -> str:
+    """
+    Convert "camelCase" => "snake_case"
+    :param camel_str: Camel String
+    :return: Snake String
+    """
+    return "".join(
+        ["_" + char.lower() if char.isupper() else char for char in camel_str]
+    ).lstrip("_")
 
 
 def parse_magic_rules_subset(
@@ -305,3 +316,13 @@ def load_local_set_data() -> Dict[str, Dict[str, Any]]:
     ) as f:
         data: Dict[str, Dict[str, Any]] = json.load(f)
     return data
+
+
+def recursive_sort(unsorted_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Recursively sort a dictionary's inner keys and values, as necessary
+    """
+    return {
+        key: recursive_sort(value) if isinstance(value, Dict) else value
+        for key, value in sorted(unsorted_dict.items())
+    }

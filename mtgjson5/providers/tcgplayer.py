@@ -11,12 +11,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 import requests
 from singleton_decorator import singleton
 
-from .. import constants
-from ..classes import (
-    MtgjsonPricesObject,
-    MtgjsonSealedProductCategory,
-    MtgjsonSealedProductObject,
-)
+from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_card_mapping, parallel_call, retryable_session
@@ -112,6 +107,7 @@ class TCGPlayerProvider(AbstractProvider):
         "jumpstart": 18,
         "theme": 12,
     }
+    product_url = "https://shop.tcgplayer.com/product/productsearch?id={}&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson"
 
     def __init__(self) -> None:
         """
@@ -273,105 +269,20 @@ class TCGPlayerProvider(AbstractProvider):
 
         return dict(combined_listings)
 
-    def generate_mtgjson_sealed_product_objects(
-        self, group_id: Optional[int], set_code: str
-    ) -> List[MtgjsonSealedProductObject]:
+    @staticmethod
+    def update_sealed_urls(sealed_products: List[MtgjsonSealedProductObject]) -> None:
         """
-        Builds MTGJSON Sealed Product Objects from TCGPlayer data
-        :param group_id: group id for the set to get data for
-        :param set_code: short abbreviation for the set name
-        :return: A list of MtgjsonSealedProductObject for a given set
+        Queries the TCGPlayer sealed product API to add URLs to any sealed product with a
+        TCGPlayer ID.
+        :param sealed_products: Sealed products within the set
         """
-        if not self.__keys_found:
-            LOGGER.warning("Keys not found for TCGPlayer, skipping")
-            return []
-
-        # Skip request if there is no group_id
-        if group_id is None:
-            return []
-
-        sealed_data = get_tcgplayer_sealed_data(group_id)
-
-        # adjust for worlds decks by looking at the last two digits being present in product name
-        if set_code in ["WC97", "WC98", "WC99", "WC00", "WC01", "WC02", "WC03", "WC04"]:
-            sealed_data = [
-                product
-                for product in sealed_data
-                if set_code[:-2] in product["cleanName"]
-            ]
-
-        # adjust for mystery booster
-        if set_code == "CMB1":
-            sealed_data = [
-                product for product in sealed_data if "2021" not in product["cleanName"]
-            ]
-        elif set_code == "CMB2":
-            sealed_data = [
-                product for product in sealed_data if "2021" in product["cleanName"]
-            ]
-
-        mtgjson_sealed_products = []
-
-        with constants.RESOURCE_PATH.joinpath("sealed_name_fixes.json").open(
-            encoding="utf-8"
-        ) as f:
-            sealed_name_fixes = json.load(f)
-
-        with constants.RESOURCE_PATH.joinpath("booster_box_size_overrides.json").open(
-            encoding="utf-8"
-        ) as f:
-            booster_box_size_overrides = json.load(f)
-
-        for product in sealed_data:
-            sealed_product = MtgjsonSealedProductObject()
-
-            sealed_product.name = product["cleanName"]
-            for tag, fix in sealed_name_fixes.items():
-                if tag in sealed_product.name:
-                    sealed_product.name = sealed_product.name.replace(tag, fix)
-
-            sealed_product.identifiers.tcgplayer_product_id = str(product["productId"])
-            sealed_product.release_date = product["presaleInfo"].get("releasedOn")
-
-            sealed_product.category = (
-                sealed_product.determine_mtgjson_sealed_product_category(
-                    sealed_product.name.lower()
+        for sealed_product in sealed_products:
+            if sealed_product.identifiers.tcgplayer_product_id:
+                sealed_product.raw_purchase_urls[
+                    "tcgplayer"
+                ] = TCGPlayerProvider().product_url.format(
+                    sealed_product.identifiers.tcgplayer_product_id
                 )
-            )
-            sealed_product.subtype = (
-                sealed_product.determine_mtgjson_sealed_product_subtype(
-                    sealed_product.name.lower(), sealed_product.category
-                )
-            )
-
-            LOGGER.debug(
-                f"{sealed_product.name}: {sealed_product.category}.{sealed_product.subtype}"
-            )
-
-            if sealed_product.category == MtgjsonSealedProductCategory.BOOSTER_BOX:
-                subtype_value = (
-                    sealed_product.subtype.value if sealed_product.subtype else ""
-                )
-                sealed_product.product_size = int(
-                    booster_box_size_overrides.get(subtype_value, {}).get(
-                        set_code,
-                        self.product_default_size.get(subtype_value, 0),
-                    )
-                )
-            elif sealed_product.category == MtgjsonSealedProductCategory.DRAFT_SET:
-                # Use the last number found in the name to skip years and multipliers
-                numbers = re.findall(r"[0-9]+", sealed_product.name)
-                if numbers:
-                    sealed_product.product_size = int(numbers.pop())
-
-            if sealed_product.release_date is not None:
-                sealed_product.release_date = sealed_product.release_date[0:10]
-            sealed_product.raw_purchase_urls[
-                "tcgplayer"
-            ] = f"https://shop.tcgplayer.com/product/productsearch?id={sealed_product.identifiers.tcgplayer_product_id}&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson"
-            mtgjson_sealed_products.append(sealed_product)
-
-        return mtgjson_sealed_products
 
 
 def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict[str, Any]]:

@@ -34,6 +34,7 @@ from .providers import (
     GitHubDecksProvider,
     GitHubSealedProvider,
     MTGBanProvider,
+    MultiverseBridgeProvider,
     ScryfallProvider,
     ScryfallProviderOrientationDetector,
     ScryfallProviderSetLanguageDetector,
@@ -304,7 +305,7 @@ def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
         mtgjson_rule = MtgjsonRulingObject(sf_rule["published_at"], sf_rule["comment"])
         mtgjson_rules.append(mtgjson_rule)
 
-    return sorted(mtgjson_rules, key=lambda ruling: ruling.date)
+    return sorted(mtgjson_rules, key=lambda ruling: (ruling.date, ruling.text))
 
 
 def add_rebalanced_to_original_linkage(mtgjson_set: MtgjsonSetObject) -> None:
@@ -487,23 +488,20 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.tcgplayer_group_id = set_data.get("tcgplayer_id")
     mtgjson_set.booster = GitHubBoostersProvider().get_set_booster_data(set_code)
 
-    # Build sealed product using the TCGPlayer data
-    mtgjson_set.sealed_product = (
-        TCGPlayerProvider().generate_mtgjson_sealed_product_objects(
-            mtgjson_set.tcgplayer_group_id, mtgjson_set.code
-        )
+    mtgjson_set.sealed_product = GitHubSealedProvider().get_sealed_products_data(
+        set_code
     )
-    CardKingdomProvider().update_sealed_product(
-        mtgjson_set.name, mtgjson_set.sealed_product
+    CardKingdomProvider().update_sealed_urls(mtgjson_set.sealed_product)
+    GitHubSealedProvider().apply_sealed_contents_data(
+        set_code, mtgjson_set.sealed_product
     )
-    sealed_provider = GitHubSealedProvider()
-    mtgjson_set.sealed_product.extend(
-        sealed_provider.get_sealed_products_data(set_code)
-    )
-    sealed_provider.apply_sealed_contents_data(set_code, mtgjson_set)
-    add_sealed_uuid(mtgjson_set)
-    add_sealed_purchase_url(mtgjson_set)
+    add_sealed_uuid(mtgjson_set.sealed_product)
+    TCGPlayerProvider().update_sealed_urls(mtgjson_set.sealed_product)
+    add_sealed_purchase_url(mtgjson_set.sealed_product)
+
     add_token_signatures(mtgjson_set)
+
+    add_multiverse_bridge_ids(mtgjson_set)
 
     mark_duel_decks(set_code, mtgjson_set.cards)
 
@@ -533,25 +531,28 @@ def build_base_mtgjson_tokens(
     return build_base_mtgjson_cards(set_code, added_tokens, True)
 
 
-def add_sealed_uuid(mtgjson_set: MtgjsonSetObject) -> None:
+def add_sealed_uuid(sealed_products: List[MtgjsonSealedProductObject]) -> None:
     """
     Adds all uuids to each sealed product object within a set
-    :param mtgjson_set: the set to add sealed uuids to
+    :param sealed_products: Sealed products within the set
     """
-    for sealed_product in mtgjson_set.sealed_product:
+    for sealed_product in sealed_products:
         add_uuid(sealed_product)
 
 
-def add_sealed_purchase_url(mtgjson_set: MtgjsonSetObject) -> None:
+def add_sealed_purchase_url(sealed_products: List[MtgjsonSealedProductObject]) -> None:
     """
     Adds all purchase urls to each sealed product object within a set
-    :param mtgjson_set: the set to add purchase urls to
+    :param sealed_products: Sealed products within the set
     """
-    for sealed_product in mtgjson_set.sealed_product:
-        if (
-            hasattr(sealed_product.identifiers, "tcgplayer_product_id")
-            and sealed_product.identifiers.tcgplayer_product_id
-        ):
+    for sealed_product in sealed_products:
+        if sealed_product.identifiers.tcgplayer_product_id:
+            sealed_product.raw_purchase_urls[
+                "tcgplayer"
+            ] = TCGPlayerProvider().product_url.format(
+                sealed_product.identifiers.tcgplayer_product_id
+            )
+
             sealed_product.purchase_urls.tcgplayer = url_keygen(
                 sealed_product.identifiers.tcgplayer_product_id + sealed_product.uuid
             )
@@ -1355,6 +1356,30 @@ def add_token_signatures(mtgjson_set: MtgjsonSetObject) -> None:
     LOGGER.info(f"Finished adding signatures to cards for {mtgjson_set.code}")
 
 
+def add_multiverse_bridge_ids(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    There are extra IDs that can be useful for the community to have
+    knowledge of. This step will incorporate all of those IDs
+    """
+    LOGGER.info(f"Adding MultiverseBridge details for {mtgjson_set.code}")
+    rosetta_stone_cards = MultiverseBridgeProvider().get_rosetta_stone_cards()
+    for mtgjson_card in mtgjson_set.cards:
+        if mtgjson_card.identifiers.scryfall_id not in rosetta_stone_cards:
+            LOGGER.warning(
+                f"MultiverseBridge missing {mtgjson_card.name} in {mtgjson_card.set_code}"
+            )
+            continue
+        mtgjson_card.identifiers.cardsphere_id = str(
+            rosetta_stone_cards[mtgjson_card.identifiers.scryfall_id]["cs_id"]
+        )
+
+    mtgjson_set.cardsphere_set_id = (
+        MultiverseBridgeProvider()
+        .get_rosetta_stone_sets()
+        .get(mtgjson_set.code.upper())
+    )
+
+
 def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
     """
     Add the MKM components to a set's cards and tokens
@@ -1593,14 +1618,14 @@ def add_related_cards(
             for a_part in scryfall_object["all_parts"]:
                 if a_part.get("name") != mtgjson_card.name:
                     reverse_related.append(a_part.get("name"))
-        mtgjson_card.reverse_related = reverse_related
-        related_cards.reverse_related = reverse_related
+        mtgjson_card.reverse_related = sorted(reverse_related)
+        related_cards.reverse_related = sorted(reverse_related)
 
     if "alchemy" in scryfall_object["set_type"]:
         alchemy_cards = ScryfallProvider().get_alchemy_cards_with_spellbooks()
         if mtgjson_card.name in alchemy_cards:
-            related_cards.spellbook = ScryfallProvider().get_card_names_in_spellbook(
-                mtgjson_card.name
+            related_cards.spellbook = sorted(
+                ScryfallProvider().get_card_names_in_spellbook(mtgjson_card.name)
             )
 
     if related_cards.present():

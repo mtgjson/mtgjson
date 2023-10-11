@@ -14,6 +14,7 @@ class MtgjsonIdentifiersObject:
     card_kingdom_etched_id: Optional[str]
     card_kingdom_foil_id: Optional[str]
     card_kingdom_id: Optional[str]
+    cardsphere_id: Optional[str]
     mcm_id: Optional[str]
     mcm_meta_id: Optional[str]
     mtg_arena_id: Optional[str]
@@ -34,6 +35,8 @@ class MtgjsonIdentifiersObject:
         Empty initializer
         """
         self.multiverse_id = ""
+        self.card_kingdom_id = ""
+        self.tcgplayer_product_id = ""
 
     def to_json(self) -> Dict[str, str]:
         """
