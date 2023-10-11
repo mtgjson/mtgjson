@@ -14,29 +14,6 @@ from typing import List, Set, Union
 
 import urllib3.exceptions
 
-from mtgjson5 import constants
-from mtgjson5.arg_parser import parse_args
-from mtgjson5.compress_generator import compress_mtgjson_contents
-from mtgjson5.mtgjson_config import MtgjsonConfig
-from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
-from mtgjson5.output_generator import (
-    generate_compiled_output_files,
-    generate_compiled_prices_output,
-    generate_output_file_hashes,
-    write_to_file,
-)
-from mtgjson5.price_builder import build_prices
-from mtgjson5.providers import (
-    GitHubMTGSqliteProvider,
-    ScryfallProvider,
-    WhatsInStandardProvider,
-)
-from mtgjson5.referral_builder import build_and_write_referral_map, fixup_referral_map
-from mtgjson5.set_builder import build_mtgjson_set
-from mtgjson5.utils import load_local_set_data, send_push_notification
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 
 def build_mtgjson_sets(
     sets_to_build: Union[Set[str], List[str]],
@@ -49,6 +26,14 @@ def build_mtgjson_sets(
     :param output_pretty: Should we dump minified
     :param include_referrals: Should we include referrals
     """
+    from mtgjson5.output_generator import write_to_file
+    from mtgjson5.providers import WhatsInStandardProvider
+    from mtgjson5.referral_builder import (
+        build_and_write_referral_map,
+        fixup_referral_map,
+    )
+    from mtgjson5.set_builder import build_mtgjson_set
+
     LOGGER.info(f"Building {len(sets_to_build)} Sets: {', '.join(sets_to_build)}")
 
     # Prime WhatsInStandard lookup
@@ -80,6 +65,8 @@ def validate_config_file_in_place() -> None:
     Check to see if the MTGJSON config file was found.
     If not, kill the system with an error message.
     """
+    from mtgjson5 import constants
+
     if not constants.CONFIG_PATH.exists():
         LOGGER.error(
             f"{constants.CONFIG_PATH.name} was not found ({constants.CONFIG_PATH}). "
@@ -94,6 +81,18 @@ def dispatcher(args: argparse.Namespace) -> None:
     """
     MTGJSON Dispatcher
     """
+    from mtgjson5.compress_generator import compress_mtgjson_contents
+    from mtgjson5.mtgjson_config import MtgjsonConfig
+    from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
+    from mtgjson5.output_generator import (
+        generate_compiled_output_files,
+        generate_compiled_prices_output,
+        generate_output_file_hashes,
+    )
+    from mtgjson5.price_builder import build_prices
+    from mtgjson5.providers import GitHubMTGSqliteProvider, ScryfallProvider
+    from mtgjson5.utils import load_local_set_data
+
     # If a price build, simply build prices and exit
     if args.price_build:
         generate_compiled_prices_output(*build_prices(), args.pretty)
@@ -128,6 +127,11 @@ def main() -> None:
     """
     MTGJSON safe main call
     """
+    from mtgjson5 import constants
+    from mtgjson5.arg_parser import parse_args
+    from mtgjson5.mtgjson_config import MtgjsonConfig
+    from mtgjson5.utils import send_push_notification
+
     args = parse_args()
     if args.aws_ssm_download_config:
         MtgjsonConfig(args.aws_ssm_download_config)
@@ -155,6 +159,8 @@ def init_logger() -> logging.Logger:
     """
     Initialize the main system logger
     """
+    from mtgjson5 import constants
+
     constants.LOG_PATH.mkdir(parents=True, exist_ok=True)
 
     start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
@@ -176,5 +182,6 @@ def init_logger() -> logging.Logger:
 
 
 if __name__ == "__main__":
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     LOGGER = init_logger()
     main()
