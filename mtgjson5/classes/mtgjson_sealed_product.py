@@ -22,13 +22,13 @@ class MtgjsonSealedProductCategory(enum.Enum):
 
     # A Box containing boosters
     BOOSTER_BOX = "booster_box"
-    
+
     # A box containing a variable amount of booster boxes
     BOOSTER_CASE = "booster_case"
 
     # Decks!
     DECK = "deck"
-    
+
     # Multi-Deck product: such as 2 player starter sets and game night
     MULTI_DECK = "multiple_decks"
 
@@ -37,13 +37,13 @@ class MtgjsonSealedProductCategory(enum.Enum):
 
     # A box containing a known list of cards
     BOX_SET = "box_set"
-    
+
     # A kit of (usually) predetermined cards for deck building
     KIT = "kit"
 
     # A boxed group of boosters, typically with a dice
     BUNDLE = "bundle"
-    
+
     # A case of bundles
     BUNDLE_CASE = "bundle_case"
 
@@ -52,10 +52,10 @@ class MtgjsonSealedProductCategory(enum.Enum):
 
     # A prerelease pack
     PRERELEASE_PACK = "prerelease_pack"
-    
+
     # A case of prerelease packs
     PRERELEASE_CASE = "prerelease_case"
-    
+
     # Archived categories kept for back-compatibility
     CASE = "case"
     COMMANDER_DECK = "commander_deck"
@@ -92,7 +92,7 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     TOPPER = "topper"
 
     # Typically for deck
-    THEME = "theme"
+    # Theme decks also use the subtype THEME
     PLANESWALKER = "planeswalker"
     CHALLENGE = "challenge"
     EVENT = "event"
@@ -117,12 +117,12 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     SECRET_LAIR_BUNDLE = "secret_lair_bundle"
     COMMANDER_COLLECTION = "commander_collection"
     COLLECTORS_EDITION = "collectors_edition"
-    
+
     # Kits
     GUILD_KIT = "guild_kit"
     DECK_BUILDERS_TOOLKIT = "deck_builders_toolkit"
     LAND_STATION = "land_station"
-    
+
     # Bundles
     GIFT_BUNLDE = "gift_bundle"
     FAT_PACK = "fat_pack"
