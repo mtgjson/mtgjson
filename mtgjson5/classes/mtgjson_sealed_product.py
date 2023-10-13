@@ -17,43 +17,50 @@ class MtgjsonSealedProductCategory(enum.Enum):
     # ¯\_(ツ)_/¯
     UNKNOWN = None
 
-    # A box containing a variable amount of sealed product
-    CASE = "case"
+    # Packs!
+    BOOSTER_PACK = "booster_pack"
 
     # A Box containing boosters
     BOOSTER_BOX = "booster_box"
 
-    # Packs!
-    BOOSTER_PACK = "booster_pack"
-
-    # A box containing a known list of cards
-    BOX_SET = "box_set"
-
-    # A prerelease pack
-    PRERELEASE_PACK = "prerelease_pack"
-
-    # A commander deck
-    COMMANDER_DECK = "commander_deck"
-
-    # A Box containing decks
-    DECK_BOX = "deck_box"
+    # A box containing a variable amount of booster boxes
+    BOOSTER_CASE = "booster_case"
 
     # Decks!
     DECK = "deck"
 
+    # Multi-Deck product: such as 2 player starter sets and game night
+    MULTI_DECK = "multiple_decks"
+
+    # A Display box containing decks
+    DECK_BOX = "deck_box"
+
+    # A box containing a known list of cards
+    BOX_SET = "box_set"
+
+    # A kit of (usually) predetermined cards for deck building
+    KIT = "kit"
+
     # A boxed group of boosters, typically with a dice
     BUNDLE = "bundle"
 
-    # Lands!
-    LAND_STATION = "land_station"
+    # A case of bundles
+    BUNDLE_CASE = "bundle_case"
 
     # The minimum number of boosters for a single player draft
     DRAFT_SET = "draft_set"
 
-    # A set of two decks, typically for starters
-    TWO_PLAYER_STARTER_SET = "two_player_starter_set"
+    # A prerelease pack
+    PRERELEASE_PACK = "prerelease_pack"
 
-    # A group of packs or decks
+    # A case of prerelease packs
+    PRERELEASE_CASE = "prerelease_case"
+
+    # Archived categories kept for back-compatibility
+    CASE = "case"
+    COMMANDER_DECK = "commander_deck"
+    LAND_STATION = "land_station"
+    TWO_PLAYER_STARTER_SET = "two_player_starter_set"
     SUBSET = "subset"
 
     def to_json(self) -> Optional[str]:
@@ -79,33 +86,53 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     SET = "set"
     COLLECTOR = "collector"
     JUMPSTART = "jumpstart"
+    PROMOTIONAL = "promotional"
+    THEME = "theme"
+    WELCOME = "welcome"
+    TOPPER = "topper"
 
     # Typically for deck
-    THEME = "theme"
-    STARTER = "starter"
+    # Theme decks also use the subtype THEME
     PLANESWALKER = "planeswalker"
     CHALLENGE = "challenge"
     EVENT = "event"
     CHAMPIONSHIP = "championship"
     INTRO = "intro"
-
-    # Box Set
+    COMMANDER = "commander"
+    BRAWL = "brawl"
     ARCHENEMY = "archenemy"
     PLANECHASE = "planechase"
+    # Multi-deck types
+    STARTER = "starter"
+    TWO_PLAYER_STARTER = "two_player_starter"
+    DUEL = "duel"
+    CLASH = "clash"
+    BATTLE = "battle_pack"
+    GAME_NIGHT = "game_night"
+
+    # Box Set
     FROM_THE_VAULT = "from_the_vault"
     SPELLBOOK = "spellbook"
     SECRET_LAIR = "secret_lair"
+    SECRET_LAIR_BUNDLE = "secret_lair_bundle"
+    COMMANDER_COLLECTION = "commander_collection"
+    COLLECTORS_EDITION = "collectors_edition"
+
+    # Kits
+    GUILD_KIT = "guild_kit"
     DECK_BUILDERS_TOOLKIT = "deck_builders_toolkit"
+    LAND_STATION = "land_station"
+
+    # Bundles
+    GIFT_BUNLDE = "gift_bundle"
+    FAT_PACK = "fat_pack"
 
     # Anything else
     MINIMAL = "minimal_packaging"
-    TOPPER = "topper"
     PREMIUM = "premium"
     VIP = "vip"
     DELUXE = "deluxe"
     ADVANCED = "advanced"
-    CLASH = "clash"
-    BATTLE = "battle_pack"
 
     def to_json(self) -> Optional[str]:
         """
