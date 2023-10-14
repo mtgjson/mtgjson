@@ -15,7 +15,6 @@ persistent=yes
 disable=
     broad-except,
     duplicate-code,
-    import-outside-toplevel,
     line-too-long,
     logging-fstring-interpolation,
     too-few-public-methods,
