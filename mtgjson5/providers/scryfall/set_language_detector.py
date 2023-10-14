@@ -1,8 +1,7 @@
-import json
 import logging
-import time
 from typing import Any, Dict, List, Optional, Union
 
+import gevent
 import requests
 from singleton_decorator import singleton
 
@@ -39,7 +38,7 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
         except requests.exceptions.ChunkedEncodingError as error:
             if retry_ttl:
                 LOGGER.warning(f"Download failed: {error}... Retrying")
-                time.sleep(3 - retry_ttl)
+                gevent.sleep(3 - retry_ttl)
                 return self.download(url, params, retry_ttl - 1)
 
             LOGGER.error(f"Download failed: {error}... Maxed out retries")

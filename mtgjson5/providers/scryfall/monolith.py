@@ -6,10 +6,9 @@ import logging
 import pathlib
 import re
 import sys
-import time
 from typing import Any, Dict, List, Optional, Set, Union
 
-import ratelimit
+import gevent
 import requests.exceptions
 from singleton_decorator import singleton
 
@@ -90,8 +89,6 @@ class ScryfallProvider(AbstractProvider):
 
         return all_cards
 
-    @ratelimit.sleep_and_retry
-    @ratelimit.limits(calls=40, period=1)
     def download(
         self,
         url: str,
@@ -114,7 +111,7 @@ class ScryfallProvider(AbstractProvider):
         except requests.exceptions.ChunkedEncodingError as error:
             if retry_ttl:
                 LOGGER.warning(f"Download failed: {error}... Retrying")
-                time.sleep(3 - retry_ttl)
+                gevent.sleep(3 - retry_ttl)
                 return self.download(url, params, retry_ttl - 1)
 
             LOGGER.error(f"Download failed: {error}... Maxed out retries")
@@ -130,7 +127,7 @@ class ScryfallProvider(AbstractProvider):
                     f"Unable to convert response to JSON for URL: {url} -> {error}; Message = {response.text}"
                 )
 
-            time.sleep(5)
+            gevent.sleep(5)
             return self.download(url, params)
 
     def download_cards(self, set_code: str) -> List[Dict[str, Any]]:
