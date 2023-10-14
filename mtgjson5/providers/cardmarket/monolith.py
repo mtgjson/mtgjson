@@ -8,10 +8,10 @@ import logging
 import math
 import os
 import pathlib
+import time
 import zlib
 from typing import Any, Dict, List, Optional, Union
 
-import gevent
 import mkmsdk.exceptions
 import pandas
 from mkmsdk.api_map import _API_MAP
@@ -256,7 +256,7 @@ class CardMarketProvider(AbstractProvider):
                 LOGGER.warning(
                     f"MKM Had a connection error trying to build {mcm_id}: {exception}"
                 )
-                gevent.sleep(10)
+                time.sleep(10)
 
         if mkm_resp is None:
             LOGGER.error("MKM had a critical failure. Skipping this import.")

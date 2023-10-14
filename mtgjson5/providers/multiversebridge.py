@@ -3,9 +3,9 @@ MultiverseBridge 3rd party provider
 """
 import logging
 import pathlib
+import time
 from typing import Any, Dict, List, Optional, Set, Union
 
-import gevent
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
@@ -48,7 +48,7 @@ class MultiverseBridgeProvider(AbstractProvider):
             LOGGER.error(
                 f"MultiverseBridge Download Error ({response.status_code}): {response.content.decode()}"
             )
-            gevent.sleep(5)
+            time.sleep(5)
             return self.download(url, params)
         return response.json()
 

@@ -1,12 +1,12 @@
 """
-What's In Standard 3rd party provider
+Whats In Standard 3rd party provider
 """
 import datetime
 import logging
+import time
 from typing import Any, Dict, Optional, Set, Union
 
 import dateutil.parser
-import gevent
 from singleton_decorator import singleton
 
 from ..providers.abstract import AbstractProvider
@@ -16,7 +16,7 @@ from ..utils import retryable_session
 @singleton
 class WhatsInStandardProvider(AbstractProvider):
     """
-    What's In Standard API provider
+    Whats In Standard API provider
     """
 
     API_ENDPOINT: str = "https://whatsinstandard.com/api/v6/standard.json"
@@ -43,7 +43,7 @@ class WhatsInStandardProvider(AbstractProvider):
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
     ) -> Any:
         """
-        Download content from What's in Standard
+        Download content from Whats in Standard
         Api calls always return JSON from them
         :param url: URL to download from
         :param params: Options for URL download
@@ -55,7 +55,7 @@ class WhatsInStandardProvider(AbstractProvider):
             self.logger.error(
                 f"WhatsInStandard Download Error ({response.status_code}): {response.content.decode()}"
             )
-            gevent.sleep(5)
+            time.sleep(5)
             return self.download(url, params)
 
         return response.json()
