@@ -90,6 +90,7 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     THEME = "theme"
     WELCOME = "welcome"
     TOPPER = "topper"
+    SIX = "six-card"
 
     # Typically for deck
     # Theme decks also use the subtype THEME
@@ -104,6 +105,7 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     PLANECHASE = "planechase"
     # Multi-deck types
     STARTER = "starter"
+    TOURNAMENT = "tournament"
     TWO_PLAYER_STARTER = "two_player_starter"
     DUEL = "duel"
     CLASH = "clash"
@@ -124,7 +126,7 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     LAND_STATION = "land_station"
 
     # Bundles
-    GIFT_BUNLDE = "gift_bundle"
+    GIFT_BUNDLE = "gift_bundle"
     FAT_PACK = "fat_pack"
 
     # Anything else
