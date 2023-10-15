@@ -17,6 +17,7 @@ disable=
     duplicate-code,
     import-outside-toplevel,
     line-too-long,
+    logging-format-interpolation,
     logging-fstring-interpolation,
     too-few-public-methods,
     too-many-arguments,
@@ -27,6 +28,7 @@ disable=
     too-many-nested-blocks,
     too-many-return-statements,
     too-many-statements,
+    unsubscriptable-object,
     used-before-assignment,
     wrong-import-order,
     wrong-import-position

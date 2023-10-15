@@ -7,12 +7,15 @@ gevent.monkey.patch_all()  # isort:skip
 
 import argparse
 import logging
-import os
-import time
 import traceback
 from typing import List, Set, Union
 
 import urllib3.exceptions
+
+from mtgjson5 import constants
+from mtgjson5.utils import init_logger, load_local_set_data
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def build_mtgjson_sets(
@@ -65,8 +68,6 @@ def validate_config_file_in_place() -> None:
     Check to see if the MTGJSON config file was found.
     If not, kill the system with an error message.
     """
-    from mtgjson5 import constants
-
     if not constants.CONFIG_PATH.exists():
         LOGGER.error(
             f"{constants.CONFIG_PATH.name} was not found ({constants.CONFIG_PATH}). "
@@ -91,7 +92,6 @@ def dispatcher(args: argparse.Namespace) -> None:
     )
     from mtgjson5.price_builder import build_prices
     from mtgjson5.providers import GitHubMTGSqliteProvider, ScryfallProvider
-    from mtgjson5.utils import load_local_set_data
 
     # If a price build, simply build prices and exit
     if args.price_build:
@@ -127,7 +127,6 @@ def main() -> None:
     """
     MTGJSON safe main call
     """
-    from mtgjson5 import constants
     from mtgjson5.arg_parser import parse_args
     from mtgjson5.mtgjson_config import MtgjsonConfig
     from mtgjson5.utils import send_push_notification
@@ -155,33 +154,7 @@ def main() -> None:
             send_push_notification(f"Build failed: {error}\n{traceback.format_exc()}")
 
 
-def init_logger() -> logging.Logger:
-    """
-    Initialize the main system logger
-    """
-    from mtgjson5 import constants
-
-    constants.LOG_PATH.mkdir(parents=True, exist_ok=True)
-
-    start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
-
-    logging.basicConfig(
-        level=logging.DEBUG
-        if os.environ.get("MTGJSON5_DEBUG", "").lower() in ["true", "1"]
-        else logging.INFO,
-        format="[%(levelname)s] %(asctime)s: %(message)s",
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler(
-                str(constants.LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))
-            ),
-        ],
-    )
-    logging.getLogger("urllib3").setLevel(logging.ERROR)
-    return logging.getLogger(__name__)
-
-
 if __name__ == "__main__":
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    LOGGER = init_logger()
+    init_logger()
+    LOGGER: logging.Logger = logging.getLogger(__name__)
     main()
