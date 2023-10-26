@@ -52,7 +52,7 @@ class MtgjsonSealedProductCategory(enum.Enum):
 
     # A case of limited aid tools
     LIMITED_CASE = "limited_aid_case"
-    
+
     # Set of X type products
     SUBSET = "subset"
 
@@ -130,14 +130,14 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     # Bundles
     GIFT_BUNDLE = "gift_bundle"
     FAT_PACK = "fat_pack"
-    
+
     # Limited Play Aids
     DRAFT_SET = "draft_set"
     SEALED_SET = "sealed_set"
     TOURNAMENT = "tournament_deck"
     STARTER = "starter_deck"
     PRERELEASE = "prerelease_kit"
-    
+
     # Anything else
     MINIMAL = "minimal_packaging"
     PREMIUM = "premium"
