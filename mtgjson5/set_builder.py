@@ -1388,7 +1388,7 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
     LOGGER.info(f"Adding MCM details for {mtgjson_set.code}")
     mkm_cards = CardMarketProvider().get_mkm_cards(mtgjson_set.mcm_id)
 
-    extras_cards: Dict[str, Dict[str, Any]] = {}
+    extras_cards: Dict[str, List[Dict[str, Any]]] = {}
     if mtgjson_set.mcm_id_extras:
         extras_cards = CardMarketProvider().get_mkm_cards(mtgjson_set.mcm_id_extras)
 
@@ -1431,9 +1431,17 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
                 LOGGER.debug(f"Failed to find {mtgjson_card.name} for MKM")
                 continue
 
-        mkm_obj = search_cards[card_key]
         if delete_key:
             del search_cards[card_key]
+
+        if not search_cards[card_key]:
+            continue
+
+        for mkm_obj in search_cards[card_key]:
+            if mtgjson_card.number in mkm_obj["number"]:
+                break
+        else:
+            mkm_obj = search_cards[card_key][0]
 
         # This value is set by an upstream provider by default
         if not mtgjson_card.identifiers.mcm_id:

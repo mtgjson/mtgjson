@@ -10,6 +10,7 @@ import os
 import pathlib
 import time
 import zlib
+from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 
 import mkmsdk.exceptions
@@ -237,7 +238,7 @@ class CardMarketProvider(AbstractProvider):
         """
         return None
 
-    def get_mkm_cards(self, mcm_id: Optional[int]) -> Dict[str, Dict[str, Any]]:
+    def get_mkm_cards(self, mcm_id: Optional[int]) -> Dict[str, List[Dict[str, Any]]]:
         """
         Initialize the MKM global with the cards found in the set
         :param mcm_id: Set's ID, if possible
@@ -263,7 +264,7 @@ class CardMarketProvider(AbstractProvider):
             return {}
 
         # {SetNum: Object, ... }
-        set_in_progress = {}
+        set_in_progress = defaultdict(list)
         try:
             for set_content in mkm_resp.json()["single"]:
                 if not set_content["number"]:
@@ -277,7 +278,7 @@ class CardMarketProvider(AbstractProvider):
                     name_no_special_chars = name.strip().lower()
                     if "token" in name_no_special_chars:
                         name_no_special_chars = name_no_special_chars.split(" (", 1)[0]
-                    set_in_progress[name_no_special_chars] = set_content
+                    set_in_progress[name_no_special_chars].append(set_content)
         except json.JSONDecodeError as exception:
             LOGGER.warning(
                 f"MKM had a parsing failure trying to build {mcm_id}: {exception}"
