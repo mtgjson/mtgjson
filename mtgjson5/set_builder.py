@@ -1434,6 +1434,9 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
         if delete_key:
             del search_cards[card_key]
 
+        if not search_cards[card_key]:
+            continue
+
         for mkm_obj in search_cards[card_key]:
             if mtgjson_card.number in mkm_obj["number"]:
                 break
