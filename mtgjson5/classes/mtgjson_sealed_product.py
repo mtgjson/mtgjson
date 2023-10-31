@@ -47,21 +47,23 @@ class MtgjsonSealedProductCategory(enum.Enum):
     # A case of bundles
     BUNDLE_CASE = "bundle_case"
 
-    # The minimum number of boosters for a single player draft
-    DRAFT_SET = "draft_set"
+    # A prebuilt limited play pack, such as a prerelease kit or draft kit
+    LIMITED = "limited_aid_tool"
 
-    # A prerelease pack
-    PRERELEASE_PACK = "prerelease_pack"
+    # A case of limited aid tools
+    LIMITED_CASE = "limited_aid_case"
 
-    # A case of prerelease packs
-    PRERELEASE_CASE = "prerelease_case"
+    # Set of X type products
+    SUBSET = "subset"
 
     # Archived categories kept for back-compatibility
     CASE = "case"
     COMMANDER_DECK = "commander_deck"
     LAND_STATION = "land_station"
     TWO_PLAYER_STARTER_SET = "two_player_starter_set"
-    SUBSET = "subset"
+    DRAFT_SET = "draft_set"
+    PRERELEASE_PACK = "prerelease_pack"
+    PRERELEASE_CASE = "prerelease_case"
 
     def to_json(self) -> Optional[str]:
         """
@@ -90,11 +92,13 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     THEME = "theme"
     WELCOME = "welcome"
     TOPPER = "topper"
+    SIX = "six-card"
 
     # Typically for deck
     # Theme decks also use the subtype THEME
     PLANESWALKER = "planeswalker"
     CHALLENGE = "challenge"
+    CHALLENGER = "challenger"
     EVENT = "event"
     CHAMPIONSHIP = "championship"
     INTRO = "intro"
@@ -103,7 +107,6 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     ARCHENEMY = "archenemy"
     PLANECHASE = "planechase"
     # Multi-deck types
-    STARTER = "starter"
     TWO_PLAYER_STARTER = "two_player_starter"
     DUEL = "duel"
     CLASH = "clash"
@@ -117,6 +120,7 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     SECRET_LAIR_BUNDLE = "secret_lair_bundle"
     COMMANDER_COLLECTION = "commander_collection"
     COLLECTORS_EDITION = "collectors_edition"
+    CONVENTION = "convention_exclusive"
 
     # Kits
     GUILD_KIT = "guild_kit"
@@ -124,8 +128,15 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     LAND_STATION = "land_station"
 
     # Bundles
-    GIFT_BUNLDE = "gift_bundle"
+    GIFT_BUNDLE = "gift_bundle"
     FAT_PACK = "fat_pack"
+
+    # Limited Play Aids
+    DRAFT_SET = "draft_set"
+    SEALED_SET = "sealed_set"
+    TOURNAMENT = "tournament_deck"
+    STARTER = "starter_deck"
+    PRERELEASE = "prerelease_kit"
 
     # Anything else
     MINIMAL = "minimal_packaging"
@@ -133,6 +144,7 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     VIP = "vip"
     DELUXE = "deluxe"
     ADVANCED = "advanced"
+    OTHER = "other"
 
     def to_json(self) -> Optional[str]:
         """
