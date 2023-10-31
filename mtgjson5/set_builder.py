@@ -1064,7 +1064,7 @@ def build_mtgjson_card(
         meld_object = []
         mtgjson_card.set_names(None)
         for a_part in sorted(
-            scryfall_object["all_parts"], key=lambda part: part["component"]  # type: ignore
+            scryfall_object["all_parts"], key=lambda part: part["component"]
         ):
             if a_part["component"] == "token":
                 continue
