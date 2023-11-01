@@ -238,14 +238,16 @@ class MtgjsonCardObject:
         if self.number == other.number:
             return self_side < other_side
 
-        self_number_clean = "".join(filter(str.isdigit, self.number)) or 100_000
+        self_number_clean = "".join(filter(str.isdigit, self.number)) or "100000"
         self_number_clean_int = int(self_number_clean)
 
-        other_number_clean = "".join(filter(str.isdigit, other.number)) or 100_000
+        other_number_clean = "".join(filter(str.isdigit, other.number)) or "100000"
         other_number_clean_int = int(other_number_clean)
 
         if self.number == self_number_clean and other.number == other_number_clean:
             if self_number_clean_int == other_number_clean_int:
+                if len(self_number_clean) != len(other_number_clean):
+                    return len(self_number_clean) < len(other_number_clean)
                 return self_side < other_side
             return self_number_clean_int < other_number_clean_int
 
@@ -260,6 +262,8 @@ class MtgjsonCardObject:
             return self_number_clean_int < other_number_clean_int
 
         if self_number_clean == other_number_clean:
+            if not self_side and not other_side:
+                return bool(self.number < other.number)
             return self_side < other_side
         return self_number_clean_int < other_number_clean_int
 
