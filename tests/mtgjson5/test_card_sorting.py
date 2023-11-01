@@ -5,6 +5,10 @@ from mtgjson5.classes.mtgjson_card import MtgjsonCardObject
 
 def test_card_sorting():
     correct_order = [
+        ("J", "0", None),
+        ("K", "00", None),
+        ("M", "ap0a", None),
+        ("N", "gn0a", None),
         ("A", "1", None),
         ("B", "2", None),
         ("C1", "2a", "a"),
@@ -26,9 +30,10 @@ def test_card_sorting():
         card.side = side
         test_group.append(card)
 
-    random.shuffle(test_group)
-    test_group.sort()
+    for _ in range(0, 500):
+        random.shuffle(test_group)
+        test_group.sort()
 
-    test_group_order = list(map(lambda x: (x.name, x.number, x.side), test_group))
+        test_group_order = list(map(lambda x: (x.name, x.number, x.side), test_group))
 
-    assert correct_order == test_group_order
+        assert correct_order == test_group_order
