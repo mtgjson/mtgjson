@@ -26,10 +26,13 @@ jobs:
         id: branch-name
         uses: tj-actions/branch-names@v5.1
 
+      - id: commit
+        uses: prompt/actions-commit-hash@v3
+
       - name: Generate Tag
         id: generate-tag
         run: |
-          echo "::set-output name=release_tag::mtgjson:$(date +"%Y-%m-%d_%H-%M")-${{ steps.branch-name.outputs.current_branch }}"
+          echo "::set-output name=release_tag::mtgjson:$(date +"%Y-%m-%d_%H-%M")-${{ steps.branch-name.outputs.current_branch }}-${{ steps.commit.outputs.short }}"
 
       - name: Build Image
         id: build-image
@@ -50,4 +53,4 @@ jobs:
           secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ECR_UPLOADER }}
           region: us-east-1
           local-image: ${{ steps.generate-tag.outputs.release_tag }}
-          image: ${{ steps.generate-tag.outputs.release_tag }}, mtgjson:latest
+          image: ${{ steps.generate-tag.outputs.release_tag }}, ${{ steps.commit.outputs.short }}, mtgjson:latest
