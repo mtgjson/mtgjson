@@ -32,7 +32,7 @@ jobs:
       - name: Generate Tag
         id: generate-tag
         run: |
-          echo "::set-output name=release_tag::mtgjson:$(date +"%Y-%m-%d_%H-%M")-${{ steps.branch-name.outputs.current_branch }}-${{ steps.commit.outputs.short }}"
+          echo "name=release_tag::mtgjson:$(date +"%Y-%m-%d_%H-%M")-${{ steps.branch-name.outputs.current_branch }}-${{ steps.commit.outputs.short }}" >> $GITHUB_OUTPUT
 
       - name: Build Image
         id: build-image
