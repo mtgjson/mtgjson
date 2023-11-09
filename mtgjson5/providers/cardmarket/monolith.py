@@ -284,4 +284,6 @@ class CardMarketProvider(AbstractProvider):
                 f"MKM had a parsing failure trying to build {mcm_id}: {exception}"
             )
 
+        for key in set_in_progress.keys():
+            set_in_progress[key].sort(key=lambda x: x.get("number"))
         return set_in_progress
