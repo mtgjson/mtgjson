@@ -265,6 +265,12 @@ class MtgjsonCardObject:
             if not self_side and not other_side:
                 return bool(self.number < other.number)
             return self_side < other_side
+
+        if self_number_clean_int == other_number_clean_int:
+            if len(self_number_clean) != len(other_number_clean):
+                return len(self_number_clean) < len(other_number_clean)
+            return self_side < other_side
+
         return self_number_clean_int < other_number_clean_int
 
     def set_illustration_ids(self, illustration_ids: List[str]) -> None:
