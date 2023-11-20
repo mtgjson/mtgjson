@@ -1118,12 +1118,18 @@ def build_mtgjson_card(
 
     # Add purchase URL components after UUIDs are finalized
     mtgjson_card.raw_purchase_urls.update(scryfall_object.get("purchase_uris", {}))
+    mtgjson_card.raw_purchase_urls.pop("tcgplayer", None)
     if "tcgplayer_id" in scryfall_object:
         mtgjson_card.identifiers.tcgplayer_product_id = str(
             scryfall_object["tcgplayer_id"]
         )
         mtgjson_card.purchase_urls.tcgplayer = url_keygen(
             mtgjson_card.identifiers.tcgplayer_product_id + mtgjson_card.uuid
+        )
+        mtgjson_card.raw_purchase_urls[
+            "tcgplayer"
+        ] = TCGPlayerProvider().product_url.format(
+            mtgjson_card.identifiers.tcgplayer_product_id
         )
     if "tcgplayer_etched_id" in scryfall_object:
         mtgjson_card.identifiers.tcgplayer_etched_product_id = str(
@@ -1132,11 +1138,10 @@ def build_mtgjson_card(
         mtgjson_card.purchase_urls.tcgplayer_etched = url_keygen(
             mtgjson_card.identifiers.tcgplayer_etched_product_id + mtgjson_card.uuid
         )
-        # Have to manually insert
-        mtgjson_card.raw_purchase_urls["tcgplayerEtched"] = (
-            "https://shop.tcgplayer.com/product/productsearch"
-            + f"?id={mtgjson_card.identifiers.tcgplayer_etched_product_id}"
-            + "&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson"
+        mtgjson_card.raw_purchase_urls[
+            "tcgplayerEtched"
+        ] = TCGPlayerProvider().product_url.format(
+            mtgjson_card.identifiers.tcgplayer_etched_product_id
         )
 
     add_related_cards(scryfall_object, mtgjson_card, is_token)

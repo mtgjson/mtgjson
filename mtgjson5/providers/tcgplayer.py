@@ -107,7 +107,10 @@ class TCGPlayerProvider(AbstractProvider):
         "jumpstart": 18,
         "theme": 12,
     }
-    product_url = "https://shop.tcgplayer.com/product/productsearch?id={}&utm_campaign=affiliate&utm_medium=api&utm_source=mtgjson"
+    product_url = (
+        "https://tcgplayer.pxf.io/c/4948039/1780961/21018?subId1=api&u="
+        "https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F{}%3Fpage%3D1"
+    )
 
     def __init__(self) -> None:
         """
