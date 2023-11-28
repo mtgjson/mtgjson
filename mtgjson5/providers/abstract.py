@@ -97,6 +97,7 @@ class AbstractProvider(abc.ABC):
         foil_key: str,
         retail_key: Optional[str] = None,
         buy_key: Optional[str] = None,
+        buy_quantity_key: Optional[str] = None,
     ) -> Dict[str, MtgjsonPricesObject]:
         """
         Generically convert price data to MTGJSON data format
@@ -107,6 +108,7 @@ class AbstractProvider(abc.ABC):
         :param foil_key: ID in each price data row to determine if card is foil or non-foil
         :param retail_key: Optional determination key to see if we have sell prices
         :param buy_key: Optional determination key to see if we have buy prices
+        :param buy_quantity_key: Optional determination key to check for quantity, for pruning
         :return Today's price setup in MTGJSON Price Format
         """
 
@@ -126,6 +128,8 @@ class AbstractProvider(abc.ABC):
                     if retail_key:
                         today_dict[mtgjson_uuid].sell_foil = float(data_row[retail_key])
                     if buy_key:
+                        if buy_quantity_key and data_row[buy_quantity_key] == 0:
+                            continue
                         today_dict[mtgjson_uuid].buy_foil = float(data_row[buy_key])
                 else:
                     if retail_key:
@@ -133,6 +137,8 @@ class AbstractProvider(abc.ABC):
                             data_row[retail_key]
                         )
                     if buy_key:
+                        if buy_quantity_key and data_row[buy_quantity_key] == 0:
+                            continue
                         today_dict[mtgjson_uuid].buy_normal = float(data_row[buy_key])
 
         return today_dict

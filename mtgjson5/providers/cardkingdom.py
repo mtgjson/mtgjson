@@ -99,6 +99,7 @@ class CardKingdomProvider(AbstractProvider):
             foil_key="is_foil",
             retail_key="price_retail",
             buy_key="price_buy",
+            buy_quantity_key="qty_buying",
         )
 
     def update_sealed_urls(
