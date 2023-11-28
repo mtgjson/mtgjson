@@ -21,11 +21,11 @@ from .classes import (
     MtgjsonRulingObject,
     MtgjsonSealedProductObject,
     MtgjsonSetObject,
+    MtgjsonTranslationsObject,
 )
 from .providers import (
     CardKingdomProvider,
     CardMarketProvider,
-    CardMarketProviderSetNameTranslations,
     EdhrecProviderCardRanks,
     FandomProviderSecretLair,
     GathererProvider,
@@ -406,6 +406,20 @@ def parse_keyrune_code(url: str) -> str:
     return upstream_to_keyrune_map.get(file_stem, file_stem)
 
 
+def get_translation_data(mtgjson_set_name: str) -> Optional[Dict[str, str]]:
+    """
+    Get translation data given a particular set name
+    :param mtgjson_set_name: Set name to try and find in translation data
+    :returns Translation data for the set, if found
+    """
+    with constants.RESOURCE_PATH.joinpath("mkm_set_name_translations.json").open(
+        encoding="utf-8"
+    ) as file:
+        translation_data: Dict[str, Dict[str, str]] = json.load(file)
+
+    return translation_data.get(mtgjson_set_name)
+
+
 def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     """
     Construct a MTGJSON Magic Set
@@ -444,10 +458,8 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.mcm_name = CardMarketProvider().get_set_name(mtgjson_set.name)
     mtgjson_set.mcm_id = CardMarketProvider().get_set_id(mtgjson_set.name)
     mtgjson_set.mcm_id_extras = CardMarketProvider().get_extras_set_id(mtgjson_set.name)
-    mtgjson_set.translations = (
-        CardMarketProviderSetNameTranslations().get_set_translation_object(
-            mtgjson_set.code
-        )
+    mtgjson_set.translations = MtgjsonTranslationsObject(
+        get_translation_data(mtgjson_set.name)
     )
 
     # Building cards is a process
