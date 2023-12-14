@@ -167,6 +167,7 @@ class MtgjsonSealedProductObject:
     purchase_urls: MtgjsonPurchaseUrlsObject
     raw_purchase_urls: Dict[str, str]
     release_date: Optional[str]
+    language: Optional[str]
     category: Optional[MtgjsonSealedProductCategory]
     subtype: Optional[MtgjsonSealedProductSubtype]
     contents: Optional[Dict[str, Any]]  # Enumerated product contents
