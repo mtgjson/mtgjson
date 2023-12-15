@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, List, Optional, Union
 
 import bs4
@@ -9,10 +10,12 @@ from mtgjson5.utils import retryable_session
 
 @singleton
 class FandomProviderSecretLair(AbstractProvider):
-    PAGE_URL = "https://mtg.fandom.com/wiki/Secret_Lair"
+    PAGE_URL = "https://mtg.fandom.com/wiki/Secret_Lair/Drop_Series"
+    logger: logging.Logger
 
     def __init__(self, headers: Optional[Dict[str, str]] = None):
         super().__init__(headers or {})
+        self.logger = logging.getLogger(__name__)
 
     def _build_http_header(self) -> Dict[str, str]:
         return {}
