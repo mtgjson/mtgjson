@@ -26,6 +26,7 @@ class MtgjsonIdentifiersObject:
     multiverse_id: Optional[str]
     scryfall_id: Optional[str]
     scryfall_illustration_id: Optional[str]
+    scryfall_card_back_id: Optional[str]
     scryfall_oracle_id: Optional[str]
     tcgplayer_etched_product_id: Optional[str]
     tcgplayer_product_id: Optional[str]
