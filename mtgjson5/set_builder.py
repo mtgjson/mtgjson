@@ -429,13 +429,13 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     # Output Object
     mtgjson_set = MtgjsonSetObject()
 
-    # Ensure we have a header for this set
-    set_data = get_scryfall_set_data(set_code)
+    # Attempt to load local set before getting from external provider
+    additional_sets_data = load_local_set_data()
+    set_data = additional_sets_data.get(
+        set_code.upper(), get_scryfall_set_data(set_code)
+    )
     if not set_data:
-        additional_sets_data = load_local_set_data()
-        set_data = additional_sets_data.get(set_code.upper())
-        if not set_data:
-            return None
+        return None
 
     # Explicit Variables
     mtgjson_set.name = set_data["name"].strip()
@@ -450,11 +450,12 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     mtgjson_set.is_foil_only = set_data.get("foil_only", "")
     mtgjson_set.is_non_foil_only = set_data.get("nonfoil_only", "")
     mtgjson_set.search_uri = set_data["search_uri"]
-    mtgjson_set.languages = (
-        ScryfallProviderSetLanguageDetector().get_set_printing_languages(
-            mtgjson_set.code
+    if set_code.upper() not in additional_sets_data:
+        mtgjson_set.languages = (
+            ScryfallProviderSetLanguageDetector().get_set_printing_languages(
+                mtgjson_set.code
+            )
         )
-    )
     mtgjson_set.mcm_name = CardMarketProvider().get_set_name(mtgjson_set.name)
     mtgjson_set.mcm_id = CardMarketProvider().get_set_id(mtgjson_set.name)
     mtgjson_set.mcm_id_extras = CardMarketProvider().get_extras_set_id(mtgjson_set.name)
