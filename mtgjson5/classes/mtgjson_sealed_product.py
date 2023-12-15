@@ -85,6 +85,8 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     # Typically for booster_box and booster_pack
     # These should match the booster values in Booster
     DEFAULT = "default"
+    DRAFT = "draft"
+    PLAY = "play"
     SET = "set"
     COLLECTOR = "collector"
     JUMPSTART = "jumpstart"
@@ -141,8 +143,6 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     # Anything else
     MINIMAL = "minimal_packaging"
     PREMIUM = "premium"
-    VIP = "vip"
-    DELUXE = "deluxe"
     ADVANCED = "advanced"
     OTHER = "other"
 
