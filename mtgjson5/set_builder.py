@@ -337,7 +337,7 @@ def add_rebalanced_to_original_linkage(mtgjson_set: MtgjsonSetObject) -> None:
 def relocate_miscellaneous_tokens(mtgjson_set: MtgjsonSetObject) -> None:
     """
     Sometimes tokens find their way into the main set. This will
-    remove them from the cards array and sets an internal market
+    remove them from the cards array and sets an internal marker
     to be dealt with later down the line
     :param mtgjson_set: MTGJSON Set object
     """
@@ -845,6 +845,7 @@ def build_mtgjson_card(
     mtgjson_card.identifiers.scryfall_illustration_id = scryfall_object.get(
         "illustration_id", face_data.get("illustration_id")
     )
+    mtgjson_card.identifiers.scryfall_card_back_id = scryfall_object["card_back_id"]
 
     if not mtgjson_card.colors:
         mtgjson_card.colors = (
