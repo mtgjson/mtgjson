@@ -79,6 +79,7 @@ class GitHubSealedProvider(AbstractProvider):
             product_obj = MtgjsonSealedProductObject()
             product_obj.name = sealed_product_name
             product_obj.release_date = sealed_product.get("release_date")
+            product_obj.language = sealed_product.get("language")
 
             try:
                 product_obj.category = getattr(
