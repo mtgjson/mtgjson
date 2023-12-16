@@ -164,7 +164,7 @@ def parallel_call(
     :return: Results from execution, with modifications if desired
     """
     def wrapper(wrapped_function: Callable, *wrapped_args: Any, **kwargs: Any) -> Any:
-        with gevent.Timeout(30):
+        with gevent.Timeout(45):
             return wrapped_function(*wrapped_args, **kwargs)
 
     pool = gevent.pool.Pool(pool_size)
