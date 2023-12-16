@@ -10,9 +10,9 @@ from typing import Any, Dict, List, Optional, Set, Union
 import requests
 import requests_cache
 
-from mtgjson5.classes import MtgjsonPricesObject
-from mtgjson5.mtgjson_config import MtgjsonConfig
-from mtgjson5.utils import retryable_session
+from ..classes import MtgjsonPricesObject
+from ..mtgjson_config import MtgjsonConfig
+from ..retryable_session import retryable_session
 
 LOGGER = logging.getLogger(__name__)
 

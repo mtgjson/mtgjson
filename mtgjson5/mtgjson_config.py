@@ -10,7 +10,7 @@ import boto3
 import botocore.exceptions
 from singleton_decorator import singleton
 
-from mtgjson5 import constants
+from . import constants
 
 
 @singleton

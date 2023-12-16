@@ -3,7 +3,7 @@ MTGJSON Singular Card.Identifiers Object
 """
 from typing import Dict, Optional
 
-from mtgjson5.utils import to_camel_case
+from ..utils import to_camel_case
 
 
 class MtgjsonIdentifiersObject:

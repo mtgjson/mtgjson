@@ -4,8 +4,7 @@ from typing import Dict, List, Optional, Union
 import bs4
 from singleton_decorator import singleton
 
-from mtgjson5.providers.abstract import AbstractProvider
-from mtgjson5.utils import retryable_session
+from ...providers.abstract import AbstractProvider
 
 
 @singleton

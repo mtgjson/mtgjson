@@ -5,7 +5,6 @@ from singleton_decorator import singleton
 
 from ...mtgjson_config import MtgjsonConfig
 from ...providers.abstract import AbstractProvider
-from ...utils import retryable_session
 
 LOGGER = logging.getLogger(__name__)
 

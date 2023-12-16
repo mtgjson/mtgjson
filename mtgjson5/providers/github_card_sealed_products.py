@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from singleton_decorator import singleton
 
-from mtgjson5.providers.abstract import AbstractProvider
+from ..providers.abstract import AbstractProvider
 
 LOGGER = logging.getLogger(__name__)
 

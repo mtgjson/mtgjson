@@ -5,7 +5,6 @@ from singleton_decorator import singleton
 
 from ...providers.abstract import AbstractProvider
 from ...providers.scryfall import sf_utils
-from ...utils import retryable_session
 
 
 @singleton

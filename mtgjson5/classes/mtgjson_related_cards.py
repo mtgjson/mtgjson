@@ -3,7 +3,7 @@ MTGJSON Related Cards Container
 """
 from typing import List
 
-from mtgjson5.classes.json_object import JsonObject
+from ..classes.json_object import JsonObject
 
 
 class MtgjsonRelatedCardsObject(JsonObject):
