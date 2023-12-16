@@ -2,6 +2,8 @@
 MTGJSON simple utilities
 """
 import collections
+import datetime
+import functools
 import hashlib
 import inspect
 import itertools
@@ -105,7 +107,7 @@ def retryable_session(
     """
     Session with requests to allow for re-attempts at downloading missing data
     :param retries: How many retries to attempt
-    :return: Session that does downloading
+    :return: Session that does the downloading
     """
     session: Union[requests.Session, requests_cache.CachedSession]
 
@@ -113,7 +115,9 @@ def retryable_session(
         stack = inspect.stack()
         calling_class = stack[1][0].f_locals["self"].__class__.__name__
         session = requests_cache.CachedSession(
-            str(constants.CACHE_PATH.joinpath(calling_class))
+            cache_name=str(constants.CACHE_PATH.joinpath(calling_class)),
+            expire_after=datetime.timedelta(days=1),
+            stale_if_error=True,
         )
     else:
         session = requests.Session()
@@ -129,8 +133,13 @@ def retryable_session(
     adapter = requests.adapters.HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
+    session.request = functools.partial(session.request, timeout=5)  # type: ignore
 
-    session.headers.update({"User-Agent": "Mozilla/5.0 Firefox/75.0 www.mtgjson.com"})
+    session.headers.update(
+        {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0"
+        }
+    )
     return session
 
 

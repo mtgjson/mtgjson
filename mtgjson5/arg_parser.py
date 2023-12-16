@@ -28,7 +28,7 @@ def parse_args() -> argparse.Namespace:
     sets_group.add_argument(
         "--sets",
         "-s",
-        type=str.upper,
+        type=lambda s: s.upper(),
         nargs="*",
         metavar="SET",
         default=[],
@@ -68,7 +68,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--skip-sets",
         "-SS",
-        type=str.upper,
+        type=lambda s: s.upper(),
         nargs="*",
         metavar="SET",
         default=[],

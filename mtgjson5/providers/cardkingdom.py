@@ -55,7 +55,8 @@ class CardKingdomProvider(AbstractProvider):
 
         return response.json()
 
-    def strip_sealed_name(self, product_name: str) -> str:
+    @staticmethod
+    def strip_sealed_name(product_name: str) -> str:
         """
         Cleans and strips sealed product names for easier comparison.
         """
