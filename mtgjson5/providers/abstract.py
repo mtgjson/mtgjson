@@ -7,8 +7,12 @@ import datetime
 import logging
 from typing import Any, Dict, List, Optional, Set, Union
 
+import requests
+import requests_cache
+
 from mtgjson5.classes import MtgjsonPricesObject
 from mtgjson5.mtgjson_config import MtgjsonConfig
+from mtgjson5.utils import retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,13 +23,14 @@ class AbstractProvider(abc.ABC):
     """
 
     class_id: str
-    session_header: Dict[str, str]
+    session: Union[requests.Session, requests_cache.CachedSession]
     today_date: str = datetime.datetime.today().strftime("%Y-%m-%d")
 
     def __init__(self, headers: Dict[str, str]) -> None:
         super().__init__()
         self.class_id = ""
-        self.session_header = headers
+        self.session = retryable_session()
+        self.session.headers.update(headers)
 
     # Abstract Methods
     @abc.abstractmethod

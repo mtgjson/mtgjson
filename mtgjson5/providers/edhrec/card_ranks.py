@@ -23,10 +23,7 @@ class EdhrecProviderCardRanks(AbstractProvider):
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
     ) -> Any:
-        session = retryable_session()
-        session.headers.update(self.session_header)
-
-        response = session.get(url)
+        response = self.session.get(url)
         self.log_download(response)
 
         return response.json()

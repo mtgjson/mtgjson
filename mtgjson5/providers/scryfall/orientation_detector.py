@@ -41,9 +41,7 @@ class ScryfallProviderOrientationDetector(AbstractProvider):
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
     ) -> str:
-        session = retryable_session()
-        session.headers.update(self.session_header)
-        response = session.get(url)
+        response = self.session.get(url)
         self.log_download(response)
         return response.text
 

@@ -163,6 +163,7 @@ def parallel_call(
     :param pool_size: How large the gevent pool should be
     :return: Results from execution, with modifications if desired
     """
+
     def wrapper(wrapped_function: Callable, *wrapped_args: Any, **kwargs: Any) -> Any:
         with gevent.Timeout(45):
             return wrapped_function(*wrapped_args, **kwargs)
@@ -171,7 +172,9 @@ def parallel_call(
 
     if repeatable_args:
         extra_args_rep = [itertools.repeat(arg) for arg in repeatable_args]
-        results = pool.map(lambda g_args: wrapper(function, *g_args), zip(args, *extra_args_rep))
+        results = pool.map(
+            lambda g_args: wrapper(function, *g_args), zip(args, *extra_args_rep)
+        )
     elif force_starmap:
         results = pool.map(lambda g_args: wrapper(function, *g_args), args)
     else:

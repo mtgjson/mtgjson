@@ -15,7 +15,7 @@ from ..classes.mtgjson_deck import MtgjsonDeckObject
 from ..compiled_classes.mtgjson_structures import MtgjsonStructuresObject
 from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
-from ..utils import parallel_call, retryable_session
+from ..utils import parallel_call
 
 LOGGER = logging.getLogger(__name__)
 
@@ -105,9 +105,7 @@ class GitHubDecksProvider(AbstractProvider):
         :param url: Download URL
         :param params: Options for URL download
         """
-        session = retryable_session()
-
-        response = session.get(url)
+        response = self.session.get(url)
         self.log_download(response)
         if response.ok:
             return response.json()

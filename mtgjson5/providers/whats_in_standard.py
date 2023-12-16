@@ -10,7 +10,6 @@ import dateutil.parser
 from singleton_decorator import singleton
 
 from ..providers.abstract import AbstractProvider
-from ..utils import retryable_session
 
 
 @singleton
@@ -48,8 +47,7 @@ class WhatsInStandardProvider(AbstractProvider):
         :param url: URL to download from
         :param params: Options for URL download
         """
-        session = retryable_session()
-        response = session.get(url)
+        response = self.session.get(url)
         self.log_download(response)
         if not response.ok:
             self.logger.error(

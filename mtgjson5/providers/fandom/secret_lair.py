@@ -28,8 +28,7 @@ class FandomProviderSecretLair(AbstractProvider):
         for user consumption
         :returns Mapping of Card ID to Secret Lair Drop Name
         """
-        session = retryable_session()
-        response = session.get(url if url else self.PAGE_URL)
+        response = self.session.get(url if url else self.PAGE_URL)
         self.log_download(response)
 
         return self.__parse_secret_lair_table(response.text)

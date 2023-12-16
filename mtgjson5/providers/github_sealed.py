@@ -12,7 +12,7 @@ from ..classes import (
     MtgjsonSealedProductSubtype,
 )
 from ..providers.abstract import AbstractProvider
-from ..utils import retryable_session, to_snake_case
+from ..utils import to_snake_case
 
 LOGGER = logging.getLogger(__name__)
 
@@ -51,9 +51,7 @@ class GitHubSealedProvider(AbstractProvider):
         :param url: Download URL
         :param params: Options for URL download
         """
-        session = retryable_session()
-
-        response = session.get(url)
+        response = self.session.get(url)
         self.log_download(response)
         if response.ok:
             return response.json()

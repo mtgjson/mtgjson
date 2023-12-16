@@ -30,7 +30,7 @@ def build_mtgjson_sets(
     :param include_referrals: Should we include referrals
     """
     from mtgjson5.output_generator import write_to_file
-    from mtgjson5.providers import WhatsInStandardProvider
+    from mtgjson5.providers import GathererProvider, WhatsInStandardProvider
     from mtgjson5.referral_builder import (
         build_and_write_referral_map,
         fixup_referral_map,
@@ -39,8 +39,9 @@ def build_mtgjson_sets(
 
     LOGGER.info(f"Building {len(sets_to_build)} Sets: {', '.join(sets_to_build)}")
 
-    # Prime WhatsInStandard lookup
-    _ = WhatsInStandardProvider().standard_legal_set_codes
+    # Prime lookups
+    _ = WhatsInStandardProvider()
+    _ = GathererProvider()
 
     for set_to_build in sets_to_build:
         # Build the full set

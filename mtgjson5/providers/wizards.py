@@ -10,7 +10,6 @@ import requests
 from singleton_decorator import singleton
 
 from ..providers.abstract import AbstractProvider
-from ..utils import retryable_session
 
 
 @singleton
@@ -44,9 +43,7 @@ class WizardsProvider(AbstractProvider):
         :param params: Not used
         :return: Response
         """
-        session = retryable_session()
-        session.headers.update(self.session_header)
-        response = session.get(url)
+        response = self.session.get(url)
         self.log_download(response)
         return response
 

@@ -31,10 +31,8 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
         params: Optional[Dict[str, Union[str, int]]] = None,
         retry_ttl: int = 3,
     ) -> Any:
-        session = retryable_session()
-
         try:
-            response = session.get(url)
+            response = self.session.get(url)
             self.log_download(response)
         except requests.exceptions.ChunkedEncodingError as error:
             if retry_ttl:
