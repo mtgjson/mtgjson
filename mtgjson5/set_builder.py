@@ -23,6 +23,7 @@ from .classes import (
     MtgjsonSetObject,
     MtgjsonTranslationsObject,
 )
+from .parallel_call import parallel_call
 from .providers import (
     CardKingdomProvider,
     CardMarketProvider,
@@ -41,7 +42,7 @@ from .providers import (
     TCGPlayerProvider,
     WhatsInStandardProvider,
 )
-from .utils import get_str_or_none, load_local_set_data, parallel_call, url_keygen
+from .utils import get_str_or_none, load_local_set_data, url_keygen
 
 LOGGER = logging.getLogger(__name__)
 

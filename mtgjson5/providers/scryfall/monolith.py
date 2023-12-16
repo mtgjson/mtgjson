@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional, Set, Union
 
 import ratelimit
 import requests.exceptions
-import requests_cache
 from singleton_decorator import singleton
 
 from ... import constants

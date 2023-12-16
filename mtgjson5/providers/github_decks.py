@@ -14,8 +14,8 @@ from ..classes import MtgjsonCardObject
 from ..classes.mtgjson_deck import MtgjsonDeckObject
 from ..compiled_classes.mtgjson_structures import MtgjsonStructuresObject
 from ..mtgjson_config import MtgjsonConfig
+from ..parallel_call import parallel_call
 from ..providers.abstract import AbstractProvider
-from ..utils import parallel_call
 
 LOGGER = logging.getLogger(__name__)
 

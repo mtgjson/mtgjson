@@ -13,8 +13,9 @@ from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..mtgjson_config import MtgjsonConfig
+from ..parallel_call import parallel_call
 from ..providers.abstract import AbstractProvider
-from ..utils import generate_card_mapping, parallel_call
+from ..utils import generate_card_mapping
 
 LOGGER = logging.getLogger(__name__)
 
