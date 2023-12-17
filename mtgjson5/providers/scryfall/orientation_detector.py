@@ -5,7 +5,6 @@ from singleton_decorator import singleton
 
 from ...providers.abstract import AbstractProvider
 from ...providers.scryfall import sf_utils
-from ...utils import retryable_session
 
 
 @singleton
@@ -41,9 +40,7 @@ class ScryfallProviderOrientationDetector(AbstractProvider):
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
     ) -> str:
-        session = retryable_session()
-        session.headers.update(self.session_header)
-        response = session.get(url)
+        response = self.session.get(url)
         self.log_download(response)
         return response.text
 

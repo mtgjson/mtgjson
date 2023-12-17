@@ -16,7 +16,6 @@ from singleton_decorator import singleton
 from ... import constants
 from ...mtgjson_config import MtgjsonConfig
 from ...providers.abstract import AbstractProvider
-from ...utils import retryable_session
 from . import sf_utils
 
 LOGGER = logging.getLogger(__name__)
@@ -105,11 +104,8 @@ class ScryfallProvider(AbstractProvider):
         :param params: Options for URL download
         :param retry_ttl: How many times to retry if Chunk Error
         """
-        session = retryable_session()
-        session.headers.update(self.session_header)
-
         try:
-            response = session.get(url)
+            response = self.session.get(url)
             self.log_download(response)
         except requests.exceptions.ChunkedEncodingError as error:
             if retry_ttl:

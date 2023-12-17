@@ -3,23 +3,18 @@ MTGJSON simple utilities
 """
 import collections
 import hashlib
-import inspect
-import itertools
 import json
 import logging
 import os
 import pathlib
 import time
-from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
 
-import gevent.pool
 import requests
 import requests.adapters
-import requests_cache
-import urllib3
 
-from mtgjson5 import constants
-from mtgjson5.mtgjson_config import MtgjsonConfig
+from . import constants
+from .mtgjson_config import MtgjsonConfig
 
 LOGGER = logging.getLogger(__name__)
 
@@ -97,80 +92,6 @@ def parse_magic_rules_subset(
     valid_line_segments = "\n".join(magic_rules.splitlines())
 
     return valid_line_segments
-
-
-def retryable_session(
-    retries: int = 8,
-) -> Union[requests.Session, requests_cache.CachedSession]:
-    """
-    Session with requests to allow for re-attempts at downloading missing data
-    :param retries: How many retries to attempt
-    :return: Session that does downloading
-    """
-    session: Union[requests.Session, requests_cache.CachedSession]
-
-    if MtgjsonConfig().use_cache:
-        stack = inspect.stack()
-        calling_class = stack[1][0].f_locals["self"].__class__.__name__
-        session = requests_cache.CachedSession(
-            str(constants.CACHE_PATH.joinpath(calling_class))
-        )
-    else:
-        session = requests.Session()
-
-    retry = urllib3.util.retry.Retry(
-        total=retries,
-        read=retries,
-        connect=retries,
-        backoff_factor=0.3,
-        status_forcelist=(500, 502, 504),
-    )
-
-    adapter = requests.adapters.HTTPAdapter(max_retries=retry)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-
-    session.headers.update({"User-Agent": "Mozilla/5.0 Firefox/75.0 www.mtgjson.com"})
-    return session
-
-
-def parallel_call(
-    function: Callable,
-    args: Any,
-    repeatable_args: Optional[Union[Tuple[Any, ...], List[Any]]] = None,
-    fold_list: bool = False,
-    fold_dict: bool = False,
-    force_starmap: bool = False,
-    pool_size: int = 32,
-) -> Any:
-    """
-    Execute a function in parallel
-    :param function: Function to execute
-    :param args: Args to pass to the function
-    :param repeatable_args: Repeatable args to pass with the original args
-    :param fold_list: Compress the results into a 1D list
-    :param fold_dict: Compress the results into a single dictionary
-    :param force_starmap: Force system to use Starmap over normal selection process
-    :param pool_size: How large the gevent pool should be
-    :return: Results from execution, with modifications if desired
-    """
-    pool = gevent.pool.Pool(pool_size)
-
-    if repeatable_args:
-        extra_args_rep = [itertools.repeat(arg) for arg in repeatable_args]
-        results = pool.map(lambda g_args: function(*g_args), zip(args, *extra_args_rep))
-    elif force_starmap:
-        results = pool.map(lambda g_args: function(*g_args), args)
-    else:
-        results = pool.map(function, args)
-
-    if fold_list:
-        return list(itertools.chain.from_iterable(results))
-
-    if fold_dict:
-        return dict(collections.ChainMap(*results))
-
-    return results
 
 
 def sort_internal_lists(data: Any) -> Any:

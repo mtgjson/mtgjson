@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional, Union
 from singleton_decorator import singleton
 
 from ..providers.abstract import AbstractProvider
-from ..utils import retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -39,9 +38,7 @@ class GathererProvider(AbstractProvider):
         :param url: Download URL
         :param params: Options for URL download
         """
-        session = retryable_session()
-
-        response = session.get(url)
+        response = self.session.get(url)
         self.log_download(response)
         if response.ok:
             return response.json()

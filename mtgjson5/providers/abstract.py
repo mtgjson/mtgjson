@@ -7,11 +7,12 @@ import datetime
 import logging
 from typing import Any, Dict, List, Optional, Set, Union
 
+import requests
 import requests_cache
 
-from mtgjson5 import constants
-from mtgjson5.classes import MtgjsonPricesObject
-from mtgjson5.mtgjson_config import MtgjsonConfig
+from ..classes import MtgjsonPricesObject
+from ..mtgjson_config import MtgjsonConfig
+from ..retryable_session import retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,14 +23,14 @@ class AbstractProvider(abc.ABC):
     """
 
     class_id: str
-    session_header: Dict[str, str]
+    session: Union[requests.Session, requests_cache.CachedSession]
     today_date: str = datetime.datetime.today().strftime("%Y-%m-%d")
 
-    def __init__(self, headers: Dict[str, str]):
+    def __init__(self, headers: Dict[str, str]) -> None:
         super().__init__()
         self.class_id = ""
-        self.session_header = headers
-        self.__install_cache()
+        self.session = retryable_session()
+        self.session.headers.update(headers)
 
     # Abstract Methods
     @abc.abstractmethod
@@ -75,18 +76,6 @@ class AbstractProvider(abc.ABC):
         LOGGER.debug(
             f"Downloaded {response.url} (Cache = {response.from_cache if MtgjsonConfig().use_cache else False})"
         )
-
-    # Private Methods
-    def __install_cache(self) -> None:
-        """
-        Initiate the MTGJSON cache for requests
-        (Useful for development and re-running often)
-        """
-        if MtgjsonConfig().use_cache:
-            constants.CACHE_PATH.mkdir(exist_ok=True)
-            requests_cache.install_cache(
-                str(constants.CACHE_PATH.joinpath(self.get_class_name()))
-            )
 
     @staticmethod
     def generic_generate_today_price_dict(

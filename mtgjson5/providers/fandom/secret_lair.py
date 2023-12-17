@@ -4,8 +4,7 @@ from typing import Dict, List, Optional, Union
 import bs4
 from singleton_decorator import singleton
 
-from mtgjson5.providers.abstract import AbstractProvider
-from mtgjson5.utils import retryable_session
+from ...providers.abstract import AbstractProvider
 
 
 @singleton
@@ -28,8 +27,7 @@ class FandomProviderSecretLair(AbstractProvider):
         for user consumption
         :returns Mapping of Card ID to Secret Lair Drop Name
         """
-        session = retryable_session()
-        response = session.get(url if url else self.PAGE_URL)
+        response = self.session.get(url if url else self.PAGE_URL)
         self.log_download(response)
 
         return self.__parse_secret_lair_table(response.text)

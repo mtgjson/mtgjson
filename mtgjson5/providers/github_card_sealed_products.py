@@ -6,8 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from singleton_decorator import singleton
 
-from mtgjson5.providers.abstract import AbstractProvider
-from mtgjson5.utils import retryable_session
+from ..providers.abstract import AbstractProvider
 
 LOGGER = logging.getLogger(__name__)
 
@@ -34,9 +33,7 @@ class GitHubCardSealedProductsProvider(AbstractProvider):
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
     ) -> Any:
-        session = retryable_session()
-
-        response = session.get(url)
+        response = self.session.get(url)
         self.log_download(response)
         if response.ok:
             return response.json()

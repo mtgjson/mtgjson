@@ -8,7 +8,6 @@ from singleton_decorator import singleton
 
 from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
-from ..utils import retryable_session
 
 LOGGER = logging.getLogger(__name__)
 
@@ -61,10 +60,7 @@ class MTGBanProvider(AbstractProvider):
         :param url: URL to download from
         :param params: Options for URL download
         """
-        session = retryable_session()
-        session.headers.update(self.session_header)
-
-        response = session.get(url)
+        response = self.session.get(url)
         self.log_download(response)
 
         return response.json()

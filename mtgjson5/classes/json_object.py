@@ -4,7 +4,7 @@ MTGJSON Top Level Object
 import abc
 from typing import Any, Dict, List
 
-from mtgjson5.utils import to_camel_case
+from ..utils import to_camel_case
 
 
 class JsonObject(abc.ABC):

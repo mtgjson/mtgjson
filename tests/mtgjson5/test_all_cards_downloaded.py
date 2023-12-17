@@ -14,8 +14,8 @@ def test(card_name_to_find, card_number_to_find, set_code):
     """
     These cards have gone missing in the past due to upstream caching issues
     """
-    scryfall_data = mtgjson5.providers.scryfall.monolith.ScryfallProvider().download_cards(
-        set_code
+    scryfall_data = (
+        mtgjson5.providers.scryfall.monolith.ScryfallProvider().download_cards(set_code)
     )
 
     scryfall_data_map_name = {card["name"]: card for card in scryfall_data}

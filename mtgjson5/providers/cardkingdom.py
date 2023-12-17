@@ -11,7 +11,7 @@ from singleton_decorator import singleton
 from .. import constants
 from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..providers.abstract import AbstractProvider
-from ..utils import generate_card_mapping, retryable_session
+from ..utils import generate_card_mapping
 
 LOGGER = logging.getLogger(__name__)
 
@@ -47,15 +47,13 @@ class CardKingdomProvider(AbstractProvider):
         :param url: URL to download from
         :param params: Options for URL download
         """
-        session = retryable_session()
-        session.headers.update(self.session_header)
-
-        response = session.get(url)
+        response = self.session.get(url)
         self.log_download(response)
 
         return response.json()
 
-    def strip_sealed_name(self, product_name: str) -> str:
+    @staticmethod
+    def strip_sealed_name(product_name: str) -> str:
         """
         Cleans and strips sealed product names for easier comparison.
         """

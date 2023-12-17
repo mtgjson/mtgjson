@@ -66,7 +66,8 @@ class GitHubMTGSqliteProvider(AbstractProvider):
         except subprocess.CalledProcessError as error:
             LOGGER.error(f"Unable to pip install: {error}")
 
-    def build_alternative_formats(self) -> None:
+    @staticmethod
+    def build_alternative_formats() -> None:
         """
         Call to external MTGSqlive to compile CSV and SQL output files
         """

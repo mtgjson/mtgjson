@@ -13,8 +13,9 @@ from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..mtgjson_config import MtgjsonConfig
+from ..parallel_call import parallel_call
 from ..providers.abstract import AbstractProvider
-from ..utils import generate_card_mapping, parallel_call, retryable_session
+from ..utils import generate_card_mapping
 
 LOGGER = logging.getLogger(__name__)
 
@@ -181,9 +182,7 @@ class TCGPlayerProvider(AbstractProvider):
         :param url: URL to download from
         :param params: Options for URL download
         """
-        session = retryable_session()
-        session.headers.update(self.session_header)
-        response = session.get(
+        response = self.session.get(
             url.replace("[API_VERSION]", self.api_version), params=params
         )
         self.log_download(response)
