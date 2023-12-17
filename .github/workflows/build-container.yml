@@ -18,13 +18,13 @@ jobs:
     steps:
       - name: Checkout Repository
         id: checkout-repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Get Branch Name
         id: branch-name
-        uses: tj-actions/branch-names@v7.0.7
+        uses: tj-actions/branch-names@v8
 
       - id: commit
         uses: prompt/actions-commit-hash@v3
@@ -40,7 +40,7 @@ jobs:
 
       - name: Upload Image to GitHub Actions Archive
         id: upload-gha
-        uses: ishworkh/docker-image-artifact-upload@v1
+        uses: ishworkh/docker-image-artifact-upload@v2
         with:
           image: ${{ steps.generate-tag.outputs.release_tag }}
 
