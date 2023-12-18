@@ -5,6 +5,7 @@ import abc
 import copy
 import datetime
 import logging
+from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Union
 
 import requests
@@ -77,8 +78,8 @@ class AbstractProvider(abc.ABC):
             f"Downloaded {response.url} (Cache = {response.from_cache if MtgjsonConfig().use_cache else False})"
         )
 
-    @staticmethod
     def generic_generate_today_price_dict(
+        self,
         third_party_to_mtgjson: Dict[str, Set[Any]],
         price_data_rows: List[Dict[str, Any]],
         card_platform_id_key: str,
@@ -100,8 +101,9 @@ class AbstractProvider(abc.ABC):
         :param buy_quantity_key: Optional determination key to check for quantity, for pruning
         :return Today's price setup in MTGJSON Price Format
         """
-
-        today_dict: Dict[str, MtgjsonPricesObject] = {}
+        today_dict: Dict[str, MtgjsonPricesObject] = defaultdict(
+            lambda: copy.copy(default_prices_object)
+        )
 
         for data_row in price_data_rows:
             third_party_id = str(data_row[card_platform_id_key])
@@ -110,24 +112,31 @@ class AbstractProvider(abc.ABC):
 
             mtgjson_uuids = third_party_to_mtgjson[third_party_id]
             for mtgjson_uuid in mtgjson_uuids:
-                if mtgjson_uuid not in today_dict:
-                    today_dict[mtgjson_uuid] = copy.copy(default_prices_object)
+                is_foil = data_row[foil_key] == "true"
 
-                if data_row[foil_key] == "true":
-                    if retail_key:
-                        today_dict[mtgjson_uuid].sell_foil = float(data_row[retail_key])
-                    if buy_key:
-                        if buy_quantity_key and data_row[buy_quantity_key] == 0:
-                            continue
-                        today_dict[mtgjson_uuid].buy_foil = float(data_row[buy_key])
-                else:
-                    if retail_key:
-                        today_dict[mtgjson_uuid].sell_normal = float(
-                            data_row[retail_key]
-                        )
-                    if buy_key:
-                        if buy_quantity_key and data_row[buy_quantity_key] == 0:
-                            continue
-                        today_dict[mtgjson_uuid].buy_normal = float(data_row[buy_key])
+                if retail_key:
+                    price_field_name = self.get_price_field_name(is_foil, True)
+                    price = float(data_row[retail_key])
+                    setattr(today_dict[mtgjson_uuid], price_field_name, price)
+
+                if buy_key:
+                    if buy_quantity_key and data_row[buy_quantity_key] == 0:
+                        continue
+
+                    price_field_name = self.get_price_field_name(is_foil)
+                    price = float(data_row[buy_key])
+                    setattr(today_dict[mtgjson_uuid], price_field_name, price)
 
         return today_dict
+
+    @staticmethod
+    def get_price_field_name(is_foil: bool, is_sell: bool = False) -> str:
+        """
+        Determine what MtgjsonPricesObject field needs to be set based on params
+        :param is_foil: Is the card foil?
+        :param is_sell: Is the card a sell option? (Or a buy option?)
+        :return MtgjsonPricesObject key to set
+        """
+        if is_foil:
+            return "sell_foil" if is_sell else "buy_foil"
+        return "sell_normal" if is_sell else "buy_normal"
