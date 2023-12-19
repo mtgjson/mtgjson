@@ -36,22 +36,20 @@ class CardHoarderProvider(AbstractProvider):
         :return: Authorization header
         """
         headers: Dict[str, str] = {}
-        __keys_found: bool
 
         if not MtgjsonConfig().has_section("CardHoarder"):
-            LOGGER.warning("CardHoarder section not established. Skipping upload")
-            self.__keys_found = False
+            LOGGER.warning(
+                "CardHoarder config section not established. Skipping requests"
+            )
             self.ch_api_url = ""
             return headers
 
         if MtgjsonConfig().has_option("CardHoarder", "token"):
-            self.__keys_found = True
             self.ch_api_url = self.ch_api_url.format(
                 MtgjsonConfig().get("CardHoarder", "token")
             )
         else:
             LOGGER.info("CardHoarder keys values missing. Skipping pricing")
-            self.__keys_found = False
             self.ch_api_url = ""
 
         return headers
@@ -65,6 +63,9 @@ class CardHoarderProvider(AbstractProvider):
         :param url: URL to download from
         :param params: Options for URL download
         """
+        if "http" not in url:
+            return ""
+
         response = self.session.get(url)
         self.log_download(response)
 
@@ -83,6 +84,8 @@ class CardHoarderProvider(AbstractProvider):
         mtgjson_price_map = {}
 
         request_api_response: str = self.download(url_to_parse)
+        if not request_api_response:
+            return {}
 
         # All Entries from CH, cutting off headers
         file_rows: List[str] = request_api_response.splitlines()[2:]
@@ -112,9 +115,6 @@ class CardHoarderProvider(AbstractProvider):
         Generate a single-day price structure for MTGO from CardHoarder
         :return MTGJSON prices single day structure
         """
-        if not self.__keys_found:
-            return {}
-
         mtgo_to_mtgjson_map = self.get_mtgo_to_mtgjson_map(all_printings_path)
 
         normal_cards = self.convert_cardhoarder_to_mtgjson(
