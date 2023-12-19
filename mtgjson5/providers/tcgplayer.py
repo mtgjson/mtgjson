@@ -1,11 +1,13 @@
 """
 TCGPlayer 3rd party provider
 """
+import copy
 import enum
 import json
 import logging
 import pathlib
 import re
+from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import requests
@@ -85,7 +87,6 @@ class TCGPlayerProvider(AbstractProvider):
 
     api_version: str = ""
     tcg_to_mtgjson_map: Dict[str, str]
-    __keys_found: bool
     product_types = [
         "Booster Box",
         "Booster Pack",
@@ -124,8 +125,7 @@ class TCGPlayerProvider(AbstractProvider):
         Construct the Authorization header for CardHoarder
         :return: Authorization header
         """
-        headers = {"Authorization": f"Bearer {self._request_tcgplayer_bearer()}"}
-        return headers
+        return {"Authorization": f"Bearer {self._request_tcgplayer_bearer()}"}
 
     def _request_tcgplayer_bearer(self) -> str:
         """
@@ -136,8 +136,9 @@ class TCGPlayerProvider(AbstractProvider):
         """
 
         if not MtgjsonConfig().has_section("TCGPlayer"):
-            LOGGER.warning("TCGPlayer section not established. Skipping requests")
-            self.__keys_found = False
+            LOGGER.warning(
+                "TCGPlayer config section not established. Skipping requests"
+            )
             return ""
 
         if not (
@@ -145,10 +146,8 @@ class TCGPlayerProvider(AbstractProvider):
             and MtgjsonConfig().has_option("TCGPlayer", "client_secret")
         ):
             LOGGER.warning("TCGPlayer keys not established. Skipping requests")
-            self.__keys_found = False
             return ""
 
-        self.__keys_found = True
         tcg_post = requests.post(
             "https://api.tcgplayer.com/token",
             data={
@@ -197,24 +196,19 @@ class TCGPlayerProvider(AbstractProvider):
         api_offset = 0
 
         while True:
-            api_response = self.download(
+            response = self.get_api_results(
                 "https://api.tcgplayer.com/[API_VERSION]/catalog/categories/1/groups",
                 {"offset": str(api_offset)},
             )
 
-            if not api_response:
+            if not response:
                 # No more entries
                 break
 
-            response = json.loads(api_response)
-            if not response["results"]:
-                # Something went wrong
-                break
-
-            for magic_set in response["results"]:
+            for magic_set in response:
                 magic_set_ids.append((magic_set["groupId"], magic_set["name"]))
 
-            api_offset += len(response["results"])
+            api_offset += len(response)
 
         return magic_set_ids
 
@@ -226,27 +220,24 @@ class TCGPlayerProvider(AbstractProvider):
         :param all_printings_path Path to AllPrintings.json for pre-processing
         :return: Prices to combine with others
         """
-        if not self.__keys_found:
-            LOGGER.warning("Keys not found for TCGPlayer, skipping")
-            return {}
-
         ids_and_names = self.get_tcgplayer_magic_set_ids()
-        tcg_to_mtgjson_map = generate_card_mapping(
+        tcg_foil_and_non_foil_to_mtgjson_map = generate_card_mapping(
             all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
         )
-        tcg_to_mtgjson_map.update(
-            generate_card_mapping(
-                all_printings_path,
-                ("identifiers", "tcgplayerEtchedProductId"),
-                ("uuid",),
-            )
+        tcg_etched_foil_to_mtgjson_map = generate_card_mapping(
+            all_printings_path,
+            ("identifiers", "tcgplayerEtchedProductId"),
+            ("uuid",),
         )
 
         LOGGER.info("Building TCGPlayer buylist data")
         buylist_dict = parallel_call(
             get_tcgplayer_buylist_prices_map,
             ids_and_names,
-            repeatable_args=[tcg_to_mtgjson_map],
+            repeatable_args=[
+                tcg_foil_and_non_foil_to_mtgjson_map,
+                tcg_etched_foil_to_mtgjson_map,
+            ],
             fold_dict=True,
         )
 
@@ -254,7 +245,10 @@ class TCGPlayerProvider(AbstractProvider):
         retail_dict = parallel_call(
             get_tcgplayer_prices_map,
             ids_and_names,
-            repeatable_args=[tcg_to_mtgjson_map],
+            repeatable_args=[
+                tcg_foil_and_non_foil_to_mtgjson_map,
+                tcg_etched_foil_to_mtgjson_map,
+            ],
             fold_dict=True,
         )
 
@@ -262,9 +256,9 @@ class TCGPlayerProvider(AbstractProvider):
         # As such, we will do the deep merge manually
         combined_listings = buylist_dict.copy()
         for key, value in combined_listings.items():
-            if key in retail_dict:
-                combined_listings[key].sell_normal = retail_dict[key].sell_normal
-                combined_listings[key].sell_foil = retail_dict[key].sell_foil
+            for retail_key, retail_value in retail_dict.get(key, {}).items():
+                if retail_value:
+                    setattr(combined_listings[key], retail_key, retail_value)
         for key, value in retail_dict.items():
             if key not in combined_listings:
                 combined_listings[key] = value
@@ -286,155 +280,220 @@ class TCGPlayerProvider(AbstractProvider):
                     sealed_product.identifiers.tcgplayer_product_id
                 )
 
+    def get_tcgplayer_sku_data(
+        self, group_id_and_name: Tuple[str, str]
+    ) -> List[Dict[str, Any]]:
+        """
+        Finds all sku data for a given group using the TCGPlayer API
+        :param group_id_and_name: group id and name for the set to get data for
+        :return: product data including skus to be parsed into a sku map
+        """
+        magic_set_product_data = []
+        api_offset = 0
 
-def get_tcgplayer_sku_data(group_id_and_name: Tuple[str, str]) -> List[Dict[str, Any]]:
-    """
-    Finds all sku data for a given group using the TCGPlayer API
-    :param group_id_and_name: group id and name for the set to get data for
-    :return: product data including skus to be parsed into a sku map
-    """
-    magic_set_product_data = []
-    api_offset = 0
+        while True:
+            results = self.get_api_results(
+                "https://api.tcgplayer.com/catalog/products",
+                {
+                    "offset": str(api_offset),
+                    "limit": 100,
+                    "categoryId": 1,
+                    "includeSkus": True,
+                    "groupId": group_id_and_name[0],
+                },
+            )
 
-    while True:
-        api_response = TCGPlayerProvider().download(
-            "https://api.tcgplayer.com/catalog/products",
-            {
-                "offset": str(api_offset),
-                "limit": 100,
-                "categoryId": 1,
-                "includeSkus": True,
-                "groupId": group_id_and_name[0],
-            },
-        )
+            if not results:
+                # No more entries
+                break
 
+            magic_set_product_data.extend(results)
+            api_offset += len(results)
+
+        return magic_set_product_data
+
+    def get_tcgplayer_sealed_data(
+        self, group_id: Optional[int]
+    ) -> List[Dict[str, Any]]:
+        """
+        Finds all sealed product for a given group
+        :param group_id: group id for the set to get data for
+        :return: sealed product data with extended fields
+        """
+        magic_set_sealed_data = []
+        api_offset = 0
+
+        while True:
+            results = self.get_api_results(
+                "https://api.tcgplayer.com/catalog/products",
+                {
+                    "offset": str(api_offset),
+                    "limit": 100,
+                    "categoryId": 1,
+                    "groupId": str(group_id),
+                    "getExtendedFields": True,
+                    "productTypes": ",".join(TCGPlayerProvider().product_types),
+                },
+            )
+
+            if not results:
+                # No more entries
+                break
+
+            magic_set_sealed_data.extend(results)
+            api_offset += len(results)
+
+            # If we got fewer results than requested, no more data is needed
+            if len(results) < 100:
+                break
+
+        return magic_set_sealed_data
+
+    @staticmethod
+    def get_tcgplayer_sku_map(
+        tcgplayer_set_sku_data: List[Dict[str, Any]],
+    ) -> Dict[str, Dict[str, Optional[int]]]:
+        """
+        takes product info and builds a sku map
+        :param tcgplayer_set_sku_data: list of product data dicts used to a build a product id to sku map
+        :return: Map of TCGPlayerID -> NM Foil and Nonfoil SKU
+        """
+        tcgplayer_sku_map = {}
+
+        for product_data in tcgplayer_set_sku_data:
+            map_entry = {}
+
+            for sku in product_data["skus"]:
+                if CardCondition(sku["conditionId"]) is not CardCondition.NEAR_MINT:
+                    continue
+
+                if CardLanguage(sku["languageId"]) is not CardLanguage.ENGLISH:
+                    continue
+
+                if CardPrinting(sku["printingId"]) is CardPrinting.NON_FOIL:
+                    map_entry["nonfoil_sku"] = sku["skuId"]
+                elif CardPrinting(sku["printingId"]) is CardPrinting.FOIL:
+                    map_entry["foil_sku"] = sku["skuId"]
+                else:
+                    LOGGER.warning(f"TCGPlayer unidentified printing: {sku}")
+
+            product_id = str(product_data["productId"])
+            tcgplayer_sku_map[product_id] = map_entry
+
+        return tcgplayer_sku_map
+
+    def get_api_results(
+        self, tcg_api_url: str, params: Optional[Dict[str, Union[str, int]]] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get TCGPlayer API Results Object
+        :param tcg_api_url: Url to get data from
+        :param params: Params to pass to API call
+        :returns Pricing objects
+        """
+        api_response = self.download(tcg_api_url, params)
         if not api_response:
-            # No more entries
-            break
-
-        response = json.loads(api_response)
-        if not response["results"]:
-            # Something went wrong
-            break
-
-        magic_set_product_data.extend(response["results"])
-        api_offset += len(response["results"])
-
-    return magic_set_product_data
-
-
-def get_tcgplayer_sealed_data(group_id: Optional[int]) -> List[Dict[str, Any]]:
-    """
-    Finds all sealed product for a given group
-    :param group_id: group id for the set to get data for
-    :return: sealed product data with extended fields
-    """
-    magic_set_sealed_data = []
-    api_offset = 0
-
-    while True:
-        api_response = TCGPlayerProvider().download(
-            "https://api.tcgplayer.com/catalog/products",
-            {
-                "offset": str(api_offset),
-                "limit": 100,
-                "categoryId": 1,
-                "groupId": str(group_id),
-                "getExtendedFields": True,
-                "productTypes": ",".join(TCGPlayerProvider().product_types),
-            },
-        )
-
-        if not api_response:
-            # No more entries
-            break
+            return []
 
         try:
             response = json.loads(api_response)
         except json.decoder.JSONDecodeError:
             LOGGER.error(f"Unable to decode TCGPlayer API Response {api_response}")
-            break
+            return []
 
-        if not response["results"]:
-            LOGGER.warning(
-                f"Issue with Sealed Product for Group ID: {group_id}: {response}"
-            )
-            break
+        return list(response.get("results", []))
 
-        magic_set_sealed_data.extend(response["results"])
-        api_offset += len(response["results"])
+    @staticmethod
+    def get_card_finish(card_name: str) -> Optional[str]:
+        """
+        Determine a card's TCGPlayer finish based on the card name,
+        as TCGPlayer indicates their finishes by ending a card's name
+        with "(Finish)". This can be a bit wonky for some edge cases,
+        but overall this should be good enough.
+        :param card_name: Card name from TCGPlayer
+        :return Card finish, if one is found
+        """
+        result_card_finish = None
 
-        # If we got fewer results than requested, no more data is needed
-        if len(response["results"]) < 100:
-            break
-
-    return magic_set_sealed_data
-
-
-def get_tcgplayer_sku_map(
-    tcgplayer_set_sku_data: List[Dict[str, Any]],
-) -> Dict[str, Dict[str, Optional[int]]]:
-    """
-    takes product info and builds a sku map
-    :param tcgplayer_set_sku_data: list of product data dicts used to a build a product id to sku map
-    :return: Map of TCGPlayerID -> NM Foil and Nonfoil SKU
-    """
-    tcgplayer_sku_map = {}
-
-    for product_data in tcgplayer_set_sku_data:
-        map_entry = {}
-
-        for sku in product_data["skus"]:
-            if CardCondition(sku["conditionId"]) is not CardCondition.NEAR_MINT:
+        card_finishes = re.findall(r"\(([^)0-9]+)\)", card_name)
+        for card_finish in card_finishes:
+            if not CardFinish.has_value(card_finish):
                 continue
 
-            if CardLanguage(sku["languageId"]) is not CardLanguage.ENGLISH:
-                continue
+            result_card_finish = CardFinish(card_finish).name.replace("_", " ")
+            break
 
-            if CardPrinting(sku["printingId"]) is CardPrinting.NON_FOIL:
-                map_entry["nonfoil_sku"] = sku["skuId"]
-            elif CardPrinting(sku["printingId"]) is CardPrinting.FOIL:
-                map_entry["foil_sku"] = sku["skuId"]
-            else:
-                LOGGER.warning(f"TCGPlayer unidentified printing: {sku}")
+        return result_card_finish
 
-        product_id = str(product_data["productId"])
-        tcgplayer_sku_map[product_id] = map_entry
+    def convert_sku_data_enum(
+        self, product: Dict[str, Any]
+    ) -> List[Dict[str, Union[int, str]]]:
+        """
+        Converts a TCGPlayer Product's SKUs from IDs to components
+        :param product: TCGPlayer Product
+        :return: Enhanced List of TCGPlayer SKU dict objects
+        """
+        results = []
 
-    return tcgplayer_sku_map
+        name = product["name"]
+        card_finish = self.get_card_finish(name)
+
+        skus = product["skus"]
+        for sku in skus:
+            entry = {
+                "skuId": sku["skuId"],
+                "productId": sku["productId"],
+                "language": CardLanguage(sku["languageId"]).name.replace("_", " "),
+                "printing": CardPrinting(sku["printingId"]).name.replace("_", " "),
+                "condition": CardCondition(sku["conditionId"]).name.replace("_", " "),
+            }
+            if card_finish:
+                entry["finish"] = card_finish
+            results.append(entry)
+
+        return results
 
 
 def get_tcgplayer_buylist_prices_map(
-    group_id_and_name: Tuple[str, str], tcg_to_mtgjson_map: Dict[str, Set[str]]
+    group_id_and_name: Tuple[str, str],
+    tcg_foil_and_non_foil_to_mtgjson_map: Dict[str, Set[str]],
+    tcg_etched_foil_to_mtgjson_map: Dict[str, Set[str]],
 ) -> Dict[str, MtgjsonPricesObject]:
     """
     takes a group id and name and finds all buylist data for that group
     :param group_id_and_name: TCGPlayer Set ID & Name to build
-    :param tcg_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
+    :param tcg_foil_and_non_foil_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
+    :param tcg_etched_foil_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
     :return: returns a map of tcgplayer buylist data to card uuids
     """
     LOGGER.debug(f"Tcgplayer Building buylist data for {group_id_and_name[1]}")
-    api_response = TCGPlayerProvider().download(
+
+    results = TCGPlayerProvider().get_api_results(
         f"https://api.tcgplayer.com/pricing/buy/group/{group_id_and_name[0]}"
     )
-
-    if not api_response:
+    if not results:
         return {}
 
-    response = json.loads(api_response)
-    if not response["results"]:
-        return {}
+    prices_map: Dict[str, MtgjsonPricesObject] = defaultdict(
+        lambda: copy.copy(
+            MtgjsonPricesObject(
+                "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
+            )
+        )
+    )
 
-    prices_map: Dict[str, MtgjsonPricesObject] = {}
+    tcgplayer_sku_data = TCGPlayerProvider().get_tcgplayer_sku_data(group_id_and_name)
+    sku_map = TCGPlayerProvider().get_tcgplayer_sku_map(tcgplayer_sku_data)
 
-    tcgplayer_sku_data = get_tcgplayer_sku_data(group_id_and_name)
-    sku_map = get_tcgplayer_sku_map(tcgplayer_sku_data)
-
-    for buylist_data in response["results"]:
+    for buylist_data in results:
         product_id = str(buylist_data["productId"])
-        keys = tcg_to_mtgjson_map.get(product_id)
+        keys_are_etched = False
+        keys = tcg_foil_and_non_foil_to_mtgjson_map.get(product_id)
         if not keys:
-            continue
+            keys_are_etched = True
+            keys = tcg_etched_foil_to_mtgjson_map.get(product_id)
+            if not keys:
+                continue
 
         for sku in buylist_data["skus"]:
             if not sku["prices"]["high"]:
@@ -446,44 +505,45 @@ def get_tcgplayer_buylist_prices_map(
                 continue
 
             for key in keys:
-                if key not in prices_map:
-                    prices_map[key] = MtgjsonPricesObject(
-                        "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
-                    )
-
                 product_sku = sku["skuId"]
 
                 if sku_map[product_id].get("nonfoil_sku") == product_sku:
                     prices_map[key].buy_normal = sku["prices"]["high"]
                 elif sku_map[product_id].get("foil_sku") == product_sku:
-                    prices_map[key].buy_foil = sku["prices"]["high"]
+                    if keys_are_etched:
+                        prices_map[key].buy_etched = sku["prices"]["high"]
+                    else:
+                        prices_map[key].buy_foil = sku["prices"]["high"]
 
     return prices_map
 
 
 def get_tcgplayer_prices_map(
-    group_id_and_name: Tuple[str, str], tcg_to_mtgjson_map: Dict[str, str]
+    group_id_and_name: Tuple[str, str],
+    tcg_foil_and_non_foil_to_mtgjson_map: Dict[str, Set[str]],
+    tcg_etched_foil_to_mtgjson_map: Dict[str, Set[str]],
 ) -> Dict[str, MtgjsonPricesObject]:
     """
     Construct MtgjsonPricesObjects from TCGPlayer data
     :param group_id_and_name: TCGPlayer Set ID & Name to build
-    :param tcg_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
+    :param tcg_foil_and_non_foil_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
+    :param tcg_etched_foil_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
     :return: Cards with prices from Set ID & Name
     """
-    api_response = TCGPlayerProvider().download(
+    results = TCGPlayerProvider().get_api_results(
         f"https://api.tcgplayer.com/[API_VERSION]/pricing/group/{group_id_and_name[0]}"
     )
-
-    if not api_response:
-        return {}
-
-    response = json.loads(api_response)
-    if not response["results"]:
+    if not results:
         return {}
 
     prices_map: Dict[str, MtgjsonPricesObject] = {}
-    for tcgplayer_object in response["results"]:
-        keys = tcg_to_mtgjson_map.get(str(tcgplayer_object["productId"]))
+    for tcgplayer_object in results:
+        product_id = str(tcgplayer_object["productId"])
+        keys_are_etched = False
+        keys = tcg_foil_and_non_foil_to_mtgjson_map.get(product_id)
+        if not keys:
+            keys_are_etched = True
+            keys = tcg_etched_foil_to_mtgjson_map.get(product_id)
         if not keys:
             continue
 
@@ -498,56 +558,9 @@ def get_tcgplayer_prices_map(
 
             if is_non_foil:
                 prices_map[key].sell_normal = card_price
+            elif keys_are_etched:
+                prices_map[key].sell_etched = card_price
             else:
                 prices_map[key].sell_foil = card_price
 
     return prices_map
-
-
-def get_card_finish(card_name: str) -> Optional[str]:
-    """
-    Determine a card's TCGPlayer finish based on the card name,
-    as TCGPlayer indicates their finishes by ending a card's name
-    with "(Finish)". This can be a bit wonky for some edge cases,
-    but overall this should be good enough.
-    :param card_name: Card name from TCGPlayer
-    :return Card finish, if one is found
-    """
-    result_card_finish = None
-
-    card_finishes = re.findall(r"\(([^)0-9]+)\)", card_name)
-    for card_finish in card_finishes:
-        if not CardFinish.has_value(card_finish):
-            continue
-
-        result_card_finish = CardFinish(card_finish).name.replace("_", " ")
-        break
-
-    return result_card_finish
-
-
-def convert_sku_data_enum(product: Dict[str, Any]) -> List[Dict[str, Union[int, str]]]:
-    """
-    Converts a TCGPlayer Product's SKUs from IDs to components
-    :param product: TCGPlayer Product
-    :return: Enhanced List of TCGPlayer SKU dict objects
-    """
-    results = []
-
-    name = product["name"]
-    card_finish = get_card_finish(name)
-
-    skus = product["skus"]
-    for sku in skus:
-        entry = {
-            "skuId": sku["skuId"],
-            "productId": sku["productId"],
-            "language": CardLanguage(sku["languageId"]).name.replace("_", " "),
-            "printing": CardPrinting(sku["printingId"]).name.replace("_", " "),
-            "condition": CardCondition(sku["conditionId"]).name.replace("_", " "),
-        }
-        if card_finish:
-            entry["finish"] = card_finish
-        results.append(entry)
-
-    return results
