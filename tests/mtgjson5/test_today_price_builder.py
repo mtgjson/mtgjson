@@ -86,3 +86,41 @@ def test_card_kingdom_build_today_prices():
     ]
 
     assert_build_today_prices(provider, expected_results)
+
+
+def test_card_market_build_today_prices():
+    provider = CardMarketProvider(init_map=False)
+    patch.object(
+        provider,
+        "_get_card_market_data",
+        return_value=get_resource_file_buffer("card_market_api_response.csv"),
+    ).start()
+
+    expected_results = [
+        MtgjsonPricesObject(
+            "paper",
+            "cardmarket",
+            provider.today_date,
+            "EUR",
+            None,
+            None,
+            None,
+            111.01,
+            222.01,
+            None,
+        ),
+        MtgjsonPricesObject(
+            "paper",
+            "cardmarket",
+            provider.today_date,
+            "EUR",
+            None,
+            None,
+            None,
+            None,
+            None,
+            333.01,
+        ),
+    ]
+
+    assert_build_today_prices(provider, expected_results)
