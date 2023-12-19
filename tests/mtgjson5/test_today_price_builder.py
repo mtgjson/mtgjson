@@ -153,3 +153,62 @@ def test_card_hoarder_build_today_prices():
     ]
 
     assert_build_today_prices(provider, expected_results)
+
+
+def test_tcgplayer_build_today_prices():
+    provider = TCGPlayerProvider()
+    patch.object(
+        provider,
+        "get_tcgplayer_magic_set_ids",
+        return_value=json.load(
+            get_resource_file_buffer("tcgplayer_magic_set_ids.json")
+        ),
+    ).start()
+    patch.object(
+        provider,
+        "get_api_results",
+        side_effect=[
+            json.load(
+                get_resource_file_buffer("tcgplayer_buylist_group_response.json")
+            ),
+            json.load(
+                get_resource_file_buffer("tcgplayer_pricing_group_response.json")
+            ),
+        ],
+    ).start()
+    patch.object(
+        provider,
+        "get_tcgplayer_sku_data",
+        return_value=json.load(
+            get_resource_file_buffer("tcgplayer_sku_data_response.json")
+        ),
+    ).start()
+
+    expected_results = [
+        MtgjsonPricesObject(
+            "paper",
+            "tcgplayer",
+            provider.today_date,
+            "USD",
+            111.02,
+            222.02,
+            None,
+            111.01,
+            222.01,
+            None,
+        ),
+        MtgjsonPricesObject(
+            "paper",
+            "tcgplayer",
+            provider.today_date,
+            "USD",
+            None,
+            None,
+            333.02,
+            None,
+            None,
+            333.01,
+        ),
+    ]
+
+    assert_build_today_prices(provider, expected_results)

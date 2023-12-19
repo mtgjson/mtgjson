@@ -1,0 +1,33 @@
+[
+    {
+        "productId": 1,
+        "skus": [
+            {
+                "prices": {
+                    "high": 111.02,
+                    "market": 1111.02
+                },
+                "skuId": 8675309
+            },
+            {
+                "prices": {
+                    "high": 222.02,
+                    "market": 2222.02
+                },
+                "skuId": 42069
+            }
+        ]
+    },
+    {
+        "productId": 2,
+        "skus": [
+            {
+                "prices": {
+                    "high": 333.02,
+                    "market": 3333.02
+                },
+                "skuId": 3141592653
+            }
+        ]
+    }
+]
