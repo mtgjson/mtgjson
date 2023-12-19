@@ -246,7 +246,11 @@ def generate_card_mapping(
             for inside_component in right_side_components:
                 value = value[inside_component]
 
-            dump_map[str(key)].add(value)
+            if isinstance(value, (set, list)):
+                for entry in value:
+                    dump_map[str(key)].add(entry)
+            else:
+                dump_map[str(key)].add(value)
         except KeyError:
             pass
 
