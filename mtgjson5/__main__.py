@@ -91,12 +91,12 @@ def dispatcher(args: argparse.Namespace) -> None:
         generate_compiled_prices_output,
         generate_output_file_hashes,
     )
-    from mtgjson5.price_builder import build_prices
+    from mtgjson5.price_builder import PriceBuilder
     from mtgjson5.providers import GitHubMTGSqliteProvider, ScryfallProvider
 
     # If a price build, simply build prices and exit
     if args.price_build:
-        generate_compiled_prices_output(*build_prices(), args.pretty)
+        generate_compiled_prices_output(*PriceBuilder().build_prices(), args.pretty)
         if args.compress:
             compress_mtgjson_contents(MtgjsonConfig().output_path)
         generate_output_file_hashes(MtgjsonConfig().output_path)
