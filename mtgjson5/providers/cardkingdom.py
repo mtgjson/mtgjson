@@ -84,6 +84,13 @@ class CardKingdomProvider(AbstractProvider):
             )
         )
 
+        # Finally add etched IDs
+        card_kingdom_id_to_mtgjson.update(
+            generate_card_mapping(
+                all_printings_path, ("identifiers", "cardKingdomEtchedId"), ("uuid",)
+            )
+        )
+
         default_prices_obj = MtgjsonPricesObject(
             "paper", "cardkingdom", self.today_date, "USD"
         )
@@ -95,7 +102,10 @@ class CardKingdomProvider(AbstractProvider):
             card_platform_id_key="id",
             default_prices_object=default_prices_obj,
             foil_key="is_foil",
+            etched_key="variation",
+            etched_value="Foil Etched",
             retail_key="price_retail",
+            retail_quantity_key="qty_retail",
             buy_key="price_buy",
             buy_quantity_key="qty_buying",
         )
