@@ -212,3 +212,31 @@ def test_tcgplayer_build_today_prices():
     ]
 
     assert_build_today_prices(provider, expected_results)
+
+
+def test_multiverse_bridge_cardsphere_build_today_prices():
+    provider = MultiverseBridgeProvider()
+    patch.object(
+        provider,
+        "download",
+        return_value=json.load(
+            get_resource_file_buffer("multiverse_bridge_prices_responses.json")
+        ),
+    ).start()
+
+    expected_results = [
+        MtgjsonPricesObject(
+            "paper",
+            "cardsphere",
+            provider.today_date,
+            "USD",
+            None,
+            None,
+            None,
+            111.01,
+            222.01,
+            None,
+        )
+    ]
+
+    assert_build_today_prices(provider, expected_results)
