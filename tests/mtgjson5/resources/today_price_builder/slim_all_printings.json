@@ -1,0 +1,40 @@
+{
+    "data": {
+        "SET": {
+            "cards": [
+                {
+                    "finishes": [
+                        "nonfoil",
+                        "foil"
+                    ],
+                    "identifiers": {
+                        "cardKingdomFoilId": "2",
+                        "cardKingdomId": "1",
+                        "mcmId": "1",
+                        "mtgoId": "1",
+                        "tcgplayerProductId": "1",
+                        "cardsphereId": "1",
+                        "scryfallId": "00000001-6763-4024-a18b-982d96395553"
+                    },
+                    "name": "Phelddagrif",
+                    "number": "1",
+                    "uuid": "00000000-0000-0000-0000-000000000001"
+                },
+                {
+                    "finishes": [
+                        "etched"
+                    ],
+                    "identifiers": {
+                        "cardKingdomEtchedId": "3",
+                        "mcmId": "2",
+                        "tcgplayerEtchedProductId": "2",
+                        "scryfallId": "00000002-6763-4024-a18b-982d96395553"
+                    },
+                    "name": "Phelddagrif",
+                    "number": "2",
+                    "uuid": "00000000-0000-0000-0000-000000000002"
+                }
+            ]
+        }
+    }
+}

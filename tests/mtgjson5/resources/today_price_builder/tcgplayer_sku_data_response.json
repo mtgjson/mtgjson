@@ -1,0 +1,33 @@
+[
+    {
+        "productId": 1,
+        "skus": [
+            {
+                "conditionId": 1,
+                "languageId": 1,
+                "printingId": 1,
+                "productId": 1,
+                "skuId": 8675309
+            },
+            {
+                "conditionId": 1,
+                "languageId": 1,
+                "printingId": 2,
+                "productId": 1,
+                "skuId": 42069
+            }
+        ]
+    },
+    {
+        "productId": 2,
+        "skus": [
+            {
+                "conditionId": 1,
+                "languageId": 1,
+                "printingId": 2,
+                "productId": 1,
+                "skuId": 3141592653
+            }
+        ]
+    }
+]

@@ -1,0 +1,58 @@
+{
+    "data": [
+        {
+            "id": 1,
+            "variation": "",
+            "is_foil": "false",
+            "price_retail": "111.01",
+            "qty_retail": 100,
+            "price_buy": "111.02",
+            "qty_buying": 50
+        },
+        {
+            "id": 2,
+            "variation": "Foil",
+            "is_foil": "true",
+            "price_retail": "222.01",
+            "qty_retail": 100,
+            "price_buy": "222.02",
+            "qty_buying": 50
+        },
+        {
+            "id": 3,
+            "variation": "Foil Etched",
+            "is_foil": "true",
+            "price_retail": "333.01",
+            "qty_retail": 100,
+            "price_buy": "333.02",
+            "qty_buying": 50
+        },
+        {
+            "id": 1,
+            "variation": "",
+            "is_foil": "false",
+            "price_retail": "444.01",
+            "qty_retail": 0,
+            "price_buy": "444.02",
+            "qty_buying": 0
+        },
+        {
+            "id": 2,
+            "variation": "Foil",
+            "is_foil": "true",
+            "price_retail": "555.01",
+            "qty_retail": 0,
+            "price_buy": "555.02",
+            "qty_buying": 0
+        },
+        {
+            "id": 3,
+            "variation": "Foil Etched",
+            "is_foil": "true",
+            "price_retail": "666.01",
+            "qty_retail": 0,
+            "price_buy": "666.02",
+            "qty_buying": 0
+        }
+    ]
+}

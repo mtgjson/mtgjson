@@ -7,11 +7,7 @@ import pathlib
 from collections import defaultdict
 from typing import DefaultDict, Dict, List, Set, Union
 
-from ..providers.tcgplayer import (
-    TCGPlayerProvider,
-    convert_sku_data_enum,
-    get_tcgplayer_sku_data,
-)
+from ..providers.tcgplayer import TCGPlayerProvider
 from ..utils import generate_card_mapping
 
 LOGGER = logging.getLogger(__name__)
@@ -35,18 +31,18 @@ class MtgjsonTcgplayerSkusObject:
         )
 
         for group in TCGPlayerProvider().get_tcgplayer_magic_set_ids():
-            tcgplayer_sku_data = get_tcgplayer_sku_data(group)
+            tcgplayer_sku_data = TCGPlayerProvider().get_tcgplayer_sku_data(group)
             for product in tcgplayer_sku_data:
                 product_id = str(product["productId"])
                 normal_keys: Set[str] = tcg_normal_to_mtgjson_map.get(product_id, set())
                 etched_keys: Set[str] = tcg_etched_to_mtgjson_map.get(product_id, set())
                 for normal_key in normal_keys:
                     self.enhanced_tcgplayer_skus[normal_key].extend(
-                        convert_sku_data_enum(product)
+                        TCGPlayerProvider().convert_sku_data_enum(product)
                     )
                 for etched_key in etched_keys:
                     self.enhanced_tcgplayer_skus[etched_key].extend(
-                        convert_sku_data_enum(product)
+                        TCGPlayerProvider().convert_sku_data_enum(product)
                     )
 
     def to_json(self) -> Dict[str, List[Dict[str, Union[int, str]]]]:

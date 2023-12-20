@@ -1,0 +1,29 @@
+[
+    {
+        "directLowPrice": 0.04,
+        "highPrice": 0.03,
+        "lowPrice": 0.01,
+        "marketPrice": 111.01,
+        "midPrice": 0.02,
+        "productId": 1,
+        "subTypeName": "Normal"
+    },
+    {
+        "directLowPrice": 0.04,
+        "highPrice": 0.03,
+        "lowPrice": 0.01,
+        "marketPrice": 222.01,
+        "midPrice": 0.02,
+        "productId": 1,
+        "subTypeName": "Foil"
+    },
+    {
+        "directLowPrice": 0.04,
+        "highPrice": 0.03,
+        "lowPrice": 0.01,
+        "marketPrice": 333.01,
+        "midPrice": 0.02,
+        "productId": 2,
+        "subTypeName": "Etched"
+    }
+]

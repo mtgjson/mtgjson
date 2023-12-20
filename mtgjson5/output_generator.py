@@ -22,7 +22,7 @@ from .compiled_classes import (
     MtgjsonTcgplayerSkusObject,
 )
 from .mtgjson_config import MtgjsonConfig
-from .price_builder import build_prices
+from .price_builder import PriceBuilder
 from .providers import GitHubDecksProvider
 from .utils import get_file_hash
 
@@ -198,7 +198,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     )
 
     # AllPrices.json
-    generate_compiled_prices_output(*build_prices(), pretty_print)
+    generate_compiled_prices_output(*PriceBuilder().build_prices(), pretty_print)
 
     # CompiledList.json
     create_compiled_output(

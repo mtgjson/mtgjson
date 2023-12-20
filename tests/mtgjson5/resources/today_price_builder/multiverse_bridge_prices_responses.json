@@ -1,0 +1,16 @@
+[
+    {
+        "cs_id": 1,
+        "mtgjson_id": "00000000-0000-0000-0000-000000000001",
+        "scryfall_id": "31740fe9-27d2-416e-93de-509ac1a7b7cd",
+        "is_foil": false,
+        "price": 111.01
+    },
+    {
+        "cs_id": 1,
+        "mtgjson_id": "00000000-0000-0000-0000-000000000001",
+        "scryfall_id": "f1e4c7d8-11a5-40fe-962b-7e938bf08616",
+        "is_foil": true,
+        "price": 222.01
+    }
+]
