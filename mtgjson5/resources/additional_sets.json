@@ -77,5 +77,16 @@
         "nonfoil_only":false,
         "foil_only":false,
         "search_uri":"https://api.scryfall.com/cards/search?include_extras=true\u0026include_variations=true\u0026order=set\u0026q=e%3Aq08\u0026unique=prints"
+    },
+    "MB1": {
+        "name": "Mystery Booster",
+        "code": "MB1",
+        "set_type": "masters",
+        "icon_svg_uri":"https://svgs.scryfall.io/sets/default.svg",
+        "released_at": "2019-11-07",
+        "digital": false,
+        "nonfoil_only": true,
+        "foil_only": false,
+        "search_uri":"https://api.scryfall.com/cards/search?include_extras=true\u0026include_variations=true\u0026order=set\u0026q=e%3Amb1\u0026unique=prints"
     }
 }
