@@ -4,6 +4,7 @@ MultiverseBridge 3rd party provider
 import logging
 import pathlib
 import time
+from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Union
 
 from singleton_decorator import singleton
@@ -23,15 +24,14 @@ class MultiverseBridgeProvider(AbstractProvider):
 
     class_id: str = "mb"
 
-    ROSETTA_STONE_CARDS_URL = "https://www.multiversebridge.com/api/v1/cards"
     ROSETTA_STONE_SETS_URL = "https://www.multiversebridge.com/api/v1/sets"
-    ROSETTA_STONE_PRICES_URL = "https://cdn.multiversebridge.com/mtgjson_build.json"
+    ROSETTA_STONE_CARDS_URL = "https://cdn.multiversebridge.com/mtgjson_build.json"
     rosetta_stone_cards: Dict[str, Any]
     rosetta_stone_sets: Dict[str, int]
 
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
-        self.rosetta_stone_cards = {}
+        self.rosetta_stone_cards = defaultdict(list)
         self.rosetta_stone_sets = {}
 
     def _build_http_header(self) -> Dict[str, str]:
@@ -50,13 +50,13 @@ class MultiverseBridgeProvider(AbstractProvider):
             return self.download(url, params)
         return response.json()
 
-    def parse_rosetta_stone_cards(self, rosetta_rows: Dict[str, Any]) -> None:
+    def parse_rosetta_stone_cards(self, rosetta_rows: List[Dict[str, Any]]) -> None:
         """
         Convert Rosetta Stone Card data into an index-able hashmap
         :param rosetta_rows: Rows from the API
         """
-        for rosetta_row in rosetta_rows["cards"]:
-            self.rosetta_stone_cards[rosetta_row["scryfall_id"]] = rosetta_row
+        for rosetta_row in rosetta_rows:
+            self.rosetta_stone_cards[rosetta_row["scryfall_id"]].append(rosetta_row)
 
     def parse_rosetta_stone_sets(self, rosetta_rows: List[Dict[str, Any]]) -> None:
         """
@@ -92,7 +92,7 @@ class MultiverseBridgeProvider(AbstractProvider):
         :return MTGJSON prices single day structure
         """
         request_api_response: List[Dict[str, Any]] = self.download(
-            self.ROSETTA_STONE_PRICES_URL
+            self.ROSETTA_STONE_CARDS_URL
         )
 
         cardsphere_id_to_mtgjson: Dict[str, Set[Any]] = generate_card_mapping(
