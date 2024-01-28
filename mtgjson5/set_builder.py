@@ -1391,9 +1391,16 @@ def add_multiverse_bridge_ids(mtgjson_set: MtgjsonSetObject) -> None:
                 f"MultiverseBridge missing {mtgjson_card.name} in {mtgjson_card.set_code}"
             )
             continue
-        mtgjson_card.identifiers.cardsphere_id = str(
-            rosetta_stone_cards[mtgjson_card.identifiers.scryfall_id]["cs_id"]
-        )
+
+        for rosetta_card_print in rosetta_stone_cards.get(
+            mtgjson_card.identifiers.scryfall_id, []
+        ):
+            attr = (
+                "cardsphere_foil_id"
+                if rosetta_card_print.get("is_foil")
+                else "cardsphere_id"
+            )
+            setattr(mtgjson_card.identifiers, attr, str(rosetta_card_print["cs_id"]))
 
     mtgjson_set.cardsphere_set_id = (
         MultiverseBridgeProvider()
