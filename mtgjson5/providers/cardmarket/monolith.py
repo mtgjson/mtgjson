@@ -39,6 +39,7 @@ class CardMarketProvider(AbstractProvider):
 
     def __init__(self, headers: Optional[Dict[str, str]] = None, init_map: bool = True):
         super().__init__(headers or {})
+        self.set_map = {}
 
         if not MtgjsonConfig().has_section("CardMarket"):
             LOGGER.warning(
@@ -60,7 +61,6 @@ class CardMarketProvider(AbstractProvider):
             return
 
         self.connection = Mkm(_API_MAP["2.0"]["api"], _API_MAP["2.0"]["api_root"])
-        self.set_map = dict()
 
         if init_map:
             self.__init_set_map()
