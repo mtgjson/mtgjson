@@ -866,7 +866,9 @@ def build_mtgjson_card(
         mtgjson_card.converted_mana_cost = scryfall_object.get("cmc", "")
     mtgjson_card.edhrec_rank = scryfall_object.get("edhrec_rank")
     mtgjson_card.edhrec_saltiness = EdhrecProviderCardRanks().get_salt_rating(
-        mtgjson_card.name
+        mtgjson_card.name.split("/")[0].strip()
+        if "/" in mtgjson_card.name
+        else mtgjson_card.name
     )
     mtgjson_card.finishes = scryfall_object.get("finishes", [])
     mtgjson_card.frame_effects = scryfall_object.get("frame_effects", "")
