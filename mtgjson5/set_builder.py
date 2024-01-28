@@ -1112,6 +1112,8 @@ def build_mtgjson_card(
         if mtgjson_card.get_names() and len(mtgjson_card.get_names()) == 3:
             # Front Sides will have name = Front1//Back, Front2//Back
             # Back Side will have name = Back
+            mtgjson_card.face_converted_mana_cost = mtgjson_card.mana_value
+            mtgjson_card.face_mana_value = mtgjson_card.mana_value
             if mtgjson_card.name != mtgjson_card.get_names()[2]:
                 mtgjson_card.side = "a"
                 mtgjson_card.face_name = mtgjson_card.name
