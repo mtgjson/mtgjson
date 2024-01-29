@@ -6,11 +6,12 @@ import pathlib
 from typing import Dict, List, Optional
 
 from ..classes import MtgjsonSetObject
+from ..classes.json_object import JsonObject
 from ..mtgjson_config import MtgjsonConfig
 from .mtgjson_structures import MtgjsonStructuresObject
 
 
-class MtgjsonAllPrintingsObject:
+class MtgjsonAllPrintingsObject(JsonObject):
     """
     MTGJSON AllPrintings Object
     """

@@ -1,15 +1,15 @@
 """
 MTGJSON Internal Object for Output Files
 """
-from typing import Any, Dict, List
+from typing import List
 
 from singleton_decorator import singleton
 
-from ..utils import to_camel_case
+from ..classes.json_object import JsonObject
 
 
 @singleton
-class MtgjsonStructuresObject:
+class MtgjsonStructuresObject(JsonObject):
     """
     MTGJSON Internal Object for Output Files
     """
@@ -96,14 +96,3 @@ class MtgjsonStructuresObject:
         :return: Files for CompiledList.json
         """
         return list(set(self.get_all_compiled_file_names()) - {self.referral_database})
-
-    def to_json(self) -> Dict[str, Any]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
-        return {
-            to_camel_case(key): value
-            for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value)
-        }

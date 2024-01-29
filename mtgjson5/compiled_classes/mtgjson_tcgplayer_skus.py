@@ -7,13 +7,14 @@ import pathlib
 from collections import defaultdict
 from typing import DefaultDict, Dict, List, Set, Union
 
+from ..classes.json_object import JsonObject
 from ..providers.tcgplayer import TCGPlayerProvider
 from ..utils import generate_card_mapping
 
 LOGGER = logging.getLogger(__name__)
 
 
-class MtgjsonTcgplayerSkusObject:
+class MtgjsonTcgplayerSkusObject(JsonObject):
     """
     MTGJSON TcgplayerSkus Object
     """

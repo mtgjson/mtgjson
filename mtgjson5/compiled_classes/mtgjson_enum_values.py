@@ -6,6 +6,7 @@ import logging
 import pathlib
 from typing import Any, Dict, List, Union
 
+from ..classes.json_object import JsonObject
 from ..compiled_classes.mtgjson_all_printings import MtgjsonAllPrintingsObject
 from ..mtgjson_config import MtgjsonConfig
 from ..providers import tcgplayer
@@ -15,7 +16,7 @@ from .mtgjson_structures import MtgjsonStructuresObject
 LOGGER = logging.getLogger(__name__)
 
 
-class MtgjsonEnumValuesObject:
+class MtgjsonEnumValuesObject(JsonObject):
     """
     MTGJSON EnumValues Object
     """

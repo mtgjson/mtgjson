@@ -8,10 +8,10 @@ from ..classes.mtgjson_card import MtgjsonCardObject
 from ..classes.mtgjson_deck import MtgjsonDeckObject
 from ..classes.mtgjson_sealed_product import MtgjsonSealedProductObject
 from ..classes.mtgjson_translations import MtgjsonTranslationsObject
-from ..utils import to_camel_case
+from .json_object import JsonObject
 
 
-class MtgjsonSetObject:
+class MtgjsonSetObject(JsonObject):
     """
     MTGJSON Singular Set Object
     """
@@ -102,16 +102,3 @@ class MtgjsonSetObject:
             return self.code + "_"
 
         return self.code
-
-    def to_json(self) -> Dict[str, Any]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
-        skip_keys = self.build_keys_to_skip()
-
-        return {
-            to_camel_case(key): value
-            for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value) and key not in skip_keys
-        }

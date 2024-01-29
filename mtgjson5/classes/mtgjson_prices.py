@@ -4,8 +4,10 @@ MTGJSON Singular Prices.Card Object
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
+from mtgjson5.classes.json_object import JsonObject
 
-class MtgjsonPricesObject:
+
+class MtgjsonPricesObject(JsonObject):
     """
     MTGJSON Singular Prices.Card Object
     """

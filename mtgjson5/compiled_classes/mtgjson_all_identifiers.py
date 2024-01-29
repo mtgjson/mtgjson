@@ -4,12 +4,13 @@ MTGJSON AllIdentifiers Object
 import logging
 from typing import Any, Dict
 
+from ..classes.json_object import JsonObject
 from ..utils import get_all_cards_and_tokens_from_content
 
 LOGGER = logging.getLogger(__name__)
 
 
-class MtgjsonAllIdentifiersObject:
+class MtgjsonAllIdentifiersObject(JsonObject):
     """
     MTGJSON AllIdentifiers Object
     """

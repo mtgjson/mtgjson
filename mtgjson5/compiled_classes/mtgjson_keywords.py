@@ -1,13 +1,13 @@
 """
 MTGJSON Keywords Object
 """
-from typing import Any, Dict, List
+from typing import List
 
+from ..classes.json_object import JsonObject
 from ..providers.scryfall.monolith import ScryfallProvider
-from ..utils import to_camel_case
 
 
-class MtgjsonKeywordsObject:
+class MtgjsonKeywordsObject(JsonObject):
     """
     MTGJSON Keywords Object
     """
@@ -25,14 +25,3 @@ class MtgjsonKeywordsObject:
         self.keyword_abilities = ScryfallProvider().get_catalog_entry(
             "keyword-abilities"
         )
-
-    def to_json(self) -> Dict[str, Any]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
-        return {
-            to_camel_case(key): value
-            for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value)
-        }

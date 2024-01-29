@@ -4,11 +4,12 @@ MTGJSON SetList Object
 import json
 from typing import Any, Dict, List
 
+from ..classes.json_object import JsonObject
 from ..mtgjson_config import MtgjsonConfig
 from .mtgjson_structures import MtgjsonStructuresObject
 
 
-class MtgjsonSetListObject:
+class MtgjsonSetListObject(JsonObject):
     """
     MTGJSON SetList Object
     """

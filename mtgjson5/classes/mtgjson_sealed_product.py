@@ -2,9 +2,9 @@
 MTGJSON Singular Sealed Product Object
 """
 import enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, Optional
 
-from ..utils import to_camel_case
+from .json_object import JsonObject
 from .mtgjson_identifiers import MtgjsonIdentifiersObject
 from .mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
 
@@ -156,7 +156,7 @@ class MtgjsonSealedProductSubtype(enum.Enum):
         return None
 
 
-class MtgjsonSealedProductObject:
+class MtgjsonSealedProductObject(JsonObject):
     """
     MTGJSON Singular Sealed Product Object
     """
@@ -173,26 +173,15 @@ class MtgjsonSealedProductObject:
     contents: Optional[Dict[str, Any]]  # Enumerated product contents
     product_size: Optional[int]  # Number of packs in a booster box [DEPRECATED]
     card_count: Optional[int]  # Number of cards in a booster pack or deck
-    __skip_keys = [
-        "raw_purchase_urls",
-    ]
 
     def __init__(self) -> None:
         self.identifiers = MtgjsonIdentifiersObject()
         self.purchase_urls = MtgjsonPurchaseUrlsObject()
         self.raw_purchase_urls = {}
 
-    def to_json(self) -> Dict[str, Any]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
+    def build_keys_to_skip(self) -> Iterable[str]:
+        return {"raw_purchase_urls"}
 
-        return {
-            to_camel_case(key): value
-            for key, value in self.__dict__.items()
-            if "__" not in key
-            and not callable(value)
-            and key not in self.__skip_keys
-            and value
-        }
+    def to_json(self) -> Dict[str, Any]:
+        parent = super().to_json()
+        return {key: value for key, value in parent.items() if value}
