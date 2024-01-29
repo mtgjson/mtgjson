@@ -1,13 +1,13 @@
 """
 MTGJSON Singular Deck Header Object
 """
-from typing import Any, Dict
+
 
 from ..classes.mtgjson_deck import MtgjsonDeckObject
-from ..utils import to_camel_case
+from .json_object import JsonObject
 
 
-class MtgjsonDeckHeaderObject:
+class MtgjsonDeckHeaderObject(JsonObject):
     """
     MTGJSON Singular Deck Header Object
     """
@@ -27,14 +27,3 @@ class MtgjsonDeckHeaderObject:
         self.name = output_deck.name
         self.release_date = output_deck.release_date
         self.type = output_deck.type
-
-    def to_json(self) -> Dict[str, Any]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
-        return {
-            to_camel_case(key): value
-            for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value)
-        }

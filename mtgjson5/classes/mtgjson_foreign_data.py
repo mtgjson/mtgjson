@@ -2,12 +2,12 @@
 MTGJSON Singular Card.ForeignData Object
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, Optional
 
-from ..utils import to_camel_case
+from .json_object import JsonObject
 
 
-class MtgjsonForeignDataObject:
+class MtgjsonForeignDataObject(JsonObject):
     """
     MTGJSON Singular Card.ForeignData Object
     """
@@ -28,18 +28,9 @@ class MtgjsonForeignDataObject:
         self.text = None
         self.type = None
 
-    def to_json(self) -> Dict[str, Any]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
-        skip_keys = ("url", "number", "set_code")
+    def build_keys_to_skip(self) -> Iterable[str]:
+        return {"url", "number", "set_code"}
 
-        return {
-            to_camel_case(key): value
-            for key, value in self.__dict__.items()
-            if "__" not in key
-            and not callable(value)
-            and value is not None
-            and key not in skip_keys
-        }
+    def to_json(self) -> Dict[str, Any]:
+        parent = super().to_json()
+        return {key: value for key, value in parent.items() if value is not None}

@@ -1,12 +1,12 @@
 """
 MTGJSON Singular Card.GameFormats Object
 """
-from typing import List
+from typing import Iterable
 
-from ..utils import to_camel_case
+from .json_object import JsonObject
 
 
-class MtgjsonGameFormatsObject:
+class MtgjsonGameFormatsObject(JsonObject):
     """
     MTGJSON Singular Card.GameFormats Object
     """
@@ -22,13 +22,6 @@ class MtgjsonGameFormatsObject:
         Empty initializer
         """
 
-    def to_json(self) -> List[str]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
-        return [
-            to_camel_case(key)
-            for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value) and value
-        ]
+    def to_json(self) -> Iterable[str]:
+        parent = super().to_json()
+        return [key for key, value in parent.items() if value]

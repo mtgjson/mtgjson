@@ -2,7 +2,7 @@
 MTGJSON Singular Card Object
 """
 import json
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional
 
 from .. import constants
 from ..classes.mtgjson_foreign_data import MtgjsonForeignDataObject
@@ -14,10 +14,10 @@ from ..classes.mtgjson_prices import MtgjsonPricesObject
 from ..classes.mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
 from ..classes.mtgjson_related_cards import MtgjsonRelatedCardsObject
 from ..classes.mtgjson_rulings import MtgjsonRulingObject
-from ..utils import to_camel_case
+from .json_object import JsonObject
 
 
-class MtgjsonCardObject:
+class MtgjsonCardObject(JsonObject):
     """
     MTGJSON Singular Card Object
     """
@@ -347,7 +347,7 @@ class MtgjsonCardObject:
         """
         return self.__atomic_keys
 
-    def build_keys_to_skip(self) -> Set[str]:
+    def build_keys_to_skip(self) -> Iterable[str]:
         """
         Build this object's instance of what keys to skip under certain circumstances
         :return What keys to skip over
@@ -365,16 +365,3 @@ class MtgjsonCardObject:
                     excluded_keys.add(key)
 
         return excluded_keys
-
-    def to_json(self) -> Dict[str, Any]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
-        skip_keys = self.build_keys_to_skip()
-
-        return {
-            to_camel_case(key): value
-            for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value) and key not in skip_keys
-        }

@@ -3,19 +3,20 @@ MTGJSON CardTypes Object
 """
 import re
 import string
-from typing import Any, Dict, List, Match, Optional
+from typing import Dict, List, Match, Optional
 
+from ..classes.json_object import JsonObject
 from ..providers.scryfall.monolith import ScryfallProvider
 from ..providers.wizards import WizardsProvider
-from ..utils import parse_magic_rules_subset, to_camel_case
+from ..utils import parse_magic_rules_subset
 
 
-class MtgjsonCardTypesObject:
+class MtgjsonCardTypesObject(JsonObject):
     """
     MTGJSON CardTypes Object
     """
 
-    class MtgjsonCardTypesInnerObject:
+    class MtgjsonCardTypesInnerObject(JsonObject):
         """
         MTGJSON CardTypes.CardTypesInner Object
         """
@@ -57,17 +58,6 @@ class MtgjsonCardTypesObject:
             self.tribal = []
             self.vanguard = []
 
-        def to_json(self) -> Dict[str, Any]:
-            """
-            Support json.dump()
-            :return: JSON serialized object
-            """
-            return {
-                to_camel_case(key): value
-                for key, value in self.__dict__.items()
-                if "__" not in key and not callable(value)
-            }
-
     types: Dict[str, Dict[str, List[str]]]
 
     def __init__(self) -> None:
@@ -85,17 +75,6 @@ class MtgjsonCardTypesObject:
 
         for key, value in inner_sets.to_json().items():
             self.types[key] = {"subTypes": value, "superTypes": super_types}
-
-    def to_json(self) -> Dict[str, Any]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
-        return {
-            to_camel_case(key): value
-            for key, value in self.types.items()
-            if "__" not in key and not callable(value)
-        }
 
 
 def regex_str_to_list(regex_match: Optional[Match]) -> List[str]:

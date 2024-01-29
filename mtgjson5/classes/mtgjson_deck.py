@@ -2,14 +2,14 @@
 MTGJSON Singular Deck Object
 """
 import re
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
-from ..utils import to_camel_case
+from .json_object import JsonObject
 from .mtgjson_card import MtgjsonCardObject
 from .mtgjson_sealed_product import MtgjsonSealedProductObject
 
 
-class MtgjsonDeckObject:
+class MtgjsonDeckObject(JsonObject):
     """
     MTGJSON Singular Card Object
     """
@@ -64,15 +64,5 @@ class MtgjsonDeckObject:
                     self.sealed_product_uuids = [sealed_product_entry.uuid]
                     break
 
-    def to_json(self) -> Dict[str, Any]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
-        skip_keys = {"file_name"}
-
-        return {
-            to_camel_case(key): value
-            for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value) and key not in skip_keys
-        }
+    def build_keys_to_skip(self) -> Iterable[str]:
+        return {"file_name"}

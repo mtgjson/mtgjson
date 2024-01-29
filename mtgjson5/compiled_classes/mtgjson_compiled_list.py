@@ -3,10 +3,11 @@ MTGJSON CompiledList Object
 """
 from typing import List
 
+from ..classes.json_object import JsonObject
 from .mtgjson_structures import MtgjsonStructuresObject
 
 
-class MtgjsonCompiledListObject:
+class MtgjsonCompiledListObject(JsonObject):
     """
     MTGJSON CompiledList Object
     """

@@ -7,12 +7,13 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 from ..classes import MtgjsonCardObject
+from ..classes.json_object import JsonObject
 from ..mtgjson_config import MtgjsonConfig
 from ..utils import to_camel_case
 from .mtgjson_structures import MtgjsonStructuresObject
 
 
-class MtgjsonAtomicCardsObject:
+class MtgjsonAtomicCardsObject(JsonObject):
     """
     MTGJSON AtomicCards Object
     """

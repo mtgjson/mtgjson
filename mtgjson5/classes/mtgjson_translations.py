@@ -3,8 +3,10 @@ MTGJSON Set.Translations Object
 """
 from typing import Any, Dict, Optional
 
+from mtgjson5.classes.json_object import JsonObject
 
-class MtgjsonTranslationsObject:
+
+class MtgjsonTranslationsObject(JsonObject):
     """
     MTGJSON Set.Translations Object
     """
@@ -50,10 +52,6 @@ class MtgjsonTranslationsObject:
         return " ".join(x.title() for x in components)
 
     def to_json(self) -> Dict[str, Any]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
         return {
             self.parse_key(key): value
             for key, value in self.__dict__.items()

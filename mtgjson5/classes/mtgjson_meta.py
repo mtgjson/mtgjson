@@ -6,10 +6,10 @@ from typing import Any, Dict, Union
 
 from .. import constants
 from ..mtgjson_config import MtgjsonConfig
-from ..utils import to_camel_case
+from .json_object import JsonObject
 
 
-class MtgjsonMetaObject:
+class MtgjsonMetaObject(JsonObject):
     """
     MTGJSON Meta Object
     """
@@ -26,18 +26,9 @@ class MtgjsonMetaObject:
         self.version = version
 
     def to_json(self) -> Dict[str, Any]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
-        options = {
-            to_camel_case(key): value
-            for key, value in self.__dict__.items()
-            if "__" not in key and not callable(value)
-        }
-
-        for key, value in options.items():
+        parent: Dict[str, Any] = super().to_json()
+        for key, value in parent.items():
             if isinstance(value, datetime.datetime):
-                options[key] = value.strftime("%Y-%m-%d")
+                parent[key] = value.strftime("%Y-%m-%d")
 
-        return options
+        return parent

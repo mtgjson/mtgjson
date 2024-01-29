@@ -4,9 +4,10 @@ MTGJSON DeckList Object
 from typing import List
 
 from ..classes import MtgjsonDeckHeaderObject
+from ..classes.json_object import JsonObject
 
 
-class MtgjsonDeckListObject:
+class MtgjsonDeckListObject(JsonObject):
     """
     MTGJSON DeckList Object
     """
