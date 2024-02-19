@@ -3,7 +3,7 @@ MTGJSON CardTypes Object
 """
 import re
 import string
-from typing import Dict, List, Match, Optional
+from typing import Any, Dict, List, Match, Optional
 
 from ..classes.json_object import JsonObject
 from ..providers.scryfall.monolith import ScryfallProvider
@@ -75,6 +75,9 @@ class MtgjsonCardTypesObject(JsonObject):
 
         for key, value in inner_sets.to_json().items():
             self.types[key] = {"subTypes": value, "superTypes": super_types}
+
+    def to_json(self) -> Any:
+        return super().to_json().get("types")
 
 
 def regex_str_to_list(regex_match: Optional[Match]) -> List[str]:
