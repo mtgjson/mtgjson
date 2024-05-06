@@ -47,7 +47,7 @@ jobs:
       - name: Upload Image to Amazon ECR
         if: ${{ steps.branch-name.outputs.current_branch == 'master' }}
         id: upload-ecr
-        uses: jwalton/gh-ecr-push@v1
+        uses: jwalton/gh-ecr-push@v2
         with:
           access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_ECR_UPLOADER }}
           secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ECR_UPLOADER }}
