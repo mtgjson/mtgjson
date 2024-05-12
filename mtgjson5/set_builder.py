@@ -83,7 +83,14 @@ def parse_foreign(
             LOGGER.warning(f"Unable to get language {foreign_card}")
 
         if foreign_card["multiverse_ids"]:
-            card_foreign_entry.multiverse_id = foreign_card["multiverse_ids"][0]
+            card_foreign_entry.multiverse_id = foreign_card["multiverse_ids"][
+                0
+            ]  # Deprecated - Remove in 5.4.0
+            card_foreign_entry.identifiers.multiverse_id = foreign_card[
+                "multiverse_ids"
+            ][0]
+
+        card_foreign_entry.identifiers.scryfall_id = foreign_card.get("id")
 
         if "card_faces" in foreign_card:
             if card_name.lower() == foreign_card["name"].split("/")[0].strip().lower():
