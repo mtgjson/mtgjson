@@ -22,6 +22,7 @@ class MtgjsonCardTypesObject(JsonObject):
         """
 
         artifact: List[str]
+        battle: List[str]
         conspiracy: List[str]
         creature: List[str]
         enchantment: List[str]
@@ -43,6 +44,7 @@ class MtgjsonCardTypesObject(JsonObject):
             planar_regex = re.compile(r".*The planar types are (.*)\.")
 
             self.artifact = ScryfallProvider().get_catalog_entry("artifact-types")
+            self.battle = ScryfallProvider().get_catalog_entry("battle-types")
             self.conspiracy = []
             self.creature = ScryfallProvider().get_catalog_entry("creature-types")
             self.enchantment = ScryfallProvider().get_catalog_entry("enchantment-types")
