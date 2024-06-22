@@ -1,20 +1,15 @@
 """
 MKM 3rd party provider
 """
-import base64
-import io
 import json
 import logging
-import math
 import os
 import pathlib
 import time
-import zlib
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 
 import mkmsdk.exceptions
-import pandas
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
 from singleton_decorator import singleton
@@ -33,6 +28,7 @@ class CardMarketProvider(AbstractProvider):
     """
     MKM container
     """
+    CARD_PRICES_URL: str = "https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_1.json"
 
     connection: Mkm
     set_map: Dict[str, Dict[str, Any]]
@@ -65,25 +61,16 @@ class CardMarketProvider(AbstractProvider):
         if init_map:
             self.__init_set_map()
 
-    def _get_card_market_data(self) -> Optional[io.StringIO]:
-        """
-        Download and reformat Card Market price data for further processing
-        :return Card Market data ready for Pandas consumption
-        """
-        # Response comes gzip'd, then base64'd
-        try:
-            mkm_response = self.connection.market_place.price_guide().json()
-        except mkmsdk.exceptions.ConnectionError as exception:
-            LOGGER.error(f"Unable to download MKM correctly: {exception}")
-            return None
-
-        price_data = base64.b64decode(mkm_response["priceguidefile"])  # Un-base64
-        price_data = zlib.decompress(price_data, 16 + zlib.MAX_WBITS)  # Un-gzip
-        decoded_data = price_data.decode("utf-8")  # byte array to string
-        return io.StringIO(decoded_data)
+    def _get_card_market_data(self):
+        data = self.download(self.CARD_PRICES_URL)
+        for card_entry in data.get("priceGuides", []):
+            card_id = card_entry.get("idProduct")
+            avg_1_day = card_entry.get("avg1")
+            avg_1_day_foil = card_entry.get("avg1-foil")
+            yield card_id, avg_1_day, avg_1_day_foil
 
     def generate_today_price_dict(
-        self, all_printings_path: pathlib.Path
+            self, all_printings_path: pathlib.Path
     ) -> Dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure from Card Market
@@ -99,47 +86,24 @@ class CardMarketProvider(AbstractProvider):
             all_printings_path, ("identifiers", "mcmId"), ("uuid",)
         )
 
-        LOGGER.info("Building CardMarket retail data")
-        data = self._get_card_market_data()
-        if not data:
-            return {}
-
-        price_data: pandas.DataFrame = pandas.read_csv(data)
-        data_frame_columns = list(price_data.columns)
-
-        product_id_index = data_frame_columns.index("idProduct")
-        avg_sell_price_index = data_frame_columns.index("AVG1")
-        avg_foil_price_index = data_frame_columns.index("Foil AVG1")
-
         today_dict: Dict[str, MtgjsonPricesObject] = {}
-        for row in pandas.DataFrame(price_data).iterrows():
-            columns: List[float] = [
-                -1 if math.isnan(value) else value for value in row[1].tolist()
-            ]
-
-            product_id = str(int(columns[product_id_index]))
+        for (product_id, avg_1_day, avg_1_day_foil) in self._get_card_market_data():
             if product_id in mtgjson_id_map:
                 mtgjson_uuids = mtgjson_id_map[product_id]
                 for mtgjson_uuid in mtgjson_uuids:
-                    avg_sell_price = columns[avg_sell_price_index]
-                    avg_foil_price = columns[avg_foil_price_index]
-
                     if mtgjson_uuid not in today_dict:
-                        if avg_sell_price == -1 and avg_foil_price == -1:
-                            continue
-
                         today_dict[mtgjson_uuid] = MtgjsonPricesObject(
                             "paper", "cardmarket", self.today_date, "EUR"
                         )
 
-                    if avg_sell_price != -1:
-                        today_dict[mtgjson_uuid].sell_normal = avg_sell_price
+                    if avg_1_day_foil:
+                        today_dict[mtgjson_uuid].sell_normal = avg_1_day
 
-                    if avg_foil_price != -1:
+                    if avg_1_day_foil:
                         if "etched" in mtgjson_finish_map.get(product_id, []):
-                            today_dict[mtgjson_uuid].sell_etched = avg_foil_price
+                            today_dict[mtgjson_uuid].sell_etched = avg_1_day_foil
                         else:
-                            today_dict[mtgjson_uuid].sell_foil = avg_foil_price
+                            today_dict[mtgjson_uuid].sell_foil = avg_1_day_foil
 
         return today_dict
 
@@ -238,13 +202,9 @@ class CardMarketProvider(AbstractProvider):
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
     ) -> Any:
-        """
-        Download Content -- Not Used
-        :param url:
-        :param params:
-        :return:
-        """
-        return None
+        response = self.session.get(url)
+        self.log_download(response)
+        return response.json()
 
     def get_mkm_cards(self, mcm_id: Optional[int]) -> Dict[str, List[Dict[str, Any]]]:
         """

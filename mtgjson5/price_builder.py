@@ -45,11 +45,11 @@ class PriceBuilder:
             self.providers = list(providers)
         else:
             self.providers = [
-                CardHoarderProvider(),
-                TCGPlayerProvider(),
+                # CardHoarderProvider(),
+                # TCGPlayerProvider(),
                 CardMarketProvider(),
-                CardKingdomProvider(),
-                MultiverseBridgeProvider(),
+                # CardKingdomProvider(),
+                # MultiverseBridgeProvider(),
             ]
 
         self.all_printings_path = (
@@ -224,10 +224,12 @@ class PriceBuilder:
         if not MtgjsonConfig().has_section("Prices"):
             return today_prices, today_prices
 
+        return today_prices
+
         bucket_name = MtgjsonConfig().get("Prices", "bucket_name")
         bucket_object_path = MtgjsonConfig().get("Prices", "bucket_object_path")
 
-        archive_prices = self.get_price_archive_data(bucket_name, bucket_object_path)
+        archive_prices = {}  # self.get_price_archive_data(bucket_name, bucket_object_path)
 
         # Update local copy of database
         LOGGER.info("Merging old and new price data")
