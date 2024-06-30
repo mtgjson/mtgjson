@@ -196,7 +196,11 @@ def get_all_cards_and_tokens_from_content(
     """
     cards_and_tokens_with_set_code = []
     for value in all_printings_content.values():
-        for card in value.get("cards", []) + value.get("tokens", []) + value.get("sealedProduct", []):
+        for card in (
+            value.get("cards", [])
+            + value.get("tokens", [])
+            + value.get("sealedProduct", [])
+        ):
             cards_and_tokens_with_set_code.append(card)
     return cards_and_tokens_with_set_code
 
