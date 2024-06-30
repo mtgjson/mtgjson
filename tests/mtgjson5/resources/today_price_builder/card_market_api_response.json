@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "createdAt": "2024-06-30T02:40:48+0200",
+    "priceGuides": [
+        {
+            "idProduct": 1,
+            "avg1": 111.01,
+            "avg1-foil": 222.01
+        },
+        {
+            "idProduct": 2,
+            "avg1-foil": 333.01
+        }
+    ]
+}

@@ -1,20 +1,15 @@
 """
 MKM 3rd party provider
 """
-import base64
-import io
 import json
 import logging
-import math
 import os
 import pathlib
 import time
-import zlib
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 
 import mkmsdk.exceptions
-import pandas
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
 from singleton_decorator import singleton
@@ -36,16 +31,20 @@ class CardMarketProvider(AbstractProvider):
 
     connection: Mkm
     set_map: Dict[str, Dict[str, Any]]
+    price_guide_url: str
 
     def __init__(self, headers: Optional[Dict[str, str]] = None, init_map: bool = True):
         super().__init__(headers or {})
         self.set_map = {}
+        self.price_guide_url = ""
 
         if not MtgjsonConfig().has_section("CardMarket"):
             LOGGER.warning(
                 "CardMarket config section not established. Skipping requests"
             )
             return
+
+        self.price_guide_url = MtgjsonConfig().get("CardMarket", "prices_api_url")
 
         os.environ["MKM_APP_TOKEN"] = MtgjsonConfig().get("CardMarket", "app_token")
         os.environ["MKM_APP_SECRET"] = MtgjsonConfig().get("CardMarket", "app_secret")
@@ -65,22 +64,29 @@ class CardMarketProvider(AbstractProvider):
         if init_map:
             self.__init_set_map()
 
-    def _get_card_market_data(self) -> Optional[io.StringIO]:
+    def _get_card_market_data(self) -> Dict[str, Dict[str, Optional[float]]]:
         """
-        Download and reformat Card Market price data for further processing
-        :return Card Market data ready for Pandas consumption
+        Use new MKM API to get MTG card prices
+        :return Mapping of card ID to price struct
         """
-        # Response comes gzip'd, then base64'd
-        try:
-            mkm_response = self.connection.market_place.price_guide().json()
-        except mkmsdk.exceptions.ConnectionError as exception:
-            LOGGER.error(f"Unable to download MKM correctly: {exception}")
-            return None
+        data = self.download(self.price_guide_url).get("priceGuides", {})
+        if not data:
+            LOGGER.warning("Unable to get CardMarket data: No price URL set")
+            return {}
 
-        price_data = base64.b64decode(mkm_response["priceguidefile"])  # Un-base64
-        price_data = zlib.decompress(price_data, 16 + zlib.MAX_WBITS)  # Un-gzip
-        decoded_data = price_data.decode("utf-8")  # byte array to string
-        return io.StringIO(decoded_data)
+        price_data = {}
+        for mkm_entry in data:
+            product_id = str(mkm_entry["idProduct"])
+            price_data[product_id] = {
+                "avg1": (float(mkm_entry["avg1"]) if mkm_entry.get("avg1") else None),
+                "avg1-foil": (
+                    float(mkm_entry["avg1-foil"])
+                    if mkm_entry.get("avg1-foil")
+                    else None
+                ),
+            }
+
+        return price_data
 
     def generate_today_price_dict(
         self, all_printings_path: pathlib.Path
@@ -100,42 +106,29 @@ class CardMarketProvider(AbstractProvider):
         )
 
         LOGGER.info("Building CardMarket retail data")
-        data = self._get_card_market_data()
-        if not data:
-            return {}
 
-        price_data: pandas.DataFrame = pandas.read_csv(data)
-        data_frame_columns = list(price_data.columns)
-
-        product_id_index = data_frame_columns.index("idProduct")
-        avg_sell_price_index = data_frame_columns.index("AVG1")
-        avg_foil_price_index = data_frame_columns.index("Foil AVG1")
+        price_data = self._get_card_market_data()
 
         today_dict: Dict[str, MtgjsonPricesObject] = {}
-        for row in pandas.DataFrame(price_data).iterrows():
-            columns: List[float] = [
-                -1 if math.isnan(value) else value for value in row[1].tolist()
-            ]
+        for product_id, price_entities in price_data.items():
+            avg_sell_price = price_entities.get("avg1")
+            avg_foil_price = price_entities.get("avg1-foil")
 
-            product_id = str(int(columns[product_id_index]))
             if product_id in mtgjson_id_map:
                 mtgjson_uuids = mtgjson_id_map[product_id]
                 for mtgjson_uuid in mtgjson_uuids:
-                    avg_sell_price = columns[avg_sell_price_index]
-                    avg_foil_price = columns[avg_foil_price_index]
-
                     if mtgjson_uuid not in today_dict:
-                        if avg_sell_price == -1 and avg_foil_price == -1:
+                        if not avg_sell_price and not avg_foil_price:
                             continue
 
                         today_dict[mtgjson_uuid] = MtgjsonPricesObject(
                             "paper", "cardmarket", self.today_date, "EUR"
                         )
 
-                    if avg_sell_price != -1:
+                    if avg_sell_price:
                         today_dict[mtgjson_uuid].sell_normal = avg_sell_price
 
-                    if avg_foil_price != -1:
+                    if avg_foil_price:
                         if "etched" in mtgjson_finish_map.get(product_id, []):
                             today_dict[mtgjson_uuid].sell_etched = avg_foil_price
                         else:
@@ -239,12 +232,19 @@ class CardMarketProvider(AbstractProvider):
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
     ) -> Any:
         """
-        Download Content -- Not Used
-        :param url:
-        :param params:
-        :return:
+        Download from CardMarket JSON APIs
+        :param url: Download URL
+        :param params: Options for URL download
         """
-        return None
+        response = self.session.get(url)
+        self.log_download(response)
+        if response.ok:
+            return response.json()
+
+        LOGGER.error(
+            f"Error downloading CardMarket Data: {response} --- {response.text}"
+        )
+        return {}
 
     def get_mkm_cards(self, mcm_id: Optional[int]) -> Dict[str, List[Dict[str, Any]]]:
         """
