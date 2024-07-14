@@ -92,8 +92,10 @@ def test_card_market_build_today_prices():
     provider = CardMarketProvider(init_map=False)
     patch.object(
         provider,
-        "_get_card_market_data",
-        return_value=get_resource_file_buffer("card_market_api_response.csv"),
+        "download",
+        return_value=json.load(
+            get_resource_file_buffer("card_market_api_response.json")
+        ),
     ).start()
 
     expected_results = [
