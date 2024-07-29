@@ -90,7 +90,7 @@ class ScryfallProvider(AbstractProvider):
         return all_cards
 
     @ratelimit.sleep_and_retry
-    @ratelimit.limits(calls=40, period=1)
+    @ratelimit.limits(calls=15, period=1)
     def download(
         self,
         url: str,
