@@ -86,9 +86,9 @@ def parse_foreign(
             card_foreign_entry.multiverse_id = foreign_card["multiverse_ids"][
                 0
             ]  # Deprecated - Remove in 5.4.0
-            card_foreign_entry.identifiers.multiverse_id = foreign_card[
-                "multiverse_ids"
-            ][0]
+            card_foreign_entry.identifiers.multiverse_id = str(
+                foreign_card["multiverse_ids"][0]
+            )
 
         card_foreign_entry.identifiers.scryfall_id = foreign_card.get("id")
 
