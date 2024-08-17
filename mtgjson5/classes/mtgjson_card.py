@@ -91,10 +91,10 @@ class MtgjsonCardObject(JsonObject):
     prices: MtgjsonPricesObject
     printings: List[str]
     promo_types: List[str]
-    purchase_urls: MtgjsonPurchaseUrlsObject
+    purchase_urls: Optional[MtgjsonPurchaseUrlsObject]
     rarity: str
     rebalanced_printings: List[str]
-    related_cards: MtgjsonRelatedCardsObject
+    related_cards: Optional[MtgjsonRelatedCardsObject]
     reverse_related: Optional[List[str]]
     rulings: Optional[List[MtgjsonRulingObject]]
     security_stamp: Optional[str]

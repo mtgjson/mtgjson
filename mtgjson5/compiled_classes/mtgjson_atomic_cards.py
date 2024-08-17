@@ -65,8 +65,6 @@ class MtgjsonAtomicCardsObject(JsonObject):
             for dungeon in dungeons:
                 dungeon.update(
                     {
-                        "manaValue": 0.0,
-                        "convertedManaCost": 0.0,
                         "legalities": {},
                         "purchaseUrls": {},
                         "rulings": [],
