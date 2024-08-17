@@ -104,6 +104,7 @@ class MtgjsonAtomicCardsObject(JsonObject):
 
             for foreign_data in atomic_card.get("foreignData", {}):
                 foreign_data.pop("multiverseId", None)
+                foreign_data.pop("identifiers", None)
 
             # Strip out the (a), (b) stuff
             values = self.__name_regex.findall(atomic_card["name"])
