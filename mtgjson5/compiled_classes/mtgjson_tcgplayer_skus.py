@@ -9,7 +9,7 @@ from typing import DefaultDict, Dict, List, Set, Union
 
 from ..classes.json_object import JsonObject
 from ..providers.tcgplayer import TCGPlayerProvider
-from ..utils import generate_card_mapping
+from ..utils import generate_entity_mapping
 
 LOGGER = logging.getLogger(__name__)
 
@@ -24,11 +24,17 @@ class MtgjsonTcgplayerSkusObject(JsonObject):
     def __init__(self, all_printings_path: pathlib.Path) -> None:
         self.enhanced_tcgplayer_skus = defaultdict(list)
 
-        tcg_normal_to_mtgjson_map = generate_card_mapping(
-            all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
+        tcg_normal_to_mtgjson_map = generate_entity_mapping(
+            all_printings_path,
+            ("identifiers", "tcgplayerProductId"),
+            ("uuid",),
+            include_sealed_product=True,
         )
-        tcg_etched_to_mtgjson_map = generate_card_mapping(
-            all_printings_path, ("identifiers", "tcgplayerEtchedProductId"), ("uuid",)
+        tcg_etched_to_mtgjson_map = generate_entity_mapping(
+            all_printings_path,
+            ("identifiers", "tcgplayerEtchedProductId"),
+            ("uuid",),
+            include_sealed_product=True,
         )
 
         for group in TCGPlayerProvider().get_tcgplayer_magic_set_ids():

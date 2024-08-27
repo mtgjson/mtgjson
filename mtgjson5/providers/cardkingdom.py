@@ -11,7 +11,7 @@ from singleton_decorator import singleton
 from .. import constants
 from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..providers.abstract import AbstractProvider
-from ..utils import generate_card_mapping
+from ..utils import generate_entity_mapping
 
 LOGGER = logging.getLogger(__name__)
 
@@ -73,20 +73,20 @@ class CardKingdomProvider(AbstractProvider):
         price_data_rows = request_api_response.get("data", [])
 
         # Start with non-foil IDs
-        card_kingdom_id_to_mtgjson = generate_card_mapping(
+        card_kingdom_id_to_mtgjson = generate_entity_mapping(
             all_printings_path, ("identifiers", "cardKingdomId"), ("uuid",)
         )
 
         # Then add in foil IDs
         card_kingdom_id_to_mtgjson.update(
-            generate_card_mapping(
+            generate_entity_mapping(
                 all_printings_path, ("identifiers", "cardKingdomFoilId"), ("uuid",)
             )
         )
 
         # Finally add etched IDs
         card_kingdom_id_to_mtgjson.update(
-            generate_card_mapping(
+            generate_entity_mapping(
                 all_printings_path, ("identifiers", "cardKingdomEtchedId"), ("uuid",)
             )
         )

@@ -11,7 +11,7 @@ from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
 from ..providers.abstract import AbstractProvider
-from ..utils import generate_card_mapping
+from ..utils import generate_entity_mapping
 
 LOGGER = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ class MultiverseBridgeProvider(AbstractProvider):
             self.ROSETTA_STONE_CARDS_URL
         )
 
-        cardsphere_id_to_mtgjson: Dict[str, Set[Any]] = generate_card_mapping(
+        cardsphere_id_to_mtgjson: Dict[str, Set[Any]] = generate_entity_mapping(
             all_printings_path, ("identifiers", "cardsphereId"), ("uuid",)
         )
 

@@ -17,7 +17,7 @@ from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..mtgjson_config import MtgjsonConfig
 from ..parallel_call import parallel_call
 from ..providers.abstract import AbstractProvider
-from ..utils import generate_card_mapping
+from ..utils import generate_entity_mapping
 
 LOGGER = logging.getLogger(__name__)
 
@@ -221,10 +221,10 @@ class TCGPlayerProvider(AbstractProvider):
         :return: Prices to combine with others
         """
         ids_and_names = self.get_tcgplayer_magic_set_ids()
-        tcg_foil_and_non_foil_to_mtgjson_map = generate_card_mapping(
+        tcg_foil_and_non_foil_to_mtgjson_map = generate_entity_mapping(
             all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
         )
-        tcg_etched_foil_to_mtgjson_map = generate_card_mapping(
+        tcg_etched_foil_to_mtgjson_map = generate_entity_mapping(
             all_printings_path,
             ("identifiers", "tcgplayerEtchedProductId"),
             ("uuid",),

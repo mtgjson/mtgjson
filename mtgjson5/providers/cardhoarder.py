@@ -11,7 +11,7 @@ from singleton_decorator import singleton
 from ..classes import MtgjsonPricesObject
 from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
-from ..utils import get_all_cards_and_tokens
+from ..utils import get_all_entities
 
 LOGGER = logging.getLogger(__name__)
 
@@ -163,7 +163,7 @@ class CardHoarderProvider(AbstractProvider):
         :return MTGO to MTGJSON mapping
         """
         mtgo_to_mtgjson: Dict[str, Set[str]] = defaultdict(set)
-        for card in get_all_cards_and_tokens(all_printings_path):
+        for card in get_all_entities(all_printings_path):
             identifiers = card["identifiers"]
             if "mtgoId" in identifiers:
                 mtgo_to_mtgjson[identifiers["mtgoId"]].add(card["uuid"])

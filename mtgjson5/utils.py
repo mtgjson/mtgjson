@@ -186,31 +186,33 @@ def send_push_notification(message: str) -> bool:
     return all_succeeded
 
 
-def get_all_cards_and_tokens_from_content(
-    all_printings_content: Dict[str, Any]
+def get_all_entities_from_content(
+    all_printings_content: Dict[str, Any], include_sealed_product: bool = False
 ) -> List[Dict[str, Any]]:
     """
-    Convert the content of AllPrintings into a list of card objects
+    Convert the content of AllPrintings into a list of entity objects (mostly cards, can include sealedProduct)
     :param all_printings_content: Content of AllPrintings
+    :param include_sealed_product: Should sealedProduct be included in results
     :return List of cards
     """
-    cards_and_tokens_with_set_code = []
+    entities_with_set_code = []
     for value in all_printings_content.values():
-        for card in (
+        for entity in (
             value.get("cards", [])
             + value.get("tokens", [])
-            + value.get("sealedProduct", [])
+            + (value.get("sealedProduct", []) if include_sealed_product else [])
         ):
-            cards_and_tokens_with_set_code.append(card)
-    return cards_and_tokens_with_set_code
+            entities_with_set_code.append(entity)
+    return entities_with_set_code
 
 
-def get_all_cards_and_tokens(
-    all_printings_path: pathlib.Path,
+def get_all_entities(
+    all_printings_path: pathlib.Path, include_sealed_product: bool = False
 ) -> Iterator[Dict[str, Any]]:
     """
-    Grab every card and token object from an AllPrintings file for future iteration
+    Grab every card, token, and possible sealedProduct object from an AllPrintings file for future iteration
     :param all_printings_path: AllPrintings.json to refer when building
+    :param include_sealed_product: Should sealedProduct be included in results
     :return Iterator for all card and token objects
     """
     all_printings_path = all_printings_path.expanduser()
@@ -221,14 +223,15 @@ def get_all_cards_and_tokens(
     with all_printings_path.open(encoding="utf-8") as f:
         file_contents = json.load(f).get("data", {})
 
-    for card in get_all_cards_and_tokens_from_content(file_contents):
-        yield card
+    for entity in get_all_entities_from_content(file_contents, include_sealed_product):
+        yield entity
 
 
-def generate_card_mapping(
+def generate_entity_mapping(
     all_printings_path: pathlib.Path,
     left_side_components: Tuple[str, ...],
     right_side_components: Tuple[str, ...],
+    include_sealed_product: bool = False,
 ) -> Dict[str, Set[Any]]:
     """
     Construct a mapping from one component of the card to another.
@@ -236,17 +239,18 @@ def generate_card_mapping(
     :param all_printings_path: AllPrintings file to load card data from
     :param left_side_components: Inner left hand side components ([foo, bar] => card[foo][bar])
     :param right_side_components: Inner right hand side components ([foo, bar] => card[foo][bar])
+    :param include_sealed_product: Should sealedProduct be included in entities
     :return Dict mapping from left components => right components
     """
     dump_map: Dict[str, Set[Any]] = collections.defaultdict(set)
 
-    for card in get_all_cards_and_tokens(all_printings_path):
+    for entity in get_all_entities(all_printings_path, include_sealed_product):
         try:
-            key = card
+            key = entity
             for inside_component in left_side_components:
                 key = key[inside_component]
 
-            value = card
+            value = entity
             for inside_component in right_side_components:
                 value = value[inside_component]
 
