@@ -5,7 +5,7 @@ import logging
 from typing import Any, Dict
 
 from ..classes.json_object import JsonObject
-from ..utils import get_all_cards_and_tokens_from_content
+from ..utils import get_all_entities_from_content
 
 LOGGER = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class MtgjsonAllIdentifiersObject(JsonObject):
         """
         self.all_identifiers_dict = {}
 
-        for card in get_all_cards_and_tokens_from_content(all_printings):
+        for card in get_all_entities_from_content(all_printings):
             if card["uuid"] in self.all_identifiers_dict:
                 LOGGER.error(
                     f"Duplicate MTGJSON UUID {card['uuid']} detected!\n"

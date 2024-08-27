@@ -18,7 +18,7 @@ from ... import constants
 from ...classes import MtgjsonPricesObject
 from ...mtgjson_config import MtgjsonConfig
 from ...providers.abstract import AbstractProvider
-from ...utils import generate_card_mapping
+from ...utils import generate_entity_mapping
 
 LOGGER = logging.getLogger(__name__)
 
@@ -95,13 +95,13 @@ class CardMarketProvider(AbstractProvider):
         Generate a single-day price structure from Card Market
         :return MTGJSON prices single day structure
         """
-        mtgjson_finish_map = generate_card_mapping(
+        mtgjson_finish_map = generate_entity_mapping(
             all_printings_path,
             ("identifiers", "mcmId"),
             ("finishes",),
         )
 
-        mtgjson_id_map = generate_card_mapping(
+        mtgjson_id_map = generate_entity_mapping(
             all_printings_path, ("identifiers", "mcmId"), ("uuid",)
         )
 
