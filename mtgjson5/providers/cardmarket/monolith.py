@@ -78,10 +78,12 @@ class CardMarketProvider(AbstractProvider):
         for mkm_entry in data:
             product_id = str(mkm_entry["idProduct"])
             price_data[product_id] = {
-                "avg1": (float(mkm_entry["avg1"]) if mkm_entry.get("avg1") else None),
-                "avg1-foil": (
-                    float(mkm_entry["avg1-foil"])
-                    if mkm_entry.get("avg1-foil")
+                "trend": (
+                    float(mkm_entry["trend"]) if mkm_entry.get("trend") else None
+                ),
+                "trend-foil": (
+                    float(mkm_entry["trend-foil"])
+                    if mkm_entry.get("trend-foil")
                     else None
                 ),
             }
@@ -111,8 +113,8 @@ class CardMarketProvider(AbstractProvider):
 
         today_dict: Dict[str, MtgjsonPricesObject] = {}
         for product_id, price_entities in price_data.items():
-            avg_sell_price = price_entities.get("avg1")
-            avg_foil_price = price_entities.get("avg1-foil")
+            avg_sell_price = price_entities.get("trend")
+            avg_foil_price = price_entities.get("trend-foil")
 
             if product_id in mtgjson_id_map:
                 mtgjson_uuids = mtgjson_id_map[product_id]
