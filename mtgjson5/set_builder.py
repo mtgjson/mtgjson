@@ -795,7 +795,10 @@ def build_mtgjson_card(
 
         if face_data.get("flavor_name"):
             mtgjson_card.flavor_name = " // ".join(
-                [entry["flavor_name"] for entry in scryfall_object["card_faces"]]
+                [
+                    entry.get("flavor_name", face_data["flavor_name"])
+                    for entry in scryfall_object["card_faces"]
+                ]
             )
             mtgjson_card.face_flavor_name = face_data["flavor_name"]
 
