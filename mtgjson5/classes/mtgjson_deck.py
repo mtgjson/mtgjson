@@ -14,11 +14,15 @@ class MtgjsonDeckObject(JsonObject):
     MTGJSON Singular Card Object
     """
 
-    code: str
-    commander: List[Union[MtgjsonCardObject, Dict[str, Any]]]
     main_board: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    name: str
     side_board: List[Union[MtgjsonCardObject, Dict[str, Any]]]
+    display_commander: List[Union[MtgjsonCardObject, Dict[str, Any]]]
+    commander: List[Union[MtgjsonCardObject, Dict[str, Any]]]
+    planes: List[Union[MtgjsonCardObject, Dict[str, Any]]]
+    schemes: List[Union[MtgjsonCardObject, Dict[str, Any]]]
+
+    code: str
+    name: str
     release_date: str
     sealed_product_uuids: Optional[List[str]]
     type: str
@@ -34,9 +38,12 @@ class MtgjsonDeckObject(JsonObject):
         self.name = deck_name
         self.sealed_product_uuids = sealed_product_uuids
         self.__alpha_numeric_name = re.sub(r"[^A-Za-z0-9 ]+", "", self.name).lower()
-        self.commander = []
         self.main_board = []
         self.side_board = []
+        self.display_commander = []
+        self.commander = []
+        self.planes = []
+        self.schemes = []
 
     def set_sanitized_name(self, name: str) -> None:
         """

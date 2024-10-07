@@ -87,7 +87,10 @@ class GitHubDecksProvider(AbstractProvider):
                 zip_list = [
                     ("cards", mtgjson_deck.main_board),
                     ("sideboard", mtgjson_deck.side_board),
+                    ("displayCommander", mtgjson_deck.display_commander),
                     ("commander", mtgjson_deck.commander),
+                    ("planarDeck", mtgjson_deck.planes),
+                    ("schemeDeck", mtgjson_deck.schemes),
                 ]
                 for decks_key, mtgjson_deck_list in zip_list:
                     for card in deck.get(decks_key, []):
@@ -145,8 +148,17 @@ class GitHubDecksProvider(AbstractProvider):
                 this_deck.side_board = parallel_call(
                     build_single_card, deck["sideboard"], fold_list=True
                 )
+                this_deck.display_commander = parallel_call(
+                    build_single_card, deck["displayCommander"], fold_list=True
+                )
                 this_deck.commander = parallel_call(
                     build_single_card, deck["commander"], fold_list=True
+                )
+                this_deck.planes = parallel_call(
+                    build_single_card, deck["planarDeck"], fold_list=True
+                )
+                this_deck.schemes = parallel_call(
+                    build_single_card, deck["schemeDeck"], fold_list=True
                 )
             except KeyError as error:
                 LOGGER.warning(
