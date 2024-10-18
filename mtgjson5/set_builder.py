@@ -1045,7 +1045,9 @@ def build_mtgjson_card(
                     and "Missing" in face_illustration_ids
                 ):
                     mtgjson_card.side = chr(face_id + 97)
-            else:
+            elif mtgjson_card.set_code.lower() == "adsk":
+                mtgjson_card.side = chr(face_id + 97)
+            elif mtgjson_card.face_name in face_names:
                 # Standard flip cards and such
                 # chr(97) = 'a', chr(98) = 'b', ...
                 mtgjson_card.side = chr(face_names.index(mtgjson_card.face_name) + 97)
