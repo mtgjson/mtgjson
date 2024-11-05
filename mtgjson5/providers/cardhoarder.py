@@ -89,23 +89,27 @@ class CardHoarderProvider(AbstractProvider):
 
         # All Entries from CH, cutting off headers
         file_rows: List[str] = request_api_response.splitlines()[2:]
+        invalid_entries = 0
         for file_row in file_rows:
             card_row = file_row.split("\t")
 
-            mtgo_id = card_row[0]
+            mtgo_id = card_row[0].strip('"')
             card_uuids = mtgo_to_mtgjson_map.get(mtgo_id)
 
             if not card_uuids:
                 LOGGER.debug(f"CardHoarder {card_row} unable to be mapped, skipping")
+                invalid_entries += 1
                 continue
 
             if len(card_row) <= 6:
                 LOGGER.warning(f"CardHoarder entry {card_row} malformed, skipping")
+                invalid_entries += 1
                 continue
 
             for card_uuid in card_uuids:
-                mtgjson_price_map[card_uuid] = float(card_row[5])
+                mtgjson_price_map[card_uuid] = float(card_row[5].strip('"'))
 
+        LOGGER.info(f"Missing {invalid_entries}/{len(file_rows)} CardHoarder entries")
         return mtgjson_price_map
 
     def generate_today_price_dict(
