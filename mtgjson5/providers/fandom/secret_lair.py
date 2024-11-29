@@ -38,11 +38,21 @@ class FandomProviderSecretLair(AbstractProvider):
         soup = bs4.BeautifulSoup(page_text, "html.parser")
         table = soup.find("table", {"class": "wikitable sortable"})
         table_rows = table.find_all("tr")
-        for table_row in table_rows[1:]:
+        for index, table_row in enumerate(table_rows[1:]):
             table_cols = table_row.find_all("td")
 
+            extra_card_numbers = ""
+            if "rowspan" in str(table_cols[0]):
+                # We have multiple segments split up
+                next_tr_cols = table_rows[index + 2].find_all("td")
+                extra_card_numbers = f",{next_tr_cols[0].text}"
+            elif len(table_cols) < 3:
+                continue
+
             secret_lair_name = table_cols[1].text.strip()
-            card_numbers = self.__convert_range_to_page_style(table_cols[2].text)
+            card_numbers = self.__convert_range_to_page_style(
+                table_cols[2].text + extra_card_numbers
+            )
 
             if not secret_lair_name or not card_numbers:
                 continue
