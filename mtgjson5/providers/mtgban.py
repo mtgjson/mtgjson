@@ -4,6 +4,7 @@ MTGBan 3rd party provider
 import logging
 from typing import Any, Dict, Optional, Union
 
+import requests
 from singleton_decorator import singleton
 
 from ..mtgjson_config import MtgjsonConfig
@@ -63,7 +64,11 @@ class MTGBanProvider(AbstractProvider):
         response = self.session.get(url)
         self.log_download(response)
 
-        return response.json()
+        try:
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            LOGGER.error("Unable to download from MTGBan: %s", e)
+            return {}
 
     def get_mtgjson_to_card_kingdom(self) -> Dict[str, Dict[str, Dict[str, str]]]:
         """
