@@ -88,5 +88,18 @@
         "nonfoil_only": true,
         "foil_only": false,
         "search_uri": "https://api.scryfall.com/cards/search?include_extras=true&include_variations=true&order=set&q=e%3Amb1&unique=prints"
+    },
+    "FWB": {
+        "name": "Foreign White Border",
+        "code": "FWB",
+        "released_at": "1994-04-11",
+        "set_type": "core",
+        "parent_set_code": "3ed",
+        "digital": false,
+        "nonfoil_only": true,
+        "foil_only": false,
+        "block_code": "lea",
+        "block": "Core Set",
+        "icon_svg_uri": "https://svgs.scryfall.io/sets/3ed.svg?1731301200"
     }
 }
