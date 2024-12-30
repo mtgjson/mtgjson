@@ -1418,6 +1418,7 @@ def add_multiverse_bridge_ids(mtgjson_set: MtgjsonSetObject) -> None:
                 else "cardsphere_id"
             )
             setattr(mtgjson_card.identifiers, attr, str(rosetta_card_print["cs_id"]))
+            setattr(mtgjson_card.identifiers, "deckbox_id", str(rosetta_card_print["deckbox_id"]))
 
     mtgjson_set.cardsphere_set_id = (
         MultiverseBridgeProvider()
