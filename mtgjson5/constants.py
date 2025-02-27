@@ -69,6 +69,7 @@ LANGUAGE_MAP: Dict[str, str] = {
     "sa": "Sanskrit",
     "ph": "Phyrexian",
     "px": "Phyrexian",
+    "qya": "Quenya",
 }
 SYMBOL_MAP: Dict[str, str] = {
     "White": "W",
