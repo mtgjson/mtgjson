@@ -771,7 +771,9 @@ def build_mtgjson_card(
     mtgjson_card = MtgjsonCardObject(is_token)
 
     mtgjson_card.name = scryfall_object["name"]
-    mtgjson_card.language = constants.LANGUAGE_MAP[scryfall_object["lang"]]
+    mtgjson_card.language = constants.LANGUAGE_MAP.get(
+        scryfall_object["lang"], "unknown"
+    )
     mtgjson_card.flavor_name = scryfall_object.get("flavor_name")
     mtgjson_card.set_code = scryfall_object["set"].upper()
     mtgjson_card.identifiers.scryfall_id = scryfall_object["id"]
@@ -1419,7 +1421,11 @@ def add_multiverse_bridge_ids(mtgjson_set: MtgjsonSetObject) -> None:
             )
             setattr(mtgjson_card.identifiers, attr, str(rosetta_card_print["cs_id"]))
             if rosetta_card_print["deckbox_id"]:
-                setattr(mtgjson_card.identifiers, "deckbox_id", str(rosetta_card_print["deckbox_id"]))
+                setattr(
+                    mtgjson_card.identifiers,
+                    "deckbox_id",
+                    str(rosetta_card_print["deckbox_id"]),
+                )
 
     mtgjson_set.cardsphere_set_id = (
         MultiverseBridgeProvider()
