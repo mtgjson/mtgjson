@@ -893,6 +893,7 @@ def build_mtgjson_card(
     mtgjson_card.has_non_foil = "nonfoil" in scryfall_object.get("finishes", [])
     mtgjson_card.has_content_warning = scryfall_object.get("content_warning")
     mtgjson_card.is_full_art = scryfall_object.get("full_art")
+    mtgjson_card.is_game_changer = scryfall_object.get("game_changer")
     mtgjson_card.is_online_only = scryfall_object.get("digital")
     mtgjson_card.is_oversized = scryfall_object.get("oversized") or (
         mtgjson_card.set_code in ("OC21",)
