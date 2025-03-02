@@ -110,7 +110,7 @@ class TCGPlayerProvider(AbstractProvider):
         "theme": 12,
     }
     product_url = (
-        "https://tcgplayer.pxf.io/c/4948039/1780961/21018?subId1=api&u="
+        "https://partner.tcgplayer.com/c/4948039/1780961/21018?subId1=api&u="
         "https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F{}%3Fpage%3D1"
     )
 
