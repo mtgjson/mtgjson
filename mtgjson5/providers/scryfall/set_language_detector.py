@@ -52,7 +52,7 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
     def get_set_printing_languages(self, set_code: str) -> List[str]:
         first_card_response = self.download(self.FIRST_CARD_URL.format(set_code))
 
-        if first_card_response.get("object") != "list":
+        if not first_card_response or first_card_response.get("object") != "list":
             LOGGER.warning(
                 f"Unable to get set printing languages for {set_code} due to bad response: {first_card_response}"
             )
@@ -67,6 +67,11 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
         lang_response = self.download(
             self.LANG_QUERY_URL.format(set_code, first_card_number)
         )
+
+        if not lang_response:
+            LOGGER.error(f"Failed to get set printing languages for {set_code} due to bad response: {lang_response}")
+            return []
+
         set_languages = {
             LANGUAGE_MAP.get(card.get("lang")) for card in lang_response.get("data", [])
         }
