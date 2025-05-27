@@ -11,6 +11,7 @@ from ..classes import (
     MtgjsonSealedProductObject,
     MtgjsonSealedProductSubtype,
 )
+from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 from ..utils import to_snake_case
 
@@ -41,7 +42,8 @@ class GitHubSealedProvider(AbstractProvider):
         Construct the Authorization header
         :return: Authorization header
         """
-        return {}
+        __github_token = MtgjsonConfig().get("GitHub", "api_token")
+        return {"Authorization": f"Bearer {__github_token}"}
 
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None

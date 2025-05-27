@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from singleton_decorator import singleton
 
+from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 
 LOGGER = logging.getLogger(__name__)
@@ -24,11 +25,12 @@ class GathererProvider(AbstractProvider):
         """
         Class Initializer
         """
-        super().__init__({})
+        super().__init__(self._build_http_header())
         self._multiverse_id_to_data = self.download(self._GATHERER_ID_MAPPING_URL)
 
     def _build_http_header(self) -> Dict[str, str]:
-        raise NotImplementedError()
+        __github_token = MtgjsonConfig().get("GitHub", "api_token")
+        return {"Authorization": f"Bearer {__github_token}"}
 
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None

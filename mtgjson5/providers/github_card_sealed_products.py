@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from singleton_decorator import singleton
 
+from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 
 LOGGER = logging.getLogger(__name__)
@@ -28,7 +29,8 @@ class GitHubCardSealedProductsProvider(AbstractProvider):
         self.card_uuid_to_products = self.download(self.card_products_api_url)
 
     def _build_http_header(self) -> Dict[str, str]:
-        return {}
+        __github_token = MtgjsonConfig().get("GitHub", "api_token")
+        return {"Authorization": f"Bearer {__github_token}"}
 
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
