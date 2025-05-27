@@ -46,7 +46,8 @@ class GitHubDecksProvider(AbstractProvider):
         Construct the Authorization header
         :return: Authorization header
         """
-        return {}
+        __github_token = MtgjsonConfig().get("GitHub", "api_token")
+        return {"Authorization": f"Bearer {__github_token}"}
 
     @staticmethod
     def _build_mtgjson_deck_card(card: Dict[str, Any]) -> MtgjsonCardObject:

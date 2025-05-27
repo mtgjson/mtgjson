@@ -44,7 +44,8 @@ class GitHubMTGSqliteProvider(AbstractProvider):
         Construct the Authorization header
         :return: Authorization header
         """
-        return {}
+        __github_token = MtgjsonConfig().get("GitHub", "api_token")
+        return {"Authorization": f"Bearer {__github_token}"}
 
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None

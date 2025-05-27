@@ -13,10 +13,7 @@ mkm_access_token_secret=
 api_url=
 
 [GitHub]
-username=
-api_key=
-repo_name=
-file_name=
+api_token=
 
 [MTGBan]
 api_key=

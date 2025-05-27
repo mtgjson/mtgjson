@@ -69,7 +69,9 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
         )
 
         if not lang_response:
-            LOGGER.error(f"Failed to get set printing languages for {set_code} due to bad response: {lang_response}")
+            LOGGER.error(
+                f"Failed to get set printing languages for {set_code} due to bad response: {lang_response}"
+            )
             return []
 
         set_languages = {

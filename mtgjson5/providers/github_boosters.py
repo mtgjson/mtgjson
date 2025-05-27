@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional, Union
 
 from singleton_decorator import singleton
 
+from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 from ..utils import recursive_sort
 
@@ -33,7 +34,8 @@ class GitHubBoostersProvider(AbstractProvider):
         Construct the Authorization header
         :return: Authorization header
         """
-        return {}
+        __github_token = MtgjsonConfig().get("GitHub", "api_token")
+        return {"Authorization": f"Bearer {__github_token}"}
 
     def download(
         self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
