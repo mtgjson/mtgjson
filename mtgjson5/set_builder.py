@@ -1407,7 +1407,7 @@ def add_multiverse_bridge_ids(mtgjson_set: MtgjsonSetObject) -> None:
     rosetta_stone_cards = MultiverseBridgeProvider().get_rosetta_stone_cards()
     for mtgjson_card in mtgjson_set.cards:
         if mtgjson_card.identifiers.scryfall_id not in rosetta_stone_cards:
-            LOGGER.warning(
+            LOGGER.info(
                 f"MultiverseBridge missing {mtgjson_card.name} in {mtgjson_card.set_code}"
             )
             continue
