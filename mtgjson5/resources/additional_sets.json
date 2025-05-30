@@ -88,5 +88,16 @@
         "nonfoil_only": true,
         "foil_only": false,
         "search_uri": "https://api.scryfall.com/cards/search?include_extras=true&include_variations=true&order=set&q=e%3Amb1&unique=prints"
+    },
+    "EOE": {
+        "name": "Edge of Eternities",
+        "code": "EOE",
+        "set_type": "expansion",
+        "icon_svg_uri": "https://svgs.scryfall.io/sets/default.svg",
+        "released_at": "2025-08-01",
+        "digital": false,
+        "nonfoil_only": false,
+        "foil_only": false,
+        "search_uri": "https://api.scryfall.com/cards/search?include_extras=true&include_variations=true&order=set&q=e%3Aeoe&unique=prints"
     }
 }
