@@ -69,8 +69,6 @@ class MtgWikiProviderSecretLair(AbstractProvider):
         if not range_string:
             return []
 
-        print(range_string.split(","))
-
         return sum(
             (
                 (
