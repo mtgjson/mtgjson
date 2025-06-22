@@ -69,10 +69,12 @@ class MtgWikiProviderSecretLair(AbstractProvider):
         if not range_string:
             return []
 
+        print(range_string.split(","))
+
         return sum(
             (
                 (
-                    list(range(*[int(j) + k for k, j in enumerate(i.split("-"))]))
+                    list(range(*[int(j) + k for k, j in enumerate(i.split("-")) if len(j) > 0]))
                     if "-" in i
                     else [int(i)]
                 )
