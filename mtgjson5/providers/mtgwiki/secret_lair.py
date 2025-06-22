@@ -8,8 +8,8 @@ from ...providers.abstract import AbstractProvider
 
 
 @singleton
-class FandomProviderSecretLair(AbstractProvider):
-    PAGE_URL = "https://mtg.fandom.com/wiki/Secret_Lair/Drop_Series"
+class MtgWikiProviderSecretLair(AbstractProvider):
+    PAGE_URL = "https://mtg.wiki/page/Secret_Lair/Drop_Series"
     logger: logging.Logger
 
     def __init__(self, headers: Optional[Dict[str, str]] = None):
@@ -23,7 +23,7 @@ class FandomProviderSecretLair(AbstractProvider):
         self, url: str = "", params: Optional[Dict[str, Union[str, int]]] = None
     ) -> Dict[str, str]:
         """
-        Download Fandom Secret Lair page and parse it out
+        Download MTG.Wiki Secret Lair page and parse it out
         for user consumption
         :returns Mapping of Card ID to Secret Lair Drop Name
         """
