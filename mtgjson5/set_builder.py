@@ -28,13 +28,13 @@ from .providers import (
     CardKingdomProvider,
     CardMarketProvider,
     EdhrecProviderCardRanks,
-    FandomProviderSecretLair,
     GathererProvider,
     GitHubBoostersProvider,
     GitHubCardSealedProductsProvider,
     GitHubDecksProvider,
     GitHubSealedProvider,
     MTGBanProvider,
+    MtgWikiProviderSecretLair,
     MultiverseBridgeProvider,
     ScryfallProvider,
     ScryfallProviderOrientationDetector,
@@ -1653,11 +1653,11 @@ def add_orientations(mtgjson_set: MtgjsonSetObject) -> None:
 def add_secret_lair_names(mtgjson_set: MtgjsonSetObject) -> None:
     """
     Secret Lairs don't have a native way to know what printing(s) they were in,
-    so we will map them to the Fandom wiki to support this functionality
+    so we will map them to MTG.Wiki to support this functionality
     :param mtgjson_set: MTGJSON Set Object
     """
     LOGGER.info(f"Linking Secret Lair Drops to {mtgjson_set.code}")
-    relation_map = FandomProviderSecretLair().download()
+    relation_map = MtgWikiProviderSecretLair().download()
     for card in mtgjson_set.cards:
         if card.number in relation_map:
             card.subsets = [relation_map[card.number]]

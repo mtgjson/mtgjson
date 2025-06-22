@@ -6,7 +6,6 @@ from .cardhoarder import CardHoarderProvider
 from .cardkingdom import CardKingdomProvider
 from .cardmarket.monolith import CardMarketProvider
 from .edhrec.card_ranks import EdhrecProviderCardRanks
-from .fandom.secret_lair import FandomProviderSecretLair
 from .gatherer import GathererProvider
 from .github_boosters import GitHubBoostersProvider
 from .github_card_sealed_products import GitHubCardSealedProductsProvider
@@ -14,6 +13,7 @@ from .github_decks import GitHubDecksProvider
 from .github_mtgsqlite import GitHubMTGSqliteProvider
 from .github_sealed import GitHubSealedProvider
 from .mtgban import MTGBanProvider
+from .mtgwiki.secret_lair import MtgWikiProviderSecretLair
 from .multiversebridge import MultiverseBridgeProvider
 from .scryfall.monolith import ScryfallProvider
 from .scryfall.orientation_detector import ScryfallProviderOrientationDetector
