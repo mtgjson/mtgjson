@@ -1099,7 +1099,6 @@ def build_mtgjson_card(
 
     # Handle Meld components, as well as tokens
     if "all_parts" in scryfall_object.keys():
-        # meld_object = []
         mtgjson_card.set_names(None)
         for a_part in sorted(
             scryfall_object["all_parts"], key=lambda part: part["component"]
@@ -1109,7 +1108,6 @@ def build_mtgjson_card(
 
             # This is a meld only-fix, so we ignore tokens/combo pieces
             if a_part["component"].startswith("meld"):
-                # meld_object.append(a_part["component"])
                 mtgjson_card.append_names(a_part.get("name"))
                 continue
 
