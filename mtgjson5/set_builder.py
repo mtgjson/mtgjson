@@ -23,6 +23,7 @@ from .classes import (
     MtgjsonSetObject,
     MtgjsonTranslationsObject,
 )
+from .constants import RESOURCE_PATH
 from .parallel_call import parallel_call
 from .providers import (
     CardKingdomProvider,
@@ -537,6 +538,8 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     # Implicit Variables
     mtgjson_set.is_foreign_only = mtgjson_set.code in constants.FOREIGN_SETS
     mtgjson_set.is_partial_preview = MtgjsonMetaObject().date < mtgjson_set.release_date
+
+    apply_manual_overrides(mtgjson_set.cards)
 
     return mtgjson_set
 
@@ -1096,7 +1099,7 @@ def build_mtgjson_card(
 
     # Handle Meld components, as well as tokens
     if "all_parts" in scryfall_object.keys():
-        meld_object = []
+        # meld_object = []
         mtgjson_card.set_names(None)
         for a_part in sorted(
             scryfall_object["all_parts"], key=lambda part: part["component"]
@@ -1106,7 +1109,7 @@ def build_mtgjson_card(
 
             # This is a meld only-fix, so we ignore tokens/combo pieces
             if a_part["component"].startswith("meld"):
-                meld_object.append(a_part["component"])
+                # meld_object.append(a_part["component"])
                 mtgjson_card.append_names(a_part.get("name"))
                 continue
 
@@ -1126,6 +1129,16 @@ def build_mtgjson_card(
 
         # Meld Object; get_names() => CardA, CardB, Meld
         if mtgjson_card.get_names() and len(mtgjson_card.get_names()) == 3:
+            # Upstream sources don't guarantee order, so we do it ourselves
+            with RESOURCE_PATH.joinpath("meld_triplets.json").open(
+                encoding="utf-8"
+            ) as fp:
+                meld_card_triplets = json.load(fp)
+            for card_a, card_b, meld_c in meld_card_triplets:
+                if card_a in mtgjson_card.get_names():
+                    mtgjson_card.set_names([card_a, card_b, meld_c])
+                    break
+
             # Front Sides will have name = Front1//Back, Front2//Back
             # Back Side will have name = Back
             mtgjson_card.face_converted_mana_cost = mtgjson_card.mana_value
@@ -1712,3 +1725,22 @@ def add_card_products_to_cards(mtgjson_set: MtgjsonSetObject) -> None:
                 card_entity.uuid
             )
         )
+
+
+def apply_manual_overrides(mtgjson_cards: List[MtgjsonCardObject]) -> None:
+    """
+    Sometimes, coding and automation just isn't good enough. In those cases,
+    we can apply manual overrides to certain card UUIDs from the manual_overrides list.
+    :param mtgjson_cards: MTGJSON Card objects to modify
+    """
+    with RESOURCE_PATH.joinpath("manual_overrides.json").open(encoding="utf-8") as fp:
+        uuid_to_overrides = json.load(fp)
+
+    for mtgjson_card in mtgjson_cards:
+        if mtgjson_card.uuid not in uuid_to_overrides:
+            continue
+
+        for key, value in uuid_to_overrides[mtgjson_card.uuid].items():
+            if key.startswith("__"):
+                continue
+            setattr(mtgjson_card, key, value)

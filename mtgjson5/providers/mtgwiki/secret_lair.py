@@ -72,7 +72,15 @@ class MtgWikiProviderSecretLair(AbstractProvider):
         return sum(
             (
                 (
-                    list(range(*[int(j) + k for k, j in enumerate(i.split("-")) if len(j) > 0]))
+                    list(
+                        range(
+                            *[
+                                int(j) + k
+                                for k, j in enumerate(i.split("-"))
+                                if len(j) > 0
+                            ]
+                        )
+                    )
                     if "-" in i
                     else [int(i)]
                 )
