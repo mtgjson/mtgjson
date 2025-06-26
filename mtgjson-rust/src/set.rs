@@ -13,29 +13,27 @@ use std::collections::{HashMap, HashSet};
 #[pyclass(name = "MtgjsonSet")]
 pub struct MtgjsonSet {
     #[pyo3(get, set)]
-    pub base_set_size: i32,
-    
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
-    #[pyo3(get, set)]
-    pub block: Option<String>,
-    
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[pyo3(get, set)]
-    pub booster: Option<HashMap<String, serde_json::Value>>,
+    pub base_set_size: Option<i32>,
     
+    #[pyo3(get, set)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub booster: Option<String>,
+    
+    #[pyo3(get, set)]
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
-    #[pyo3(get, set)]
-    pub cards: Vec<MtgjsonCard>,
+    pub cards: Vec<crate::card::MtgjsonCard>,
     
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cardsphere_set_id: Option<i32>,
     
     #[pyo3(get, set)]
-    pub code: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
     
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub code_v3: Option<String>,
     
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
@@ -117,9 +115,9 @@ pub struct MtgjsonSet {
     pub type_: String,
 
     // Internal fields not published in JSON
-    #[serde(skip)]
     #[pyo3(get, set)]
-    pub extra_tokens: Vec<HashMap<String, serde_json::Value>>,
+    #[serde(skip_serializing_if = "skip_if_empty_vec")]
+    pub extra_tokens: Vec<String>,
     
     #[serde(skip)]
     #[pyo3(get, set)]
@@ -131,12 +129,11 @@ impl MtgjsonSet {
     #[new]
     pub fn new() -> Self {
         Self {
-            base_set_size: 0,
-            block: None,
+            base_set_size: None,
             booster: None,
             cards: Vec::new(),
             cardsphere_set_id: None,
-            code: String::new(),
+            code: None,
             code_v3: None,
             decks: Vec::new(),
             is_foreign_only: false,
@@ -174,7 +171,7 @@ impl MtgjsonSet {
 
     /// Get the Windows-safe set code
     pub fn get_windows_safe_set_code(&self) -> String {
-        MtgjsonUtils::make_windows_safe_filename(&self.code)
+        MtgjsonUtils::make_windows_safe_filename(&self.code.as_ref().unwrap_or(&String::new()))
     }
 
     /// Add a card to the set
@@ -246,18 +243,30 @@ impl MtgjsonSet {
     }
 
     /// Find card by name
-    pub fn find_card_by_name(&self, name: &str) -> Option<&MtgjsonCard> {
-        self.cards.iter().find(|card| card.name == name)
+    pub fn find_card_by_name(&self, name: &str) -> Option<usize> {
+        self.cards.iter().position(|card| 
+            card.name == name
+        )
     }
 
     /// Find card by UUID
-    pub fn find_card_by_uuid(&self, uuid: &str) -> Option<&MtgjsonCard> {
-        self.cards.iter().find(|card| card.uuid == uuid)
+    pub fn find_card_by_uuid(&self, uuid: &str) -> Option<usize> {
+        self.cards.iter().position(|card| 
+            card.uuid == uuid
+        )
     }
 
     /// Get cards of specific rarity
-    pub fn get_cards_of_rarity(&self, rarity: &str) -> Vec<&MtgjsonCard> {
-        self.cards.iter().filter(|card| card.rarity == rarity).collect()
+    pub fn get_cards_of_rarity(&self, rarity: &str) -> Vec<usize> {
+        self.cards.iter().enumerate()
+            .filter_map(|(i, card)| {
+                if card.rarity == rarity {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     /// Check if set contains any foil cards
@@ -273,25 +282,12 @@ impl MtgjsonSet {
     }
 
     /// Get set statistics
-    pub fn get_statistics(&self) -> HashMap<String, serde_json::Value> {
-        let mut stats = HashMap::new();
+    pub fn get_statistics(&self) -> String {
+        let mut stats = std::collections::HashMap::new();
+        stats.insert("total_cards", self.cards.len());
+        stats.insert("base_set_size", self.base_set_size.unwrap_or(0) as usize);
         
-        stats.insert("totalCards".to_string(), serde_json::Value::Number(self.cards.len().into()));
-        stats.insert("totalTokens".to_string(), serde_json::Value::Number(self.tokens.len().into()));
-        stats.insert("totalDecks".to_string(), serde_json::Value::Number(self.decks.len().into()));
-        stats.insert("totalSealedProducts".to_string(), serde_json::Value::Number(self.sealed_product.len().into()));
-        stats.insert("baseSetSize".to_string(), serde_json::Value::Number(self.base_set_size.into()));
-        stats.insert("totalSetSize".to_string(), serde_json::Value::Number(self.total_set_size.into()));
-        stats.insert("uniqueLanguages".to_string(), serde_json::Value::Number(self.get_unique_languages().len().into()));
-        stats.insert("hasFoils".to_string(), serde_json::Value::Bool(self.has_foil_cards()));
-        stats.insert("hasNonFoils".to_string(), serde_json::Value::Bool(self.has_non_foil_cards()));
-        
-        // Add rarity breakdown
-        let rarity_counts = self.get_cards_by_rarity();
-        let rarity_json = serde_json::to_value(rarity_counts).unwrap_or(serde_json::Value::Object(Default::default()));
-        stats.insert("rarityBreakdown".to_string(), rarity_json);
-        
-        stats
+        serde_json::to_string(&stats).unwrap_or_default()
     }
 
     /// Update set size calculations
@@ -300,18 +296,18 @@ impl MtgjsonSet {
         
         // Base set size is typically the number of non-token, non-special cards
         // This is a simplified calculation - the real logic would be more complex
-        self.base_set_size = self.cards.iter()
+        self.base_set_size = Some(self.cards.iter()
             .filter(|card| !card.is_token && 
                            card.rarity != "special" && 
                            !card.types.contains(&"Token".to_string()))
-            .count() as i32;
+            .count() as i32);
     }
 
     /// Validate set integrity
     pub fn validate(&self) -> Vec<String> {
         let mut errors = Vec::new();
         
-        if self.code.is_empty() {
+        if self.code.is_none() {
             errors.push("Set code is required".to_string());
         }
         
@@ -367,9 +363,6 @@ impl JsonObject for MtgjsonSet {
         ];
         
         // Skip empty values that aren't in the allow list
-        if self.block.is_none() {
-            excluded_keys.insert("block".to_string());
-        }
         if self.booster.is_none() {
             excluded_keys.insert("booster".to_string());
         }
