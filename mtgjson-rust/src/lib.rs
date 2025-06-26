@@ -49,8 +49,8 @@ pub use translations::*;
 
 /// Python module for MTGJSON Rust implementation
 #[pymodule]
-fn mtgjson_rust(_py: Python, m: &PyModule) -> PyResult<()> {
-    // Register classes
+fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    // Register classes using PyO3 0.22 API
     m.add_class::<MtgjsonCard>()?;
     m.add_class::<MtgjsonDeck>()?;
     m.add_class::<MtgjsonDeckHeader>()?;

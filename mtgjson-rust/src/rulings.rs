@@ -42,9 +42,13 @@ impl MtgjsonRuling {
         }
     }
 
-    /// Compare rulings by date
-    pub fn compare_by_date(&self, other: &MtgjsonRuling) -> std::cmp::Ordering {
-        self.date.cmp(&other.date)
+    /// Compare rulings by date (returns -1, 0, or 1)
+    pub fn compare_by_date(&self, other: &MtgjsonRuling) -> i32 {
+        match self.date.cmp(&other.date) {
+            std::cmp::Ordering::Less => -1,
+            std::cmp::Ordering::Equal => 0,
+            std::cmp::Ordering::Greater => 1,
+        }
     }
 }
 

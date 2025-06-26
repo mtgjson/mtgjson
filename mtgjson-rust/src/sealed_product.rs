@@ -253,7 +253,7 @@ impl Default for SealedProductSubtype {
 }
 
 /// MTGJSON Singular Sealed Product Object
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug)]
 #[pyclass(name = "MtgjsonSealedProduct")]
 pub struct MtgjsonSealedProduct {
     #[pyo3(get, set)]
@@ -268,37 +268,29 @@ pub struct MtgjsonSealedProduct {
     #[pyo3(get, set)]
     pub purchase_urls: MtgjsonPurchaseUrls,
     
-    #[serde(skip)]
     #[pyo3(get, set)]
     pub raw_purchase_urls: HashMap<String, String>,
     
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub release_date: Option<String>,
     
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub language: Option<String>,
     
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub category: Option<SealedProductCategory>,
     
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub subtype: Option<SealedProductSubtype>,
     
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
-    pub contents: Option<HashMap<String, serde_json::Value>>,
+    pub contents: Option<HashMap<String, PyObject>>,
     
     /// Number of packs in a booster box [DEPRECATED]
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub product_size: Option<i32>,
     
     /// Number of cards in a booster pack or deck
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub card_count: Option<i32>,
 }
@@ -324,13 +316,64 @@ impl MtgjsonSealedProduct {
     }
 
     pub fn to_json(&self) -> PyResult<String> {
-        serde_json::to_string(self).map_err(|e| {
+        // Manual serialization since we can't use serde with PyObject fields
+        let mut result = serde_json::Map::new();
+        
+        if !self.name.is_empty() {
+            result.insert("name".to_string(), serde_json::Value::String(self.name.clone()));
+        }
+        if !self.uuid.is_empty() {
+            result.insert("uuid".to_string(), serde_json::Value::String(self.uuid.clone()));
+        }
+        
+        // Serialize other fields that support serde
+        if let Ok(identifiers_json) = serde_json::to_value(&self.identifiers) {
+            result.insert("identifiers".to_string(), identifiers_json);
+        }
+        
+        if let Ok(urls_json) = serde_json::to_value(&self.purchase_urls) {
+            result.insert("purchaseUrls".to_string(), urls_json);
+        }
+        
+        if let Some(ref val) = self.release_date {
+            if !val.is_empty() {
+                result.insert("releaseDate".to_string(), serde_json::Value::String(val.clone()));
+            }
+        }
+        
+        if let Some(ref val) = self.language {
+            if !val.is_empty() {
+                result.insert("language".to_string(), serde_json::Value::String(val.clone()));
+            }
+        }
+        
+        if let Some(ref val) = self.category {
+            if let Some(category_str) = val.to_json() {
+                result.insert("category".to_string(), serde_json::Value::String(category_str));
+            }
+        }
+        
+        if let Some(ref val) = self.subtype {
+            if let Some(subtype_str) = val.to_json() {
+                result.insert("subtype".to_string(), serde_json::Value::String(subtype_str));
+            }
+        }
+        
+        if let Some(val) = self.product_size {
+            result.insert("productSize".to_string(), serde_json::Value::Number(val.into()));
+        }
+        
+        if let Some(val) = self.card_count {
+            result.insert("cardCount".to_string(), serde_json::Value::Number(val.into()));
+        }
+        
+        serde_json::to_string(&result).map_err(|e| {
             pyo3::exceptions::PyValueError::new_err(format!("Serialization error: {}", e))
         })
     }
 
     /// Convert to dictionary for Python
-    pub fn to_dict(&self) -> PyResult<HashMap<String, serde_json::Value>> {
+    pub fn to_dict(&self, py: Python) -> PyResult<PyObject> {
         let mut result = HashMap::new();
         
         if !self.name.is_empty() {
@@ -375,7 +418,17 @@ impl MtgjsonSealedProduct {
         }
         
         if let Some(ref val) = self.contents {
-            result.insert("contents".to_string(), serde_json::to_value(val).unwrap());
+            // Convert PyObject contents to JSON
+            let contents_json: HashMap<String, serde_json::Value> = val.iter()
+                .map(|(k, v)| {
+                    let json_val = match v.bind(py).str() {
+                        Ok(string_val) => serde_json::Value::String(string_val.to_string()),
+                        Err(_) => serde_json::Value::String(v.bind(py).to_string()),
+                    };
+                    (k.clone(), json_val)
+                })
+                .collect();
+            result.insert("contents".to_string(), serde_json::to_value(contents_json).unwrap());
         }
         
         if let Some(val) = self.product_size {
@@ -386,7 +439,7 @@ impl MtgjsonSealedProduct {
             result.insert("cardCount".to_string(), serde_json::Value::Number(val.into()));
         }
         
-        Ok(result)
+        Ok(result.into_py(py))
     }
 
     /// Check if sealed product has meaningful content

@@ -19,6 +19,10 @@ pub struct MtgjsonForeignData {
     #[pyo3(get, set)]
     pub language: String,
     
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[pyo3(get, set)]
+    pub multiverse_id: Option<i32>,
+    
     #[pyo3(get, set)]
     pub identifiers: MtgjsonIdentifiers,
     
@@ -67,7 +71,7 @@ impl MtgjsonForeignData {
     }
 
     /// Convert to dictionary for Python compatibility
-    pub fn to_dict(&self) -> PyResult<HashMap<String, serde_json::Value>> {
+    pub fn to_dict(&self, py: Python) -> PyResult<PyObject> {
         let mut result = HashMap::new();
         
         result.insert("language".to_string(), serde_json::Value::String(self.language.clone()));
@@ -111,7 +115,7 @@ impl MtgjsonForeignData {
             }
         }
         
-        Ok(result)
+        Ok(result.into_py(py))
     }
 
     /// Check if foreign data has meaningful content

@@ -6,14 +6,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 /// MtgjsonLegalities
-//!
-//! This struct represents the legalities for a single Magic: The Gathering card.
-//!
-//! It is used to store all the data for a single card's legalities, including
-//! its brawl, commander, duel, future, frontier, legacy, modern, pauper, penny,
-//! pioneer, and vintage.
-//!
-//! Note: All fields are required
+///
+/// This struct represents the legalities for a single Magic: The Gathering card.
+///
+/// It is used to store all the data for a single card's legalities, including
+/// its brawl, commander, duel, future, frontier, legacy, modern, pauper, penny,
+/// pioneer, and vintage.
+///
+/// Note: All fields are required
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[pyclass(name = "MtgjsonLegalities")]
 pub struct MtgjsonLegalities {

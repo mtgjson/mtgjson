@@ -14,32 +14,26 @@ use std::collections::{HashMap, HashSet};
 //! its name, main board, side board, and other relevant information.
 //!
 //! Note: All fields are optional, so we must manually check for empty values.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug)]
 #[pyclass(name = "MtgjsonDeck")]
 pub struct MtgjsonDeck {
-    #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
-    pub main_board: Vec<serde_json::Value>, // Could be MtgjsonCard or dict
+    pub main_board: Vec<PyObject>, // PyO3-compatible card objects
     
-    #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
-    pub side_board: Vec<serde_json::Value>, // Could be MtgjsonCard or dict
+    pub side_board: Vec<PyObject>, // PyO3-compatible card objects
     
-    #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
-    pub display_commander: Vec<serde_json::Value>, // Could be MtgjsonCard or dict
+    pub display_commander: Vec<PyObject>, // PyO3-compatible card objects
     
-    #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
-    pub commander: Vec<serde_json::Value>, // Could be MtgjsonCard or dict
+    pub commander: Vec<PyObject>, // PyO3-compatible card objects
     
-    #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
-    pub planes: Vec<serde_json::Value>, // Could be MtgjsonCard or dict
+    pub planes: Vec<PyObject>, // PyO3-compatible card objects
     
-    #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
-    pub schemes: Vec<serde_json::Value>, // Could be MtgjsonCard or dict
+    pub schemes: Vec<PyObject>, // PyO3-compatible card objects
 
     #[pyo3(get, set)]
     pub code: String,
@@ -50,19 +44,16 @@ pub struct MtgjsonDeck {
     #[pyo3(get, set)]
     pub release_date: String,
     
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub sealed_product_uuids: Option<Vec<String>>,
     
     #[pyo3(get, set)]
     pub type_: String,
     
-    #[serde(skip)]
     #[pyo3(get, set)]
     pub file_name: String,
 
     // Internal field for deck name matching
-    #[serde(skip)]
     alpha_numeric_name: String,
 }
 
@@ -91,8 +82,49 @@ impl MtgjsonDeck {
     }
 
     /// Convert to JSON string
-    pub fn to_json(&self) -> PyResult<String> {
-        serde_json::to_string(self).map_err(|e| {
+    pub fn to_json(&self, py: Python) -> PyResult<String> {
+        // Convert PyObjects to serializable format
+        let mut serializable_deck = serde_json::Map::new();
+        
+        if !self.main_board.is_empty() {
+            let main_board_json: Vec<serde_json::Value> = self.main_board.iter()
+                .map(|obj| {
+                    // Try to extract as MtgjsonCard first, then fallback to generic conversion
+                    if let Ok(card) = obj.extract::<MtgjsonCard>(py) {
+                        serde_json::to_value(card).unwrap_or(serde_json::Value::Null)
+                    } else {
+                        // Convert PyObject to serde_json::Value
+                        obj.bind(py).to_string().into()
+                    }
+                })
+                .collect();
+            serializable_deck.insert("mainBoard".to_string(), main_board_json.into());
+        }
+        
+        if !self.side_board.is_empty() {
+            let side_board_json: Vec<serde_json::Value> = self.side_board.iter()
+                .map(|obj| {
+                    if let Ok(card) = obj.extract::<MtgjsonCard>(py) {
+                        serde_json::to_value(card).unwrap_or(serde_json::Value::Null)
+                    } else {
+                        obj.bind(py).to_string().into()
+                    }
+                })
+                .collect();
+            serializable_deck.insert("sideBoard".to_string(), side_board_json.into());
+        }
+        
+        // Add other fields
+        serializable_deck.insert("code".to_string(), self.code.clone().into());
+        serializable_deck.insert("name".to_string(), self.name.clone().into());
+        serializable_deck.insert("releaseDate".to_string(), self.release_date.clone().into());
+        serializable_deck.insert("type".to_string(), self.type_.clone().into());
+        
+        if let Some(ref uuids) = self.sealed_product_uuids {
+            serializable_deck.insert("sealedProductUuids".to_string(), uuids.clone().into());
+        }
+        
+        serde_json::to_string(&serializable_deck).map_err(|e| {
             pyo3::exceptions::PyValueError::new_err(format!("Serialization error: {}", e))
         })
     }
@@ -116,29 +148,20 @@ impl MtgjsonDeck {
     }
 
     /// Add a card to the main board
-    pub fn add_main_board_card(&mut self, card: &MtgjsonCard) -> PyResult<()> {
-        let card_value = serde_json::to_value(card).map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Card serialization error: {}", e))
-        })?;
-        self.main_board.push(card_value);
+    pub fn add_main_board_card(&mut self, card: PyObject) -> PyResult<()> {
+        self.main_board.push(card);
         Ok(())
     }
 
     /// Add a card to the side board
-    pub fn add_side_board_card(&mut self, card: &MtgjsonCard) -> PyResult<()> {
-        let card_value = serde_json::to_value(card).map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Card serialization error: {}", e))
-        })?;
-        self.side_board.push(card_value);
+    pub fn add_side_board_card(&mut self, card: PyObject) -> PyResult<()> {
+        self.side_board.push(card);
         Ok(())
     }
 
     /// Add a commander card
-    pub fn add_commander_card(&mut self, card: &MtgjsonCard) -> PyResult<()> {
-        let card_value = serde_json::to_value(card).map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Card serialization error: {}", e))
-        })?;
-        self.commander.push(card_value);
+    pub fn add_commander_card(&mut self, card: PyObject) -> PyResult<()> {
+        self.commander.push(card);
         Ok(())
     }
 
@@ -232,7 +255,13 @@ impl MtgjsonDeckHeader {
 
     /// Convert to JSON string
     pub fn to_json(&self) -> PyResult<String> {
-        serde_json::to_string(self).map_err(|e| {
+        let mut serializable_header = serde_json::Map::new();
+        serializable_header.insert("code".to_string(), self.code.clone().into());
+        serializable_header.insert("name".to_string(), self.name.clone().into());
+        serializable_header.insert("releaseDate".to_string(), self.release_date.clone().into());
+        serializable_header.insert("type".to_string(), self.type_.clone().into());
+        
+        serde_json::to_string(&serializable_header).map_err(|e| {
             pyo3::exceptions::PyValueError::new_err(format!("Serialization error: {}", e))
         })
     }

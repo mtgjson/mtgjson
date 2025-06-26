@@ -9,48 +9,42 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
-//! MtgjsonSet
-//!
-//! This struct represents a single Magic: The Gathering set.
-//! It is used to store all the data for a single set, including
-//! its base set size, block, booster, cards, cardsphere set id, code,
-//! code v3, decks, is foreign only, is foil only, is non foil only,
-//! is online only, is partial preview, keyrune code, languages, mcm id,
-//! mcm id extras, mcm name, mtgo code, name, parent code, release date,
-//! tcgplayer group id, sealed product, tokens, token set code, total set size,
-//! translations, type, extra tokens, and search uri.
-//!
-//! Note: All fields are required, so we must manually check for empty values.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+/// MtgjsonSet
+///
+/// This struct represents a single Magic: The Gathering set.
+/// It is used to store all the data for a single set, including
+/// its base set size, block, booster, cards, cardsphere set id, code,
+/// code v3, decks, is foreign only, is foil only, is non foil only,
+/// is online only, is partial preview, keyrune code, languages, mcm id,
+/// mcm id extras, mcm name, mtgo code, name, parent code, release date,
+/// tcgplayer group id, sealed product, tokens, token set code, total set size,
+/// translations, type, extra tokens, and search uri.
+///
+/// Note: All fields are required, so we must manually check for empty values.
+#[derive(Debug)]
 #[pyclass(name = "MtgjsonSet")]
 pub struct MtgjsonSet {
     #[pyo3(get, set)]
     pub base_set_size: i32,
     
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub block: Option<String>,
     
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
-    pub booster: Option<HashMap<String, serde_json::Value>>,
+    pub booster: Option<HashMap<String, PyObject>>,
     
-    #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub cards: Vec<MtgjsonCard>,
     
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub cardsphere_set_id: Option<i32>,
     
     #[pyo3(get, set)]
     pub code: String,
     
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub code_v3: Option<String>,
     
-    #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub decks: Vec<MtgjsonDeck>,
     
@@ -69,53 +63,42 @@ pub struct MtgjsonSet {
     #[pyo3(get, set)]
     pub is_partial_preview: bool,
     
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub keyrune_code: Option<String>,
     
-    #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub languages: Vec<String>,
     
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub mcm_id: Option<i32>,
     
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub mcm_id_extras: Option<i32>,
     
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub mcm_name: Option<String>,
     
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub mtgo_code: Option<String>,
     
     #[pyo3(get, set)]
     pub name: String,
     
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub parent_code: Option<String>,
     
     #[pyo3(get, set)]
     pub release_date: String,
     
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub tcgplayer_group_id: Option<i32>,
     
-    #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub sealed_product: Vec<MtgjsonSealedProduct>,
     
-    #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub tokens: Vec<MtgjsonCard>,
     
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub token_set_code: Option<String>,
     
@@ -129,11 +112,9 @@ pub struct MtgjsonSet {
     pub type_: String,
 
     // Internal fields not published in JSON
-    #[serde(skip)]
     #[pyo3(get, set)]
-    pub extra_tokens: Vec<HashMap<String, serde_json::Value>>,
+    pub extra_tokens: Vec<HashMap<String, PyObject>>,
     
-    #[serde(skip)]
     #[pyo3(get, set)]
     pub search_uri: String,
 }
@@ -179,7 +160,102 @@ impl MtgjsonSet {
 
     /// Convert to JSON string
     pub fn to_json(&self) -> PyResult<String> {
-        serde_json::to_string(self).map_err(|e| {
+        // Manual serialization since we can't use serde with PyObject fields
+        let mut result = serde_json::Map::new();
+        
+        result.insert("baseSetSize".to_string(), serde_json::Value::Number(self.base_set_size.into()));
+        result.insert("code".to_string(), serde_json::Value::String(self.code.clone()));
+        result.insert("name".to_string(), serde_json::Value::String(self.name.clone()));
+        result.insert("releaseDate".to_string(), serde_json::Value::String(self.release_date.clone()));
+        result.insert("totalSetSize".to_string(), serde_json::Value::Number(self.total_set_size.into()));
+        result.insert("type".to_string(), serde_json::Value::String(self.type_.clone()));
+        
+        result.insert("isForeignOnly".to_string(), serde_json::Value::Bool(self.is_foreign_only));
+        result.insert("isFoilOnly".to_string(), serde_json::Value::Bool(self.is_foil_only));
+        result.insert("isNonFoilOnly".to_string(), serde_json::Value::Bool(self.is_non_foil_only));
+        result.insert("isOnlineOnly".to_string(), serde_json::Value::Bool(self.is_online_only));
+        result.insert("isPartialPreview".to_string(), serde_json::Value::Bool(self.is_partial_preview));
+        
+        // Optional fields
+        if let Some(ref val) = self.block {
+            if !val.is_empty() {
+                result.insert("block".to_string(), serde_json::Value::String(val.clone()));
+            }
+        }
+        
+        if let Some(ref val) = self.code_v3 {
+            if !val.is_empty() {
+                result.insert("codeV3".to_string(), serde_json::Value::String(val.clone()));
+            }
+        }
+        
+        if let Some(ref val) = self.keyrune_code {
+            if !val.is_empty() {
+                result.insert("keyruneCode".to_string(), serde_json::Value::String(val.clone()));
+            }
+        }
+        
+        if let Some(ref val) = self.mcm_name {
+            if !val.is_empty() {
+                result.insert("mcmName".to_string(), serde_json::Value::String(val.clone()));
+            }
+        }
+        
+        if let Some(ref val) = self.mtgo_code {
+            if !val.is_empty() {
+                result.insert("mtgoCode".to_string(), serde_json::Value::String(val.clone()));
+            }
+        }
+        
+        if let Some(ref val) = self.parent_code {
+            if !val.is_empty() {
+                result.insert("parentCode".to_string(), serde_json::Value::String(val.clone()));
+            }
+        }
+        
+        if let Some(ref val) = self.token_set_code {
+            if !val.is_empty() {
+                result.insert("tokenSetCode".to_string(), serde_json::Value::String(val.clone()));
+            }
+        }
+        
+        // Numeric optionals
+        if let Some(val) = self.cardsphere_set_id {
+            result.insert("cardSphereSetId".to_string(), serde_json::Value::Number(val.into()));
+        }
+        
+        if let Some(val) = self.mcm_id {
+            result.insert("mcmId".to_string(), serde_json::Value::Number(val.into()));
+        }
+        
+        if let Some(val) = self.mcm_id_extras {
+            result.insert("mcmIdExtras".to_string(), serde_json::Value::Number(val.into()));
+        }
+        
+        if let Some(val) = self.tcgplayer_group_id {
+            result.insert("tcgplayerGroupId".to_string(), serde_json::Value::Number(val.into()));
+        }
+        
+        // Arrays (serialize the serializable ones)
+        if !self.languages.is_empty() {
+            result.insert("languages".to_string(), serde_json::to_value(&self.languages).unwrap());
+        }
+        
+        if !self.cards.is_empty() {
+            result.insert("cards".to_string(), serde_json::to_value(&self.cards).unwrap());
+        }
+        
+        if !self.tokens.is_empty() {
+            result.insert("tokens".to_string(), serde_json::to_value(&self.tokens).unwrap());
+        }
+        
+        // Note: sealed_product and decks are skipped in JSON output due to PyObject complexity
+        // They can be accessed individually through their respective methods
+        
+        // Translations
+        result.insert("translations".to_string(), serde_json::to_value(&self.translations).unwrap());
+        
+        serde_json::to_string(&result).map_err(|e| {
             pyo3::exceptions::PyValueError::new_err(format!("Serialization error: {}", e))
         })
     }
@@ -257,19 +333,25 @@ impl MtgjsonSet {
         lang_vec
     }
 
-    /// Find card by name
-    pub fn find_card_by_name(&self, name: &str) -> Option<&MtgjsonCard> {
-        self.cards.iter().find(|card| card.name == name)
+    /// Find card by name (returns index, or -1 if not found)
+    pub fn find_card_by_name(&self, name: &str) -> i32 {
+        match self.cards.iter().position(|card| card.name == name) {
+            Some(index) => index as i32,
+            None => -1,
+        }
     }
 
-    /// Find card by UUID
-    pub fn find_card_by_uuid(&self, uuid: &str) -> Option<&MtgjsonCard> {
-        self.cards.iter().find(|card| card.uuid == uuid)
+    /// Find card by UUID (returns index, or -1 if not found)
+    pub fn find_card_by_uuid(&self, uuid: &str) -> i32 {
+        match self.cards.iter().position(|card| card.uuid == uuid) {
+            Some(index) => index as i32,
+            None => -1,
+        }
     }
 
-    /// Get cards of specific rarity
-    pub fn get_cards_of_rarity(&self, rarity: &str) -> Vec<&MtgjsonCard> {
-        self.cards.iter().filter(|card| card.rarity == rarity).collect()
+    /// Get number of cards of specific rarity
+    pub fn get_cards_of_rarity_count(&self, rarity: &str) -> usize {
+        self.cards.iter().filter(|card| card.rarity == rarity).count()
     }
 
     /// Check if set contains any foil cards
@@ -284,8 +366,8 @@ impl MtgjsonSet {
         self.tokens.iter().any(|token| token.finishes.contains(&"nonfoil".to_string()))
     }
 
-    /// Get set statistics
-    pub fn get_statistics(&self) -> HashMap<String, serde_json::Value> {
+    /// Get set statistics as JSON string
+    pub fn get_statistics(&self) -> PyResult<String> {
         let mut stats = HashMap::new();
         
         stats.insert("totalCards".to_string(), serde_json::Value::Number(self.cards.len().into()));
@@ -303,7 +385,9 @@ impl MtgjsonSet {
         let rarity_json = serde_json::to_value(rarity_counts).unwrap_or(serde_json::Value::Object(Default::default()));
         stats.insert("rarityBreakdown".to_string(), rarity_json);
         
-        stats
+        serde_json::to_string(&stats).map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Serialization error: {}", e))
+        })
     }
 
     /// Update set size calculations
