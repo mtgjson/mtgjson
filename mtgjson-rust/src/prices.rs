@@ -100,58 +100,29 @@ impl MtgjsonPrices {
     }
 
     /// Convert to the complex JSON structure
-    pub fn to_json_structure(&self) -> HashMap<String, HashMap<String, serde_json::Value>> {
-        let mut buy_sell_option = HashMap::new();
-        let mut buylist = IndexMap::new();
-        let mut retail = IndexMap::new();
-
-        // Build buylist prices
-        if self.buy_normal.is_some() {
-            let mut normal_map = IndexMap::new();
-            normal_map.insert(self.date.clone(), self.buy_normal.unwrap());
-            buylist.insert("normal".to_string(), normal_map);
+    pub fn to_json_structure(&self) -> String {
+        let mut buy_sell_option: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        
+        if let Some(ref buy_normal) = self.buy_normal {
+            buy_sell_option.insert("buy_normal".to_string(), format!("{}", buy_normal));
         }
-        if self.buy_foil.is_some() {
-            let mut foil_map = IndexMap::new();
-            foil_map.insert(self.date.clone(), self.buy_foil.unwrap());
-            buylist.insert("foil".to_string(), foil_map);
+        if let Some(ref buy_foil) = self.buy_foil {
+            buy_sell_option.insert("buy_foil".to_string(), format!("{}", buy_foil));
         }
-        if self.buy_etched.is_some() {
-            let mut etched_map = IndexMap::new();
-            etched_map.insert(self.date.clone(), self.buy_etched.unwrap());
-            buylist.insert("etched".to_string(), etched_map);
+        if let Some(ref buy_etched) = self.buy_etched {
+            buy_sell_option.insert("buy_etched".to_string(), format!("{}", buy_etched));
         }
-
-        // Build retail prices
-        if self.sell_normal.is_some() {
-            let mut normal_map = IndexMap::new();
-            normal_map.insert(self.date.clone(), self.sell_normal.unwrap());
-            retail.insert("normal".to_string(), normal_map);
+        if let Some(ref sell_normal) = self.sell_normal {
+            buy_sell_option.insert("sell_normal".to_string(), format!("{}", sell_normal));
         }
-        if self.sell_foil.is_some() {
-            let mut foil_map = IndexMap::new();
-            foil_map.insert(self.date.clone(), self.sell_foil.unwrap());
-            retail.insert("foil".to_string(), foil_map);
+        if let Some(ref sell_foil) = self.sell_foil {
+            buy_sell_option.insert("sell_foil".to_string(), format!("{}", sell_foil));
         }
-        if self.sell_etched.is_some() {
-            let mut etched_map = IndexMap::new();
-            etched_map.insert(self.date.clone(), self.sell_etched.unwrap());
-            retail.insert("etched".to_string(), etched_map);
+        if let Some(ref sell_etched) = self.sell_etched {
+            buy_sell_option.insert("sell_etched".to_string(), format!("{}", sell_etched));
         }
 
-        // Create the provider-level structure
-        let mut provider_data = HashMap::new();
-        provider_data.insert("buylist".to_string(), serde_json::to_value(buylist).unwrap());
-        provider_data.insert("retail".to_string(), serde_json::to_value(retail).unwrap());
-        provider_data.insert("currency".to_string(), serde_json::Value::String(self.currency.clone()));
-
-        // Create the final structure
-        let mut result = HashMap::new();
-        let mut source_data = HashMap::new();
-        source_data.insert(self.provider.clone(), serde_json::to_value(provider_data).unwrap());
-        result.insert(self.source.clone(), source_data);
-
-        result
+        serde_json::to_string(&buy_sell_option).unwrap_or_default()
     }
 
     /// Check if this price entry has any actual price data
