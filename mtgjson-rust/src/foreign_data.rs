@@ -43,28 +43,26 @@ pub struct MtgjsonForeignData {
 #[pymethods]
 impl MtgjsonForeignData {
     #[new]
-    pub fn new(language: String) -> Self {
+    pub fn new() -> Self {
         Self {
-            language,
-            multiverse_id: None,
-            identifiers: MtgjsonIdentifiers::new(),
             face_name: None,
             flavor_text: None,
+            language: String::new(),
+            multiverse_id: None,
             name: None,
             text: None,
             type_: None,
+            identifiers: MtgjsonIdentifiers::new(),
         }
     }
 
     /// Convert to JSON string
-    pub fn to_json(&self) -> PyResult<String> {
-        serde_json::to_string(self).map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Serialization error: {}", e))
-        })
+    pub fn to_json_string(&self) -> PyResult<String> {
+        serde_json::to_string(self).map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
     }
 
     /// Convert to dictionary for Python compatibility
-    pub fn to_dict(&self) -> PyResult<HashMap<String, serde_json::Value>> {
+    pub fn to_dict(&self) -> String {
         let mut result = HashMap::new();
         
         result.insert("language".to_string(), serde_json::Value::String(self.language.clone()));
@@ -108,7 +106,7 @@ impl MtgjsonForeignData {
             }
         }
         
-        Ok(result)
+        serde_json::to_string(&result).unwrap_or_default()
     }
 
     /// Check if foreign data has meaningful content
@@ -128,7 +126,7 @@ impl MtgjsonForeignData {
 
 impl Default for MtgjsonForeignData {
     fn default() -> Self {
-        Self::new("English".to_string())
+        Self::new()
     }
 }
 
