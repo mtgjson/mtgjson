@@ -49,16 +49,35 @@ impl MtgjsonDeckList {
         }
     }
 
-    /// Find a deck by code
-    pub fn find_deck_by_code(&self, code: &str) -> Option<&MtgjsonDeckHeader> {
-        self.decks.iter().find(|deck| deck.code == code)
+    /// Find deck by code
+    pub fn find_deck_by_code(&self, code: &str) -> Option<usize> {
+        self.decks.iter().position(|deck| deck.code == code)
     }
 
-    /// Find decks by type
-    pub fn find_decks_by_type(&self, deck_type: &str) -> Vec<&MtgjsonDeckHeader> {
-        self.decks
-            .iter()
-            .filter(|deck| deck.type_ == deck_type)
+    /// Get decks by type
+    pub fn get_decks_by_type(&self, deck_type: &str) -> Vec<usize> {
+        self.decks.iter().enumerate()
+            .filter_map(|(i, deck)| {
+                if deck.type_ == deck_type {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    /// Filter decks by year
+    pub fn filter_by_year(&self, year: u16) -> Vec<usize> {
+        self.decks.iter().enumerate()
+            .filter_map(|(i, deck)| {
+                // Simple year extraction from release_date string
+                if deck.release_date.starts_with(&year.to_string()) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 
@@ -80,15 +99,6 @@ impl MtgjsonDeckList {
     /// Sort decks by code
     pub fn sort_by_code(&mut self) {
         self.decks.sort_by(|a, b| a.code.cmp(&b.code));
-    }
-
-    /// Filter decks by release year
-    pub fn filter_by_year(&self, year: u16) -> Vec<&MtgjsonDeckHeader> {
-        let year_str = year.to_string();
-        self.decks
-            .iter()
-            .filter(|deck| deck.release_date.starts_with(&year_str))
-            .collect()
     }
 
     /// Get all unique deck types
@@ -174,10 +184,10 @@ mod tests {
         ];
         
         let deck_list = MtgjsonDeckList::new(deck_headers);
-        let commander_decks = deck_list.find_decks_by_type("commander");
+        let commander_decks = deck_list.get_decks_by_type("commander");
         assert_eq!(commander_decks.len(), 2);
         
-        let standard_decks = deck_list.find_decks_by_type("standard");
+        let standard_decks = deck_list.get_decks_by_type("standard");
         assert_eq!(standard_decks.len(), 1);
     }
 
