@@ -260,50 +260,37 @@ impl Default for SealedProductSubtype {
 #[pyclass(name = "MtgjsonSealedProduct")]
 pub struct MtgjsonSealedProduct {
     #[pyo3(get, set)]
-    pub name: String,
-    
-    #[pyo3(get, set)]
-    pub uuid: String,
-    
-    #[pyo3(get, set)]
-    pub identifiers: MtgjsonIdentifiers,
-    
-    #[pyo3(get, set)]
-    pub purchase_urls: MtgjsonPurchaseUrls,
-    
-    #[serde(skip)]
-    #[pyo3(get, set)]
-    pub raw_purchase_urls: HashMap<String, String>,
-    
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
-    #[pyo3(get, set)]
-    pub release_date: Option<String>,
-    
-    #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
-    #[pyo3(get, set)]
-    pub language: Option<String>,
-    
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[pyo3(get, set)]
     pub category: Option<SealedProductCategory>,
-    
-    #[serde(skip_serializing_if = "Option::is_none")]
+
     #[pyo3(get, set)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub subtype: Option<SealedProductSubtype>,
-    
-    #[serde(skip_serializing_if = "Option::is_none")]
+
     #[pyo3(get, set)]
-    pub contents: Option<HashMap<String, serde_json::Value>>,
-    
-    /// Number of packs in a booster box [DEPRECATED]
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub identifiers: Option<crate::identifiers::MtgjsonIdentifiers>,
+
     #[pyo3(get, set)]
-    pub product_size: Option<i32>,
-    
-    /// Number of cards in a booster pack or deck
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+
     #[pyo3(get, set)]
-    pub card_count: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub purchase_urls: Option<crate::purchase_urls::MtgjsonPurchaseUrls>,
+
+    #[pyo3(get, set)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_date: Option<String>,
+
+    #[pyo3(get, set)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
+
+    // Replace serde_json::Value with String for Python compatibility
+    #[pyo3(get, set)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contents: Option<String>, // JSON string instead of HashMap<String, serde_json::Value>
 }
 
 #[pymethods]
@@ -311,97 +298,42 @@ impl MtgjsonSealedProduct {
     #[new]
     pub fn new() -> Self {
         Self {
-            name: String::new(),
-            uuid: String::new(),
-            identifiers: MtgjsonIdentifiers::new(),
-            purchase_urls: MtgjsonPurchaseUrls::new(),
-            raw_purchase_urls: HashMap::new(),
-            release_date: None,
-            language: None,
             category: None,
             subtype: None,
+            identifiers: None,
+            name: None,
+            purchase_urls: None,
+            release_date: None,
+            uuid: None,
             contents: None,
-            product_size: None,
-            card_count: None,
         }
     }
 
     /// Convert to JSON string
-    pub fn to_json(&self) -> PyResult<String> {
-        serde_json::to_string(self).map_err(|e| {
-            pyo3::exceptions::PyValueError::new_err(format!("Serialization error: {}", e))
-        })
-    }
-
-    /// Convert to dictionary for Python compatibility
-    pub fn to_dict(&self) -> PyResult<HashMap<String, serde_json::Value>> {
-        let mut result = HashMap::new();
-        
-        if !self.name.is_empty() {
-            result.insert("name".to_string(), serde_json::Value::String(self.name.clone()));
-        }
-        if !self.uuid.is_empty() {
-            result.insert("uuid".to_string(), serde_json::Value::String(self.uuid.clone()));
-        }
-        
-        // Include identifiers
-        if let Ok(identifiers_json) = serde_json::to_value(&self.identifiers) {
-            result.insert("identifiers".to_string(), identifiers_json);
-        }
-        
-        // Include purchase URLs
-        if let Ok(urls_json) = serde_json::to_value(&self.purchase_urls) {
-            result.insert("purchaseUrls".to_string(), urls_json);
-        }
-        
-        if let Some(ref val) = self.release_date {
-            if !val.is_empty() {
-                result.insert("releaseDate".to_string(), serde_json::Value::String(val.clone()));
-            }
-        }
-        
-        if let Some(ref val) = self.language {
-            if !val.is_empty() {
-                result.insert("language".to_string(), serde_json::Value::String(val.clone()));
-            }
-        }
-        
-        if let Some(ref val) = self.category {
-            if let Some(category_str) = val.to_json() {
-                result.insert("category".to_string(), serde_json::Value::String(category_str));
-            }
-        }
-        
-        if let Some(ref val) = self.subtype {
-            if let Some(subtype_str) = val.to_json() {
-                result.insert("subtype".to_string(), serde_json::Value::String(subtype_str));
-            }
-        }
-        
-        if let Some(ref val) = self.contents {
-            result.insert("contents".to_string(), serde_json::to_value(val).unwrap());
-        }
-        
-        if let Some(val) = self.product_size {
-            result.insert("productSize".to_string(), serde_json::Value::Number(val.into()));
-        }
-        
-        if let Some(val) = self.card_count {
-            result.insert("cardCount".to_string(), serde_json::Value::Number(val.into()));
-        }
-        
-        Ok(result)
+    pub fn to_json_string(&self) -> PyResult<String> {
+        serde_json::to_string(self).map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
     }
 
     /// Check if sealed product has meaningful content
     pub fn has_content(&self) -> bool {
-        !self.name.is_empty() || !self.uuid.is_empty()
+        self.name.as_ref().map_or(false, |n| !n.is_empty()) || 
+        self.uuid.as_ref().map_or(false, |u| !u.is_empty())
+    }
+
+    /// Get a summary of the sealed product
+    pub fn get_summary(&self) -> String {
+        format!(
+            "SealedProduct: {} ({})",
+            self.name.as_ref().unwrap_or(&"Unknown".to_string()),
+            self.uuid.as_ref().unwrap_or(&"No UUID".to_string())
+        )
     }
 
     /// Generate UUID if not set
     pub fn generate_uuid(&mut self) {
-        if self.uuid.is_empty() {
-            self.uuid = uuid::Uuid::new_v4().to_string();
+        if self.uuid.is_none() || self.uuid.as_ref().unwrap().is_empty() {
+            let new_uuid = uuid::Uuid::new_v4().to_string();
+            self.uuid = Some(new_uuid);
         }
     }
 }
