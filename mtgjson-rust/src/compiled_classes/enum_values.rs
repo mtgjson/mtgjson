@@ -8,7 +8,7 @@ use std::collections::HashMap;
 #[pyclass(name = "MtgjsonEnumValues")]
 pub struct MtgjsonEnumValues {
     #[pyo3(get, set)]
-    pub attr_value_dict: HashMap<String, crate::PyJsonValue>,
+    pub attr_value_dict: HashMap<String, String>,
 }
 
 #[pymethods]
