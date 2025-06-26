@@ -1,3 +1,5 @@
+//! MTGJSON Singular Card Object
+
 use crate::base::{skip_if_empty_optional_string, skip_if_empty_string, skip_if_empty_vec, JsonObject};
 use crate::foreign_data::MtgjsonForeignData;
 use crate::game_formats::MtgjsonGameFormats;
@@ -14,7 +16,12 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
-/// MTGJSON Singular Card Object
+//! MtgjsonCard
+//!
+//! This struct represents a single Magic: The Gathering card.
+//! It is used to store all the data for a single card.
+//! Note: All 
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[pyclass(name = "MtgjsonCard")]
 pub struct MtgjsonCard {
@@ -381,6 +388,7 @@ pub struct MtgjsonCard {
     watermark_resource: HashMap<String, Vec<serde_json::Value>>,
 }
 
+// PyO3 methods
 #[pymethods]
 impl MtgjsonCard {
     #[new]
@@ -524,6 +532,10 @@ impl MtgjsonCard {
 
     /// Set watermark with special processing
     pub fn set_watermark(&mut self, watermark: Option<String>) {
+        // Watermarks sometimes aren't specific enough, so we
+        // must manually update them. This only applies if the
+        // watermark is "set" and then we will append the actual
+        // set code to the watermark.
         let watermark = match watermark {
             Some(w) if !w.is_empty() => w,
             _ => return,
@@ -620,7 +632,7 @@ impl PartialOrd for MtgjsonCard {
         let (self_number_clean, self_len) = MtgjsonUtils::clean_card_number(&self.number);
         let (other_number_clean, other_len) = MtgjsonUtils::clean_card_number(&other.number);
 
-        // Implement the complex comparison logic from Python
+        // Implement the comparison logic from Python
         if self.number.chars().all(|c| c.is_ascii_digit()) && 
            other.number.chars().all(|c| c.is_ascii_digit()) {
             if self_number_clean == other_number_clean {
@@ -702,8 +714,14 @@ impl JsonObject for MtgjsonCard {
         if self.artist.is_empty() && !allow_if_falsey.contains(&"artist") {
             excluded_keys.insert("artist".to_string());
         }
-        
-        // Continue this pattern for other fields as needed...
+
+        for (key, value) in self.to_json().items() {
+            if !value {
+                if !allow_if_falsey.contains(&key) {
+                    excluded_keys.insert(key);
+                }
+            }
+        }
 
         excluded_keys
     }

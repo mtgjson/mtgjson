@@ -1,3 +1,4 @@
+//! MTGJSON Singular Set Object
 use crate::base::{skip_if_empty_optional_string, skip_if_empty_vec, JsonObject};
 use crate::card::MtgjsonCard;
 use crate::deck::MtgjsonDeck;
@@ -8,7 +9,18 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
-/// MTGJSON Singular Set Object
+//! MtgjsonSet
+//!
+//! This struct represents a single Magic: The Gathering set.
+//! It is used to store all the data for a single set, including
+//! its base set size, block, booster, cards, cardsphere set id, code,
+//! code v3, decks, is foreign only, is foil only, is non foil only,
+//! is online only, is partial preview, keyrune code, languages, mcm id,
+//! mcm id extras, mcm name, mtgo code, name, parent code, release date,
+//! tcgplayer group id, sealed product, tokens, token set code, total set size,
+//! translations, type, extra tokens, and search uri.
+//!
+//! Note: All fields are required, so we must manually check for empty values.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[pyclass(name = "MtgjsonSet")]
 pub struct MtgjsonSet {

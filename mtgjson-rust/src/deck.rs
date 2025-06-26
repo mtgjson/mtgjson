@@ -1,3 +1,4 @@
+//! MTGJSON Singular Deck Object
 use crate::base::{skip_if_empty_optional_string, skip_if_empty_vec, JsonObject};
 use crate::card::MtgjsonCard;
 use crate::sealed_product::MtgjsonSealedProduct;
@@ -6,7 +7,13 @@ use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
-/// MTGJSON Singular Deck Object
+/// MtgjsonDeck
+//!
+//! This struct represents a single Magic: The Gathering deck.
+//! It is used to store all the data for a single deck, including
+//! its name, main board, side board, and other relevant information.
+//!
+//! Note: All fields are optional, so we must manually check for empty values.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[pyclass(name = "MtgjsonDeck")]
 pub struct MtgjsonDeck {
@@ -185,7 +192,11 @@ impl JsonObject for MtgjsonDeck {
     }
 }
 
-/// MTGJSON Singular Deck Header Object
+//! MtgjsonDeckHeader
+//!
+//! This struct represents a single Magic: The Gathering deck header.
+//! It is used to set the header information for a deck
+//! Note: All fields are required - we must manually check for empty values.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[pyclass(name = "MtgjsonDeckHeader")]
 pub struct MtgjsonDeckHeader {
