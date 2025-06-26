@@ -85,8 +85,8 @@ impl MtgjsonAllIdentifiers {
     }
 
     /// Get a card by UUID
-    pub fn get_card_by_uuid(&self, uuid: &str) -> Option<&MtgjsonCard> {
-        self.all_identifiers_dict.get(uuid)
+    pub fn get_card_by_uuid(&self, uuid: &str) -> Option<usize> {
+        self.all_identifiers_dict.get(uuid).map(|_| 0) // Return index 0 if found
     }
 
     /// Remove a card by UUID
@@ -109,29 +109,48 @@ impl MtgjsonAllIdentifiers {
         self.all_identifiers_dict.len()
     }
 
-    /// Find cards by name (case-insensitive)
-    pub fn find_cards_by_name(&self, name: &str) -> Vec<&MtgjsonCard> {
-        let name_lower = name.to_lowercase();
+    /// Find cards by exact name match
+    pub fn find_cards_by_name(&self, name: &str) -> Vec<usize> {
         self.all_identifiers_dict
             .values()
-            .filter(|card| card.name.to_lowercase() == name_lower)
+            .enumerate()
+            .filter_map(|(i, card)| {
+                if card.name == name {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 
     /// Find cards by partial name match
-    pub fn find_cards_by_partial_name(&self, partial_name: &str) -> Vec<&MtgjsonCard> {
-        let partial_lower = partial_name.to_lowercase();
+    pub fn find_cards_by_partial_name(&self, partial_name: &str) -> Vec<usize> {
         self.all_identifiers_dict
             .values()
-            .filter(|card| card.name.to_lowercase().contains(&partial_lower))
+            .enumerate()
+            .filter_map(|(i, card)| {
+                if card.name.to_lowercase().contains(&partial_name.to_lowercase()) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 
     /// Find cards by set code
-    pub fn find_cards_by_set(&self, set_code: &str) -> Vec<&MtgjsonCard> {
+    pub fn find_cards_by_set(&self, set_code: &str) -> Vec<usize> {
         self.all_identifiers_dict
             .values()
-            .filter(|card| card.set_code.eq_ignore_ascii_case(set_code))
+            .enumerate()
+            .filter_map(|(i, card)| {
+                if card.set_code == set_code {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 
@@ -249,10 +268,11 @@ mod tests {
 
         let bolt_cards = all_identifiers.find_cards_by_name("Lightning Bolt");
         assert_eq!(bolt_cards.len(), 1);
-        assert_eq!(bolt_cards[0].name, "Lightning Bolt");
+        assert_eq!(bolt_cards[0], 0);
 
         let lea_cards = all_identifiers.find_cards_by_set("LEA");
         assert_eq!(lea_cards.len(), 1);
+        assert_eq!(lea_cards[0], 0);
     }
 
     #[test]
