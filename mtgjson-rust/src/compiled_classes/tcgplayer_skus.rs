@@ -8,22 +8,22 @@ use std::collections::HashMap;
 #[pyclass(name = "MtgjsonTcgplayerSkus")]
 pub struct MtgjsonTcgplayerSkus {
     #[pyo3(get, set)]
-    pub enhanced_tcgplayer_skus: HashMap<String, Vec<HashMap<String, crate::PyJsonValue>>>,
+    pub tcgplayer_skus: HashMap<String, Vec<HashMap<String, String>>>,
 }
 
 #[pymethods]
 impl MtgjsonTcgplayerSkus {
     #[new]
-    pub fn new() -> Self {
+    pub fn new(all_printings_path: Option<std::path::PathBuf>) -> Self {
         Self {
-            enhanced_tcgplayer_skus: HashMap::new(),
+            tcgplayer_skus: HashMap::new(),
         }
     }
 }
 
 impl Default for MtgjsonTcgplayerSkus {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }
 
