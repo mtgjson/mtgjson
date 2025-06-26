@@ -1,10 +1,11 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 
 // PyO3-compatible wrapper for JSON values
 #[pyclass(name = "JsonValue")]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PyJsonValue {
     #[pyo3(get, set)]
     pub value: String,
@@ -60,6 +61,11 @@ pub mod translations;
 pub mod utils;
 pub mod set_builder;
 pub mod compiled_classes;
+
+// New computational modules
+pub mod output_generator;
+pub mod price_builder;
+pub mod parallel_call;
 
 // Import all the structs
 use card::MtgjsonCard;
@@ -126,6 +132,12 @@ fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<MtgjsonEnumValues>()?;
     m.add_class::<MtgjsonSetList>()?;
     m.add_class::<MtgjsonTcgplayerSkus>()?;
+    
+    // Add high-performance classes
+    m.add_class::<output_generator::OutputGenerator>()?;
+    m.add_class::<price_builder::PriceBuilder>()?;
+    m.add_class::<parallel_call::ParallelProcessor>()?;
+    m.add_class::<parallel_call::ParallelIterator>()?;
     
     Ok(())
 }
