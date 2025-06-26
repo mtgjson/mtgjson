@@ -8,22 +8,22 @@ use std::collections::HashMap;
 #[pyclass(name = "MtgjsonAtomicCards")]
 pub struct MtgjsonAtomicCards {
     #[pyo3(get, set)]
-    pub atomic_cards_dict: HashMap<String, Vec<crate::PyJsonValue>>,
+    pub atomic_cards_dict: HashMap<String, Vec<String>>,
 }
 
 #[pymethods]
 impl MtgjsonAtomicCards {
     #[new]
-    pub fn new() -> Self {
+    pub fn new(cards_data: Option<HashMap<String, Vec<String>>>) -> Self {
         Self {
-            atomic_cards_dict: HashMap::new(),
+            atomic_cards_dict: cards_data.unwrap_or_default(),
         }
     }
 }
 
 impl Default for MtgjsonAtomicCards {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }
 
