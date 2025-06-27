@@ -281,16 +281,19 @@ pub struct MtgjsonSealedProduct {
 
     #[pyo3(get, set)]
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub raw_purchase_urls: Option<crate::purchase_urls::MtgjsonPurchaseUrls>,
+
+    #[pyo3(get, set)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub release_date: Option<String>,
 
     #[pyo3(get, set)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uuid: Option<String>,
 
-    // Replace serde_json::Value with String for Python compatibility
     #[pyo3(get, set)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub contents: Option<String>, // JSON string instead of HashMap<String, serde_json::Value>
+    pub contents: Option<String>,
 }
 
 #[pymethods]
@@ -300,9 +303,11 @@ impl MtgjsonSealedProduct {
         Self {
             category: None,
             subtype: None,
-            identifiers: None,
+            // Initialize like Python: identifiers, purchase_urls, raw_purchase_urls are initialized
+            identifiers: Some(crate::identifiers::MtgjsonIdentifiers::new()),
             name: None,
-            purchase_urls: None,
+            purchase_urls: Some(crate::purchase_urls::MtgjsonPurchaseUrls::new()),
+            raw_purchase_urls: Some(crate::purchase_urls::MtgjsonPurchaseUrls::new()),
             release_date: None,
             uuid: None,
             contents: None,
@@ -335,6 +340,13 @@ impl MtgjsonSealedProduct {
             let new_uuid = uuid::Uuid::new_v4().to_string();
             self.uuid = Some(new_uuid);
         }
+    }
+
+    /// Convert to JSON like Python to_json() method
+    pub fn to_json(&self) -> PyResult<String> {
+        serde_json::to_string(self).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+        })
     }
 }
 
