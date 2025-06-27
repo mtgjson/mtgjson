@@ -1,7 +1,7 @@
 use crate::base::{skip_if_empty_string, JsonObject};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// MTGJSON Singular Card.Legalities Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -70,90 +70,60 @@ impl MtgjsonLegalities {
         })
     }
 
-    /// Get all legal formats
+    /// Get all legal formats - optimized with pre-allocated vector
     pub fn get_legal_formats(&self) -> Vec<String> {
-        let mut legal_formats = Vec::new();
+        let mut legal_formats = Vec::with_capacity(12); // Pre-allocate for max possible formats
         
-        if self.brawl == "Legal" {
-            legal_formats.push("brawl".to_string());
+        // Use a macro to reduce code duplication and improve performance
+        macro_rules! check_format {
+            ($field:expr, $name:literal) => {
+                if $field == "Legal" {
+                    legal_formats.push($name.to_string());
+                }
+            };
         }
-        if self.commander == "Legal" {
-            legal_formats.push("commander".to_string());
-        }
-        if self.duel == "Legal" {
-            legal_formats.push("duel".to_string());
-        }
-        if self.future == "Legal" {
-            legal_formats.push("future".to_string());
-        }
-        if self.frontier == "Legal" {
-            legal_formats.push("frontier".to_string());
-        }
-        if self.legacy == "Legal" {
-            legal_formats.push("legacy".to_string());
-        }
-        if self.modern == "Legal" {
-            legal_formats.push("modern".to_string());
-        }
-        if self.pauper == "Legal" {
-            legal_formats.push("pauper".to_string());
-        }
-        if self.penny == "Legal" {
-            legal_formats.push("penny".to_string());
-        }
-        if self.pioneer == "Legal" {
-            legal_formats.push("pioneer".to_string());
-        }
-        if self.standard == "Legal" {
-            legal_formats.push("standard".to_string());
-        }
-        if self.vintage == "Legal" {
-            legal_formats.push("vintage".to_string());
-        }
+        
+        check_format!(self.brawl, "brawl");
+        check_format!(self.commander, "commander");
+        check_format!(self.duel, "duel");
+        check_format!(self.future, "future");
+        check_format!(self.frontier, "frontier");
+        check_format!(self.legacy, "legacy");
+        check_format!(self.modern, "modern");
+        check_format!(self.pauper, "pauper");
+        check_format!(self.penny, "penny");
+        check_format!(self.pioneer, "pioneer");
+        check_format!(self.standard, "standard");
+        check_format!(self.vintage, "vintage");
         
         legal_formats
     }
 
-    /// Convert to dictionary for Python compatibility
+    /// Convert to dictionary for Python compatibility - optimized
     pub fn to_dict(&self) -> PyResult<HashMap<String, String>> {
-        let mut result = HashMap::new();
+        let mut result = HashMap::with_capacity(12); // Pre-allocate capacity
         
-        if !self.brawl.is_empty() {
-            result.insert("brawl".to_string(), self.brawl.clone());
+        // Use a macro to reduce code duplication
+        macro_rules! add_if_not_empty {
+            ($field:expr, $key:literal) => {
+                if !$field.is_empty() {
+                    result.insert($key.to_string(), $field.clone());
+                }
+            };
         }
-        if !self.commander.is_empty() {
-            result.insert("commander".to_string(), self.commander.clone());
-        }
-        if !self.duel.is_empty() {
-            result.insert("duel".to_string(), self.duel.clone());
-        }
-        if !self.future.is_empty() {
-            result.insert("future".to_string(), self.future.clone());
-        }
-        if !self.frontier.is_empty() {
-            result.insert("frontier".to_string(), self.frontier.clone());
-        }
-        if !self.legacy.is_empty() {
-            result.insert("legacy".to_string(), self.legacy.clone());
-        }
-        if !self.modern.is_empty() {
-            result.insert("modern".to_string(), self.modern.clone());
-        }
-        if !self.pauper.is_empty() {
-            result.insert("pauper".to_string(), self.pauper.clone());
-        }
-        if !self.penny.is_empty() {
-            result.insert("penny".to_string(), self.penny.clone());
-        }
-        if !self.pioneer.is_empty() {
-            result.insert("pioneer".to_string(), self.pioneer.clone());
-        }
-        if !self.standard.is_empty() {
-            result.insert("standard".to_string(), self.standard.clone());
-        }
-        if !self.vintage.is_empty() {
-            result.insert("vintage".to_string(), self.vintage.clone());
-        }
+        
+        add_if_not_empty!(self.brawl, "brawl");
+        add_if_not_empty!(self.commander, "commander");
+        add_if_not_empty!(self.duel, "duel");
+        add_if_not_empty!(self.future, "future");
+        add_if_not_empty!(self.frontier, "frontier");
+        add_if_not_empty!(self.legacy, "legacy");
+        add_if_not_empty!(self.modern, "modern");
+        add_if_not_empty!(self.pauper, "pauper");
+        add_if_not_empty!(self.penny, "penny");
+        add_if_not_empty!(self.pioneer, "pioneer");
+        add_if_not_empty!(self.standard, "standard");
+        add_if_not_empty!(self.vintage, "vintage");
         
         Ok(result)
     }
