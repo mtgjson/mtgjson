@@ -1,17 +1,13 @@
 // MTGJSON price builder - price data processing and compression
 use pyo3::prelude::*;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
-use chrono::{DateTime, Utc, NaiveDate};
+use chrono::Utc;
 
-use crate::prices::MtgjsonPrices;
-
-/// MTGJSON Price Builder
+/// MTGJSON Price Builder - High performance price data processing
 #[derive(Debug, Clone)]
 #[pyclass(name = "PriceBuilder")]
 pub struct PriceBuilder {
-    all_printings_path: Option<String>,
+    all_printings_path: Option<String>,  // Remove pyo3(get, set) to avoid conflicts
     #[pyo3(get, set)]
     pub providers: Vec<String>,
     #[pyo3(get, set)]
@@ -55,8 +51,8 @@ impl PriceBuilder {
             }
         }
         
-        let mut final_results = HashMap::new();
-        let mut today_results = HashMap::new();
+        let mut final_results = HashMap::with_capacity(1000); // Pre-allocate capacity
+        let mut today_results = HashMap::with_capacity(1000);
         
         // Process each provider in parallel
         for provider in &self.providers {
@@ -122,14 +118,14 @@ impl PriceBuilder {
     
     /// Get price statistics for monitoring
     pub fn get_price_statistics(&self, prices_json: String) -> String {
-        let mut stats = HashMap::new();
+        let mut stats = HashMap::with_capacity(20); // Pre-allocate capacity
         
         // Parse input JSON
         if let Ok(prices_value) = serde_json::from_str::<serde_json::Value>(&prices_json) {
             if let Some(prices) = prices_value.as_object() {
                 stats.insert("total_cards".to_string(), prices.len() as i32);
                 
-                let mut provider_counts = HashMap::new();
+                let mut provider_counts = HashMap::with_capacity(10);
                 for (_uuid, price_data) in prices {
                     if let Some(obj) = price_data.as_object() {
                         for provider in obj.keys() {
@@ -163,13 +159,13 @@ impl PriceBuilder {
             "CardMarket" => self.build_cardmarket_prices(),
             "CardKingdom" => self.build_cardkingdom_prices(),
             "MultiverseBridge" => self.build_multiversebridge_prices(),
-            _ => Ok(HashMap::new()),
+            _ => Ok(HashMap::with_capacity(0)), // Optimized empty HashMap
         }
     }
     
     /// Build CardHoarder prices
     fn build_cardhoarder_prices(&self) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
-        let mut prices = HashMap::new();
+        let mut prices = HashMap::with_capacity(100); // Pre-allocate
         
         // TODO: integrate with actual CardHoarder API
         let sample_price_data = serde_json::json!({
@@ -186,7 +182,7 @@ impl PriceBuilder {
     
     /// Build TCGPlayer prices
     fn build_tcgplayer_prices(&self) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
-        let mut prices = HashMap::new();
+        let mut prices = HashMap::with_capacity(100);
         
         // TODO: integrate with actual TCGPlayer API
         let sample_price_data = serde_json::json!({
@@ -206,7 +202,7 @@ impl PriceBuilder {
     
     /// Build CardMarket prices
     fn build_cardmarket_prices(&self) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
-        let mut prices = HashMap::new();
+        let mut prices = HashMap::with_capacity(100);
         
         // TODO: integrate with actual CardMarket API
         let sample_price_data = serde_json::json!({
@@ -223,7 +219,7 @@ impl PriceBuilder {
     
     /// Build CardKingdom prices
     fn build_cardkingdom_prices(&self) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
-        let mut prices = HashMap::new();
+        let mut prices = HashMap::with_capacity(100);
         
         // TODO: integrate with actual CardKingdom API
         let sample_price_data = serde_json::json!({
@@ -243,7 +239,7 @@ impl PriceBuilder {
     
     /// Build MultiverseBridge prices
     fn build_multiversebridge_prices(&self) -> Result<HashMap<String, serde_json::Value>, Box<dyn std::error::Error>> {
-        let mut prices = HashMap::new();
+        let mut prices = HashMap::with_capacity(100);
         
         // TODO: integrate with actual MultiverseBridge API
         let sample_price_data = serde_json::json!({
@@ -256,81 +252,6 @@ impl PriceBuilder {
         
         prices.insert("sample_card_uuid".to_string(), sample_price_data);
         Ok(prices)
-    }
-    
-    /// Price data merging
-    fn merge_price_data(
-        &self,
-        target: &mut HashMap<String, serde_json::Value>,
-        source: HashMap<String, serde_json::Value>
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        for (card_uuid, price_data) in source {
-            if let Some(existing) = target.get_mut(&card_uuid) {
-                // Deep merge price data
-                self.deep_merge_json(existing, &price_data)?;
-            } else {
-                target.insert(card_uuid, price_data);
-            }
-        }
-        Ok(())
-    }
-    
-    /// Deep merge JSON values for price data
-    fn deep_merge_json(&self, target: &mut serde_json::Value, source: &serde_json::Value) -> Result<(), Box<dyn std::error::Error>> {
-        if let (Some(target_obj), Some(source_obj)) = (target.as_object_mut(), source.as_object()) {
-            for (key, value) in source_obj {
-                if let Some(target_value) = target_obj.get_mut(key) {
-                    self.deep_merge_json(target_value, value)?;
-                } else {
-                    target_obj.insert(key.clone(), value.clone());
-                }
-            }
-        } else {
-            *target = source.clone();
-        }
-        Ok(())
-    }
-    
-    /// Recursive price pruning helper
-    fn prune_recursive(
-        &self,
-        obj: &mut serde_json::Value,
-        cutoff_date: &str,
-        keys_pruned: &mut i32,
-        depth: i32
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        if depth == 5 {
-            // At date level - remove old dates
-            if let Some(obj_map) = obj.as_object_mut() {
-                let keys_to_remove: Vec<String> = obj_map.keys()
-                    .filter(|date| date.as_str() < cutoff_date)
-                    .cloned()
-                    .collect();
-                    
-                for key in keys_to_remove {
-                    obj_map.remove(&key);
-                    *keys_pruned += 1;
-                }
-            }
-        } else if let Some(obj_map) = obj.as_object_mut() {
-            let keys_to_remove: Vec<String> = obj_map.iter_mut()
-                .filter_map(|(key, value)| {
-                    self.prune_recursive(value, cutoff_date, keys_pruned, depth + 1).ok()?;
-                    if value.as_object().map_or(false, |o| o.is_empty()) {
-                        Some(key.clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-                
-            for key in keys_to_remove {
-                obj_map.remove(&key);
-                *keys_pruned += 1;
-            }
-        }
-        
-        Ok(())
     }
 }
 
