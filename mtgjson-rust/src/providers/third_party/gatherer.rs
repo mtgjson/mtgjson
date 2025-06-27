@@ -45,12 +45,11 @@ impl GathererProvider {
         let rt = match tokio::runtime::Runtime::new() {
             Ok(rt) => rt,
             Err(e) => {
-                println!("Runtime creation error: {}", e);
-                return Value::Object(serde_json::Map::new());
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Runtime creation error: {}", e)));
             }
         };
         
-        rt.block_on(async {
+        let result = rt.block_on(async {
             match self.base.get(&url, params).await {
                 Ok(response) => {
                     if response.status().is_success() {
@@ -71,6 +70,12 @@ impl GathererProvider {
                     Value::Object(serde_json::Map::new())
                 }
             }
+        });
+        
+        // Convert serde_json::Value to PyObject
+        Python::with_gil(|py| {
+            Ok(pythonize::pythonize(py, &result)
+                .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("JSON conversion error: {}", e)))?)
         })
     }
 

@@ -5,7 +5,7 @@ use reqwest::Response;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use tokio::time::{sleep, Duration};
-use crate::prices::MtgjsonPricesObject;
+use crate::classes::MtgjsonPricesObject;
 use crate::providers::{AbstractProvider, BaseProvider, RateLimiter, ProviderError, ProviderResult};
 use super::sf_utils;
 
