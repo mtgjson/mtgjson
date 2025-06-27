@@ -81,6 +81,9 @@ fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add the JSON value wrapper
     m.add_class::<JsonValue>()?;
     
+    // Add the parallel_call function (Python-compatible API)
+    m.add_function(wrap_pyfunction!(parallel_call::parallel_call, m)?)?;
+    
     // Add all MTGJSON classes
     m.add_class::<MtgjsonCard>()?;
     m.add_class::<MtgjsonDeck>()?;
@@ -116,11 +119,16 @@ fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<MtgjsonSetList>()?;
     m.add_class::<MtgjsonTcgplayerSkus>()?;
     
-    // Add high-performance classes
+    // Add high-performance modules
     m.add_class::<output_generator::OutputGenerator>()?;
     m.add_class::<price_builder::PriceBuilder>()?;
+    
+    // Add legacy parallel classes (deprecated but for compatibility)
     m.add_class::<parallel_call::ParallelProcessor>()?;
     m.add_class::<parallel_call::ParallelIterator>()?;
+    
+    // Add utility modules (SetBuilder not ready yet)
+    // m.add_class::<set_builder::SetBuilder>()?;
     
     Ok(())
 }
