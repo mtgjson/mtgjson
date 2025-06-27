@@ -1,0 +1,447 @@
+use async_trait::async_trait;
+use pyo3::prelude::*;
+use reqwest::{Client, Response};
+use serde_json::{Value, Map};
+use std::collections::{HashMap, HashSet};
+use std::path::Path;
+use std::time::Duration;
+use log::{warn, error, info};
+use tokio::time::sleep;
+use crate::prices::MtgjsonPricesObject;
+use crate::providers::{AbstractProvider, BaseProvider, ProviderError, ProviderResult};
+
+/// CardMarket API provider for MTG price data
+#[pyclass(name = "CardMarketProvider")]
+pub struct CardMarketProvider {
+    base: BaseProvider,
+    set_map: HashMap<String, HashMap<String, Value>>,
+    price_guide_url: String,
+    connection_available: bool,
+    client: Client,
+    today_date: String,
+}
+
+#[pymethods]
+impl CardMarketProvider {
+    #[new]
+    pub fn new(headers: Option<HashMap<String, String>>, init_map: Option<bool>) -> PyResult<Self> {
+        let headers = headers.unwrap_or_default();
+        let base = BaseProvider::new("mkm".to_string(), headers);
+        let init_map = init_map.unwrap_or(true);
+        
+        // Check for CardMarket configuration
+        let has_cardmarket_config = Self::check_cardmarket_config();
+        
+        if !has_cardmarket_config {
+            warn!("CardMarket config section not established. Skipping requests");
+            return Ok(CardMarketProvider {
+                base,
+                set_map: HashMap::new(),
+                price_guide_url: String::new(),
+                connection_available: false,
+                client: Client::new(),
+                today_date: chrono::Utc::now().format("%Y-%m-%d").to_string(),
+            });
+        }
+
+        // Read configuration and set environment variables
+        let price_guide_url = Self::get_config_value("CardMarket", "prices_api_url")
+            .unwrap_or_default();
+        
+        Self::setup_environment_variables();
+        
+        // Validate required environment variables
+        if !Self::validate_credentials() {
+            warn!("CardMarket keys values missing. Skipping requests");
+            return Ok(CardMarketProvider {
+                base,
+                set_map: HashMap::new(),
+                price_guide_url,
+                connection_available: false,
+                client: Client::new(),
+                today_date: chrono::Utc::now().format("%Y-%m-%d").to_string(),
+            });
+        }
+        
+        let client = Client::builder()
+            .timeout(Duration::from_secs(30))
+            .build()
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Failed to create HTTP client: {}", e)))?;
+        
+        let mut provider = CardMarketProvider {
+            base,
+            set_map: HashMap::new(),
+            price_guide_url,
+            connection_available: true,
+            client,
+            today_date: chrono::Utc::now().format("%Y-%m-%d").to_string(),
+        };
+        
+        if init_map {
+            provider.init_set_map()?;
+        }
+        
+        Ok(provider)
+    }
+
+    /// Download from CardMarket JSON APIs
+    pub fn download(&self, url: String, params: Option<HashMap<String, String>>) -> PyResult<Value> {
+        if !self.connection_available {
+            return Ok(Value::Object(Map::new()));
+        }
+        
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let mut request_builder = self.client.get(&url);
+            
+            if let Some(params) = params {
+                request_builder = request_builder.query(&params);
+            }
+            
+            match request_builder.send().await {
+                Ok(response) => {
+                    if response.status().is_success() {
+                        match response.json::<Value>().await {
+                            Ok(json) => Ok(json),
+                            Err(e) => {
+                                error!("JSON parse error for {}: {}", url, e);
+                                Ok(Value::Object(Map::new()))
+                            }
+                        }
+                    } else {
+                        error!("Error downloading CardMarket Data: {} --- {}", response.status(), url);
+                        Ok(Value::Object(Map::new()))
+                    }
+                },
+                Err(e) => {
+                    error!("Error downloading CardMarket Data from {}: {}", url, e);
+                    Ok(Value::Object(Map::new()))
+                }
+            }
+        })
+    }
+
+    /// Generate a single-day price structure from Card Market
+    pub fn generate_today_price_dict(&self, all_printings_path: String) -> PyResult<HashMap<String, MtgjsonPricesObject>> {
+        if !self.connection_available {
+            return Ok(HashMap::new());
+        }
+        
+        // TODO: Implement generate_entity_mapping equivalent
+        // For now, using placeholder mappings
+        let mtgjson_finish_map: HashMap<String, Vec<String>> = HashMap::new();
+        let mtgjson_id_map: HashMap<String, Vec<String>> = HashMap::new();
+
+        info!("Building CardMarket retail data");
+
+        let price_data = match self.get_card_market_data() {
+            Ok(data) => data,
+            Err(e) => {
+                error!("Failed to get CardMarket data: {}", e);
+                return Ok(HashMap::new());
+            }
+        };
+        
+        let mut today_dict = HashMap::new();
+        
+        for (product_id, price_entities) in price_data {
+            let avg_sell_price = price_entities.get("trend").and_then(|v| *v);
+            let avg_foil_price = price_entities.get("trend-foil").and_then(|v| *v);
+            
+            if let Some(mtgjson_uuids) = mtgjson_id_map.get(&product_id) {
+                for mtgjson_uuid in mtgjson_uuids {
+                    if !today_dict.contains_key(mtgjson_uuid) {
+                        if avg_sell_price.is_none() && avg_foil_price.is_none() {
+                            continue;
+                        }
+                        
+                        today_dict.insert(
+                            mtgjson_uuid.clone(),
+                            MtgjsonPricesObject {
+                                currency: "EUR".to_string(),
+                                date: self.today_date.clone(),
+                                provider: "cardmarket".to_string(),
+                                provider_type: "paper".to_string(),
+                                sell_normal: None,
+                                sell_foil: None,
+                                sell_etched: None,
+                                buy_normal: None,
+                                buy_foil: None,
+                                buy_etched: None,
+                            }
+                        );
+                    }
+                    
+                    if let Some(entry) = today_dict.get_mut(mtgjson_uuid) {
+                        if let Some(price) = avg_sell_price {
+                            entry.sell_normal = Some(price);
+                        }
+                        
+                        if let Some(foil_price) = avg_foil_price {
+                            if mtgjson_finish_map.get(&product_id)
+                                .map_or(false, |finishes| finishes.contains(&"etched".to_string())) {
+                                entry.sell_etched = Some(foil_price);
+                            } else {
+                                entry.sell_foil = Some(foil_price);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(today_dict)
+    }
+
+    /// Get MKM Set ID from pre-generated map
+    pub fn get_set_id(&self, set_name: String) -> PyResult<Option<i32>> {
+        if self.set_map.is_empty() {
+            return Ok(None);
+        }
+
+        if let Some(set_data) = self.set_map.get(&set_name.to_lowercase()) {
+            if let Some(mcm_id) = set_data.get("mcmId") {
+                if let Some(id) = mcm_id.as_i64() {
+                    return Ok(Some(id as i32));
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    /// Get "Extras" MKM Set ID from pre-generated map
+    pub fn get_extras_set_id(&self, set_name: String) -> PyResult<Option<i32>> {
+        if self.set_map.is_empty() {
+            return Ok(None);
+        }
+
+        let extras_set_name = format!("{}: extras", set_name.to_lowercase());
+        if let Some(set_data) = self.set_map.get(&extras_set_name) {
+            if let Some(mcm_id) = set_data.get("mcmId") {
+                if let Some(id) = mcm_id.as_i64() {
+                    return Ok(Some(id as i32));
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    /// Get MKM Set Name from pre-generated map
+    pub fn get_set_name(&self, set_name: String) -> PyResult<Option<String>> {
+        if self.set_map.is_empty() {
+            return Ok(None);
+        }
+
+        if let Some(set_data) = self.set_map.get(&set_name.to_lowercase()) {
+            if let Some(mcm_name) = set_data.get("mcmName") {
+                if let Some(name) = mcm_name.as_str() {
+                    return Ok(Some(name.to_string()));
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    /// Build HTTP header (not used, returns empty dict)
+    pub fn _build_http_header(&self) -> PyResult<HashMap<String, String>> {
+        Ok(HashMap::new())
+    }
+
+    /// Get MKM cards for a set with retry logic
+    pub fn get_mkm_cards(&self, mcm_id: Option<i32>) -> PyResult<HashMap<String, Vec<Value>>> {
+        if !self.connection_available || mcm_id.is_none() {
+            return Ok(HashMap::new());
+        }
+
+        let mcm_id = mcm_id.unwrap();
+        
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            // Retry logic - try up to 5 times with delays
+            for attempt in 0..5 {
+                match self.fetch_mkm_cards(mcm_id).await {
+                    Ok(cards) => return Ok(cards),
+                    Err(e) => {
+                        warn!("MKM connection error for set {}, attempt {}: {}", mcm_id, attempt + 1, e);
+                        if attempt < 4 {
+                            sleep(Duration::from_secs(10)).await;
+                        }
+                    }
+                }
+            }
+            
+            error!("MKM had a critical failure after 5 attempts. Skipping set {}", mcm_id);
+            Ok(HashMap::new())
+        })
+    }
+}
+
+impl CardMarketProvider {
+    /// Check if CardMarket configuration section exists
+    fn check_cardmarket_config() -> bool {
+        // TODO: Implement actual config checking
+        // For now, check environment variables as fallback
+        std::env::var("MKM_APP_TOKEN").is_ok() || 
+        std::env::var("MTGJSON_CARDMARKET_APP_TOKEN").is_ok()
+    }
+    
+    /// Get configuration value
+    fn get_config_value(section: &str, key: &str) -> Option<String> {
+        // TODO: Implement actual config reading
+        // For now, use environment variables with standard naming
+        let env_key = format!("MTGJSON_{}_{}", section.to_uppercase(), key.to_uppercase());
+        std::env::var(env_key).ok()
+    }
+    
+    /// Setup environment variables from configuration
+    fn setup_environment_variables() {
+        // TODO: In a real implementation, read from MtgjsonConfig
+        // For now, assume environment variables are already set or use MTGJSON_ prefixed versions
+        if let Ok(app_token) = std::env::var("MTGJSON_CARDMARKET_APP_TOKEN") {
+            std::env::set_var("MKM_APP_TOKEN", app_token);
+        }
+        if let Ok(app_secret) = std::env::var("MTGJSON_CARDMARKET_APP_SECRET") {
+            std::env::set_var("MKM_APP_SECRET", app_secret);
+        }
+        if let Ok(access_token) = std::env::var("MTGJSON_CARDMARKET_ACCESS_TOKEN") {
+            std::env::set_var("MKM_ACCESS_TOKEN", access_token);
+        }
+        if let Ok(access_secret) = std::env::var("MTGJSON_CARDMARKET_ACCESS_TOKEN_SECRET") {
+            std::env::set_var("MKM_ACCESS_TOKEN_SECRET", access_secret);
+        }
+    }
+    
+    /// Validate that required credentials are available
+    fn validate_credentials() -> bool {
+        std::env::var("MKM_APP_TOKEN").is_ok() && std::env::var("MKM_APP_SECRET").is_ok()
+    }
+    
+    /// Use new MKM API to get MTG card prices
+    fn get_card_market_data(&self) -> Result<HashMap<String, HashMap<String, Option<f64>>>, String> {
+        if self.price_guide_url.is_empty() {
+            return Err("Unable to get CardMarket data: No price URL set".to_string());
+        }
+
+        let data = self.download(self.price_guide_url.clone(), None)
+            .map_err(|e| format!("Failed to download price data: {}", e))?;
+            
+        let price_guides = data.get("priceGuides")
+            .and_then(|v| v.as_array())
+            .ok_or("No priceGuides array found in response")?;
+        
+        let mut price_data = HashMap::new();
+        
+        for mkm_entry in price_guides {
+            if let Some(entry_obj) = mkm_entry.as_object() {
+                if let Some(product_id) = entry_obj.get("idProduct") {
+                    let id_str = match product_id {
+                        Value::String(s) => s.clone(),
+                        Value::Number(n) => n.to_string(),
+                        _ => continue,
+                    };
+                    
+                    let trend = entry_obj.get("trend").and_then(|v| v.as_f64());
+                    let trend_foil = entry_obj.get("trend-foil").and_then(|v| v.as_f64());
+                    
+                    let mut price_entry = HashMap::new();
+                    price_entry.insert("trend".to_string(), trend);
+                    price_entry.insert("trend-foil".to_string(), trend_foil);
+                    
+                    price_data.insert(id_str, price_entry);
+                }
+            }
+        }
+
+        Ok(price_data)
+    }
+
+    /// Construct a mapping for all set components from MKM
+    fn init_set_map(&mut self) -> PyResult<()> {
+        if !self.connection_available {
+            return Ok(());
+        }
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            // TODO: Implement actual MKM API call for expansions
+            // For now, use placeholder URL
+            let expansions_url = "https://api.cardmarket.com/ws/v2.0/expansions/1/singles".to_string();
+            
+            match self.download(expansions_url, None) {
+                Ok(response) => {
+                    if let Some(expansions) = response.get("expansion").and_then(|v| v.as_array()) {
+                        for set_content in expansions {
+                            if let Some(set_obj) = set_content.as_object() {
+                                if let (Some(name), Some(id)) = (
+                                    set_obj.get("enName").and_then(|v| v.as_str()),
+                                    set_obj.get("idExpansion").and_then(|v| v.as_i64())
+                                ) {
+                                    let mut set_data = HashMap::new();
+                                    set_data.insert("mcmId".to_string(), Value::Number(serde_json::Number::from(id)));
+                                    set_data.insert("mcmName".to_string(), Value::String(name.to_string()));
+                                    
+                                    self.set_map.insert(name.to_lowercase(), set_data);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Apply manual overrides
+                    self.apply_manual_overrides();
+                },
+                Err(e) => {
+                    error!("Unable to download MKM expansions: {}", e);
+                }
+            }
+        });
+
+        Ok(())
+    }
+    
+    /// Apply manual set name overrides from configuration
+    fn apply_manual_overrides(&mut self) {
+        // TODO: Load from mkm_set_name_fixes.json resource file
+        // For now, use some common overrides as examples
+        let manual_overrides = vec![
+            ("ravnica allegiance", "ravnica allegiance"),
+            ("guilds of ravnica", "guilds of ravnica"),
+        ];
+        
+        for (old_name, new_name) in manual_overrides {
+            if let Some(set_data) = self.set_map.remove(old_name) {
+                self.set_map.insert(new_name.to_string(), set_data);
+            }
+        }
+    }
+    
+    /// Fetch MKM cards for a specific set
+    async fn fetch_mkm_cards(&self, mcm_id: i32) -> Result<HashMap<String, Vec<Value>>, String> {
+        // TODO: Implement actual MKM API call for expansion singles
+        // For now, return empty result
+        info!("Would fetch cards for MKM set ID: {}", mcm_id);
+        Ok(HashMap::new())
+    }
+}
+
+#[async_trait]
+impl AbstractProvider for CardMarketProvider {
+    async fn download_async(&self, url: &str, params: Option<HashMap<String, String>>) -> ProviderResult<Response> {
+        if !self.connection_available {
+            return Err(ProviderError::ConfigurationError("CardMarket not configured".to_string()));
+        }
+        
+        let mut request_builder = self.client.get(url);
+        
+        if let Some(params) = params {
+            request_builder = request_builder.query(&params);
+        }
+        
+        request_builder.send().await
+            .map_err(|e| ProviderError::NetworkError(e.to_string()))
+    }
+
+    async fn generate_today_price_dict(&self, all_printings_path: &str) -> ProviderResult<HashMap<String, MtgjsonPricesObject>> {
+        self.generate_today_price_dict(all_printings_path.to_string())
+            .map_err(|e| ProviderError::ProcessingError(e.to_string()))
+    }
+}

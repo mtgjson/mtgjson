@@ -153,7 +153,7 @@ impl OutputGenerator {
     }
     
     pub fn build_card_types(&self, pretty_print: bool) -> PyResult<()> {
-        let card_types = MtgjsonCardObjectTypes::new();
+        let card_types = MtgjsonCardTypesObject::new();
         let card_types_json = serde_json::to_string(&card_types).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
         })?;

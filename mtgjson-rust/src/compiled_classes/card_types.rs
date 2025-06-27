@@ -5,14 +5,14 @@ use std::collections::HashMap;
 
 /// MTGJSON CardTypes Object
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[pyclass(name = "MtgjsonCardObjectTypes")]
-pub struct MtgjsonCardObjectTypes {
+#[pyclass(name = "MtgjsonCardTypesObject")]
+pub struct MtgjsonCardTypesObject {
     #[pyo3(get, set)]
     pub types: HashMap<String, HashMap<String, Vec<String>>>,
 }
 
 #[pymethods]
-impl MtgjsonCardObjectTypes {
+impl MtgjsonCardTypesObject {
     #[new]
     pub fn new() -> Self {
         Self {
@@ -21,10 +21,10 @@ impl MtgjsonCardObjectTypes {
     }
 }
 
-impl Default for MtgjsonCardObjectTypes {
+impl Default for MtgjsonCardTypesObject {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl JsonObject for MtgjsonCardObjectTypes {}
+impl JsonObject for MtgjsonCardTypesObject {}

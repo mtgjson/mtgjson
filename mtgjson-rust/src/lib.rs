@@ -22,70 +22,52 @@ impl JsonValue {
     }
 }
 
-// Import all modules  
-mod base;
-mod card;
-mod deck;
-mod foreign_data;
-mod game_formats;
-mod identifiers;
-mod leadership_skills;
-mod legalities;
-mod meta;
-mod prices;
-mod purchase_urls;
-mod related_cards;
-mod rulings;
-mod sealed_product;
-mod set;
-mod translations;
-mod utils;
-
-// High-computational modules
-mod output_generator;
-mod parallel_call;
-mod price_builder;
-mod set_builder;
-
-// Wrapper module for set_builder functions to expose as PyO3 functions
-mod set_builder_functions;
-
-// Wrapper module for utility functions
-mod utils_functions;
-
-// Compiled classes
+// Classes module
+mod classes;
+// Providers module
+mod providers;
+// Compiled classes module
 mod compiled_classes;
+// Performance modules
+mod builders;
 
-// Import all the structs
-use card::MtgjsonCardObject;
-use deck::{MtgjsonDeckObject, MtgjsonDeckHeaderObject};
-use foreign_data::MtgjsonForeignDataObject;
-use game_formats::MtgjsonGameFormatsObject;
-use identifiers::MtgjsonIdentifiers;
-use leadership_skills::MtgjsonLeadershipSkillsObject;
-use legalities::MtgjsonLegalitiesObject;
-use meta::MtgjsonMetaObject;
-use prices::MtgjsonPricesObject;
-use purchase_urls::MtgjsonPurchaseUrls;
-use related_cards::MtgjsonRelatedCardsObject;
-use rulings::MtgjsonRulingObject;
-use sealed_product::{MtgjsonSealedProductObject, SealedProductCategory, SealedProductSubtype};
-use set::MtgjsonSetObject;
-use translations::MtgjsonTranslations;
+// Import all classes
+use classes::{
+    MtgjsonCardObject, MtgjsonDeckObject, MtgjsonDeckHeaderObject, MtgjsonForeignDataObject,
+    MtgjsonGameFormatsObject, MtgjsonIdentifiers, MtgjsonLeadershipSkillsObject,
+    MtgjsonLegalitiesObject, MtgjsonMetaObject, MtgjsonPricesObject, MtgjsonPurchaseUrls,
+    MtgjsonRelatedCardsObject, MtgjsonRulingObject, MtgjsonSealedProductObject,
+    SealedProductCategory, SealedProductSubtype, MtgjsonSetObject, MtgjsonTranslations
+};
 
-// Import compiled classes
+// Import all provider classes
+use providers::{
+    CardHoarderProvider, CardKingdomProvider, CardMarketProvider, EdhrecProviderCardRanks,
+    GathererProvider, GitHubBoostersProvider, GitHubCardSealedProductsProvider,
+    GitHubDecksProvider, GitHubMTGSqliteProvider, GitHubSealedProvider,
+    MTGBanProvider, MtgWikiProviderSecretLair, MultiverseBridgeProvider,
+    ScryfallProvider, ScryfallProviderOrientationDetector,
+    TCGPlayerProvider, WhatsInStandardProvider, WizardsProvider
+};
+
+// Import all compiled classes
 use compiled_classes::{
     MtgjsonStructures, MtgjsonCompiledList, MtgjsonDeckObjectList, 
     MtgjsonKeywords, MtgjsonAllIdentifiers, MtgjsonAllPrintings,
-    MtgjsonAtomicCards, MtgjsonCardObjectTypes, MtgjsonEnumValues,
+    MtgjsonAtomicCards, MtgjsonEnumValues,
     MtgjsonSetObjectList, MtgjsonTcgplayerSkus
 };
 
-// Re-export for tests and external usage  
-pub use output_generator::OutputGenerator;
-pub use price_builder::PriceBuilder;
-pub use parallel_call::{ParallelProcessor, ParallelIterator};
-pub use set_builder_functions::*;
+// Import all performance modules
+use builders::{
+    OutputGenerator, PriceBuilder, ParallelProcessor, ParallelIterator
+};
+
+// Export everything
+pub use classes::*;
+pub use providers::*;
+pub use compiled_classes::*;
+pub use builders::*;
 
 /// Python module definition
 #[pymodule]
@@ -123,16 +105,16 @@ fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<MtgjsonAllIdentifiers>()?;
     m.add_class::<MtgjsonAllPrintings>()?;
     m.add_class::<MtgjsonAtomicCards>()?;
-    m.add_class::<MtgjsonCardObjectTypes>()?;
+    m.add_class::<MtgjsonCardTypesObject>()?;
     m.add_class::<MtgjsonEnumValues>()?;
     m.add_class::<MtgjsonSetObjectList>()?;
     m.add_class::<MtgjsonTcgplayerSkus>()?;
     
     // Add high-performance classes
-    m.add_class::<output_generator::OutputGenerator>()?;
-    m.add_class::<price_builder::PriceBuilder>()?;
-    m.add_class::<parallel_call::ParallelProcessor>()?;
-    m.add_class::<parallel_call::ParallelIterator>()?;
+    m.add_class::<OutputGenerator>()?;
+    m.add_class::<PriceBuilder>()?;
+    m.add_class::<ParallelProcessor>()?;
+    m.add_class::<ParallelIterator>()?;
     
     // Add set_builder module functions
     m.add_function(wrap_pyfunction!(set_builder_functions::parse_card_types, m)?)?;
@@ -152,6 +134,9 @@ fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(utils_functions::to_camel_case, m)?)?;
     m.add_function(wrap_pyfunction!(utils_functions::make_windows_safe_filename, m)?)?;
     m.add_function(wrap_pyfunction!(utils_functions::clean_card_number, m)?)?;
+    
+    // Add all provider classes for 100% Python API coverage
+    providers::add_provider_classes_to_module(m)?;
     
     Ok(())
 }
