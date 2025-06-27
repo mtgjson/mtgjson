@@ -6,8 +6,8 @@ use std::collections::HashSet;
 
 /// MTGJSON Meta Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "MtgjsonMeta")]
-pub struct MtgjsonMeta {
+#[pyclass(name = "MtgjsonMetaObject")]
+pub struct MtgjsonMetaObject {
     #[pyo3(get, set)]
     pub date: String,
     
@@ -16,7 +16,7 @@ pub struct MtgjsonMeta {
 }
 
 #[pymethods]
-impl MtgjsonMeta {
+impl MtgjsonMetaObject {
     #[new]
     #[pyo3(signature = (date = None, version = None))]
     pub fn new(date: Option<String>, version: Option<String>) -> Self {
@@ -57,10 +57,10 @@ impl MtgjsonMeta {
     }
 }
 
-impl Default for MtgjsonMeta {
+impl Default for MtgjsonMetaObject {
     fn default() -> Self {
         Self::new(None, None)
     }
 }
 
-impl JsonObject for MtgjsonMeta {}
+impl JsonObject for MtgjsonMetaObject {}
