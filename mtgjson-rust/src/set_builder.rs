@@ -246,16 +246,16 @@ pub fn parse_legalities(sf_card_legalities: &HashMap<String, String>) -> Mtgjson
             let capitalized_value = capitalize_first_letter(value);
             
             match key.to_lowercase().as_str() {
-                "standard" => card_legalities.standard = Some(capitalized_value),
-                "pioneer" => card_legalities.pioneer = Some(capitalized_value),
-                "modern" => card_legalities.modern = Some(capitalized_value),
-                "legacy" => card_legalities.legacy = Some(capitalized_value),
-                "vintage" => card_legalities.vintage = Some(capitalized_value),
-                "commander" => card_legalities.commander = Some(capitalized_value),
-                "brawl" => card_legalities.brawl = Some(capitalized_value),
-                "pauper" => card_legalities.pauper = Some(capitalized_value),
-                "penny" => card_legalities.penny = Some(capitalized_value),
-                "duel" => card_legalities.duel = Some(capitalized_value),
+                "standard" => card_legalities.standard = capitalized_value.clone(),
+                "pioneer" => card_legalities.pioneer = capitalized_value.clone(),
+                "modern" => card_legalities.modern = capitalized_value.clone(),
+                "legacy" => card_legalities.legacy = capitalized_value.clone(),
+                "vintage" => card_legalities.vintage = capitalized_value.clone(),
+                "commander" => card_legalities.commander = capitalized_value.clone(),
+                "brawl" => card_legalities.brawl = capitalized_value.clone(),
+                "pauper" => card_legalities.pauper = capitalized_value.clone(),
+                "penny" => card_legalities.penny = capitalized_value.clone(),
+                "duel" => card_legalities.duel = capitalized_value.clone(),
                 _ => {} // Unknown format
             }
         }
@@ -657,8 +657,8 @@ pub fn get_base_and_total_set_sizes(
 
 /// Add starter card designation to cards not available in boosters
 pub fn add_is_starter_option(mtgjson_set: &mut MtgjsonSet) {
-    let release_date = mtgjson_set.release_date.as_ref().map(|s| s.as_str()).unwrap_or("");
-    if release_date > "2019-10-01" {
+    let release_date = &mtgjson_set.release_date;
+    if release_date.as_str() > "2019-10-01" {
         // Implementation here
     }
 }
