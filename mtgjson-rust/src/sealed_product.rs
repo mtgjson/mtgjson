@@ -1,9 +1,7 @@
-use crate::base::{skip_if_empty_optional_string, JsonObject};
-use crate::identifiers::MtgjsonIdentifiers;
-use crate::purchase_urls::MtgjsonPurchaseUrls;
+use crate::base::JsonObject;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 /// MTGJSON Sealed Product Category
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -291,9 +289,10 @@ pub struct MtgjsonSealedProduct {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uuid: Option<String>,
 
+    // Change to JSON string for PyO3 compatibility
     #[pyo3(get, set)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub contents: Option<String>,
+    pub contents: Option<String>, // JSON string instead of HashMap<String, serde_json::Value>
 }
 
 #[pymethods]
