@@ -515,6 +515,7 @@ impl MtgjsonCard {
     }
 
     /// Set internal names array for this card
+    #[pyo3(signature = (names=None))]
     pub fn set_names(&mut self, names: Option<Vec<String>>) {
         self.names = names.map(|n| n.into_iter().map(|s| s.trim().to_string()).collect());
     }
@@ -529,6 +530,7 @@ impl MtgjsonCard {
     }
 
     /// Set watermark with special processing
+    #[pyo3(signature = (watermark=None))]
     pub fn set_watermark(&mut self, watermark: Option<String>) {
         let watermark = match watermark {
             Some(w) if !w.is_empty() => w,
