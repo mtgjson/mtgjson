@@ -62,51 +62,52 @@ impl MtgjsonForeignData {
     }
 
     /// Convert to dictionary for Python compatibility
-    pub fn to_dict(&self) -> String {
-        let mut result = HashMap::new();
-        
-        result.insert("language".to_string(), serde_json::Value::String(self.language.clone()));
-        
-        if let Some(val) = self.multiverse_id {
-            result.insert("multiverseId".to_string(), serde_json::Value::Number(val.into()));
-        }
-        
-        // Include identifiers
-        if let Ok(identifiers_json) = serde_json::to_value(&self.identifiers) {
-            result.insert("identifiers".to_string(), identifiers_json);
-        }
-        
-        if let Some(ref val) = self.face_name {
-            if !val.is_empty() {
-                result.insert("faceName".to_string(), serde_json::Value::String(val.clone()));
+    pub fn to_dict(&self) -> PyResult<HashMap<String, PyObject>> {
+        Python::with_gil(|py| {
+            let mut result = HashMap::new();
+            
+            result.insert("language".to_string(), self.language.to_object(py));
+            
+            if let Some(val) = self.multiverse_id {
+                result.insert("multiverseId".to_string(), val.to_object(py));
             }
-        }
-        
-        if let Some(ref val) = self.flavor_text {
-            if !val.is_empty() {
-                result.insert("flavorText".to_string(), serde_json::Value::String(val.clone()));
+            
+            // Include identifiers as dict
+            let identifiers_dict = self.identifiers.to_dict()?;
+            result.insert("identifiers".to_string(), identifiers_dict.to_object(py));
+            
+            if let Some(ref val) = self.face_name {
+                if !val.is_empty() {
+                    result.insert("faceName".to_string(), val.to_object(py));
+                }
             }
-        }
-        
-        if let Some(ref val) = self.name {
-            if !val.is_empty() {
-                result.insert("name".to_string(), serde_json::Value::String(val.clone()));
+            
+            if let Some(ref val) = self.flavor_text {
+                if !val.is_empty() {
+                    result.insert("flavorText".to_string(), val.to_object(py));
+                }
             }
-        }
-        
-        if let Some(ref val) = self.text {
-            if !val.is_empty() {
-                result.insert("text".to_string(), serde_json::Value::String(val.clone()));
+            
+            if let Some(ref val) = self.name {
+                if !val.is_empty() {
+                    result.insert("name".to_string(), val.to_object(py));
+                }
             }
-        }
-        
-        if let Some(ref val) = self.type_ {
-            if !val.is_empty() {
-                result.insert("type".to_string(), serde_json::Value::String(val.clone()));
+            
+            if let Some(ref val) = self.text {
+                if !val.is_empty() {
+                    result.insert("text".to_string(), val.to_object(py));
+                }
             }
-        }
-        
-        serde_json::to_string(&result).unwrap_or_default()
+            
+            if let Some(ref val) = self.type_ {
+                if !val.is_empty() {
+                    result.insert("type".to_string(), val.to_object(py));
+                }
+            }
+            
+            Ok(result)
+        })
     }
 
     /// Check if foreign data has meaningful content
