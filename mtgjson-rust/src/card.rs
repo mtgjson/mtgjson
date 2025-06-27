@@ -618,6 +618,7 @@ impl Default for MtgjsonCard {
 
 impl PartialOrd for MtgjsonCard {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        // Exact Python __lt__ logic for 100% compatibility
         let self_side = self.side.as_deref().unwrap_or("");
         let other_side = other.side.as_deref().unwrap_or("");
 
@@ -625,35 +626,47 @@ impl PartialOrd for MtgjsonCard {
             return Some(self_side.cmp(other_side));
         }
 
-        let (self_number_clean, self_len) = MtgjsonUtils::clean_card_number(&self.number);
-        let (other_number_clean, other_len) = MtgjsonUtils::clean_card_number(&other.number);
+        // Extract digits only, like Python: "".join(x for x in self.number if x.isdigit()) or "100000"
+        let self_number_clean = self.number.chars()
+            .filter(|c| c.is_ascii_digit())
+            .collect::<String>();
+        let self_number_clean = if self_number_clean.is_empty() { "100000" } else { &self_number_clean };
+        let self_number_clean_int = self_number_clean.parse::<i32>().unwrap_or(100000);
 
-        // Implement the complex comparison logic from Python
-        if self.number.chars().all(|c| c.is_ascii_digit()) && 
-           other.number.chars().all(|c| c.is_ascii_digit()) {
-            if self_number_clean == other_number_clean {
-                if self_len != other_len {
-                    return Some(self_len.cmp(&other_len));
+        let other_number_clean = other.number.chars()
+            .filter(|c| c.is_ascii_digit())
+            .collect::<String>();
+        let other_number_clean = if other_number_clean.is_empty() { "100000" } else { &other_number_clean };
+        let other_number_clean_int = other_number_clean.parse::<i32>().unwrap_or(100000);
+
+        // Case 1: Both numbers are pure digits
+        if self.number == self_number_clean && other.number == other_number_clean {
+            if self_number_clean_int == other_number_clean_int {
+                if self_number_clean.len() != other_number_clean.len() {
+                    return Some(self_number_clean.len().cmp(&other_number_clean.len()));
                 }
                 return Some(self_side.cmp(other_side));
             }
-            return Some(self_number_clean.cmp(&other_number_clean));
+            return Some(self_number_clean_int.cmp(&other_number_clean_int));
         }
 
-        if self.number.chars().all(|c| c.is_ascii_digit()) {
-            if self_number_clean == other_number_clean {
-                return Some(Ordering::Less);
+        // Case 2: Only self.number is pure digits
+        if self.number == self_number_clean {
+            if self_number_clean_int == other_number_clean_int {
+                return Some(Ordering::Less); // True in Python
             }
-            return Some(self_number_clean.cmp(&other_number_clean));
+            return Some(self_number_clean_int.cmp(&other_number_clean_int));
         }
 
-        if other.number.chars().all(|c| c.is_ascii_digit()) {
-            if self_number_clean == other_number_clean {
-                return Some(Ordering::Greater);
+        // Case 3: Only other.number is pure digits
+        if other.number == other_number_clean {
+            if self_number_clean_int == other_number_clean_int {
+                return Some(Ordering::Greater); // False in Python
             }
-            return Some(self_number_clean.cmp(&other_number_clean));
+            return Some(self_number_clean_int.cmp(&other_number_clean_int));
         }
 
+        // Case 4: Neither number is pure digits
         if self_number_clean == other_number_clean {
             if self_side.is_empty() && other_side.is_empty() {
                 return Some(self.number.cmp(&other.number));
@@ -661,14 +674,16 @@ impl PartialOrd for MtgjsonCard {
             return Some(self_side.cmp(other_side));
         }
 
-        if self_number_clean == other_number_clean {
-            if self_len != other_len {
-                return Some(self_len.cmp(&other_len));
+        // Case 5: Different clean numbers with same value
+        if self_number_clean_int == other_number_clean_int {
+            if self_number_clean.len() != other_number_clean.len() {
+                return Some(self_number_clean.len().cmp(&other_number_clean.len()));
             }
             return Some(self_side.cmp(other_side));
         }
 
-        Some(self_number_clean.cmp(&other_number_clean))
+        // Default: Compare by clean number value
+        Some(self_number_clean_int.cmp(&other_number_clean_int))
     }
 }
 
