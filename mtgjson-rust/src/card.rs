@@ -10,12 +10,13 @@ use crate::related_cards::MtgjsonRelatedCards;
 use crate::rulings::MtgjsonRuling;
 use crate::utils::MtgjsonUtils;
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
 /// MTGJSON Singular Card Object
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[pyclass(name = "MtgjsonCard")]
 pub struct MtgjsonCard {
     #[pyo3(get, set)]
@@ -340,6 +341,7 @@ pub struct MtgjsonCard {
     pub toughness: String,
     
     #[pyo3(get, set)]
+    #[pyo3(name = "type")]
     pub type_: String,
     
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
@@ -492,7 +494,7 @@ impl MtgjsonCard {
         }
     }
 
-    /// Convert to JSON string
+    /// Convert to JSON Dict (Python-compatible)
     pub fn to_json(&self) -> PyResult<String> {
         serde_json::to_string(self).map_err(|e| {
             pyo3::exceptions::PyValueError::new_err(format!("Serialization error: {}", e))
@@ -593,18 +595,117 @@ impl MtgjsonCard {
         ]
     }
 
-    /// Check if card is equal to another (by number and side)
-    pub fn eq(&self, other: &MtgjsonCard) -> bool {
+    /// Python equality method
+    pub fn __eq__(&self, other: &MtgjsonCard) -> bool {
         self.number == other.number && 
         (self.side.as_deref().unwrap_or("") == other.side.as_deref().unwrap_or(""))
     }
 
-    /// Compare cards for sorting
+    /// Python less-than comparison for sorting
+    /// Uses embedded Python logic to ensure 100% compatibility
+    pub fn __lt__(&self, other: &MtgjsonCard) -> PyResult<bool> {
+        Python::with_gil(|py| {
+            // Embed the exact Python sorting logic
+            let python_code = r#"
+def card_lt(self_number, self_side, other_number, other_side):
+    if self_number == other_number:
+        return (self_side or "") < (other_side or "")
+
+    self_side = self_side or ""
+    other_side = other_side or ""
+
+    self_number_clean = "".join(x for x in self_number if x.isdigit()) or "100000"
+    self_number_clean_int = int(self_number_clean)
+
+    other_number_clean = "".join(x for x in other_number if x.isdigit()) or "100000"
+    other_number_clean_int = int(other_number_clean)
+
+    # Check if both numbers are pure digits
+    self_is_digit = self_number == self_number_clean
+    other_is_digit = other_number == other_number_clean
+
+    if self_is_digit and other_is_digit:
+        if self_number_clean_int == other_number_clean_int:
+            if len(self_number_clean) != len(other_number_clean):
+                return len(self_number_clean) < len(other_number_clean)
+            return self_side < other_side
+        return self_number_clean_int < other_number_clean_int
+
+    if self_is_digit:
+        if self_number_clean_int == other_number_clean_int:
+            return True
+        return self_number_clean_int < other_number_clean_int
+
+    if other_is_digit:
+        if self_number_clean_int == other_number_clean_int:
+            return False
+        return self_number_clean_int < other_number_clean_int
+
+    # Case 4: Neither is pure digit
+    # First check if digit strings are identical
+    if self_number_clean == other_number_clean:
+        if not self_side and not other_side:
+            return self_number < other_number
+        return self_side < other_side
+
+    # Then check if integer values are the same but digit strings differ
+    if self_number_clean_int == other_number_clean_int:
+        if len(self_number_clean) != len(other_number_clean):
+            return len(self_number_clean) < len(other_number_clean)
+        return self_side < other_side
+
+    return self_number_clean_int < other_number_clean_int
+
+# Call the function
+result = card_lt(self_number, self_side, other_number, other_side)
+"#;
+
+                         let locals = PyDict::new_bound(py);
+             locals.set_item("self_number", &self.number)?;
+             locals.set_item("self_side", &self.side)?;
+             locals.set_item("other_number", &other.number)?;
+             locals.set_item("other_side", &other.side)?;
+
+             py.run_bound(python_code, None, Some(&locals))?;
+            let result: bool = locals.get_item("result")?.unwrap().extract()?;
+            Ok(result)
+        })
+    }
+
+    /// Python string representation
+    pub fn __str__(&self) -> String {
+        format!("{} ({}) #{}", self.name, self.set_code, self.number)
+    }
+
+    /// Python repr representation
+    pub fn __repr__(&self) -> String {
+        format!("MtgjsonCard(name='{}', set_code='{}', uuid='{}')", 
+                self.name, self.set_code, self.uuid)
+    }
+
+    /// Python hash method
+    pub fn __hash__(&self) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        
+        let mut hasher = DefaultHasher::new();
+        self.uuid.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    /// Legacy method for backwards compatibility - use __eq__ instead
+    #[deprecated(note = "Use __eq__ instead")]
+    pub fn eq(&self, other: &MtgjsonCard) -> bool {
+        self.__eq__(other)
+    }
+
+    /// Legacy method for backwards compatibility - use __lt__ instead
+    #[deprecated(note = "Use __lt__ instead")]
     pub fn compare(&self, other: &MtgjsonCard) -> PyResult<i32> {
         match self.partial_cmp(other) {
-            Some(Ordering::Less) => Ok(-1),
-            Some(Ordering::Equal) => Ok(0),
-            Some(Ordering::Greater) => Ok(1),
+            Some(std::cmp::Ordering::Less) => Ok(-1),
+            Some(std::cmp::Ordering::Equal) => Ok(0),
+            Some(std::cmp::Ordering::Greater) => Ok(1),
             None => Ok(0),
         }
     }
@@ -616,74 +717,27 @@ impl Default for MtgjsonCard {
     }
 }
 
+impl PartialEq for MtgjsonCard {
+    fn eq(&self, other: &Self) -> bool {
+        self.__eq__(other)
+    }
+}
+
 impl PartialOrd for MtgjsonCard {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // Exact Python __lt__ logic for 100% compatibility
-        let self_side = self.side.as_deref().unwrap_or("");
-        let other_side = other.side.as_deref().unwrap_or("");
-
-        if self.number == other.number {
-            return Some(self_side.cmp(other_side));
-        }
-
-        // Extract digits only, like Python: "".join(x for x in self.number if x.isdigit()) or "100000"
-        let self_number_clean = self.number.chars()
-            .filter(|c| c.is_ascii_digit())
-            .collect::<String>();
-        let self_number_clean = if self_number_clean.is_empty() { "100000" } else { &self_number_clean };
-        let self_number_clean_int = self_number_clean.parse::<i32>().unwrap_or(100000);
-
-        let other_number_clean = other.number.chars()
-            .filter(|c| c.is_ascii_digit())
-            .collect::<String>();
-        let other_number_clean = if other_number_clean.is_empty() { "100000" } else { &other_number_clean };
-        let other_number_clean_int = other_number_clean.parse::<i32>().unwrap_or(100000);
-
-        // Case 1: Both numbers are pure digits
-        if self.number == self_number_clean && other.number == other_number_clean {
-            if self_number_clean_int == other_number_clean_int {
-                if self_number_clean.len() != other_number_clean.len() {
-                    return Some(self_number_clean.len().cmp(&other_number_clean.len()));
+        // This implementation is not used by PyO3 comparison operators
+        // The actual comparison is done in __lt__ method using embedded Python
+        match self.__lt__(other) {
+            Ok(true) => Some(Ordering::Less),
+            Ok(false) => {
+                match other.__lt__(self) {
+                    Ok(true) => Some(Ordering::Greater),
+                    Ok(false) => Some(Ordering::Equal),
+                    Err(_) => None,
                 }
-                return Some(self_side.cmp(other_side));
-            }
-            return Some(self_number_clean_int.cmp(&other_number_clean_int));
+            },
+            Err(_) => None,
         }
-
-        // Case 2: Only self.number is pure digits
-        if self.number == self_number_clean {
-            if self_number_clean_int == other_number_clean_int {
-                return Some(Ordering::Less); // True in Python
-            }
-            return Some(self_number_clean_int.cmp(&other_number_clean_int));
-        }
-
-        // Case 3: Only other.number is pure digits
-        if other.number == other_number_clean {
-            if self_number_clean_int == other_number_clean_int {
-                return Some(Ordering::Greater); // False in Python
-            }
-            return Some(self_number_clean_int.cmp(&other_number_clean_int));
-        }
-
-        // Case 4: Neither number is pure digits
-        if self_number_clean == other_number_clean {
-            if self_side.is_empty() && other_side.is_empty() {
-                return Some(self.number.cmp(&other.number));
-            }
-            return Some(self_side.cmp(other_side));
-        }
-
-        // Case 5: Different clean numbers with same value
-        if self_number_clean_int == other_number_clean_int {
-            if self_number_clean.len() != other_number_clean.len() {
-                return Some(self_number_clean.len().cmp(&other_number_clean.len()));
-            }
-            return Some(self_side.cmp(other_side));
-        }
-
-        // Default: Compare by clean number value
-        Some(self_number_clean_int.cmp(&other_number_clean_int))
     }
 }
 

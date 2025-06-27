@@ -47,6 +47,12 @@ mod parallel_call;
 mod price_builder;
 mod set_builder;
 
+// Wrapper module for set_builder functions to expose as PyO3 functions
+mod set_builder_functions;
+
+// Wrapper module for utility functions
+mod utils_functions;
+
 // Compiled classes
 mod compiled_classes;
 
@@ -75,14 +81,17 @@ use compiled_classes::{
     MtgjsonSetList, MtgjsonTcgplayerSkus
 };
 
+// Re-export for tests and external usage  
+pub use output_generator::OutputGenerator;
+pub use price_builder::PriceBuilder;
+pub use parallel_call::{ParallelProcessor, ParallelIterator};
+pub use set_builder_functions::*;
+
 /// Python module definition
 #[pymodule]
 fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add the JSON value wrapper
     m.add_class::<JsonValue>()?;
-    
-    // Add the parallel_call function (Python-compatible API)
-    m.add_function(wrap_pyfunction!(parallel_call::parallel_call, m)?)?;
     
     // Add all MTGJSON classes
     m.add_class::<MtgjsonCard>()?;
@@ -119,16 +128,30 @@ fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<MtgjsonSetList>()?;
     m.add_class::<MtgjsonTcgplayerSkus>()?;
     
-    // Add high-performance modules
+    // Add high-performance classes
     m.add_class::<output_generator::OutputGenerator>()?;
     m.add_class::<price_builder::PriceBuilder>()?;
-    
-    // Add legacy parallel classes (deprecated but for compatibility)
     m.add_class::<parallel_call::ParallelProcessor>()?;
     m.add_class::<parallel_call::ParallelIterator>()?;
     
-    // Add utility modules (SetBuilder not ready yet)
-    // m.add_class::<set_builder::SetBuilder>()?;
+    // Add set_builder module functions
+    m.add_function(wrap_pyfunction!(set_builder_functions::parse_card_types, m)?)?;
+    m.add_function(wrap_pyfunction!(set_builder_functions::get_card_colors, m)?)?;
+    m.add_function(wrap_pyfunction!(set_builder_functions::get_card_cmc, m)?)?;
+    m.add_function(wrap_pyfunction!(set_builder_functions::is_number, m)?)?;
+    m.add_function(wrap_pyfunction!(set_builder_functions::parse_legalities, m)?)?;
+    m.add_function(wrap_pyfunction!(set_builder_functions::build_mtgjson_set, m)?)?;
+    m.add_function(wrap_pyfunction!(set_builder_functions::parse_foreign, m)?)?;
+    m.add_function(wrap_pyfunction!(set_builder_functions::parse_printings, m)?)?;
+    m.add_function(wrap_pyfunction!(set_builder_functions::parse_rulings, m)?)?;
+    m.add_function(wrap_pyfunction!(set_builder_functions::mark_duel_decks, m)?)?;
+    m.add_function(wrap_pyfunction!(set_builder_functions::enhance_cards_with_metadata, m)?)?;
+    m.add_function(wrap_pyfunction!(set_builder_functions::build_base_mtgjson_cards, m)?)?;
+    
+    // Add utility functions
+    m.add_function(wrap_pyfunction!(utils_functions::to_camel_case, m)?)?;
+    m.add_function(wrap_pyfunction!(utils_functions::make_windows_safe_filename, m)?)?;
+    m.add_function(wrap_pyfunction!(utils_functions::clean_card_number, m)?)?;
     
     Ok(())
 }
