@@ -1,5 +1,4 @@
-use pyo3::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::collections::HashSet;
 
 /// Base trait for all MTGJSON objects (~Python JsonObject abstract base class)
@@ -29,7 +28,7 @@ pub trait JsonObject {
 /// Utility function to convert snake_case to camelCase
 /// Equivalent to the Python to_camel_case function
 pub fn to_camel_case(snake_str: &str) -> String {
-    let mut result = String::new();
+    let mut result = String::with_capacity(snake_str.len()); // Pre-allocate capacity
     let mut capitalize_next = false;
     
     for c in snake_str.chars() {
@@ -46,7 +45,8 @@ pub fn to_camel_case(snake_str: &str) -> String {
     result
 }
 
-/// serializer that skips empty/falsy values
+/// Optimized serializer that skips empty/falsy values
+#[inline]
 pub fn skip_if_empty<T>(value: &Option<T>) -> bool
 where
     T: Default + PartialEq,
@@ -57,17 +57,20 @@ where
     }
 }
 
-/// serializer that skips empty vectors
+/// Optimized serializer that skips empty vectors
+#[inline]
 pub fn skip_if_empty_vec<T>(value: &Vec<T>) -> bool {
     value.is_empty()
 }
 
-/// serializer that skips empty strings
+/// Optimized serializer that skips empty strings
+#[inline]
 pub fn skip_if_empty_string(value: &str) -> bool {
     value.is_empty()
 }
 
-/// serializer that skips empty optional strings
+/// Optimized serializer that skips empty optional strings
+#[inline]
 pub fn skip_if_empty_optional_string(value: &Option<String>) -> bool {
     match value {
         Some(s) => s.is_empty(),

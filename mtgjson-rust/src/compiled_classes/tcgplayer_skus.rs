@@ -14,7 +14,8 @@ pub struct MtgjsonTcgplayerSkus {
 #[pymethods]
 impl MtgjsonTcgplayerSkus {
     #[new]
-    pub fn new(all_printings_path: Option<std::path::PathBuf>) -> Self {
+    #[pyo3(signature = (_all_printings_path=None))]
+    pub fn new(_all_printings_path: Option<std::path::PathBuf>) -> Self {
         Self {
             tcgplayer_skus: HashMap::new(),
         }
