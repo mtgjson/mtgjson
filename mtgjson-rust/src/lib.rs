@@ -1,71 +1,54 @@
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 // PyO3-compatible wrapper for JSON values
-#[pyclass(name = "JsonValue")]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct PyJsonValue {
+#[pyclass(name = "JsonValue")]
+pub struct JsonValue {
     #[pyo3(get, set)]
     pub value: String,
 }
 
 #[pymethods]
-impl PyJsonValue {
+impl JsonValue {
     #[new]
     pub fn new(value: String) -> Self {
         Self { value }
     }
     
-    pub fn __str__(&self) -> String {
+    /// Convert to JSON string
+    pub fn to_json(&self) -> String {
         self.value.clone()
     }
-    
-    pub fn __repr__(&self) -> String {
-        format!("JsonValue(\"{}\")", self.value)
-    }
 }
 
-impl From<serde_json::Value> for PyJsonValue {
-    fn from(value: serde_json::Value) -> Self {
-        Self {
-            value: value.to_string(),
-        }
-    }
-}
+// Import all modules  
+mod base;
+mod card;
+mod deck;
+mod foreign_data;
+mod game_formats;
+mod identifiers;
+mod leadership_skills;
+mod legalities;
+mod meta;
+mod prices;
+mod purchase_urls;
+mod related_cards;
+mod rulings;
+mod sealed_product;
+mod set;
+mod translations;
+mod utils;
 
-impl From<PyJsonValue> for serde_json::Value {
-    fn from(py_value: PyJsonValue) -> Self {
-        serde_json::from_str(&py_value.value).unwrap_or(serde_json::Value::Null)
-    }
-}
+// High-computational modules
+mod output_generator;
+mod parallel_call;
+mod price_builder;
+mod set_builder;
 
-// Re-export all modules
-pub mod base;
-pub mod card;
-pub mod deck;
-pub mod foreign_data;
-pub mod game_formats;
-pub mod identifiers;
-pub mod leadership_skills;
-pub mod legalities;
-pub mod meta;
-pub mod prices;
-pub mod purchase_urls;
-pub mod related_cards;
-pub mod rulings;
-pub mod sealed_product;
-pub mod set;
-pub mod translations;
-pub mod utils;
-pub mod set_builder;
-pub mod compiled_classes;
-
-// New computational modules
-pub mod output_generator;
-pub mod price_builder;
-pub mod parallel_call;
+// Compiled classes
+mod compiled_classes;
 
 // Import all the structs
 use card::MtgjsonCard;
@@ -96,7 +79,7 @@ use compiled_classes::{
 #[pymodule]
 fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add the JSON value wrapper
-    m.add_class::<PyJsonValue>()?;
+    m.add_class::<JsonValue>()?;
     
     // Add all MTGJSON classes
     m.add_class::<MtgjsonCard>()?;
