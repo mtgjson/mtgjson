@@ -84,6 +84,7 @@ impl ScryfallProvider {
         let runtime = tokio::runtime::Runtime::new()?;
         let cards = runtime.block_on(async {
             self.get_card_names(Self::CARDS_WITHOUT_LIMITS_URL).await
+                .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Cards without limits error: {}", e)))
         })?;
         
         self.cards_without_limits = cards.iter().cloned().collect();
@@ -95,6 +96,7 @@ impl ScryfallProvider {
         let runtime = tokio::runtime::Runtime::new()?;
         runtime.block_on(async {
             self.get_card_names(Self::CARDS_WITH_ALCHEMY_SPELLBOOK_URL).await
+                .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Alchemy cards error: {}", e)))
         })
     }
     
@@ -104,6 +106,7 @@ impl ScryfallProvider {
         let url = Self::SPELLBOOK_SEARCH_URL.replace("{}", card_name);
         runtime.block_on(async {
             self.get_card_names(&url).await
+                .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Spellbook cards error: {}", e)))
         })
     }
     
@@ -206,8 +209,9 @@ impl ScryfallProvider {
             };
             
             // Remove token sets and skipped sets
+            let all_sets_clone = all_scryfall_sets.clone();
             let non_token_sets: HashSet<String> = all_scryfall_sets.into_iter()
-                .filter(|s| !(s.starts_with('T') && all_scryfall_sets.contains(&s[1..].to_string())))
+                .filter(|s| !(s.starts_with('T') && all_sets_clone.contains(&s[1..].to_string())))
                 .collect();
             
             let skip_set: HashSet<String> = final_skip_sets.into_iter().collect();

@@ -116,24 +116,19 @@ fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<ParallelProcessor>()?;
     m.add_class::<ParallelIterator>()?;
     
-    // Add set_builder module functions
-    m.add_function(wrap_pyfunction!(set_builder_functions::parse_card_types, m)?)?;
-    m.add_function(wrap_pyfunction!(set_builder_functions::get_card_colors, m)?)?;
-    m.add_function(wrap_pyfunction!(set_builder_functions::get_card_cmc, m)?)?;
-    m.add_function(wrap_pyfunction!(set_builder_functions::is_number, m)?)?;
-    m.add_function(wrap_pyfunction!(set_builder_functions::parse_legalities, m)?)?;
-    m.add_function(wrap_pyfunction!(set_builder_functions::build_mtgjson_set, m)?)?;
-    m.add_function(wrap_pyfunction!(set_builder_functions::parse_foreign, m)?)?;
-    m.add_function(wrap_pyfunction!(set_builder_functions::parse_printings, m)?)?;
-    m.add_function(wrap_pyfunction!(set_builder_functions::parse_rulings, m)?)?;
-    m.add_function(wrap_pyfunction!(set_builder_functions::mark_duel_decks, m)?)?;
-    m.add_function(wrap_pyfunction!(set_builder_functions::enhance_cards_with_metadata, m)?)?;
-    m.add_function(wrap_pyfunction!(set_builder_functions::build_base_mtgjson_cards, m)?)?;
-    
-    // Add utility functions (when implemented)
-    // m.add_function(wrap_pyfunction!(utils_functions::to_camel_case, m)?)?;
-    // m.add_function(wrap_pyfunction!(utils_functions::make_windows_safe_filename, m)?)?;
-    // m.add_function(wrap_pyfunction!(utils_functions::clean_card_number, m)?)?;
+    // Add set_builder module functions - use the correct wrapper functions
+    m.add_function(wrap_pyfunction!(builders::set_builder_functions::parse_card_types_wrapper, m)?)?;
+    m.add_function(wrap_pyfunction!(builders::set_builder_functions::get_card_colors_wrapper, m)?)?;
+    m.add_function(wrap_pyfunction!(builders::set_builder_functions::get_card_cmc_wrapper, m)?)?;
+    m.add_function(wrap_pyfunction!(builders::set_builder_functions::is_number_wrapper, m)?)?;
+    m.add_function(wrap_pyfunction!(builders::set_builder_functions::parse_legalities_wrapper, m)?)?;
+    m.add_function(wrap_pyfunction!(builders::set_builder_functions::build_mtgjson_set_wrapper, m)?)?;
+    m.add_function(wrap_pyfunction!(builders::set_builder_functions::parse_foreign_wrapper, m)?)?;
+    m.add_function(wrap_pyfunction!(builders::set_builder_functions::parse_printings_wrapper, m)?)?;
+    m.add_function(wrap_pyfunction!(builders::set_builder_functions::parse_rulings_wrapper, m)?)?;
+    m.add_function(wrap_pyfunction!(builders::set_builder_functions::get_set_translation_data, m)?)?;
+    m.add_function(wrap_pyfunction!(builders::set_builder_functions::build_mtgjson_set_from_data, m)?)?;
+    m.add_function(wrap_pyfunction!(builders::set_builder_functions::process_set_data, m)?)?;
     
     // Add all provider classes for 100% Python API coverage
     providers::add_provider_classes_to_module(m)?;

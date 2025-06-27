@@ -917,9 +917,9 @@ pub fn relocate_miscellaneous_tokens(mtgjson_set: &mut MtgjsonSetObject) {
             // Create a runtime for this synchronous context
             let rt = tokio::runtime::Runtime::new().unwrap();
             match rt.block_on(async {
-                let provider = ScryfallProvider::new()?;
+                let provider = ScryfallProvider::new().map_err(|e| format!("Provider creation error: {}", e))?;
                 let url = format!("https://api.scryfall.com/cards/{}", scryfall_id);
-                AbstractProvider::download(&provider, &url, None).await
+                AbstractProvider::download(&provider, &url, None).await.map_err(|e| format!("Download error: {}", e))
             }) {
                 Ok(token_data) => {
                     // Process the downloaded token data into an actual MtgjsonCardObject
@@ -1387,11 +1387,11 @@ pub fn build_base_mtgjson_cards(
         // Create a runtime for this synchronous context  
         let rt = tokio::runtime::Runtime::new().unwrap();
         match rt.block_on(async {
-            let provider = ScryfallProvider::new()?;
+            let provider = ScryfallProvider::new().map_err(|e| format!("Provider creation error: {}", e))?;
             provider.download_cards(
                 Python::with_gil(|py| py),
                 set_code
-            )
+            ).map_err(|e| format!("Download cards error: {}", e))
         }) {
             Ok(scryfall_cards) => {
                 // Process each Scryfall card into MtgjsonCardObject

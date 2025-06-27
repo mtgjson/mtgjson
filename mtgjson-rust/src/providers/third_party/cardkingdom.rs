@@ -62,13 +62,14 @@ impl CardKingdomProvider {
     /// Generate today's price dictionary (async version)
     async fn generate_today_price_dict_async(&self, all_printings_path: &str) -> ProviderResult<HashMap<String, MtgjsonPricesObject>> {
         let api_response = self.download(Self::API_URL, None).await?;
+        let empty_vec = vec![];
         let price_data_rows = api_response.get("data")
             .and_then(|v| v.as_array())
-            .unwrap_or(&vec![])
+            .unwrap_or(&empty_vec)
             .clone();
         
         // Build mapping from Card Kingdom IDs to MTGJSON UUIDs
-        let mut card_kingdom_id_to_mtgjson = self.generate_entity_mapping(
+        let mut card_kingdom_id_to_mtgjson: HashMap<String, HashSet<String>> = self.generate_entity_mapping(
             all_printings_path,
             &["identifiers", "cardKingdomId"],
             &["uuid"],
@@ -122,9 +123,10 @@ impl CardKingdomProvider {
     /// Update sealed URLs (async version)
     async fn update_sealed_urls_async(&self, sealed_products: &mut Vec<MtgjsonSealedProductObject>) -> ProviderResult<()> {
         let api_data = self.download(Self::SEALED_URL, None).await?;
+        let empty_vec = vec![];
         let data_array = api_data.get("data")
             .and_then(|v| v.as_array())
-            .unwrap_or(&vec![]);
+            .unwrap_or(&empty_vec);
         
         for product in sealed_products {
             if let Some(ref identifiers) = product.identifiers {

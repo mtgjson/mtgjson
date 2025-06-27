@@ -1,4 +1,4 @@
-// MTGJSON parallel call - Ultra-high performance parallel processing using Rust async/tokio
+/// MTGJSON parallel call - Ultra-high performance parallel processing using Rust async/tokio
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple};
 
@@ -49,7 +49,7 @@ pub fn parallel_call(
         match (repeatable_args, force_starmap) {
             (Some(repeat_args), _) => {
                 // Optimized repeatable args case
-                let repeat_objects: SmallVec<[PyObject; 8]> = repeat_args.iter()
+                let repeat_objects: Vec<PyObject> = repeat_args.iter()
                     .map(|arg| arg.to_object(py))
                     .collect();
                 
@@ -68,7 +68,7 @@ pub fn parallel_call(
                         
                         Python::with_gil(|py| -> PyResult<PyObject> {
                             // Build argument tuple efficiently
-                            let mut call_args = SmallVec::<[PyObject; 16]>::with_capacity(1 + repeat_clone.len());
+                            let mut call_args = Vec::<PyObject>::with_capacity(1 + repeat_clone.len());
                             call_args.push(arg_obj);
                             call_args.extend(repeat_clone);
                             

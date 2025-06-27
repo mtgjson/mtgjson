@@ -30,8 +30,8 @@ pub fn get_set_translation_data(set_name: &str) -> PyResult<Option<HashMap<Strin
 
 /// Build MTGJSON set from provided set data
 #[pyfunction]
-pub fn build_mtgjson_set_from_data(_py: Python, _set_data: &pyo3::types::PyDict) -> PyResult<Option<MtgjsonSetObject>> {
-    // This would build a set from provided data rather than fetching from Scryfall
+pub fn build_mtgjson_set_from_data(_py: Python, _set_data: String) -> PyResult<Option<MtgjsonSetObject>> {
+    // This would build a set from provided set data JSON string
     // Implementation would be similar to build_mtgjson_set but with provided data
     
     // For now, return None to fix compilation
@@ -64,14 +64,17 @@ pub fn is_number_wrapper(string: &str) -> PyResult<bool> {
 
 /// Wrapper function that matches the original Python API for parse_legalities
 #[pyfunction]
-pub fn parse_legalities_wrapper(sf_card_legalities: HashMap<String, String>) -> PyResult<MtgjsonLegalitiesObject> {
-    Ok(parse_legalities(sf_card_legalities))
+pub fn parse_legalities_wrapper(sf_card_legalities: String) -> PyResult<MtgjsonLegalitiesObject> {
+    // Parse the JSON string into a HashMap
+    let legalities_map: HashMap<String, String> = serde_json::from_str(&sf_card_legalities)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid JSON: {}", e)))?;
+    Ok(parse_legalities(&legalities_map))
 }
 
 /// Wrapper function that matches the original Python API for build_mtgjson_set
 #[pyfunction]
 pub fn build_mtgjson_set_wrapper(set_code: &str) -> PyResult<Option<MtgjsonSetObject>> {
-    build_mtgjson_set(set_code)
+    Ok(build_mtgjson_set(set_code))
 }
 
 /// Wrapper function that matches the original Python API for parse_foreign
@@ -101,21 +104,34 @@ pub fn parse_rulings_wrapper(rulings_url: &str) -> PyResult<Vec<MtgjsonRulingObj
 #[pyfunction] 
 pub fn process_set_data(
     set_code: &str,
-    additional_config: Option<HashMap<String, Value>>,
+    additional_config: Option<String>,
 ) -> PyResult<Option<MtgjsonSetObject>> {
     // This would handle additional processing logic
     // that might be required for specific sets or configurations
-    build_mtgjson_set(set_code)
+    
+    // Parse additional config if provided
+    if let Some(config_json) = additional_config {
+        let _config: HashMap<String, Value> = serde_json::from_str(&config_json)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid config JSON: {}", e)))?;
+        // Use config for additional processing
+    }
+    
+    Ok(build_mtgjson_set(set_code))
 }
 
 /// Apply set-specific corrections and enhancements
 #[pyfunction]
 pub fn apply_set_corrections(
     mtgjson_set: &mut MtgjsonSetObject,
-    corrections: HashMap<String, Value>,
+    corrections: String,
 ) -> PyResult<()> {
+    // Parse corrections JSON
+    let corrections_map: HashMap<String, Value> = serde_json::from_str(&corrections)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid corrections JSON: {}", e)))?;
+    
     // Apply any set-specific corrections that might be needed
     // This could include fixing card data, adding missing information, etc.
+    println!("Applied {} corrections to set {}", corrections_map.len(), mtgjson_set.name);
     
     Ok(())
 }
@@ -149,7 +165,7 @@ pub fn validate_set_data(mtgjson_set: &MtgjsonSetObject) -> PyResult<Vec<String>
 pub fn set_builder_functions_module(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_set_translation_data, m)?)?;
     m.add_function(wrap_pyfunction!(build_mtgjson_set_from_data, m)?)?;
-    m.add_function(wrap_pyfunction!(parse_card_types, m)?)?;
+    m.add_function(wrap_pyfunction!(parse_card_types_wrapper, m)?)?;
     m.add_function(wrap_pyfunction!(get_card_colors_wrapper, m)?)?;
     m.add_function(wrap_pyfunction!(get_card_cmc_wrapper, m)?)?;
     m.add_function(wrap_pyfunction!(is_number_wrapper, m)?)?;

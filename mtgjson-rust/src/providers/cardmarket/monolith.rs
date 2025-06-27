@@ -93,7 +93,7 @@ impl CardMarketProvider {
         }
         
         let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
+        Ok(rt.block_on(async {
             let mut request_builder = self.client.get(&url);
             
             if let Some(params) = params {
@@ -104,23 +104,23 @@ impl CardMarketProvider {
                 Ok(response) => {
                     if response.status().is_success() {
                         match response.json::<Value>().await {
-                            Ok(json) => Ok(json),
+                            Ok(json) => json,
                             Err(e) => {
                                 error!("JSON parse error for {}: {}", url, e);
-                                Ok(Value::Object(Map::new()))
+                                Value::Object(Map::new())
                             }
                         }
                     } else {
                         error!("Error downloading CardMarket Data: {} --- {}", response.status(), url);
-                        Ok(Value::Object(Map::new()))
+                        Value::Object(Map::new())
                     }
                 },
                 Err(e) => {
                     error!("Error downloading CardMarket Data from {}: {}", url, e);
-                    Ok(Value::Object(Map::new()))
+                    Value::Object(Map::new())
                 }
             }
-        })
+        }))
     }
 
     /// Generate a single-day price structure from Card Market
@@ -259,11 +259,11 @@ impl CardMarketProvider {
         let mcm_id = mcm_id.unwrap();
         
         let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
+        Ok(rt.block_on(async {
             // Retry logic - try up to 5 times with delays
             for attempt in 0..5 {
                 match self.fetch_mkm_cards(mcm_id).await {
-                    Ok(cards) => return Ok(cards),
+                    Ok(cards) => return cards,
                     Err(e) => {
                         warn!("MKM connection error for set {}, attempt {}: {}", mcm_id, attempt + 1, e);
                         if attempt < 4 {
@@ -274,8 +274,8 @@ impl CardMarketProvider {
             }
             
             error!("MKM had a critical failure after 5 attempts. Skipping set {}", mcm_id);
-            Ok(HashMap::new())
-        })
+            HashMap::new()
+        }))
     }
 
     /// Check if MKM config section exists
@@ -313,7 +313,7 @@ impl CardMarketProvider {
     }
     
     /// Get MKM expansion data from API
-    pub async fn get_mkm_expansion_data(&self) -> Result<Vec<serde_json::Value>, Box<dyn std::error::Error>> {
+    pub fn get_mkm_expansion_data(&self) -> PyResult<Vec<Value>> {
         if !self.has_mkm_config() {
             eprintln!("Warning: MKM configuration not found");
             return Ok(Vec::new());
@@ -352,13 +352,12 @@ impl CardMarketProvider {
     }
     
     /// Get MKM expansion singles for a specific expansion
-    pub async fn get_mkm_expansion_singles(&self, expansion_id: i32) -> Result<Vec<serde_json::Value>, Box<dyn std::error::Error>> {
+    pub fn get_mkm_expansion_singles(&self, expansion_id: i32) -> PyResult<Vec<Value>> {
         if !self.has_mkm_config() {
             eprintln!("Warning: MKM configuration not found");
             return Ok(Vec::new());
         }
         
-        // In a real implementation, this would make authenticated API calls
         let singles_url = format!("https://api.cardmarket.com/ws/v2.0/expansions/{}/singles", expansion_id);
         
         // For now, return empty array but log the attempt
