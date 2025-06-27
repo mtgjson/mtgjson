@@ -1,7 +1,7 @@
-use crate::base::JsonObject;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
+use crate::base::JsonObject;
 use std::collections::HashSet;
 
 /// MTGJSON Meta Object
@@ -30,12 +30,14 @@ impl MtgjsonMeta {
 
     /// Create with current date
     #[staticmethod]
+    #[pyo3(signature = (version=None))]
     pub fn with_current_date(version: Option<String>) -> Self {
         Self::new(None, version)
     }
 
     /// Create with specific date
     #[staticmethod]
+    #[pyo3(signature = (date, version=None))]
     pub fn with_date(date: String, version: Option<String>) -> Self {
         Self::new(Some(date), version)
     }
