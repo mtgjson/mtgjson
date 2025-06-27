@@ -81,7 +81,7 @@ pub struct BaseProvider {
 impl BaseProvider {
     /// Create a new base provider
     pub fn new(class_id: String, headers: HashMap<String, String>) -> Self {
-        let mut client_builder = Client::builder();
+        let client_builder = Client::builder();
         
         // Add default headers
         let mut default_headers = reqwest::header::HeaderMap::new();

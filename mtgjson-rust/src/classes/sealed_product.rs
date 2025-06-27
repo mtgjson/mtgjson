@@ -5,7 +5,7 @@ use std::collections::HashSet;
 
 /// MTGJSON Sealed Product Category
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "SealedProductCategory")]
+#[pyclass(name = "SealedProductCategory", eq, eq_int)]
 pub enum SealedProductCategory {
     #[serde(rename = "unknown")]
     Unknown,
@@ -101,7 +101,7 @@ impl Default for SealedProductCategory {
 
 /// MTGJSON Sealed Product Subtype
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "SealedProductSubtype")]
+#[pyclass(name = "SealedProductSubtype", eq, eq_int)]
 pub enum SealedProductSubtype {
     #[serde(rename = "unknown")]
     Unknown,

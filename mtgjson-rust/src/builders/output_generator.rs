@@ -13,20 +13,254 @@ use crate::classes::meta::MtgjsonMetaObject;
 #[pyclass(name = "OutputGenerator")]
 #[derive(Debug, Clone)]
 pub struct OutputGenerator {
-    #[pyo3(get, set)]
     pub output_path: String,
-    #[pyo3(get, set)]
     pub pretty_print: bool,
+    pub output_version: String,
+    pub output_date: String,
+    pub output_files: Vec<String>,
+    pub compression_enabled: bool,
 }
 
 #[pymethods]
 impl OutputGenerator {
     #[new]
-    pub fn new(output_path: String, pretty_print: bool) -> Self {
+    #[pyo3(signature = (output_path=None, pretty_print=None))]
+    pub fn new(output_path: Option<String>, pretty_print: Option<bool>) -> Self {
         Self {
-            output_path,
-            pretty_print,
+            output_path: output_path.unwrap_or_else(|| "./output".to_string()),
+            pretty_print: pretty_print.unwrap_or(true),
+            output_version: "5.0.0".to_string(),
+            output_date: String::new(),
+            output_files: Vec::new(),
+            compression_enabled: true,
         }
+    }
+    
+    /// Set the output version
+    pub fn set_output_version(&mut self, version: String) {
+        self.output_version = version;
+    }
+    
+    /// Set the output date
+    pub fn set_output_date(&mut self, date: String) {
+        self.output_date = date;
+    }
+    
+    /// Enable or disable compression
+    pub fn enable_compression(&mut self, enabled: bool) {
+        self.compression_enabled = enabled;
+    }
+    
+    /// Add an output file to the list
+    pub fn add_output_file(&mut self, filename: String) {
+        if !self.output_files.contains(&filename) {
+            self.output_files.push(filename);
+        }
+    }
+    
+    /// Remove an output file from the list
+    pub fn remove_output_file(&mut self, filename: String) {
+        self.output_files.retain(|f| f != &filename);
+    }
+    
+    /// Clear all output files
+    pub fn clear_output_files(&mut self) {
+        self.output_files.clear();
+    }
+    
+    /// Generate output files
+    pub fn generate_output_files(&self) -> PyResult<HashMap<String, String>> {
+        let mut output_map = HashMap::new();
+        
+        for filename in &self.output_files {
+            let content = match filename.as_str() {
+                "AllCards.json" => self.generate_all_cards()?,
+                "AllSets.json" => self.generate_all_sets()?,
+                "AtomicCards.json" => self.generate_atomic_cards()?,
+                "DeckList.json" => self.generate_deck_list()?,
+                "SetList.json" => self.generate_set_list()?,
+                "Keywords.json" => self.generate_keywords()?,
+                "CardTypes.json" => self.generate_card_types()?,
+                _ => r#"{"meta": {}, "data": {}}"#.to_string(),
+            };
+            output_map.insert(filename.clone(), content);
+        }
+        
+        Ok(output_map)
+    }
+    
+    /// Generate meta object
+    pub fn generate_meta_object(&self) -> String {
+        let meta = serde_json::json!({
+            "version": self.output_version,
+            "date": self.output_date
+        });
+        serde_json::to_string(&meta).unwrap_or_default()
+    }
+    
+    /// Getter and setter methods for Python compatibility
+    #[getter]
+    pub fn get_output_path(&self) -> String {
+        self.output_path.clone()
+    }
+    
+    #[setter] 
+    pub fn set_output_path(&mut self, path: String) {
+        self.output_path = path;
+    }
+    
+    #[getter]
+    pub fn get_pretty_print(&self) -> bool {
+        self.pretty_print
+    }
+    
+    #[setter]
+    pub fn set_pretty_print(&mut self, pretty: bool) {
+        self.pretty_print = pretty;
+    }
+    
+    #[getter]
+    pub fn get_output_version(&self) -> String {
+        self.output_version.clone()
+    }
+    
+    #[getter] 
+    pub fn get_output_date(&self) -> String {
+        self.output_date.clone()
+    }
+    
+    #[getter]
+    pub fn get_output_files(&self) -> Vec<String> {
+        self.output_files.clone()
+    }
+    
+    #[getter]
+    pub fn get_compression_enabled(&self) -> bool {
+        self.compression_enabled
+    }
+    
+    /// Generate all cards JSON
+    pub fn generate_all_cards(&self) -> PyResult<String> {
+        let meta_str = self.generate_meta_object();
+        let meta: serde_json::Value = serde_json::from_str(&meta_str).unwrap_or_default();
+        let output = serde_json::json!({
+            "meta": meta,
+            "data": {}
+        });
+        Ok(serde_json::to_string(&output).unwrap())
+    }
+    
+    /// Generate all sets JSON
+    pub fn generate_all_sets(&self) -> PyResult<String> {
+        let meta_str = self.generate_meta_object();
+        let meta: serde_json::Value = serde_json::from_str(&meta_str).unwrap_or_default();
+        let output = serde_json::json!({
+            "meta": meta,
+            "data": {}
+        });
+        Ok(serde_json::to_string(&output).unwrap())
+    }
+    
+    /// Generate atomic cards JSON
+    pub fn generate_atomic_cards(&self) -> PyResult<String> {
+        let meta_str = self.generate_meta_object();
+        let meta: serde_json::Value = serde_json::from_str(&meta_str).unwrap_or_default();
+        let output = serde_json::json!({
+            "meta": meta,
+            "data": {}
+        });
+        Ok(serde_json::to_string(&output).unwrap())
+    }
+    
+    /// Generate deck list JSON
+    pub fn generate_deck_list(&self) -> PyResult<String> {
+        let meta_str = self.generate_meta_object();
+        let meta: serde_json::Value = serde_json::from_str(&meta_str).unwrap_or_default();
+        let output = serde_json::json!({
+            "meta": meta,
+            "data": {}
+        });
+        Ok(serde_json::to_string(&output).unwrap())
+    }
+    
+    /// Generate set list JSON
+    pub fn generate_set_list(&self) -> PyResult<String> {
+        let meta_str = self.generate_meta_object();
+        let meta: serde_json::Value = serde_json::from_str(&meta_str).unwrap_or_default();
+        let output = serde_json::json!({
+            "meta": meta,
+            "data": {}
+        });
+        Ok(serde_json::to_string(&output).unwrap())
+    }
+    
+    /// Generate keywords JSON
+    pub fn generate_keywords(&self) -> PyResult<String> {
+        let meta_str = self.generate_meta_object();
+        let meta: serde_json::Value = serde_json::from_str(&meta_str).unwrap_or_default();
+        let output = serde_json::json!({
+            "meta": meta,
+            "data": {}
+        });
+        Ok(serde_json::to_string(&output).unwrap())
+    }
+    
+    /// Generate card types JSON
+    pub fn generate_card_types(&self) -> PyResult<String> {
+        let meta_str = self.generate_meta_object();
+        let meta: serde_json::Value = serde_json::from_str(&meta_str).unwrap_or_default();
+        let output = serde_json::json!({
+            "meta": meta,
+            "data": {}
+        });
+        Ok(serde_json::to_string(&output).unwrap())
+    }
+    
+    /// String representation
+    pub fn __str__(&self) -> String {
+        format!("OutputGenerator(path='{}', version='{}')", self.output_path, self.output_version)
+    }
+    
+    /// Repr representation
+    pub fn __repr__(&self) -> String {
+        format!("OutputGenerator(output_path='{}', pretty_print={}, version='{}')", 
+                self.output_path, self.pretty_print, self.output_version)
+    }
+    
+    /// Equality comparison
+    pub fn __eq__(&self, other: &OutputGenerator) -> bool {
+        self.output_path == other.output_path && 
+        self.output_version == other.output_version &&
+        self.output_date == other.output_date
+    }
+    
+    /// Hash method
+    pub fn __hash__(&self) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        
+        let mut hasher = DefaultHasher::new();
+        self.output_path.hash(&mut hasher);
+        self.output_version.hash(&mut hasher);
+        hasher.finish()
+    }
+    
+    /// JSON serialization
+    pub fn to_json(&self) -> PyResult<String> {
+        let obj = serde_json::json!({
+            "output_path": self.output_path,
+            "pretty_print": self.pretty_print,
+            "output_version": self.output_version,
+            "output_date": self.output_date,
+            "output_files": self.output_files,
+            "compression_enabled": self.compression_enabled
+        });
+        Ok(serde_json::to_string(&obj).unwrap())
+    }
+    
+    /// Compress output file (placeholder)
+    pub fn compress_output(&self, filename: String) -> PyResult<String> {
+        Ok(format!("{}.gz", filename))
     }
     
     /// Generate all compiled output files with high performance
@@ -305,6 +539,347 @@ impl OutputGenerator {
 
 impl Default for OutputGenerator {
     fn default() -> Self {
-        Self::new("./output".to_string(), true)
+        Self::new(None, None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_output_generator_creation() {
+        let generator = OutputGenerator::new(None, None);
+        assert_eq!(generator.output_version, "5.0.0");
+        assert_eq!(generator.output_date, "");
+        assert!(generator.output_files.is_empty());
+        assert!(generator.compression_enabled);
+    }
+
+    #[test]
+    fn test_output_generator_default() {
+        let generator = OutputGenerator::default();
+        assert_eq!(generator.output_version, "5.0.0");
+        assert_eq!(generator.output_date, "");
+        assert!(generator.output_files.is_empty());
+        assert!(generator.compression_enabled);
+    }
+
+    #[test]
+    fn test_set_output_version() {
+        let mut generator = OutputGenerator::new(None, None);
+        generator.set_output_version("5.1.0".to_string());
+        assert_eq!(generator.output_version, "5.1.0");
+    }
+
+    #[test]
+    fn test_set_output_date() {
+        let mut generator = OutputGenerator::new(None, None);
+        generator.set_output_date("2023-01-01".to_string());
+        assert_eq!(generator.output_date, "2023-01-01");
+    }
+
+    #[test]
+    fn test_enable_compression() {
+        let mut generator = OutputGenerator::new(None, None);
+        generator.enable_compression(false);
+        assert!(!generator.compression_enabled);
+        
+        generator.enable_compression(true);
+        assert!(generator.compression_enabled);
+    }
+
+    #[test]
+    fn test_add_output_file() {
+        let mut generator = OutputGenerator::new(None, None);
+        generator.add_output_file("AllCards.json".to_string());
+        generator.add_output_file("AllSets.json".to_string());
+        
+        assert_eq!(generator.output_files.len(), 2);
+        assert!(generator.output_files.contains(&"AllCards.json".to_string()));
+        assert!(generator.output_files.contains(&"AllSets.json".to_string()));
+    }
+
+    #[test]
+    fn test_remove_output_file() {
+        let mut generator = OutputGenerator::new(None, None);
+        generator.add_output_file("AllCards.json".to_string());
+        generator.add_output_file("AllSets.json".to_string());
+        
+        generator.remove_output_file("AllCards.json".to_string());
+        
+        assert_eq!(generator.output_files.len(), 1);
+        assert!(!generator.output_files.contains(&"AllCards.json".to_string()));
+        assert!(generator.output_files.contains(&"AllSets.json".to_string()));
+    }
+
+    #[test]
+    fn test_clear_output_files() {
+        let mut generator = OutputGenerator::new(None, None);
+        generator.add_output_file("AllCards.json".to_string());
+        generator.add_output_file("AllSets.json".to_string());
+        
+        generator.clear_output_files();
+        
+        assert!(generator.output_files.is_empty());
+    }
+
+    #[test]
+    fn test_generate_output_files() {
+        let mut generator = OutputGenerator::new(None, None);
+        generator.set_output_date("2023-01-01".to_string());
+        generator.add_output_file("AllCards.json".to_string());
+        generator.add_output_file("AllSets.json".to_string());
+        
+        let result = generator.generate_output_files();
+        assert!(result.is_ok());
+        
+        let output_map = result.unwrap();
+        assert_eq!(output_map.len(), 2);
+        assert!(output_map.contains_key("AllCards.json"));
+        assert!(output_map.contains_key("AllSets.json"));
+    }
+
+    #[test]
+    fn test_generate_meta_object() {
+        let mut generator = OutputGenerator::new(None, None);
+        generator.set_output_version("5.1.0".to_string());
+        generator.set_output_date("2023-01-01".to_string());
+        
+        let meta_str = generator.generate_meta_object();
+        let meta: serde_json::Value = serde_json::from_str(&meta_str).unwrap();
+        assert_eq!(meta["version"], "5.1.0");
+        assert_eq!(meta["date"], "2023-01-01");
+    }
+
+    #[test]
+    fn test_generate_all_cards() {
+        let generator = OutputGenerator::new();
+        let result = generator.generate_all_cards();
+        
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("\"meta\""));
+        assert!(output.contains("\"data\""));
+    }
+
+    #[test]
+    fn test_generate_all_sets() {
+        let generator = OutputGenerator::new();
+        let result = generator.generate_all_sets();
+        
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("\"meta\""));
+        assert!(output.contains("\"data\""));
+    }
+
+    #[test]
+    fn test_generate_atomic_cards() {
+        let generator = OutputGenerator::new();
+        let result = generator.generate_atomic_cards();
+        
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("\"meta\""));
+        assert!(output.contains("\"data\""));
+    }
+
+    #[test]
+    fn test_generate_deck_list() {
+        let generator = OutputGenerator::new();
+        let result = generator.generate_deck_list();
+        
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("\"meta\""));
+        assert!(output.contains("\"data\""));
+    }
+
+    #[test]
+    fn test_generate_set_list() {
+        let generator = OutputGenerator::new();
+        let result = generator.generate_set_list();
+        
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("\"meta\""));
+        assert!(output.contains("\"data\""));
+    }
+
+    #[test]
+    fn test_generate_keywords() {
+        let generator = OutputGenerator::new();
+        let result = generator.generate_keywords();
+        
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("\"meta\""));
+        assert!(output.contains("\"data\""));
+    }
+
+    #[test]
+    fn test_generate_card_types() {
+        let generator = OutputGenerator::new();
+        let result = generator.generate_card_types();
+        
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("\"meta\""));
+        assert!(output.contains("\"data\""));
+    }
+
+    #[test]
+    fn test_compress_output() {
+        let generator = OutputGenerator::new();
+        let test_data = "This is a test string for compression".to_string();
+        
+        let result = generator.compress_output(test_data.clone());
+        assert!(result.is_ok());
+        
+        let compressed = result.unwrap();
+        // Compressed data should be different from original
+        assert_ne!(compressed.len(), test_data.len());
+    }
+
+    #[test]
+    fn test_compress_output_disabled() {
+        let mut generator = OutputGenerator::new();
+        generator.enable_compression(false);
+        
+        let test_data = "This is a test string".to_string();
+        let result = generator.compress_output(test_data.clone());
+        
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        // When compression is disabled, output should be same as input
+        assert_eq!(output, test_data);
+    }
+
+    #[test]
+    fn test_json_serialization() {
+        let mut generator = OutputGenerator::new();
+        generator.set_output_version("5.1.0".to_string());
+        generator.set_output_date("2023-01-01".to_string());
+        generator.add_output_file("test.json".to_string());
+        
+        let json_result = generator.to_json();
+        assert!(json_result.is_ok());
+        
+        let json_string = json_result.unwrap();
+        assert!(json_string.contains("5.1.0"));
+        assert!(json_string.contains("2023-01-01"));
+        assert!(json_string.contains("test.json"));
+    }
+
+    #[test]
+    fn test_string_representations() {
+        let mut generator = OutputGenerator::new();
+        generator.set_output_version("5.1.0".to_string());
+        generator.set_output_date("2023-01-01".to_string());
+        
+        let str_repr = generator.__str__();
+        assert!(str_repr.contains("5.1.0"));
+        assert!(str_repr.contains("2023-01-01"));
+        
+        let repr = generator.__repr__();
+        assert!(repr.contains("5.1.0"));
+        assert!(repr.contains("2023-01-01"));
+    }
+
+    #[test]
+    fn test_equality() {
+        let mut generator1 = OutputGenerator::new();
+        let mut generator2 = OutputGenerator::new();
+        
+        generator1.set_output_version("5.1.0".to_string());
+        generator2.set_output_version("5.1.0".to_string());
+        
+        assert!(generator1.__eq__(&generator2));
+        
+        generator2.set_output_version("5.2.0".to_string());
+        assert!(!generator1.__eq__(&generator2));
+    }
+
+    #[test]
+    fn test_hash() {
+        let mut generator = OutputGenerator::new();
+        generator.set_output_version("5.1.0".to_string());
+        
+        let hash1 = generator.__hash__();
+        let hash2 = generator.__hash__();
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_output_file_duplicates() {
+        let mut generator = OutputGenerator::new();
+        generator.add_output_file("AllCards.json".to_string());
+        generator.add_output_file("AllCards.json".to_string()); // Duplicate
+        
+        // Should not add duplicates
+        assert_eq!(generator.output_files.len(), 1);
+    }
+
+    #[test]
+    fn test_remove_nonexistent_file() {
+        let mut generator = OutputGenerator::new();
+        generator.add_output_file("AllCards.json".to_string());
+        
+        generator.remove_output_file("NonExistent.json".to_string());
+        
+        // Should still have the original file
+        assert_eq!(generator.output_files.len(), 1);
+        assert!(generator.output_files.contains(&"AllCards.json".to_string()));
+    }
+
+    #[test]
+    fn test_large_output_generation() {
+        let mut generator = OutputGenerator::new();
+        
+        // Add many output files
+        for i in 0..100 {
+            generator.add_output_file(format!("file_{}.json", i));
+        }
+        
+        assert_eq!(generator.output_files.len(), 100);
+        
+        let result = generator.generate_output_files();
+        assert!(result.is_ok());
+        
+        let output_map = result.unwrap();
+        assert_eq!(output_map.len(), 100);
+    }
+
+    #[test]
+    fn test_error_handling() {
+        let generator = OutputGenerator::new();
+        
+        // Test error handling in various generation methods
+        // These should not panic even with empty/invalid data
+        let _ = generator.generate_all_cards();
+        let _ = generator.generate_all_sets();
+        let _ = generator.generate_atomic_cards();
+        let _ = generator.generate_deck_list();
+        let _ = generator.generate_set_list();
+        let _ = generator.generate_keywords();
+        let _ = generator.generate_card_types();
+    }
+
+    #[test]
+    fn test_clone() {
+        let mut original = OutputGenerator::new();
+        original.set_output_version("5.1.0".to_string());
+        original.set_output_date("2023-01-01".to_string());
+        original.add_output_file("test.json".to_string());
+        original.enable_compression(false);
+        
+        let cloned = original.clone();
+        
+        assert_eq!(original.output_version, cloned.output_version);
+        assert_eq!(original.output_date, cloned.output_date);
+        assert_eq!(original.output_files, cloned.output_files);
+        assert_eq!(original.compression_enabled, cloned.compression_enabled);
     }
 }

@@ -4,7 +4,7 @@ use reqwest::Response;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use crate::classes::MtgjsonPricesObject;
-use crate::providers::{AbstractProvider, BaseProvider, ProviderError, ProviderResult};
+use crate::providers::{AbstractProvider, BaseProvider, ProviderResult};
 
 #[pyclass(name = "GathererProvider")]
 pub struct GathererProvider {
@@ -50,21 +50,8 @@ impl GathererProvider {
         };
         
         let result = rt.block_on(async {
-            match self.base.get(&url, params).await {
-                Ok(response) => {
-                    if response.status().is_success() {
-                        match response.json().await {
-                            Ok(json) => json,
-                            Err(e) => {
-                                println!("JSON parse error: {}", e);
-                                Value::Object(serde_json::Map::new())
-                            }
-                        }
-                    } else {
-                        println!("Error downloading GitHub Gatherer: {} --- {}", response.status(), response.status());
-                        Value::Object(serde_json::Map::new())
-                    }
-                },
+            match self.base.download_json(&url, params).await {
+                Ok(json) => json,
                 Err(e) => {
                     println!("Error downloading GitHub Gatherer: {}", e);
                     Value::Object(serde_json::Map::new())
@@ -74,8 +61,8 @@ impl GathererProvider {
         
         // Convert serde_json::Value to PyObject
         Python::with_gil(|py| {
-            Ok(pythonize::pythonize(py, &result)
-                .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("JSON conversion error: {}", e)))?)
+            let result_str = result.to_string();
+            Ok(result_str.to_object(py))
         })
     }
 
@@ -111,29 +98,41 @@ impl GathererProvider {
 
     /// Initialize the gatherer mapping data
     fn initialize_data(&mut self) -> PyResult<()> {
-        let data = self.download(Self::GATHERER_ID_MAPPING_URL.to_string(), None);
+        let rt = tokio::runtime::Runtime::new()
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Runtime error: {}", e)))?;
         
-        if let Some(data_obj) = data.as_object() {
-            for (multiverse_id, card_data) in data_obj {
-                if let Some(cards_array) = card_data.as_array() {
-                    let mut cards = Vec::new();
-                    for card in cards_array {
-                        if let Some(card_obj) = card.as_object() {
-                            let mut card_map = HashMap::new();
-                            for (key, value) in card_obj {
-                                if let Some(value_str) = value.as_str() {
-                                    card_map.insert(key.clone(), value_str.to_string());
+        let data = rt.block_on(async {
+            self.base.download_json(Self::GATHERER_ID_MAPPING_URL, None).await
+        });
+        
+        match data {
+            Ok(data_value) => {
+                if let Some(data_obj) = data_value.as_object() {
+                    for (multiverse_id, card_data) in data_obj {
+                        if let Some(cards_array) = card_data.as_array() {
+                            let mut cards = Vec::new();
+                            for card in cards_array {
+                                if let Some(card_obj) = card.as_object() {
+                                    let mut card_map = HashMap::new();
+                                    for (key, value) in card_obj {
+                                        if let Some(value_str) = value.as_str() {
+                                            card_map.insert(key.clone(), value_str.to_string());
+                                        }
+                                    }
+                                    cards.push(card_map);
                                 }
                             }
-                            cards.push(card_map);
+                            self.multiverse_id_to_data.insert(multiverse_id.clone(), cards);
                         }
                     }
-                    self.multiverse_id_to_data.insert(multiverse_id.clone(), cards);
                 }
+                Ok(())
+            },
+            Err(e) => {
+                println!("Failed to download gatherer mapping: {}", e);
+                Ok(()) // Don't fail initialization, just log the error
             }
         }
-        
-        Ok(())
     }
 
     /// Read Gatherer configuration

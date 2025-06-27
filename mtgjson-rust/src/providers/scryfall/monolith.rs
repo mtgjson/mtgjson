@@ -5,7 +5,7 @@ use reqwest::Response;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use tokio::time::{sleep, Duration};
-use crate::classes::MtgjsonPricesObject;
+use crate::prices::MtgjsonPricesObject;
 use crate::providers::{AbstractProvider, BaseProvider, RateLimiter, ProviderError, ProviderResult};
 use super::sf_utils;
 
@@ -50,6 +50,7 @@ impl ScryfallProvider {
     }
     
     /// Download all pages from a paginated Scryfall API endpoint
+    #[pyo3(signature = (starting_url, params=None))]
     pub fn download_all_pages<'py>(
         &self,
         py: Python<'py>,
@@ -72,11 +73,48 @@ impl ScryfallProvider {
         set_code: &str,
     ) -> PyResult<Bound<'py, PyList>> {
         let url = Self::CARDS_URL_ALL_DETAIL_BY_SET_CODE.replace("{}", set_code);
-        let cards = self.download_all_pages(py, &url, None)?;
         
-        // Sort by card name and collector number (Python compatibility)
-        // Note: This is a simplified sort - the real implementation would need to sort JSON objects
-        Ok(cards)
+        // Get the raw cards as JSON Values
+        let runtime = tokio::runtime::Runtime::new()?;
+        let mut cards = runtime.block_on(async {
+            self.download_all_pages_async(&url, None).await
+        })?;
+        
+        // Sort by card name and collector number
+        cards.sort_by(|a, b| {
+            // First sort by card name
+            let name_a = a.get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_lowercase();
+            let name_b = b.get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_lowercase();
+            
+            match name_a.cmp(&name_b) {
+                std::cmp::Ordering::Equal => {
+                    // If names are equal, sort by collector number
+                    let num_a = a.get("collector_number")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    let num_b = b.get("collector_number")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("");
+                    
+                    // Try to parse as numbers for proper numeric sorting
+                    match (num_a.parse::<u32>(), num_b.parse::<u32>()) {
+                        (Ok(a_num), Ok(b_num)) => a_num.cmp(&b_num),
+                        _ => num_a.cmp(num_b) // Fall back to string comparison
+                    }
+                }
+                other => other
+            }
+        });
+        
+        // Convert sorted JSON objects to Python strings for PyList
+        let py_list = PyList::new_bound(py, cards.iter().map(|v| v.to_string()));
+        Ok(py_list)
     }
     
     /// Generate cards without limits
@@ -93,18 +131,18 @@ impl ScryfallProvider {
     /// Get alchemy cards with spellbooks
     pub fn get_alchemy_cards_with_spellbooks(&self) -> PyResult<Vec<String>> {
         let runtime = tokio::runtime::Runtime::new()?;
-        runtime.block_on(async {
+        Ok(runtime.block_on(async {
             self.get_card_names(Self::CARDS_WITH_ALCHEMY_SPELLBOOK_URL).await
-        })
+        }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Alchemy cards error: {}", e)))?)
     }
     
     /// Get card names in spellbook
     pub fn get_card_names_in_spellbook(&self, card_name: &str) -> PyResult<Vec<String>> {
-        let runtime = tokio::runtime::Runtime::new()?;
         let url = Self::SPELLBOOK_SEARCH_URL.replace("{}", card_name);
-        runtime.block_on(async {
+        let runtime = tokio::runtime::Runtime::new()?;
+        Ok(runtime.block_on(async {
             self.get_card_names(&url).await
-        })
+        }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Spellbook cards error: {}", e)))?)
     }
     
     /// Get catalog entry
@@ -118,9 +156,10 @@ impl ScryfallProvider {
                         return Err(ProviderError::NetworkError(format!("Unable to build {}. Not found", catalog_key)));
                     }
                     
+                    let empty_vec = vec![];
                     let catalog_data = data.get("data")
                         .and_then(|v| v.as_array())
-                        .unwrap_or(&vec![]);
+                        .unwrap_or(&empty_vec);
                     
                     Ok(catalog_data.iter()
                         .filter_map(|v| v.as_str())
@@ -142,9 +181,10 @@ impl ScryfallProvider {
                         return Err(ProviderError::NetworkError("Downloading Scryfall data failed".to_string()));
                     }
                     
+                    let empty_vec = vec![];
                     let sets_data = data.get("data")
                         .and_then(|v| v.as_array())
-                        .unwrap_or(&vec![]);
+                        .unwrap_or(&empty_vec);
                     
                     let mut set_codes: Vec<String> = sets_data.iter()
                         .filter_map(|set_obj| {
@@ -155,9 +195,10 @@ impl ScryfallProvider {
                         .collect();
                     
                     // Remove Scryfall token sets (but leave extra sets)
+                    let set_codes_clone = set_codes.clone();
                     set_codes.retain(|set_code| {
                         !(set_code.starts_with('T') && 
-                          set_codes.contains(&set_code[1..].to_string()))
+                          set_codes_clone.contains(&set_code[1..].to_string()))
                     });
                     
                     set_codes.sort();
@@ -213,13 +254,13 @@ impl ScryfallProvider {
             Ok(result)
         });
         
-        result.map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Sets to build error: {}", e)))
+        result.map_err(|e: Box<dyn std::error::Error>| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Sets to build error: {}", e)))
     }
 }
 
 impl ScryfallProvider {
     /// Download all pages from a paginated endpoint
-    async fn download_all_pages_async(
+    pub async fn download_all_pages_async(
         &self,
         starting_url: &str,
         params: Option<HashMap<String, String>>,
@@ -241,9 +282,10 @@ impl ScryfallProvider {
                 break;
             }
             
+            let empty_vec = vec![];
             let data_response = response.get("data")
                 .and_then(|v| v.as_array())
-                .unwrap_or(&vec![]);
+                .unwrap_or(&empty_vec);
             
             all_cards.extend(data_response.clone());
             
@@ -262,9 +304,10 @@ impl ScryfallProvider {
     /// Get card names from a URL search
     async fn get_card_names(&self, url: &str) -> ProviderResult<Vec<String>> {
         let data = self.download(url, None).await?;
+        let empty_vec = vec![];
         let cards = data.get("data")
             .and_then(|v| v.as_array())
-            .unwrap_or(&vec![]);
+            .unwrap_or(&empty_vec);
         
         let names: HashSet<String> = cards.iter()
             .filter_map(|card| {

@@ -4,7 +4,7 @@ use reqwest::Response;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use crate::prices::MtgjsonPricesObject;
-use crate::providers::{AbstractProvider, BaseProvider, ProviderError, ProviderResult};
+use crate::providers::{AbstractProvider, BaseProvider, ProviderResult};
 
 #[pyclass(name = "CardHoarderProvider")]
 pub struct CardHoarderProvider {

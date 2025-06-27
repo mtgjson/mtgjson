@@ -1,19 +1,14 @@
-use crate::base::{skip_if_empty_optional_string, skip_if_empty_string, skip_if_empty_vec, JsonObject};
-use crate::foreign_data::MtgjsonForeignDataObject;
-use crate::game_formats::MtgjsonGameFormatsObject;
-use crate::identifiers::MtgjsonIdentifiers;
-use crate::leadership_skills::MtgjsonLeadershipSkillsObject;
-use crate::legalities::MtgjsonLegalitiesObject;
-use crate::prices::MtgjsonPricesObject;
-use crate::purchase_urls::MtgjsonPurchaseUrls;
-use crate::related_cards::MtgjsonRelatedCardsObject;
-use crate::rulings::MtgjsonRulingObject;
-use crate::utils::MtgjsonUtils;
+use serde::{Deserialize, Serialize};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use std::cmp::Ordering;
+use crate::classes::{
+    MtgjsonForeignDataObject, MtgjsonIdentifiers, MtgjsonLeadershipSkillsObject,
+    MtgjsonLegalitiesObject, MtgjsonPricesObject, MtgjsonPurchaseUrls, MtgjsonRelatedCardsObject,
+    MtgjsonRulingObject, MtgjsonGameFormatsObject, JsonObject
+};
+use crate::classes::base::{skip_if_empty_optional_string, skip_if_empty_vec};
 
 /// MTGJSON Singular Card Object
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -783,5 +778,282 @@ impl JsonObject for MtgjsonCardObject {
         // Continue this pattern for other fields as needed...
 
         excluded_keys
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_card_creation() {
+        let card = MtgjsonCardObject::new(false);
+        assert!(!card.is_token);
+        assert_eq!(card.count, 1);
+        assert_eq!(card.mana_value, 0.0);
+        assert_eq!(card.converted_mana_cost, 0.0);
+        assert!(card.keywords.is_empty());
+        assert!(card.colors.is_empty());
+        assert!(card.types.is_empty());
+    }
+
+    #[test]
+    fn test_token_card_creation() {
+        let card = MtgjsonCardObject::new(true);
+        assert!(card.is_token);
+        assert_eq!(card.count, 1);
+    }
+
+    #[test]
+    fn test_card_default() {
+        let card = MtgjsonCardObject::default();
+        assert!(!card.is_token);
+        assert_eq!(card.artist, "");
+        assert_eq!(card.name, "");
+        assert_eq!(card.uuid, "");
+    }
+
+    #[test]
+    fn test_set_names() {
+        let mut card = MtgjsonCardObject::new(false);
+        let names = vec!["Test Name".to_string(), "Alternative Name".to_string()];
+        card.set_names(Some(names.clone()));
+        assert_eq!(card.get_names(), names);
+    }
+
+    #[test]
+    fn test_append_names() {
+        let mut card = MtgjsonCardObject::new(false);
+        card.append_names("First Name".to_string());
+        card.append_names("Second Name".to_string());
+        let names = card.get_names();
+        assert_eq!(names.len(), 2);
+        assert!(names.contains(&"First Name".to_string()));
+        assert!(names.contains(&"Second Name".to_string()));
+    }
+
+    #[test]
+    fn test_set_illustration_ids() {
+        let mut card = MtgjsonCardObject::new(false);
+        let ids = vec!["id1".to_string(), "id2".to_string()];
+        card.set_illustration_ids(ids.clone());
+        assert_eq!(card.get_illustration_ids(), ids);
+    }
+
+    #[test]
+    fn test_set_watermark() {
+        let mut card = MtgjsonCardObject::new(false);
+        card.set_watermark(Some("Test Watermark".to_string()));
+        assert_eq!(card.watermark, Some("Test Watermark".to_string()));
+        
+        card.set_watermark(None);
+        assert_eq!(card.watermark, None);
+    }
+
+    #[test]
+    fn test_get_atomic_keys() {
+        let card = MtgjsonCardObject::new(false);
+        let keys = card.get_atomic_keys();
+        
+        // Check that all expected atomic keys are present
+        let expected_keys = vec![
+            "artist", "artistIds", "asciiName", "attractionLights", "availability",
+            "boosterTypes", "borderColor", "cardParts", "colorIdentity", "colorIndicator",
+            "colors", "convertedManaCost", "defense", "duelDeck", "edhrecRank", "edhrecSaltiness",
+            "faceConvertedManaCost", "faceFlavorName", "faceManaValue", "faceName", "finishes",
+            "firstPrinting", "flavorName", "flavorText", "foreignData", "frameEffects",
+            "frameVersion", "hand", "hasAlternativeDeckLimit", "hasContentWarning", "hasFoil",
+            "hasNonFoil", "identifiers", "isAlternative", "isFoil", "isFullArt", "isFunny",
+            "isOnlineOnly", "isOversized", "isPromo", "isRebalanced", "isReprint", "isReserved",
+            "isStarter", "isStorySpotlight", "isTextless", "isTimeshifted", "keywords", "language",
+            "layout", "leadershipSkills", "legalities", "life", "loyalty", "manaCost", "manaValue",
+            "name", "originalPrintings", "originalReleaseDate", "originalText", "originalType",
+            "otherFaceIds", "power", "printings", "promoTypes", "purchaseUrls", "rarity",
+            "rebalancedPrintings", "relatedCards", "reverseRelated", "rulings", "securityStamp",
+            "side", "signature", "sourceProducts", "subsets", "subtypes", "supertypes", "text",
+            "toughness", "type", "types", "uuid", "variations", "watermark"
+        ];
+        
+        // Verify key atomic keys are present
+        assert!(keys.contains(&"name".to_string()));
+        assert!(keys.contains(&"uuid".to_string()));
+        assert!(keys.contains(&"manaCost".to_string()));
+        assert!(keys.contains(&"colors".to_string()));
+        assert!(keys.contains(&"types".to_string()));
+    }
+
+    #[test]
+    fn test_card_equality() {
+        let mut card1 = MtgjsonCardObject::new(false);
+        let mut card2 = MtgjsonCardObject::new(false);
+        
+        card1.uuid = "test-uuid".to_string();
+        card2.uuid = "test-uuid".to_string();
+        
+        assert!(card1.__eq__(&card2));
+        assert!(card1.eq(&card2));
+        
+        card2.uuid = "different-uuid".to_string();
+        assert!(!card1.__eq__(&card2));
+        assert!(!card1.eq(&card2));
+    }
+
+    #[test]
+    fn test_card_comparison() {
+        let mut card1 = MtgjsonCardObject::new(false);
+        let mut card2 = MtgjsonCardObject::new(false);
+        
+        card1.name = "A Card".to_string();
+        card1.number = "1".to_string();
+        card2.name = "B Card".to_string();
+        card2.number = "2".to_string();
+        
+        let result = card1.__lt__(&card2).unwrap();
+        assert!(result);
+        
+        let cmp_result = card1.compare(&card2).unwrap();
+        assert!(cmp_result < 0);
+    }
+
+    #[test]
+    fn test_card_string_representations() {
+        let mut card = MtgjsonCardObject::new(false);
+        card.name = "Test Card".to_string();
+        
+        let str_repr = card.__str__();
+        assert!(str_repr.contains("Test Card"));
+        
+        let repr = card.__repr__();
+        assert!(repr.contains("Test Card"));
+    }
+
+    #[test]
+    fn test_card_hash() {
+        let mut card = MtgjsonCardObject::new(false);
+        card.uuid = "test-uuid".to_string();
+        
+        let hash1 = card.__hash__();
+        let hash2 = card.__hash__();
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_json_serialization() {
+        let mut card = MtgjsonCardObject::new(false);
+        card.name = "Test Card".to_string();
+        card.uuid = "test-uuid".to_string();
+        card.mana_cost = "{1}{U}".to_string();
+        card.colors = vec!["U".to_string()];
+        
+        let json_result = card.to_json();
+        assert!(json_result.is_ok());
+        
+        let json_string = json_result.unwrap();
+        assert!(json_string.contains("Test Card"));
+        assert!(json_string.contains("test-uuid"));
+        assert!(json_string.contains("{1}{U}"));
+    }
+
+    #[test]
+    fn test_json_object_trait() {
+        let card = MtgjsonCardObject::new(false);
+        let keys_to_skip = card.build_keys_to_skip();
+        
+        // Should contain set_code and is_token as they are marked as skip
+        assert!(keys_to_skip.contains("set_code"));
+        assert!(keys_to_skip.contains("is_token"));
+        assert!(keys_to_skip.contains("raw_purchase_urls"));
+    }
+
+    #[test]
+    fn test_card_complex_fields() {
+        let mut card = MtgjsonCardObject::new(false);
+        
+        // Test complex field assignments
+        card.artist_ids = Some(vec!["artist1".to_string(), "artist2".to_string()]);
+        card.attraction_lights = Some(vec!["1".to_string(), "2".to_string(), "3".to_string()]);
+        card.color_indicator = Some(vec!["R".to_string(), "G".to_string()]);
+        card.has_alternative_deck_limit = Some(true);
+        card.is_foil = Some(true);
+        card.edhrec_rank = Some(100);
+        card.edhrec_saltiness = Some(0.5);
+        
+        assert_eq!(card.artist_ids.as_ref().unwrap().len(), 2);
+        assert_eq!(card.attraction_lights.as_ref().unwrap().len(), 3);
+        assert_eq!(card.color_indicator.as_ref().unwrap().len(), 2);
+        assert_eq!(card.has_alternative_deck_limit, Some(true));
+        assert_eq!(card.is_foil, Some(true));
+        assert_eq!(card.edhrec_rank, Some(100));
+        assert_eq!(card.edhrec_saltiness, Some(0.5));
+    }
+
+    #[test]
+    fn test_card_collections() {
+        let mut card = MtgjsonCardObject::new(false);
+        
+        // Test vector fields
+        card.booster_types = vec!["draft".to_string(), "set".to_string()];
+        card.frame_effects = vec!["legendary".to_string(), "miracle".to_string()];
+        card.keywords = vec!["flying".to_string(), "first strike".to_string()];
+        card.subtypes = vec!["Human".to_string(), "Wizard".to_string()];
+        card.supertypes = vec!["Legendary".to_string()];
+        card.types = vec!["Creature".to_string()];
+        
+        assert_eq!(card.booster_types.len(), 2);
+        assert_eq!(card.frame_effects.len(), 2);
+        assert_eq!(card.keywords.len(), 2);
+        assert_eq!(card.subtypes.len(), 2);
+        assert_eq!(card.supertypes.len(), 1);
+        assert_eq!(card.types.len(), 1);
+        
+        assert!(card.keywords.contains(&"flying".to_string()));
+        assert!(card.types.contains(&"Creature".to_string()));
+    }
+
+    #[test]
+    fn test_source_products() {
+        let mut card = MtgjsonCardObject::new(false);
+        let mut source_products = HashMap::new();
+        source_products.insert(
+            "Booster Pack".to_string(),
+            vec!["common".to_string(), "uncommon".to_string()]
+        );
+        card.source_products = Some(source_products);
+        
+        assert!(card.source_products.is_some());
+        let products = card.source_products.as_ref().unwrap();
+        assert!(products.contains_key("Booster Pack"));
+    }
+
+    #[test]
+    fn test_partial_ord_implementation() {
+        let mut card1 = MtgjsonCardObject::new(false);
+        let mut card2 = MtgjsonCardObject::new(false);
+        
+        card1.name = "Alpha".to_string();
+        card1.number = "1".to_string();
+        card2.name = "Beta".to_string();
+        card2.number = "2".to_string();
+        
+        let result = card1.partial_cmp(&card2);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), Ordering::Less);
+    }
+
+    #[test]
+    fn test_card_number_sorting() {
+        let mut card1 = MtgjsonCardObject::new(false);
+        let mut card2 = MtgjsonCardObject::new(false);
+        
+        card1.name = "Same Name".to_string();
+        card1.number = "10".to_string();
+        card2.name = "Same Name".to_string();
+        card2.number = "2".to_string();
+        
+        let result = card1.partial_cmp(&card2);
+        assert!(result.is_some());
+        // Number 2 should come before number 10 when sorted properly
+        assert_eq!(result.unwrap(), Ordering::Greater);
     }
 }

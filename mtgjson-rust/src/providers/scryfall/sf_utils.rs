@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use log::{warn, info};
-use config::{Config, ConfigError};
+use config::{Config, ConfigError, File, Environment};
 
 /// Configuration management for MTGJSON
 pub struct MtgjsonConfig {
@@ -10,12 +10,10 @@ pub struct MtgjsonConfig {
 impl MtgjsonConfig {
     /// Create a new configuration instance
     pub fn new() -> Result<Self, ConfigError> {
-        let mut config = Config::default();
-        
-        // Try to load from various sources
-        config
-            .merge(config::File::with_name("mtgjson.properties").required(false))?
-            .merge(config::Environment::with_prefix("MTGJSON"))?;
+        let config = Config::builder()
+            .add_source(File::with_name("mtgjson.properties").required(false))
+            .add_source(Environment::with_prefix("MTGJSON"))
+            .build()?;
             
         Ok(Self { config })
     }
@@ -28,13 +26,13 @@ impl MtgjsonConfig {
     /// Check if an option exists in a section
     pub fn has_option(&self, section: &str, option: &str) -> bool {
         let key = format!("{}.{}", section, option);
-        self.config.get_str(&key).is_ok()
+        self.config.get_string(&key).is_ok()
     }
     
     /// Get a string value from the configuration
     pub fn get_string(&self, section: &str, option: &str) -> Result<String, ConfigError> {
         let key = format!("{}.{}", section, option);
-        self.config.get_str(&key)
+        self.config.get_string(&key)
     }
 }
 
