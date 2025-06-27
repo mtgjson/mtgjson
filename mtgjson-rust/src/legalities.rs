@@ -5,8 +5,8 @@ use std::collections::HashMap;
 
 /// MTGJSON Singular Card.Legalities Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-#[pyclass(name = "MtgjsonLegalities")]
-pub struct MtgjsonLegalities {
+#[pyclass(name = "MtgjsonLegalitiesObject")]
+pub struct MtgjsonLegalitiesObject {
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub brawl: String,
@@ -57,7 +57,7 @@ pub struct MtgjsonLegalities {
 }
 
 #[pymethods]
-impl MtgjsonLegalities {
+impl MtgjsonLegalitiesObject {
     #[new]
     pub fn new() -> Self {
         Self::default()
@@ -129,4 +129,4 @@ impl MtgjsonLegalities {
     }
 }
 
-impl JsonObject for MtgjsonLegalities {}
+impl JsonObject for MtgjsonLegalitiesObject {}

@@ -5,8 +5,8 @@ use std::collections::HashSet;
 
 /// MTGJSON Singular Card.LeadershipSkills Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "MtgjsonLeadershipSkills")]
-pub struct MtgjsonLeadershipSkills {
+#[pyclass(name = "MtgjsonLeadershipSkillsObject")]
+pub struct MtgjsonLeadershipSkillsObject {
     #[pyo3(get, set)]
     pub brawl: bool,
     
@@ -18,7 +18,7 @@ pub struct MtgjsonLeadershipSkills {
 }
 
 #[pymethods]
-impl MtgjsonLeadershipSkills {
+impl MtgjsonLeadershipSkillsObject {
     #[new]
     pub fn new(brawl: bool, commander: bool, oathbreaker: bool) -> Self {
         Self {
@@ -58,4 +58,4 @@ impl MtgjsonLeadershipSkills {
     }
 }
 
-impl JsonObject for MtgjsonLeadershipSkills {}
+impl JsonObject for MtgjsonLeadershipSkillsObject {}

@@ -6,8 +6,8 @@ use std::collections::{HashMap, HashSet};
 
 /// MTGJSON Singular Card.ForeignData Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "MtgjsonForeignData")]
-pub struct MtgjsonForeignData {
+#[pyclass(name = "MtgjsonForeignDataObject")]
+pub struct MtgjsonForeignDataObject {
     #[pyo3(get, set)]
     pub language: String,
     
@@ -41,7 +41,7 @@ pub struct MtgjsonForeignData {
 }
 
 #[pymethods]
-impl MtgjsonForeignData {
+impl MtgjsonForeignDataObject {
     #[new]
     pub fn new() -> Self {
         Self {
@@ -125,13 +125,13 @@ impl MtgjsonForeignData {
     }
 }
 
-impl Default for MtgjsonForeignData {
+impl Default for MtgjsonForeignDataObject {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl JsonObject for MtgjsonForeignData {
+impl JsonObject for MtgjsonForeignDataObject {
     fn build_keys_to_skip(&self) -> HashSet<String> {
         let mut keys_to_skip = HashSet::new();
         keys_to_skip.insert("url".to_string());

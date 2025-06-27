@@ -1,6 +1,6 @@
 use crate::base::{skip_if_empty_optional_string, skip_if_empty_vec, JsonObject};
-use crate::card::MtgjsonCard;
-use crate::sealed_product::MtgjsonSealedProduct;
+use crate::card::MtgjsonCardObject;
+use crate::sealed_product::MtgjsonSealedProductObject;
 use crate::utils::MtgjsonUtils;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -8,8 +8,8 @@ use std::collections::{HashMap, HashSet};
 
 /// MTGJSON Singular Deck Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "MtgjsonDeck")]
-pub struct MtgjsonDeck {
+#[pyclass(name = "MtgjsonDeckObject")]
+pub struct MtgjsonDeckObject {
     #[pyo3(get, set)]
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     pub main_board: Vec<String>,
@@ -60,7 +60,7 @@ pub struct MtgjsonDeck {
 }
 
 #[pymethods]
-impl MtgjsonDeck {
+impl MtgjsonDeckObject {
     #[new]
     #[pyo3(signature = (deck_name = "", sealed_product_uuids = None))]
     pub fn new(deck_name: &str, sealed_product_uuids: Option<Vec<String>>) -> Self {
@@ -96,7 +96,7 @@ impl MtgjsonDeck {
     }
 
     /// Update the UUID for the deck to link back to sealed product, if able
-    pub fn add_sealed_product_uuids(&mut self, mtgjson_set_sealed_products: Vec<MtgjsonSealedProduct>) {
+    pub fn add_sealed_product_uuids(&mut self, mtgjson_set_sealed_products: Vec<MtgjsonSealedProductObject>) {
         if self.sealed_product_uuids.is_none() {
             for sealed_product_entry in mtgjson_set_sealed_products {
                 if let Some(ref name) = sealed_product_entry.name {
@@ -115,8 +115,8 @@ impl MtgjsonDeck {
     /// Populate deck from API
     pub fn populate_deck_from_api(
         &mut self,
-        _mtgjson_deck_header: crate::deck::MtgjsonDeckHeader,
-        mtgjson_set_sealed_products: Vec<crate::sealed_product::MtgjsonSealedProduct>
+        _mtgjson_deck_header: crate::deck::MtgjsonDeckHeaderObject,
+        mtgjson_set_sealed_products: Vec<crate::sealed_product::MtgjsonSealedProductObject>
     ) {
         for sealed_product_entry in mtgjson_set_sealed_products {
             if let Some(ref name) = sealed_product_entry.name {
@@ -181,13 +181,13 @@ impl MtgjsonDeck {
     }
 }
 
-impl Default for MtgjsonDeck {
+impl Default for MtgjsonDeckObject {
     fn default() -> Self {
         Self::new("", None)
     }
 }
 
-impl JsonObject for MtgjsonDeck {
+impl JsonObject for MtgjsonDeckObject {
     fn build_keys_to_skip(&self) -> HashSet<String> {
         let mut keys_to_skip = HashSet::new();
         keys_to_skip.insert("file_name".to_string());
@@ -197,8 +197,8 @@ impl JsonObject for MtgjsonDeck {
 
 /// MTGJSON Singular Deck Header Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "MtgjsonDeckHeader")]
-pub struct MtgjsonDeckHeader {
+#[pyclass(name = "MtgjsonDeckHeaderObject")]
+pub struct MtgjsonDeckHeaderObject {
     #[pyo3(get, set)]
     pub code: String,
     
@@ -217,9 +217,9 @@ pub struct MtgjsonDeckHeader {
 }
 
 #[pymethods]
-impl MtgjsonDeckHeader {
+impl MtgjsonDeckHeaderObject {
     #[new]
-    pub fn new(output_deck: &MtgjsonDeck) -> Self {
+    pub fn new(output_deck: &MtgjsonDeckObject) -> Self {
         Self {
             code: output_deck.code.clone(),
             file_name: output_deck.file_name.clone(),
@@ -265,4 +265,4 @@ impl MtgjsonDeckHeader {
     }
 }
 
-impl JsonObject for MtgjsonDeckHeader {}
+impl JsonObject for MtgjsonDeckHeaderObject {}

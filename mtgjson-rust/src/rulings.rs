@@ -5,8 +5,8 @@ use std::collections::HashSet;
 
 /// MTGJSON Singular Card.Rulings Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "MtgjsonRuling")]
-pub struct MtgjsonRuling {
+#[pyclass(name = "MtgjsonRulingObject")]
+pub struct MtgjsonRulingObject {
     #[pyo3(get, set)]
     pub date: String,
     
@@ -15,7 +15,7 @@ pub struct MtgjsonRuling {
 }
 
 #[pymethods]
-impl MtgjsonRuling {
+impl MtgjsonRulingObject {
     #[new]
     pub fn new(date: String, text: String) -> Self {
         Self { date, text }
@@ -43,7 +43,7 @@ impl MtgjsonRuling {
     }
 
     /// Compare rulings by date (returns -1, 0, or 1)
-    pub fn compare_by_date(&self, other: &MtgjsonRuling) -> i32 {
+    pub fn compare_by_date(&self, other: &MtgjsonRulingObject) -> i32 {
         match self.date.cmp(&other.date) {
             std::cmp::Ordering::Less => -1,
             std::cmp::Ordering::Equal => 0,
@@ -52,4 +52,4 @@ impl MtgjsonRuling {
     }
 }
 
-impl JsonObject for MtgjsonRuling {}
+impl JsonObject for MtgjsonRulingObject {}

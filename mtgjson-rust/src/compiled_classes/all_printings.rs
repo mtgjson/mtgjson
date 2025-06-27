@@ -1,5 +1,5 @@
 use crate::base::JsonObject;
-use crate::set::MtgjsonSet;
+use crate::set::MtgjsonSetObject;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -12,7 +12,7 @@ use std::path::Path;
 #[pyclass(name = "MtgjsonAllPrintings")]
 pub struct MtgjsonAllPrintings {
     #[pyo3(get, set)]
-    pub all_sets_dict: HashMap<String, MtgjsonSet>,
+    pub all_sets_dict: HashMap<String, MtgjsonSetObject>,
     
     #[pyo3(get, set)]
     pub source_path: Option<String>,
@@ -78,7 +78,7 @@ impl MtgjsonAllPrintings {
         
         if let Some(data_map) = data_obj.as_object() {
             for (set_code, set_data) in data_map {
-                match serde_json::from_value::<MtgjsonSet>(set_data.clone()) {
+                match serde_json::from_value::<MtgjsonSetObject>(set_data.clone()) {
                     Ok(mtgjson_set) => {
                         self.all_sets_dict.insert(set_code.clone(), mtgjson_set);
                     }
@@ -129,12 +129,12 @@ impl MtgjsonAllPrintings {
     }
 
     /// Load single set file
-    fn load_single_set_file(&self, file_path: &str) -> PyResult<MtgjsonSet> {
+    fn load_single_set_file(&self, file_path: &str) -> PyResult<MtgjsonSetObject> {
         let contents = fs::read_to_string(file_path).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to read file {}: {}", file_path, e))
         })?;
         
-        let mtgjson_set: MtgjsonSet = serde_json::from_str(&contents).map_err(|e| {
+        let mtgjson_set: MtgjsonSetObject = serde_json::from_str(&contents).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid JSON in {}: {}", file_path, e))
         })?;
         
@@ -142,7 +142,7 @@ impl MtgjsonAllPrintings {
     }
 
     /// Get set contents like Python method
-    pub fn get_set_contents(&self, set_code: &str) -> Option<MtgjsonSet> {
+    pub fn get_set_contents(&self, set_code: &str) -> Option<MtgjsonSetObject> {
         self.all_sets_dict.get(set_code).cloned()
     }
 
@@ -172,7 +172,7 @@ impl MtgjsonAllPrintings {
     }
 
     /// Check if set has cards legal in format
-    fn set_has_format_legal_cards(&self, set_data: &MtgjsonSet, format_name: &str) -> bool {
+    fn set_has_format_legal_cards(&self, set_data: &MtgjsonSetObject, format_name: &str) -> bool {
         // Check if any cards in the set are legal in the format
         // This would use the legalities data from cards
         // For now, return true to include all sets
@@ -180,7 +180,7 @@ impl MtgjsonAllPrintings {
     }
 
     /// Add set to dictionary
-    pub fn add_set(&mut self, set_code: String, set_data: MtgjsonSet) {
+    pub fn add_set(&mut self, set_code: String, set_data: MtgjsonSetObject) {
         self.all_sets_dict.insert(set_code, set_data);
     }
 

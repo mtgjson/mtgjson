@@ -5,8 +5,8 @@ use std::collections::HashSet;
 
 /// MTGJSON Singular Card.GameFormats Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-#[pyclass(name = "MtgjsonGameFormats")]
-pub struct MtgjsonGameFormats {
+#[pyclass(name = "MtgjsonGameFormatsObject")]
+pub struct MtgjsonGameFormatsObject {
     #[pyo3(get, set)]
     pub paper: bool,
     
@@ -24,7 +24,7 @@ pub struct MtgjsonGameFormats {
 }
 
 #[pymethods]
-impl MtgjsonGameFormats {
+impl MtgjsonGameFormatsObject {
     #[new]
     pub fn new() -> Self {
         Self {
@@ -65,9 +65,9 @@ impl MtgjsonGameFormats {
     }
 }
 
-impl JsonObject for MtgjsonGameFormats {}
+impl JsonObject for MtgjsonGameFormatsObject {}
 
-impl From<&[&str]> for MtgjsonGameFormats {
+impl From<&[&str]> for MtgjsonGameFormatsObject {
     fn from(formats: &[&str]) -> Self {
         let mut game_formats = Self::new();
         

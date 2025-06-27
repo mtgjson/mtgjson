@@ -5,8 +5,8 @@ use std::collections::HashMap;
 
 /// MTGJSON Singular Prices.Card Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "MtgjsonPrices")]
-pub struct MtgjsonPrices {
+#[pyclass(name = "MtgjsonPricesObject")]
+pub struct MtgjsonPricesObject {
     #[pyo3(get, set)]
     pub source: String,
     
@@ -45,7 +45,7 @@ pub struct MtgjsonPrices {
 }
 
 #[pymethods]
-impl MtgjsonPrices {
+impl MtgjsonPricesObject {
     #[new]
     #[pyo3(signature = (source, provider, date, currency, buy_normal = None, buy_foil = None, buy_etched = None, sell_normal = None, sell_foil = None, sell_etched = None))]
     pub fn new(
@@ -169,4 +169,4 @@ impl MtgjsonPrices {
     }
 }
 
-impl JsonObject for MtgjsonPrices {}
+impl JsonObject for MtgjsonPricesObject {}

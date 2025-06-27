@@ -57,28 +57,28 @@ mod utils_functions;
 mod compiled_classes;
 
 // Import all the structs
-use card::MtgjsonCard;
-use deck::{MtgjsonDeck, MtgjsonDeckHeader};
-use foreign_data::MtgjsonForeignData;
-use game_formats::MtgjsonGameFormats;
+use card::MtgjsonCardObject;
+use deck::{MtgjsonDeckObject, MtgjsonDeckHeaderObject};
+use foreign_data::MtgjsonForeignDataObject;
+use game_formats::MtgjsonGameFormatsObject;
 use identifiers::MtgjsonIdentifiers;
-use leadership_skills::MtgjsonLeadershipSkills;
-use legalities::MtgjsonLegalities;
-use meta::MtgjsonMeta;
-use prices::MtgjsonPrices;
+use leadership_skills::MtgjsonLeadershipSkillsObject;
+use legalities::MtgjsonLegalitiesObject;
+use meta::MtgjsonMetaObject;
+use prices::MtgjsonPricesObject;
 use purchase_urls::MtgjsonPurchaseUrls;
-use related_cards::MtgjsonRelatedCards;
-use rulings::MtgjsonRuling;
-use sealed_product::{MtgjsonSealedProduct, SealedProductCategory, SealedProductSubtype};
-use set::MtgjsonSet;
+use related_cards::MtgjsonRelatedCardsObject;
+use rulings::MtgjsonRulingObject;
+use sealed_product::{MtgjsonSealedProductObject, SealedProductCategory, SealedProductSubtype};
+use set::MtgjsonSetObject;
 use translations::MtgjsonTranslations;
 
 // Import compiled classes
 use compiled_classes::{
-    MtgjsonStructures, MtgjsonCompiledList, MtgjsonDeckList, 
+    MtgjsonStructures, MtgjsonCompiledList, MtgjsonDeckObjectList, 
     MtgjsonKeywords, MtgjsonAllIdentifiers, MtgjsonAllPrintings,
-    MtgjsonAtomicCards, MtgjsonCardTypes, MtgjsonEnumValues,
-    MtgjsonSetList, MtgjsonTcgplayerSkus
+    MtgjsonAtomicCards, MtgjsonCardObjectTypes, MtgjsonEnumValues,
+    MtgjsonSetObjectList, MtgjsonTcgplayerSkus
 };
 
 // Re-export for tests and external usage  
@@ -94,21 +94,21 @@ fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<JsonValue>()?;
     
     // Add all MTGJSON classes
-    m.add_class::<MtgjsonCard>()?;
-    m.add_class::<MtgjsonDeck>()?;
-    m.add_class::<MtgjsonDeckHeader>()?;
-    m.add_class::<MtgjsonForeignData>()?;
-    m.add_class::<MtgjsonGameFormats>()?;
+    m.add_class::<MtgjsonCardObject>()?;
+    m.add_class::<MtgjsonDeckObject>()?;
+    m.add_class::<MtgjsonDeckHeaderObject>()?;
+    m.add_class::<MtgjsonForeignDataObject>()?;
+    m.add_class::<MtgjsonGameFormatsObject>()?;
     m.add_class::<MtgjsonIdentifiers>()?;
-    m.add_class::<MtgjsonLeadershipSkills>()?;
-    m.add_class::<MtgjsonLegalities>()?;
-    m.add_class::<MtgjsonMeta>()?;
-    m.add_class::<MtgjsonPrices>()?;
+    m.add_class::<MtgjsonLeadershipSkillsObject>()?;
+    m.add_class::<MtgjsonLegalitiesObject>()?;
+    m.add_class::<MtgjsonMetaObject>()?;
+    m.add_class::<MtgjsonPricesObject>()?;
     m.add_class::<MtgjsonPurchaseUrls>()?;
-    m.add_class::<MtgjsonRelatedCards>()?;
-    m.add_class::<MtgjsonRuling>()?;
-    m.add_class::<MtgjsonSealedProduct>()?;
-    m.add_class::<MtgjsonSet>()?;
+    m.add_class::<MtgjsonRelatedCardsObject>()?;
+    m.add_class::<MtgjsonRulingObject>()?;
+    m.add_class::<MtgjsonSealedProductObject>()?;
+    m.add_class::<MtgjsonSetObject>()?;
     m.add_class::<MtgjsonTranslations>()?;
     
     // Add enums
@@ -118,14 +118,14 @@ fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add compiled classes
     m.add_class::<MtgjsonStructures>()?;
     m.add_class::<MtgjsonCompiledList>()?;
-    m.add_class::<MtgjsonDeckList>()?;
+    m.add_class::<MtgjsonDeckObjectList>()?;
     m.add_class::<MtgjsonKeywords>()?;
     m.add_class::<MtgjsonAllIdentifiers>()?;
     m.add_class::<MtgjsonAllPrintings>()?;
     m.add_class::<MtgjsonAtomicCards>()?;
-    m.add_class::<MtgjsonCardTypes>()?;
+    m.add_class::<MtgjsonCardObjectTypes>()?;
     m.add_class::<MtgjsonEnumValues>()?;
-    m.add_class::<MtgjsonSetList>()?;
+    m.add_class::<MtgjsonSetObjectList>()?;
     m.add_class::<MtgjsonTcgplayerSkus>()?;
     
     // Add high-performance classes

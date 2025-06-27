@@ -1,13 +1,13 @@
 use crate::base::{skip_if_empty_optional_string, skip_if_empty_string, skip_if_empty_vec, JsonObject};
-use crate::foreign_data::MtgjsonForeignData;
-use crate::game_formats::MtgjsonGameFormats;
+use crate::foreign_data::MtgjsonForeignDataObject;
+use crate::game_formats::MtgjsonGameFormatsObject;
 use crate::identifiers::MtgjsonIdentifiers;
-use crate::leadership_skills::MtgjsonLeadershipSkills;
-use crate::legalities::MtgjsonLegalities;
-use crate::prices::MtgjsonPrices;
+use crate::leadership_skills::MtgjsonLeadershipSkillsObject;
+use crate::legalities::MtgjsonLegalitiesObject;
+use crate::prices::MtgjsonPricesObject;
 use crate::purchase_urls::MtgjsonPurchaseUrls;
-use crate::related_cards::MtgjsonRelatedCards;
-use crate::rulings::MtgjsonRuling;
+use crate::related_cards::MtgjsonRelatedCardsObject;
+use crate::rulings::MtgjsonRulingObject;
 use crate::utils::MtgjsonUtils;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -17,8 +17,8 @@ use std::collections::{HashMap, HashSet};
 
 /// MTGJSON Singular Card Object
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[pyclass(name = "MtgjsonCard")]
-pub struct MtgjsonCard {
+#[pyclass(name = "MtgjsonCardObject")]
+pub struct MtgjsonCardObject {
     #[pyo3(get, set)]
     pub artist: String,
     
@@ -35,7 +35,7 @@ pub struct MtgjsonCard {
     pub attraction_lights: Option<Vec<String>>,
     
     #[pyo3(get, set)]
-    pub availability: MtgjsonGameFormats,
+    pub availability: MtgjsonGameFormatsObject,
     
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
@@ -114,7 +114,7 @@ pub struct MtgjsonCard {
     
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
-    pub foreign_data: Vec<MtgjsonForeignData>,
+    pub foreign_data: Vec<MtgjsonForeignDataObject>,
     
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
@@ -221,10 +221,10 @@ pub struct MtgjsonCard {
     
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
-    pub leadership_skills: Option<MtgjsonLeadershipSkills>,
+    pub leadership_skills: Option<MtgjsonLeadershipSkillsObject>,
     
     #[pyo3(get, set)]
-    pub legalities: MtgjsonLegalities,
+    pub legalities: MtgjsonLegalitiesObject,
     
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
@@ -274,7 +274,7 @@ pub struct MtgjsonCard {
     pub power: String,
     
     #[pyo3(get, set)]
-    pub prices: MtgjsonPrices,
+    pub prices: MtgjsonPricesObject,
     
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
@@ -296,7 +296,7 @@ pub struct MtgjsonCard {
     
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
-    pub related_cards: Option<MtgjsonRelatedCards>,
+    pub related_cards: Option<MtgjsonRelatedCardsObject>,
     
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
@@ -304,7 +304,7 @@ pub struct MtgjsonCard {
     
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
-    pub rulings: Option<Vec<MtgjsonRuling>>,
+    pub rulings: Option<Vec<MtgjsonRulingObject>>,
     
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
@@ -384,7 +384,7 @@ pub struct MtgjsonCard {
 }
 
 #[pymethods]
-impl MtgjsonCard {
+impl MtgjsonCardObject {
     #[new]
     #[pyo3(signature = (is_token = false))]
     pub fn new(is_token: bool) -> Self {
@@ -393,7 +393,7 @@ impl MtgjsonCard {
             artist_ids: None,
             ascii_name: None,
             attraction_lights: None,
-            availability: MtgjsonGameFormats::new(),
+            availability: MtgjsonGameFormatsObject::new(),
             booster_types: Vec::new(),
             border_color: String::new(),
             card_parts: Vec::new(),
@@ -442,7 +442,7 @@ impl MtgjsonCard {
             language: String::new(),
             layout: String::new(),
             leadership_skills: None,
-            legalities: MtgjsonLegalities::new(),
+            legalities: MtgjsonLegalitiesObject::new(),
             life: None,
             loyalty: None,
             mana_cost: String::new(),
@@ -456,7 +456,7 @@ impl MtgjsonCard {
             original_type: None,
             other_face_ids: Vec::new(),
             power: String::new(),
-            prices: MtgjsonPrices::new(
+            prices: MtgjsonPricesObject::new(
                 String::new(),
                 String::new(), 
                 String::new(),
@@ -596,14 +596,14 @@ impl MtgjsonCard {
     }
 
     /// Python equality method
-    pub fn __eq__(&self, other: &MtgjsonCard) -> bool {
+    pub fn __eq__(&self, other: &MtgjsonCardObject) -> bool {
         self.number == other.number && 
         (self.side.as_deref().unwrap_or("") == other.side.as_deref().unwrap_or(""))
     }
 
     /// Python less-than comparison for sorting
     /// Uses embedded Python logic to ensure 100% compatibility
-    pub fn __lt__(&self, other: &MtgjsonCard) -> PyResult<bool> {
+    pub fn __lt__(&self, other: &MtgjsonCardObject) -> PyResult<bool> {
         Python::with_gil(|py| {
             // Embed the exact Python sorting logic
             let python_code = r#"
@@ -679,7 +679,7 @@ result = card_lt(self_number, self_side, other_number, other_side)
 
     /// Python repr representation
     pub fn __repr__(&self) -> String {
-        format!("MtgjsonCard(name='{}', set_code='{}', uuid='{}')", 
+        format!("MtgjsonCardObject(name='{}', set_code='{}', uuid='{}')", 
                 self.name, self.set_code, self.uuid)
     }
 
@@ -695,13 +695,13 @@ result = card_lt(self_number, self_side, other_number, other_side)
 
     /// Legacy method for backwards compatibility - use __eq__ instead
     #[deprecated(note = "Use __eq__ instead")]
-    pub fn eq(&self, other: &MtgjsonCard) -> bool {
+    pub fn eq(&self, other: &MtgjsonCardObject) -> bool {
         self.__eq__(other)
     }
 
     /// Legacy method for backwards compatibility - use __lt__ instead
     #[deprecated(note = "Use __lt__ instead")]
-    pub fn compare(&self, other: &MtgjsonCard) -> PyResult<i32> {
+    pub fn compare(&self, other: &MtgjsonCardObject) -> PyResult<i32> {
         match self.partial_cmp(other) {
             Some(std::cmp::Ordering::Less) => Ok(-1),
             Some(std::cmp::Ordering::Equal) => Ok(0),
@@ -711,19 +711,19 @@ result = card_lt(self_number, self_side, other_number, other_side)
     }
 }
 
-impl Default for MtgjsonCard {
+impl Default for MtgjsonCardObject {
     fn default() -> Self {
         Self::new(false)
     }
 }
 
-impl PartialEq for MtgjsonCard {
+impl PartialEq for MtgjsonCardObject {
     fn eq(&self, other: &Self) -> bool {
         self.__eq__(other)
     }
 }
 
-impl PartialOrd for MtgjsonCard {
+impl PartialOrd for MtgjsonCardObject {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         // This implementation is not used by PyO3 comparison operators
         // The actual comparison is done in __lt__ method using embedded Python
@@ -741,7 +741,7 @@ impl PartialOrd for MtgjsonCard {
     }
 }
 
-impl JsonObject for MtgjsonCard {
+impl JsonObject for MtgjsonCardObject {
     fn build_keys_to_skip(&self) -> HashSet<String> {
         let mut excluded_keys = HashSet::new();
 

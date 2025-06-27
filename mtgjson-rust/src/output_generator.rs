@@ -8,7 +8,7 @@ use std::path::Path;
 use std::io::{BufWriter, Write};
 
 use crate::compiled_classes::*;
-use crate::meta::MtgjsonMeta;
+use crate::meta::MtgjsonMetaObject;
 
 #[pyclass(name = "OutputGenerator")]
 #[derive(Debug, Clone)]
@@ -153,7 +153,7 @@ impl OutputGenerator {
     }
     
     pub fn build_card_types(&self, pretty_print: bool) -> PyResult<()> {
-        let card_types = MtgjsonCardTypes::new();
+        let card_types = MtgjsonCardObjectTypes::new();
         let card_types_json = serde_json::to_string(&card_types).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
         })?;
@@ -161,7 +161,7 @@ impl OutputGenerator {
     }
     
     pub fn build_meta(&self, pretty_print: bool) -> PyResult<()> {
-        let meta = MtgjsonMeta::with_current_date(None);
+        let meta = MtgjsonMetaObject::with_current_date(None);
         let meta_json = serde_json::to_string(&meta).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
         })?;
@@ -169,7 +169,7 @@ impl OutputGenerator {
     }
     
     pub fn build_set_list(&self, pretty_print: bool) -> PyResult<()> {
-        let set_list = MtgjsonSetList::new();
+        let set_list = MtgjsonSetObjectList::new();
         let set_list_json = serde_json::to_string(&set_list).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
         })?;
@@ -177,7 +177,7 @@ impl OutputGenerator {
     }
     
     pub fn build_deck_list(&self, pretty_print: bool) -> PyResult<()> {
-        let deck_list = MtgjsonDeckList::new(Vec::new());
+        let deck_list = MtgjsonDeckObjectList::new(Vec::new());
         let deck_list_json = serde_json::to_string(&deck_list).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
         })?;
@@ -206,7 +206,7 @@ impl OutputGenerator {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid JSON data: {}", e))
         })?;
         
-        let meta = MtgjsonMeta::with_current_date(None);
+        let meta = MtgjsonMetaObject::with_current_date(None);
         let output_structure = serde_json::json!({
             "meta": meta,
             "data": data_value

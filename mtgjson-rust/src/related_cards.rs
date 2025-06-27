@@ -5,8 +5,8 @@ use std::collections::HashSet;
 
 /// MTGJSON Related Cards Container
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-#[pyclass(name = "MtgjsonRelatedCards")]
-pub struct MtgjsonRelatedCards {
+#[pyclass(name = "MtgjsonRelatedCardsObject")]
+pub struct MtgjsonRelatedCardsObject {
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub reverse_related: Vec<String>,
@@ -17,7 +17,7 @@ pub struct MtgjsonRelatedCards {
 }
 
 #[pymethods]
-impl MtgjsonRelatedCards {
+impl MtgjsonRelatedCardsObject {
     #[new]
     pub fn new() -> Self {
         Self {
@@ -84,7 +84,7 @@ impl MtgjsonRelatedCards {
     }
 }
 
-impl JsonObject for MtgjsonRelatedCards {
+impl JsonObject for MtgjsonRelatedCardsObject {
     fn build_keys_to_skip(&self) -> HashSet<String> {
         let mut keys_to_skip = HashSet::new();
         

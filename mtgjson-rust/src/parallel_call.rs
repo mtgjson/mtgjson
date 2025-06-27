@@ -266,7 +266,7 @@ impl ParallelProcessor {
     }
     
     /// parallel card processing for set building
-    pub fn parallel_card_processing(&self, card_data: Vec<String>) -> PyResult<Vec<crate::card::MtgjsonCard>> {
+    pub fn parallel_card_processing(&self, card_data: Vec<String>) -> PyResult<Vec<crate::card::MtgjsonCardObject>> {
         let rt = tokio::runtime::Runtime::new().map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Failed to create runtime: {}", e))
         })?;
@@ -363,12 +363,12 @@ impl ParallelProcessor {
         format!("transformed_{}", data)
     }
     
-    async fn process_card_data(_data: String) -> crate::card::MtgjsonCard {
+    async fn process_card_data(_data: String) -> crate::card::MtgjsonCardObject {
         tokio::task::yield_now().await;
         
         // TODO: Parse card data from JSON string
         // TODO: This would integrate with the actual card parsing logic
-        crate::card::MtgjsonCard::new(false)
+        crate::card::MtgjsonCardObject::new(false)
     }
     
     async fn fetch_provider_prices(provider: String) -> (String, serde_json::Value) {

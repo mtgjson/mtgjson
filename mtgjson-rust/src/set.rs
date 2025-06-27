@@ -1,7 +1,7 @@
 use crate::base::{skip_if_empty_optional_string, skip_if_empty_vec, JsonObject};
-use crate::card::MtgjsonCard;
-use crate::deck::MtgjsonDeck;
-use crate::sealed_product::MtgjsonSealedProduct;
+use crate::card::MtgjsonCardObject;
+use crate::deck::MtgjsonDeckObject;
+use crate::sealed_product::MtgjsonSealedProductObject;
 use crate::translations::MtgjsonTranslations;
 use crate::utils::MtgjsonUtils;
 use pyo3::prelude::*;
@@ -10,8 +10,8 @@ use std::collections::{HashMap, HashSet};
 
 /// MTGJSON Singular Set Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "MtgjsonSet")]
-pub struct MtgjsonSet {
+#[pyclass(name = "MtgjsonSetObject")]
+pub struct MtgjsonSetObject {
     #[pyo3(get, set)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_set_size: Option<i32>,
@@ -22,7 +22,7 @@ pub struct MtgjsonSet {
     
     #[pyo3(get, set)]
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
-    pub cards: Vec<crate::card::MtgjsonCard>,
+    pub cards: Vec<crate::card::MtgjsonCardObject>,
     
     #[pyo3(get, set)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -38,7 +38,7 @@ pub struct MtgjsonSet {
     
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
-    pub decks: Vec<MtgjsonDeck>,
+    pub decks: Vec<MtgjsonDeckObject>,
     
     #[pyo3(get, set)]
     pub is_foreign_only: bool,
@@ -95,11 +95,11 @@ pub struct MtgjsonSet {
     
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
-    pub sealed_product: Vec<MtgjsonSealedProduct>,
+    pub sealed_product: Vec<MtgjsonSealedProductObject>,
     
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
-    pub tokens: Vec<MtgjsonCard>,
+    pub tokens: Vec<MtgjsonCardObject>,
     
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
@@ -125,7 +125,7 @@ pub struct MtgjsonSet {
 }
 
 #[pymethods]
-impl MtgjsonSet {
+impl MtgjsonSetObject {
     #[new]
     pub fn new() -> Self {
         Self {
@@ -169,28 +169,57 @@ impl MtgjsonSet {
         })
     }
 
+    /// Python string representation
+    pub fn __str__(&self) -> String {
+        format!("{} ({})", 
+                self.name, 
+                self.code.as_deref().unwrap_or("???"))
+    }
+
+    /// Python repr representation
+    pub fn __repr__(&self) -> String {
+        format!("MtgjsonSetObject(code={:?}, name={:?})", self.code, self.name)
+    }
+
+    /// Python equality method
+    pub fn __eq__(&self, other: &MtgjsonSetObject) -> bool {
+        self.code == other.code
+    }
+
+    /// Python hash method
+    pub fn __hash__(&self) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        
+        let mut hasher = DefaultHasher::new();
+        if let Some(ref code) = self.code {
+            code.hash(&mut hasher);
+        }
+        hasher.finish()
+    }
+
     /// Get the Windows-safe set code
     pub fn get_windows_safe_set_code(&self) -> String {
         MtgjsonUtils::make_windows_safe_filename(&self.code.as_ref().unwrap_or(&String::new()))
     }
 
     /// Add a card to the set
-    pub fn add_card(&mut self, card: MtgjsonCard) {
+    pub fn add_card(&mut self, card: MtgjsonCardObject) {
         self.cards.push(card);
     }
 
     /// Add a token to the set
-    pub fn add_token(&mut self, token: MtgjsonCard) {
+    pub fn add_token(&mut self, token: MtgjsonCardObject) {
         self.tokens.push(token);
     }
 
     /// Add a deck to the set
-    pub fn add_deck(&mut self, deck: MtgjsonDeck) {
+    pub fn add_deck(&mut self, deck: MtgjsonDeckObject) {
         self.decks.push(deck);
     }
 
     /// Add a sealed product to the set
-    pub fn add_sealed_product(&mut self, product: MtgjsonSealedProduct) {
+    pub fn add_sealed_product(&mut self, product: MtgjsonSealedProductObject) {
         self.sealed_product.push(product);
     }
 
@@ -342,13 +371,13 @@ impl MtgjsonSet {
     }
 }
 
-impl Default for MtgjsonSet {
+impl Default for MtgjsonSetObject {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl JsonObject for MtgjsonSet {
+impl JsonObject for MtgjsonSetObject {
     fn build_keys_to_skip(&self) -> HashSet<String> {
         let mut excluded_keys = HashSet::new();
         

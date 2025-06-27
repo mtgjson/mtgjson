@@ -5,14 +5,14 @@ use std::collections::HashMap;
 
 /// MTGJSON SetList Object
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[pyclass(name = "MtgjsonSetList")]
-pub struct MtgjsonSetList {
+#[pyclass(name = "MtgjsonSetObjectList")]
+pub struct MtgjsonSetObjectList {
     #[pyo3(get, set)]
     pub set_list: Vec<HashMap<String, String>>,
 }
 
 #[pymethods]
-impl MtgjsonSetList {
+impl MtgjsonSetObjectList {
     #[new]
     pub fn new() -> Self {
         Self {
@@ -21,10 +21,10 @@ impl MtgjsonSetList {
     }
 }
 
-impl Default for MtgjsonSetList {
+impl Default for MtgjsonSetObjectList {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl JsonObject for MtgjsonSetList {}
+impl JsonObject for MtgjsonSetObjectList {}

@@ -1,6 +1,6 @@
 use crate::base::JsonObject;
-use crate::card::MtgjsonCard;
-use crate::set::MtgjsonSet;
+use crate::card::MtgjsonCardObject;
+use crate::set::MtgjsonSetObject;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -11,7 +11,7 @@ use std::collections::HashMap;
 #[pyclass(name = "MtgjsonAllIdentifiers")]
 pub struct MtgjsonAllIdentifiers {
     #[pyo3(get, set)]
-    pub all_identifiers_dict: HashMap<String, MtgjsonCard>,
+    pub all_identifiers_dict: HashMap<String, MtgjsonCardObject>,
 }
 
 #[pymethods]
@@ -25,7 +25,7 @@ impl MtgjsonAllIdentifiers {
 
     /// Create from AllPrintings data
     #[staticmethod]
-    pub fn from_all_printings(all_printings: HashMap<String, MtgjsonSet>) -> PyResult<Self> {
+    pub fn from_all_printings(all_printings: HashMap<String, MtgjsonSetObject>) -> PyResult<Self> {
         let mut all_identifiers_dict = HashMap::new();
         let mut duplicate_count = 0;
 
@@ -65,7 +65,7 @@ impl MtgjsonAllIdentifiers {
     }
 
     /// Add a card to the identifiers dictionary
-    pub fn add_card(&mut self, card: MtgjsonCard) -> PyResult<bool> {
+    pub fn add_card(&mut self, card: MtgjsonCardObject) -> PyResult<bool> {
         if self.all_identifiers_dict.contains_key(&card.uuid) {
             return Err(pyo3::exceptions::PyValueError::new_err(format!(
                 "Card with UUID {} already exists",
@@ -78,7 +78,7 @@ impl MtgjsonAllIdentifiers {
     }
 
     /// Add a card, replacing if UUID already exists
-    pub fn add_or_replace_card(&mut self, card: MtgjsonCard) -> bool {
+    pub fn add_or_replace_card(&mut self, card: MtgjsonCardObject) -> bool {
         let was_replacement = self.all_identifiers_dict.contains_key(&card.uuid);
         self.all_identifiers_dict.insert(card.uuid.clone(), card);
         was_replacement
@@ -90,7 +90,7 @@ impl MtgjsonAllIdentifiers {
     }
 
     /// Remove a card by UUID
-    pub fn remove_card_by_uuid(&mut self, uuid: &str) -> Option<MtgjsonCard> {
+    pub fn remove_card_by_uuid(&mut self, uuid: &str) -> Option<MtgjsonCardObject> {
         self.all_identifiers_dict.remove(uuid)
     }
 
@@ -191,7 +191,7 @@ impl MtgjsonAllIdentifiers {
     }
 
     /// Get the identifiers dictionary (for JSON serialization)
-    pub fn get_identifiers_dict(&self) -> HashMap<String, MtgjsonCard> {
+    pub fn get_identifiers_dict(&self) -> HashMap<String, MtgjsonCardObject> {
         self.all_identifiers_dict.clone()
     }
 
@@ -224,8 +224,8 @@ impl JsonObject for MtgjsonAllIdentifiers {}
 mod tests {
     use super::*;
 
-    fn create_test_card(uuid: &str, name: &str, set_code: &str) -> MtgjsonCard {
-        let mut card = MtgjsonCard::new(false);
+    fn create_test_card(uuid: &str, name: &str, set_code: &str) -> MtgjsonCardObject {
+        let mut card = MtgjsonCardObject::new(false);
         card.uuid = uuid.to_string();
         card.name = name.to_string();
         card.set_code = set_code.to_string();

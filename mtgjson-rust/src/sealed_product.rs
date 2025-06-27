@@ -255,8 +255,8 @@ impl Default for SealedProductSubtype {
 
 /// MTGJSON Singular Sealed Product Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "MtgjsonSealedProduct")]
-pub struct MtgjsonSealedProduct {
+#[pyclass(name = "MtgjsonSealedProductObject")]
+pub struct MtgjsonSealedProductObject {
     #[pyo3(get, set)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub category: Option<SealedProductCategory>,
@@ -296,7 +296,7 @@ pub struct MtgjsonSealedProduct {
 }
 
 #[pymethods]
-impl MtgjsonSealedProduct {
+impl MtgjsonSealedProductObject {
     #[new]
     pub fn new() -> Self {
         Self {
@@ -349,13 +349,13 @@ impl MtgjsonSealedProduct {
     }
 }
 
-impl Default for MtgjsonSealedProduct {
+impl Default for MtgjsonSealedProductObject {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl JsonObject for MtgjsonSealedProduct {
+impl JsonObject for MtgjsonSealedProductObject {
     fn build_keys_to_skip(&self) -> HashSet<String> {
         let mut keys_to_skip = HashSet::new();
         keys_to_skip.insert("raw_purchase_urls".to_string());
