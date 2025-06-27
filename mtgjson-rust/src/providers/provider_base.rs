@@ -10,38 +10,52 @@ use super::{ProviderError, ProviderResult};
 #[async_trait]
 pub trait AbstractProvider: Send + Sync {
     /// Get the class ID for the provider
-    pub fn get_class_id(&self) -> &str;
-
+    fn get_class_id(&self) -> &str;
+    
     /// Get the class name for the provider
-    pub fn get_class_name(&self) -> &str;
+    fn get_class_name(&self) -> &str;
     
     /// Build HTTP headers for authentication
-    pub fn build_http_header(&self) -> HashMap<String, String>;
+    fn build_http_header(&self) -> HashMap<String, String>;
     
     /// Download content from a URL with optional parameters
-    pub async fn download(
+    async fn download(
         &self,
         url: &str,
         params: Option<HashMap<String, String>>,
     ) -> ProviderResult<Value>;
     
     /// Download raw content (for non-JSON responses)
-    pub async fn download_raw(
+    async fn download_raw(
         &self,
         url: &str,
         params: Option<HashMap<String, String>>,
     ) -> ProviderResult<String>;
     
+    /// Async download method (alias for download)
+    async fn download_async(
+        &self,
+        url: &str,
+        params: Option<HashMap<String, String>>,
+    ) -> ProviderResult<Value> {
+        self.download(url, params).await
+    }
+    
     /// Log download information
-    pub fn log_download(&self, response: &Response);
+    fn log_download(&self, response: &Response);
     
     /// Get today's date in YYYY-MM-DD format
-    pub fn today_date(&self) -> String {
+    fn today_date(&self) -> String {
         Utc::now().format("%Y-%m-%d").to_string()
     }
     
+    /// Generate today's price dictionary - default implementation
+    fn generate_today_price_dict(&self) -> HashMap<String, MtgjsonPricesObject> {
+        HashMap::new()
+    }
+    
     /// Generic method to generate today's price dictionary
-    pub fn generic_generate_today_price_dict(
+    fn generic_generate_today_price_dict(
         &self,
         third_party_to_mtgjson: &HashMap<String, HashSet<String>>,
         price_data_rows: &[Value],
@@ -58,7 +72,6 @@ pub trait AbstractProvider: Send + Sync {
 }
 
 /// Base provider struct that implements common functionality
-#[pyclass(name = "BaseProvider")]
 pub struct BaseProvider {
     pub class_id: String,
     pub client: Client,
@@ -164,7 +177,6 @@ impl BaseProvider {
 }
 
 /// Rate limiter for API calls
-#[pyclass(name = "RateLimiter")]
 pub struct RateLimiter {
     last_call: tokio::sync::Mutex<DateTime<Utc>>,
     min_interval: chrono::Duration,

@@ -1,5 +1,4 @@
-use crate::base::JsonObject;
-use crate::deck::MtgjsonDeckHeaderObject;
+use crate::classes::{JsonObject, MtgjsonDeckHeaderObject};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 

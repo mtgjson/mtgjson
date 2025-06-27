@@ -16,7 +16,7 @@ pub use structures::MtgjsonStructures;
 pub use all_identifiers::MtgjsonAllIdentifiers;
 pub use all_printings::MtgjsonAllPrintings;
 pub use atomic_cards::MtgjsonAtomicCards;
-pub use card_types::MtgjsonCardObjectTypes;
+pub use card_types::MtgjsonCardTypesObject;
 pub use compiled_list::MtgjsonCompiledList;
 pub use deck_list::MtgjsonDeckObjectList;
 pub use enum_values::MtgjsonEnumValues;

@@ -4,8 +4,7 @@ use reqwest::Response;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use regex::Regex;
-use crate::prices::MtgjsonPricesObject;
-use crate::sealed_product::MtgjsonSealedProductObject;
+use crate::classes::{MtgjsonPricesObject, MtgjsonSealedProductObject};
 use crate::providers::{AbstractProvider, BaseProvider, ProviderError, ProviderResult};
 
 #[pyclass(name = "CardKingdomProvider")]
@@ -42,7 +41,7 @@ impl CardKingdomProvider {
     }
     
     /// Generate today's price dictionary
-    pub fn generate_today_price_dict(&self, all_printings_path: &str) -> PyResult<HashMap<String, MtgjsonPrices>> {
+    pub fn generate_today_price_dict(&self, all_printings_path: &str) -> PyResult<HashMap<String, MtgjsonPricesObject>> {
         let runtime = tokio::runtime::Runtime::new()?;
         runtime.block_on(async {
             self.generate_today_price_dict_async(all_printings_path).await
@@ -50,17 +49,18 @@ impl CardKingdomProvider {
     }
     
     /// Update sealed URLs for sealed products
-    pub fn update_sealed_urls(&self, sealed_products: &mut Vec<MtgjsonSealedProduct>) -> PyResult<()> {
+    pub fn update_sealed_urls(&self, mut sealed_products: Vec<MtgjsonSealedProductObject>) -> PyResult<Vec<MtgjsonSealedProductObject>> {
         let runtime = tokio::runtime::Runtime::new()?;
         runtime.block_on(async {
-            self.update_sealed_urls_async(sealed_products).await
+            self.update_sealed_urls_async(&mut sealed_products).await?;
+            Ok(sealed_products)
         }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Sealed URLs error: {}", e)))
     }
 }
 
 impl CardKingdomProvider {
     /// Generate today's price dictionary (async version)
-    async fn generate_today_price_dict_async(&self, all_printings_path: &str) -> ProviderResult<HashMap<String, MtgjsonPrices>> {
+    async fn generate_today_price_dict_async(&self, all_printings_path: &str) -> ProviderResult<HashMap<String, MtgjsonPricesObject>> {
         let api_response = self.download(Self::API_URL, None).await?;
         let price_data_rows = api_response.get("data")
             .and_then(|v| v.as_array())
@@ -90,11 +90,11 @@ impl CardKingdomProvider {
         ).await?;
         card_kingdom_id_to_mtgjson.extend(etched_mapping);
         
-        let default_prices_obj = MtgjsonPrices {
+        let default_prices_obj = MtgjsonPricesObject {
             currency: "USD".to_string(),
             date: self.today_date(),
             provider: "cardkingdom".to_string(),
-            provider_type: "paper".to_string(),
+                            source: "paper".to_string(),
             buy_normal: None,
             buy_foil: None,
             buy_etched: None,
@@ -120,11 +120,12 @@ impl CardKingdomProvider {
     }
     
     /// Update sealed URLs (async version)
-    async fn update_sealed_urls_async(&self, sealed_products: &mut Vec<MtgjsonSealedProduct>) -> ProviderResult<()> {
+    async fn update_sealed_urls_async(&self, sealed_products: &mut Vec<MtgjsonSealedProductObject>) -> ProviderResult<()> {
         let api_data = self.download(Self::SEALED_URL, None).await?;
         
         for product in sealed_products {
-            if let Some(card_kingdom_id) = &product.identifiers.card_kingdom_id {
+            if let Some(ref identifiers) = product.identifiers {
+                if let Some(card_kingdom_id) = &identifiers.card_kingdom_id {
                 if let Some(data_array) = api_data.get("data").and_then(|v| v.as_array()) {
                     for remote_product in data_array {
                         if let Some(remote_id) = remote_product.get("id").and_then(|v| v.as_str()) {
@@ -137,14 +138,18 @@ impl CardKingdomProvider {
                                 ) {
                                     let referral = "?partner=MTGJSONAffiliate&utm_source=MTGJSONAffiliate&utm_medium=affiliate&utm_campaign=MTGJSONAffiliate";
                                     let full_url = format!("{}{}{}", base_url, url_path, referral);
-                                    product.raw_purchase_urls.insert("cardKingdom".to_string(), full_url);
+                                    let mut purchase_urls = crate::classes::MtgjsonPurchaseUrls::new();
+                                    purchase_urls.card_kingdom = Some(full_url);
+                                    product.raw_purchase_urls = Some(purchase_urls);
                                 }
                                 break;
                             }
                         }
                     }
                 } else {
-                    println!("No Card Kingdom URL found for product {}", product.name);
+                    if let Some(ref name) = product.name {
+                        println!("No Card Kingdom URL found for product {}", name);
+                    }
                 }
             }
         }
@@ -204,7 +209,7 @@ impl AbstractProvider for CardKingdomProvider {
         third_party_to_mtgjson: &HashMap<String, HashSet<String>>,
         price_data_rows: &[Value],
         card_platform_id_key: &str,
-        default_prices_object: &MtgjsonPrices,
+        default_prices_object: &MtgjsonPricesObject,
         foil_key: &str,
         retail_key: Option<&str>,
         retail_quantity_key: Option<&str>,
@@ -212,8 +217,8 @@ impl AbstractProvider for CardKingdomProvider {
         buy_quantity_key: Option<&str>,
         etched_key: Option<&str>,
         etched_value: Option<&str>,
-    ) -> HashMap<String, MtgjsonPrices> {
-        let mut today_dict: HashMap<String, MtgjsonPrices> = HashMap::new();
+    ) -> HashMap<String, MtgjsonPricesObject> {
+        let mut today_dict: HashMap<String, MtgjsonPricesObject> = HashMap::new();
         
         for data_row in price_data_rows {
             let third_party_id = data_row.get(card_platform_id_key)

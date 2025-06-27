@@ -54,7 +54,7 @@ use providers::{
 use compiled_classes::{
     MtgjsonStructures, MtgjsonCompiledList, MtgjsonDeckObjectList, 
     MtgjsonKeywords, MtgjsonAllIdentifiers, MtgjsonAllPrintings,
-    MtgjsonAtomicCards, MtgjsonEnumValues,
+    MtgjsonAtomicCards, MtgjsonCardTypesObject, MtgjsonEnumValues,
     MtgjsonSetObjectList, MtgjsonTcgplayerSkus
 };
 
@@ -130,10 +130,10 @@ fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(set_builder_functions::enhance_cards_with_metadata, m)?)?;
     m.add_function(wrap_pyfunction!(set_builder_functions::build_base_mtgjson_cards, m)?)?;
     
-    // Add utility functions
-    m.add_function(wrap_pyfunction!(utils_functions::to_camel_case, m)?)?;
-    m.add_function(wrap_pyfunction!(utils_functions::make_windows_safe_filename, m)?)?;
-    m.add_function(wrap_pyfunction!(utils_functions::clean_card_number, m)?)?;
+    // Add utility functions (when implemented)
+    // m.add_function(wrap_pyfunction!(utils_functions::to_camel_case, m)?)?;
+    // m.add_function(wrap_pyfunction!(utils_functions::make_windows_safe_filename, m)?)?;
+    // m.add_function(wrap_pyfunction!(utils_functions::clean_card_number, m)?)?;
     
     // Add all provider classes for 100% Python API coverage
     providers::add_provider_classes_to_module(m)?;

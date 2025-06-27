@@ -8,7 +8,7 @@ use std::path::Path;
 use std::io::{BufWriter, Write};
 
 use crate::compiled_classes::*;
-use crate::meta::MtgjsonMetaObject;
+use crate::classes::meta::MtgjsonMetaObject;
 
 #[pyclass(name = "OutputGenerator")]
 #[derive(Debug, Clone)]

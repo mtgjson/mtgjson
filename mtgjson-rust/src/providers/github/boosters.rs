@@ -52,7 +52,7 @@ impl AbstractProvider for GitHubBoostersProvider {
         _third_party_to_mtgjson: &HashMap<String, HashSet<String>>,
         _price_data_rows: &[Value],
         _card_platform_id_key: &str,
-        _default_prices_object: &MtgjsonPrices,
+        _default_prices_object: &MtgjsonPricesObject,
         _foil_key: &str,
         _retail_key: Option<&str>,
         _retail_quantity_key: Option<&str>,
@@ -60,7 +60,7 @@ impl AbstractProvider for GitHubBoostersProvider {
         _buy_quantity_key: Option<&str>,
         _etched_key: Option<&str>,
         _etched_value: Option<&str>,
-    ) -> HashMap<String, MtgjsonPrices> {
+    ) -> HashMap<String, MtgjsonPricesObject> {
         HashMap::new()
     }
 }

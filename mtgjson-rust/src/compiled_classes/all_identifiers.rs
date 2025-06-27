@@ -1,6 +1,4 @@
-use crate::base::JsonObject;
-use crate::card::MtgjsonCardObject;
-use crate::set::MtgjsonSetObject;
+use crate::classes::{JsonObject, MtgjsonCardObject, MtgjsonSetObject};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

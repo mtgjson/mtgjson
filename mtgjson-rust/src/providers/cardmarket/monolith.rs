@@ -7,7 +7,7 @@ use std::path::Path;
 use std::time::Duration;
 use log::{warn, error, info};
 use tokio::time::sleep;
-use crate::prices::MtgjsonPricesObject;
+use crate::classes::MtgjsonPricesObject;
 use crate::providers::{AbstractProvider, BaseProvider, ProviderError, ProviderResult};
 
 /// CardMarket API provider for MTG price data
@@ -161,7 +161,7 @@ impl CardMarketProvider {
                                 currency: "EUR".to_string(),
                                 date: self.today_date.clone(),
                                 provider: "cardmarket".to_string(),
-                                provider_type: "paper".to_string(),
+                                source: "paper".to_string(),
                                 sell_normal: None,
                                 sell_foil: None,
                                 sell_etched: None,
@@ -273,6 +273,94 @@ impl CardMarketProvider {
             error!("MKM had a critical failure after 5 attempts. Skipping set {}", mcm_id);
             Ok(HashMap::new())
         })
+    }
+
+    /// Check if MKM config section exists
+    pub fn has_mkm_config(&self) -> bool {
+        // In a real implementation, this would check MtgjsonConfig
+        // For now, check environment variables as a fallback
+        std::env::var("MKM_ACCESS_TOKEN").is_ok() && 
+        std::env::var("MKM_ACCESS_TOKEN_SECRET").is_ok() &&
+        std::env::var("MKM_APP_TOKEN").is_ok() &&
+        std::env::var("MKM_APP_SECRET").is_ok()
+    }
+    
+    /// Read MKM configuration from config file or environment
+    pub fn read_mkm_config(&self) -> HashMap<String, String> {
+        let mut config = HashMap::new();
+        
+        // Try to read from environment variables first
+        if let Ok(access_token) = std::env::var("MKM_ACCESS_TOKEN") {
+            config.insert("access_token".to_string(), access_token);
+        }
+        if let Ok(access_token_secret) = std::env::var("MKM_ACCESS_TOKEN_SECRET") {
+            config.insert("access_token_secret".to_string(), access_token_secret);
+        }
+        if let Ok(app_token) = std::env::var("MKM_APP_TOKEN") {
+            config.insert("app_token".to_string(), app_token);
+        }
+        if let Ok(app_secret) = std::env::var("MKM_APP_SECRET") {
+            config.insert("app_secret".to_string(), app_secret);
+        }
+        
+        // In a real implementation, would also read from MtgjsonConfig file
+        // if environment variables are not available
+        
+        config
+    }
+    
+    /// Get MKM expansion data from API
+    pub async fn get_mkm_expansion_data(&self) -> Result<Vec<serde_json::Value>, Box<dyn std::error::Error>> {
+        if !self.has_mkm_config() {
+            eprintln!("Warning: MKM configuration not found");
+            return Ok(Vec::new());
+        }
+        
+        // In a real implementation, this would make authenticated API calls to CardMarket
+        // using OAuth 1.0a authentication with the configured tokens
+        let expansions_url = "https://api.cardmarket.com/ws/v2.0/expansions";
+        
+        // For now, return empty array but log the attempt
+        println!("Would call MKM API: {}", expansions_url);
+        Ok(Vec::new())
+    }
+    
+    /// Load MKM set name fixes from resource file
+    #[staticmethod]
+    fn load_mkm_set_name_fixes() -> HashMap<String, String> {
+        let resource_path = std::env::current_dir()
+            .unwrap_or_else(|_| std::path::PathBuf::from("."))
+            .join("mtgjson5")
+            .join("resources")
+            .join("mkm_set_name_fixes.json");
+        
+        match std::fs::read_to_string(&resource_path) {
+            Ok(content) => {
+                serde_json::from_str(&content).unwrap_or_else(|e| {
+                    eprintln!("Warning: Failed to parse mkm_set_name_fixes.json: {}", e);
+                    HashMap::new()
+                })
+            }
+            Err(e) => {
+                eprintln!("Warning: Failed to read mkm_set_name_fixes.json: {}", e);
+                HashMap::new()
+            }
+        }
+    }
+    
+    /// Get MKM expansion singles for a specific expansion
+    pub async fn get_mkm_expansion_singles(&self, expansion_id: i32) -> Result<Vec<serde_json::Value>, Box<dyn std::error::Error>> {
+        if !self.has_mkm_config() {
+            eprintln!("Warning: MKM configuration not found");
+            return Ok(Vec::new());
+        }
+        
+        // In a real implementation, this would make authenticated API calls
+        let singles_url = format!("https://api.cardmarket.com/ws/v2.0/expansions/{}/singles", expansion_id);
+        
+        // For now, return empty array but log the attempt
+        println!("Would call MKM API: {}", singles_url);
+        Ok(Vec::new())
     }
 }
 

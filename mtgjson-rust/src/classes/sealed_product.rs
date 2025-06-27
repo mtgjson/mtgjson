@@ -50,6 +50,8 @@ pub enum SealedProductCategory {
     PrereleasePack,
     #[serde(rename = "prerelease_case")]
     PrereleaseCase,
+    #[serde(rename = "other")]
+    Other,
 }
 
 #[pymethods]
@@ -205,6 +207,8 @@ pub enum SealedProductSubtype {
     Advanced,
     #[serde(rename = "other")]
     Other,
+    #[serde(rename = "booster")]
+    Booster,
 }
 
 #[pymethods]
@@ -289,6 +293,14 @@ pub struct MtgjsonSealedProductObject {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uuid: Option<String>,
 
+    #[pyo3(get, set)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count: Option<i32>,
+
+    #[pyo3(get, set)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub set_code: Option<String>,
+
     // Change to JSON string for PyO3 compatibility
     #[pyo3(get, set)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -309,6 +321,8 @@ impl MtgjsonSealedProductObject {
             raw_purchase_urls: Some(crate::purchase_urls::MtgjsonPurchaseUrls::new()),
             release_date: None,
             uuid: None,
+            count: None,
+            set_code: None,
             contents: None,
         }
     }

@@ -119,6 +119,32 @@ impl GathererProvider {
         
         Ok(())
     }
+
+    /// Read Gatherer configuration
+    fn read_gatherer_config(&self) -> HashMap<String, String> {
+        let mut config = HashMap::new();
+        
+        // Try to read from environment variables first
+        if let Ok(base_url) = std::env::var("GATHERER_BASE_URL") {
+            config.insert("base_url".to_string(), base_url);
+        } else {
+            // Default Gatherer URL
+            config.insert("base_url".to_string(), "https://gatherer.wizards.com".to_string());
+        }
+        
+        if let Ok(timeout) = std::env::var("GATHERER_TIMEOUT") {
+            config.insert("timeout".to_string(), timeout);
+        } else {
+            config.insert("timeout".to_string(), "30".to_string());
+        }
+        
+        // Gatherer doesn't require authentication, but we can configure other options
+        if let Ok(user_agent) = std::env::var("GATHERER_USER_AGENT") {
+            config.insert("user_agent".to_string(), user_agent);
+        }
+        
+        config
+    }
 }
 
 #[async_trait]

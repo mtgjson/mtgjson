@@ -10,23 +10,27 @@ name = "mtgjson_rust"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+pyo3 = { version = "0.22", features = ["extension-module", "experimental-async"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-pyo3 = { version = "0.22", features = ["extension-module", "chrono"] }
-chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1.0", features = ["serde", "v4"] }
-regex = "1.0"
-thiserror = "1.0"
-indexmap = { version = "2.0", features = ["serde"] }
-
-# New dependencies for high-computational modules
 tokio = { version = "1.0", features = ["full"] }
 reqwest = { version = "0.11", features = ["json"] }
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "v5"] }
+regex = "1.0"
+thiserror = "1.0"
+log = "0.4"
 sha2 = "0.10"
+base64 = "0.21"
+hmac = "0.12"
+url = "2.4"
+percent-encoding = "2.3"
+
+# New dependencies for high-computational modules
+indexmap = { version = "2.0", features = ["serde"] }
 
 # Additional dependencies for providers
-async-trait = "0.1"
-log = "0.4"
 scraper = "0.20"
 config = "0.14"
 
