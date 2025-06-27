@@ -1,10 +1,10 @@
 // MTGJSON output generator - High performance file writing and JSON processing
 use pyo3::prelude::*;
-use serde::{Deserialize, Serialize};
+
 use serde_json;
 use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::io::{BufWriter, Write};
 
 use crate::compiled_classes::*;
@@ -30,6 +30,7 @@ impl OutputGenerator {
     }
     
     /// Generate all compiled output files with high performance
+    #[pyo3(signature = (pretty_print=None))]
     pub fn generate_compiled_output_files(&self, pretty_print: Option<bool>) -> PyResult<()> {
         // Create output directory
         let output_dir = Path::new(&self.output_path);
