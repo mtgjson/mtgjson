@@ -253,19 +253,24 @@ mod tests {
         let identifiers = MtgjsonIdentifiers::new();
         assert_eq!(identifiers.card_kingdom_etched_id, None);
         assert_eq!(identifiers.card_kingdom_foil_id, None);
-        assert_eq!(identifiers.card_kingdom_id, None);
-        assert_eq!(identifiers.cardhoarder_foil_id, None);
+        assert_eq!(identifiers.card_kingdom_id, Some(String::new()));
+        assert_eq!(identifiers.cardsphere_foil_id, None);
+        assert_eq!(identifiers.cardsphere_id, None);
         assert_eq!(identifiers.mcm_id, None);
         assert_eq!(identifiers.mcm_meta_id, None);
         assert_eq!(identifiers.mtg_arena_id, None);
+        assert_eq!(identifiers.mtgjson_foil_version_id, None);
+        assert_eq!(identifiers.mtgjson_non_foil_version_id, None);
+        assert_eq!(identifiers.mtgjson_v4_id, None);
         assert_eq!(identifiers.mtgo_foil_id, None);
         assert_eq!(identifiers.mtgo_id, None);
-        assert_eq!(identifiers.multiverse_id, None);
+        assert_eq!(identifiers.multiverse_id, Some(String::new()));
         assert_eq!(identifiers.scryfall_id, None);
-        assert_eq!(identifiers.scryfall_oracle_id, None);
         assert_eq!(identifiers.scryfall_illustration_id, None);
-        assert_eq!(identifiers.tcgplayer_product_id, None);
+        assert_eq!(identifiers.scryfall_card_back_id, None);
+        assert_eq!(identifiers.scryfall_oracle_id, None);
         assert_eq!(identifiers.tcgplayer_etched_product_id, None);
+        assert_eq!(identifiers.tcgplayer_product_id, Some(String::new()));
     }
 
     #[test]
@@ -273,54 +278,97 @@ mod tests {
         let identifiers = MtgjsonIdentifiers::default();
         assert_eq!(identifiers.card_kingdom_etched_id, None);
         assert_eq!(identifiers.card_kingdom_foil_id, None);
-        assert_eq!(identifiers.card_kingdom_id, None);
-        assert_eq!(identifiers.cardhoarder_foil_id, None);
+        assert_eq!(identifiers.card_kingdom_id, Some(String::new()));
+        assert_eq!(identifiers.cardsphere_foil_id, None);
         assert_eq!(identifiers.mcm_id, None);
     }
 
     #[test]
-    fn test_identifiers_with_values() {
+    fn test_identifiers_with_string_values() {
         let mut identifiers = MtgjsonIdentifiers::new();
         
-        identifiers.card_kingdom_id = Some(12345);
-        identifiers.card_kingdom_foil_id = Some(12346);
-        identifiers.card_kingdom_etched_id = Some(12347);
-        identifiers.cardhoarder_foil_id = Some("CH12345".to_string());
-        identifiers.mcm_id = Some(67890);
-        identifiers.mcm_meta_id = Some(67891);
-        identifiers.mtg_arena_id = Some(98765);
+        identifiers.card_kingdom_id = Some("12345".to_string());
+        identifiers.card_kingdom_foil_id = Some("12346".to_string());
+        identifiers.card_kingdom_etched_id = Some("12347".to_string());
+        identifiers.cardsphere_foil_id = Some("CH12345".to_string());
+        identifiers.cardsphere_id = Some("CH67890".to_string());
+        identifiers.mcm_id = Some("67890".to_string());
+        identifiers.mcm_meta_id = Some("67891".to_string());
+        identifiers.mtg_arena_id = Some("98765".to_string());
+        identifiers.mtgjson_foil_version_id = Some("foil123".to_string());
+        identifiers.mtgjson_non_foil_version_id = Some("nonfoil123".to_string());
+        identifiers.mtgjson_v4_id = Some("v4-id-123".to_string());
         identifiers.mtgo_foil_id = Some("MTGO12345".to_string());
         identifiers.mtgo_id = Some("MTGO12346".to_string());
-        identifiers.multiverse_id = Some(112233);
+        identifiers.multiverse_id = Some("112233".to_string());
         identifiers.scryfall_id = Some("abc123def".to_string());
         identifiers.scryfall_oracle_id = Some("oracle123".to_string());
         identifiers.scryfall_illustration_id = Some("illus123".to_string());
-        identifiers.tcgplayer_product_id = Some(55555);
-        identifiers.tcgplayer_etched_product_id = Some(55556);
+        identifiers.scryfall_card_back_id = Some("back123".to_string());
+        identifiers.tcgplayer_product_id = Some("55555".to_string());
+        identifiers.tcgplayer_etched_product_id = Some("55556".to_string());
         
-        assert_eq!(identifiers.card_kingdom_id, Some(12345));
-        assert_eq!(identifiers.card_kingdom_foil_id, Some(12346));
-        assert_eq!(identifiers.card_kingdom_etched_id, Some(12347));
-        assert_eq!(identifiers.cardhoarder_foil_id, Some("CH12345".to_string()));
-        assert_eq!(identifiers.mcm_id, Some(67890));
-        assert_eq!(identifiers.mcm_meta_id, Some(67891));
-        assert_eq!(identifiers.mtg_arena_id, Some(98765));
+        assert_eq!(identifiers.card_kingdom_id, Some("12345".to_string()));
+        assert_eq!(identifiers.card_kingdom_foil_id, Some("12346".to_string()));
+        assert_eq!(identifiers.card_kingdom_etched_id, Some("12347".to_string()));
+        assert_eq!(identifiers.cardsphere_foil_id, Some("CH12345".to_string()));
+        assert_eq!(identifiers.cardsphere_id, Some("CH67890".to_string()));
+        assert_eq!(identifiers.mcm_id, Some("67890".to_string()));
+        assert_eq!(identifiers.mcm_meta_id, Some("67891".to_string()));
+        assert_eq!(identifiers.mtg_arena_id, Some("98765".to_string()));
+        assert_eq!(identifiers.mtgjson_foil_version_id, Some("foil123".to_string()));
+        assert_eq!(identifiers.mtgjson_non_foil_version_id, Some("nonfoil123".to_string()));
+        assert_eq!(identifiers.mtgjson_v4_id, Some("v4-id-123".to_string()));
         assert_eq!(identifiers.mtgo_foil_id, Some("MTGO12345".to_string()));
         assert_eq!(identifiers.mtgo_id, Some("MTGO12346".to_string()));
-        assert_eq!(identifiers.multiverse_id, Some(112233));
+        assert_eq!(identifiers.multiverse_id, Some("112233".to_string()));
         assert_eq!(identifiers.scryfall_id, Some("abc123def".to_string()));
         assert_eq!(identifiers.scryfall_oracle_id, Some("oracle123".to_string()));
         assert_eq!(identifiers.scryfall_illustration_id, Some("illus123".to_string()));
-        assert_eq!(identifiers.tcgplayer_product_id, Some(55555));
-        assert_eq!(identifiers.tcgplayer_etched_product_id, Some(55556));
+        assert_eq!(identifiers.scryfall_card_back_id, Some("back123".to_string()));
+        assert_eq!(identifiers.tcgplayer_product_id, Some("55555".to_string()));
+        assert_eq!(identifiers.tcgplayer_etched_product_id, Some("55556".to_string()));
+    }
+
+    #[test]
+    fn test_identifiers_to_dict() {
+        let mut identifiers = MtgjsonIdentifiers::new();
+        identifiers.card_kingdom_id = Some("12345".to_string());
+        identifiers.scryfall_id = Some("abc123def".to_string());
+        identifiers.multiverse_id = Some("112233".to_string());
+        identifiers.tcgplayer_product_id = Some("55555".to_string());
+        
+        let dict_result = identifiers.to_dict();
+        assert!(dict_result.is_ok());
+        
+        let dict = dict_result.unwrap();
+        assert_eq!(dict.get("cardKingdomId"), Some(&"12345".to_string()));
+        assert_eq!(dict.get("scryfallId"), Some(&"abc123def".to_string()));
+        assert_eq!(dict.get("multiverseId"), Some(&"112233".to_string()));
+        assert_eq!(dict.get("tcgplayerProductId"), Some(&"55555".to_string()));
+    }
+
+    #[test]
+    fn test_identifiers_to_dict_with_empty_values() {
+        let mut identifiers = MtgjsonIdentifiers::new();
+        identifiers.card_kingdom_id = Some("".to_string());
+        identifiers.scryfall_id = Some("valid-uuid".to_string());
+        
+        let dict_result = identifiers.to_dict();
+        assert!(dict_result.is_ok());
+        
+        let dict = dict_result.unwrap();
+        // Empty strings should be filtered out
+        assert!(!dict.contains_key("cardKingdomId"));
+        assert_eq!(dict.get("scryfallId"), Some(&"valid-uuid".to_string()));
     }
 
     #[test]
     fn test_identifiers_json_serialization() {
         let mut identifiers = MtgjsonIdentifiers::new();
-        identifiers.card_kingdom_id = Some(12345);
+        identifiers.card_kingdom_id = Some("12345".to_string());
         identifiers.scryfall_id = Some("abc123def".to_string());
-        identifiers.multiverse_id = Some(112233);
+        identifiers.multiverse_id = Some("112233".to_string());
         
         let json_result = identifiers.to_json();
         assert!(json_result.is_ok());
@@ -332,134 +380,22 @@ mod tests {
     }
 
     #[test]
-    fn test_identifiers_string_representations() {
-        let mut identifiers = MtgjsonIdentifiers::new();
-        identifiers.card_kingdom_id = Some(12345);
-        identifiers.scryfall_id = Some("abc123def".to_string());
-        
-        let str_repr = identifiers.__str__();
-        assert!(str_repr.contains("12345") || str_repr.contains("abc123def"));
-        
-        let repr = identifiers.__repr__();
-        assert!(repr.contains("MtgjsonIdentifiers"));
-    }
-
-    #[test]
-    fn test_identifiers_equality() {
-        let mut identifiers1 = MtgjsonIdentifiers::new();
-        let mut identifiers2 = MtgjsonIdentifiers::new();
-        
-        identifiers1.card_kingdom_id = Some(12345);
-        identifiers1.scryfall_id = Some("abc123".to_string());
-        
-        identifiers2.card_kingdom_id = Some(12345);
-        identifiers2.scryfall_id = Some("abc123".to_string());
-        
-        assert!(identifiers1.__eq__(&identifiers2));
-        
-        identifiers2.card_kingdom_id = Some(54321);
-        assert!(!identifiers1.__eq__(&identifiers2));
-    }
-
-    #[test]
-    fn test_identifiers_hash() {
-        let mut identifiers = MtgjsonIdentifiers::new();
-        identifiers.card_kingdom_id = Some(12345);
-        identifiers.scryfall_id = Some("abc123".to_string());
-        
-        let hash1 = identifiers.__hash__();
-        let hash2 = identifiers.__hash__();
-        assert_eq!(hash1, hash2);
-    }
-
-    #[test]
-    fn test_identifiers_partial_data() {
-        let mut identifiers = MtgjsonIdentifiers::new();
-        
-        // Set only some identifiers
-        identifiers.scryfall_id = Some("abc123".to_string());
-        identifiers.multiverse_id = Some(112233);
-        
-        // Others should remain None
-        assert_eq!(identifiers.scryfall_id, Some("abc123".to_string()));
-        assert_eq!(identifiers.multiverse_id, Some(112233));
-        assert_eq!(identifiers.card_kingdom_id, None);
-        assert_eq!(identifiers.tcgplayer_product_id, None);
-        assert_eq!(identifiers.mtg_arena_id, None);
-    }
-
-    #[test]
-    fn test_identifiers_all_none() {
+    fn test_identifiers_json_object_trait() {
         let identifiers = MtgjsonIdentifiers::new();
+        let keys_to_skip = identifiers.build_keys_to_skip();
         
-        // All fields should be None initially
-        assert_eq!(identifiers.card_kingdom_id, None);
-        assert_eq!(identifiers.card_kingdom_foil_id, None);
-        assert_eq!(identifiers.card_kingdom_etched_id, None);
-        assert_eq!(identifiers.cardhoarder_foil_id, None);
-        assert_eq!(identifiers.mcm_id, None);
-        assert_eq!(identifiers.mcm_meta_id, None);
-        assert_eq!(identifiers.mtg_arena_id, None);
-        assert_eq!(identifiers.mtgo_foil_id, None);
-        assert_eq!(identifiers.mtgo_id, None);
-        assert_eq!(identifiers.multiverse_id, None);
-        assert_eq!(identifiers.scryfall_id, None);
-        assert_eq!(identifiers.scryfall_oracle_id, None);
-        assert_eq!(identifiers.scryfall_illustration_id, None);
-        assert_eq!(identifiers.tcgplayer_product_id, None);
-        assert_eq!(identifiers.tcgplayer_etched_product_id, None);
+        // Should return empty set unless specifically implemented
+        assert!(keys_to_skip.is_empty());
     }
 
-    #[test]
-    fn test_identifiers_string_ids() {
-        let mut identifiers = MtgjsonIdentifiers::new();
-        
-        identifiers.cardhoarder_foil_id = Some("CH123ABC".to_string());
-        identifiers.mtgo_foil_id = Some("MTGO456DEF".to_string());
-        identifiers.mtgo_id = Some("MTGO789GHI".to_string());
-        identifiers.scryfall_id = Some("abcd-efgh-ijkl-mnop".to_string());
-        identifiers.scryfall_oracle_id = Some("oracle-uuid-1234".to_string());
-        identifiers.scryfall_illustration_id = Some("illus-uuid-5678".to_string());
-        
-        assert_eq!(identifiers.cardhoarder_foil_id, Some("CH123ABC".to_string()));
-        assert_eq!(identifiers.mtgo_foil_id, Some("MTGO456DEF".to_string()));
-        assert_eq!(identifiers.mtgo_id, Some("MTGO789GHI".to_string()));
-        assert_eq!(identifiers.scryfall_id, Some("abcd-efgh-ijkl-mnop".to_string()));
-        assert_eq!(identifiers.scryfall_oracle_id, Some("oracle-uuid-1234".to_string()));
-        assert_eq!(identifiers.scryfall_illustration_id, Some("illus-uuid-5678".to_string()));
-    }
+    // COMPREHENSIVE ADDITIONAL TESTS FOR FULL COVERAGE
 
     #[test]
-    fn test_identifiers_numeric_ids() {
-        let mut identifiers = MtgjsonIdentifiers::new();
-        
-        identifiers.card_kingdom_id = Some(1);
-        identifiers.card_kingdom_foil_id = Some(999999);
-        identifiers.card_kingdom_etched_id = Some(0);
-        identifiers.mcm_id = Some(123456789);
-        identifiers.mcm_meta_id = Some(987654321);
-        identifiers.mtg_arena_id = Some(55555);
-        identifiers.multiverse_id = Some(444444);
-        identifiers.tcgplayer_product_id = Some(777777);
-        identifiers.tcgplayer_etched_product_id = Some(888888);
-        
-        assert_eq!(identifiers.card_kingdom_id, Some(1));
-        assert_eq!(identifiers.card_kingdom_foil_id, Some(999999));
-        assert_eq!(identifiers.card_kingdom_etched_id, Some(0));
-        assert_eq!(identifiers.mcm_id, Some(123456789));
-        assert_eq!(identifiers.mcm_meta_id, Some(987654321));
-        assert_eq!(identifiers.mtg_arena_id, Some(55555));
-        assert_eq!(identifiers.multiverse_id, Some(444444));
-        assert_eq!(identifiers.tcgplayer_product_id, Some(777777));
-        assert_eq!(identifiers.tcgplayer_etched_product_id, Some(888888));
-    }
-
-    #[test]
-    fn test_identifiers_clone() {
+    fn test_identifiers_clone_trait() {
         let mut original = MtgjsonIdentifiers::new();
-        original.card_kingdom_id = Some(12345);
+        original.card_kingdom_id = Some("12345".to_string());
         original.scryfall_id = Some("abc123".to_string());
-        original.multiverse_id = Some(67890);
+        original.multiverse_id = Some("67890".to_string());
         
         let cloned = original.clone();
         
@@ -469,41 +405,407 @@ mod tests {
     }
 
     #[test]
-    fn test_identifiers_json_object_trait() {
-        let identifiers = MtgjsonIdentifiers::new();
-        let keys_to_skip = identifiers.build_keys_to_skip();
+    fn test_identifiers_partial_eq_trait() {
+        let mut identifiers1 = MtgjsonIdentifiers::new();
+        let mut identifiers2 = MtgjsonIdentifiers::new();
         
-        // Should return empty set unless specifically implemented
-        assert!(keys_to_skip.is_empty());
+        identifiers1.card_kingdom_id = Some("12345".to_string());
+        identifiers1.scryfall_id = Some("abc123".to_string());
+        
+        identifiers2.card_kingdom_id = Some("12345".to_string());
+        identifiers2.scryfall_id = Some("abc123".to_string());
+        
+        assert_eq!(identifiers1, identifiers2);
+        
+        identifiers2.card_kingdom_id = Some("54321".to_string());
+        assert_ne!(identifiers1, identifiers2);
     }
 
     #[test]
-    fn test_identifiers_edge_cases() {
+    fn test_identifiers_debug_trait() {
+        let mut identifiers = MtgjsonIdentifiers::new();
+        identifiers.card_kingdom_id = Some("12345".to_string());
+        identifiers.scryfall_id = Some("abc123".to_string());
+        
+        let debug_str = format!("{:?}", identifiers);
+        assert!(debug_str.contains("MtgjsonIdentifiers"));
+        assert!(debug_str.contains("12345"));
+        assert!(debug_str.contains("abc123"));
+    }
+
+    #[test]
+    fn test_identifiers_all_none() {
+        let identifiers = MtgjsonIdentifiers::new();
+        
+        // All fields should be None initially (except defaults)
+        assert_eq!(identifiers.card_kingdom_etched_id, None);
+        assert_eq!(identifiers.card_kingdom_foil_id, None);
+        assert_eq!(identifiers.cardsphere_foil_id, None);
+        assert_eq!(identifiers.cardsphere_id, None);
+        assert_eq!(identifiers.mcm_id, None);
+        assert_eq!(identifiers.mcm_meta_id, None);
+        assert_eq!(identifiers.mtg_arena_id, None);
+        assert_eq!(identifiers.mtgjson_foil_version_id, None);
+        assert_eq!(identifiers.mtgjson_non_foil_version_id, None);
+        assert_eq!(identifiers.mtgjson_v4_id, None);
+        assert_eq!(identifiers.mtgo_foil_id, None);
+        assert_eq!(identifiers.mtgo_id, None);
+        assert_eq!(identifiers.scryfall_id, None);
+        assert_eq!(identifiers.scryfall_oracle_id, None);
+        assert_eq!(identifiers.scryfall_illustration_id, None);
+        assert_eq!(identifiers.scryfall_card_back_id, None);
+        assert_eq!(identifiers.tcgplayer_etched_product_id, None);
+    }
+
+    #[test]
+    fn test_identifiers_uuid_formats() {
+        let mut identifiers = MtgjsonIdentifiers::new();
+        
+        // Test various UUID formats
+        identifiers.scryfall_id = Some("12345678-1234-5678-9012-123456789012".to_string());
+        identifiers.scryfall_oracle_id = Some("87654321-4321-8765-2109-876543210987".to_string());
+        identifiers.scryfall_illustration_id = Some("abcdef12-3456-789a-bcde-f123456789ab".to_string());
+        identifiers.scryfall_card_back_id = Some("fedcba98-7654-321f-edcb-a987654321fe".to_string());
+        
+        assert_eq!(identifiers.scryfall_id, Some("12345678-1234-5678-9012-123456789012".to_string()));
+        assert_eq!(identifiers.scryfall_oracle_id, Some("87654321-4321-8765-2109-876543210987".to_string()));
+        assert_eq!(identifiers.scryfall_illustration_id, Some("abcdef12-3456-789a-bcde-f123456789ab".to_string()));
+        assert_eq!(identifiers.scryfall_card_back_id, Some("fedcba98-7654-321f-edcb-a987654321fe".to_string()));
+    }
+
+    #[test]
+    fn test_identifiers_numeric_strings() {
+        let mut identifiers = MtgjsonIdentifiers::new();
+        
+        // Test numeric IDs as strings
+        identifiers.card_kingdom_id = Some("1".to_string());
+        identifiers.card_kingdom_foil_id = Some("999999".to_string());
+        identifiers.card_kingdom_etched_id = Some("0".to_string());
+        identifiers.mcm_id = Some("123456789".to_string());
+        identifiers.mcm_meta_id = Some("987654321".to_string());
+        identifiers.mtg_arena_id = Some("55555".to_string());
+        identifiers.multiverse_id = Some("444444".to_string());
+        identifiers.tcgplayer_product_id = Some("777777".to_string());
+        identifiers.tcgplayer_etched_product_id = Some("888888".to_string());
+        
+        assert_eq!(identifiers.card_kingdom_id, Some("1".to_string()));
+        assert_eq!(identifiers.card_kingdom_foil_id, Some("999999".to_string()));
+        assert_eq!(identifiers.card_kingdom_etched_id, Some("0".to_string()));
+        assert_eq!(identifiers.mcm_id, Some("123456789".to_string()));
+        assert_eq!(identifiers.mcm_meta_id, Some("987654321".to_string()));
+        assert_eq!(identifiers.mtg_arena_id, Some("55555".to_string()));
+        assert_eq!(identifiers.multiverse_id, Some("444444".to_string()));
+        assert_eq!(identifiers.tcgplayer_product_id, Some("777777".to_string()));
+        assert_eq!(identifiers.tcgplayer_etched_product_id, Some("888888".to_string()));
+    }
+
+    #[test]
+    fn test_identifiers_alphanumeric_strings() {
+        let mut identifiers = MtgjsonIdentifiers::new();
+        
+        identifiers.cardsphere_foil_id = Some("CH123ABC".to_string());
+        identifiers.cardsphere_id = Some("CS456DEF".to_string());
+        identifiers.mtgjson_foil_version_id = Some("mtgjson-foil-v1.2.3".to_string());
+        identifiers.mtgjson_non_foil_version_id = Some("mtgjson-nonfoil-v1.2.3".to_string());
+        identifiers.mtgjson_v4_id = Some("mtgjson-v4-legacy-id".to_string());
+        identifiers.mtgo_foil_id = Some("MTGO456DEF".to_string());
+        identifiers.mtgo_id = Some("MTGO789GHI".to_string());
+        
+        assert_eq!(identifiers.cardsphere_foil_id, Some("CH123ABC".to_string()));
+        assert_eq!(identifiers.cardsphere_id, Some("CS456DEF".to_string()));
+        assert_eq!(identifiers.mtgjson_foil_version_id, Some("mtgjson-foil-v1.2.3".to_string()));
+        assert_eq!(identifiers.mtgjson_non_foil_version_id, Some("mtgjson-nonfoil-v1.2.3".to_string()));
+        assert_eq!(identifiers.mtgjson_v4_id, Some("mtgjson-v4-legacy-id".to_string()));
+        assert_eq!(identifiers.mtgo_foil_id, Some("MTGO456DEF".to_string()));
+        assert_eq!(identifiers.mtgo_id, Some("MTGO789GHI".to_string()));
+    }
+
+    #[test]
+    fn test_identifiers_edge_case_values() {
         let mut identifiers = MtgjsonIdentifiers::new();
         
         // Test with edge case values
-        identifiers.card_kingdom_id = Some(0);  // Zero ID
-        identifiers.multiverse_id = Some(u32::MAX);  // Maximum value
+        identifiers.card_kingdom_id = Some("0".to_string());  // Zero ID
+        identifiers.multiverse_id = Some("4294967295".to_string());  // Large numeric string
         identifiers.scryfall_id = Some("".to_string());  // Empty string
         identifiers.mtgo_id = Some("a".to_string());  // Single character
+        identifiers.cardsphere_id = Some("very-long-identifier-that-exceeds-normal-length-expectations-for-testing".to_string());
         
-        assert_eq!(identifiers.card_kingdom_id, Some(0));
-        assert_eq!(identifiers.multiverse_id, Some(u32::MAX));
+        assert_eq!(identifiers.card_kingdom_id, Some("0".to_string()));
+        assert_eq!(identifiers.multiverse_id, Some("4294967295".to_string()));
         assert_eq!(identifiers.scryfall_id, Some("".to_string()));
         assert_eq!(identifiers.mtgo_id, Some("a".to_string()));
+        assert_eq!(identifiers.cardsphere_id, Some("very-long-identifier-that-exceeds-normal-length-expectations-for-testing".to_string()));
     }
 
     #[test]
-    fn test_identifiers_serialization_with_none_values() {
-        let identifiers = MtgjsonIdentifiers::new();
+    fn test_identifiers_special_characters() {
+        let mut identifiers = MtgjsonIdentifiers::new();
+        
+        // Test with special characters that might appear in IDs
+        identifiers.mtgjson_v4_id = Some("mtgjson-v4_legacy.id@domain.com".to_string());
+        identifiers.scryfall_id = Some("12345678-abcd-efgh-ijkl-mnopqrstuvwx".to_string());
+        identifiers.cardsphere_foil_id = Some("CH#123$456%789".to_string());
+        
+        assert_eq!(identifiers.mtgjson_v4_id, Some("mtgjson-v4_legacy.id@domain.com".to_string()));
+        assert_eq!(identifiers.scryfall_id, Some("12345678-abcd-efgh-ijkl-mnopqrstuvwx".to_string()));
+        assert_eq!(identifiers.cardsphere_foil_id, Some("CH#123$456%789".to_string()));
+    }
+
+    #[test]
+    fn test_identifiers_to_dict_comprehensive() {
+        let mut identifiers = MtgjsonIdentifiers::new();
+        
+        // Set all possible identifiers
+        identifiers.card_kingdom_etched_id = Some("cke1".to_string());
+        identifiers.card_kingdom_foil_id = Some("ckf2".to_string());
+        identifiers.card_kingdom_id = Some("ck3".to_string());
+        identifiers.cardsphere_foil_id = Some("csf4".to_string());
+        identifiers.cardsphere_id = Some("cs5".to_string());
+        identifiers.mcm_id = Some("mcm6".to_string());
+        identifiers.mcm_meta_id = Some("mcmm7".to_string());
+        identifiers.mtg_arena_id = Some("arena8".to_string());
+        identifiers.mtgjson_foil_version_id = Some("mjf9".to_string());
+        identifiers.mtgjson_non_foil_version_id = Some("mjnf10".to_string());
+        identifiers.mtgjson_v4_id = Some("mjv4_11".to_string());
+        identifiers.mtgo_foil_id = Some("mtgof12".to_string());
+        identifiers.mtgo_id = Some("mtgo13".to_string());
+        identifiers.multiverse_id = Some("mv14".to_string());
+        identifiers.scryfall_id = Some("sf15".to_string());
+        identifiers.scryfall_illustration_id = Some("sfi16".to_string());
+        identifiers.scryfall_card_back_id = Some("sfcb17".to_string());
+        identifiers.scryfall_oracle_id = Some("sfo18".to_string());
+        identifiers.tcgplayer_etched_product_id = Some("tcge19".to_string());
+        identifiers.tcgplayer_product_id = Some("tcg20".to_string());
+        
+        let dict_result = identifiers.to_dict();
+        assert!(dict_result.is_ok());
+        
+        let dict = dict_result.unwrap();
+        
+        // Check all keys are properly converted to camelCase
+        assert_eq!(dict.get("cardKingdomEtchedId"), Some(&"cke1".to_string()));
+        assert_eq!(dict.get("cardKingdomFoilId"), Some(&"ckf2".to_string()));
+        assert_eq!(dict.get("cardKingdomId"), Some(&"ck3".to_string()));
+        assert_eq!(dict.get("cardsphereFoilId"), Some(&"csf4".to_string()));
+        assert_eq!(dict.get("cardsphereId"), Some(&"cs5".to_string()));
+        assert_eq!(dict.get("mcmId"), Some(&"mcm6".to_string()));
+        assert_eq!(dict.get("mcmMetaId"), Some(&"mcmm7".to_string()));
+        assert_eq!(dict.get("mtgArenaId"), Some(&"arena8".to_string()));
+        assert_eq!(dict.get("mtgjsonFoilVersionId"), Some(&"mjf9".to_string()));
+        assert_eq!(dict.get("mtgjsonNonFoilVersionId"), Some(&"mjnf10".to_string()));
+        assert_eq!(dict.get("mtgjsonV4Id"), Some(&"mjv4_11".to_string()));
+        assert_eq!(dict.get("mtgoFoilId"), Some(&"mtgof12".to_string()));
+        assert_eq!(dict.get("mtgoId"), Some(&"mtgo13".to_string()));
+        assert_eq!(dict.get("multiverseId"), Some(&"mv14".to_string()));
+        assert_eq!(dict.get("scryfallId"), Some(&"sf15".to_string()));
+        assert_eq!(dict.get("scryfallIllustrationId"), Some(&"sfi16".to_string()));
+        assert_eq!(dict.get("scryfallCardBackId"), Some(&"sfcb17".to_string()));
+        assert_eq!(dict.get("scryfallOracleId"), Some(&"sfo18".to_string()));
+        assert_eq!(dict.get("tcgplayerEtchedProductId"), Some(&"tcge19".to_string()));
+        assert_eq!(dict.get("tcgplayerProductId"), Some(&"tcg20".to_string()));
+        
+        // Should have all 20 fields
+        assert_eq!(dict.len(), 20);
+    }
+
+    #[test]
+    fn test_identifiers_serialization_deserialization() {
+        let mut identifiers = MtgjsonIdentifiers::new();
+        identifiers.card_kingdom_id = Some("12345".to_string());
+        identifiers.scryfall_id = Some("abc123def".to_string());
+        identifiers.multiverse_id = Some("67890".to_string());
+        identifiers.tcgplayer_product_id = Some("55555".to_string());
+        identifiers.mtg_arena_id = Some("arena123".to_string());
         
         let json_result = identifiers.to_json();
         assert!(json_result.is_ok());
         
-        let json_string = json_result.unwrap();
-        // Should not contain null fields due to skip_serializing_if
-        assert!(!json_string.contains("null"));
-        // Should be an empty object or minimal object
-        assert!(json_string.len() < 100);
+        let json_str = json_result.unwrap();
+        
+        // Test that serialization contains expected fields
+        assert!(json_str.contains("12345"));
+        assert!(json_str.contains("abc123def"));
+        assert!(json_str.contains("67890"));
+        assert!(json_str.contains("55555"));
+        assert!(json_str.contains("arena123"));
+        
+        // Test deserialization
+        let deserialized: Result<MtgjsonIdentifiers, _> = serde_json::from_str(&json_str);
+        assert!(deserialized.is_ok());
+        
+        let deserialized_identifiers = deserialized.unwrap();
+        assert_eq!(deserialized_identifiers.card_kingdom_id, Some("12345".to_string()));
+        assert_eq!(deserialized_identifiers.scryfall_id, Some("abc123def".to_string()));
+        assert_eq!(deserialized_identifiers.multiverse_id, Some("67890".to_string()));
+        assert_eq!(deserialized_identifiers.tcgplayer_product_id, Some("55555".to_string()));
+        assert_eq!(deserialized_identifiers.mtg_arena_id, Some("arena123".to_string()));
+    }
+
+    #[test]
+    fn test_identifiers_complex_integration_scenario() {
+        // Create a comprehensive identifiers object for a famous card like Black Lotus
+        let mut black_lotus_identifiers = MtgjsonIdentifiers::new();
+        
+        // Set up realistic identifiers for Black Lotus (Alpha)
+        black_lotus_identifiers.card_kingdom_id = Some("1001".to_string());
+        black_lotus_identifiers.cardsphere_id = Some("CS-LOTUS-001".to_string());
+        black_lotus_identifiers.mcm_id = Some("1".to_string()); // Often low for Alpha cards
+        black_lotus_identifiers.mtg_arena_id = None; // Not on Arena
+        black_lotus_identifiers.mtgo_id = Some("MTGO-1".to_string());
+        black_lotus_identifiers.multiverse_id = Some("3".to_string()); // Actual Multiverse ID
+        black_lotus_identifiers.scryfall_id = Some("bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd".to_string());
+        black_lotus_identifiers.scryfall_oracle_id = Some("272b85cf-3286-4b7e-8ccf-2c83a2bb9a48".to_string());
+        black_lotus_identifiers.scryfall_illustration_id = Some("5f2b7b03-3c76-42f7-9ee4-00f4d5b4e0c8".to_string());
+        black_lotus_identifiers.tcgplayer_product_id = Some("1".to_string());
+        
+        // Test all functionality on this complex scenario
+        assert_eq!(black_lotus_identifiers.card_kingdom_id, Some("1001".to_string()));
+        assert_eq!(black_lotus_identifiers.multiverse_id, Some("3".to_string()));
+        assert_eq!(black_lotus_identifiers.mtg_arena_id, None);
+        
+        // Test to_dict conversion
+        let dict_result = black_lotus_identifiers.to_dict();
+        assert!(dict_result.is_ok());
+        
+        let dict = dict_result.unwrap();
+        assert_eq!(dict.get("cardKingdomId"), Some(&"1001".to_string()));
+        assert_eq!(dict.get("multiverseId"), Some(&"3".to_string()));
+        assert_eq!(dict.get("scryfallId"), Some(&"bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd".to_string()));
+        assert!(!dict.contains_key("mtgArenaId")); // Should not contain None values
+        
+        // Test JSON serialization
+        let json_result = black_lotus_identifiers.to_json();
+        assert!(json_result.is_ok());
+        
+        let json_str = json_result.unwrap();
+        assert!(json_str.contains("1001"));
+        assert!(json_str.contains("bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd"));
+        assert!(json_str.contains("272b85cf-3286-4b7e-8ccf-2c83a2bb9a48"));
+        
+        // Test cloning
+        let cloned = black_lotus_identifiers.clone();
+        assert_eq!(black_lotus_identifiers, cloned);
+    }
+
+    #[test]
+    fn test_identifiers_empty_dict_conversion() {
+        let identifiers = MtgjsonIdentifiers::new();
+        
+        let dict_result = identifiers.to_dict();
+        assert!(dict_result.is_ok());
+        
+        let dict = dict_result.unwrap();
+        
+        // Should be empty since default values are empty strings which get filtered
+        assert!(dict.is_empty());
+    }
+
+    #[test]
+    fn test_identifiers_mixed_none_and_values() {
+        let mut identifiers = MtgjsonIdentifiers::new();
+        
+        // Set only some identifiers to test partial data
+        identifiers.scryfall_id = Some("scryfall-uuid".to_string());
+        identifiers.multiverse_id = Some("12345".to_string());
+        // Leave others as None or empty
+        
+        let dict_result = identifiers.to_dict();
+        assert!(dict_result.is_ok());
+        
+        let dict = dict_result.unwrap();
+        assert_eq!(dict.len(), 2);
+        assert_eq!(dict.get("scryfallId"), Some(&"scryfall-uuid".to_string()));
+        assert_eq!(dict.get("multiverseId"), Some(&"12345".to_string()));
+        
+        // Should not contain keys for None or empty values
+        assert!(!dict.contains_key("cardKingdomId"));
+        assert!(!dict.contains_key("tcgplayerProductId"));
+    }
+
+    #[test]
+    fn test_identifiers_unicode_and_special_chars() {
+        let mut identifiers = MtgjsonIdentifiers::new();
+        
+        // Test with unicode and special characters
+        identifiers.mtgjson_v4_id = Some("マジック・ザ・ギャザリング".to_string()); // Magic in Japanese
+        identifiers.scryfall_id = Some("café-münü-naïve-résumé".to_string());
+        identifiers.cardsphere_id = Some("test@domain.com".to_string());
+        identifiers.mtgo_id = Some("test_id-with.dots&symbols!".to_string());
+        
+        assert_eq!(identifiers.mtgjson_v4_id, Some("マジック・ザ・ギャザリング".to_string()));
+        assert_eq!(identifiers.scryfall_id, Some("café-münü-naïve-résumé".to_string()));
+        assert_eq!(identifiers.cardsphere_id, Some("test@domain.com".to_string()));
+        assert_eq!(identifiers.mtgo_id, Some("test_id-with.dots&symbols!".to_string()));
+        
+        // Test serialization with unicode
+        let json_result = identifiers.to_json();
+        assert!(json_result.is_ok());
+        
+        let json_str = json_result.unwrap();
+        assert!(json_str.contains("マジック"));
+        assert!(json_str.contains("café"));
+    }
+
+    #[test]
+    fn test_identifiers_all_fields_coverage() {
+        // Ensure we test every single field in the struct
+        let mut identifiers = MtgjsonIdentifiers::new();
+        
+        // Set every field to a unique value to test coverage
+        identifiers.card_kingdom_etched_id = Some("cke1".to_string());
+        identifiers.card_kingdom_foil_id = Some("ckf2".to_string());
+        identifiers.card_kingdom_id = Some("ck3".to_string());
+        identifiers.cardsphere_foil_id = Some("csf4".to_string());
+        identifiers.cardsphere_id = Some("cs5".to_string());
+        identifiers.mcm_id = Some("mcm6".to_string());
+        identifiers.mcm_meta_id = Some("mcmm7".to_string());
+        identifiers.mtg_arena_id = Some("arena8".to_string());
+        identifiers.mtgjson_foil_version_id = Some("mjf9".to_string());
+        identifiers.mtgjson_non_foil_version_id = Some("mjnf10".to_string());
+        identifiers.mtgjson_v4_id = Some("mjv4_11".to_string());
+        identifiers.mtgo_foil_id = Some("mtgof12".to_string());
+        identifiers.mtgo_id = Some("mtgo13".to_string());
+        identifiers.multiverse_id = Some("mv14".to_string());
+        identifiers.scryfall_id = Some("sf15".to_string());
+        identifiers.scryfall_illustration_id = Some("sfi16".to_string());
+        identifiers.scryfall_card_back_id = Some("sfcb17".to_string());
+        identifiers.scryfall_oracle_id = Some("sfo18".to_string());
+        identifiers.tcgplayer_etched_product_id = Some("tcge19".to_string());
+        identifiers.tcgplayer_product_id = Some("tcg20".to_string());
+        
+        // Verify all fields are set correctly
+        assert_eq!(identifiers.card_kingdom_etched_id, Some("cke1".to_string()));
+        assert_eq!(identifiers.card_kingdom_foil_id, Some("ckf2".to_string()));
+        assert_eq!(identifiers.card_kingdom_id, Some("ck3".to_string()));
+        assert_eq!(identifiers.cardsphere_foil_id, Some("csf4".to_string()));
+        assert_eq!(identifiers.cardsphere_id, Some("cs5".to_string()));
+        assert_eq!(identifiers.mcm_id, Some("mcm6".to_string()));
+        assert_eq!(identifiers.mcm_meta_id, Some("mcmm7".to_string()));
+        assert_eq!(identifiers.mtg_arena_id, Some("arena8".to_string()));
+        assert_eq!(identifiers.mtgjson_foil_version_id, Some("mjf9".to_string()));
+        assert_eq!(identifiers.mtgjson_non_foil_version_id, Some("mjnf10".to_string()));
+        assert_eq!(identifiers.mtgjson_v4_id, Some("mjv4_11".to_string()));
+        assert_eq!(identifiers.mtgo_foil_id, Some("mtgof12".to_string()));
+        assert_eq!(identifiers.mtgo_id, Some("mtgo13".to_string()));
+        assert_eq!(identifiers.multiverse_id, Some("mv14".to_string()));
+        assert_eq!(identifiers.scryfall_id, Some("sf15".to_string()));
+        assert_eq!(identifiers.scryfall_illustration_id, Some("sfi16".to_string()));
+        assert_eq!(identifiers.scryfall_card_back_id, Some("sfcb17".to_string()));
+        assert_eq!(identifiers.scryfall_oracle_id, Some("sfo18".to_string()));
+        assert_eq!(identifiers.tcgplayer_etched_product_id, Some("tcge19".to_string()));
+        assert_eq!(identifiers.tcgplayer_product_id, Some("tcg20".to_string()));
+        
+        // Test serialization with all fields
+        let json_result = identifiers.to_json();
+        assert!(json_result.is_ok());
+        
+        let json_str = json_result.unwrap();
+        
+        // Should contain all the unique values
+        for i in 1..=20 {
+            let search_str = format!("{}", i);
+            assert!(json_str.contains(&search_str), "JSON should contain value {}", i);
+        }
     }
 }

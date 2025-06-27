@@ -5,7 +5,7 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use regex::Regex;
 use crate::classes::{MtgjsonPricesObject, MtgjsonSealedProductObject};
-use crate::providers::{AbstractProvider, BaseProvider, ProviderResult};
+use crate::providers::{AbstractProvider, BaseProvider, ProviderError, ProviderResult};
 
 #[pyclass(name = "CardKingdomProvider")]
 pub struct CardKingdomProvider {
@@ -15,12 +15,6 @@ pub struct CardKingdomProvider {
 impl CardKingdomProvider {
     const API_URL: &'static str = "https://api.cardkingdom.com/api/pricelist";
     const SEALED_URL: &'static str = "https://api.cardkingdom.com/api/sealed_pricelist";
-    
-    /// Get today's date string
-    fn today_date(&self) -> String {
-        // Return current date in YYYY-MM-DD format
-        chrono::Utc::now().format("%Y-%m-%d").to_string()
-    }
 }
 
 #[pymethods]
@@ -60,7 +54,7 @@ impl CardKingdomProvider {
         runtime.block_on(async {
             self.update_sealed_urls_async(&mut sealed_products).await?;
             Ok(sealed_products)
-        }).map_err(|e: Box<dyn std::error::Error>| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Sealed URLs error: {}", e)))
+        }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Sealed URLs error: {}", e)))
     }
 }
 
@@ -68,10 +62,9 @@ impl CardKingdomProvider {
     /// Generate today's price dictionary (async version)
     async fn generate_today_price_dict_async(&self, all_printings_path: &str) -> ProviderResult<HashMap<String, MtgjsonPricesObject>> {
         let api_response = self.download(Self::API_URL, None).await?;
-        let empty_vec = vec![];
         let price_data_rows = api_response.get("data")
             .and_then(|v| v.as_array())
-            .unwrap_or(&empty_vec)
+            .unwrap_or(&vec![])
             .clone();
         
         // Build mapping from Card Kingdom IDs to MTGJSON UUIDs
@@ -127,12 +120,11 @@ impl CardKingdomProvider {
     }
     
     /// Update sealed URLs (async version)
-    async fn update_sealed_urls_async(&self, sealed_products: &mut Vec<MtgjsonSealedProductObject>) -> PyResult<()> {
+    async fn update_sealed_urls_async(&self, sealed_products: &mut Vec<MtgjsonSealedProductObject>) -> ProviderResult<()> {
         let api_data = self.download(Self::SEALED_URL, None).await?;
-        let empty_vec = vec![];
         let data_array = api_data.get("data")
             .and_then(|v| v.as_array())
-            .unwrap_or(&empty_vec);
+            .unwrap_or(&vec![]);
         
         for product in sealed_products {
             if let Some(ref identifiers) = product.identifiers {
@@ -146,7 +138,6 @@ impl CardKingdomProvider {
                                         .and_then(|v| v.as_str()),
                                     remote_product.get("url").and_then(|v| v.as_str())
                                 ) {
-                                    let referall = crate::constants::CARD_KINGDOM_REFERRAL;
                                     let referral = "?partner=MTGJSONAffiliate&utm_source=MTGJSONAffiliate&utm_medium=affiliate&utm_campaign=MTGJSONAffiliate";
                                     let full_url = format!("{}{}{}", base_url, url_path, referral);
                                     let mut purchase_urls = crate::classes::MtgjsonPurchaseUrls::new();
@@ -166,6 +157,18 @@ impl CardKingdomProvider {
         }
         
         Ok(())
+    }
+    
+    /// Generate entity mapping from all printings file
+    async fn generate_entity_mapping(
+        &self,
+        _all_printings_path: &str,
+        _id_path: &[&str],
+        _uuid_path: &[&str],
+    ) -> ProviderResult<HashMap<String, HashSet<String>>> {
+        // This would normally read from the all printings file
+        // For now, return empty mapping as placeholder
+        Ok(HashMap::new())
     }
 }
 

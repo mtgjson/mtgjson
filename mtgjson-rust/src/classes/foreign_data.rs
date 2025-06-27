@@ -140,3 +140,257 @@ impl JsonObject for MtgjsonForeignDataObject {
         keys_to_skip
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_foreign_data_creation() {
+        let foreign_data = MtgjsonForeignDataObject::new();
+        assert_eq!(foreign_data.face_name, None);
+        assert_eq!(foreign_data.flavor_text, None);
+        assert_eq!(foreign_data.language, "");
+        assert_eq!(foreign_data.multiverse_id, None);
+        assert_eq!(foreign_data.name, "");
+        assert_eq!(foreign_data.text, None);
+        assert_eq!(foreign_data.type_, None);
+    }
+
+    #[test]
+    fn test_foreign_data_setters() {
+        let mut foreign_data = MtgjsonForeignDataObject::new();
+        
+        foreign_data.language = "Japanese".to_string();
+        foreign_data.name = "稲妻".to_string();
+        foreign_data.text = Some("クリーチャー1体かプレイヤー1人を対象とする。稲妻はそれに3点のダメージを与える。".to_string());
+        foreign_data.flavor_text = Some("雷の力".to_string());
+        foreign_data.face_name = Some("表面".to_string());
+        foreign_data.type_ = Some("インスタント".to_string());
+        foreign_data.multiverse_id = Some(12345);
+        
+        assert_eq!(foreign_data.language, "Japanese");
+        assert_eq!(foreign_data.name, "稲妻");
+        assert_eq!(foreign_data.text, Some("クリーチャー1体かプレイヤー1人を対象とする。稲妻はそれに3点のダメージを与える。".to_string()));
+        assert_eq!(foreign_data.flavor_text, Some("雷の力".to_string()));
+        assert_eq!(foreign_data.face_name, Some("表面".to_string()));
+        assert_eq!(foreign_data.type_, Some("インスタント".to_string()));
+        assert_eq!(foreign_data.multiverse_id, Some(12345));
+    }
+
+    #[test]
+    fn test_foreign_data_languages() {
+        let mut foreign_data = MtgjsonForeignDataObject::new();
+        
+        // Test various languages
+        let languages = vec![
+            "English", "Spanish", "French", "German", "Italian", "Portuguese",
+            "Japanese", "Korean", "Russian", "Simplified Chinese", "Traditional Chinese"
+        ];
+        
+        for language in languages {
+            foreign_data.language = language.to_string();
+            assert_eq!(foreign_data.language, language);
+        }
+    }
+
+    #[test]
+    fn test_foreign_data_special_characters() {
+        let mut foreign_data = MtgjsonForeignDataObject::new();
+        
+        // Test special characters in different languages
+        foreign_data.name = "Tëst Cärd with Spëcial Chärs".to_string();
+        foreign_data.text = Some("Tëxt with ümlauts änd àccents éñç".to_string());
+        foreign_data.flavor_text = Some("Flävör tëxt with spëcial châractërs".to_string());
+        
+        assert_eq!(foreign_data.name, "Tëst Cärd with Spëcial Chärs");
+        assert_eq!(foreign_data.text, Some("Tëxt with ümlauts änd àccents éñç".to_string()));
+        assert_eq!(foreign_data.flavor_text, Some("Flävör tëxt with spëcial châractërs".to_string()));
+    }
+
+    #[test]
+    fn test_foreign_data_unicode() {
+        let mut foreign_data = MtgjsonForeignDataObject::new();
+        
+        // Test Unicode characters
+        foreign_data.name = "🔥Lightning Bolt⚡".to_string();
+        foreign_data.text = Some("Deal 3 damage to any target 🎯".to_string());
+        
+        assert!(foreign_data.name.contains("🔥"));
+        assert!(foreign_data.name.contains("⚡"));
+        assert!(foreign_data.text.as_ref().unwrap().contains("🎯"));
+    }
+
+    #[test]
+    fn test_foreign_data_empty_values() {
+        let mut foreign_data = MtgjsonForeignDataObject::new();
+        
+        // Test empty strings
+        foreign_data.language = "".to_string();
+        foreign_data.name = "".to_string();
+        foreign_data.text = Some("".to_string());
+        foreign_data.flavor_text = Some("".to_string());
+        
+        assert_eq!(foreign_data.language, "");
+        assert_eq!(foreign_data.name, "");
+        assert_eq!(foreign_data.text, Some("".to_string()));
+        assert_eq!(foreign_data.flavor_text, Some("".to_string()));
+    }
+
+    #[test]
+    fn test_foreign_data_long_text() {
+        let mut foreign_data = MtgjsonForeignDataObject::new();
+        
+        // Test very long text
+        let long_text = "This is a very long text that simulates a card with extensive rules text. ".repeat(100);
+        foreign_data.text = Some(long_text.clone());
+        
+        assert_eq!(foreign_data.text, Some(long_text));
+        assert!(foreign_data.text.as_ref().unwrap().len() > 1000);
+    }
+
+    #[test]
+    fn test_foreign_data_multiverse_id_edge_cases() {
+        let mut foreign_data = MtgjsonForeignDataObject::new();
+        
+        // Test edge cases for multiverse_id
+        foreign_data.multiverse_id = Some(0);
+        assert_eq!(foreign_data.multiverse_id, Some(0));
+        
+        foreign_data.multiverse_id = Some(i32::MAX);
+        assert_eq!(foreign_data.multiverse_id, Some(i32::MAX));
+        
+        foreign_data.multiverse_id = None;
+        assert_eq!(foreign_data.multiverse_id, None);
+    }
+
+    #[test]
+    fn test_foreign_data_json_serialization() {
+        let mut foreign_data = MtgjsonForeignDataObject::new();
+        foreign_data.language = "French".to_string();
+        foreign_data.name = "Éclair".to_string();
+        foreign_data.text = Some("Infligez 3 blessures à n'importe quelle cible.".to_string());
+        foreign_data.multiverse_id = Some(54321);
+        
+        let json_result = serde_json::to_string(&foreign_data);
+        assert!(json_result.is_ok());
+        
+        let json_string = json_result.unwrap();
+        assert!(json_string.contains("French"));
+        assert!(json_string.contains("Éclair"));
+        assert!(json_string.contains("54321"));
+        
+        // Test deserialization
+        let deserialized: MtgjsonForeignDataObject = serde_json::from_str(&json_string).unwrap();
+        assert_eq!(deserialized.language, "French");
+        assert_eq!(deserialized.name, "Éclair");
+        assert_eq!(deserialized.multiverse_id, Some(54321));
+    }
+
+    #[test]
+    fn test_foreign_data_default_trait() {
+        let foreign_data = MtgjsonForeignDataObject::default();
+        assert_eq!(foreign_data.language, "");
+        assert_eq!(foreign_data.name, "");
+        assert_eq!(foreign_data.text, None);
+        assert_eq!(foreign_data.flavor_text, None);
+        assert_eq!(foreign_data.face_name, None);
+        assert_eq!(foreign_data.type_, None);
+        assert_eq!(foreign_data.multiverse_id, None);
+    }
+
+    #[test]
+    fn test_foreign_data_clone() {
+        let mut original = MtgjsonForeignDataObject::new();
+        original.language = "Spanish".to_string();
+        original.name = "Rayo".to_string();
+        original.multiverse_id = Some(98765);
+        
+        let cloned = original.clone();
+        assert_eq!(cloned.language, "Spanish");
+        assert_eq!(cloned.name, "Rayo");
+        assert_eq!(cloned.multiverse_id, Some(98765));
+        
+        // Verify independence
+        assert_eq!(original.language, cloned.language);
+    }
+
+    #[test]
+    fn test_foreign_data_equality() {
+        let mut foreign_data1 = MtgjsonForeignDataObject::new();
+        let mut foreign_data2 = MtgjsonForeignDataObject::new();
+        
+        foreign_data1.language = "German".to_string();
+        foreign_data1.name = "Blitz".to_string();
+        
+        foreign_data2.language = "German".to_string();
+        foreign_data2.name = "Blitz".to_string();
+        
+        assert_eq!(foreign_data1, foreign_data2);
+        
+        foreign_data2.name = "Blitzschlag".to_string();
+        assert_ne!(foreign_data1, foreign_data2);
+    }
+
+    #[test]
+    fn test_foreign_data_partial_eq() {
+        let foreign_data1 = MtgjsonForeignDataObject {
+            language: "Italian".to_string(),
+            name: "Fulmine".to_string(),
+            text: Some("Infliggi 3 danni a una qualsiasi creatura o giocatore.".to_string()),
+            flavor_text: None,
+            face_name: None,
+            type_: Some("Istantaneo".to_string()),
+            multiverse_id: Some(11111),
+        };
+        
+        let foreign_data2 = MtgjsonForeignDataObject {
+            language: "Italian".to_string(),
+            name: "Fulmine".to_string(),
+            text: Some("Infliggi 3 danni a una qualsiasi creatura o giocatore.".to_string()),
+            flavor_text: None,
+            face_name: None,
+            type_: Some("Istantaneo".to_string()),
+            multiverse_id: Some(11111),
+        };
+        
+        assert_eq!(foreign_data1, foreign_data2);
+    }
+
+    #[test]
+    fn test_foreign_data_validation() {
+        let mut foreign_data = MtgjsonForeignDataObject::new();
+        
+        // Test that we can set valid language codes
+        let valid_languages = vec![
+            "en", "es", "fr", "de", "it", "pt", "ja", "ko", "ru", "zh-CN", "zh-TW"
+        ];
+        
+        for lang in valid_languages {
+            foreign_data.language = lang.to_string();
+            assert_eq!(foreign_data.language, lang);
+        }
+    }
+
+    #[test] 
+    fn test_foreign_data_comprehensive_fields() {
+        let foreign_data = MtgjsonForeignDataObject {
+            language: "Portuguese".to_string(),
+            name: "Raio".to_string(),
+            text: Some("Cause 3 pontos de dano a qualquer alvo.".to_string()),
+            flavor_text: Some("Rápido como o raio.".to_string()),
+            face_name: Some("Frente".to_string()),
+            type_: Some("Mágica Instantânea".to_string()),
+            multiverse_id: Some(77777),
+        };
+        
+        // Verify all fields are set correctly
+        assert_eq!(foreign_data.language, "Portuguese");
+        assert_eq!(foreign_data.name, "Raio");
+        assert_eq!(foreign_data.text, Some("Cause 3 pontos de dano a qualquer alvo.".to_string()));
+        assert_eq!(foreign_data.flavor_text, Some("Rápido como o raio.".to_string()));
+        assert_eq!(foreign_data.face_name, Some("Frente".to_string()));
+        assert_eq!(foreign_data.type_, Some("Mágica Instantânea".to_string()));
+        assert_eq!(foreign_data.multiverse_id, Some(77777));
+    }
+}

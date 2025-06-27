@@ -120,7 +120,7 @@ impl MtgjsonDeckObjectList {
     }
 
     /// Get the decks list (for JSON serialization)
-    pub fn get_decks(&self) -> Vec<MtgjsonDeckHeaderObject> {
+    pub fn decks_list(&self) -> Vec<MtgjsonDeckHeaderObject> {
         self.decks.clone()
     }
 }

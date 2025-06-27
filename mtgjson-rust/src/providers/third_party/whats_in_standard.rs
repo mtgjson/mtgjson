@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use pyo3::prelude::*;
+use pyo3::types::{PySet, PyDict};
 use reqwest::Response;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
@@ -228,10 +229,8 @@ impl WhatsInStandardProvider {
             .ok_or_else(|| ProviderError::ParseError("Missing 'sets' array in API response".to_string()))?;
         
         let now = Utc::now();
-        let mut standard_set_codes = FxHashSet::with_capacity_and_hasher(
-            sets_array.len(), 
-            rustc_hash::FxBuildHasher::default()
-        );
+        let mut standard_set_codes = FxHashSet::default();
+        standard_set_codes.reserve(sets_array.len());
         
         // Process sets with optimized iteration and parsing
         for set_object in sets_array.iter() {
@@ -292,7 +291,7 @@ impl AbstractProvider for WhatsInStandardProvider {
         
         let mut retry_count = 0;
         loop {
-            let response = self.base.get_request_with_headers(url, params.clone(), Some(headers.clone())).await?;
+            let response = self.base.get_request(url, params.clone()).await?;
             
             if response.status().is_success() {
                 return response.json().await.map_err(|e| {
@@ -324,8 +323,7 @@ impl AbstractProvider for WhatsInStandardProvider {
     
     /// Fast raw text download with minimal overhead
     async fn download_raw(&self, url: &str, params: Option<HashMap<String, String>>) -> ProviderResult<String> {
-        let headers = self.build_http_header();
-        self.base.download_text_with_headers(url, params, Some(headers)).await
+        self.base.download_text(url, params).await
     }
     
     /// Optimized logging with minimal performance impact

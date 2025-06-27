@@ -66,7 +66,7 @@ impl MtgjsonCompiledList {
     }
 
     /// Get the files list (for JSON serialization)
-    pub fn get_files(&self) -> Vec<String> {
+    pub fn files_list(&self) -> Vec<String> {
         self.files.clone()
     }
 }

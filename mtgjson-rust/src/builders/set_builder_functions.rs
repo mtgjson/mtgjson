@@ -30,7 +30,7 @@ pub fn get_set_translation_data(set_name: &str) -> PyResult<Option<HashMap<Strin
 
 /// Build MTGJSON set from provided set data
 #[pyfunction]
-pub fn build_mtgjson_set_from_data(set_data: HashMap<String, Value>) -> PyResult<Option<MtgjsonSetObject>> {
+pub fn build_mtgjson_set_from_data(_py: Python, _set_data: &pyo3::types::PyDict) -> PyResult<Option<MtgjsonSetObject>> {
     // This would build a set from provided data rather than fetching from Scryfall
     // Implementation would be similar to build_mtgjson_set but with provided data
     
@@ -149,7 +149,7 @@ pub fn validate_set_data(mtgjson_set: &MtgjsonSetObject) -> PyResult<Vec<String>
 pub fn set_builder_functions_module(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_set_translation_data, m)?)?;
     m.add_function(wrap_pyfunction!(build_mtgjson_set_from_data, m)?)?;
-    m.add_function(wrap_pyfunction!(parse_card_types_wrapper, m)?)?;
+    m.add_function(wrap_pyfunction!(parse_card_types, m)?)?;
     m.add_function(wrap_pyfunction!(get_card_colors_wrapper, m)?)?;
     m.add_function(wrap_pyfunction!(get_card_cmc_wrapper, m)?)?;
     m.add_function(wrap_pyfunction!(is_number_wrapper, m)?)?;
@@ -161,7 +161,7 @@ pub fn set_builder_functions_module(m: &Bound<'_, pyo3::types::PyModule>) -> PyR
     m.add_function(wrap_pyfunction!(process_set_data, m)?)?;
     m.add_function(wrap_pyfunction!(apply_set_corrections, m)?)?;
     m.add_function(wrap_pyfunction!(validate_set_data, m)?)?;
-    m.add_function(wrap_pyfunction!(build_and_validate_set, m)?)?;
+    // build_and_validate_set function not yet implemented
     Ok(())
 }
 

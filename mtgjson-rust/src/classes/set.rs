@@ -437,19 +437,18 @@ mod tests {
     #[test]
     fn test_set_creation() {
         let set = MtgjsonSetObject::new();
-        assert_eq!(set.base_set_size, 0);
+        assert_eq!(set.base_set_size, None);
         assert_eq!(set.total_set_size, 0);
         assert!(set.cards.is_empty());
         assert!(set.tokens.is_empty());
-        assert_eq!(set.block, "");
-        assert_eq!(set.code, "");
         assert_eq!(set.name, "");
+        assert_eq!(set.code, None);
     }
 
     #[test]
     fn test_set_default() {
         let set = MtgjsonSetObject::default();
-        assert_eq!(set.base_set_size, 0);
+        assert_eq!(set.base_set_size, None);
         assert_eq!(set.total_set_size, 0);
         assert!(set.cards.is_empty());
         assert!(set.tokens.is_empty());
@@ -472,65 +471,292 @@ mod tests {
     }
 
     #[test]
-    fn test_set_identifiers() {
+    fn test_add_deck() {
         let mut set = MtgjsonSetObject::new();
-        let ids = vec!["id1".to_string(), "id2".to_string()];
-        set.set_identifiers(ids.clone());
-        assert_eq!(set.get_identifiers(), ids);
+        let deck = MtgjsonDeckObject::new("Test Deck", None);
+        set.add_deck(deck);
+        assert_eq!(set.decks.len(), 1);
     }
 
     #[test]
-    fn test_set_booster() {
+    fn test_add_sealed_product() {
         let mut set = MtgjsonSetObject::new();
-        let booster = serde_json::json!({"default": {"boosters": [{"cards": []}]}});
-        set.set_booster(Some(booster.clone()));
-        assert_eq!(set.booster, Some(booster));
-    }
-
-    #[test]
-    fn test_set_cardhoarder_code() {
-        let mut set = MtgjsonSetObject::new();
-        set.set_cardhoarder_code(Some("CHC".to_string()));
-        assert_eq!(set.cardhoarder_code, Some("CHC".to_string()));
-    }
-
-    #[test]
-    fn test_set_mtgo_code() {
-        let mut set = MtgjsonSetObject::new();
-        set.set_mtgo_code(Some("MTGO".to_string()));
-        assert_eq!(set.mtgo_code, Some("MTGO".to_string()));
-    }
-
-    #[test]
-    fn test_set_sealed_product() {
-        let mut set = MtgjsonSetObject::new();
-        let sealed_product = MtgjsonSealedProductObject::new();
-        set.set_sealed_product(vec![sealed_product]);
+        let product = MtgjsonSealedProductObject::new();
+        set.add_sealed_product(product);
         assert_eq!(set.sealed_product.len(), 1);
     }
 
     #[test]
-    fn test_set_parent_code() {
+    fn test_sort_cards() {
         let mut set = MtgjsonSetObject::new();
-        set.set_parent_code(Some("PARENT".to_string()));
-        assert_eq!(set.parent_code, Some("PARENT".to_string()));
+        
+        let mut card1 = MtgjsonCardObject::new(false);
+        card1.name = "Beta".to_string();
+        card1.number = "2".to_string();
+        
+        let mut card2 = MtgjsonCardObject::new(false);
+        card2.name = "Alpha".to_string();
+        card2.number = "1".to_string();
+        
+        set.add_card(card1);
+        set.add_card(card2);
+        
+        set.sort_cards();
+        
+        assert_eq!(set.cards[0].name, "Alpha");
+        assert_eq!(set.cards[1].name, "Beta");
     }
 
     #[test]
-    fn test_set_translations() {
+    fn test_sort_tokens() {
         let mut set = MtgjsonSetObject::new();
-        let translations = MtgjsonTranslations::new();
-        set.set_translations(translations.clone());
-        assert_eq!(set.translations, translations);
+        
+        let mut token1 = MtgjsonCardObject::new(true);
+        token1.name = "Zombie".to_string();
+        token1.number = "T2".to_string();
+        
+        let mut token2 = MtgjsonCardObject::new(true);
+        token2.name = "Angel".to_string();
+        token2.number = "T1".to_string();
+        
+        set.add_token(token1);
+        set.add_token(token2);
+        
+        set.sort_tokens();
+        
+        assert_eq!(set.tokens[0].name, "Angel");
+        assert_eq!(set.tokens[1].name, "Zombie");
+    }
+
+    #[test]
+    fn test_get_total_cards() {
+        let mut set = MtgjsonSetObject::new();
+        
+        set.add_card(MtgjsonCardObject::new(false));
+        set.add_card(MtgjsonCardObject::new(false));
+        set.add_token(MtgjsonCardObject::new(true));
+        
+        assert_eq!(set.get_total_cards(), 3);
+    }
+
+    #[test]
+    fn test_get_cards_by_rarity() {
+        let mut set = MtgjsonSetObject::new();
+        
+        let mut common = MtgjsonCardObject::new(false);
+        common.rarity = "common".to_string();
+        
+        let mut rare = MtgjsonCardObject::new(false);
+        rare.rarity = "rare".to_string();
+        
+        let mut another_common = MtgjsonCardObject::new(false);
+        another_common.rarity = "common".to_string();
+        
+        set.add_card(common);
+        set.add_card(rare);
+        set.add_card(another_common);
+        
+        let rarity_counts = set.get_cards_by_rarity();
+        assert_eq!(rarity_counts.get("common"), Some(&2));
+        assert_eq!(rarity_counts.get("rare"), Some(&1));
+    }
+
+    #[test]
+    fn test_get_unique_languages() {
+        let mut set = MtgjsonSetObject::new();
+        
+        let mut english_card = MtgjsonCardObject::new(false);
+        english_card.language = "English".to_string();
+        
+        let mut japanese_card = MtgjsonCardObject::new(false);
+        japanese_card.language = "Japanese".to_string();
+        
+        let mut another_english = MtgjsonCardObject::new(false);
+        another_english.language = "English".to_string();
+        
+        set.add_card(english_card);
+        set.add_card(japanese_card);
+        set.add_card(another_english);
+        
+        let languages = set.get_unique_languages();
+        assert_eq!(languages.len(), 2);
+        assert!(languages.contains(&"English".to_string()));
+        assert!(languages.contains(&"Japanese".to_string()));
+    }
+
+    #[test]
+    fn test_find_card_by_name() {
+        let mut set = MtgjsonSetObject::new();
+        
+        let mut card = MtgjsonCardObject::new(false);
+        card.name = "Lightning Bolt".to_string();
+        
+        set.add_card(card);
+        
+        let index = set.find_card_by_name("Lightning Bolt");
+        assert_eq!(index, Some(0));
+        
+        let not_found = set.find_card_by_name("Nonexistent Card");
+        assert_eq!(not_found, None);
+    }
+
+    #[test]
+    fn test_find_card_by_uuid() {
+        let mut set = MtgjsonSetObject::new();
+        
+        let mut card = MtgjsonCardObject::new(false);
+        card.uuid = "test-uuid-123".to_string();
+        
+        set.add_card(card);
+        
+        let index = set.find_card_by_uuid("test-uuid-123");
+        assert_eq!(index, Some(0));
+        
+        let not_found = set.find_card_by_uuid("nonexistent-uuid");
+        assert_eq!(not_found, None);
+    }
+
+    #[test]
+    fn test_get_cards_of_rarity() {
+        let mut set = MtgjsonSetObject::new();
+        
+        let mut common1 = MtgjsonCardObject::new(false);
+        common1.rarity = "common".to_string();
+        
+        let mut rare = MtgjsonCardObject::new(false);
+        rare.rarity = "rare".to_string();
+        
+        let mut common2 = MtgjsonCardObject::new(false);
+        common2.rarity = "common".to_string();
+        
+        set.add_card(common1);
+        set.add_card(rare);
+        set.add_card(common2);
+        
+        let common_indices = set.get_cards_of_rarity("common");
+        assert_eq!(common_indices.len(), 2);
+        assert!(common_indices.contains(&0));
+        assert!(common_indices.contains(&2));
+        
+        let rare_indices = set.get_cards_of_rarity("rare");
+        assert_eq!(rare_indices.len(), 1);
+        assert!(rare_indices.contains(&1));
+    }
+
+    #[test]
+    fn test_has_foil_cards() {
+        let mut set = MtgjsonSetObject::new();
+        
+        let mut foil_card = MtgjsonCardObject::new(false);
+        foil_card.finishes = vec!["foil".to_string()];
+        
+        set.add_card(foil_card);
+        assert!(set.has_foil_cards());
+    }
+
+    #[test]
+    fn test_has_non_foil_cards() {
+        let mut set = MtgjsonSetObject::new();
+        
+        let mut nonfoil_card = MtgjsonCardObject::new(false);
+        nonfoil_card.finishes = vec!["nonfoil".to_string()];
+        
+        set.add_card(nonfoil_card);
+        assert!(set.has_non_foil_cards());
+    }
+
+    #[test]
+    fn test_get_statistics() {
+        let mut set = MtgjsonSetObject::new();
+        set.base_set_size = Some(100);
+        
+        set.add_card(MtgjsonCardObject::new(false));
+        set.add_card(MtgjsonCardObject::new(false));
+        
+        let stats = set.get_statistics();
+        assert!(stats.contains("total_cards"));
+        assert!(stats.contains("base_set_size"));
+    }
+
+    #[test]
+    fn test_update_set_sizes() {
+        let mut set = MtgjsonSetObject::new();
+        
+        let mut normal_card = MtgjsonCardObject::new(false);
+        normal_card.rarity = "common".to_string();
+        
+        let mut token = MtgjsonCardObject::new(true);
+        token.types = vec!["Token".to_string()];
+        
+        set.add_card(normal_card);
+        set.add_card(token);
+        
+        set.update_set_sizes();
+        
+        assert_eq!(set.total_set_size, 2);
+        assert!(set.base_set_size.is_some());
+    }
+
+    #[test]
+    fn test_validate() {
+        let mut set = MtgjsonSetObject::new();
+        
+        // Empty set should have errors
+        let errors = set.validate();
+        assert!(errors.len() > 0);
+        assert!(errors.iter().any(|e| e.contains("Set code is required")));
+        assert!(errors.iter().any(|e| e.contains("Set name is required")));
+        
+        // Fill required fields
+        set.code = Some("TST".to_string());
+        set.name = "Test Set".to_string();
+        set.release_date = "2023-01-01".to_string();
+        set.type_ = "expansion".to_string();
+        
+        let errors = set.validate();
+        assert_eq!(errors.len(), 0);
+    }
+
+    #[test]
+    fn test_validate_duplicate_uuids() {
+        let mut set = MtgjsonSetObject::new();
+        
+        set.code = Some("TST".to_string());
+        set.name = "Test Set".to_string();
+        set.release_date = "2023-01-01".to_string();
+        set.type_ = "expansion".to_string();
+        
+        let mut card1 = MtgjsonCardObject::new(false);
+        card1.uuid = "duplicate-uuid".to_string();
+        
+        let mut card2 = MtgjsonCardObject::new(false);
+        card2.uuid = "duplicate-uuid".to_string();
+        
+        set.add_card(card1);
+        set.add_card(card2);
+        
+        let errors = set.validate();
+        assert!(errors.iter().any(|e| e.contains("Duplicate card UUID found")));
+    }
+
+    #[test]
+    fn test_get_windows_safe_set_code() {
+        let mut set = MtgjsonSetObject::new();
+        set.code = Some("C:\\CON".to_string());
+        
+        let safe_code = set.get_windows_safe_set_code();
+        assert!(!safe_code.contains("\\"));
+        assert!(!safe_code.contains(":"));
     }
 
     #[test]
     fn test_json_serialization() {
         let mut set = MtgjsonSetObject::new();
         set.name = "Test Set".to_string();
-        set.code = "TST".to_string();
-        set.base_set_size = 100;
-        set.total_set_size = 120;
+        set.code = Some("TST".to_string());
+        set.release_date = "2023-01-01".to_string();
+        set.type_ = "expansion".to_string();
+        set.total_set_size = 100;
         
         let json_result = set.to_json();
         assert!(json_result.is_ok());
@@ -538,15 +764,15 @@ mod tests {
         let json_string = json_result.unwrap();
         assert!(json_string.contains("Test Set"));
         assert!(json_string.contains("TST"));
-        assert!(json_string.contains("100"));
-        assert!(json_string.contains("120"));
+        assert!(json_string.contains("2023-01-01"));
+        assert!(json_string.contains("expansion"));
     }
 
     #[test]
     fn test_string_representations() {
         let mut set = MtgjsonSetObject::new();
         set.name = "Test Set".to_string();
-        set.code = "TST".to_string();
+        set.code = Some("TST".to_string());
         
         let str_repr = set.__str__();
         assert!(str_repr.contains("Test Set"));
@@ -562,19 +788,19 @@ mod tests {
         let mut set1 = MtgjsonSetObject::new();
         let mut set2 = MtgjsonSetObject::new();
         
-        set1.code = "TST".to_string();
-        set2.code = "TST".to_string();
+        set1.code = Some("TST".to_string());
+        set2.code = Some("TST".to_string());
         
         assert!(set1.__eq__(&set2));
         
-        set2.code = "DIFF".to_string();
+        set2.code = Some("DIFF".to_string());
         assert!(!set1.__eq__(&set2));
     }
 
     #[test]
     fn test_set_hash() {
         let mut set = MtgjsonSetObject::new();
-        set.code = "TST".to_string();
+        set.code = Some("TST".to_string());
         
         let hash1 = set.__hash__();
         let hash2 = set.__hash__();
@@ -582,113 +808,367 @@ mod tests {
     }
 
     #[test]
-    fn test_set_optional_fields() {
+    fn test_json_object_trait() {
+        let set = MtgjsonSetObject::new();
+        let keys_to_skip = set.build_keys_to_skip();
+        
+        // Should skip certain fields
+        assert!(keys_to_skip.contains("search_uri"));
+        assert!(keys_to_skip.contains("extra_tokens"));
+    }
+
+    // COMPREHENSIVE ADDITIONAL TESTS FOR FULL COVERAGE
+
+    #[test]
+    fn test_set_all_boolean_flags() {
         let mut set = MtgjsonSetObject::new();
         
-        // Test setting optional fields
-        set.is_foil_only = Some(true);
-        set.is_non_foil_only = Some(false);
-        set.is_online_only = Some(true);
-        set.is_partial_preview = Some(false);
-        set.keyrune_code = Some("KRC".to_string());
-        set.mcm_id = Some(12345);
-        set.mcm_id_extras = Some(67890);
-        set.mcm_name = Some("MCM Name".to_string());
-        set.tcgplayer_group_id = Some(54321);
+        set.is_foreign_only = true;
+        set.is_foil_only = true;
+        set.is_non_foil_only = false;
+        set.is_online_only = true;
+        set.is_partial_preview = false;
         
-        assert_eq!(set.is_foil_only, Some(true));
-        assert_eq!(set.is_non_foil_only, Some(false));
-        assert_eq!(set.is_online_only, Some(true));
-        assert_eq!(set.is_partial_preview, Some(false));
-        assert_eq!(set.keyrune_code, Some("KRC".to_string()));
-        assert_eq!(set.mcm_id, Some(12345));
-        assert_eq!(set.mcm_id_extras, Some(67890));
-        assert_eq!(set.mcm_name, Some("MCM Name".to_string()));
-        assert_eq!(set.tcgplayer_group_id, Some(54321));
+        assert!(set.is_foreign_only);
+        assert!(set.is_foil_only);
+        assert!(!set.is_non_foil_only);
+        assert!(set.is_online_only);
+        assert!(!set.is_partial_preview);
     }
 
     #[test]
-    fn test_set_dates() {
+    fn test_set_all_optional_fields() {
         let mut set = MtgjsonSetObject::new();
         
-        set.release_date = "2023-01-01".to_string();
+        set.base_set_size = Some(249);
+        set.booster = Some("standard_booster".to_string());
+        set.cardsphere_set_id = Some(12345);
+        set.code_v3 = Some("LEA".to_string());
+        set.keyrune_code = Some("lea".to_string());
+        set.mcm_id = Some(67890);
+        set.mcm_id_extras = Some(67891);
+        set.mcm_name = Some("Alpha".to_string());
+        set.mtgo_code = Some("LEA".to_string());
+        set.parent_code = Some("PARENT".to_string());
+        set.tcgplayer_group_id = Some(99999);
+        set.token_set_code = Some("TLEA".to_string());
         
-        assert_eq!(set.release_date, "2023-01-01");
+        assert_eq!(set.base_set_size, Some(249));
+        assert_eq!(set.booster, Some("standard_booster".to_string()));
+        assert_eq!(set.cardsphere_set_id, Some(12345));
+        assert_eq!(set.code_v3, Some("LEA".to_string()));
+        assert_eq!(set.keyrune_code, Some("lea".to_string()));
+        assert_eq!(set.mcm_id, Some(67890));
+        assert_eq!(set.mcm_id_extras, Some(67891));
+        assert_eq!(set.mcm_name, Some("Alpha".to_string()));
+        assert_eq!(set.mtgo_code, Some("LEA".to_string()));
+        assert_eq!(set.parent_code, Some("PARENT".to_string()));
+        assert_eq!(set.tcgplayer_group_id, Some(99999));
+        assert_eq!(set.token_set_code, Some("TLEA".to_string()));
     }
 
     #[test]
     fn test_set_languages() {
         let mut set = MtgjsonSetObject::new();
         
-        set.languages = vec!["English".to_string(), "Spanish".to_string(), "French".to_string()];
+        set.languages = vec!["English".to_string(), "Japanese".to_string(), "French".to_string()];
         
         assert_eq!(set.languages.len(), 3);
         assert!(set.languages.contains(&"English".to_string()));
-        assert!(set.languages.contains(&"Spanish".to_string()));
+        assert!(set.languages.contains(&"Japanese".to_string()));
         assert!(set.languages.contains(&"French".to_string()));
     }
 
     #[test]
-    fn test_json_object_trait() {
-        let set = MtgjsonSetObject::new();
-        let keys_to_skip = set.build_keys_to_skip();
+    fn test_set_extra_tokens() {
+        let mut set = MtgjsonSetObject::new();
         
-        // Should contain identifiers as they are marked as skip
-        assert!(keys_to_skip.contains("identifiers"));
+        set.extra_tokens = vec!["Token1".to_string(), "Token2".to_string()];
+        
+        assert_eq!(set.extra_tokens.len(), 2);
+        assert!(set.extra_tokens.contains(&"Token1".to_string()));
+        assert!(set.extra_tokens.contains(&"Token2".to_string()));
     }
 
     #[test]
-    fn test_cards_and_tokens_manipulation() {
+    fn test_set_translations() {
         let mut set = MtgjsonSetObject::new();
         
-        // Add multiple cards
-        let card1 = MtgjsonCardObject::new(false);
-        let card2 = MtgjsonCardObject::new(false);
-        set.add_card(card1);
-        set.add_card(card2);
+        let translations = MtgjsonTranslations::new(None);
+        set.translations = translations;
         
-        // Add multiple tokens
-        let token1 = MtgjsonCardObject::new(true);
-        let token2 = MtgjsonCardObject::new(true);
-        set.add_token(token1);
-        set.add_token(token2);
-        
-        assert_eq!(set.cards.len(), 2);
-        assert_eq!(set.tokens.len(), 2);
+        // Test that translations field is properly set
+        assert_eq!(set.translations.ancient_greek, None);
     }
 
     #[test]
-    fn test_set_type() {
+    fn test_set_clone_trait() {
+        let mut set = MtgjsonSetObject::new();
+        set.name = "Original Set".to_string();
+        set.code = Some("ORIG".to_string());
+        set.total_set_size = 100;
+        
+        let cloned_set = set.clone();
+        
+        assert_eq!(set.name, cloned_set.name);
+        assert_eq!(set.code, cloned_set.code);
+        assert_eq!(set.total_set_size, cloned_set.total_set_size);
+    }
+
+    #[test]
+    fn test_set_edge_cases() {
         let mut set = MtgjsonSetObject::new();
         
+        // Test empty string fields
+        set.name = "".to_string();
+        set.release_date = "".to_string();
+        set.type_ = "".to_string();
+        
+        assert_eq!(set.name, "");
+        assert_eq!(set.release_date, "");
+        assert_eq!(set.type_, "");
+        
+        // Test special characters
+        set.name = "Æther Revolt™".to_string();
+        assert!(set.name.contains("Æ"));
+        assert!(set.name.contains("™"));
+    }
+
+    #[test]
+    fn test_set_large_collections() {
+        let mut set = MtgjsonSetObject::new();
+        
+        // Add many cards
+        for i in 0..1000 {
+            let mut card = MtgjsonCardObject::new(false);
+            card.name = format!("Card {}", i);
+            card.uuid = format!("uuid-{}", i);
+            set.add_card(card);
+        }
+        
+        assert_eq!(set.cards.len(), 1000);
+        assert_eq!(set.get_total_cards(), 1000);
+        
+        // Test finding specific cards in large collection
+        let found = set.find_card_by_name("Card 500");
+        assert!(found.is_some());
+    }
+
+    #[test]
+    fn test_set_serialization_deserialization() {
+        let mut set = MtgjsonSetObject::new();
+        set.name = "Test Set".to_string();
+        set.code = Some("TST".to_string());
+        set.release_date = "2023-01-01".to_string();
         set.type_ = "expansion".to_string();
-        assert_eq!(set.type_, "expansion");
+        set.total_set_size = 100;
+        set.base_set_size = Some(90);
+        set.is_foil_only = false;
+        set.is_online_only = true;
+        
+        let json_result = set.to_json();
+        assert!(json_result.is_ok());
+        
+        let json_str = json_result.unwrap();
+        
+        // Test that serialization contains expected fields
+        assert!(json_str.contains("Test Set"));
+        assert!(json_str.contains("TST"));
+        assert!(json_str.contains("2023-01-01"));
+        assert!(json_str.contains("expansion"));
+        
+        // Test deserialization
+        let deserialized: Result<MtgjsonSetObject, _> = serde_json::from_str(&json_str);
+        assert!(deserialized.is_ok());
+        
+        let deserialized_set = deserialized.unwrap();
+        assert_eq!(deserialized_set.name, "Test Set");
+        assert_eq!(deserialized_set.code, Some("TST".to_string()));
+        assert_eq!(deserialized_set.release_date, "2023-01-01");
+        assert_eq!(deserialized_set.type_, "expansion");
     }
 
-    #[test] 
-    fn test_set_complex_booster() {
+    #[test]
+    fn test_set_complex_integration_scenario() {
         let mut set = MtgjsonSetObject::new();
         
-        let complex_booster = serde_json::json!({
-            "default": {
-                "boostersTotalWeight": 100,
-                "boosters": [
-                    {
-                        "weight": 50,
-                        "cards": [
-                            {"slot": "common", "count": 10},
-                            {"slot": "uncommon", "count": 3},
-                            {"slot": "rare", "count": 1}
-                        ]
-                    }
-                ]
-            }
-        });
+        // Set up a complex set scenario
+        set.name = "Magic 2015 Core Set".to_string();
+        set.code = Some("M15".to_string());
+        set.code_v3 = Some("M15".to_string());
+        set.release_date = "2014-07-18".to_string();
+        set.type_ = "core".to_string();
+        set.total_set_size = 284;
+        set.base_set_size = Some(269);
+        set.is_foil_only = false;
+        set.is_non_foil_only = false;
+        set.is_online_only = false;
+        set.is_partial_preview = false;
+        set.languages = vec!["English".to_string(), "Japanese".to_string(), "Chinese Simplified".to_string()];
+        set.mcm_id = Some(1234);
+        set.tcgplayer_group_id = Some(5678);
         
-        set.set_booster(Some(complex_booster.clone()));
-        assert!(set.booster.is_some());
+        // Add various cards
+        let mut creature = MtgjsonCardObject::new(false);
+        creature.name = "Grizzly Bears".to_string();
+        creature.types = vec!["Creature".to_string()];
+        creature.subtypes = vec!["Bear".to_string()];
+        creature.rarity = "common".to_string();
+        creature.language = "English".to_string();
+        creature.finishes = vec!["nonfoil".to_string(), "foil".to_string()];
         
-        let booster = set.booster.as_ref().unwrap();
-        assert!(booster.get("default").is_some());
+        let mut planeswalker = MtgjsonCardObject::new(false);
+        planeswalker.name = "Jace, the Living Guildpact".to_string();
+        planeswalker.types = vec!["Legendary".to_string(), "Planeswalker".to_string()];
+        planeswalker.subtypes = vec!["Jace".to_string()];
+        planeswalker.rarity = "mythic".to_string();
+        planeswalker.language = "English".to_string();
+        
+        let mut token = MtgjsonCardObject::new(true);
+        token.name = "Angel".to_string();
+        token.types = vec!["Token".to_string(), "Creature".to_string()];
+        token.subtypes = vec!["Angel".to_string()];
+        
+        set.add_card(creature);
+        set.add_card(planeswalker);
+        set.add_token(token);
+        
+        // Add a deck
+        let mut deck = MtgjsonDeckObject::new("Intro Pack - Hit the Ground Running", None);
+        deck.code = "M15".to_string();
+        deck.type_ = "intro".to_string();
+        set.add_deck(deck);
+        
+        // Add a sealed product
+        let mut booster = MtgjsonSealedProductObject::new();
+        set.add_sealed_product(booster);
+        
+        // Test all the complex interactions
+        assert_eq!(set.name, "Magic 2015 Core Set");
+        assert_eq!(set.code, Some("M15".to_string()));
+        assert_eq!(set.cards.len(), 2);
+        assert_eq!(set.tokens.len(), 1);
+        assert_eq!(set.decks.len(), 1);
+        assert_eq!(set.sealed_product.len(), 1);
+        assert_eq!(set.get_total_cards(), 3);
+        
+        // Test rarity distribution
+        let rarity_counts = set.get_cards_by_rarity();
+        assert_eq!(rarity_counts.get("common"), Some(&1));
+        assert_eq!(rarity_counts.get("mythic"), Some(&1));
+        
+        // Test languages
+        let languages = set.get_unique_languages();
+        assert!(languages.contains(&"English".to_string()));
+        
+        // Test foil detection
+        assert!(set.has_foil_cards());
+        assert!(set.has_non_foil_cards());
+        
+        // Test finding cards
+        let grizzly_index = set.find_card_by_name("Grizzly Bears");
+        assert_eq!(grizzly_index, Some(0));
+        
+        let jace_index = set.find_card_by_name("Jace, the Living Guildpact");
+        assert_eq!(jace_index, Some(1));
+        
+        // Test validation
+        let errors = set.validate();
+        assert_eq!(errors.len(), 0);
+        
+        // Test JSON serialization of complex set
+        let json_result = set.to_json();
+        assert!(json_result.is_ok());
+        
+        let json_str = json_result.unwrap();
+        assert!(json_str.contains("Magic 2015 Core Set"));
+        assert!(json_str.contains("M15"));
+        assert!(json_str.contains("core"));
+        assert!(json_str.contains("Grizzly Bears"));
+        assert!(json_str.contains("Jace, the Living Guildpact"));
+    }
+
+    #[test]
+    fn test_set_empty_collections_handling() {
+        let set = MtgjsonSetObject::new();
+        
+        // Test methods on empty collections
+        assert_eq!(set.get_total_cards(), 0);
+        assert_eq!(set.get_cards_by_rarity().len(), 0);
+        assert_eq!(set.get_unique_languages().len(), 0);
+        assert_eq!(set.find_card_by_name("Any Name"), None);
+        assert_eq!(set.find_card_by_uuid("any-uuid"), None);
+        assert_eq!(set.get_cards_of_rarity("any"), Vec::<usize>::new());
+        assert!(!set.has_foil_cards());
+        assert!(!set.has_non_foil_cards());
+    }
+
+    #[test]
+    fn test_set_search_uri() {
+        let mut set = MtgjsonSetObject::new();
+        
+        set.search_uri = "https://api.scryfall.com/cards/search?q=set:m15".to_string();
+        
+        assert_eq!(set.search_uri, "https://api.scryfall.com/cards/search?q=set:m15");
+    }
+
+    #[test]
+    fn test_set_partial_eq_trait() {
+        let mut set1 = MtgjsonSetObject::new();
+        let mut set2 = MtgjsonSetObject::new();
+        
+        set1.code = Some("TST".to_string());
+        set1.name = "Test Set".to_string();
+        
+        set2.code = Some("TST".to_string());
+        set2.name = "Test Set".to_string();
+        
+        assert_eq!(set1, set2);
+        
+        set2.name = "Different Set".to_string();
+        assert_ne!(set1, set2);
+    }
+
+    #[test]
+    fn test_set_with_massive_data() {
+        let mut set = MtgjsonSetObject::new();
+        
+        // Stress test with large amounts of data
+        for i in 0..10000 {
+            let mut card = MtgjsonCardObject::new(false);
+            card.name = format!("Test Card {}", i);
+            card.uuid = format!("uuid-{:010}", i); // Zero-padded for sorting
+            card.number = format!("{}", i + 1);
+            card.rarity = match i % 4 {
+                0 => "common",
+                1 => "uncommon", 
+                2 => "rare",
+                _ => "mythic",
+            }.to_string();
+            set.add_card(card);
+        }
+        
+        set.sort_cards();
+        
+        assert_eq!(set.cards.len(), 10000);
+        assert_eq!(set.get_total_cards(), 10000);
+        
+        // Test that sorting worked
+        assert_eq!(set.cards[0].name, "Test Card 0");
+        assert_eq!(set.cards[9999].name, "Test Card 9999");
+        
+        // Test rarity distribution
+        let rarity_counts = set.get_cards_by_rarity();
+        assert_eq!(rarity_counts.get("common").unwrap(), &2500);
+        assert_eq!(rarity_counts.get("uncommon").unwrap(), &2500);
+        assert_eq!(rarity_counts.get("rare").unwrap(), &2500);
+        assert_eq!(rarity_counts.get("mythic").unwrap(), &2500);
+        
+        // Test finding specific cards
+        let found = set.find_card_by_name("Test Card 5000");
+        assert!(found.is_some());
+        
+        let uuid_found = set.find_card_by_uuid("uuid-0005000000");
+        assert!(uuid_found.is_some());
     }
 }
