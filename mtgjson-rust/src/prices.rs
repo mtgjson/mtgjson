@@ -1,8 +1,7 @@
-use crate::base::JsonObject;
-use indexmap::IndexMap;
+use crate::base::{skip_if_empty_optional_string, JsonObject};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// MTGJSON Singular Prices.Card Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
