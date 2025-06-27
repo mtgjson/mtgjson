@@ -30,140 +30,169 @@ impl OutputGenerator {
     }
     
     /// Generate all compiled output files with high performance
-    pub fn generate_compiled_output_files(&self) -> PyResult<()> {
+    pub fn generate_compiled_output_files(&self, pretty_print: Option<bool>) -> PyResult<()> {
         // Create output directory
         let output_dir = Path::new(&self.output_path);
         fs::create_dir_all(output_dir).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to create output dir: {}", e))
         })?;
         
+        // Set pretty print from parameter or use instance default
+        let use_pretty_print = pretty_print.unwrap_or(self.pretty_print);
+        
         // Generate all major outputs in parallel-friendly order
-        self.build_all_printings_files()?;
-        self.generate_compiled_prices_output()?;
-        self.build_compiled_list()?;
-        self.build_keywords()?;
-        self.build_card_types()?;
-        self.build_meta()?;
-        self.build_set_list()?;
-        self.build_atomic_cards()?;
-        self.build_deck_list()?;
-        self.build_enum_values()?;
+        self.build_all_printings_files(use_pretty_print)?;
+        self.generate_compiled_prices_output(use_pretty_print)?;
+        self.build_compiled_list(use_pretty_print)?;
+        self.build_keywords(use_pretty_print)?;
+        self.build_card_types(use_pretty_print)?;
+        self.build_meta(use_pretty_print)?;
+        self.build_set_list(use_pretty_print)?;
+        self.build_atomic_cards(use_pretty_print)?;
+        self.build_deck_list(use_pretty_print)?;
+        self.build_enum_values(use_pretty_print)?;
         
         Ok(())
     }
     
     /// Build AllPrintings and related format files
-    pub fn build_all_printings_files(&self) -> PyResult<()> {
+    pub fn build_all_printings_files(&self, pretty_print: bool) -> PyResult<()> {
         // Generate AllPrintings
         let all_printings = MtgjsonAllPrintings::new();
-        let all_printings_json = serde_json::to_string(&all_printings).unwrap_or_default();
-        self.create_compiled_output("AllPrintings", all_printings_json)?;
+        let all_printings_json = serde_json::to_string(&all_printings).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+        })?;
+        self.create_compiled_output("AllPrintings", all_printings_json, pretty_print)?;
         
-        self.build_format_specific_files(&all_printings)?;
+        self.build_format_specific_files(&all_printings, pretty_print)?;
         
         // Generate AllIdentifiers
         let all_identifiers = MtgjsonAllIdentifiers::new();
-        let all_identifiers_json = serde_json::to_string(&all_identifiers).unwrap_or_default();
-        self.create_compiled_output("AllIdentifiers", all_identifiers_json)?;
+        let all_identifiers_json = serde_json::to_string(&all_identifiers).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+        })?;
+        self.create_compiled_output("AllIdentifiers", all_identifiers_json, pretty_print)?;
         
         Ok(())
     }
     
     /// Build format-specific AllPrintings files
-    pub fn build_format_specific_files(&self, all_printings: &MtgjsonAllPrintings) -> PyResult<()> {
+    pub fn build_format_specific_files(&self, all_printings: &MtgjsonAllPrintings, pretty_print: bool) -> PyResult<()> {
         let format_map = self.construct_format_map()?;
         
         for (format_name, _set_codes) in format_map {
             let format_data = self.filter_all_printings_by_format(all_printings, &format_name)?;
             let filename = format!("AllPrintings{}", format_name);
-            let format_data_json = serde_json::to_string(&format_data).unwrap_or_default();
-            self.create_compiled_output(&filename, format_data_json)?;
+            let format_data_json = serde_json::to_string(&format_data).map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+            })?;
+            self.create_compiled_output(&filename, format_data_json, pretty_print)?;
         }
         
         Ok(())
     }
     
     /// Build atomic cards files
-    pub fn build_atomic_cards(&self) -> PyResult<()> {
+    pub fn build_atomic_cards(&self, pretty_print: bool) -> PyResult<()> {
         let atomic_cards = MtgjsonAtomicCards::new(None);
-        let atomic_cards_json = serde_json::to_string(&atomic_cards).unwrap_or_default();
-        self.create_compiled_output("AtomicCards", atomic_cards_json)?;
+        let atomic_cards_json = serde_json::to_string(&atomic_cards).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+        })?;
+        self.create_compiled_output("AtomicCards", atomic_cards_json, pretty_print)?;
         
-        self.build_atomic_specific_files()?;
+        self.build_atomic_specific_files(pretty_print)?;
         
         Ok(())
     }
     
     /// Build format-specific atomic cards
-    pub fn build_atomic_specific_files(&self) -> PyResult<()> {
+    pub fn build_atomic_specific_files(&self, pretty_print: bool) -> PyResult<()> {
         let card_format_map = self.construct_atomic_cards_format_map()?;
         
         for (format_name, _cards) in card_format_map {
             let atomic_cards = MtgjsonAtomicCards::new(None);
             let filename = format!("{}Cards", format_name);
-            let atomic_cards_json = serde_json::to_string(&atomic_cards).unwrap_or_default();
-            self.create_compiled_output(&filename, atomic_cards_json)?;
+            let atomic_cards_json = serde_json::to_string(&atomic_cards).map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+            })?;
+            self.create_compiled_output(&filename, atomic_cards_json, pretty_print)?;
         }
         
         Ok(())
     }
     
     /// Generate compiled prices output
-    pub fn generate_compiled_prices_output(&self) -> PyResult<()> {
+    pub fn generate_compiled_prices_output(&self, pretty_print: bool) -> PyResult<()> {
         let prices_data = HashMap::<String, serde_json::Value>::new();
+        let prices_data_json = serde_json::to_string(&prices_data).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+        })?;
         
-        let prices_data_json = serde_json::to_string(&prices_data).unwrap_or_default();
-        self.create_compiled_output("AllPrices", prices_data_json.clone())?;
-        self.create_compiled_output("AllPricesToday", prices_data_json)?;
+        self.create_compiled_output("AllPrices", prices_data_json.clone(), pretty_print)?;
+        self.create_compiled_output("AllPricesToday", prices_data_json, pretty_print)?;
         
         Ok(())
     }
     
     /// Build other compiled outputs
-    pub fn build_compiled_list(&self) -> PyResult<()> {
+    pub fn build_compiled_list(&self, pretty_print: bool) -> PyResult<()> {
         let compiled_list = MtgjsonCompiledList::new();
-        let compiled_list_json = serde_json::to_string(&compiled_list).unwrap_or_default();
-        self.create_compiled_output("CompiledList", compiled_list_json)
+        let compiled_list_json = serde_json::to_string(&compiled_list).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+        })?;
+        self.create_compiled_output("CompiledList", compiled_list_json, pretty_print)
     }
     
-    pub fn build_keywords(&self) -> PyResult<()> {
+    pub fn build_keywords(&self, pretty_print: bool) -> PyResult<()> {
         let keywords = MtgjsonKeywords::new();
-        let keywords_json = serde_json::to_string(&keywords).unwrap_or_default();
-        self.create_compiled_output("Keywords", keywords_json)
+        let keywords_json = serde_json::to_string(&keywords).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+        })?;
+        self.create_compiled_output("Keywords", keywords_json, pretty_print)
     }
     
-    pub fn build_card_types(&self) -> PyResult<()> {
+    pub fn build_card_types(&self, pretty_print: bool) -> PyResult<()> {
         let card_types = MtgjsonCardTypes::new();
-        let card_types_json = serde_json::to_string(&card_types).unwrap_or_default();
-        self.create_compiled_output("CardTypes", card_types_json)
+        let card_types_json = serde_json::to_string(&card_types).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+        })?;
+        self.create_compiled_output("CardTypes", card_types_json, pretty_print)
     }
     
-    pub fn build_meta(&self) -> PyResult<()> {
+    pub fn build_meta(&self, pretty_print: bool) -> PyResult<()> {
         let meta = MtgjsonMeta::with_current_date(None);
-        let meta_json = serde_json::to_string(&meta).unwrap_or_default();
-        self.create_compiled_output("Meta", meta_json)
+        let meta_json = serde_json::to_string(&meta).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+        })?;
+        self.create_compiled_output("Meta", meta_json, pretty_print)
     }
     
-    pub fn build_set_list(&self) -> PyResult<()> {
+    pub fn build_set_list(&self, pretty_print: bool) -> PyResult<()> {
         let set_list = MtgjsonSetList::new();
-        let set_list_json = serde_json::to_string(&set_list).unwrap_or_default();
-        self.create_compiled_output("SetList", set_list_json)
+        let set_list_json = serde_json::to_string(&set_list).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+        })?;
+        self.create_compiled_output("SetList", set_list_json, pretty_print)
     }
     
-    pub fn build_deck_list(&self) -> PyResult<()> {
+    pub fn build_deck_list(&self, pretty_print: bool) -> PyResult<()> {
         let deck_list = MtgjsonDeckList::new(Vec::new());
-        let deck_list_json = serde_json::to_string(&deck_list).unwrap_or_default();
-        self.create_compiled_output("DeckList", deck_list_json)
+        let deck_list_json = serde_json::to_string(&deck_list).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+        })?;
+        self.create_compiled_output("DeckList", deck_list_json, pretty_print)
     }
     
-    pub fn build_enum_values(&self) -> PyResult<()> {
+    pub fn build_enum_values(&self, pretty_print: bool) -> PyResult<()> {
         let enum_values = MtgjsonEnumValues::new();
-        let enum_values_json = serde_json::to_string(&enum_values).unwrap_or_default();
-        self.create_compiled_output("EnumValues", enum_values_json)
+        let enum_values_json = serde_json::to_string(&enum_values).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Serialization error: {}", e))
+        })?;
+        self.create_compiled_output("EnumValues", enum_values_json, pretty_print)
     }
     
-    /// Create compiled output file
-    pub fn create_compiled_output(&self, filename: &str, data_json: String) -> PyResult<()> {
+    /// Create compiled output file - Fixed to match Python signature
+    pub fn create_compiled_output(&self, filename: &str, data_json: String, pretty_print: bool) -> PyResult<()> {
         let output_path = Path::new(&self.output_path).join(format!("{}.json", filename));
         
         let file = fs::File::create(&output_path).map_err(|e| {
@@ -171,7 +200,8 @@ impl OutputGenerator {
         })?;
         let mut writer = BufWriter::new(file);
         
-        let data_value = serde_json::from_str::<serde_json::Value>(&data_json).map_err(|e| {
+        // Parse the JSON string back to a Value for structure creation
+        let data_value: serde_json::Value = serde_json::from_str(&data_json).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid JSON data: {}", e))
         })?;
         
@@ -181,7 +211,7 @@ impl OutputGenerator {
             "data": data_value
         });
         
-        if self.pretty_print {
+        if pretty_print {
             serde_json::to_writer_pretty(&mut writer, &output_structure)
         } else {
             serde_json::to_writer(&mut writer, &output_structure)
@@ -248,7 +278,7 @@ impl OutputGenerator {
             })?;
             
             if entry.path().extension().and_then(|s| s.to_str()) == Some("json") {
-                let hash = self.calculate_file_hash(&entry.path())?;
+                let hash = self.calculate_file_hash(entry.path().display().to_string())?;
                 let hash_filename = format!("{}.sha256", entry.path().display());
                 fs::write(&hash_filename, hash).map_err(|e| {
                     PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to write hash: {}", e))
@@ -260,9 +290,10 @@ impl OutputGenerator {
     }
     
     /// Calculate SHA256 hash of a file
-    pub fn calculate_file_hash(&self, path: &Path) -> PyResult<String> {
+    pub fn calculate_file_hash(&self, path: String) -> PyResult<String> {
         // TODO: Simplified hash calculation - would use a proper crypto library
-        let contents = fs::read(path).map_err(|e| {
+        let path_obj = Path::new(&path);
+        let contents = fs::read(path_obj).map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to read file: {}", e))
         })?;
         
