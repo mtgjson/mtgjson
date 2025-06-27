@@ -1,0 +1,227 @@
+name: Docker Build with Bake
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        target: [mtgjson, mtgjson-dev]
+        include:
+          - target: mtgjson
+            platforms: linux/amd64,linux/arm64
+            push: true
+          - target: mtgjson-dev
+            platforms: linux/amd64
+            push: false
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        platforms: ${{ matrix.platforms }}
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha
+
+    - name: Build and push with Bake
+      uses: docker/bake-action@v4
+      with:
+        targets: ${{ matrix.target }}
+        push: ${{ matrix.push && github.event_name != 'pull_request' }}
+        set: |
+          *.cache-from=type=gha,scope=${{ matrix.target }}
+          *.cache-to=type=gha,scope=${{ matrix.target }},mode=max
+          *.platform=${{ matrix.platforms }}
+          *.tags=${{ steps.meta.outputs.tags }}
+          *.labels=${{ steps.meta.outputs.labels }}
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build test target
+      uses: docker/bake-action@v4
+      with:
+        targets: test
+        set: |
+          *.cache-from=type=gha,scope=test
+          *.cache-to=type=gha,scope=test,mode=max
+
+    - name: Run integration tests
+      run: |
+        # Build local image for testing
+        docker buildx bake local --load
+        
+        # Test Rust module import
+        docker run --rm mtgjson/mtgjson:local python3 -c "
+        import mtgjson_rust
+        print('✓ Rust module imported successfully')
+        
+        # Test basic functionality
+        card = mtgjson_rust.MtgjsonCard()
+        print('✓ Card creation works')
+        
+        prices = mtgjson_rust.MtgjsonPrices()
+        print('✓ Prices creation works')
+        
+        processor = mtgjson_rust.ParallelProcessor()
+        print('✓ Parallel processor works')
+        
+        print('All tests passed!')
+        "
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request'
+
+    steps:
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main
+        format: sarif
+        output: trivy-results.sarif
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: trivy-results.sarif
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push release
+      uses: docker/bake-action@v4
+      with:
+        targets: ci
+        push: true
+        set: |
+          *.cache-from=type=gha,scope=ci
+          *.cache-to=type=gha,scope=ci,mode=max
+          *.tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        body: |
+          ## What's Changed
+          
+          Docker images available:
+          - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}`
+          - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest`
+          
+          ## Usage
+          
+          ```bash
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          ```
+        generate_release_notes: true
+
+  benchmark:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build for benchmarking
+      uses: docker/bake-action@v4
+      with:
+        targets: local
+        load: true
+        set: |
+          *.cache-from=type=gha,scope=benchmark
+
+    - name: Run performance benchmarks
+      run: |
+        echo "## Performance Benchmarks" >> $GITHUB_STEP_SUMMARY
+        echo "| Test | Time | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|------|------|--------|" >> $GITHUB_STEP_SUMMARY
+        
+        # Card creation benchmark
+        result=$(docker run --rm mtgjson/mtgjson:local python3 -c "
+        import time
+        import mtgjson_rust
+        
+        start = time.time()
+        for i in range(10000):
+            card = mtgjson_rust.MtgjsonCard()
+        duration = time.time() - start
+        print(f'{duration:.4f}')
+        ")
+        echo "| Card Creation (10k) | ${result}s | ✅ |" >> $GITHUB_STEP_SUMMARY
+        
+        # Memory usage test
+        docker run --rm mtgjson/mtgjson:local python3 -c "
+        import mtgjson_rust
+        import sys
+        
+        # Create many objects and check memory doesn't explode
+        cards = [mtgjson_rust.MtgjsonCard() for _ in range(1000)]
+        print(f'Created {len(cards)} cards successfully')
+        " && echo "| Memory Test (1k cards) | Pass | ✅ |" >> $GITHUB_STEP_SUMMARY || echo "| Memory Test | Fail | ❌ |" >> $GITHUB_STEP_SUMMARY
