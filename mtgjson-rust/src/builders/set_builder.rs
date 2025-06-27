@@ -171,13 +171,20 @@ pub async fn parse_foreign_async(
 ) -> Result<Vec<MtgjsonForeignDataObject>, Box<dyn std::error::Error>> {
     let mut card_foreign_entries = Vec::new();
     
-    // Add information to get all languages
     let modified_url = sf_prints_url.replace("&unique=prints", "+lang%3Aany&unique=prints");
     
     // Create Scryfall provider and download all pages
     let provider = ScryfallProvider::new()?;
-    let prints_api_json = Python::with_gil(|py| {
-        provider.download_all_pages(py, &modified_url, None)
+    let prints_api_json: Vec<serde_json::Value> = Python::with_gil(|py| -> PyResult<Vec<serde_json::Value>> {
+        let pages = provider.download_all_pages(py, &modified_url, None)?;
+        let mut json_values = Vec::new();
+        for page in pages {
+            let json_str = page.to_string();
+            let json_value: serde_json::Value = serde_json::from_str(&json_str)
+                .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("JSON parse error: {}", e)))?;
+            json_values.push(json_value);
+        }
+        Ok(json_values)
     })?;
     
     if prints_api_json.is_empty() {
@@ -188,11 +195,7 @@ pub async fn parse_foreign_async(
     let constants = Constants::new();
     
     // Process each foreign card entry
-    for foreign_card_py in prints_api_json.iter() {
-        // Convert Python object to JSON Value for processing
-        let foreign_card_str = foreign_card_py.to_string();
-        let foreign_card: Value = serde_json::from_str(&foreign_card_str)?;
-        
+    for foreign_card in prints_api_json.iter() {
         // Skip if wrong set, number, or English
         let card_set = foreign_card.get("set").and_then(|v| v.as_str()).unwrap_or("");
         let card_collector_number = foreign_card.get("collector_number").and_then(|v| v.as_str()).unwrap_or("");
@@ -228,7 +231,7 @@ pub async fn parse_foreign_async(
         }
 
         // Handle card faces for double-faced cards
-        let mut actual_card_data = &foreign_card;
+        let mut actual_card_data = foreign_card;
         if let Some(card_faces) = foreign_card.get("card_faces").and_then(|v| v.as_array()) {
             // Determine which face to use based on card name
             let face_index = if let Some(card_name_from_data) = foreign_card.get("name").and_then(|v| v.as_str()) {
@@ -892,7 +895,7 @@ pub fn link_same_card_different_details(mtgjson_set: &mut MtgjsonSetObject) {
     }
 }
 
-/// Relocate miscellaneous tokens and download token objects - REAL implementation
+/// Relocate miscellaneous tokens from cards to a separate tokens collection
 pub fn relocate_miscellaneous_tokens(mtgjson_set: &mut MtgjsonSetObject) {
     if let Some(ref code) = mtgjson_set.code {
         println!("Relocate tokens for {}", code);
@@ -907,6 +910,9 @@ pub fn relocate_miscellaneous_tokens(mtgjson_set: &mut MtgjsonSetObject) {
                 }
             }
         }
+
+        // Store the count before moving tokens_found
+        let tokens_count = tokens_found.len();
 
         // Remove tokens from cards
         mtgjson_set.cards.retain(|card| !token_types.contains(&card.layout.as_str()));
@@ -939,7 +945,7 @@ pub fn relocate_miscellaneous_tokens(mtgjson_set: &mut MtgjsonSetObject) {
             println!("Processed token: {} ({})", token.name, token.uuid);
         }
         
-        println!("Finished relocating {} tokens for {}", tokens_found.len(), code);
+        println!("Finished relocating {} tokens for {}", tokens_count, code);
     }
 }
 
@@ -1299,17 +1305,26 @@ fn create_deck_from_data(
     
     // Process main board
     if let Some(main_board) = data.get("mainBoard").and_then(|v| v.as_array()) {
-        deck.main_board = process_deck_list(main_board)?;
+        let processed = process_deck_list(main_board)?;
+        deck.main_board = processed.into_iter()
+            .filter_map(|entry| entry.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .collect();
     }
     
     // Process side board
     if let Some(side_board) = data.get("sideBoard").and_then(|v| v.as_array()) {
-        deck.side_board = process_deck_list(side_board)?;
+        let processed = process_deck_list(side_board)?;
+        deck.side_board = processed.into_iter()
+            .filter_map(|entry| entry.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .collect();
     }
     
     // Process commander (for commander decks)
     if let Some(commander) = data.get("commander").and_then(|v| v.as_array()) {
-        deck.commander = Some(process_deck_list(commander)?);
+        let processed = process_deck_list(commander)?;
+        deck.commander = processed.into_iter()
+            .filter_map(|entry| entry.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
+            .collect();
     }
     
     deck.code = set_code.to_string();
@@ -1388,10 +1403,9 @@ pub fn build_base_mtgjson_cards(
         let rt = tokio::runtime::Runtime::new().unwrap();
         match rt.block_on(async {
             let provider = ScryfallProvider::new().map_err(|e| format!("Provider creation error: {}", e))?;
-            provider.download_cards(
-                Python::with_gil(|py| py),
-                set_code
-            ).map_err(|e| format!("Download cards error: {}", e))
+            Python::with_gil(|py| {
+                provider.download_cards(py, set_code)
+            }).map_err(|e| format!("Download cards error: {}", e))
         }) {
             Ok(scryfall_cards) => {
                 // Process each Scryfall card into MtgjsonCardObject

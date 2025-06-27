@@ -58,11 +58,22 @@ impl TCGPlayerProvider {
     }
     
     /// Get TCGPlayer SKU data
-    pub fn get_tcgplayer_sku_data(&self, group_id_and_name: (String, String)) -> PyResult<Vec<Value>> {
+    pub fn get_tcgplayer_sku_data(&self, py: Python, group_id_and_name: (String, String)) -> PyResult<PyObject> {
         let runtime = tokio::runtime::Runtime::new()?;
-        runtime.block_on(async {
+        let result = runtime.block_on(async {
             self.get_tcgplayer_sku_data_async(group_id_and_name).await
-        }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("SKU data error: {}", e)))
+        }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("SKU data error: {}", e)))?;
+        
+        // Convert Vec<Value> to PyObject
+        let py_list = pyo3::types::PyList::empty_bound(py);
+        for value in result {
+            let json_str = serde_json::to_string(&value).map_err(|e| 
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("JSON serialization error: {}", e)))?;
+            let py_dict = pyo3::types::PyModule::import_bound(py, "json")?
+                .call_method1("loads", (json_str,))?;
+            py_list.append(py_dict)?;
+        }
+        Ok(py_list.to_object(py))
     }
 }
 

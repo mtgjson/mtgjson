@@ -1,4 +1,4 @@
-/// MTGJSON parallel call - Ultra-high performance parallel processing using Rust async/tokio
+// MTGJSON parallel call - Ultra-high performance parallel processing using Rust async/tokio
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple};
 
@@ -45,18 +45,20 @@ pub fn parallel_call(
         let semaphore = Arc::new(Semaphore::new(effective_pool_size));
         let mut join_set = JoinSet::new();
         
-        // Pre-process arguments for optimal performance
-        match (repeatable_args, force_starmap) {
-            (Some(repeat_args), _) => {
-                // Optimized repeatable args case
-                let repeat_objects: Vec<PyObject> = repeat_args.iter()
-                    .map(|arg| arg.to_object(py))
-                    .collect();
+        // Convert repeatable arguments to PyObjects if provided
+        let repeat_objects: Option<Vec<PyObject>> = repeatable_args.map(|args| {
+            args.iter().map(|arg| arg.to_object(py)).collect()
+        });
+        
+        // Process tasks based on configuration for optimal performance
+        match (&repeat_objects, force_starmap) {
+            (Some(repeat_args), false) => {
+                // With repeatable arguments: function(arg, *repeatable_args)
                 
                 for arg in args.iter() {
                     let func_ref = function.clone_ref(py);
                     let arg_obj = arg.to_object(py);
-                    let repeat_clone = repeat_objects.clone();
+                    let repeat_clone: Vec<PyObject> = repeat_args.iter().map(|obj| obj.clone_ref(py)).collect();
                     let permit = Arc::clone(&semaphore);
                     
                     join_set.spawn(async move {
@@ -77,6 +79,47 @@ pub fn parallel_call(
                             
                             // Call function(*g_args) matching Python behavior
                             func_ref.call1(py, args_tuple)
+                        })
+                    });
+                }
+            },
+            (Some(repeat_args), true) => {
+                // With repeatable arguments and starmap: function(*arg, *repeatable_args)
+                
+                for arg in args.iter() {
+                    let func_ref = function.clone_ref(py);
+                    let arg_obj = arg.to_object(py);
+                    let repeat_clone: Vec<PyObject> = repeat_args.iter().map(|obj| obj.clone_ref(py)).collect();
+                    let permit = Arc::clone(&semaphore);
+                    
+                    join_set.spawn(async move {
+                        let _permit = permit.acquire().await.map_err(|e| 
+                            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                                format!("Semaphore error: {}", e)
+                            )
+                        )?;
+                        
+                        Python::with_gil(|py| -> PyResult<PyObject> {
+                            // Handle starmap with repeatable args
+                            if let Ok(tuple_arg) = arg_obj.downcast_bound::<PyTuple>(py) {
+                                let mut all_args = Vec::new();
+                                all_args.extend(tuple_arg.iter().map(|item| item.to_object(py)));
+                                all_args.extend(repeat_clone);
+                                let args_tuple = PyTuple::new_bound(py, &all_args);
+                                func_ref.call1(py, args_tuple)
+                            } else if let Ok(list_arg) = arg_obj.downcast_bound::<PyList>(py) {
+                                let mut all_args = Vec::new();
+                                all_args.extend(list_arg.iter().map(|item| item.to_object(py)));
+                                all_args.extend(repeat_clone);
+                                let args_tuple = PyTuple::new_bound(py, &all_args);
+                                func_ref.call1(py, args_tuple)
+                            } else {
+                                // Single argument case with repeatable args
+                                let mut all_args = vec![arg_obj];
+                                all_args.extend(repeat_clone);
+                                let args_tuple = PyTuple::new_bound(py, &all_args);
+                                func_ref.call1(py, args_tuple)
+                            }
                         })
                     });
                 }

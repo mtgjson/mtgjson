@@ -59,10 +59,15 @@ impl CardKingdomProvider {
 }
 
 impl CardKingdomProvider {
+    /// Get today's date in YYYY-MM-DD format
+    fn today_date(&self) -> String {
+        chrono::Utc::now().format("%Y-%m-%d").to_string()
+    }
+
     /// Generate today's price dictionary (async version)
     async fn generate_today_price_dict_async(&self, all_printings_path: &str) -> ProviderResult<HashMap<String, MtgjsonPricesObject>> {
         let api_response = self.download(Self::API_URL, None).await?;
-        let empty_vec = vec![];
+        let empty_vec: Vec<Value> = vec![];
         let price_data_rows = api_response.get("data")
             .and_then(|v| v.as_array())
             .unwrap_or(&empty_vec)
@@ -95,7 +100,7 @@ impl CardKingdomProvider {
             currency: "USD".to_string(),
             date: self.today_date(),
             provider: "cardkingdom".to_string(),
-                            source: "paper".to_string(),
+            source: "paper".to_string(),
             buy_normal: None,
             buy_foil: None,
             buy_etched: None,
@@ -243,7 +248,7 @@ impl AbstractProvider for CardKingdomProvider {
                         })
                     }).unwrap_or(false);
                     
-                    let mut prices = today_dict.entry(mtgjson_uuid.clone())
+                    let prices = today_dict.entry(mtgjson_uuid.clone())
                         .or_insert_with(|| default_prices_object.clone());
                     
                     // Handle retail prices
