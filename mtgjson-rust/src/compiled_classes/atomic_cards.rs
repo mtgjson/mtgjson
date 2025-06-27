@@ -14,6 +14,7 @@ pub struct MtgjsonAtomicCards {
 #[pymethods]
 impl MtgjsonAtomicCards {
     #[new]
+    #[pyo3(signature = (cards_data=None))]
     pub fn new(cards_data: Option<HashMap<String, Vec<String>>>) -> Self {
         Self {
             atomic_cards_dict: cards_data.unwrap_or_default(),
