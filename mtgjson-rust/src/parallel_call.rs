@@ -319,7 +319,7 @@ impl ParallelIterator {
                 
                 join_set.spawn(async move {
                     let _permit = permit;
-                    Self::process_chunk(chunk_data)
+                    ParallelIterator::process_chunk(chunk_data)
                 });
             }
             
@@ -334,7 +334,10 @@ impl ParallelIterator {
             Ok(results)
         })
     }
-    
+}
+
+// Internal helper methods not exposed to Python
+impl ParallelIterator {
     fn process_chunk(chunk: Vec<String>) -> Vec<String> {
         // Process each chunk efficiently
         let mut results = Vec::with_capacity(chunk.len());
