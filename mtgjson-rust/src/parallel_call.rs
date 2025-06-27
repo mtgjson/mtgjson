@@ -1,6 +1,6 @@
 // MTGJSON parallel call - High performance parallel processing using Rust async/tokio
 use pyo3::prelude::*;
-use std::future::Future;
+
 use std::collections::HashMap;
 use tokio::task::JoinSet;
 
@@ -14,6 +14,7 @@ pub struct ParallelProcessor {
 #[pymethods]
 impl ParallelProcessor {
     #[new]
+    #[pyo3(signature = (pool_size=None))]
     pub fn new(pool_size: Option<usize>) -> Self {
         Self {
             pool_size: pool_size.unwrap_or(32),
@@ -105,7 +106,7 @@ impl ParallelProcessor {
     }
     
     /// Fast data folding
-    pub fn parallel_transform_fold(&self, data: Vec<String>, fold_list: bool, fold_dict: bool) -> PyResult<Vec<String>> {
+    pub fn parallel_transform_fold(&self, data: Vec<String>, fold_list: bool, _fold_dict: bool) -> PyResult<Vec<String>> {
         let rt = tokio::runtime::Runtime::new().map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Failed to create runtime: {}", e))
         })?;
@@ -244,7 +245,7 @@ impl ParallelProcessor {
         format!("transformed_{}", data)
     }
     
-    async fn process_card_data(data: String) -> crate::card::MtgjsonCard {
+    async fn process_card_data(_data: String) -> crate::card::MtgjsonCard {
         tokio::task::yield_now().await;
         
         // TODO: Parse card data from JSON string
@@ -293,6 +294,7 @@ pub struct ParallelIterator {
 #[pymethods]
 impl ParallelIterator {
     #[new]
+    #[pyo3(signature = (chunk_size=None, pool_size=None))]
     pub fn new(chunk_size: Option<usize>, pool_size: Option<usize>) -> Self {
         Self {
             chunk_size: chunk_size.unwrap_or(1000),
