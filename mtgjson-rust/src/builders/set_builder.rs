@@ -6,6 +6,7 @@ use crate::classes::{
     MtgjsonTranslations
 };
 use crate::providers::scryfall::ScryfallProvider;
+use crate::providers::AbstractProvider;
 
 use chrono::{DateTime, Utc};
 use pyo3::prelude::*;
@@ -206,7 +207,7 @@ pub async fn parse_foreign_async(
         
         // Map language using constants
         if let Some(language) = constants.language_map.get(card_lang) {
-            card_foreign_entry.language = Some(language.clone());
+            card_foreign_entry.language = language.clone();
         } else {
             eprintln!("Warning: Unable to get language for {:?}", foreign_card);
         }
@@ -283,7 +284,7 @@ pub async fn parse_foreign_async(
 
             // Special case for IKO Japanese cards (https://github.com/mtgjson/mtgjson/issues/611)
             if set_name.to_uppercase() == "IKO" && 
-               card_foreign_entry.language.as_deref() == Some("Japanese") {
+               card_foreign_entry.language == "Japanese" {
                 if let Some(ref name) = card_foreign_entry.name {
                     card_foreign_entry.name = Some(name.split(" //").next().unwrap_or(name).to_string());
                 }

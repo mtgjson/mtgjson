@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use pyo3::prelude::*;
 use reqwest::Response;
 use serde_json::Value;
-use std::collections::HashMap;
-use crate::prices::MtgjsonPricesObject;
+use std::collections::{HashMap, HashSet};
+use crate::classes::MtgjsonPricesObject;
 use crate::providers::{AbstractProvider, BaseProvider, ProviderError, ProviderResult};
 
 #[pyclass(name = "GathererProvider")]
@@ -40,24 +40,35 @@ impl GathererProvider {
     }
 
     /// Download content from GitHub
-    pub fn download(&mut self, url: String, params: Option<HashMap<String, String>>) -> PyResult<Value> {
-        let rt = tokio::runtime::Runtime::new().unwrap();
+    #[pyo3(signature = (url, params=None))]
+    pub fn download(&mut self, url: String, params: Option<HashMap<String, String>>) -> PyResult<PyObject> {
+        let rt = match tokio::runtime::Runtime::new() {
+            Ok(rt) => rt,
+            Err(e) => {
+                println!("Runtime creation error: {}", e);
+                return Value::Object(serde_json::Map::new());
+            }
+        };
+        
         rt.block_on(async {
             match self.base.get(&url, params).await {
                 Ok(response) => {
                     if response.status().is_success() {
-                        let json: Value = response.json().await.map_err(|e| {
-                            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("JSON parse error: {}", e))
-                        })?;
-                        Ok(json)
+                        match response.json().await {
+                            Ok(json) => json,
+                            Err(e) => {
+                                println!("JSON parse error: {}", e);
+                                Value::Object(serde_json::Map::new())
+                            }
+                        }
                     } else {
                         println!("Error downloading GitHub Gatherer: {} --- {}", response.status(), response.status());
-                        Ok(Value::Object(serde_json::Map::new()))
+                        Value::Object(serde_json::Map::new())
                     }
                 },
                 Err(e) => {
                     println!("Error downloading GitHub Gatherer: {}", e);
-                    Ok(Value::Object(serde_json::Map::new()))
+                    Value::Object(serde_json::Map::new())
                 }
             }
         })
@@ -81,22 +92,22 @@ impl GathererProvider {
     /// Static method to build HTTP header
     #[staticmethod]
     fn build_http_header_static() -> PyResult<HashMap<String, String>> {
-        // For now, return empty headers - this would need actual config implementation
         let mut headers = HashMap::new();
-        // TODO: Implement actual config reading
-        // let github_token = MtgjsonConfig().get("GitHub", "api_token");
-        // if !github_token.is_empty() {
-        //     headers.insert("Authorization".to_string(), format!("Bearer {}", github_token));
-        // }
+        
+        // Try to read GitHub token from environment variable
+        if let Ok(github_token) = std::env::var("MTGJSON_GITHUB_API_TOKEN") {
+            if !github_token.is_empty() {
+                headers.insert("Authorization".to_string(), format!("Bearer {}", github_token));
+            }
+        }
         
         Ok(headers)
     }
 
     /// Initialize the gatherer mapping data
     fn initialize_data(&mut self) -> PyResult<()> {
-        let data = self.download(Self::GATHERER_ID_MAPPING_URL.to_string(), None)?;
+        let data = self.download(Self::GATHERER_ID_MAPPING_URL.to_string(), None);
         
-        // Parse the JSON data into our internal format
         if let Some(data_obj) = data.as_object() {
             for (multiverse_id, card_data) in data_obj {
                 if let Some(cards_array) = card_data.as_array() {
@@ -149,12 +160,53 @@ impl GathererProvider {
 
 #[async_trait]
 impl AbstractProvider for GathererProvider {
-    async fn download_async(&self, url: &str, params: Option<HashMap<String, String>>) -> ProviderResult<Response> {
-        self.base.get(url, params).await
+    fn get_class_id(&self) -> &str {
+        &self.base.class_id
     }
-
-    async fn generate_today_price_dict(&self, _all_printings_path: &str) -> ProviderResult<HashMap<String, MtgjsonPricesObject>> {
+    
+    fn get_class_name(&self) -> &str {
+        "GathererProvider"
+    }
+    
+    fn build_http_header(&self) -> HashMap<String, String> {
+        Self::build_http_header_static().unwrap_or_default()
+    }
+    
+    async fn download(
+        &self,
+        url: &str,
+        params: Option<HashMap<String, String>>,
+    ) -> ProviderResult<Value> {
+        self.base.download_json(url, params).await
+    }
+    
+    async fn download_raw(
+        &self,
+        url: &str,
+        params: Option<HashMap<String, String>>,
+    ) -> ProviderResult<String> {
+        self.base.download_text(url, params).await
+    }
+    
+    fn log_download(&self, response: &Response) {
+        println!("Downloaded {} (Status: {})", response.url(), response.status());
+    }
+    
+    fn generic_generate_today_price_dict(
+        &self,
+        _third_party_to_mtgjson: &HashMap<String, HashSet<String>>,
+        _price_data_rows: &[Value],
+        _card_platform_id_key: &str,
+        _default_prices_object: &MtgjsonPricesObject,
+        _foil_key: &str,
+        _retail_key: Option<&str>,
+        _retail_quantity_key: Option<&str>,
+        _buy_key: Option<&str>,
+        _buy_quantity_key: Option<&str>,
+        _etched_key: Option<&str>,
+        _etched_value: Option<&str>,
+    ) -> HashMap<String, MtgjsonPricesObject> {
         // Gatherer doesn't provide price data
-        Ok(HashMap::new())
+        HashMap::new()
     }
 }

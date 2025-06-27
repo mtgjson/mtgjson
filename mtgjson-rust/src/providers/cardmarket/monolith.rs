@@ -24,6 +24,7 @@ pub struct CardMarketProvider {
 #[pymethods]
 impl CardMarketProvider {
     #[new]
+    #[pyo3(signature = (headers=None, init_map=None))]
     pub fn new(headers: Option<HashMap<String, String>>, init_map: Option<bool>) -> PyResult<Self> {
         let headers = headers.unwrap_or_default();
         let base = BaseProvider::new("mkm".to_string(), headers);
@@ -85,6 +86,7 @@ impl CardMarketProvider {
     }
 
     /// Download from CardMarket JSON APIs
+    #[pyo3(signature = (url, params=None))]
     pub fn download(&self, url: String, params: Option<HashMap<String, String>>) -> PyResult<Value> {
         if !self.connection_available {
             return Ok(Value::Object(Map::new()));
@@ -248,6 +250,7 @@ impl CardMarketProvider {
     }
 
     /// Get MKM cards for a set with retry logic
+    #[pyo3(signature = (mcm_id=None))]
     pub fn get_mkm_cards(&self, mcm_id: Option<i32>) -> PyResult<HashMap<String, Vec<Value>>> {
         if !self.connection_available || mcm_id.is_none() {
             return Ok(HashMap::new());
@@ -513,23 +516,53 @@ impl CardMarketProvider {
 
 #[async_trait]
 impl AbstractProvider for CardMarketProvider {
-    async fn download_async(&self, url: &str, params: Option<HashMap<String, String>>) -> ProviderResult<Response> {
-        if !self.connection_available {
-            return Err(ProviderError::ConfigurationError("CardMarket not configured".to_string()));
-        }
-        
-        let mut request_builder = self.client.get(url);
-        
-        if let Some(params) = params {
-            request_builder = request_builder.query(&params);
-        }
-        
-        request_builder.send().await
-            .map_err(|e| ProviderError::NetworkError(e.to_string()))
+    fn get_class_id(&self) -> &str {
+        &self.base.class_id
     }
-
-    async fn generate_today_price_dict(&self, all_printings_path: &str) -> ProviderResult<HashMap<String, MtgjsonPricesObject>> {
-        self.generate_today_price_dict(all_printings_path.to_string())
-            .map_err(|e| ProviderError::ProcessingError(e.to_string()))
+    
+    fn get_class_name(&self) -> &str {
+        "CardMarketProvider"
+    }
+    
+    fn build_http_header(&self) -> HashMap<String, String> {
+        self._build_http_header().unwrap_or_default()
+    }
+    
+    async fn download(
+        &self,
+        url: &str,
+        params: Option<HashMap<String, String>>,
+    ) -> ProviderResult<Value> {
+        self.base.download_json(url, params).await
+    }
+    
+    async fn download_raw(
+        &self,
+        url: &str,
+        params: Option<HashMap<String, String>>,
+    ) -> ProviderResult<String> {
+        self.base.download_text(url, params).await
+    }
+    
+    fn log_download(&self, response: &Response) {
+        println!("Downloaded {} (Status: {})", response.url(), response.status());
+    }
+    
+    fn generic_generate_today_price_dict(
+        &self,
+        _third_party_to_mtgjson: &HashMap<String, HashSet<String>>,
+        _price_data_rows: &[Value],
+        _card_platform_id_key: &str,
+        _default_prices_object: &MtgjsonPricesObject,
+        _foil_key: &str,
+        _retail_key: Option<&str>,
+        _retail_quantity_key: Option<&str>,
+        _buy_key: Option<&str>,
+        _buy_quantity_key: Option<&str>,
+        _etched_key: Option<&str>,
+        _etched_value: Option<&str>,
+    ) -> HashMap<String, MtgjsonPricesObject> {
+        // CardMarket has its own price generation logic
+        HashMap::new()
     }
 }

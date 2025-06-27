@@ -54,17 +54,17 @@ impl CardKingdomProvider {
         runtime.block_on(async {
             self.update_sealed_urls_async(&mut sealed_products).await?;
             Ok(sealed_products)
-        }).map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Sealed URLs error: {}", e)))
+        }).map_err(|e: ProviderError| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Sealed URLs error: {}", e)))
     }
 }
 
 impl CardKingdomProvider {
     /// Generate today's price dictionary (async version)
     async fn generate_today_price_dict_async(&self, all_printings_path: &str) -> ProviderResult<HashMap<String, MtgjsonPricesObject>> {
-        let api_response = self.download(Self::API_URL, None).await?;
+        let api_response = self.base.download_json(Self::API_URL, None).await?;
         let price_data_rows = api_response.get("data")
             .and_then(|v| v.as_array())
-            .unwrap_or(&vec![])
+            .unwrap_or(&Vec::<Value>::new())
             .clone();
         
         // Build mapping from Card Kingdom IDs to MTGJSON UUIDs
@@ -92,9 +92,9 @@ impl CardKingdomProvider {
         
         let default_prices_obj = MtgjsonPricesObject {
             currency: "USD".to_string(),
-            date: self.today_date(),
+            date: chrono::Utc::now().format("%Y-%m-%d").to_string(),
             provider: "cardkingdom".to_string(),
-                            source: "paper".to_string(),
+            source: "paper".to_string(),
             buy_normal: None,
             buy_foil: None,
             buy_etched: None,
@@ -121,34 +121,35 @@ impl CardKingdomProvider {
     
     /// Update sealed URLs (async version)
     async fn update_sealed_urls_async(&self, sealed_products: &mut Vec<MtgjsonSealedProductObject>) -> ProviderResult<()> {
-        let api_data = self.download(Self::SEALED_URL, None).await?;
+        let api_data = self.base.download_json(Self::SEALED_URL, None).await?;
         
         for product in sealed_products {
             if let Some(ref identifiers) = product.identifiers {
                 if let Some(card_kingdom_id) = &identifiers.card_kingdom_id {
-                if let Some(data_array) = api_data.get("data").and_then(|v| v.as_array()) {
-                    for remote_product in data_array {
-                        if let Some(remote_id) = remote_product.get("id").and_then(|v| v.as_str()) {
-                            if remote_id == card_kingdom_id {
-                                if let (Some(base_url), Some(url_path)) = (
-                                    api_data.get("meta")
-                                        .and_then(|v| v.get("base_url"))
-                                        .and_then(|v| v.as_str()),
-                                    remote_product.get("url").and_then(|v| v.as_str())
-                                ) {
-                                    let referral = "?partner=MTGJSONAffiliate&utm_source=MTGJSONAffiliate&utm_medium=affiliate&utm_campaign=MTGJSONAffiliate";
-                                    let full_url = format!("{}{}{}", base_url, url_path, referral);
-                                    let mut purchase_urls = crate::classes::MtgjsonPurchaseUrls::new();
-                                    purchase_urls.card_kingdom = Some(full_url);
-                                    product.raw_purchase_urls = Some(purchase_urls);
+                    if let Some(data_array) = api_data.get("data").and_then(|v| v.as_array()) {
+                        for remote_product in data_array {
+                            if let Some(remote_id) = remote_product.get("id").and_then(|v| v.as_str()) {
+                                if remote_id == card_kingdom_id {
+                                    if let (Some(base_url), Some(url_path)) = (
+                                        api_data.get("meta")
+                                            .and_then(|v| v.get("base_url"))
+                                            .and_then(|v| v.as_str()),
+                                        remote_product.get("url").and_then(|v| v.as_str())
+                                    ) {
+                                        let referral = "?partner=MTGJSONAffiliate&utm_source=MTGJSONAffiliate&utm_medium=affiliate&utm_campaign=MTGJSONAffiliate";
+                                        let full_url = format!("{}{}{}", base_url, url_path, referral);
+                                        let mut purchase_urls = crate::classes::MtgjsonPurchaseUrls::new();
+                                        purchase_urls.card_kingdom = Some(full_url);
+                                        product.raw_purchase_urls = Some(purchase_urls);
+                                    }
+                                    break;
                                 }
-                                break;
                             }
                         }
-                    }
-                } else {
-                    if let Some(ref name) = product.name {
-                        println!("No Card Kingdom URL found for product {}", name);
+                    } else {
+                        if let Some(ref name) = product.name {
+                            println!("No Card Kingdom URL found for product {}", name);
+                        }
                     }
                 }
             }
@@ -160,13 +161,103 @@ impl CardKingdomProvider {
     /// Generate entity mapping from all printings file
     async fn generate_entity_mapping(
         &self,
-        _all_printings_path: &str,
-        _id_path: &[&str],
-        _uuid_path: &[&str],
+        all_printings_path: &str,
+        id_path: &[&str],
+        uuid_path: &[&str],
     ) -> ProviderResult<HashMap<String, HashSet<String>>> {
-        // This would normally read from the all printings file
-        // For now, return empty mapping as placeholder
-        Ok(HashMap::new())
+        let mut dump_map: HashMap<String, HashSet<String>> = HashMap::new();
+        
+        // Read and parse the all printings JSON file
+        let content = match tokio::fs::read_to_string(all_printings_path).await {
+            Ok(content) => content,
+            Err(e) => {
+                eprintln!("Warning: Failed to read all printings file {}: {}", all_printings_path, e);
+                return Ok(dump_map);
+            }
+        };
+        
+        let all_printings: Value = match serde_json::from_str(&content) {
+            Ok(json) => json,
+            Err(e) => {
+                eprintln!("Warning: Failed to parse all printings JSON: {}", e);
+                return Ok(dump_map);
+            }
+        };
+        
+        // Get all entities (sets and their cards)
+        if let Some(data_obj) = all_printings.get("data").and_then(|v| v.as_object()) {
+            for (_set_code, set_data) in data_obj {
+                if let Some(cards_array) = set_data.get("cards").and_then(|v| v.as_array()) {
+                    for card in cards_array {
+                        self.extract_mapping_from_entity(card, id_path, uuid_path, &mut dump_map);
+                    }
+                }
+                
+                // Also check tokens if present
+                if let Some(tokens_array) = set_data.get("tokens").and_then(|v| v.as_array()) {
+                    for token in tokens_array {
+                        self.extract_mapping_from_entity(token, id_path, uuid_path, &mut dump_map);
+                    }
+                }
+            }
+        }
+        
+        println!("Generated {} mappings from {}", dump_map.len(), all_printings_path);
+        Ok(dump_map)
+    }
+    
+    /// Extract mapping from a single entity (card/token)
+    fn extract_mapping_from_entity(
+        &self,
+        entity: &Value,
+        id_path: &[&str],
+        uuid_path: &[&str],
+        dump_map: &mut HashMap<String, HashSet<String>>,
+    ) {
+        // Navigate to the ID using the path
+        let mut current = entity;
+        for component in id_path {
+            if let Some(next) = current.get(component) {
+                current = next;
+            } else {
+                return; // Path doesn't exist
+            }
+        }
+        
+        // Extract the ID value
+        let id_value = match current {
+            Value::String(s) => s.clone(),
+            Value::Number(n) => n.to_string(),
+            _ => return, // Invalid ID type
+        };
+        
+        // Navigate to the UUID using the path
+        let mut current = entity;
+        for component in uuid_path {
+            if let Some(next) = current.get(component) {
+                current = next;
+            } else {
+                return; // Path doesn't exist
+            }
+        }
+        
+        // Extract the UUID value
+        let uuid_value = match current {
+            Value::String(s) => s.clone(),
+            Value::Array(arr) => {
+                // Handle array of UUIDs
+                for uuid_val in arr {
+                    if let Value::String(uuid_str) = uuid_val {
+                        dump_map.entry(id_value.clone()).or_insert_with(HashSet::new).insert(uuid_str.clone());
+                    }
+                }
+                return;
+            }
+            _ => return, // Invalid UUID type
+        };
+        
+        // Add the mapping
+        dump_map.entry(id_value).or_insert_with(HashSet::new).insert(uuid_value);
     }
 }
 
@@ -239,7 +330,7 @@ impl AbstractProvider for CardKingdomProvider {
                         })
                     }).unwrap_or(false);
                     
-                    let mut prices = today_dict.entry(mtgjson_uuid.clone())
+                    let prices = today_dict.entry(mtgjson_uuid.clone())
                         .or_insert_with(|| default_prices_object.clone());
                     
                     // Handle retail prices
@@ -282,7 +373,7 @@ impl AbstractProvider for CardKingdomProvider {
                 }
             }
         }
-        
+
         today_dict
     }
 }

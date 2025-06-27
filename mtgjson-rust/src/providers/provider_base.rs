@@ -3,7 +3,7 @@ use reqwest::{Client, Response};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use chrono::{DateTime, Utc};
-use crate::prices::MtgjsonPricesObject;
+use crate::classes::MtgjsonPricesObject;
 use super::{ProviderError, ProviderResult};
 
 /// Abstract provider trait that all providers must implement
