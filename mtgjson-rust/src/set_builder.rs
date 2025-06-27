@@ -89,7 +89,7 @@ pub fn parse_foreign(
     card_number: &str,
     set_name: &str,
 ) -> Vec<MtgjsonForeignData> {
-    let mut card_foreign_entries = Vec::new();
+    let card_foreign_entries = Vec::new();
     
     // Add information to get all languages
     let modified_url = sf_prints_url.replace("&unique=prints", "+lang%3Aany&unique=prints");
@@ -222,9 +222,9 @@ pub fn get_card_cmc(mana_cost: &str) -> f64 {
 
 /// Parse printings from Scryfall prints URL
 pub fn parse_printings(sf_prints_url: Option<&str>) -> Vec<String> {
-    let mut card_sets = HashSet::new();
+    let card_sets = HashSet::new();
     
-    if let Some(mut url) = sf_prints_url {
+    if let Some(url) = sf_prints_url {
         // TODO: Implement actual Scryfall API calls
         // This is a placeholder implementation
         println!("Parsing printings from URL: {}", url);
@@ -266,7 +266,7 @@ pub fn parse_legalities(sf_card_legalities: &HashMap<String, String>) -> Mtgjson
 
 /// Parse rulings from Scryfall URL
 pub fn parse_rulings(rulings_url: &str) -> Vec<MtgjsonRuling> {
-    let mut mtgjson_rules = Vec::new();
+    let mtgjson_rules = Vec::new();
     
     // TODO: Implement actual Scryfall API call
     println!("Parsing rulings from URL: {}", rulings_url);
@@ -582,7 +582,7 @@ pub fn build_base_mtgjson_cards(
     // TODO: Implement actual Scryfall API call
     // let cards = ScryfallProvider::download_cards(set_code);
     
-    let mut mtgjson_cards = Vec::new();
+    let mtgjson_cards = Vec::new();
     
     // For now, return empty vector as placeholder
     // In real implementation, this would:
@@ -667,7 +667,7 @@ pub fn add_is_starter_option(mtgjson_set: &mut MtgjsonSet) {
 pub fn build_sealed_products(set_code: &str) -> Vec<MtgjsonSealedProduct> {
     println!("Building sealed products for {}", set_code);
     
-    let mut sealed_products = Vec::new();
+    let sealed_products = Vec::new();
     
     // TODO: Implement actual sealed product building
     // This would involve:
@@ -683,7 +683,7 @@ pub fn build_sealed_products(set_code: &str) -> Vec<MtgjsonSealedProduct> {
 pub fn build_decks(set_code: &str) -> Vec<MtgjsonDeck> {
     println!("Building decks for {}", set_code);
     
-    let mut decks = Vec::new();
+    let decks = Vec::new();
     
     // TODO: Implement actual deck building
     // This would involve:
