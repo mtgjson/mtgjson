@@ -15,7 +15,7 @@ impl JsonValue {
     pub fn new(value: String) -> Self {
         Self { value }
     }
-    
+
     /// Convert to JSON string
     pub fn to_json(&self) -> String {
         self.value.clone()
@@ -33,48 +33,45 @@ mod builders;
 
 // Import all classes
 use classes::{
-    MtgjsonCardObject, MtgjsonDeckObject, MtgjsonDeckHeaderObject, MtgjsonForeignDataObject,
+    MtgjsonCardObject, MtgjsonDeckHeaderObject, MtgjsonDeckObject, MtgjsonForeignDataObject,
     MtgjsonGameFormatsObject, MtgjsonIdentifiers, MtgjsonLeadershipSkillsObject,
     MtgjsonLegalitiesObject, MtgjsonMetaObject, MtgjsonPricesObject, MtgjsonPurchaseUrls,
-    MtgjsonRelatedCardsObject, MtgjsonRulingObject, MtgjsonSealedProductObject,
-    SealedProductCategory, SealedProductSubtype, MtgjsonSetObject, MtgjsonTranslations
+    MtgjsonRelatedCardsObject, MtgjsonRulingObject, MtgjsonSealedProductObject, MtgjsonSetObject,
+    MtgjsonTranslations, SealedProductCategory, SealedProductSubtype,
 };
 
 // Import all provider classes
 use providers::{
     CardHoarderProvider, CardKingdomProvider, CardMarketProvider, EdhrecProviderCardRanks,
     GathererProvider, GitHubBoostersProvider, GitHubCardSealedProductsProvider,
-    GitHubDecksProvider, GitHubMTGSqliteProvider, GitHubSealedProvider,
-    MTGBanProvider, MtgWikiProviderSecretLair, MultiverseBridgeProvider,
-    ScryfallProvider, ScryfallProviderOrientationDetector,
-    TCGPlayerProvider, WhatsInStandardProvider, WizardsProvider
+    GitHubDecksProvider, GitHubMTGSqliteProvider, GitHubSealedProvider, MTGBanProvider,
+    MtgWikiProviderSecretLair, MultiverseBridgeProvider, ScryfallProvider,
+    ScryfallProviderOrientationDetector, TCGPlayerProvider, WhatsInStandardProvider,
+    WizardsProvider,
 };
 
 // Import all compiled classes
 use compiled_classes::{
-    MtgjsonStructures, MtgjsonCompiledList, MtgjsonDeckObjectList, 
-    MtgjsonKeywords, MtgjsonAllIdentifiers, MtgjsonAllPrintings,
-    MtgjsonAtomicCards, MtgjsonCardTypesObject, MtgjsonEnumValues,
-    MtgjsonSetObjectList, MtgjsonTcgplayerSkus
+    MtgjsonAllIdentifiers, MtgjsonAllPrintings, MtgjsonAtomicCards, MtgjsonCardTypesObject,
+    MtgjsonCompiledList, MtgjsonDeckObjectList, MtgjsonEnumValues, MtgjsonKeywords,
+    MtgjsonSetObjectList, MtgjsonStructures, MtgjsonTcgplayerSkus,
 };
 
 // Import all performance modules
-use builders::{
-    OutputGenerator, PriceBuilder, ParallelProcessor, ParallelIterator
-};
+use builders::{OutputGenerator, ParallelIterator, ParallelProcessor, PriceBuilder};
 
 // Export everything
-pub use classes::*;
-pub use providers::*;
-pub use compiled_classes::*;
 pub use builders::*;
+pub use classes::*;
+pub use compiled_classes::*;
+pub use providers::*;
 
 /// Python module definition
 #[pymodule]
 fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Add the JSON value wrapper
     m.add_class::<JsonValue>()?;
-    
+
     // Add all MTGJSON classes
     m.add_class::<MtgjsonCardObject>()?;
     m.add_class::<MtgjsonDeckObject>()?;
@@ -92,11 +89,11 @@ fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<MtgjsonSealedProductObject>()?;
     m.add_class::<MtgjsonSetObject>()?;
     m.add_class::<MtgjsonTranslations>()?;
-    
+
     // Add enums
     m.add_class::<SealedProductCategory>()?;
     m.add_class::<SealedProductSubtype>()?;
-    
+
     // Add compiled classes
     m.add_class::<MtgjsonStructures>()?;
     m.add_class::<MtgjsonCompiledList>()?;
@@ -109,29 +106,65 @@ fn mtgjson_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<MtgjsonEnumValues>()?;
     m.add_class::<MtgjsonSetObjectList>()?;
     m.add_class::<MtgjsonTcgplayerSkus>()?;
-    
+
     // Add high-performance classes
     m.add_class::<OutputGenerator>()?;
     m.add_class::<PriceBuilder>()?;
     m.add_class::<ParallelProcessor>()?;
     m.add_class::<ParallelIterator>()?;
-    
+
     // Add set_builder module functions - use the correct wrapper functions
-    m.add_function(wrap_pyfunction!(builders::set_builder_functions::parse_card_types_wrapper, m)?)?;
-    m.add_function(wrap_pyfunction!(builders::set_builder_functions::get_card_colors_wrapper, m)?)?;
-    m.add_function(wrap_pyfunction!(builders::set_builder_functions::get_card_cmc_wrapper, m)?)?;
-    m.add_function(wrap_pyfunction!(builders::set_builder_functions::is_number_wrapper, m)?)?;
-    m.add_function(wrap_pyfunction!(builders::set_builder_functions::parse_legalities_wrapper, m)?)?;
-    m.add_function(wrap_pyfunction!(builders::set_builder_functions::build_mtgjson_set_wrapper, m)?)?;
-    m.add_function(wrap_pyfunction!(builders::set_builder_functions::parse_foreign_wrapper, m)?)?;
-    m.add_function(wrap_pyfunction!(builders::set_builder_functions::parse_printings_wrapper, m)?)?;
-    m.add_function(wrap_pyfunction!(builders::set_builder_functions::parse_rulings_wrapper, m)?)?;
-    m.add_function(wrap_pyfunction!(builders::set_builder_functions::get_set_translation_data, m)?)?;
-    m.add_function(wrap_pyfunction!(builders::set_builder_functions::build_mtgjson_set_from_data, m)?)?;
-    m.add_function(wrap_pyfunction!(builders::set_builder_functions::process_set_data, m)?)?;
-    
+    m.add_function(wrap_pyfunction!(
+        builders::set_builder_functions::parse_card_types_wrapper,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        builders::set_builder_functions::get_card_colors_wrapper,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        builders::set_builder_functions::get_card_cmc_wrapper,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        builders::set_builder_functions::is_number_wrapper,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        builders::set_builder_functions::parse_legalities_wrapper,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        builders::set_builder_functions::build_mtgjson_set_wrapper,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        builders::set_builder_functions::parse_foreign_wrapper,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        builders::set_builder_functions::parse_printings_wrapper,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        builders::set_builder_functions::parse_rulings_wrapper,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        builders::set_builder_functions::get_set_translation_data,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        builders::set_builder_functions::build_mtgjson_set_from_data,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        builders::set_builder_functions::process_set_data,
+        m
+    )?)?;
+
     // Add all provider classes for 100% Python API coverage
     providers::add_provider_classes_to_module(m)?;
-    
+
     Ok(())
 }

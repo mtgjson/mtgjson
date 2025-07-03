@@ -5,6 +5,7 @@ use crate::utils::MtgjsonUtils;
 
 /// Convert string to camelCase (PyO3 wrapper)
 #[pyfunction]
+#[pyo3(signature = ())]
 pub fn to_camel_case(string: &str) -> PyResult<String> {
     let mut result = String::new();
     let mut capitalize_next = false;
@@ -27,6 +28,7 @@ pub fn to_camel_case(string: &str) -> PyResult<String> {
 
 /// Make a Windows-safe filename (PyO3 wrapper)
 #[pyfunction]
+#[pyo3(signature = ())]
 pub fn make_windows_safe_filename(filename: &str) -> PyResult<String> {
     let invalid_chars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
     let mut safe_filename = String::new();
@@ -64,6 +66,7 @@ pub fn make_windows_safe_filename(filename: &str) -> PyResult<String> {
 
 /// Clean card number string (PyO3 wrapper)
 #[pyfunction]
+#[pyo3(signature = ())]
 pub fn clean_card_number(card_number: &str) -> PyResult<String> {
     // Remove common prefixes and suffixes that clutter card numbers
     let mut cleaned = card_number.trim().to_string();
