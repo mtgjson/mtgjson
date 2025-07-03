@@ -10,23 +10,23 @@ pub struct MtgjsonPurchaseUrls {
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub card_kingdom: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub card_kingdom_etched: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub card_kingdom_foil: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub cardmarket: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub tcgplayer: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub tcgplayer_etched: Option<String>,
@@ -49,7 +49,7 @@ impl MtgjsonPurchaseUrls {
     /// Convert to dictionary for Python compatibility
     pub fn to_dict(&self) -> PyResult<HashMap<String, String>> {
         let mut result = HashMap::new();
-        
+
         if let Some(ref val) = self.card_kingdom {
             if !val.is_empty() {
                 result.insert("cardKingdom".to_string(), val.clone());
@@ -80,24 +80,24 @@ impl MtgjsonPurchaseUrls {
                 result.insert("tcgplayerEtched".to_string(), val.clone());
             }
         }
-        
+
         Ok(result)
     }
 
     /// Check if any URLs are present
     pub fn has_urls(&self) -> bool {
-        self.card_kingdom.is_some() ||
-        self.card_kingdom_etched.is_some() ||
-        self.card_kingdom_foil.is_some() ||
-        self.cardmarket.is_some() ||
-        self.tcgplayer.is_some() ||
-        self.tcgplayer_etched.is_some()
+        self.card_kingdom.is_some()
+            || self.card_kingdom_etched.is_some()
+            || self.card_kingdom_foil.is_some()
+            || self.cardmarket.is_some()
+            || self.tcgplayer.is_some()
+            || self.tcgplayer_etched.is_some()
     }
 
     /// Get all available URLs as a list of tuples (provider, url)
     pub fn get_available_urls(&self) -> Vec<(String, String)> {
         let mut urls = Vec::new();
-        
+
         if let Some(ref url) = self.card_kingdom {
             if !url.is_empty() {
                 urls.push(("cardKingdom".to_string(), url.clone()));
@@ -128,7 +128,7 @@ impl MtgjsonPurchaseUrls {
                 urls.push(("tcgplayerEtched".to_string(), url.clone()));
             }
         }
-        
+
         urls
     }
 }

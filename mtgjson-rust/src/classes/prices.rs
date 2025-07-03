@@ -9,36 +9,36 @@ use std::collections::HashMap;
 pub struct MtgjsonPricesObject {
     #[pyo3(get, set)]
     pub source: String,
-    
+
     #[pyo3(get, set)]
     pub provider: String,
-    
+
     #[pyo3(get, set)]
     pub date: String,
-    
+
     #[pyo3(get, set)]
     pub currency: String,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub buy_normal: Option<f64>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub buy_foil: Option<f64>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub buy_etched: Option<f64>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub sell_normal: Option<f64>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub sell_foil: Option<f64>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub sell_etched: Option<f64>,
@@ -100,8 +100,9 @@ impl MtgjsonPricesObject {
 
     /// Convert to the complex JSON structure
     pub fn to_json_structure(&self) -> String {
-        let mut buy_sell_option: std::collections::HashMap<String, String> = std::collections::HashMap::new();
-        
+        let mut buy_sell_option: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+
         if let Some(ref buy_normal) = self.buy_normal {
             buy_sell_option.insert("buy_normal".to_string(), format!("{}", buy_normal));
         }
@@ -126,18 +127,18 @@ impl MtgjsonPricesObject {
 
     /// Check if this price entry has any actual price data
     pub fn has_price_data(&self) -> bool {
-        self.buy_normal.is_some() ||
-        self.buy_foil.is_some() ||
-        self.buy_etched.is_some() ||
-        self.sell_normal.is_some() ||
-        self.sell_foil.is_some() ||
-        self.sell_etched.is_some()
+        self.buy_normal.is_some()
+            || self.buy_foil.is_some()
+            || self.buy_etched.is_some()
+            || self.sell_normal.is_some()
+            || self.sell_foil.is_some()
+            || self.sell_etched.is_some()
     }
 
     /// Get all buy prices
     pub fn get_buy_prices(&self) -> HashMap<String, f64> {
         let mut prices = HashMap::new();
-        
+
         if let Some(price) = self.buy_normal {
             prices.insert("normal".to_string(), price);
         }
@@ -147,14 +148,14 @@ impl MtgjsonPricesObject {
         if let Some(price) = self.buy_etched {
             prices.insert("etched".to_string(), price);
         }
-        
+
         prices
     }
 
     /// Get all sell prices
     pub fn get_sell_prices(&self) -> HashMap<String, f64> {
         let mut prices = HashMap::new();
-        
+
         if let Some(price) = self.sell_normal {
             prices.insert("normal".to_string(), price);
         }
@@ -164,7 +165,7 @@ impl MtgjsonPricesObject {
         if let Some(price) = self.sell_etched {
             prices.insert("etched".to_string(), price);
         }
-        
+
         prices
     }
 }
@@ -189,7 +190,7 @@ mod tests {
             Some(12.0),
             Some(7.0),
         );
-        
+
         assert_eq!(prices.source, "tcgplayer");
         assert_eq!(prices.provider, "mtgjson");
         assert_eq!(prices.date, "2023-01-01");
@@ -216,7 +217,7 @@ mod tests {
             None,
             None,
         );
-        
+
         assert_eq!(prices.source, "cardmarket");
         assert_eq!(prices.provider, "mtgjson");
         assert_eq!(prices.date, "2023-12-25");
@@ -243,18 +244,18 @@ mod tests {
             None,
             Some(5.0),
         );
-        
+
         let items = prices.items();
-        
+
         // Should have 10 items (4 string fields + 6 price fields)
         assert_eq!(items.len(), 10);
-        
+
         // Check that string fields return None for numeric values
         assert_eq!(items[0], ("source".to_string(), None));
         assert_eq!(items[1], ("provider".to_string(), None));
         assert_eq!(items[2], ("date".to_string(), None));
         assert_eq!(items[3], ("currency".to_string(), None));
-        
+
         // Check numeric fields
         assert_eq!(items[4], ("buy_normal".to_string(), Some(10.0)));
         assert_eq!(items[5], ("buy_foil".to_string(), Some(15.0)));
@@ -278,10 +279,10 @@ mod tests {
             Some(12.0),
             None,
         );
-        
+
         let json_result = prices.to_json();
         assert!(json_result.is_ok());
-        
+
         let json_string = json_result.unwrap();
         assert!(json_string.contains("tcgplayer"));
         assert!(json_string.contains("mtgjson"));
@@ -303,9 +304,9 @@ mod tests {
             Some(12.0),
             Some(6.0),
         );
-        
+
         let json_structure = prices.to_json_structure();
-        
+
         // Should contain all price values as strings
         assert!(json_structure.contains("10"));
         assert!(json_structure.contains("15"));
@@ -323,26 +324,41 @@ mod tests {
             "provider".to_string(),
             "2023-01-01".to_string(),
             "USD".to_string(),
-            None, None, None, None, None, None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
         );
         assert!(!empty_prices.has_price_data());
-        
+
         // Test with at least one price value
         let with_buy_normal = MtgjsonPricesObject::new(
             "source".to_string(),
             "provider".to_string(),
             "2023-01-01".to_string(),
             "USD".to_string(),
-            Some(10.0), None, None, None, None, None,
+            Some(10.0),
+            None,
+            None,
+            None,
+            None,
+            None,
         );
         assert!(with_buy_normal.has_price_data());
-        
+
         let with_sell_etched = MtgjsonPricesObject::new(
             "source".to_string(),
             "provider".to_string(),
             "2023-01-01".to_string(),
             "USD".to_string(),
-            None, None, None, None, None, Some(5.0),
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(5.0),
         );
         assert!(with_sell_etched.has_price_data());
     }
@@ -361,9 +377,9 @@ mod tests {
             Some(12.0),
             Some(6.0),
         );
-        
+
         let buy_prices = prices.get_buy_prices();
-        
+
         assert_eq!(buy_prices.len(), 2);
         assert_eq!(buy_prices.get("normal"), Some(&10.0));
         assert_eq!(buy_prices.get("foil"), Some(&15.0));
@@ -384,9 +400,9 @@ mod tests {
             None,
             Some(6.0),
         );
-        
+
         let sell_prices = prices.get_sell_prices();
-        
+
         assert_eq!(sell_prices.len(), 2);
         assert_eq!(sell_prices.get("normal"), Some(&8.0));
         assert_eq!(sell_prices.get("foil"), None);
@@ -400,11 +416,16 @@ mod tests {
             "provider".to_string(),
             "2023-01-01".to_string(),
             "USD".to_string(),
-            None, None, None, None, None, None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
         );
-        
+
         let keys_to_skip = prices.build_keys_to_skip();
-        
+
         // Should return empty set unless specifically implemented
         assert!(keys_to_skip.is_empty());
     }
@@ -425,9 +446,9 @@ mod tests {
             Some(12.0),
             Some(7.0),
         );
-        
+
         let cloned = original.clone();
-        
+
         assert_eq!(original.source, cloned.source);
         assert_eq!(original.provider, cloned.provider);
         assert_eq!(original.date, cloned.date);
@@ -454,7 +475,7 @@ mod tests {
             None,
             None,
         );
-        
+
         let prices2 = MtgjsonPricesObject::new(
             "source".to_string(),
             "provider".to_string(),
@@ -467,9 +488,9 @@ mod tests {
             None,
             None,
         );
-        
+
         assert_eq!(prices1, prices2);
-        
+
         let mut prices3 = prices2.clone();
         prices3.buy_normal = Some(15.0);
         assert_ne!(prices1, prices3);
@@ -489,7 +510,7 @@ mod tests {
             None,
             None,
         );
-        
+
         let debug_str = format!("{:?}", prices);
         assert!(debug_str.contains("MtgjsonPricesObject"));
         assert!(debug_str.contains("test_source"));
@@ -510,11 +531,11 @@ mod tests {
             Some(0.0),
             Some(0.0),
         );
-        
+
         assert_eq!(prices.buy_normal, Some(0.0));
         assert_eq!(prices.sell_foil, Some(0.0));
         assert!(prices.has_price_data());
-        
+
         let buy_prices = prices.get_buy_prices();
         assert_eq!(buy_prices.get("normal"), Some(&0.0));
         assert_eq!(buy_prices.get("foil"), Some(&0.0));
@@ -535,7 +556,7 @@ mod tests {
             None,
             None,
         );
-        
+
         assert_eq!(prices.buy_normal, Some(999999.99));
         assert_eq!(prices.buy_foil, Some(1000000.0));
         assert_eq!(prices.buy_etched, Some(f64::MAX));
@@ -556,7 +577,7 @@ mod tests {
             None,
             None,
         );
-        
+
         assert_eq!(prices.buy_normal, Some(-10.0));
         assert_eq!(prices.buy_foil, Some(-5.5));
         assert!(prices.has_price_data());
@@ -576,7 +597,7 @@ mod tests {
             None,
             None,
         );
-        
+
         let eur_prices = MtgjsonPricesObject::new(
             "cardmarket".to_string(),
             "mtgjson".to_string(),
@@ -589,7 +610,7 @@ mod tests {
             None,
             None,
         );
-        
+
         let jpy_prices = MtgjsonPricesObject::new(
             "tokyomtg".to_string(),
             "mtgjson".to_string(),
@@ -602,13 +623,13 @@ mod tests {
             None,
             None,
         );
-        
+
         assert_eq!(usd_prices.currency, "USD");
         assert_eq!(eur_prices.currency, "EUR");
-        assert_eq!(jpy_prices.currency, "JPY");
-        
+        assert_eq!();
+
         assert_ne!(usd_prices.buy_normal, eur_prices.buy_normal);
-        assert_ne!(eur_prices.buy_normal, jpy_prices.buy_normal);
+        assert_ne!();
     }
 
     #[test]
@@ -625,7 +646,7 @@ mod tests {
             None,
             None,
         );
-        
+
         let cardmarket = MtgjsonPricesObject::new(
             "cardmarket".to_string(),
             "mtgjson".to_string(),
@@ -638,7 +659,7 @@ mod tests {
             None,
             None,
         );
-        
+
         let cardkingdom = MtgjsonPricesObject::new(
             "cardkingdom".to_string(),
             "mtgjson".to_string(),
@@ -651,11 +672,11 @@ mod tests {
             None,
             None,
         );
-        
+
         assert_eq!(tcgplayer.source, "tcgplayer");
         assert_eq!(cardmarket.source, "cardmarket");
         assert_eq!(cardkingdom.source, "cardkingdom");
-        
+
         assert_ne!(tcgplayer.source, cardmarket.source);
         assert_ne!(cardmarket.source, cardkingdom.source);
     }
@@ -674,7 +695,7 @@ mod tests {
             None,
             None,
         );
-        
+
         let external_provider = MtgjsonPricesObject::new(
             "tcgplayer".to_string(),
             "external_api".to_string(),
@@ -687,7 +708,7 @@ mod tests {
             None,
             None,
         );
-        
+
         assert_eq!(mtgjson_provider.provider, "mtgjson");
         assert_eq!(external_provider.provider, "external_api");
         assert_ne!(mtgjson_provider.provider, external_provider.provider);
@@ -707,7 +728,7 @@ mod tests {
             None,
             None,
         );
-        
+
         let future_date = MtgjsonPricesObject::new(
             "source".to_string(),
             "provider".to_string(),
@@ -720,7 +741,7 @@ mod tests {
             None,
             None,
         );
-        
+
         let invalid_date = MtgjsonPricesObject::new(
             "source".to_string(),
             "provider".to_string(),
@@ -733,7 +754,7 @@ mod tests {
             None,
             None,
         );
-        
+
         assert_eq!(old_date.date, "1993-08-05");
         assert_eq!(future_date.date, "2099-12-31");
         assert_eq!(invalid_date.date, "not-a-date");
@@ -753,22 +774,22 @@ mod tests {
             Some(12.0),
             Some(6.5),
         );
-        
+
         let json_result = prices.to_json();
         assert!(json_result.is_ok());
-        
+
         let json_str = json_result.unwrap();
-        
+
         // Test that serialization contains expected fields
         assert!(json_str.contains("tcgplayer"));
         assert!(json_str.contains("mtgjson"));
         assert!(json_str.contains("2023-01-01"));
         assert!(json_str.contains("USD"));
-        
+
         // Test deserialization
         let deserialized: Result<MtgjsonPricesObject, _> = serde_json::from_str(&json_str);
         assert!(deserialized.is_ok());
-        
+
         let deserialized_prices = deserialized.unwrap();
         assert_eq!(deserialized_prices.source, "tcgplayer");
         assert_eq!(deserialized_prices.provider, "mtgjson");
@@ -790,39 +811,39 @@ mod tests {
             "mtgjson".to_string(),
             "2023-01-01".to_string(),
             "USD".to_string(),
-            Some(25000.0),  // buy_normal - Black Lotus unlimited
-            Some(35000.0),  // buy_foil - Not applicable but for testing
-            None,           // buy_etched - Not applicable for vintage
-            Some(20000.0),  // sell_normal - Lower sell price
-            Some(30000.0),  // sell_foil - Also for testing
-            None,           // sell_etched - Not applicable
+            Some(25000.0), // buy_normal - Black Lotus unlimited
+            Some(35000.0), // buy_foil - Not applicable but for testing
+            None,          // buy_etched - Not applicable for vintage
+            Some(20000.0), // sell_normal - Lower sell price
+            Some(30000.0), // sell_foil - Also for testing
+            None,          // sell_etched - Not applicable
         );
-        
+
         // Test all functionality on this complex scenario
         assert_eq!(black_lotus_prices.source, "tcgplayer");
         assert_eq!(black_lotus_prices.currency, "USD");
         assert!(black_lotus_prices.has_price_data());
-        
+
         // Test buy prices
         let buy_prices = black_lotus_prices.get_buy_prices();
         assert_eq!(buy_prices.len(), 2);
         assert_eq!(buy_prices.get("normal"), Some(&25000.0));
         assert_eq!(buy_prices.get("foil"), Some(&35000.0));
-        
+
         // Test sell prices
         let sell_prices = black_lotus_prices.get_sell_prices();
         assert_eq!(sell_prices.len(), 2);
         assert_eq!(sell_prices.get("normal"), Some(&20000.0));
         assert_eq!(sell_prices.get("foil"), Some(&30000.0));
-        
+
         // Test items method
         let items = black_lotus_prices.items();
         assert_eq!(items.len(), 10);
-        
+
         // Test JSON serialization
         let json_result = black_lotus_prices.to_json();
         assert!(json_result.is_ok());
-        
+
         let json_str = json_result.unwrap();
         assert!(json_str.contains("25000"));
         assert!(json_str.contains("35000"));
@@ -842,16 +863,16 @@ mod tests {
             None,
             None,
         );
-        
+
         assert_eq!(prices.source, "");
         assert_eq!(prices.provider, "");
         assert_eq!(prices.date, "");
         assert_eq!(prices.currency, "");
         assert!(!prices.has_price_data());
-        
+
         let buy_prices = prices.get_buy_prices();
         assert!(buy_prices.is_empty());
-        
+
         let sell_prices = prices.get_sell_prices();
         assert!(sell_prices.is_empty());
     }
@@ -859,10 +880,10 @@ mod tests {
     #[test]
     fn test_prices_unicode_strings() {
         let prices = MtgjsonPricesObject::new(
-            "ソース".to_string(),          // "source" in Japanese
-            "プロバイダー".to_string(),      // "provider" in Japanese
+            "ソース".to_string(),       // "source" in Japanese
+            "プロバイダー".to_string(), // "provider" in Japanese
             "2023-01-01".to_string(),
-            "¥".to_string(),               // Yen symbol
+            "¥".to_string(), // Yen symbol
             Some(1500.0),
             None,
             None,
@@ -870,7 +891,7 @@ mod tests {
             None,
             None,
         );
-        
+
         assert_eq!(prices.source, "ソース");
         assert_eq!(prices.provider, "プロバイダー");
         assert_eq!(prices.currency, "¥");
@@ -887,25 +908,37 @@ mod tests {
             (None, None, None, Some(4.0), None, None),
             (None, None, None, None, Some(5.0), None),
             (None, None, None, None, None, Some(6.0)),
-            (Some(1.0), Some(2.0), Some(3.0), Some(4.0), Some(5.0), Some(6.0)),
+            (
+                Some(1.0),
+                Some(2.0),
+                Some(3.0),
+                Some(4.0),
+                Some(5.0),
+                Some(6.0),
+            ),
         ];
-        
+
         for (i, (bn, bf, be, sn, sf, se)) in test_cases.iter().enumerate() {
             let prices = MtgjsonPricesObject::new(
                 format!("source_{}", i),
                 format!("provider_{}", i),
                 format!("2023-01-{:02}", i + 1),
                 "USD".to_string(),
-                *bn, *bf, *be, *sn, *sf, *se,
+                *bn,
+                *bf,
+                *be,
+                *sn,
+                *sf,
+                *se,
             );
-            
+
             assert_eq!(prices.buy_normal, *bn);
             assert_eq!(prices.buy_foil, *bf);
             assert_eq!(prices.buy_etched, *be);
             assert_eq!(prices.sell_normal, *sn);
             assert_eq!(prices.sell_foil, *sf);
             assert_eq!(prices.sell_etched, *se);
-            
+
             // All except the all-None case should have price data
             if i < test_cases.len() - 1 || i == test_cases.len() - 1 {
                 assert!(prices.has_price_data());

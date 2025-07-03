@@ -1,7 +1,6 @@
 use crate::base::JsonObject;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// MTGJSON Singular Card.GameFormats Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -9,16 +8,16 @@ use std::collections::HashSet;
 pub struct MtgjsonGameFormatsObject {
     #[pyo3(get, set)]
     pub paper: bool,
-    
+
     #[pyo3(get, set)]
     pub mtgo: bool,
-    
+
     #[pyo3(get, set)]
     pub arena: bool,
-    
+
     #[pyo3(get, set)]
     pub shandalar: bool,
-    
+
     #[pyo3(get, set)]
     pub dreamcast: bool,
 }
@@ -39,7 +38,7 @@ impl MtgjsonGameFormatsObject {
     /// Convert to JSON - returns list of available formats
     pub fn to_json(&self) -> PyResult<Vec<String>> {
         let mut formats = Vec::new();
-        
+
         if self.paper {
             formats.push("paper".to_string());
         }
@@ -55,7 +54,7 @@ impl MtgjsonGameFormatsObject {
         if self.dreamcast {
             formats.push("dreamcast".to_string());
         }
-        
+
         Ok(formats)
     }
 
@@ -70,7 +69,7 @@ impl JsonObject for MtgjsonGameFormatsObject {}
 impl From<&[&str]> for MtgjsonGameFormatsObject {
     fn from(formats: &[&str]) -> Self {
         let mut game_formats = Self::new();
-        
+
         for format in formats {
             match format.to_lowercase().as_str() {
                 "paper" => game_formats.paper = true,
@@ -81,7 +80,7 @@ impl From<&[&str]> for MtgjsonGameFormatsObject {
                 _ => {}
             }
         }
-        
+
         game_formats
     }
 }

@@ -7,7 +7,7 @@ pub trait JsonObject {
     fn build_keys_to_skip(&self) -> HashSet<String> {
         HashSet::new()
     }
-    
+
     /// Convert to JSON string
     fn to_json_string(&self) -> Result<String, serde_json::Error>
     where
@@ -15,7 +15,7 @@ pub trait JsonObject {
     {
         serde_json::to_string(self)
     }
-    
+
     /// Convert to JSON value
     fn to_json_value(&self) -> Result<serde_json::Value, serde_json::Error>
     where
@@ -30,7 +30,7 @@ pub trait JsonObject {
 pub fn to_camel_case(snake_str: &str) -> String {
     let mut result = String::with_capacity(snake_str.len()); // Pre-allocate capacity
     let mut capitalize_next = false;
-    
+
     for c in snake_str.chars() {
         if c == '_' {
             capitalize_next = true;
@@ -41,7 +41,7 @@ pub fn to_camel_case(snake_str: &str) -> String {
             result.push(c);
         }
     }
-    
+
     result
 }
 

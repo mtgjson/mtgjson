@@ -10,47 +10,47 @@ pub struct MtgjsonLegalitiesObject {
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub brawl: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub commander: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub duel: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub future: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub frontier: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub legacy: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub modern: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub pauper: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub penny: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub pioneer: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub standard: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_string")]
     #[pyo3(get, set)]
     pub vintage: String,
@@ -73,7 +73,7 @@ impl MtgjsonLegalitiesObject {
     /// Get all legal formats - optimized with pre-allocated vector
     pub fn get_legal_formats(&self) -> Vec<String> {
         let mut legal_formats = Vec::with_capacity(12); // Pre-allocate for max possible formats
-        
+
         // Use a macro to reduce code duplication and improve performance
         macro_rules! check_format {
             ($field:expr, $name:literal) => {
@@ -82,7 +82,7 @@ impl MtgjsonLegalitiesObject {
                 }
             };
         }
-        
+
         check_format!(self.brawl, "brawl");
         check_format!(self.commander, "commander");
         check_format!(self.duel, "duel");
@@ -95,14 +95,14 @@ impl MtgjsonLegalitiesObject {
         check_format!(self.pioneer, "pioneer");
         check_format!(self.standard, "standard");
         check_format!(self.vintage, "vintage");
-        
+
         legal_formats
     }
 
     /// Convert to dictionary for Python compatibility - optimized
     pub fn to_dict(&self) -> PyResult<HashMap<String, String>> {
         let mut result = HashMap::with_capacity(12); // Pre-allocate capacity
-        
+
         // Use a macro to reduce code duplication
         macro_rules! add_if_not_empty {
             ($field:expr, $key:literal) => {
@@ -111,7 +111,7 @@ impl MtgjsonLegalitiesObject {
                 }
             };
         }
-        
+
         add_if_not_empty!(self.brawl, "brawl");
         add_if_not_empty!(self.commander, "commander");
         add_if_not_empty!(self.duel, "duel");
@@ -124,7 +124,7 @@ impl MtgjsonLegalitiesObject {
         add_if_not_empty!(self.pioneer, "pioneer");
         add_if_not_empty!(self.standard, "standard");
         add_if_not_empty!(self.vintage, "vintage");
-        
+
         Ok(result)
     }
 }

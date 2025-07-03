@@ -10,7 +10,7 @@ pub struct MtgjsonRelatedCardsObject {
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub reverse_related: Vec<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub spellbook: Vec<String>,
@@ -87,14 +87,14 @@ impl MtgjsonRelatedCardsObject {
 impl JsonObject for MtgjsonRelatedCardsObject {
     fn build_keys_to_skip(&self) -> HashSet<String> {
         let mut keys_to_skip = HashSet::new();
-        
+
         if self.reverse_related.is_empty() {
             keys_to_skip.insert("reverse_related".to_string());
         }
         if self.spellbook.is_empty() {
             keys_to_skip.insert("spellbook".to_string());
         }
-        
+
         keys_to_skip
     }
 }

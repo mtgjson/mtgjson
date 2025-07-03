@@ -1,7 +1,6 @@
 use crate::base::JsonObject;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// MTGJSON Singular Card.LeadershipSkills Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -9,10 +8,10 @@ use std::collections::HashSet;
 pub struct MtgjsonLeadershipSkillsObject {
     #[pyo3(get, set)]
     pub brawl: bool,
-    
+
     #[pyo3(get, set)]
     pub commander: bool,
-    
+
     #[pyo3(get, set)]
     pub oathbreaker: bool,
 }
@@ -43,7 +42,7 @@ impl MtgjsonLeadershipSkillsObject {
     /// Get list of available leadership skills
     pub fn get_available_skills(&self) -> Vec<String> {
         let mut skills = Vec::new();
-        
+
         if self.brawl {
             skills.push("brawl".to_string());
         }
@@ -53,7 +52,7 @@ impl MtgjsonLeadershipSkillsObject {
         if self.oathbreaker {
             skills.push("oathbreaker".to_string());
         }
-        
+
         skills
     }
 }

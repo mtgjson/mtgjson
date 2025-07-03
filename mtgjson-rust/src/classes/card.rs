@@ -1,4 +1,4 @@
-use crate::base::{skip_if_empty_optional_string, skip_if_empty_string, skip_if_empty_vec, JsonObject};
+use crate::base::{skip_if_empty_optional_string, skip_if_empty_vec, JsonObject};
 use crate::foreign_data::MtgjsonForeignDataObject;
 use crate::game_formats::MtgjsonGameFormatsObject;
 use crate::identifiers::MtgjsonIdentifiers;
@@ -8,11 +8,12 @@ use crate::prices::MtgjsonPricesObject;
 use crate::purchase_urls::MtgjsonPurchaseUrls;
 use crate::related_cards::MtgjsonRelatedCardsObject;
 use crate::rulings::MtgjsonRulingObject;
-use crate::utils::MtgjsonUtils;
 use pyo3::prelude::*;
+
 use pyo3::types::PyDict;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::ffi::CString;
 use std::collections::{HashMap, HashSet};
 
 /// MTGJSON Singular Card Object
@@ -21,339 +22,339 @@ use std::collections::{HashMap, HashSet};
 pub struct MtgjsonCardObject {
     #[pyo3(get, set)]
     pub artist: String,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub artist_ids: Option<Vec<String>>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub ascii_name: Option<String>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub attraction_lights: Option<Vec<String>>,
-    
+
     #[pyo3(get, set)]
     pub availability: MtgjsonGameFormatsObject,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub booster_types: Vec<String>,
-    
+
     #[pyo3(get, set)]
     pub border_color: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub card_parts: Vec<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub color_identity: Vec<String>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub color_indicator: Option<Vec<String>>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub colors: Vec<String>,
-    
+
     #[pyo3(get, set)]
     pub converted_mana_cost: f64,
-    
+
     #[pyo3(get, set)]
     pub count: i32,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub defense: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub duel_deck: Option<String>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub edhrec_rank: Option<i32>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub edhrec_saltiness: Option<f64>,
-    
+
     #[pyo3(get, set)]
     pub face_converted_mana_cost: f64,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub face_flavor_name: Option<String>,
-    
+
     #[pyo3(get, set)]
     pub face_mana_value: f64,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub face_name: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub finishes: Vec<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub first_printing: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub flavor_name: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub flavor_text: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub foreign_data: Vec<MtgjsonForeignDataObject>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub frame_effects: Vec<String>,
-    
+
     #[pyo3(get, set)]
     pub frame_version: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub hand: Option<String>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub has_alternative_deck_limit: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub has_content_warning: Option<bool>,
-    
+
     /// Deprecated - Remove in 5.3.0
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub has_foil: Option<bool>,
-    
+
     /// Deprecated - Remove in 5.3.0
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub has_non_foil: Option<bool>,
-    
+
     #[pyo3(get, set)]
     pub identifiers: MtgjsonIdentifiers,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_alternative: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_foil: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_full_art: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_funny: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_game_changer: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_online_only: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_oversized: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_promo: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_rebalanced: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_reprint: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_reserved: Option<bool>,
-    
+
     /// Deprecated - Remove in 5.3.0
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_starter: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_story_spotlight: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_textless: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub is_timeshifted: Option<bool>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub keywords: Vec<String>,
-    
+
     #[pyo3(get, set)]
     pub language: String,
-    
+
     #[pyo3(get, set)]
     pub layout: String,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub leadership_skills: Option<MtgjsonLeadershipSkillsObject>,
-    
+
     #[pyo3(get, set)]
     pub legalities: MtgjsonLegalitiesObject,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub life: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub loyalty: Option<String>,
-    
+
     #[pyo3(get, set)]
     pub mana_cost: String,
-    
+
     #[pyo3(get, set)]
     pub mana_value: f64,
-    
+
     #[pyo3(get, set)]
     pub name: String,
-    
+
     #[pyo3(get, set)]
     pub number: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub orientation: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub original_printings: Vec<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub original_release_date: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub original_text: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub original_type: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub other_face_ids: Vec<String>,
-    
+
     #[pyo3(get, set)]
     pub power: String,
-    
+
     #[pyo3(get, set)]
     pub prices: MtgjsonPricesObject,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub printings: Vec<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub promo_types: Vec<String>,
-    
+
     #[pyo3(get, set)]
     pub purchase_urls: MtgjsonPurchaseUrls,
-    
+
     #[pyo3(get, set)]
     pub rarity: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub rebalanced_printings: Vec<String>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub related_cards: Option<MtgjsonRelatedCardsObject>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub reverse_related: Option<Vec<String>>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub rulings: Option<Vec<MtgjsonRulingObject>>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub security_stamp: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub side: Option<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get, set)]
     pub signature: Option<String>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub source_products: Option<HashMap<String, Vec<String>>>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     #[pyo3(get, set)]
     pub subsets: Option<Vec<String>>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub subtypes: Vec<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub supertypes: Vec<String>,
-    
+
     #[pyo3(get, set)]
     pub text: String,
-    
+
     #[pyo3(get, set)]
     pub toughness: String,
-    
+
     #[pyo3(get, set)]
     pub type_: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub types: Vec<String>,
-    
+
     #[pyo3(get, set)]
     pub uuid: String,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_vec")]
     #[pyo3(get, set)]
     pub variations: Vec<String>,
-    
+
     #[serde(skip_serializing_if = "skip_if_empty_optional_string")]
     #[pyo3(get)]
     pub watermark: Option<String>,
@@ -362,22 +363,22 @@ pub struct MtgjsonCardObject {
     #[serde(skip)]
     #[pyo3(get, set)]
     pub set_code: String,
-    
+
     #[serde(skip)]
     #[pyo3(get, set)]
     pub is_token: bool,
-    
+
     #[serde(skip)]
     #[pyo3(get, set)]
     pub raw_purchase_urls: HashMap<String, String>,
-    
+
     // Internal fields
     #[serde(skip)]
     names: Option<Vec<String>>,
-    
+
     #[serde(skip)]
     illustration_ids: Vec<String>,
-    
+
     #[serde(skip)]
     watermark_resource: HashMap<String, Vec<serde_json::Value>>,
 }
@@ -457,10 +458,15 @@ impl MtgjsonCardObject {
             power: String::new(),
             prices: MtgjsonPricesObject::new(
                 String::new(),
-                String::new(), 
+                String::new(),
                 String::new(),
                 "USD".to_string(),
-                None, None, None, None, None, None
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
             ),
             printings: Vec::new(),
             promo_types: Vec::new(),
@@ -596,76 +602,75 @@ impl MtgjsonCardObject {
 
     /// Python equality method
     pub fn __eq__(&self, other: &MtgjsonCardObject) -> bool {
-        self.number == other.number && 
-        (self.side.as_deref().unwrap_or("") == other.side.as_deref().unwrap_or(""))
+        self.number == other.number
+            && (self.side.as_deref().unwrap_or("") == other.side.as_deref().unwrap_or(""))
     }
 
     /// Python less-than comparison for sorting
     /// Uses embedded Python logic to ensure 100% compatibility
     pub fn __lt__(&self, other: &MtgjsonCardObject) -> PyResult<bool> {
         Python::with_gil(|py| {
-            // Embed the exact Python sorting logic
+            // Keep your weird sorting then, Zach! lol
             let python_code = r#"
-def card_lt(self_number, self_side, other_number, other_side):
-    if self_number == other_number:
-        return (self_side or "") < (other_side or "")
+        def card_lt(self_number, self_side, other_number, other_side):
+            if self_number == other_number:
+                return (self_side or "") < (other_side or "")
 
-    self_side = self_side or ""
-    other_side = other_side or ""
+            self_side = self_side or ""
+            other_side = other_side or ""
 
-    self_number_clean = "".join(x for x in self_number if x.isdigit()) or "100000"
-    self_number_clean_int = int(self_number_clean)
+            self_number_clean = "".join(x for x in self_number if x.isdigit()) or "100000"
+            self_number_clean_int = int(self_number_clean)
 
-    other_number_clean = "".join(x for x in other_number if x.isdigit()) or "100000"
-    other_number_clean_int = int(other_number_clean)
+            other_number_clean = "".join(x for x in other_number if x.isdigit()) or "100000"
+            other_number_clean_int = int(other_number_clean)
 
-    # Check if both numbers are pure digits
-    self_is_digit = self_number == self_number_clean
-    other_is_digit = other_number == other_number_clean
+            # Check if both numbers are pure digits
+            self_is_digit = self_number == self_number_clean
+            other_is_digit = other_number == other_number_clean
 
-    if self_is_digit and other_is_digit:
-        if self_number_clean_int == other_number_clean_int:
-            if len(self_number_clean) != len(other_number_clean):
-                return len(self_number_clean) < len(other_number_clean)
-            return self_side < other_side
-        return self_number_clean_int < other_number_clean_int
+            if self_is_digit and other_is_digit:
+                if self_number_clean_int == other_number_clean_int:
+                    if len(self_number_clean) != len(other_number_clean):
+                        return len(self_number_clean) < len(other_number_clean)
+                    return self_side < other_side
+                return self_number_clean_int < other_number_clean_int
 
-    if self_is_digit:
-        if self_number_clean_int == other_number_clean_int:
-            return True
-        return self_number_clean_int < other_number_clean_int
+            if self_is_digit:
+                if self_number_clean_int == other_number_clean_int:
+                    return True
+                return self_number_clean_int < other_number_clean_int
 
-    if other_is_digit:
-        if self_number_clean_int == other_number_clean_int:
-            return False
-        return self_number_clean_int < other_number_clean_int
+            if other_is_digit:
+                if self_number_clean_int == other_number_clean_int:
+                    return False
+                return self_number_clean_int < other_number_clean_int
 
-    # Case 4: Neither is pure digit
-    # First check if digit strings are identical
-    if self_number_clean == other_number_clean:
-        if not self_side and not other_side:
-            return self_number < other_number
-        return self_side < other_side
+            # Case 4: Neither is pure digit
+            # First check if digit strings are identical
+            if self_number_clean == other_number_clean:
+                if not self_side and not other_side:
+                    return self_number < other_number
+                return self_side < other_side
 
-    # Then check if integer values are the same but digit strings differ
-    if self_number_clean_int == other_number_clean_int:
-        if len(self_number_clean) != len(other_number_clean):
-            return len(self_number_clean) < len(other_number_clean)
-        return self_side < other_side
+            # Then check if integer values are the same but digit strings differ
+            if self_number_clean_int == other_number_clean_int:
+                if len(self_number_clean) != len(other_number_clean):
+                    return len(self_number_clean) < len(other_number_clean)
+                return self_side < other_side
 
-    return self_number_clean_int < other_number_clean_int
+            return self_number_clean_int < other_number_clean_int
 
-# Call the function
-result = card_lt(self_number, self_side, other_number, other_side)
-"#;
-
-                         let locals = PyDict::new_bound(py);
-             locals.set_item("self_number", &self.number)?;
-             locals.set_item("self_side", &self.side)?;
-             locals.set_item("other_number", &other.number)?;
-             locals.set_item("other_side", &other.side)?;
-
-             py.run_bound(python_code, None, Some(&locals))?;
+        # Call the function
+        result = card_lt(self_number, self_side, other_number, other_side)
+        "#;
+            let locals = PyDict::new_bound(py);
+            locals.set_item("self_number", &self.number)?;
+            locals.set_item("self_side", &self.side)?;
+            locals.set_item("other_number", &other.number)?;
+            locals.set_item("other_side", &other.side)?;
+            let code_cstr = CString::new().unwrap();
+            py.run(code_cstr.as_c_str(), None, Some(&locals))?;
             let result: bool = locals.get_item("result")?.unwrap().extract()?;
             Ok(result)
         })
@@ -678,15 +683,17 @@ result = card_lt(self_number, self_side, other_number, other_side)
 
     /// Python repr representation
     pub fn __repr__(&self) -> String {
-        format!("MtgjsonCardObject(name='{}', set_code='{}', uuid='{}')", 
-                self.name, self.set_code, self.uuid)
+        format!(
+            "MtgjsonCardObject(name='{}', set_code='{}', uuid='{}')",
+            self.name, self.set_code, self.uuid
+        )
     }
 
     /// Python hash method
     pub fn __hash__(&self) -> u64 {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
         self.uuid.hash(&mut hasher);
         hasher.finish()
@@ -728,12 +735,10 @@ impl PartialOrd for MtgjsonCardObject {
         // The actual comparison is done in __lt__ method using embedded Python
         match self.__lt__(other) {
             Ok(true) => Some(Ordering::Less),
-            Ok(false) => {
-                match other.__lt__(self) {
-                    Ok(true) => Some(Ordering::Greater),
-                    Ok(false) => Some(Ordering::Equal),
-                    Err(_) => None,
-                }
+            Ok(false) => match other.__lt__(self) {
+                Ok(true) => Some(Ordering::Greater),
+                Ok(false) => Some(Ordering::Equal),
+                Err(_) => None,
             },
             Err(_) => None,
         }
@@ -769,16 +774,26 @@ impl JsonObject for MtgjsonCardObject {
 
         // Allow certain falsey values
         let allow_if_falsey = [
-            "supertypes", "types", "subtypes", "has_foil", "has_non_foil",
-            "color_identity", "colors", "converted_mana_cost", "mana_value",
-            "face_converted_mana_cost", "face_mana_value", "foreign_data", "reverse_related"
+            "supertypes",
+            "types",
+            "subtypes",
+            "has_foil",
+            "has_non_foil",
+            "color_identity",
+            "colors",
+            "converted_mana_cost",
+            "mana_value",
+            "face_converted_mana_cost",
+            "face_mana_value",
+            "foreign_data",
+            "reverse_related",
         ];
 
         // Skip empty values that aren't in the allow list
         if self.artist.is_empty() && !allow_if_falsey.contains(&"artist") {
             excluded_keys.insert("artist".to_string());
         }
-        
+
         // Continue this pattern for other fields as needed...
 
         excluded_keys
@@ -790,8 +805,8 @@ mod tests {
     use super::*;
     use crate::foreign_data::MtgjsonForeignDataObject;
     use crate::legalities::MtgjsonLegalitiesObject;
-    use crate::rulings::MtgjsonRulingObject;
     use crate::related_cards::MtgjsonRelatedCardsObject;
+    use crate::rulings::MtgjsonRulingObject;
     use std::collections::HashMap;
 
     #[test]
@@ -853,7 +868,7 @@ mod tests {
         let mut card = MtgjsonCardObject::new(false);
         card.set_watermark(Some("Boros".to_string()));
         assert_eq!(card.watermark, Some("Boros".to_string()));
-        
+
         card.set_watermark(None);
         assert_eq!(card.watermark, None);
     }
@@ -862,7 +877,7 @@ mod tests {
     fn test_get_atomic_keys() {
         let card = MtgjsonCardObject::new(false);
         let keys = card.get_atomic_keys();
-        
+
         // Should contain the expected atomic keys
         assert!(keys.contains(&"artist".to_string()));
         assert!(keys.contains(&"colorIdentity".to_string()));
@@ -886,13 +901,13 @@ mod tests {
     fn test_card_equality() {
         let mut card1 = MtgjsonCardObject::new(false);
         let mut card2 = MtgjsonCardObject::new(false);
-        
+
         card1.uuid = "uuid1".to_string();
         card2.uuid = "uuid1".to_string();
-        
+
         assert!(card1.__eq__(&card2));
         assert!(card1.eq(&card2));
-        
+
         card2.uuid = "uuid2".to_string();
         assert!(!card1.__eq__(&card2));
         assert!(!card1.eq(&card2));
@@ -902,16 +917,16 @@ mod tests {
     fn test_card_comparison() {
         let mut card1 = MtgjsonCardObject::new(false);
         let mut card2 = MtgjsonCardObject::new(false);
-        
+
         card1.name = "Apple".to_string();
         card1.number = "1".to_string();
         card2.name = "Banana".to_string();
         card2.number = "2".to_string();
-        
+
         let result = card1.__lt__(&card2);
         assert!(result.is_ok());
         assert!(result.unwrap());
-        
+
         let cmp_result = card1.compare(&card2);
         assert!(cmp_result.is_ok());
         assert_eq!(cmp_result.unwrap(), -1);
@@ -922,11 +937,11 @@ mod tests {
         let mut card = MtgjsonCardObject::new(false);
         card.name = "Lightning Bolt".to_string();
         card.set_code = "LEA".to_string();
-        
+
         let str_repr = card.__str__();
         assert!(str_repr.contains("Lightning Bolt"));
         assert!(str_repr.contains("LEA"));
-        
+
         let repr = card.__repr__();
         assert!(repr.contains("Lightning Bolt"));
         assert!(repr.contains("LEA"));
@@ -936,7 +951,7 @@ mod tests {
     fn test_card_hash() {
         let mut card = MtgjsonCardObject::new(false);
         card.uuid = "test-uuid".to_string();
-        
+
         let hash1 = card.__hash__();
         let hash2 = card.__hash__();
         assert_eq!(hash1, hash2);
@@ -950,10 +965,10 @@ mod tests {
         card.converted_mana_cost = 1.0;
         card.colors = vec!["R".to_string()];
         card.types = vec!["Instant".to_string()];
-        
+
         let json_result = card.to_json();
         assert!(json_result.is_ok());
-        
+
         let json_string = json_result.unwrap();
         assert!(json_string.contains("Lightning Bolt"));
         assert!(json_string.contains("{R}"));
@@ -964,7 +979,7 @@ mod tests {
     fn test_json_object_trait() {
         let card = MtgjsonCardObject::new(false);
         let keys_to_skip = card.build_keys_to_skip();
-        
+
         // Should skip internal fields
         assert!(keys_to_skip.contains("set_code"));
         assert!(keys_to_skip.contains("is_token"));
@@ -974,25 +989,22 @@ mod tests {
     #[test]
     fn test_card_complex_fields() {
         let mut card = MtgjsonCardObject::new(false);
-        
+
         // Test foreign data
-        let foreign_data = vec![MtgjsonForeignDataObject::new(
-            "Japanese".to_string(),
-            None, None, None, None, None, None
-        )];
+        let foreign_data = vec![MtgjsonForeignDataObject::new()];
         card.foreign_data = foreign_data;
         assert_eq!(card.foreign_data.len(), 1);
-        
+
         // Test leadership skills
-        let leadership = crate::leadership_skills::MtgjsonLeadershipSkillsObject::new();
+        let leadership = crate::MtgjsonLeadershipSkillsObject::new(false, false, false);
         card.leadership_skills = Some(leadership);
         assert!(card.leadership_skills.is_some());
-        
+
         // Test related cards
         let related = MtgjsonRelatedCardsObject::new();
         card.related_cards = Some(related);
         assert!(card.related_cards.is_some());
-        
+
         // Test rulings
         let ruling = MtgjsonRulingObject::new("2021-01-01".to_string(), "Test ruling".to_string());
         card.rulings = Some(vec![ruling]);
@@ -1003,22 +1015,22 @@ mod tests {
     #[test]
     fn test_card_collections() {
         let mut card = MtgjsonCardObject::new(false);
-        
+
         // Test colors
         card.colors = vec!["R".to_string(), "G".to_string()];
         assert_eq!(card.colors.len(), 2);
         assert!(card.colors.contains(&"R".to_string()));
         assert!(card.colors.contains(&"G".to_string()));
-        
+
         // Test color identity
         card.color_identity = vec!["R".to_string(), "G".to_string(), "W".to_string()];
         assert_eq!(card.color_identity.len(), 3);
-        
+
         // Test keywords
         card.keywords = vec!["Flying".to_string(), "Vigilance".to_string()];
         assert_eq!(card.keywords.len(), 2);
         assert!(card.keywords.contains(&"Flying".to_string()));
-        
+
         // Test types
         card.types = vec!["Creature".to_string()];
         card.subtypes = vec!["Angel".to_string(), "Warrior".to_string()];
@@ -1026,7 +1038,7 @@ mod tests {
         assert_eq!(card.types.len(), 1);
         assert_eq!(card.subtypes.len(), 2);
         assert_eq!(card.supertypes.len(), 1);
-        
+
         // Test printings
         card.printings = vec!["LEA".to_string(), "LEB".to_string(), "2ED".to_string()];
         assert_eq!(card.printings.len(), 3);
@@ -1035,14 +1047,14 @@ mod tests {
     #[test]
     fn test_source_products() {
         let mut card = MtgjsonCardObject::new(false);
-        
+
         let mut source_products = HashMap::new();
         source_products.insert("Booster Pack".to_string(), vec!["rare".to_string()]);
         source_products.insert("Theme Deck".to_string(), vec!["uncommon".to_string()]);
-        
+
         card.source_products = Some(source_products);
         assert!(card.source_products.is_some());
-        
+
         let products = card.source_products.as_ref().unwrap();
         assert!(products.contains_key("Booster Pack"));
     }
@@ -1051,12 +1063,12 @@ mod tests {
     fn test_partial_ord_implementation() {
         let mut card1 = MtgjsonCardObject::new(false);
         let mut card2 = MtgjsonCardObject::new(false);
-        
+
         card1.name = "Apple".to_string();
         card1.number = "1".to_string();
         card2.name = "Apple".to_string();
         card2.number = "2".to_string();
-        
+
         let result = card1.partial_cmp(&card2);
         assert!(result.is_some());
         assert_eq!(result.unwrap(), std::cmp::Ordering::Less);
@@ -1067,19 +1079,19 @@ mod tests {
         let mut card1 = MtgjsonCardObject::new(false);
         let mut card2 = MtgjsonCardObject::new(false);
         let mut card3 = MtgjsonCardObject::new(false);
-        
+
         card1.name = "Test".to_string();
         card1.number = "10".to_string();
-        
+
         card2.name = "Test".to_string();
         card2.number = "2".to_string();
-        
+
         card3.name = "Test".to_string();
         card3.number = "1a".to_string();
-        
+
         let mut cards = vec![card1.clone(), card2.clone(), card3.clone()];
         cards.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         // Should be sorted by number properly
         assert_eq!(cards[0].number, "1a");
         assert_eq!(cards[1].number, "2");
@@ -1091,7 +1103,7 @@ mod tests {
     #[test]
     fn test_card_all_boolean_flags() {
         let mut card = MtgjsonCardObject::new(false);
-        
+
         // Test all boolean flags
         card.has_alternative_deck_limit = Some(true);
         card.has_content_warning = Some(true);
@@ -1112,7 +1124,7 @@ mod tests {
         card.is_story_spotlight = Some(true);
         card.is_textless = Some(false);
         card.is_timeshifted = Some(true);
-        
+
         assert_eq!(card.has_alternative_deck_limit, Some(true));
         assert_eq!(card.has_content_warning, Some(true));
         assert_eq!(card.has_foil, Some(true));
@@ -1137,7 +1149,7 @@ mod tests {
     #[test]
     fn test_card_all_optional_strings() {
         let mut card = MtgjsonCardObject::new(false);
-        
+
         card.ascii_name = Some("Lightning Bolt".to_string());
         card.defense = Some("3".to_string());
         card.duel_deck = Some("Duel Deck A".to_string());
@@ -1156,7 +1168,7 @@ mod tests {
         card.security_stamp = Some("oval".to_string());
         card.side = Some("a".to_string());
         card.signature = Some("Artist Signature".to_string());
-        
+
         assert_eq!(card.ascii_name, Some("Lightning Bolt".to_string()));
         assert_eq!(card.defense, Some("3".to_string()));
         assert_eq!(card.duel_deck, Some("Duel Deck A".to_string()));
@@ -1180,10 +1192,10 @@ mod tests {
     #[test]
     fn test_card_all_optional_numeric_fields() {
         let mut card = MtgjsonCardObject::new(false);
-        
+
         card.edhrec_rank = Some(1000);
         card.edhrec_saltiness = Some(0.75);
-        
+
         assert_eq!(card.edhrec_rank, Some(1000));
         assert_eq!(card.edhrec_saltiness, Some(0.75));
     }
@@ -1191,7 +1203,7 @@ mod tests {
     #[test]
     fn test_card_all_vector_fields() {
         let mut card = MtgjsonCardObject::new(false);
-        
+
         card.artist_ids = Some(vec!["artist1".to_string(), "artist2".to_string()]);
         card.attraction_lights = Some(vec!["1".to_string(), "3".to_string(), "6".to_string()]);
         card.booster_types = vec!["draft".to_string(), "set".to_string()];
@@ -1206,7 +1218,7 @@ mod tests {
         card.reverse_related = Some(vec!["related1".to_string(), "related2".to_string()]);
         card.subsets = Some(vec!["subset1".to_string(), "subset2".to_string()]);
         card.variations = vec!["var1".to_string(), "var2".to_string()];
-        
+
         assert_eq!(card.artist_ids.as_ref().unwrap().len(), 2);
         assert_eq!(card.attraction_lights.as_ref().unwrap().len(), 3);
         assert_eq!(card.booster_types.len(), 2);
@@ -1226,11 +1238,11 @@ mod tests {
     #[test]
     fn test_card_face_mana_values() {
         let mut card = MtgjsonCardObject::new(false);
-        
+
         card.face_converted_mana_cost = 3.0;
         card.face_mana_value = 3.0;
         card.mana_value = 6.0; // Total for double-faced card
-        
+
         assert_eq!(card.face_converted_mana_cost, 3.0);
         assert_eq!(card.face_mana_value, 3.0);
         assert_eq!(card.mana_value, 6.0);
@@ -1239,11 +1251,12 @@ mod tests {
     #[test]
     fn test_card_internal_fields() {
         let mut card = MtgjsonCardObject::new(false);
-        
+
         card.set_code = "LEA".to_string();
         card.is_token = true;
-        card.raw_purchase_urls.insert("tcgplayer".to_string(), "https://example.com".to_string());
-        
+        card.raw_purchase_urls
+            .insert("tcgplayer".to_string(), "https://example.com".to_string());
+
         assert_eq!(card.set_code, "LEA");
         assert!(card.is_token);
         assert!(card.raw_purchase_urls.contains_key("tcgplayer"));
@@ -1255,9 +1268,9 @@ mod tests {
         card.name = "Lightning Bolt".to_string();
         card.mana_cost = "{R}".to_string();
         card.colors = vec!["R".to_string()];
-        
+
         let cloned_card = card.clone();
-        
+
         assert_eq!(card.name, cloned_card.name);
         assert_eq!(card.mana_cost, cloned_card.mana_cost);
         assert_eq!(card.colors, cloned_card.colors);
@@ -1266,22 +1279,22 @@ mod tests {
     #[test]
     fn test_card_edge_cases() {
         let mut card = MtgjsonCardObject::new(false);
-        
+
         // Test empty values
         card.power = "".to_string();
         card.toughness = "".to_string();
         card.mana_cost = "".to_string();
         card.text = "".to_string();
-        
+
         assert_eq!(card.power, "");
         assert_eq!(card.toughness, "");
         assert_eq!(card.mana_cost, "");
         assert_eq!(card.text, "");
-        
+
         // Test special characters
         card.name = "Æther Vial".to_string();
         card.text = "Cards with \"quotes\" and symbols ™".to_string();
-        
+
         assert_eq!(card.name, "Æther Vial");
         assert!(card.text.contains("quotes"));
         assert!(card.text.contains("™"));
@@ -1290,13 +1303,13 @@ mod tests {
     #[test]
     fn test_card_large_collections() {
         let mut card = MtgjsonCardObject::new(false);
-        
+
         // Test with large collections
         for i in 0..100 {
             card.printings.push(format!("SET{}", i));
             card.keywords.push(format!("Keyword{}", i));
         }
-        
+
         assert_eq!(card.printings.len(), 100);
         assert_eq!(card.keywords.len(), 100);
         assert!(card.printings.contains(&"SET50".to_string()));
@@ -1314,22 +1327,22 @@ mod tests {
         card.subtypes = vec!["Goblin".to_string()];
         card.power = "2".to_string();
         card.toughness = "2".to_string();
-        
+
         let json_result = card.to_json();
         assert!(json_result.is_ok());
-        
+
         let json_str = json_result.unwrap();
-        
+
         // Test that serialization contains expected fields
         assert!(json_str.contains("Test Card"));
         assert!(json_str.contains("{2}{R}"));
         assert!(json_str.contains("Creature"));
         assert!(json_str.contains("Goblin"));
-        
+
         // Test deserialization
         let deserialized: Result<MtgjsonCardObject, _> = serde_json::from_str(&json_str);
         assert!(deserialized.is_ok());
-        
+
         let deserialized_card = deserialized.unwrap();
         assert_eq!(deserialized_card.name, "Test Card");
         assert_eq!(deserialized_card.mana_cost, "{2}{R}");
@@ -1339,7 +1352,7 @@ mod tests {
     #[test]
     fn test_card_complex_integration_scenario() {
         let mut card = MtgjsonCardObject::new(false);
-        
+
         // Set up a complex card scenario
         card.name = "Jace, the Mind Sculptor".to_string();
         card.mana_cost = "{2}{U}{U}".to_string();
@@ -1363,7 +1376,7 @@ mod tests {
         card.finishes = vec!["nonfoil".to_string(), "foil".to_string()];
         card.availability = crate::game_formats::MtgjsonGameFormatsObject::new();
         card.legalities = MtgjsonLegalitiesObject::new();
-        
+
         // Test that all fields are properly set
         assert_eq!(card.name, "Jace, the Mind Sculptor");
         assert_eq!(card.converted_mana_cost, 4.0);
@@ -1373,11 +1386,11 @@ mod tests {
         assert_eq!(card.printings.len(), 3);
         assert!(card.printings.contains(&"WWK".to_string()));
         assert_eq!(card.finishes.len(), 2);
-        
+
         // Test JSON serialization of complex card
         let json_result = card.to_json();
         assert!(json_result.is_ok());
-        
+
         let json_str = json_result.unwrap();
         assert!(json_str.contains("Jace, the Mind Sculptor"));
         assert!(json_str.contains("Planeswalker"));

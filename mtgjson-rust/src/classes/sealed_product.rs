@@ -5,7 +5,7 @@ use std::collections::HashSet;
 
 /// MTGJSON Sealed Product Category
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "SealedProductCategory")]
+#[pyclass(name = "SealedProductCategory", eq, eq_int)]
 pub enum SealedProductCategory {
     #[serde(rename = "unknown")]
     Unknown,
@@ -101,7 +101,7 @@ impl Default for SealedProductCategory {
 
 /// MTGJSON Sealed Product Subtype
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[pyclass(name = "SealedProductSubtype")]
+#[pyclass(name = "SealedProductSubtype", eq, eq_int)]
 pub enum SealedProductSubtype {
     #[serde(rename = "unknown")]
     Unknown,
@@ -329,13 +329,14 @@ impl MtgjsonSealedProductObject {
 
     /// Convert to JSON string
     pub fn to_json_string(&self) -> PyResult<String> {
-        serde_json::to_string(self).map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+        serde_json::to_string(self)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
     }
 
     /// Check if sealed product has meaningful content
     pub fn has_content(&self) -> bool {
-        self.name.as_ref().map_or(false, |n| !n.is_empty()) || 
-        self.uuid.as_ref().map_or(false, |u| !u.is_empty())
+        self.name.as_ref().map_or(false, |n| !n.is_empty())
+            || self.uuid.as_ref().map_or(false, |u| !u.is_empty())
     }
 
     /// Get a summary of the sealed product
@@ -421,7 +422,7 @@ mod tests {
         let booster = SealedProductSubtype::Booster;
         let fat_pack = SealedProductSubtype::FatPack;
         let prerelease = SealedProductSubtype::Prerelease;
-        let intro_pack = SealedProductSubtype::IntroPack;
+        let intro_pack = SealedProductSubtype::Intro;
         let other = SealedProductSubtype::Other;
 
         // Test serialization/deserialization
@@ -436,7 +437,7 @@ mod tests {
     #[test]
     fn test_sealed_product_complete_object() {
         let mut product = MtgjsonSealedProductObject::new();
-        
+
         product.name = Some("Innistrad: Midnight Hunt Bundle".to_string());
         product.category = Some(SealedProductCategory::Bundle);
         product.subtype = Some(SealedProductSubtype::FatPack);
@@ -444,13 +445,19 @@ mod tests {
         product.uuid = Some("12345678-1234-1234-1234-123456789abc".to_string());
         product.release_date = Some("2021-09-24".to_string());
         product.set_code = Some("MID".to_string());
-        
+
         // Verify all fields
-        assert_eq!(product.name, Some("Innistrad: Midnight Hunt Bundle".to_string()));
+        assert_eq!(
+            product.name,
+            Some("Innistrad: Midnight Hunt Bundle".to_string())
+        );
         assert_eq!(product.category, Some(SealedProductCategory::Bundle));
         assert_eq!(product.subtype, Some(SealedProductSubtype::FatPack));
         assert_eq!(product.count, Some(10));
-        assert_eq!(product.uuid, Some("12345678-1234-1234-1234-123456789abc".to_string()));
+        assert_eq!(
+            product.uuid,
+            Some("12345678-1234-1234-1234-123456789abc".to_string())
+        );
         assert_eq!(product.release_date, Some("2021-09-24".to_string()));
         assert_eq!(product.set_code, Some("MID".to_string()));
     }
@@ -458,13 +465,13 @@ mod tests {
     #[test]
     fn test_sealed_product_booster_pack() {
         let mut product = MtgjsonSealedProductObject::new();
-        
+
         product.name = Some("Throne of Eldraine Booster Pack".to_string());
         product.category = Some(SealedProductCategory::BoosterPack);
         product.subtype = Some(SealedProductSubtype::Booster);
         product.count = Some(15); // 15 cards
         product.set_code = Some("ELD".to_string());
-        
+
         assert_eq!(product.category, Some(SealedProductCategory::BoosterPack));
         assert_eq!(product.subtype, Some(SealedProductSubtype::Booster));
         assert_eq!(product.count, Some(15));
@@ -473,14 +480,17 @@ mod tests {
     #[test]
     fn test_sealed_product_prerelease_pack() {
         let mut product = MtgjsonSealedProductObject::new();
-        
+
         product.name = Some("Zendikar Rising Prerelease Pack".to_string());
         product.category = Some(SealedProductCategory::PrereleasePack);
         product.subtype = Some(SealedProductSubtype::Prerelease);
         product.count = Some(6); // 6 booster packs
         product.set_code = Some("ZNR".to_string());
-        
-        assert_eq!(product.category, Some(SealedProductCategory::PrereleasePack));
+
+        assert_eq!(
+            product.category,
+            Some(SealedProductCategory::PrereleasePack)
+        );
         assert_eq!(product.subtype, Some(SealedProductSubtype::Prerelease));
         assert_eq!(product.count, Some(6));
     }
@@ -488,13 +498,13 @@ mod tests {
     #[test]
     fn test_sealed_product_deck() {
         let mut product = MtgjsonSealedProductObject::new();
-        
+
         product.name = Some("Commander Legends Commander Deck".to_string());
         product.category = Some(SealedProductCategory::Deck);
         product.subtype = Some(SealedProductSubtype::Other);
         product.count = Some(100); // 100 cards
-        product.set_code = Some("CMR").to_string();
-        
+        product.set_code = Some("CMR".to_string());
+
         assert_eq!(product.category, Some(SealedProductCategory::Deck));
         assert_eq!(product.count, Some(100));
     }
@@ -502,20 +512,20 @@ mod tests {
     #[test]
     fn test_sealed_product_edge_cases() {
         let mut product = MtgjsonSealedProductObject::new();
-        
+
         // Test very long product name
         let long_name = "Very Long Product Name ".repeat(50);
         product.name = Some(long_name.clone());
         assert_eq!(product.name, Some(long_name));
-        
+
         // Test zero count
         product.count = Some(0);
         assert_eq!(product.count, Some(0));
-        
+
         // Test maximum count
         product.count = Some(i32::MAX);
         assert_eq!(product.count, Some(i32::MAX));
-        
+
         // Test empty strings
         product.set_code = Some("".to_string());
         assert_eq!(product.set_code, Some("".to_string()));
@@ -524,71 +534,89 @@ mod tests {
     #[test]
     fn test_sealed_product_identifiers() {
         let mut product = MtgjsonSealedProductObject::new();
-        
+
         // Create identifiers object
         let mut identifiers = crate::classes::MtgjsonIdentifiers::new();
         identifiers.card_kingdom_id = Some("12345".to_string());
-        identifiers.tcgplayer_id = Some("67890".to_string());
-        
+        identifiers.tcgplayer_product_id = Some("67890".to_string());
+
         product.identifiers = Some(identifiers.clone());
-        
+
         assert!(product.identifiers.is_some());
-        assert_eq!(product.identifiers.as_ref().unwrap().card_kingdom_id, Some("12345".to_string()));
-        assert_eq!(product.identifiers.as_ref().unwrap().tcgplayer_id, Some("67890".to_string()));
+        assert_eq!(
+            product.identifiers.as_ref().unwrap().card_kingdom_id,
+            Some("12345".to_string())
+        );
+        assert_eq!(
+            product.identifiers.as_ref().unwrap().tcgplayer_product_id,
+            Some("67890".to_string())
+        );
     }
 
     #[test]
     fn test_sealed_product_purchase_urls() {
         let mut product = MtgjsonSealedProductObject::new();
-        
+
         // Create purchase URLs object
         let mut purchase_urls = crate::classes::MtgjsonPurchaseUrls::new();
         purchase_urls.card_kingdom = Some("https://cardkingdom.com/product/123".to_string());
         purchase_urls.tcgplayer = Some("https://tcgplayer.com/product/456".to_string());
-        
+
         product.purchase_urls = Some(purchase_urls.clone());
-        
+
         assert!(product.purchase_urls.is_some());
-        assert_eq!(product.purchase_urls.as_ref().unwrap().card_kingdom, Some("https://cardkingdom.com/product/123".to_string()));
-        assert_eq!(product.purchase_urls.as_ref().unwrap().tcgplayer, Some("https://tcgplayer.com/product/456".to_string()));
+        assert_eq!(
+            product.purchase_urls.as_ref().unwrap().card_kingdom,
+            Some("https://cardkingdom.com/product/123".to_string())
+        );
+        assert_eq!(
+            product.purchase_urls.as_ref().unwrap().tcgplayer,
+            Some("https://tcgplayer.com/product/456".to_string())
+        );
     }
 
     #[test]
     fn test_sealed_product_raw_purchase_urls() {
         let mut product = MtgjsonSealedProductObject::new();
-        
-        let mut raw_urls = HashMap::new();
-        raw_urls.insert("cardkingdom".to_string(), "https://cardkingdom.com/raw/123".to_string());
-        raw_urls.insert("tcgplayer".to_string(), "https://tcgplayer.com/raw/456".to_string());
-        
+
+        let mut raw_urls = crate::purchase_urls::MtgjsonPurchaseUrls::new();
+        raw_urls.card_kingdom = Some("https://cardkingdom.com/raw/123".to_string());
+        raw_urls.tcgplayer = Some("https://tcgplayer.com/raw/456".to_string());
+
         product.raw_purchase_urls = Some(raw_urls.clone());
-        
+
         assert!(product.raw_purchase_urls.is_some());
-        assert_eq!(product.raw_purchase_urls.as_ref().unwrap().get("cardkingdom"), Some(&"https://cardkingdom.com/raw/123".to_string()));
-        assert_eq!(product.raw_purchase_urls.as_ref().unwrap().get("tcgplayer"), Some(&"https://tcgplayer.com/raw/456".to_string()));
+        assert_eq!(
+            product.raw_purchase_urls.as_ref().unwrap().card_kingdom,
+            Some("https://cardkingdom.com/raw/123".to_string())
+        );
+        assert_eq!(
+            product.raw_purchase_urls.as_ref().unwrap().tcgplayer,
+            Some("https://tcgplayer.com/raw/456".to_string())
+        );
     }
 
     #[test]
     fn test_sealed_product_json_serialization() {
         let mut product = MtgjsonSealedProductObject::new();
-        
+
         product.name = Some("Test Product".to_string());
         product.category = Some(SealedProductCategory::Bundle);
         product.subtype = Some(SealedProductSubtype::FatPack);
         product.count = Some(8);
         product.set_code = Some("TST".to_string());
         product.uuid = Some("test-uuid-123".to_string());
-        
+
         let json_result = serde_json::to_string(&product);
         assert!(json_result.is_ok());
-        
+
         let json_string = json_result.unwrap();
         assert!(json_string.contains("Test Product"));
         assert!(json_string.contains("Bundle"));
         assert!(json_string.contains("FatPack"));
         assert!(json_string.contains("8"));
         assert!(json_string.contains("TST"));
-        
+
         // Test deserialization
         let deserialized: MtgjsonSealedProductObject = serde_json::from_str(&json_string).unwrap();
         assert_eq!(deserialized.name, Some("Test Product".to_string()));
@@ -619,12 +647,12 @@ mod tests {
         original.name = Some("Original Product".to_string());
         original.category = Some(SealedProductCategory::BoosterPack);
         original.count = Some(15);
-        
+
         let cloned = original.clone();
         assert_eq!(cloned.name, Some("Original Product".to_string()));
         assert_eq!(cloned.category, Some(SealedProductCategory::BoosterPack));
         assert_eq!(cloned.count, Some(15));
-        
+
         // Verify independence
         assert_eq!(original.name, cloned.name);
     }
@@ -633,15 +661,15 @@ mod tests {
     fn test_sealed_product_equality() {
         let mut product1 = MtgjsonSealedProductObject::new();
         let mut product2 = MtgjsonSealedProductObject::new();
-        
+
         product1.name = Some("Same Product".to_string());
         product1.category = Some(SealedProductCategory::Bundle);
-        
+
         product2.name = Some("Same Product".to_string());
         product2.category = Some(SealedProductCategory::Bundle);
-        
+
         assert_eq!(product1, product2);
-        
+
         product2.category = Some(SealedProductCategory::BoosterPack);
         assert_ne!(product1, product2);
     }
@@ -656,7 +684,7 @@ mod tests {
             SealedProductCategory::PrereleasePack,
             SealedProductCategory::Other,
         ];
-        
+
         for category in categories {
             let json = serde_json::to_string(&category).unwrap();
             assert!(!json.is_empty());
@@ -671,10 +699,10 @@ mod tests {
             SealedProductSubtype::Booster,
             SealedProductSubtype::FatPack,
             SealedProductSubtype::Prerelease,
-            SealedProductSubtype::IntroPack,
+            SealedProductSubtype::Intro,
             SealedProductSubtype::Other,
         ];
-        
+
         for subtype in subtypes {
             let json = serde_json::to_string(&subtype).unwrap();
             assert!(!json.is_empty());
@@ -689,7 +717,7 @@ mod tests {
         product.name = Some("Partial Product".to_string());
         product.category = Some(SealedProductCategory::Other);
         // Leave other fields as None
-        
+
         assert_eq!(product.name, Some("Partial Product".to_string()));
         assert_eq!(product.category, Some(SealedProductCategory::Other));
         assert_eq!(product.subtype, None);
@@ -700,15 +728,15 @@ mod tests {
     #[test]
     fn test_sealed_product_date_validation() {
         let mut product = MtgjsonSealedProductObject::new();
-        
+
         // Test various date formats
         let dates = vec![
             "2021-09-24",
-            "2020-01-01", 
+            "2020-01-01",
             "2025-12-31",
             "1993-08-05", // Alpha release date
         ];
-        
+
         for date in dates {
             product.release_date = Some(date.to_string());
             assert_eq!(product.release_date, Some(date.to_string()));
@@ -718,14 +746,14 @@ mod tests {
     #[test]
     fn test_sealed_product_uuid_validation() {
         let mut product = MtgjsonSealedProductObject::new();
-        
+
         // Test various UUID formats
         let uuids = vec![
             "12345678-1234-1234-1234-123456789abc",
             "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
             "00000000-0000-0000-0000-000000000000",
         ];
-        
+
         for uuid in uuids {
             product.uuid = Some(uuid.to_string());
             assert_eq!(product.uuid, Some(uuid.to_string()));
@@ -743,24 +771,31 @@ mod tests {
             uuid: Some("kamigawa-neon-dynasty-collector-box-2022".to_string()),
             release_date: Some("2022-02-18".to_string()),
             set_code: Some("NEO".to_string()),
-            purchase_urls: None, // Would be filled by provider integration
-            identifiers: None,   // Would be filled by provider integration
+            purchase_urls: None,     // Would be filled by provider integration
+            identifiers: None,       // Would be filled by provider integration
             raw_purchase_urls: None, // Would be filled by provider integration
+            contents: None,          // Would be filled by provider integration
         };
-        
+
         // Verify all fields are set correctly
-        assert_eq!(product.name, Some("Kamigawa: Neon Dynasty Collector Booster Box".to_string()));
+        assert_eq!(
+            product.name,
+            Some("Kamigawa: Neon Dynasty Collector Booster Box".to_string())
+        );
         assert_eq!(product.category, Some(SealedProductCategory::BoosterPack));
         assert_eq!(product.subtype, Some(SealedProductSubtype::Booster));
         assert_eq!(product.count, Some(12));
-        assert_eq!(product.uuid, Some("kamigawa-neon-dynasty-collector-box-2022".to_string()));
+        assert_eq!(
+            product.uuid,
+            Some("kamigawa-neon-dynasty-collector-box-2022".to_string())
+        );
         assert_eq!(product.release_date, Some("2022-02-18".to_string()));
         assert_eq!(product.set_code, Some("NEO".to_string()));
-        
+
         // Test JSON serialization of complete object
         let json_result = serde_json::to_string(&product);
         assert!(json_result.is_ok());
-        
+
         let json_string = json_result.unwrap();
         assert!(json_string.contains("Kamigawa"));
         assert!(json_string.contains("Collector"));

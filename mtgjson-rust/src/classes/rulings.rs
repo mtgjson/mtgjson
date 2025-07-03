@@ -1,7 +1,6 @@
 use crate::base::JsonObject;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// MTGJSON Singular Card.Rulings Object
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -9,7 +8,7 @@ use std::collections::HashSet;
 pub struct MtgjsonRulingObject {
     #[pyo3(get, set)]
     pub date: String,
-    
+
     #[pyo3(get, set)]
     pub text: String,
 }
