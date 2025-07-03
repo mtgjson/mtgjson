@@ -56,10 +56,15 @@ impl MtgjsonAllIdentifiers {
         }
 
         if duplicate_count > 0 {
-            eprintln!("Found {} duplicate UUIDs during AllIdentifiers creation", duplicate_count);
+            eprintln!(
+                "Found {} duplicate UUIDs during AllIdentifiers creation",
+                duplicate_count
+            );
         }
 
-        Ok(Self { all_identifiers_dict })
+        Ok(Self {
+            all_identifiers_dict,
+        })
     }
 
     /// Add a card to the identifiers dictionary
@@ -70,7 +75,7 @@ impl MtgjsonAllIdentifiers {
                 card.uuid
             )));
         }
-        
+
         self.all_identifiers_dict.insert(card.uuid.clone(), card);
         Ok(true)
     }
@@ -112,13 +117,7 @@ impl MtgjsonAllIdentifiers {
         self.all_identifiers_dict
             .values()
             .enumerate()
-            .filter_map(|(i, card)| {
-                if card.name == name {
-                    Some(i)
-                } else {
-                    None
-                }
-            })
+            .filter_map(|(i, card)| if card.name == name { Some(i) } else { None })
             .collect()
     }
 
@@ -128,7 +127,11 @@ impl MtgjsonAllIdentifiers {
             .values()
             .enumerate()
             .filter_map(|(i, card)| {
-                if card.name.to_lowercase().contains(&partial_name.to_lowercase()) {
+                if card
+                    .name
+                    .to_lowercase()
+                    .contains(&partial_name.to_lowercase())
+                {
                     Some(i)
                 } else {
                     None
@@ -168,7 +171,10 @@ impl MtgjsonAllIdentifiers {
             set_codes.insert(card.set_code.clone());
         }
 
-        stats.insert("total_entities".to_string(), self.all_identifiers_dict.len());
+        stats.insert(
+            "total_entities".to_string(),
+            self.all_identifiers_dict.len(),
+        );
         stats.insert("cards".to_string(), card_count);
         stats.insert("tokens".to_string(), token_count);
         stats.insert("unique_sets".to_string(), set_codes.len());
@@ -178,7 +184,12 @@ impl MtgjsonAllIdentifiers {
 
     /// Validate all UUIDs are unique (should always be true)
     pub fn validate_unique_uuids(&self) -> bool {
-        self.all_identifiers_dict.len() == self.all_identifiers_dict.keys().collect::<std::collections::HashSet<_>>().len()
+        self.all_identifiers_dict.len()
+            == self
+                .all_identifiers_dict
+                .keys()
+                .collect::<std::collections::HashSet<_>>()
+                .len()
     }
 
     /// Convert to JSON string
@@ -196,7 +207,7 @@ impl MtgjsonAllIdentifiers {
     /// Merge with another AllIdentifiers object
     pub fn merge(&mut self, other: &MtgjsonAllIdentifiers) -> usize {
         let mut conflicts = 0;
-        
+
         for (uuid, card) in &other.all_identifiers_dict {
             if self.all_identifiers_dict.contains_key(uuid) {
                 conflicts += 1;
@@ -205,7 +216,7 @@ impl MtgjsonAllIdentifiers {
                 self.all_identifiers_dict.insert(uuid.clone(), card.clone());
             }
         }
-        
+
         conflicts
     }
 }
@@ -257,7 +268,7 @@ mod tests {
         let mut all_identifiers = MtgjsonAllIdentifiers::new();
         let card1 = create_test_card("uuid1", "Lightning Bolt", "LEA");
         let card2 = create_test_card("uuid2", "Lightning Strike", "M19");
-        
+
         all_identifiers.add_card(card1).unwrap();
         all_identifiers.add_card(card2).unwrap();
 

@@ -9,10 +9,10 @@ use serde::{Deserialize, Serialize};
 pub struct MtgjsonKeywords {
     #[pyo3(get, set)]
     pub ability_words: Vec<String>,
-    
+
     #[pyo3(get, set)]
     pub keyword_actions: Vec<String>,
-    
+
     #[pyo3(get, set)]
     pub keyword_abilities: Vec<String>,
 }
@@ -68,17 +68,23 @@ impl MtgjsonKeywords {
 
     /// Check if a word is an ability word
     pub fn is_ability_word(&self, word: &str) -> bool {
-        self.ability_words.iter().any(|w| w.eq_ignore_ascii_case(word))
+        self.ability_words
+            .iter()
+            .any(|w| w.eq_ignore_ascii_case(word))
     }
 
     /// Check if a word is a keyword action
     pub fn is_keyword_action(&self, word: &str) -> bool {
-        self.keyword_actions.iter().any(|w| w.eq_ignore_ascii_case(word))
+        self.keyword_actions
+            .iter()
+            .any(|w| w.eq_ignore_ascii_case(word))
     }
 
     /// Check if a word is a keyword ability
     pub fn is_keyword_ability(&self, word: &str) -> bool {
-        self.keyword_abilities.iter().any(|w| w.eq_ignore_ascii_case(word))
+        self.keyword_abilities
+            .iter()
+            .any(|w| w.eq_ignore_ascii_case(word))
     }
 
     /// Get all keywords (combined)
@@ -96,13 +102,13 @@ impl MtgjsonKeywords {
     pub fn search_keywords(&self, substring: &str) -> Vec<String> {
         let substring_lower = substring.to_lowercase();
         let mut results = Vec::new();
-        
+
         for keyword in self.get_all_keywords() {
             if keyword.to_lowercase().contains(&substring_lower) {
                 results.push(keyword);
             }
         }
-        
+
         results
     }
 
@@ -277,7 +283,7 @@ mod tests {
     #[test]
     fn test_add_keywords() {
         let mut keywords = MtgjsonKeywords::new();
-        
+
         let initial_ability_count = keywords.ability_words.len();
         keywords.add_ability_word("Test Ability".to_string());
         assert_eq!(keywords.ability_words.len(), initial_ability_count + 1);
@@ -304,7 +310,7 @@ mod tests {
         let abilities = vec!["Test Ability".to_string()];
         let actions = vec!["Test Action".to_string()];
         let ability_words = vec!["Test Word".to_string()];
-        
+
         let keywords = MtgjsonKeywords::from_lists(ability_words, actions, abilities);
         assert_eq!(keywords.ability_words.len(), 1);
         assert_eq!(keywords.keyword_actions.len(), 1);

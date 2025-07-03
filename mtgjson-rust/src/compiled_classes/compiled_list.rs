@@ -18,7 +18,7 @@ impl MtgjsonCompiledList {
     pub fn new() -> Self {
         let structures = MtgjsonStructures::new();
         let files = structures.get_compiled_list_files();
-        
+
         Self { files }
     }
 
@@ -27,7 +27,9 @@ impl MtgjsonCompiledList {
     pub fn from_files(files: Vec<String>) -> Self {
         let mut sorted_files = files;
         sorted_files.sort();
-        Self { files: sorted_files }
+        Self {
+            files: sorted_files,
+        }
     }
 
     /// Add a file to the list
@@ -95,11 +97,11 @@ mod tests {
     fn test_add_remove_files() {
         let mut compiled_list = MtgjsonCompiledList::new();
         let initial_count = compiled_list.file_count();
-        
+
         compiled_list.add_file("TestFile".to_string());
         assert_eq!(compiled_list.file_count(), initial_count + 1);
         assert!(compiled_list.contains_file("TestFile"));
-        
+
         assert!(compiled_list.remove_file("TestFile"));
         assert_eq!(compiled_list.file_count(), initial_count);
         assert!(!compiled_list.contains_file("TestFile"));
@@ -107,9 +109,13 @@ mod tests {
 
     #[test]
     fn test_from_files() {
-        let files = vec!["FileB".to_string(), "FileA".to_string(), "FileC".to_string()];
+        let files = vec![
+            "FileB".to_string(),
+            "FileA".to_string(),
+            "FileC".to_string(),
+        ];
         let compiled_list = MtgjsonCompiledList::from_files(files);
-        
+
         assert_eq!(compiled_list.files, vec!["FileA", "FileB", "FileC"]);
     }
 }

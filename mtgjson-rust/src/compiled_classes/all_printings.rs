@@ -12,7 +12,7 @@ use std::path::Path;
 pub struct MtgjsonAllPrintings {
     #[pyo3(get, set)]
     pub all_sets_dict: HashMap<String, MtgjsonSetObject>,
-    
+
     #[pyo3(get, set)]
     pub source_path: Option<String>,
 }
@@ -39,7 +39,7 @@ impl MtgjsonAllPrintings {
     /// Load sets from file system - Core functionality missing in original
     pub fn load_sets_from_path(&mut self, path: &str) -> PyResult<()> {
         let path_obj = Path::new(path);
-        
+
         // Handle CON filename fix for Windows compatibility like Python
         if path_obj.exists() {
             if path_obj.is_file() {
@@ -51,30 +51,36 @@ impl MtgjsonAllPrintings {
             }
         } else {
             return Err(PyErr::new::<pyo3::exceptions::PyFileNotFoundError, _>(
-                format!("Path not found: {}", path)
+                format!("Path not found: {}", path),
             ));
         }
-        
+
         Ok(())
     }
 
     /// Load AllPrintings.json file
     fn load_all_printings_file(&mut self, file_path: &str) -> PyResult<()> {
         let contents = fs::read_to_string(file_path).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to read file {}: {}", file_path, e))
+            PyErr::new::<pyo3::exceptions::PyIOError, _>(format!(
+                "Failed to read file {}: {}",
+                file_path, e
+            ))
         })?;
-        
+
         let json_value: serde_json::Value = serde_json::from_str(&contents).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid JSON in {}: {}", file_path, e))
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid JSON in {}: {}",
+                file_path, e
+            ))
         })?;
-        
+
         // Handle both direct data and data wrapped in meta structure
         let data_obj = if let Some(data) = json_value.get("data") {
             data
         } else {
             &json_value
         };
-        
+
         if let Some(data_map) = data_obj.as_object() {
             for (set_code, set_data) in data_map {
                 match serde_json::from_value::<MtgjsonSetObject>(set_data.clone()) {
@@ -87,21 +93,24 @@ impl MtgjsonAllPrintings {
                 }
             }
         }
-        
+
         Ok(())
     }
 
     /// Scan directory for individual set files
     fn scan_directory_for_sets(&mut self, dir_path: &str) -> PyResult<()> {
         let entries = fs::read_dir(dir_path).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to read directory {}: {}", dir_path, e))
+            PyErr::new::<pyo3::exceptions::PyIOError, _>(format!(
+                "Failed to read directory {}: {}",
+                dir_path, e
+            ))
         })?;
-        
+
         for entry in entries {
             let entry = entry.map_err(|e| {
                 PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to read entry: {}", e))
             })?;
-            
+
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("json") {
                 if let Some(file_name) = path.file_stem().and_then(|s| s.to_str()) {
@@ -111,7 +120,7 @@ impl MtgjsonAllPrintings {
                     } else {
                         file_name.to_string()
                     };
-                    
+
                     match self.load_single_set_file(path.to_str().unwrap()) {
                         Ok(set_data) => {
                             self.all_sets_dict.insert(set_code, set_data);
@@ -123,20 +132,26 @@ impl MtgjsonAllPrintings {
                 }
             }
         }
-        
+
         Ok(())
     }
 
     /// Load single set file
     fn load_single_set_file(&self, file_path: &str) -> PyResult<MtgjsonSetObject> {
         let contents = fs::read_to_string(file_path).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Failed to read file {}: {}", file_path, e))
+            PyErr::new::<pyo3::exceptions::PyIOError, _>(format!(
+                "Failed to read file {}: {}",
+                file_path, e
+            ))
         })?;
-        
+
         let mtgjson_set: MtgjsonSetObject = serde_json::from_str(&contents).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Invalid JSON in {}: {}", file_path, e))
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Invalid JSON in {}: {}",
+                file_path, e
+            ))
         })?;
-        
+
         Ok(mtgjson_set)
     }
 
@@ -155,18 +170,20 @@ impl MtgjsonAllPrintings {
         self.all_sets_dict.keys().cloned().collect()
     }
 
-    /// Filter sets by format legality 
+    /// Filter sets by format legality
     pub fn filter_by_format(&self, format_name: &str) -> Self {
         let mut filtered = Self::new();
         filtered.source_path = self.source_path.clone();
-        
+
         for (set_code, set_data) in &self.all_sets_dict {
             // Check if set has cards legal in the format
             if self.set_has_format_legal_cards(set_data, format_name) {
-                filtered.all_sets_dict.insert(set_code.clone(), set_data.clone());
+                filtered
+                    .all_sets_dict
+                    .insert(set_code.clone(), set_data.clone());
             }
         }
-        
+
         filtered
     }
 

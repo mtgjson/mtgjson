@@ -1,7 +1,6 @@
 use crate::classes::JsonObject;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// MTGJSON Internal Object for Output Files
 /// Rust equivalent of MtgjsonStructuresObject
