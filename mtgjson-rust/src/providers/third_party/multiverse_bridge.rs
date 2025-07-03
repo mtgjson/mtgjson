@@ -1,9 +1,9 @@
+use crate::providers::{AbstractProvider, BaseProvider, ProviderError, ProviderResult};
 use async_trait::async_trait;
 use pyo3::prelude::*;
 use reqwest::Response;
 use serde_json::Value;
 use std::collections::HashMap;
-use crate::providers::{AbstractProvider, BaseProvider, ProviderError, ProviderResult};
 
 /// Multiverse Bridge Provider
 #[pyclass(name = "MultiverseBridgeProvider")]
@@ -17,7 +17,7 @@ impl MultiverseBridgeProvider {
     pub fn new() -> PyResult<Self> {
         let headers = HashMap::new(); // No special headers needed for this provider
         let base = BaseProvider::new("mb".to_string(), headers);
-        
+
         Ok(Self { base })
     }
 }
@@ -27,15 +27,15 @@ impl AbstractProvider for MultiverseBridgeProvider {
     fn get_class_id(&self) -> &str {
         &self.base.class_id
     }
-    
+
     fn get_class_name(&self) -> &str {
         "MultiverseBridgeProvider"
     }
-    
+
     fn build_http_header(&self) -> HashMap<String, String> {
         self.base.headers.clone()
     }
-    
+
     async fn download(
         &self,
         url: &str,
@@ -43,7 +43,7 @@ impl AbstractProvider for MultiverseBridgeProvider {
     ) -> ProviderResult<Value> {
         self.base.download_json(url, params).await
     }
-    
+
     async fn download_raw(
         &self,
         url: &str,
@@ -51,11 +51,15 @@ impl AbstractProvider for MultiverseBridgeProvider {
     ) -> ProviderResult<String> {
         self.base.download_text(url, params).await
     }
-    
+
     fn log_download(&self, response: &Response) {
-        println!("Downloaded {} (Status: {})", response.url(), response.status());
+        println!(
+            "Downloaded {} (Status: {})",
+            response.url(),
+            response.status()
+        );
     }
-    
+
     fn generic_generate_today_price_dict(
         &self,
         third_party_to_mtgjson: &HashMap<String, std::collections::HashSet<String>>,

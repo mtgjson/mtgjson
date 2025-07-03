@@ -1,14 +1,15 @@
-use async_trait::async_trait;
-use pyo3::prelude::*;
-use reqwest::{Client, Response};
-use serde_json::{Value, Map};
-use std::collections::{HashMap, HashSet};
-use std::path::Path;
-use std::time::Duration;
-use log::{warn, error, info};
-use tokio::time::sleep;
 use crate::classes::MtgjsonPricesObject;
-use crate::providers::{AbstractProvider, BaseProvider, ProviderError, ProviderResult};
+use crate::providers::{AbstractProvider, BaseProvider, ProviderResult};
+use async_trait::async_trait;
+use log::{error, info, warn};
+use pyo3::prelude::*;
+use pyo3::types::PyList;
+use pyo3::{PyObject, PyResult};
+use reqwest::{Client, Response};
+use serde_json::{Map, Value};
+use std::collections::{HashMap, HashSet};
+use std::time::Duration;
+use tokio::time::sleep;
 
 /// CardMarket API provider for MTG price data
 #[pyclass(name = "CardMarketProvider")]
@@ -26,13 +27,13 @@ impl CardMarketProvider {
     #[new]
     #[pyo3(signature = (headers=None, init_map=None))]
     pub fn new(headers: Option<HashMap<String, String>>, init_map: Option<bool>) -> PyResult<Self> {
-        let headers = headers.unwrap_or_default();
-        let base = BaseProvider::new("mkm".to_string(), headers);
-        let init_map = init_map.unwrap_or(true);
-        
+        let headers: HashMap<String, String> = headers.unwrap_or_default();
+        let base: BaseProvider = BaseProvider::new("mkm".to_string(), headers);
+        let init_map: bool = init_map.unwrap_or(true);
+
         // Check for CardMarket configuration
         let has_cardmarket_config = Self::check_cardmarket_config();
-        
+
         if !has_cardmarket_config {
             warn!("CardMarket config section not established. Skipping requests");
             return Ok(CardMarketProvider {
@@ -46,11 +47,11 @@ impl CardMarketProvider {
         }
 
         // Read configuration and set environment variables
-        let price_guide_url = Self::get_config_value("CardMarket", "prices_api_url")
-            .unwrap_or_default();
-        
+        let price_guide_url =
+            Self::get_config_value("CardMarket", "prices_api_url").unwrap_or_default();
+
         Self::setup_environment_variables();
-        
+
         // Validate required environment variables
         if !Self::validate_credentials() {
             warn!("CardMarket keys values missing. Skipping requests");
@@ -63,12 +64,17 @@ impl CardMarketProvider {
                 today_date: chrono::Utc::now().format("%Y-%m-%d").to_string(),
             });
         }
-        
+
         let client = Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Failed to create HTTP client: {}", e)))?;
-        
+            .map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Failed to create HTTP client: {}",
+                    e
+                ))
+            })?;
+
         let mut provider = CardMarketProvider {
             base,
             set_map: HashMap::new(),
@@ -77,30 +83,34 @@ impl CardMarketProvider {
             client,
             today_date: chrono::Utc::now().format("%Y-%m-%d").to_string(),
         };
-        
+
         if init_map {
             provider.init_set_map()?;
         }
-        
+
         Ok(provider)
     }
 
     /// Download from CardMarket JSON APIs
-    #[pyo3(signature = (py, url, params=None))]
-    pub fn download(&self, py: Python, url: String, params: Option<HashMap<String, String>>) -> PyResult<PyObject> {
+    pub fn download(
+        &self,
+        py: Python,
+        url: String,
+        params: Option<HashMap<String, String>>,
+    ) -> PyResult<PyObject> {
         if !self.connection_available {
             let empty_dict = pyo3::types::PyDict::new_bound(py);
-            return Ok(empty_dict.to_object(py));
+            return Ok(empty_dict.into());
         }
-        
+
         let rt = tokio::runtime::Runtime::new().unwrap();
         let result = rt.block_on(async {
             let mut request_builder = self.client.get(&url);
-            
+
             if let Some(params) = params {
                 request_builder = request_builder.query(&params);
             }
-            
+
             match request_builder.send().await {
                 Ok(response) => {
                     if response.status().is_success() {
@@ -112,31 +122,43 @@ impl CardMarketProvider {
                             }
                         }
                     } else {
-                        error!("Error downloading CardMarket Data: {} --- {}", response.status(), url);
+                        error!(
+                            "Error downloading CardMarket Data: {} --- {}",
+                            response.status(),
+                            url
+                        );
                         Value::Object(Map::new())
                     }
-                },
+                }
                 Err(e) => {
                     error!("Error downloading CardMarket Data from {}: {}", url, e);
                     Value::Object(Map::new())
                 }
             }
         });
-        
+
         // Convert serde_json::Value to PyObject
-        let json_str = serde_json::to_string(&result).map_err(|e| 
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("JSON serialization error: {}", e)))?;
-        let py_obj = pyo3::types::PyModule::import_bound(py, "json")?
-            .call_method1("loads", (json_str,))?;
-        Ok(py_obj.to_object(py))
+        let json_str = serde_json::to_string(&result).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "JSON serialization error: {}",
+                e
+            ))
+        })?;
+        let json_module = pyo3::types::PyModule::import_bound(py, "json")?;
+        let py_obj = json_module.call_method1("loads", (json_str,))?;
+        Ok(py_obj.into())
+        
     }
 
     /// Generate a single-day price structure from Card Market
-    pub fn generate_today_price_dict(&self, all_printings_path: String) -> PyResult<HashMap<String, MtgjsonPricesObject>> {
+    pub fn generate_today_price_dict(
+        &self,
+        all_printings_path: String,
+    ) -> PyResult<HashMap<String, MtgjsonPricesObject>> {
         if !self.connection_available {
             return Ok(HashMap::new());
         }
-        
+
         // TODO: Implement generate_entity_mapping equivalent
         // For now, using placeholder mappings
         let mtgjson_finish_map: HashMap<String, Vec<String>> = HashMap::new();
@@ -145,20 +167,20 @@ impl CardMarketProvider {
         info!("Building CardMarket retail data");
 
         let price_data = self.get_card_market_data()?;
-        
+
         let mut today_dict = HashMap::new();
-        
+
         for (product_id, price_entities) in price_data {
             let avg_sell_price = price_entities.get("trend").and_then(|v| *v);
             let avg_foil_price = price_entities.get("trend-foil").and_then(|v| *v);
-            
+
             if let Some(mtgjson_uuids) = mtgjson_id_map.get(&product_id) {
                 for mtgjson_uuid in mtgjson_uuids {
                     if !today_dict.contains_key(mtgjson_uuid) {
                         if avg_sell_price.is_none() && avg_foil_price.is_none() {
                             continue;
                         }
-                        
+
                         today_dict.insert(
                             mtgjson_uuid.clone(),
                             MtgjsonPricesObject {
@@ -172,18 +194,20 @@ impl CardMarketProvider {
                                 buy_normal: None,
                                 buy_foil: None,
                                 buy_etched: None,
-                            }
+                            },
                         );
                     }
-                    
+
                     if let Some(entry) = today_dict.get_mut(mtgjson_uuid) {
                         if let Some(price) = avg_sell_price {
                             entry.sell_normal = Some(price);
                         }
-                        
+
                         if let Some(foil_price) = avg_foil_price {
-                            if mtgjson_finish_map.get(&product_id)
-                                .map_or(false, |finishes| finishes.contains(&"etched".to_string())) {
+                            if mtgjson_finish_map
+                                .get(&product_id)
+                                .map_or(false, |finishes| finishes.contains(&"etched".to_string()))
+                            {
                                 entry.sell_etched = Some(foil_price);
                             } else {
                                 entry.sell_foil = Some(foil_price);
@@ -247,20 +271,26 @@ impl CardMarketProvider {
     }
 
     /// Build HTTP header (not used, returns empty dict)
+    #[pyo3(signature = ())]
     pub fn _build_http_header(&self) -> PyResult<HashMap<String, String>> {
         Ok(HashMap::new())
     }
 
     /// Get MKM cards for a set with retry logic
-    #[pyo3(signature = (py, mcm_id=None))]
-    pub fn get_mkm_cards(&self, py: Python, mcm_id: Option<i32>) -> PyResult<PyObject> {
-        if !self.connection_available || mcm_id.is_none() {
-            let empty_dict = pyo3::types::PyDict::new_bound(py);
-            return Ok(empty_dict.to_object(py));
+    pub fn get_mkm_cards(&self, mcm_id: Option<i32>) -> PyResult<PyObject> {
+        if !self.connection_available {
+            return Python::with_gil(|py| {
+                let empty_dict = pyo3::types::PyDict::new_bound(py);
+                Ok(empty_dict.into())
+            });
+        } else if mcm_id.is_none() {
+            return Python::with_gil(|py| {
+                let empty_dict = pyo3::types::PyDict::new_bound(py);
+                Ok(empty_dict.into())
+            });
         }
-
         let mcm_id = mcm_id.unwrap();
-        
+
         let rt = tokio::runtime::Runtime::new().unwrap();
         let result = rt.block_on(async {
             // Retry logic - try up to 5 times with delays
@@ -268,48 +298,62 @@ impl CardMarketProvider {
                 match self.fetch_mkm_cards(mcm_id).await {
                     Ok(cards) => return cards,
                     Err(e) => {
-                        warn!("MKM connection error for set {}, attempt {}: {}", mcm_id, attempt + 1, e);
+                        warn!(
+                            "MKM connection error for set {}, attempt {}: {}",
+                            mcm_id,
+                            attempt + 1,
+                            e
+                        );
                         if attempt < 4 {
                             sleep(Duration::from_secs(10)).await;
                         }
                     }
                 }
             }
-            
-            error!("MKM had a critical failure after 5 attempts. Skipping set {}", mcm_id);
+
+            error!(
+                "MKM had a critical failure after 5 attempts. Skipping set {}",
+                mcm_id
+            );
             HashMap::new()
         });
-        
+
         // Convert HashMap<String, Vec<Value>> to PyObject
-        let py_dict = pyo3::types::PyDict::new_bound(py);
-        for (key, values) in result {
-            let py_list = pyo3::types::PyList::empty_bound(py);
-            for value in values {
-                let json_str = serde_json::to_string(&value).map_err(|e| 
-                    PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("JSON serialization error: {}", e)))?;
-                let py_obj = pyo3::types::PyModule::import_bound(py, "json")?
-                    .call_method1("loads", (json_str,))?;
-                py_list.append(py_obj)?;
+        Python::with_gil(|py| {
+            let py_dict = pyo3::types::PyDict::new_bound(py);
+            for (key, values) in result {
+                let py_list = PyList::empty_bound(py);
+                for value in values {
+                    let json_str = serde_json::to_string(&value).map_err(|e| {
+                        PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                            "JSON serialization error: {}",
+                            e
+                        ))
+                    })?;
+                    let json_module = pyo3::types::PyModule::import_bound(py, "json")?;
+                    let py_obj = json_module.call_method1("loads", (json_str,))?;
+                    py_list.append(py_obj)?;
+                }
+                py_dict.set_item(key, py_list)?;
             }
-            py_dict.set_item(key, py_list)?;
-        }
-        Ok(py_dict.to_object(py))
+            Ok(py_dict.into())
+        })
     }
 
     /// Check if MKM config section exists
     pub fn has_mkm_config(&self) -> bool {
         // In a real implementation, this would check MtgjsonConfig
         // For now, check environment variables as a fallback
-        std::env::var("MKM_ACCESS_TOKEN").is_ok() && 
-        std::env::var("MKM_ACCESS_TOKEN_SECRET").is_ok() &&
-        std::env::var("MKM_APP_TOKEN").is_ok() &&
-        std::env::var("MKM_APP_SECRET").is_ok()
+        std::env::var("MKM_ACCESS_TOKEN").is_ok()
+            && std::env::var("MKM_ACCESS_TOKEN_SECRET").is_ok()
+            && std::env::var("MKM_APP_TOKEN").is_ok()
+            && std::env::var("MKM_APP_SECRET").is_ok()
     }
-    
+
     /// Read MKM configuration from config file or environment
     pub fn read_mkm_config(&self) -> HashMap<String, String> {
         let mut config = HashMap::new();
-        
+
         // Try to read from environment variables first
         if let Ok(access_token) = std::env::var("MKM_ACCESS_TOKEN") {
             config.insert("access_token".to_string(), access_token);
@@ -323,93 +367,75 @@ impl CardMarketProvider {
         if let Ok(app_secret) = std::env::var("MKM_APP_SECRET") {
             config.insert("app_secret".to_string(), app_secret);
         }
-        
+
         // In a real implementation, would also read from MtgjsonConfig file
         // if environment variables are not available
-        
+
         config
     }
-    
+
     /// Get MKM expansion data from API
-    pub fn get_mkm_expansion_data(&self, py: Python) -> PyResult<PyObject> {
+    pub fn get_mkm_expansion_data(&self) -> PyResult<PyObject> {
         if !self.has_mkm_config() {
             eprintln!("Warning: MKM configuration not found");
-            let empty_list = pyo3::types::PyList::empty_bound(py);
-            return Ok(empty_list.to_object(py));
+            return Python::with_gil(|py| {
+                let empty_list = PyList::empty_bound(py);
+                Ok(empty_list.into())
+            });
         }
-        
+
         // In a real implementation, this would make authenticated API calls to CardMarket
         // using OAuth 1.0a authentication with the configured tokens
         let expansions_url = "https://api.cardmarket.com/ws/v2.0/expansions";
-        
+
         // For now, return empty array but log the attempt
         println!("Would call MKM API: {}", expansions_url);
-        let empty_list = pyo3::types::PyList::empty_bound(py);
-        Ok(empty_list.to_object(py))
+        Python::with_gil(|py| {
+            let empty_list = PyList::empty_bound(py);
+            Ok(empty_list.into())
+        })
     }
-    
-    /// Load MKM set name fixes from resource file
-    #[staticmethod]
-    fn load_mkm_set_name_fixes() -> HashMap<String, String> {
-        let resource_path = std::env::current_dir()
-            .unwrap_or_else(|_| std::path::PathBuf::from("."))
-            .join("mtgjson5")
-            .join("resources")
-            .join("mkm_set_name_fixes.json");
-        
-        match std::fs::read_to_string(&resource_path) {
-            Ok(content) => {
-                serde_json::from_str(&content).unwrap_or_else(|e| {
-                    eprintln!("Warning: Failed to parse mkm_set_name_fixes.json: {}", e);
-                    HashMap::new()
-                })
-            }
-            Err(e) => {
-                eprintln!("Warning: Failed to read mkm_set_name_fixes.json: {}", e);
-                HashMap::new()
-            }
-        }
-    }
-    
+
     /// Get MKM expansion singles for a specific expansion
-    pub fn get_mkm_expansion_singles(&self, py: Python, expansion_id: i32) -> PyResult<PyObject> {
+    pub fn get_mkm_expansion_singles(&self, expansion_id: i32) -> PyResult<PyObject> {
         if !self.has_mkm_config() {
             eprintln!("Warning: MKM configuration not found");
-            let empty_list = pyo3::types::PyList::empty_bound(py);
-            return Ok(empty_list.to_object(py));
+            return Python::with_gil(|py| {
+                let empty_list = PyList::empty_bound(py);
+                Ok(empty_list.into())
+            });
         }
-        
+
         // In a real implementation, this would make authenticated API calls
-        let singles_url = format!("https://api.cardmarket.com/ws/v2.0/expansions/{}/singles", expansion_id);
-        
+        let singles_url = format!(
+            "https://api.cardmarket.com/ws/v2.0/expansions/{}/singles",
+            expansion_id
+        );
+
         // For now, return empty array but log the attempt
         println!("Would call MKM API: {}", singles_url);
-        let empty_list = pyo3::types::PyList::empty_bound(py);
-        Ok(empty_list.to_object(py))
+        Python::with_gil(|py| {
+            let empty_list = PyList::empty_bound(py);
+            Ok(empty_list.into())
+        })
     }
 }
 
 impl CardMarketProvider {
     /// Check if CardMarket configuration section exists
     fn check_cardmarket_config() -> bool {
-        // TODO: Implement actual config checking
-        // For now, check environment variables as fallback
-        std::env::var("MKM_APP_TOKEN").is_ok() || 
-        std::env::var("MTGJSON_CARDMARKET_APP_TOKEN").is_ok()
+        std::env::var("MKM_APP_TOKEN").is_ok()
+            || std::env::var("MTGJSON_CARDMARKET_APP_TOKEN").is_ok()
     }
-    
+
     /// Get configuration value
     fn get_config_value(section: &str, key: &str) -> Option<String> {
-        // TODO: Implement actual config reading
-        // For now, use environment variables with standard naming
         let env_key = format!("MTGJSON_{}_{}", section.to_uppercase(), key.to_uppercase());
         std::env::var(env_key).ok()
     }
-    
+
     /// Setup environment variables from configuration
     fn setup_environment_variables() {
-        // TODO: In a real implementation, read from MtgjsonConfig
-        // For now, assume environment variables are already set or use MTGJSON_ prefixed versions
         if let Ok(app_token) = std::env::var("MTGJSON_CARDMARKET_APP_TOKEN") {
             std::env::set_var("MKM_APP_TOKEN", app_token);
         }
@@ -423,26 +449,45 @@ impl CardMarketProvider {
             std::env::set_var("MKM_ACCESS_TOKEN_SECRET", access_secret);
         }
     }
-    
+
     /// Validate that required credentials are available
     fn validate_credentials() -> bool {
         std::env::var("MKM_APP_TOKEN").is_ok() && std::env::var("MKM_APP_SECRET").is_ok()
     }
-    
+
     /// Use new MKM API to get MTG card prices
     fn get_card_market_data(&self) -> PyResult<HashMap<String, HashMap<String, Option<f64>>>> {
         if self.price_guide_url.is_empty() {
-            return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Unable to get CardMarket data: No price URL set"));
+            return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Unable to get CardMarket data: No price URL set",
+            ));
         }
 
         let data = Python::with_gil(|py| self.download(py, self.price_guide_url.clone(), None))?;
-            
-        let price_guides = data.get("priceGuides")
+
+        // Convert PyObject back to serde_json::Value for processing
+        let json_str = Python::with_gil(|py| {
+            let json_module: Bound<'_, PyModule> = pyo3::types::PyModule::import(py, "json")?;
+            json_module
+                .call_method1("dumps", (data,))?
+                .extract::<String>()
+        })?;
+
+        let json_value: Value = serde_json::from_str(&json_str).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("JSON parsing error: {}", e))
+        })?;
+
+        let price_guides = json_value
+            .get("priceGuides")
             .and_then(|v| v.as_array())
-            .ok_or_else(|| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("No priceGuides array found in response"))?;
-        
+            .ok_or_else(|| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "No priceGuides array found in response",
+                )
+            })?;
+
         let mut price_data = HashMap::new();
-        
+
         for mkm_entry in price_guides {
             if let Some(entry_obj) = mkm_entry.as_object() {
                 if let Some(product_id) = entry_obj.get("idProduct") {
@@ -451,14 +496,14 @@ impl CardMarketProvider {
                         Value::Number(n) => n.to_string(),
                         _ => continue,
                     };
-                    
+
                     let trend = entry_obj.get("trend").and_then(|v| v.as_f64());
                     let trend_foil = entry_obj.get("trend-foil").and_then(|v| v.as_f64());
-                    
+
                     let mut price_entry = HashMap::new();
                     price_entry.insert("trend".to_string(), trend);
                     price_entry.insert("trend-foil".to_string(), trend_foil);
-                    
+
                     price_data.insert(id_str, price_entry);
                 }
             }
@@ -475,32 +520,51 @@ impl CardMarketProvider {
 
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            // TODO: Implement actual MKM API call for expansions
-            // For now, use placeholder URL
-            let expansions_url = "https://api.cardmarket.com/ws/v2.0/expansions/1/singles".to_string();
-            
-            match self.download(pyo3::Python::with_gil(|py| pyo3::types::PyDict::new(py)), expansions_url, None) {
+            let expansions_url =
+                "https://api.cardmarket.com/ws/v2.0/expansions/1/singles".to_string();
+
+            match Python::with_gil(|py| self.download(py, expansions_url.clone(), None)) {
                 Ok(response) => {
-                    if let Some(expansions) = response.get("expansion").and_then(|v| v.as_array()) {
+                    // Convert PyObject back to serde_json::Value for processing
+                    let json_str = Python::with_gil(|py| {
+                        let json_module: Bound<'_, PyModule> =
+                            pyo3::types::PyModule::import(py, "json")?;
+                        json_module
+                            .call_method1("dumps", (response,))?
+                            .extract::<String>()
+                    })
+                    .unwrap_or_else(|_| "{}".to_string());
+
+                    let json_value: Value = serde_json::from_str(&json_str)
+                        .unwrap_or_else(|_| Value::Object(Map::new()));
+
+                    if let Some(expansions) = json_value.get("expansion").and_then(|v| v.as_array())
+                    {
                         for set_content in expansions {
                             if let Some(set_obj) = set_content.as_object() {
                                 if let (Some(name), Some(id)) = (
                                     set_obj.get("enName").and_then(|v| v.as_str()),
-                                    set_obj.get("idExpansion").and_then(|v| v.as_i64())
+                                    set_obj.get("idExpansion").and_then(|v| v.as_i64()),
                                 ) {
                                     let mut set_data = HashMap::new();
-                                    set_data.insert("mcmId".to_string(), Value::Number(serde_json::Number::from(id)));
-                                    set_data.insert("mcmName".to_string(), Value::String(name.to_string()));
-                                    
+                                    set_data.insert(
+                                        "mcmId".to_string(),
+                                        Value::Number(serde_json::Number::from(id)),
+                                    );
+                                    set_data.insert(
+                                        "mcmName".to_string(),
+                                        Value::String(name.to_string()),
+                                    );
+
                                     self.set_map.insert(name.to_lowercase(), set_data);
                                 }
                             }
                         }
                     }
-                    
+
                     // Apply manual overrides
                     self.apply_manual_overrides();
-                },
+                }
                 Err(e) => {
                     error!("Unable to download MKM expansions: {}", e);
                 }
@@ -509,7 +573,7 @@ impl CardMarketProvider {
 
         Ok(())
     }
-    
+
     /// Apply manual set name overrides from configuration
     fn apply_manual_overrides(&mut self) {
         // TODO: Load from mkm_set_name_fixes.json resource file
@@ -518,20 +582,40 @@ impl CardMarketProvider {
             ("ravnica allegiance", "ravnica allegiance"),
             ("guilds of ravnica", "guilds of ravnica"),
         ];
-        
+
         for (old_name, new_name) in manual_overrides {
             if let Some(set_data) = self.set_map.remove(old_name) {
                 self.set_map.insert(new_name.to_string(), set_data);
             }
         }
     }
-    
+
     /// Fetch MKM cards for a specific set
     async fn fetch_mkm_cards(&self, mcm_id: i32) -> Result<HashMap<String, Vec<Value>>, String> {
         // TODO: Implement actual MKM API call for expansion singles
         // For now, return empty result
         info!("Would fetch cards for MKM set ID: {}", mcm_id);
         Ok(HashMap::new())
+    }
+
+    /// Load MKM set name fixes from resource file
+    fn load_mkm_set_name_fixes() -> HashMap<String, String> {
+        let resource_path = std::env::current_dir()
+            .unwrap_or_else(|_| std::path::PathBuf::from("."))
+            .join("mtgjson5")
+            .join("resources")
+            .join("mkm_set_name_fixes.json");
+
+        match std::fs::read_to_string(&resource_path) {
+            Ok(content) => serde_json::from_str(&content).unwrap_or_else(|e| {
+                eprintln!("Warning: Failed to parse mkm_set_name_fixes.json: {}", e);
+                HashMap::new()
+            }),
+            Err(e) => {
+                eprintln!("Warning: Failed to read mkm_set_name_fixes.json: {}", e);
+                HashMap::new()
+            }
+        }
     }
 }
 
@@ -540,15 +624,15 @@ impl AbstractProvider for CardMarketProvider {
     fn get_class_id(&self) -> &str {
         &self.base.class_id
     }
-    
+
     fn get_class_name(&self) -> &str {
         "CardMarketProvider"
     }
-    
+
     fn build_http_header(&self) -> HashMap<String, String> {
         self._build_http_header().unwrap_or_default()
     }
-    
+
     async fn download(
         &self,
         url: &str,
@@ -556,7 +640,7 @@ impl AbstractProvider for CardMarketProvider {
     ) -> ProviderResult<Value> {
         self.base.download_json(url, params).await
     }
-    
+
     async fn download_raw(
         &self,
         url: &str,
@@ -564,11 +648,15 @@ impl AbstractProvider for CardMarketProvider {
     ) -> ProviderResult<String> {
         self.base.download_text(url, params).await
     }
-    
+
     fn log_download(&self, response: &Response) {
-        println!("Downloaded {} (Status: {})", response.url(), response.status());
+        println!(
+            "Downloaded {} (Status: {})",
+            response.url(),
+            response.status()
+        );
     }
-    
+
     fn generic_generate_today_price_dict(
         &self,
         _third_party_to_mtgjson: &HashMap<String, HashSet<String>>,

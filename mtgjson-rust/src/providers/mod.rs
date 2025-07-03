@@ -62,8 +62,12 @@ impl From<ProviderError> for pyo3::PyErr {
             ProviderError::NetworkError(msg) => pyo3::exceptions::PyConnectionError::new_err(msg),
             ProviderError::ParseError(msg) => pyo3::exceptions::PyValueError::new_err(msg),
             ProviderError::AuthError(msg) => pyo3::exceptions::PyPermissionError::new_err(msg),
-            ProviderError::RateLimitError => pyo3::exceptions::PyRuntimeError::new_err("Rate limit exceeded"),
-            ProviderError::ConfigurationError(msg) => pyo3::exceptions::PyRuntimeError::new_err(msg),
+            ProviderError::RateLimitError => {
+                pyo3::exceptions::PyRuntimeError::new_err("Rate limit exceeded")
+            }
+            ProviderError::ConfigurationError(msg) => {
+                pyo3::exceptions::PyRuntimeError::new_err(msg)
+            }
             ProviderError::ProcessingError(msg) => pyo3::exceptions::PyRuntimeError::new_err(msg),
         }
     }
@@ -80,7 +84,7 @@ pub fn add_provider_classes_to_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TCGPlayerProvider>()?;
     m.add_class::<WhatsInStandardProvider>()?;
     m.add_class::<WizardsProvider>()?;
-    
+
     // Subdirectory providers
     m.add_class::<CardMarketProvider>()?;
     m.add_class::<EdhrecProviderCardRanks>()?;
@@ -92,6 +96,6 @@ pub fn add_provider_classes_to_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<MtgWikiProviderSecretLair>()?;
     m.add_class::<ScryfallProvider>()?;
     m.add_class::<ScryfallProviderOrientationDetector>()?;
-    
+
     Ok(())
 }

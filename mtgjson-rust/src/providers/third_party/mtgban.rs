@@ -1,10 +1,10 @@
+use crate::prices::MtgjsonPricesObject;
+use crate::providers::{AbstractProvider, BaseProvider, ProviderError, ProviderResult};
 use async_trait::async_trait;
 use pyo3::prelude::*;
 use reqwest::Response;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use crate::prices::MtgjsonPricesObject;
-use crate::providers::{AbstractProvider, BaseProvider, ProviderError, ProviderResult};
 
 #[pyclass(name = "MTGBanProvider")]
 pub struct MTGBanProvider {
@@ -26,27 +26,39 @@ impl AbstractProvider for MTGBanProvider {
     fn get_class_id(&self) -> &str {
         &self.base.class_id
     }
-    
+
     fn get_class_name(&self) -> &str {
         "MTGBanProvider"
     }
-    
+
     fn build_http_header(&self) -> HashMap<String, String> {
         HashMap::new()
     }
-    
-    async fn download(&self, url: &str, params: Option<HashMap<String, String>>) -> ProviderResult<Value> {
+
+    async fn download(
+        &self,
+        url: &str,
+        params: Option<HashMap<String, String>>,
+    ) -> ProviderResult<Value> {
         self.base.download_json(url, params).await
     }
-    
-    async fn download_raw(&self, url: &str, params: Option<HashMap<String, String>>) -> ProviderResult<String> {
+
+    async fn download_raw(
+        &self,
+        url: &str,
+        params: Option<HashMap<String, String>>,
+    ) -> ProviderResult<String> {
         self.base.download_text(url, params).await
     }
-    
+
     fn log_download(&self, response: &Response) {
-        println!("Downloaded {} (Status: {})", response.url(), response.status());
+        println!(
+            "Downloaded {} (Status: {})",
+            response.url(),
+            response.status()
+        );
     }
-    
+
     fn generic_generate_today_price_dict(
         &self,
         _third_party_to_mtgjson: &HashMap<String, HashSet<String>>,

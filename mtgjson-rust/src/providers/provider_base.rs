@@ -1,37 +1,37 @@
+use super::{ProviderError, ProviderResult};
+use crate::classes::MtgjsonPricesObject;
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use reqwest::{Client, Response};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use chrono::{DateTime, Utc};
-use crate::classes::MtgjsonPricesObject;
-use super::{ProviderError, ProviderResult};
 
 /// Abstract provider trait that all providers must implement
 #[async_trait]
 pub trait AbstractProvider: Send + Sync {
     /// Get the class ID for the provider
     fn get_class_id(&self) -> &str;
-    
+
     /// Get the class name for the provider
     fn get_class_name(&self) -> &str;
-    
+
     /// Build HTTP headers for authentication
     fn build_http_header(&self) -> HashMap<String, String>;
-    
+
     /// Download content from a URL with optional parameters
     async fn download(
         &self,
         url: &str,
         params: Option<HashMap<String, String>>,
     ) -> ProviderResult<Value>;
-    
+
     /// Download raw content (for non-JSON responses)
     async fn download_raw(
         &self,
         url: &str,
         params: Option<HashMap<String, String>>,
     ) -> ProviderResult<String>;
-    
+
     /// Async download method (alias for download)
     async fn download_async(
         &self,
@@ -40,20 +40,20 @@ pub trait AbstractProvider: Send + Sync {
     ) -> ProviderResult<Value> {
         self.download(url, params).await
     }
-    
+
     /// Log download information
     fn log_download(&self, response: &Response);
-    
+
     /// Get today's date in YYYY-MM-DD format
     fn today_date(&self) -> String {
         Utc::now().format("%Y-%m-%d").to_string()
     }
-    
+
     /// Generate today's price dictionary - default implementation
     fn generate_today_price_dict(&self) -> HashMap<String, MtgjsonPricesObject> {
         HashMap::new()
     }
-    
+
     /// Generic method to generate today's price dictionary
     fn generic_generate_today_price_dict(
         &self,
@@ -82,7 +82,7 @@ impl BaseProvider {
     /// Create a new base provider
     pub fn new(class_id: String, headers: HashMap<String, String>) -> Self {
         let client_builder = Client::builder();
-        
+
         // Add default headers
         let mut default_headers = reqwest::header::HeaderMap::new();
         for (key, value) in &headers {
@@ -93,20 +93,20 @@ impl BaseProvider {
                 default_headers.insert(name, val);
             }
         }
-        
+
         let client = client_builder
             .default_headers(default_headers)
             .timeout(std::time::Duration::from_secs(30))
             .build()
             .unwrap_or_else(|_| Client::new());
-            
+
         Self {
             class_id,
             client,
             headers,
         }
     }
-    
+
     /// Make an HTTP GET request (alias for get_request)
     pub async fn get(
         &self,
@@ -115,7 +115,7 @@ impl BaseProvider {
     ) -> ProviderResult<Response> {
         self.get_request(url, params).await
     }
-    
+
     /// Make an HTTP GET request
     pub async fn get_request(
         &self,
@@ -123,16 +123,17 @@ impl BaseProvider {
         params: Option<HashMap<String, String>>,
     ) -> ProviderResult<Response> {
         let mut request = self.client.get(url);
-        
+
         if let Some(p) = params {
             request = request.query(&p);
         }
-        
-        request.send().await.map_err(|e| {
-            ProviderError::NetworkError(format!("Request failed: {}", e))
-        })
+
+        request
+            .send()
+            .await
+            .map_err(|e| ProviderError::NetworkError(format!("Request failed: {}", e)))
     }
-    
+
     /// Download JSON content
     pub async fn download_json(
         &self,
@@ -140,7 +141,7 @@ impl BaseProvider {
         params: Option<HashMap<String, String>>,
     ) -> ProviderResult<Value> {
         let response = self.get_request(url, params).await?;
-        
+
         if !response.status().is_success() {
             return Err(ProviderError::NetworkError(format!(
                 "HTTP error {}: {}",
@@ -148,12 +149,13 @@ impl BaseProvider {
                 response.text().await.unwrap_or_default()
             )));
         }
-        
-        response.json().await.map_err(|e| {
-            ProviderError::ParseError(format!("JSON parse error: {}", e))
-        })
+
+        response
+            .json()
+            .await
+            .map_err(|e| ProviderError::ParseError(format!("JSON parse error: {}", e)))
     }
-    
+
     /// Download text content
     pub async fn download_text(
         &self,
@@ -161,7 +163,7 @@ impl BaseProvider {
         params: Option<HashMap<String, String>>,
     ) -> ProviderResult<String> {
         let response = self.get_request(url, params).await?;
-        
+
         if !response.status().is_success() {
             return Err(ProviderError::NetworkError(format!(
                 "HTTP error {}: {}",
@@ -169,10 +171,11 @@ impl BaseProvider {
                 response.text().await.unwrap_or_default()
             )));
         }
-        
-        response.text().await.map_err(|e| {
-            ProviderError::NetworkError(format!("Text download error: {}", e))
-        })
+
+        response
+            .text()
+            .await
+            .map_err(|e| ProviderError::NetworkError(format!("Text download error: {}", e)))
     }
 }
 
@@ -190,18 +193,23 @@ impl RateLimiter {
             min_interval,
         }
     }
-    
+
     pub async fn wait_if_needed(&self) {
         let now = Utc::now();
         let mut last_call = self.last_call.lock().await;
-        
+
         let elapsed = now - *last_call;
         if elapsed < self.min_interval {
             let wait_time = self.min_interval - elapsed;
             drop(last_call);
-            tokio::time::sleep(wait_time.to_std().unwrap_or(std::time::Duration::from_millis(100))).await;
+            tokio::time::sleep(
+                wait_time
+                    .to_std()
+                    .unwrap_or(std::time::Duration::from_millis(100)),
+            )
+            .await;
         }
-        
+
         *self.last_call.lock().await = Utc::now();
     }
 }

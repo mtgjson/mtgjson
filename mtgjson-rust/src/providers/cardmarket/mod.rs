@@ -1,3 +1,3 @@
 pub mod monolith;
 
-pub use monolith::CardMarketProvider; 
+pub use monolith::CardMarketProvider;
