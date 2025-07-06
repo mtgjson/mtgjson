@@ -765,6 +765,14 @@ def build_mtgjson_card(
     :param set_release_date: Original set release date
     :return: List of card objects that were constructed
     """
+
+    # Temporary hack to address SF naming issue with dual-sided, adventure dragon cards
+    if scryfall_object["set"].upper() == "TDM":
+        name_splitter = list(map(str.strip, scryfall_object["name"].split("//")))
+        if len(name_splitter) == 3 and name_splitter[0] == name_splitter[2]:
+            name_splitter.append(name_splitter[1])
+            scryfall_object["name"] = " // ".join(name_splitter)
+
     LOGGER.info(f"Building {scryfall_object['set'].upper()}: {scryfall_object['name']}")
 
     # Return List
