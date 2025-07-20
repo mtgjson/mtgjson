@@ -105,7 +105,7 @@ class ScryfallProvider(AbstractProvider):
         :param retry_ttl: How many times to retry if Chunk Error
         """
         try:
-            response = self.session.get(url, timeout=10)
+            response = self.session.get(url, timeout=30)
             self.log_download(response)
         except requests.exceptions.ChunkedEncodingError as error:
             if retry_ttl:
