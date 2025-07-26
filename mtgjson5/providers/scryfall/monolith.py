@@ -113,8 +113,8 @@ class ScryfallProvider(AbstractProvider):
                 time.sleep(3 - retry_ttl)
                 return self.download(url, params, retry_ttl - 1)
 
-            LOGGER.error(f"Download failed: {error}... Maxed out retries")
-            sys.exit(1)
+            LOGGER.error(f"Download failed: {error}... Maxed out retries, returning empty dict")
+            return {}
 
         try:
             return response.json()
