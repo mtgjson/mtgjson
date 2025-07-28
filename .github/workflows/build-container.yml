@@ -24,7 +24,7 @@ jobs:
 
       - name: Get Branch Name
         id: branch-name
-        uses: tj-actions/branch-names@v8
+        uses: tj-actions/branch-names@v9
 
       - id: commit
         uses: prompt/actions-commit-hash@v3
