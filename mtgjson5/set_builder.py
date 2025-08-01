@@ -1207,9 +1207,9 @@ def build_mtgjson_card(
         gatherer_cards = GathererProvider().get_cards(
             mtgjson_card.identifiers.multiverse_id
         )
-        if isinstance(gatherer_cards, list) and len(gatherer_cards) > face_id:
-            mtgjson_card.original_type = gatherer_cards[face_id].get("original_types")
-            mtgjson_card.original_text = gatherer_cards[face_id].get("original_text")
+        if gatherer_cards and isinstance(gatherer_cards, list):
+            mtgjson_card.original_type = gatherer_cards[0].get("original_types")
+            mtgjson_card.original_text = gatherer_cards[0].get("original_text")
 
     mtgjson_cards.append(mtgjson_card)
 
