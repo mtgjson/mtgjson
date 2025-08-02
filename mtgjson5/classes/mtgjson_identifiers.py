@@ -1,6 +1,7 @@
 """
 MTGJSON Singular Card.Identifiers Object
 """
+
 from typing import Dict, Optional
 
 from .json_object import JsonObject

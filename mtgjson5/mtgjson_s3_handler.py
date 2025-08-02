@@ -1,6 +1,7 @@
 """
 S3 Uploader to store MTGJSON files in a Bucket
 """
+
 import logging
 import pathlib
 import urllib.parse

@@ -1,6 +1,7 @@
 """
 MTGJSON Set Builder
 """
+
 import json
 import logging
 import pathlib
@@ -694,7 +695,7 @@ def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
 
 
 def add_uuid(
-    mtgjson_object: Union[MtgjsonCardObject, MtgjsonSealedProductObject]
+    mtgjson_object: Union[MtgjsonCardObject, MtgjsonSealedProductObject],
 ) -> None:
     """
     Construct a UUIDv5 for each MTGJSON card object

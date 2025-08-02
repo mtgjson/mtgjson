@@ -1,6 +1,7 @@
 """
 MTGJSON CardTypes Object
 """
+
 import re
 import string
 from typing import Any, Dict, List, Match, Optional

@@ -1,6 +1,7 @@
 """
 MTGJSON Related Cards Container
 """
+
 from typing import List
 
 from ..classes.json_object import JsonObject

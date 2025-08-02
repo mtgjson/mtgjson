@@ -1,6 +1,7 @@
 """
 Card Sealed Products via GitHub 3rd party provider
 """
+
 import logging
 from typing import Any, Dict, List, Optional, Union
 
@@ -18,7 +19,9 @@ class GitHubCardSealedProductsProvider(AbstractProvider):
     GitHub Card Sealed Products Provider
     """
 
-    card_products_api_url: str = "https://github.com/mtgjson/mtg-sealed-content/raw/main/outputs/card_map.json?raw=True"
+    card_products_api_url: str = (
+        "https://github.com/mtgjson/mtg-sealed-content/raw/main/outputs/card_map.json?raw=True"
+    )
     card_uuid_to_products: Dict[str, Dict[str, List[str]]]
 
     def __init__(self) -> None:

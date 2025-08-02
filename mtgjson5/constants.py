@@ -1,6 +1,7 @@
 """
 MTGJSON Constants that cannot be changed and are hardcoded intentionally
 """
+
 import datetime
 import hashlib
 import os

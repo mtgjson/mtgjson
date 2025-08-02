@@ -1,6 +1,7 @@
 """
 MTGJSON Set.Translations Object
 """
+
 from typing import Any, Dict, Optional
 
 from mtgjson5.classes.json_object import JsonObject

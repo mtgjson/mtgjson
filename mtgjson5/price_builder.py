@@ -1,6 +1,7 @@
 """
 Construct Prices for MTGJSON
 """
+
 import datetime
 import json
 import logging

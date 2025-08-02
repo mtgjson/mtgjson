@@ -1,6 +1,7 @@
 """
 MTGBan 3rd party provider
 """
+
 import logging
 from typing import Any, Dict, Optional, Union
 

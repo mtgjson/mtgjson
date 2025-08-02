@@ -1,6 +1,7 @@
 """
 MTGJSON Singular Card.LeadershipSkills Object
 """
+
 from .json_object import JsonObject
 
 

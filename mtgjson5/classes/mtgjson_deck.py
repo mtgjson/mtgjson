@@ -1,6 +1,7 @@
 """
 MTGJSON Singular Deck Object
 """
+
 import re
 from typing import Any, Dict, Iterable, List, Optional, Union
 

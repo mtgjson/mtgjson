@@ -1,6 +1,7 @@
 """
 MTGJSON Singular Card.Rulings Object
 """
+
 from .json_object import JsonObject
 
 

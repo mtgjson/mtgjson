@@ -1,6 +1,7 @@
 """
 MTGJSON Keywords Object
 """
+
 from typing import List
 
 from ..classes.json_object import JsonObject

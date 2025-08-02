@@ -2,7 +2,6 @@
 MTGJSON Singular Deck Header Object
 """
 
-
 from ..classes.mtgjson_deck import MtgjsonDeckObject
 from .json_object import JsonObject
 

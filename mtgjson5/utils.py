@@ -1,6 +1,7 @@
 """
 MTGJSON simple utilities
 """
+
 import collections
 import hashlib
 import json
@@ -28,9 +29,11 @@ def init_logger() -> None:
     start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
 
     logging.basicConfig(
-        level=logging.DEBUG
-        if os.environ.get("MTGJSON5_DEBUG", "").lower() in ["true", "1"]
-        else logging.INFO,
+        level=(
+            logging.DEBUG
+            if os.environ.get("MTGJSON5_DEBUG", "").lower() in ["true", "1"]
+            else logging.INFO
+        ),
         format="[%(levelname)s] %(asctime)s: %(message)s",
         handlers=[
             logging.StreamHandler(),
@@ -223,8 +226,7 @@ def get_all_entities(
     with all_printings_path.open(encoding="utf-8") as f:
         file_contents = json.load(f).get("data", {})
 
-    for entity in get_all_entities_from_content(file_contents, include_sealed_product):
-        yield entity
+    yield from get_all_entities_from_content(file_contents, include_sealed_product)
 
 
 def generate_entity_mapping(

@@ -1,6 +1,7 @@
 """
 Boosters via GitHub 3rd party provider
 """
+
 import logging
 from typing import Any, Dict, Optional, Union
 
@@ -19,7 +20,9 @@ class GitHubBoostersProvider(AbstractProvider):
     GitHubBoostersProvider container
     """
 
-    booster_api_url: str = "https://github.com/taw/magic-sealed-data/blob/master/experimental_export_for_mtgjson.json?raw=true"
+    booster_api_url: str = (
+        "https://github.com/taw/magic-sealed-data/blob/master/experimental_export_for_mtgjson.json?raw=true"
+    )
     booster_data: Dict[str, Any]
 
     def __init__(self) -> None:

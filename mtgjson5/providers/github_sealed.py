@@ -1,6 +1,7 @@
 """
 Sealed Products via GitHub 3rd party provider
 """
+
 import logging
 from typing import Any, Dict, List, Optional, Union
 
@@ -24,8 +25,12 @@ class GitHubSealedProvider(AbstractProvider):
     GitHubSealedProvider container
     """
 
-    sealed_contents_url: str = "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/contents.json?raw=true"
-    sealed_products_url: str = "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/products.json?raw=true"
+    sealed_contents_url: str = (
+        "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/contents.json?raw=true"
+    )
+    sealed_products_url: str = (
+        "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/products.json?raw=true"
+    )
     sealed_products: Dict[str, Any]
     sealed_contents: Dict[str, Any]
 

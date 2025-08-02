@@ -1,6 +1,7 @@
 """
 MTGJSON Top Level Object
 """
+
 import abc
 from typing import Any, Iterable
 

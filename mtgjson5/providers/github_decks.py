@@ -1,6 +1,7 @@
 """
 Decks via GitHub 3rd party provider
 """
+
 import copy
 import json
 import logging
@@ -26,8 +27,12 @@ class GitHubDecksProvider(AbstractProvider):
     GitHubDecksProvider container
     """
 
-    decks_api_url: str = "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks_v2.json?raw=true"
-    decks_uuid_api_url: str = "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/deck_map.json?raw=True"
+    decks_api_url: str = (
+        "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks_v2.json?raw=true"
+    )
+    decks_uuid_api_url: str = (
+        "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/deck_map.json?raw=True"
+    )
     all_printings_file: pathlib.Path = MtgjsonConfig().output_path.joinpath(
         f"{MtgjsonStructuresObject().all_printings}.json"
     )

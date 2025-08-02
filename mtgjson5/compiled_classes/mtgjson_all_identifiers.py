@@ -1,6 +1,7 @@
 """
 MTGJSON AllIdentifiers Object
 """
+
 import logging
 from typing import Any, Dict
 

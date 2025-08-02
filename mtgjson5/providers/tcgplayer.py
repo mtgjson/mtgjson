@@ -1,6 +1,7 @@
 """
 TCGPlayer 3rd party provider
 """
+
 import copy
 import enum
 import json
