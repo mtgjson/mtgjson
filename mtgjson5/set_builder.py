@@ -508,7 +508,15 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     add_mcm_details(mtgjson_set)
     add_card_kingdom_details(mtgjson_set)
 
-    mtgjson_set.tcgplayer_group_id = set_data.get("tcgplayer_id")
+    with RESOURCE_PATH.joinpath("tcgplayer_group_id_overrides.json").open(
+        encoding="utf-8"
+    ) as fp:
+        tcgplayer_group_id_overrides: Dict[str, int] = json.load(fp)
+    if tcgplayer_group_id_overrides.get(mtgjson_set.code):
+        mtgjson_set.tcgplayer_group_id = tcgplayer_group_id_overrides[mtgjson_set.code]
+    else:
+        mtgjson_set.tcgplayer_group_id = set_data.get("tcgplayer_id")
+
     mtgjson_set.booster = GitHubBoostersProvider().get_set_booster_data(set_code)
 
     mtgjson_set.sealed_product = GitHubSealedProvider().get_sealed_products_data(
