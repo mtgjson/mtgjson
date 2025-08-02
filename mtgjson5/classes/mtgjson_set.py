@@ -1,6 +1,7 @@
 """
 MTGJSON Singular Set Object
 """
+
 from typing import Any, Dict, List, Optional, Set
 
 from .. import constants

@@ -1,6 +1,7 @@
 """
 MTGJSON Meta Object
 """
+
 import datetime
 from typing import Any, Dict, Union
 

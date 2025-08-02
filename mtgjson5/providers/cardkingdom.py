@@ -1,6 +1,7 @@
 """
 Card Kingdom 3rd party provider
 """
+
 import logging
 import pathlib
 import re

@@ -1,6 +1,7 @@
 """
 MTGJSON output generator to write out contents to file & accessory methods
 """
+
 import json
 import logging
 import pathlib

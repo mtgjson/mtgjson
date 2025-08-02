@@ -1,6 +1,7 @@
 """
 MTGJSON Internal Object for Output Files
 """
+
 from typing import List
 
 from singleton_decorator import singleton

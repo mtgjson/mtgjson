@@ -33,10 +33,13 @@ class MtgWikiProviderSecretLair(AbstractProvider):
         return self.__parse_secret_lair_table(response.text)
 
     def __parse_secret_lair_table(self, page_text: str) -> Dict[str, str]:
-        results = {}
+        results: Dict[str, str] = {}
 
         soup = bs4.BeautifulSoup(page_text, "html.parser")
         table = soup.find("table", {"class": "wikitable sortable"})
+        if not table:
+            return results
+
         table_rows = table.find_all("tr")
         for index, table_row in enumerate(table_rows[1:]):
             table_cols = table_row.find_all("td")

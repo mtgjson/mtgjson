@@ -31,7 +31,8 @@ disable=
     unsubscriptable-object,
     used-before-assignment,
     wrong-import-order,
-    wrong-import-position
+    wrong-import-position,
+    too-many-positional-arguments
 
 [REPORTS]
 # Set the output format. Available formats are text, parseable, colorized, json

@@ -1,6 +1,7 @@
 """
 Wrapper around creating a parallel function call
 """
+
 import collections
 import itertools
 from typing import Any, Callable, List, Optional, Tuple, Union

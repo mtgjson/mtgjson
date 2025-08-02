@@ -1,6 +1,7 @@
 """
 MTGJSON EnumValues Object
 """
+
 import json
 import logging
 import pathlib

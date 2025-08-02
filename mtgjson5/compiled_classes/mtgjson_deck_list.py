@@ -1,6 +1,7 @@
 """
 MTGJSON DeckList Object
 """
+
 from typing import List
 
 from ..classes import MtgjsonDeckHeaderObject

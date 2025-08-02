@@ -1,6 +1,7 @@
 """
 MTGJSON Singular Card.GameFormats Object
 """
+
 from typing import Iterable
 
 from .json_object import JsonObject

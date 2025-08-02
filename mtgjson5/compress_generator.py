@@ -1,6 +1,7 @@
 """
 MTGJSON Compression Operations
 """
+
 import logging
 import pathlib
 import shutil

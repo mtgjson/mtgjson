@@ -1,6 +1,7 @@
 """
 MTGJSON Singular Prices.Card Object
 """
+
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 

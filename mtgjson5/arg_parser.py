@@ -1,6 +1,7 @@
 """
 MTGJSON Arg Parser to determine what actions to take
 """
+
 import argparse
 import logging
 import os

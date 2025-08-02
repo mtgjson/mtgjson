@@ -1,6 +1,7 @@
 """
 Referral Map builder operations
 """
+
 import logging
 import re
 from typing import List, Pattern, Tuple, Union

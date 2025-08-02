@@ -1,6 +1,7 @@
 """
 MTGJSON Configuration Service
 """
+
 import configparser
 import logging
 import pathlib

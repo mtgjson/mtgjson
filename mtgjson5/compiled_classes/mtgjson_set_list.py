@@ -1,6 +1,7 @@
 """
 MTGJSON SetList Object
 """
+
 import json
 from typing import Any, Dict, List
 

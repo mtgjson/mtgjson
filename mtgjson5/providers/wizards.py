@@ -1,6 +1,7 @@
 """
 Wizards Site 3rd party provider
 """
+
 import logging
 import re
 import time

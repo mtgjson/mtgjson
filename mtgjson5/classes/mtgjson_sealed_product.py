@@ -1,6 +1,7 @@
 """
 MTGJSON Singular Sealed Product Object
 """
+
 import enum
 from typing import Any, Dict, Iterable, Optional
 

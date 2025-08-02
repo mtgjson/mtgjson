@@ -1,6 +1,7 @@
 """
 MTGJSON AtomicCards Object
 """
+
 import json
 import re
 from collections import defaultdict
