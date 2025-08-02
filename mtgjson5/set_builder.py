@@ -672,7 +672,17 @@ def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
         mtgjson_card.name in override_cards
         or (
             "Legendary" in mtgjson_card.type
-            and "Creature" in mtgjson_card.type
+            and (
+                "Creature" in mtgjson_card.type
+                or (
+                    (
+                        "Vehicle" in mtgjson_card.type
+                        or "Spacecraft" in mtgjson_card.type
+                    )
+                    and mtgjson_card.toughness
+                    and mtgjson_card.power
+                )
+            )
             # Exclude Flip cards
             and mtgjson_card.type not in {"flip"}
             # Exclude Melded cards and backside of Transform cards
