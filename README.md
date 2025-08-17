@@ -57,7 +57,7 @@ MTGJSON supplies precompiled databases at https://mtgjson.com/api/v5/. **This is
 
 As stated before, we pride ourselves on our documentation which can be found at https://mtgjson.com/. If you find anything to be unclear or ambiguous, please [open a ticket](https://github.com/mtgjson/mtgjson-website/issues) on our documentation repository so we can address your concern immediately.
 
-We fully rebuild our API data once a week (on Monday afternoons) and our price dataset once a day. You can poll the [Meta.json](https://mtgjson.com/api/v5/Meta.json) file to see when our data was last updated.  
+We fully rebuild our API data once a day. You can poll the [Meta.json](https://mtgjson.com/api/v5/Meta.json) file to see when our data was last updated.  
 
 ### For those who want to build MTGJSON locally  
 Most of our users shouldn't have a need to build MTGJSON locally. However, there are always exceptions and we aren't ones to judge.  
