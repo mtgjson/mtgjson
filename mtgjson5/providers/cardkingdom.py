@@ -5,6 +5,7 @@ Card Kingdom 3rd party provider
 import logging
 import pathlib
 import re
+from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 
 from singleton_decorator import singleton
@@ -25,6 +26,7 @@ class CardKingdomProvider(AbstractProvider):
 
     api_url: str = "https://api.cardkingdom.com/api/pricelist"
     sealed_url: str = "https://api.cardkingdom.com/api/sealed_pricelist"
+    url_prefix: str = "https://www.cardkingdom.com/"
 
     def __init__(self) -> None:
         """
@@ -52,6 +54,19 @@ class CardKingdomProvider(AbstractProvider):
         self.log_download(response)
 
         return response.json()
+
+    def get_scryfall_translation_table(self) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Group entries from the CardKingdom API by Scryfall ID
+        for further processing down the line
+        """
+        mapping = defaultdict(list)
+
+        api_response = self.download(self.api_url).get("data")
+        for api_entry in api_response:
+            mapping[api_entry["scryfall_id"]].append(api_entry)
+
+        return mapping
 
     @staticmethod
     def strip_sealed_name(product_name: str) -> str:
