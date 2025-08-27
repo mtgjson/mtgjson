@@ -63,7 +63,15 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
             )
             return []
 
-        first_card_number = first_card_response["data"][0].get("collector_number")
+        for entry_to_use in first_card_response["data"]:
+            if entry_to_use["name"].startswith("A-"):
+                # We don't want to use Arena-only rebalanced cards. They are English only.
+                continue
+            first_card_number = entry_to_use.get("collector_number")
+            break
+        else:
+            first_card_number = 0
+
         lang_response = self.download(
             self.LANG_QUERY_URL.format(set_code, first_card_number)
         )
