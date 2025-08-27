@@ -35,7 +35,6 @@ from .providers import (
     GitHubCardSealedProductsProvider,
     GitHubDecksProvider,
     GitHubSealedProvider,
-    MTGBanProvider,
     MtgWikiProviderSecretLair,
     MultiverseBridgeProvider,
     ScryfallProvider,
@@ -1355,49 +1354,50 @@ def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
     :param mtgjson_set: MTGJSON Set
     """
     LOGGER.info(f"Adding CK details for {mtgjson_set.code}")
-    translation_table = MTGBanProvider().get_mtgjson_to_card_kingdom()
+    translation_table = CardKingdomProvider().get_scryfall_translation_table()
 
     for mtgjson_card in mtgjson_set.cards + mtgjson_set.tokens:
-        if mtgjson_card.uuid not in translation_table:
+        if mtgjson_card.identifiers.scryfall_id not in translation_table:
             continue
 
-        entry = translation_table[mtgjson_card.uuid]
-
-        if "normal" in entry:
-            mtgjson_card.identifiers.card_kingdom_id = str(entry["normal"]["id"])
-            mtgjson_card.purchase_urls.card_kingdom = url_keygen(
-                entry["normal"]["url"] + mtgjson_card.uuid
-            )
-            mtgjson_card.raw_purchase_urls.update(
-                {
-                    "cardKingdom": entry["normal"]["url"]
-                    + constants.CARD_KINGDOM_REFERRAL
-                }
-            )
-
-        if "foil" in entry:
-            mtgjson_card.identifiers.card_kingdom_foil_id = str(entry["foil"]["id"])
-            mtgjson_card.purchase_urls.card_kingdom_foil = url_keygen(
-                entry["foil"]["url"] + mtgjson_card.uuid
-            )
-            mtgjson_card.raw_purchase_urls.update(
-                {
-                    "cardKingdomFoil": entry["foil"]["url"]
-                    + constants.CARD_KINGDOM_REFERRAL
-                }
-            )
-
-        if "etched" in entry:
-            mtgjson_card.identifiers.card_kingdom_etched_id = str(entry["etched"]["id"])
-            mtgjson_card.purchase_urls.card_kingdom_etched = url_keygen(
-                entry["etched"]["url"] + mtgjson_card.uuid
-            )
-            mtgjson_card.raw_purchase_urls.update(
-                {
-                    "cardKingdomEtched": entry["etched"]["url"]
-                    + constants.CARD_KINGDOM_REFERRAL
-                }
-            )
+        entries = translation_table[mtgjson_card.identifiers.scryfall_id]
+        for entry in entries:
+            if "Foil Etched" in entry.get("variation", ""):
+                mtgjson_card.identifiers.card_kingdom_etched_id = str(entry["id"])
+                mtgjson_card.purchase_urls.card_kingdom_etched = url_keygen(
+                    CardKingdomProvider().url_prefix + entry["url"] + mtgjson_card.uuid
+                )
+                mtgjson_card.raw_purchase_urls.update(
+                    {
+                        "cardKingdomEtched": CardKingdomProvider().url_prefix
+                        + entry["url"]
+                        + constants.CARD_KINGDOM_REFERRAL
+                    }
+                )
+            elif entry.get("is_foil", "false") == "true":
+                mtgjson_card.identifiers.card_kingdom_foil_id = str(entry["id"])
+                mtgjson_card.purchase_urls.card_kingdom_foil = url_keygen(
+                    CardKingdomProvider().url_prefix + entry["url"] + mtgjson_card.uuid
+                )
+                mtgjson_card.raw_purchase_urls.update(
+                    {
+                        "cardKingdomFoil": CardKingdomProvider().url_prefix
+                        + entry["url"]
+                        + constants.CARD_KINGDOM_REFERRAL
+                    }
+                )
+            else:
+                mtgjson_card.identifiers.card_kingdom_id = str(entry["id"])
+                mtgjson_card.purchase_urls.card_kingdom = url_keygen(
+                    CardKingdomProvider().url_prefix + entry["url"] + mtgjson_card.uuid
+                )
+                mtgjson_card.raw_purchase_urls.update(
+                    {
+                        "cardKingdom": CardKingdomProvider().url_prefix
+                        + entry["url"]
+                        + constants.CARD_KINGDOM_REFERRAL
+                    }
+                )
 
     LOGGER.info(f"Finished adding CK details for {mtgjson_set.code}")
 
