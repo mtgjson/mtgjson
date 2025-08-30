@@ -21,6 +21,7 @@ from .providers import (
     CardHoarderProvider,
     CardKingdomProvider,
     CardMarketProvider,
+    ManapoolPricesProvider,
     MultiverseBridgeProvider,
     TCGPlayerProvider,
 )
@@ -51,6 +52,7 @@ class PriceBuilder:
                 CardMarketProvider(),
                 CardKingdomProvider(),
                 MultiverseBridgeProvider(),
+                ManapoolPricesProvider(),
             ]
 
         self.all_printings_path = (
