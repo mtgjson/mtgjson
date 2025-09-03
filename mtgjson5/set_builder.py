@@ -1632,13 +1632,15 @@ def add_meld_face_parts(mtgjson_set: MtgjsonSetObject) -> None:
     :param mtgjson_set: MTGJSON Set
     """
     LOGGER.info(f"Adding Card Face Parts for {mtgjson_set.code}")
+
+    collector_numbers_in_set = [card.number for card in mtgjson_set.cards]
     for first_card in mtgjson_set.cards:
         if first_card.layout != "meld":
             continue
 
         card_face_parts: List[Optional[str]] = [None, None, None]
 
-        if "a" in first_card.number:
+        if f"{first_card.number}b" in collector_numbers_in_set:
             card_face_parts[1] = first_card.face_name
         elif "b" in first_card.number:
             card_face_parts[2] = first_card.face_name
@@ -1653,7 +1655,7 @@ def add_meld_face_parts(mtgjson_set: MtgjsonSetObject) -> None:
             ):
                 continue
 
-            if "a" in other_card.number:
+            if f"{other_card.number}b" in collector_numbers_in_set:
                 card_face_parts[1] = other_card.face_name
             elif "b" in other_card.number:
                 card_face_parts[2] = other_card.face_name
@@ -1661,7 +1663,9 @@ def add_meld_face_parts(mtgjson_set: MtgjsonSetObject) -> None:
                 card_face_parts[0] = other_card.face_name
 
         if any(not x for x in card_face_parts):
-            LOGGER.warning(f"Unable to properly parse Card Parts for {first_card}")
+            LOGGER.warning(
+                f"Unable to properly parse Card Parts for {first_card.name} ({first_card.uuid})"
+            )
             continue
 
         first_card.card_parts = [x for x in card_face_parts if x]
