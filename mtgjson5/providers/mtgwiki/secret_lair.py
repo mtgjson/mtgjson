@@ -52,6 +52,10 @@ class MtgWikiProviderSecretLair(AbstractProvider):
             elif len(table_cols) < 3:
                 continue
 
+            if not table_cols[0].text.strip().isdigit():
+                # Not a true Secret Lair row
+                continue
+
             secret_lair_name = table_cols[1].text.strip()
             card_numbers = self.__convert_range_to_page_style(
                 table_cols[2].text + extra_card_numbers
