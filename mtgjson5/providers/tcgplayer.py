@@ -29,6 +29,10 @@ class CardFinish(enum.Enum):
     """
 
     FOIL_ETCHED = "Foil Etched"
+    # SURGE_FOIL = "Surge Foil" <-- Dont these
+    # EXTENDED_ART = "Extended Art" <-- Need to
+    # BORDERLESS = "Borderless" <-- Be
+    # SHOWCASE = "Showcase" <-- Here? 
 
     @classmethod
     def has_value(cls, value: str) -> bool:
@@ -423,7 +427,7 @@ class TCGPlayerProvider(AbstractProvider):
             result_card_finish = CardFinish(card_finish).name.replace("_", " ")
             break
 
-        return result_card_finish
+        return result_card_finish # need to add a field or a concat multiples together for double finished cards
 
     def convert_sku_data_enum(
         self, product: Dict[str, Any]
