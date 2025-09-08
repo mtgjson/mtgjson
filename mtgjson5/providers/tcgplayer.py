@@ -25,7 +25,7 @@ LOGGER = logging.getLogger(__name__)
 
 class CardFinish(enum.Enum):
     """
-    TCGPlayer Card Finish
+    TCGPlayer Card Condition
     Self Driven by MTGJSON
     """
 
@@ -405,17 +405,26 @@ class TCGPlayerProvider(AbstractProvider):
         return list(response.get("results", []))
 
     @staticmethod
-    def get_card_finishes(card_name: str) -> List[str]:
+    def get_card_finish(card_name: str) -> Optional[str]:
         """
         Determine a card's TCGPlayer finish based on the card name,
         as TCGPlayer indicates their finishes by ending a card's name
         with "(Finish)". This can be a bit wonky for some edge cases,
         but overall this should be good enough.
         :param card_name: Card name from TCGPlayer
-        :return Card finish(es), if any are found
+        :return Card finish, if one is found
         """
+        result_card_finish = None
+
         card_finishes = re.findall(r"\(([^)0-9]+)\)", card_name)
-        return card_finishes
+        for card_finish in card_finishes:
+            if not CardFinish.has_value(card_finish):
+                continue
+
+            result_card_finish = CardFinish(card_finish).name.replace("_", " ")
+            break
+
+        return result_card_finish
 
     def convert_sku_data_enum(
         self, product: Dict[str, Any]
@@ -428,7 +437,7 @@ class TCGPlayerProvider(AbstractProvider):
         results = []
 
         name = product["name"]
-        card_finishes = self.get_card_finishes(name)
+        card_finish = self.get_card_finish(name)
 
         skus = product["skus"]
         for sku in skus:
@@ -439,8 +448,8 @@ class TCGPlayerProvider(AbstractProvider):
                 "printing": CardPrinting(sku["printingId"]).name.replace("_", " "),
                 "condition": CardCondition(sku["conditionId"]).name.replace("_", " "),
             }
-            if card_finishes:
-                entry["finish"] = card_finishes
+            if card_finish:
+                entry["finish"] = card_finish
             results.append(entry)
 
         return results
