@@ -803,7 +803,16 @@ def build_mtgjson_card(
     mtgjson_card.language = constants.LANGUAGE_MAP.get(
         scryfall_object["lang"], "unknown"
     )
+
+    # Flavor name has some guarantees, so we'll keep it backwards compatible for now
     mtgjson_card.flavor_name = scryfall_object.get("flavor_name")
+    if not mtgjson_card.flavor_name:
+        mtgjson_card.flavor_name = scryfall_object.get("printed_name")
+
+    mtgjson_card.printed_name = scryfall_object.get("printed_name")
+    mtgjson_card.printed_type = scryfall_object.get("printed_type_line")
+    mtgjson_card.printed_text = scryfall_object.get("printed_text")
+
     mtgjson_card.set_code = scryfall_object["set"].upper()
     mtgjson_card.identifiers.scryfall_id = scryfall_object["id"]
     mtgjson_card.identifiers.scryfall_oracle_id = (

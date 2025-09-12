@@ -91,6 +91,9 @@ class MtgjsonCardObject(JsonObject):
     other_face_ids: List[str]
     power: str
     prices: MtgjsonPricesObject
+    printed_name: Optional[str]
+    printed_type: Optional[str]
+    printed_text: Optional[str]
     printings: List[str]
     promo_types: List[str]
     purchase_urls: MtgjsonPurchaseUrlsObject
