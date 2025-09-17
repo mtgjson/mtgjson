@@ -12,10 +12,10 @@ from typing import Any, Dict, Optional, Union
 import git
 from singleton_decorator import singleton
 
-from .. import constants
-from ..compiled_classes.mtgjson_structures import MtgjsonStructuresObject
-from ..mtgjson_config import MtgjsonConfig
-from ..providers.abstract import AbstractProvider
+from ... import constants
+from ...compiled_classes.mtgjson_structures import MtgjsonStructuresObject
+from ...mtgjson_config import MtgjsonConfig
+from ...providers.abstract import AbstractProvider
 
 LOGGER = logging.getLogger(__name__)
 

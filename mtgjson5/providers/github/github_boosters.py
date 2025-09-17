@@ -7,9 +7,9 @@ from typing import Any, Dict, Optional, Union
 
 from singleton_decorator import singleton
 
-from ..mtgjson_config import MtgjsonConfig
-from ..providers.abstract import AbstractProvider
-from ..utils import recursive_sort
+from ...mtgjson_config import MtgjsonConfig
+from ...providers.abstract import AbstractProvider
+from ...utils import recursive_sort
 
 LOGGER = logging.getLogger(__name__)
 

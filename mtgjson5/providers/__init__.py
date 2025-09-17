@@ -7,11 +7,11 @@ from .cardkingdom import CardKingdomProvider
 from .cardmarket.monolith import CardMarketProvider
 from .edhrec.card_ranks import EdhrecProviderCardRanks
 from .gatherer import GathererProvider
-from .github_boosters import GitHubBoostersProvider
-from .github_card_sealed_products import GitHubCardSealedProductsProvider
-from .github_decks import GitHubDecksProvider
-from .github_mtgsqlite import GitHubMTGSqliteProvider
-from .github_sealed import GitHubSealedProvider
+from .github.github_boosters import GitHubBoostersProvider
+from .github.github_card_sealed_products import GitHubCardSealedProductsProvider
+from .github.github_decks import GitHubDecksProvider
+from .github.github_mtgsqlite import GitHubMTGSqliteProvider
+from .github.github_sealed import GitHubSealedProvider
 from .manapool.manapool_prices import ManapoolPricesProvider
 from .mtgwiki.secret_lair import MtgWikiProviderSecretLair
 from .multiversebridge import MultiverseBridgeProvider

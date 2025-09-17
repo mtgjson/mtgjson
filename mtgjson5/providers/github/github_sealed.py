@@ -7,14 +7,14 @@ from typing import Any, Dict, List, Optional, Union
 
 from singleton_decorator import singleton
 
-from ..classes import (
+from ...classes import (
     MtgjsonSealedProductCategory,
     MtgjsonSealedProductObject,
     MtgjsonSealedProductSubtype,
 )
-from ..mtgjson_config import MtgjsonConfig
-from ..providers.abstract import AbstractProvider
-from ..utils import to_snake_case
+from ...mtgjson_config import MtgjsonConfig
+from ...providers.abstract import AbstractProvider
+from ...utils import to_snake_case
 
 LOGGER = logging.getLogger(__name__)
 
