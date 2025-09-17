@@ -926,7 +926,7 @@ def build_mtgjson_card(
         else mtgjson_card.name
     )
     mtgjson_card.finishes = scryfall_object.get("finishes", [])
-    mtgjson_card.frame_effects = scryfall_object.get("frame_effects", "")
+    mtgjson_card.frame_effects = sorted(scryfall_object.get("frame_effects", []))
     mtgjson_card.frame_version = scryfall_object.get("frame", "")
     mtgjson_card.hand = scryfall_object.get("hand_modifier")
     mtgjson_card.has_foil = any(
