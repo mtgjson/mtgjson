@@ -842,6 +842,10 @@ def build_mtgjson_card(
             )
             mtgjson_card.face_flavor_name = face_data["flavor_name"]
 
+        if face_data.get("printed_name"):
+            mtgjson_card.face_flavor_name = face_data["printed_name"]
+            mtgjson_card.face_printed_name = face_data["printed_name"]
+
         if "//" in scryfall_object.get("mana_cost", ""):
             mtgjson_card.colors = get_card_colors(
                 scryfall_object["mana_cost"].split("//")[face_id]

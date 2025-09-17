@@ -44,6 +44,7 @@ class MtgjsonCardObject(JsonObject):
     face_flavor_name: Optional[str]
     face_mana_value: float
     face_name: Optional[str]
+    face_printed_name: Optional[str]
     finishes: List[str]
     first_printing: Optional[str]
     flavor_name: Optional[str]
