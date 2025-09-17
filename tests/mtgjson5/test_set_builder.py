@@ -79,7 +79,7 @@ def test_get_scryfall_set_data_returns_expected_data(patched_session):
     CUR_DIR = Path(__file__).parent.absolute()
 
     # Define the relative path to the JSON file
-    json_path = CUR_DIR / "mocked_data" / "TSP_SET_DATA.json"
+    json_path = CUR_DIR.joinpath("mocked_data","TSP_SET_DATA.json")
     with open(json_path, 'r') as file_content:
         download_mocked_json = json.load(file_content)
 

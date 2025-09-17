@@ -74,7 +74,7 @@ def test_download_uses_cache_and_returns_json(patched_session):
     CUR_DIR = Path(__file__).parent.parent.absolute()
 
     # Define the relative path to the JSON file
-    json_path = CUR_DIR / "mocked_data" / "TSP.json"
+    json_path = CUR_DIR.joinpath("mocked_data", "TSP.json")
     with open(json_path, 'r') as file_content:
         download_mocked_json = json.load(file_content)
 
