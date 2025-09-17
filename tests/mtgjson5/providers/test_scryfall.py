@@ -1,4 +1,3 @@
-# test_myclient.py
 import responses
 import pytest
 import requests_cache
@@ -11,13 +10,12 @@ from mtgjson5.providers.scryfall.monolith import ScryfallProvider
 def patched_session(tmp_path, monkeypatch):
     """
     Force the singleton to use *our* CachedSession with a per-test cache.
-    Also ensure POST is cacheable (if your method uses POST).
     """
     sess = requests_cache.CachedSession(
         cache_name=str(tmp_path / "cache.sqlite"),
         backend="sqlite",
         expire_after=3600,                  # 1 hour
-        allowable_methods=("GET", "POST"),  # include POST if needed
+        allowable_methods=("GET"),
         stale_if_error=True,
     )
 
@@ -25,7 +23,7 @@ def patched_session(tmp_path, monkeypatch):
         # Ignore args/kwargs from prod code and return our controlled session
         return sess
 
-    # Wherever myclient imports requests_cache, patch *that* reference
+    # Wherever ScryfallProvider imports requests_cache, patch *that* reference
     monkeypatch.setattr(ScryfallProvider, "session", sess, raising=False)
     return sess
 
@@ -33,10 +31,8 @@ def patched_session(tmp_path, monkeypatch):
 def reset_singleton():
     """
     Make sure each test gets a fresh singleton.
-    Adjust this to match your metaclass’ storage location.
     """
     try:
-        # Typical pattern: metaclass keeps a dict at _instances
         ScryfallProvider._instance = None
     except Exception:
         pass
@@ -53,10 +49,10 @@ def test_download_uses_cache_and_returns_json(patched_session):
     #mock the scryfall hit on singleton instantiation
     cards_without_limits_url = "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named)%20or%20(o:deck%20o:have%20o:up%20o:to%20o:cards%20o:named)" 
     
-    # TODO: Replace this with a proper mocked response.
+    # mock the response.  This isn't the actual response, but we don't need the actual response for this test
     cards_without_limits_mocked_json = {"ok": True, "x": 1}
 
-    # mock the download url response
+    # intercept the cards_without_limits request and provide the mocked response
     responses.add(
         responses.GET,
         cards_without_limits_url,
@@ -67,7 +63,7 @@ def test_download_uses_cache_and_returns_json(patched_session):
 
     download_url = "https://api.scryfall.com/cards/search?q=t:instant"
 
-    # instantiate after mocks so the on-singleton instantiation is mocked
+    # instantiate after mocks so the on-singleton call is mocked
     client = ScryfallProvider()
 
     # Get the parent directory of the current script
@@ -78,6 +74,7 @@ def test_download_uses_cache_and_returns_json(patched_session):
     with open(json_path, 'r') as file_content:
         download_mocked_json = json.load(file_content)
 
+    # intercept the search request and provide the mocked response
     responses.add(responses.GET, download_url, json=download_mocked_json, status=200)
 
     # Act

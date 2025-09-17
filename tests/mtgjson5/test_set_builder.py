@@ -1,4 +1,3 @@
-# test_myclient.py
 import responses
 import pytest
 import requests_cache
@@ -48,13 +47,13 @@ def reset_singleton():
 def run_before_and_after_tests(tmpdir):
     """Fixture to execute asserts before and after a test is run"""
     # Setup
-    #mock the scryfall hit on singleton instantiation
+    # mock the scryfall hit on singleton instantiation
     cards_without_limits_url = "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20o:cards%20o:named)%20or%20(o:deck%20o:have%20o:up%20o:to%20o:cards%20o:named)"
     
-    # TODO: Replace this with a proper mocked response.
+    # mock the response.  This isn't the actual response, but we don't need the actual response for this test
     cards_without_limits_mocked_json = {"ok": True, "x": 1}
 
-    # mock the download url response
+    # intercept the cards_without_limits request and provide the mocked response
     responses.add(
         responses.GET,
         cards_without_limits_url,
@@ -83,7 +82,7 @@ def test_get_scryfall_set_data_returns_expected_data(patched_session):
     with open(json_path, 'r') as file_content:
         download_mocked_json = json.load(file_content)
 
-    # mock the download response
+    # intercept the search request and provide the mocked response
     responses.add(responses.GET, download_url, json=download_mocked_json, status=200)
 
     # Act
@@ -105,7 +104,7 @@ def test_get_scryfall_set_data_handles_errors(patched_session):
         "details": "No Magic set found for the given code or ID"
     }
 
-    # mock the download response
+    # intercept the search request and provide the mocked response
     responses.add(responses.GET, download_url, json=mocked_error_response, status=200)
 
     # Act
