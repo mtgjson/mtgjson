@@ -35,6 +35,7 @@ from .providers import (
     GitHubCardSealedProductsProvider,
     GitHubDecksProvider,
     GitHubSealedProvider,
+    GitHubUuidCacheProvider,
     MtgWikiProviderSecretLair,
     MultiverseBridgeProvider,
     ScryfallProvider,
@@ -762,7 +763,20 @@ def add_uuid(
                 )
             )
 
-        mtgjson_object.uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v5))
+        cached_mtgjson_uuid = GitHubUuidCacheProvider().get_uuid(
+            str(mtgjson_object.identifiers.scryfall_id), mtgjson_object.side
+        )
+        generated_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v5))
+
+        if cached_mtgjson_uuid and cached_mtgjson_uuid != generated_uuid:
+            LOGGER.debug(
+                f"Using cached UUID for {mtgjson_object.name} ({mtgjson_object.identifiers.scryfall_id}) -- "
+                f"{cached_mtgjson_uuid} over {generated_uuid}"
+            )
+            mtgjson_object.uuid = cached_mtgjson_uuid
+        else:
+            mtgjson_object.uuid = generated_uuid
+
         mtgjson_object.identifiers.mtgjson_v4_id = str(
             uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v4)
         )

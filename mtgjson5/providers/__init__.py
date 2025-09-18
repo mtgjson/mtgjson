@@ -12,6 +12,7 @@ from .github.github_card_sealed_products import GitHubCardSealedProductsProvider
 from .github.github_decks import GitHubDecksProvider
 from .github.github_mtgsqlite import GitHubMTGSqliteProvider
 from .github.github_sealed import GitHubSealedProvider
+from .github.github_uuid_cache import GitHubUuidCacheProvider
 from .manapool.manapool_prices import ManapoolPricesProvider
 from .mtgwiki.secret_lair import MtgWikiProviderSecretLair
 from .multiversebridge import MultiverseBridgeProvider
