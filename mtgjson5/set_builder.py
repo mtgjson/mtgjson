@@ -351,18 +351,29 @@ def relocate_miscellaneous_tokens(mtgjson_set: MtgjsonSetObject) -> None:
     :param mtgjson_set: MTGJSON Set object
     """
     LOGGER.info(f"Relocate tokens for {mtgjson_set.code}")
-    token_types = {"token", "double_faced_token", "emblem", "art_series"}
+    token_types = {"token", "double_faced_token", "emblem", "art_series", "Dungeon"}
 
     # Identify unique tokens from cards
     tokens_found = {
         card.identifiers.scryfall_id
         for card in mtgjson_set.cards
-        if card.layout in token_types and card.identifiers.scryfall_id
+        if (
+            card.layout in token_types
+            or card.type in token_types
+            or "Token" in card.type
+        )
+        and card.identifiers.scryfall_id
     }
 
     # Remove tokens from cards
     mtgjson_set.cards[:] = (
-        card for card in mtgjson_set.cards if card.layout not in token_types
+        card
+        for card in mtgjson_set.cards
+        if (
+            card.layout not in token_types
+            and card.type not in token_types
+            and "Token" not in card.type
+        )
     )
 
     # Scryfall objects to handle later
