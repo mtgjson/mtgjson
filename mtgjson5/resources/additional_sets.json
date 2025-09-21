@@ -101,6 +101,6 @@
         "block_code": "lea",
         "block": "Core Set",
         "icon_svg_uri": "https://svgs.scryfall.io/sets/3ed.svg?1731301200",
-        "search_uri": "https://api.scryfall.com/cards/search?include_extras=true&include_variations=true&order=set&q=e%3Afbb&unique=prints"
+        "search_uri": "https://api.scryfall.com/cards/search?include_extras=true&include_variations=true&order=set&q=e%3Afwb&unique=prints"
     }
 }
