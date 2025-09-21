@@ -21,6 +21,7 @@ class MtgjsonForeignDataObject(JsonObject):
     name: Optional[str]
     text: Optional[str]
     type: Optional[str]
+    uuid: str
 
     def __init__(self) -> None:
         self.multiverse_id = None
