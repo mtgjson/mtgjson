@@ -21,6 +21,7 @@ class MtgjsonDeckObject(JsonObject):
     commander: List[Union[MtgjsonCardObject, Dict[str, Any]]]
     planes: List[Union[MtgjsonCardObject, Dict[str, Any]]]
     schemes: List[Union[MtgjsonCardObject, Dict[str, Any]]]
+    tokens: List[Union[MtgjsonCardObject, Dict[str, Any]]]
 
     code: str
     name: str
@@ -45,6 +46,7 @@ class MtgjsonDeckObject(JsonObject):
         self.commander = []
         self.planes = []
         self.schemes = []
+        self.tokens = []
 
     def set_sanitized_name(self, name: str) -> None:
         """
