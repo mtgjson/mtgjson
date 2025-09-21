@@ -763,6 +763,11 @@ def add_uuid(
 
     mtgjson_object.identifiers.mtgjson_v4_id = get_mtgjson_v4_uuid(mtgjson_object)
 
+    id_source_v5 = str(mtgjson_object.identifiers.scryfall_id) + (
+        mtgjson_object.side or "a"
+    )
+    add_extra_language_uuids(mtgjson_object, id_source_v5)
+
     # MTGJSONv5 UUIDs will now be generated using
     # Scryfall_UUID + Side ("a" by default if side not specified).
     # For UUIDs that have been generated in the past, we will continue
@@ -775,10 +780,21 @@ def add_uuid(
         mtgjson_object.uuid = cached_mtgjson_uuid
         return
 
-    id_source_v5 = str(mtgjson_object.identifiers.scryfall_id) + (
-        mtgjson_object.side or "a"
-    )
     mtgjson_object.uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v5))
+
+
+def add_extra_language_uuids(
+    mtgjson_card: MtgjsonCardObject, id_source_prefix: str
+) -> None:
+    """
+    Add unique identifiers to each language's printing of a card
+    """
+    for language_entry in mtgjson_card.foreign_data:
+        language_entry.uuid = str(
+            uuid.uuid5(
+                uuid.NAMESPACE_DNS, id_source_prefix + "_" + language_entry.language
+            )
+        )
 
 
 def build_mtgjson_card(
