@@ -166,6 +166,9 @@ class GitHubDecksProvider(AbstractProvider):
                 this_deck.schemes = parallel_call(
                     build_single_card, deck["schemeDeck"], fold_list=True
                 )
+                this_deck.tokens = parallel_call(
+                    build_single_card, deck["tokens"], fold_list=True
+                )
             except KeyError as error:
                 LOGGER.warning(
                     f'GitHub Deck "{this_deck.name}" failed to build -- Missing Set {error}'
@@ -191,7 +194,7 @@ def build_single_card(card: Dict[str, Any]) -> List[Dict[str, Any]]:
         LOGGER.warning(f"Set {card['set_code'].upper()} not found for {card['name']}")
         return []
 
-    for mtgjson_card in set_to_build_from["cards"]:
+    for mtgjson_card in set_to_build_from["cards"] + set_to_build_from["tokens"]:
         if card["mtgjson_uuid"] == mtgjson_card["uuid"]:
             mtgjson_card["count"] = card["count"]
             mtgjson_card["isFoil"] = card["foil"]
