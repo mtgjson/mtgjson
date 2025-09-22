@@ -103,6 +103,41 @@ class TcgCsvProvider(AbstractProvider):
             )
             return []
 
+    def fetch_set_products(self, set_code: str, group_id: str) -> List[Dict[str, Any]]:
+        """
+        Fetch product data for a specific set using its group ID
+
+        This fetches product metadata including display names, variants,
+        collector numbers, and other product information.
+
+        :param set_code: MTGJSON set code (for logging)
+        :param group_id: TCGCSV group ID for the set
+        :return: List of product data records
+        """
+        url = f"{self.base_url}/{group_id}/products"
+
+        try:
+            response_data = self.download(url)
+
+            # Validate response structure
+            if not response_data.get("success", False):
+                errors = response_data.get("errors", [])
+                LOGGER.warning(
+                    f"TCGCSV API returned success=false for {set_code} products: {errors}"
+                )
+                return []
+
+            results = response_data.get("results", [])
+            LOGGER.info(f"Fetched {len(results)} product records for {set_code}")
+
+            return results
+
+        except Exception as e:
+            LOGGER.error(
+                f"Failed to fetch products for {set_code} (group {group_id}): {e}"
+            )
+            return []
+
     def _inner_translate_today_price_dict(
         self, set_code: str, group_id: str
     ) -> Dict[str, Dict[str, float]]:
@@ -150,6 +185,76 @@ class TcgCsvProvider(AbstractProvider):
 
         LOGGER.info(f"Processed {len(mapping)} unique product IDs for {set_code}")
         return mapping
+
+    def fetch_set_enrichment_data(
+        self, set_code: str, group_id: str
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Fetch and combine both product and pricing data for a set
+
+        This method fetches both product metadata and pricing data,
+        then combines them into a single enrichment dataset indexed by product ID.
+
+        :param set_code: MTGJSON set code
+        :param group_id: TCGCSV group ID for the set
+        :return: Dictionary mapping product IDs to enrichment data
+        """
+        enrichment_data: Dict[str, Dict[str, Any]] = defaultdict(dict)
+
+        # Fetch product data for display names and metadata
+        product_data = self.fetch_set_products(set_code, group_id)
+        LOGGER.info(f"Processing {len(product_data)} products for {set_code}")
+
+        # Index products by product ID
+        for product in product_data:
+            try:
+                product_id = product.get("productId")
+                if not product_id:
+                    continue
+
+                key = str(product_id)
+
+                # Extract key product information
+                enrichment_data[key]["tcgplayer_display_name"] = product.get("name", "")
+                enrichment_data[key]["clean_name"] = product.get("cleanName", "")
+                enrichment_data[key]["image_url"] = product.get("imageUrl", "")
+                enrichment_data[key]["tcgplayer_url"] = product.get("url", "")
+
+                # Extract collector number from extendedData
+                extended_data = product.get("extendedData", [])
+                collector_number = None
+                rarity = None
+
+                for data_item in extended_data:
+                    if data_item.get("name") == "Number":
+                        collector_number = data_item.get("value")
+                    elif data_item.get("name") == "Rarity":
+                        rarity = data_item.get("value")
+
+                if collector_number:
+                    enrichment_data[key]["collector_number"] = collector_number
+                if rarity:
+                    enrichment_data[key]["rarity"] = rarity
+
+            except Exception as e:
+                LOGGER.warning(
+                    f"Failed to process product {product.get('productId', 'unknown')}: {e}"
+                )
+                continue
+
+        # Now add pricing data
+        price_mapping = self._inner_translate_today_price_dict(set_code, group_id)
+        for product_id, prices in price_mapping.items():
+            if product_id in enrichment_data:
+                enrichment_data[product_id]["prices"] = prices
+            else:
+                # Product has pricing but no product metadata
+                enrichment_data[product_id] = {"prices": prices}
+
+        LOGGER.info(
+            f"Generated enrichment data for {len(enrichment_data)} products in {set_code}"
+        )
+        return enrichment_data
 
     def generate_today_price_dict_for_set(
         self, set_code: str, group_id: str

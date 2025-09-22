@@ -228,3 +228,104 @@ class TestTcgCsvProvider:
             # Test download - should raise exception
             with pytest.raises(Exception):
                 self.provider.download("http://test.com")
+
+    def test_fetch_set_products_success(self):
+        """Test successful product data fetching"""
+        # Mock TCGCSV API response for products
+        mock_response = {
+            "success": True,
+            "errors": [],
+            "results": [
+                {
+                    "productId": 618883,
+                    "name": "Cloud, Ex-SOLDIER (Surge Foil)",
+                    "cleanName": "Cloud Ex SOLDIER Surge Foil",
+                    "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/618883_200w.jpg",
+                    "url": "https://www.tcgplayer.com/product/618883/magic-commander-final-fantasy-cloud-ex-soldier-surge-foil",
+                    "extendedData": [
+                        {"name": "Number", "value": "2"},
+                        {"name": "Rarity", "value": "M"},
+                    ],
+                },
+                {
+                    "productId": 618871,
+                    "name": "Cloud, Ex-SOLDIER",
+                    "cleanName": "Cloud Ex SOLDIER",
+                    "extendedData": [{"name": "Number", "value": "2"}],
+                },
+            ],
+        }
+
+        with patch.object(
+            self.provider, "download", return_value=mock_response
+        ) as mock_download:
+            # Test the method
+            result = self.provider.fetch_set_products("FIC", "24220")
+
+            # Verify results
+            assert len(result) == 2
+            assert result[0]["productId"] == 618883
+            assert result[0]["name"] == "Cloud, Ex-SOLDIER (Surge Foil)"
+            assert result[1]["productId"] == 618871
+            assert result[1]["name"] == "Cloud, Ex-SOLDIER"
+
+            # Verify API call
+            mock_download.assert_called_once_with(
+                "https://tcgcsv.com/tcgplayer/1/24220/products"
+            )
+
+    def test_fetch_set_products_api_failure(self):
+        """Test handling of API failure for products"""
+        mock_response = {
+            "success": False,
+            "errors": ["Invalid group ID"],
+            "results": [],
+        }
+
+        with patch.object(self.provider, "download", return_value=mock_response):
+            result = self.provider.fetch_set_products("FIC", "999")
+            assert result == []
+
+    def test_fetch_set_enrichment_data(self):
+        """Test the enrichment data combination method"""
+        # Mock product data
+        mock_products = [
+            {
+                "productId": 618883,
+                "name": "Cloud, Ex-SOLDIER (Surge Foil)",
+                "cleanName": "Cloud Ex SOLDIER Surge Foil",
+                "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/618883_200w.jpg",
+                "url": "https://www.tcgplayer.com/product/618883/url",
+                "extendedData": [
+                    {"name": "Number", "value": "2"},
+                    {"name": "Rarity", "value": "M"},
+                ],
+            }
+        ]
+
+        # Mock price mapping
+        mock_price_mapping = {"618883": {"normal": 10.50, "foil": 25.75}}
+
+        with patch.object(
+            self.provider, "fetch_set_products", return_value=mock_products
+        ), patch.object(
+            self.provider,
+            "_inner_translate_today_price_dict",
+            return_value=mock_price_mapping,
+        ):
+            # Test the method
+            result = self.provider.fetch_set_enrichment_data("FIC", "24220")
+
+            # Verify results
+            assert len(result) == 1
+            assert "618883" in result
+
+            product_data = result["618883"]
+            assert (
+                product_data["tcgplayer_display_name"]
+                == "Cloud, Ex-SOLDIER (Surge Foil)"
+            )
+            assert product_data["clean_name"] == "Cloud Ex SOLDIER Surge Foil"
+            assert product_data["collector_number"] == "2"
+            assert product_data["rarity"] == "M"
+            assert product_data["prices"] == {"normal": 10.50, "foil": 25.75}

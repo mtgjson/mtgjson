@@ -58,8 +58,64 @@ def main():
     print()
 
     try:
-        # First, demonstrate the internal price mapping (ManapoolPrices pattern)
-        print("Step 1: Fetching and processing raw price data...")
+        # NEW: Demonstrate enrichment data functionality
+        print("Step 1: Fetching enrichment data (products + prices)...")
+        enrichment_data = provider.fetch_set_enrichment_data(set_code, real_group_id)
+
+        if enrichment_data:
+            print(
+                f"✓ Enrichment data processed for {len(enrichment_data)} unique products"
+            )
+
+            # Show sample enrichment data with tcgplayer_display_name
+            print("\nSample enrichment data with tcgplayer_display_name:")
+            print("-" * 60)
+            for i, (product_id, data) in enumerate(enrichment_data.items()):
+                if i >= 3:  # Show first 3
+                    break
+                print(f"Product {product_id}:")
+                if "tcgplayer_display_name" in data:
+                    print(f"  Display Name: {data['tcgplayer_display_name']}")
+                if "collector_number" in data:
+                    print(f"  Collector #: {data['collector_number']}")
+                if "rarity" in data:
+                    print(f"  Rarity: {data['rarity']}")
+                if "prices" in data:
+                    prices = data["prices"]
+                    price_strs = [
+                        f"{finish}: ${price:.2f}" for finish, price in prices.items()
+                    ]
+                    print(f"  Prices: {', '.join(price_strs)}")
+                print()
+
+            # Look for specific surge foil examples
+            surge_foil_examples = [
+                (pid, data)
+                for pid, data in enrichment_data.items()
+                if "tcgplayer_display_name" in data
+                and "surge foil" in data["tcgplayer_display_name"].lower()
+            ]
+
+            if surge_foil_examples:
+                print(f"\n✓ Found {len(surge_foil_examples)} Surge Foil variants!")
+                print("\nSurge Foil Examples (TCG-77 target):")
+                print("-" * 40)
+                for pid, data in surge_foil_examples[:3]:  # Show first 3 surge foils
+                    print(
+                        f"Product {pid}: {data.get('tcgplayer_display_name', 'Unknown')}"
+                    )
+                    if "collector_number" in data:
+                        print(f"  Collector #: {data['collector_number']}")
+                    if "prices" in data:
+                        prices = data["prices"]
+                        price_strs = [
+                            f"{finish}: ${price:.2f}"
+                            for finish, price in prices.items()
+                        ]
+                        print(f"  Prices: {', '.join(price_strs)}")
+                    print()
+
+        print("\nStep 2: Legacy price mapping (ManapoolPrices pattern)...")
         price_mapping = provider._inner_translate_today_price_dict(
             set_code, real_group_id
         )
@@ -67,14 +123,7 @@ def main():
         if price_mapping:
             print(f"✓ Internal mapping processed {len(price_mapping)} unique products")
 
-            # Show sample raw mapping
-            print("\nSample raw price mapping (product_id -> finish_types):")
-            for i, (product_id, finishes) in enumerate(price_mapping.items()):
-                if i >= 2:  # Show first 2
-                    break
-                print(f"  {product_id}: {finishes}")
-
-        print("\nStep 2: Converting to MtgjsonPricesObject instances...")
+        print("\nStep 3: Converting to MtgjsonPricesObject instances...")
 
         # Fetch full price data (creates MtgjsonPricesObject instances)
         price_data = provider.generate_today_price_dict_for_set(set_code, real_group_id)
