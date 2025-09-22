@@ -179,7 +179,7 @@ class TcgCsvProvider(AbstractProvider):
                     "mid": price_record.get("midPrice"), 
                     "high": price_record.get("highPrice"),
                     "market": price_record.get("marketPrice"),
-                    "direct": price_record.get("directLowPrice"),
+                    "direct_low": price_record.get("directLowPrice"),
                 }
 
                 # Add non-null prices to the mapping

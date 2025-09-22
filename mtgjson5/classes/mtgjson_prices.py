@@ -29,19 +29,19 @@ class MtgjsonPricesObject(JsonObject):
     sell_normal_mid: Optional[float]
     sell_normal_high: Optional[float]
     sell_normal_market: Optional[float]
-    sell_normal_direct: Optional[float]
+    sell_normal_direct_low: Optional[float]
     
     sell_foil_low: Optional[float]
     sell_foil_mid: Optional[float]
     sell_foil_high: Optional[float]
     sell_foil_market: Optional[float]
-    sell_foil_direct: Optional[float]
+    sell_foil_direct_low: Optional[float]
     
     sell_etched_low: Optional[float]
     sell_etched_mid: Optional[float]
     sell_etched_high: Optional[float]
     sell_etched_market: Optional[float]
-    sell_etched_direct: Optional[float]
+    sell_etched_direct_low: Optional[float]
 
     def __init__(
         self,
@@ -60,17 +60,17 @@ class MtgjsonPricesObject(JsonObject):
         sell_normal_mid: Optional[float] = None,
         sell_normal_high: Optional[float] = None,
         sell_normal_market: Optional[float] = None,
-        sell_normal_direct: Optional[float] = None,
+        sell_normal_direct_low: Optional[float] = None,
         sell_foil_low: Optional[float] = None,
         sell_foil_mid: Optional[float] = None,
         sell_foil_high: Optional[float] = None,
         sell_foil_market: Optional[float] = None,
-        sell_foil_direct: Optional[float] = None,
+        sell_foil_direct_low: Optional[float] = None,
         sell_etched_low: Optional[float] = None,
         sell_etched_mid: Optional[float] = None,
         sell_etched_high: Optional[float] = None,
         sell_etched_market: Optional[float] = None,
-        sell_etched_direct: Optional[float] = None,
+        sell_etched_direct_low: Optional[float] = None,
     ) -> None:
         """
         Initializer for Pricing Container
@@ -91,19 +91,19 @@ class MtgjsonPricesObject(JsonObject):
         self.sell_normal_mid = sell_normal_mid
         self.sell_normal_high = sell_normal_high
         self.sell_normal_market = sell_normal_market
-        self.sell_normal_direct = sell_normal_direct
+        self.sell_normal_direct_low = sell_normal_direct_low
         
         self.sell_foil_low = sell_foil_low
         self.sell_foil_mid = sell_foil_mid
         self.sell_foil_high = sell_foil_high
         self.sell_foil_market = sell_foil_market
-        self.sell_foil_direct = sell_foil_direct
+        self.sell_foil_direct_low = sell_foil_direct_low
         
         self.sell_etched_low = sell_etched_low
         self.sell_etched_mid = sell_etched_mid
         self.sell_etched_high = sell_etched_high
         self.sell_etched_market = sell_etched_market
-        self.sell_etched_direct = sell_etched_direct
+        self.sell_etched_direct_low = sell_etched_direct_low
 
     def items(self) -> List[Tuple[str, Optional[float]]]:
         """
@@ -155,8 +155,8 @@ class MtgjsonPricesObject(JsonObject):
             retail_enhanced["normal"]["high"][self.date] = self.sell_normal_high
         if self.sell_normal_market is not None:
             retail_enhanced["normal"]["market"][self.date] = self.sell_normal_market
-        if self.sell_normal_direct is not None:
-            retail_enhanced["normal"]["direct"][self.date] = self.sell_normal_direct
+        if self.sell_normal_direct_low is not None:
+            retail_enhanced["normal"]["direct_low"][self.date] = self.sell_normal_direct_low
         
         # Foil enhanced prices
         if self.sell_foil_low is not None:
@@ -167,8 +167,8 @@ class MtgjsonPricesObject(JsonObject):
             retail_enhanced["foil"]["high"][self.date] = self.sell_foil_high
         if self.sell_foil_market is not None:
             retail_enhanced["foil"]["market"][self.date] = self.sell_foil_market
-        if self.sell_foil_direct is not None:
-            retail_enhanced["foil"]["direct"][self.date] = self.sell_foil_direct
+        if self.sell_foil_direct_low is not None:
+            retail_enhanced["foil"]["direct_low"][self.date] = self.sell_foil_direct_low
         
         # Etched enhanced prices
         if self.sell_etched_low is not None:
@@ -179,8 +179,8 @@ class MtgjsonPricesObject(JsonObject):
             retail_enhanced["etched"]["high"][self.date] = self.sell_etched_high
         if self.sell_etched_market is not None:
             retail_enhanced["etched"]["market"][self.date] = self.sell_etched_market
-        if self.sell_etched_direct is not None:
-            retail_enhanced["etched"]["direct"][self.date] = self.sell_etched_direct
+        if self.sell_etched_direct_low is not None:
+            retail_enhanced["etched"]["direct_low"][self.date] = self.sell_etched_direct_low
         
         # Add enhanced pricing if we have any enhanced data
         if retail_enhanced:

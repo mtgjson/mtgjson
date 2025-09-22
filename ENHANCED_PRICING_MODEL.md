@@ -14,7 +14,7 @@ Instead of just one price per finish, we now provide:
 - **Mid Price** (`mid`): Middle market price point  
 - **High Price** (`high`): Premium market segment
 - **Market Price** (`market`): Weighted average market price
-- **Direct Price** (`direct`): TCGPlayer Direct pricing
+- **Direct Low Price** (`direct_low`): TCGPlayer Direct low pricing
 
 ### **Enhanced JSON Structure**
 
@@ -34,14 +34,14 @@ The new JSON output maintains backward compatibility while adding enhanced prici
           "mid": { "2025-09-22": 0.28 },
           "high": { "2025-09-22": 96.96 },
           "market": { "2025-09-22": 0.17 },
-          "direct": { "2025-09-22": 0.09 }
+          "direct_low": { "2025-09-22": 0.09 }
         },
         "foil": {
           "low": { "2025-09-22": 0.83 },
           "mid": { "2025-09-22": 1.21 },
           "high": { "2025-09-22": 19.99 },
           "market": { "2025-09-22": 1.09 },
-          "direct": { "2025-09-22": 0.95 }
+          "direct_low": { "2025-09-22": 0.95 }
         }
       },
       "currency": "USD"
@@ -61,7 +61,7 @@ Card variants now include enhanced pricing information and summaries:
       "tcgplayer_display_name": "Chocobo Knights (Surge Foil)",
       "tcgplayer_product_id": "636791",
       "enhanced_prices": {
-        "direct": 0.95,
+        "direct_low": 0.95,
         "high": 19.99,
         "low": 0.83,
         "market": 1.09,
@@ -70,7 +70,7 @@ Card variants now include enhanced pricing information and summaries:
       "price_summary": {
         "lowest": 0.83,
         "highest": 19.99,
-        "available_price_points": ["low", "mid", "high", "market", "direct"]
+        "available_price_points": ["low", "mid", "high", "market", "direct_low"]
       }
     }
   }
@@ -95,19 +95,19 @@ class MtgjsonPricesObject:
     sell_normal_mid: Optional[float]
     sell_normal_high: Optional[float]
     sell_normal_market: Optional[float]
-    sell_normal_direct: Optional[float]
+    sell_normal_direct_low: Optional[float]
     
     sell_foil_low: Optional[float]
     sell_foil_mid: Optional[float]
     sell_foil_high: Optional[float]
     sell_foil_market: Optional[float]
-    sell_foil_direct: Optional[float]
+    sell_foil_direct_low: Optional[float]
     
     sell_etched_low: Optional[float]
     sell_etched_mid: Optional[float]
     sell_etched_high: Optional[float]
     sell_etched_market: Optional[float]
-    sell_etched_direct: Optional[float]
+    sell_etched_direct_low: Optional[float]
 ```
 
 ### **Enhanced TcgCsvProvider**
@@ -123,7 +123,7 @@ def _inner_translate_today_price_dict(self, set_code: str, group_id: str) -> Dic
         "mid": price_record.get("midPrice"), 
         "high": price_record.get("highPrice"),
         "market": price_record.get("marketPrice"),
-        "direct": price_record.get("directLowPrice"),
+        "direct_low": price_record.get("directLowPrice"),
     }
 ```
 
@@ -143,7 +143,7 @@ TCGCSV variants now include enhanced pricing data and helpful summaries:
 
 ### **Deal Hunting**
 - **Low Price**: Find the best deals available
-- **Direct Price**: Compare with TCGPlayer Direct pricing
+- **Direct Low Price**: Compare with TCGPlayer Direct pricing
 - **Price Range**: Understand the full market spectrum
 
 ### **Advanced Analytics**
@@ -194,7 +194,7 @@ TCGCSV variants now include enhanced pricing data and helpful summaries:
 ### **Chocobo Knights (Normal)**
 ```json
 "enhanced_prices": {
-  "direct": 0.09,
+  "direct_low": 0.09,
   "high": 96.96,
   "low": 0.09,
   "market": 0.17,
@@ -206,7 +206,7 @@ TCGCSV variants now include enhanced pricing data and helpful summaries:
 ### **Chocobo Knights (Surge Foil)**
 ```json
 "enhanced_prices": {
-  "direct": 0.95,
+  "direct_low": 0.95,
   "high": 19.99,
   "low": 0.83,
   "market": 1.09,
@@ -219,7 +219,7 @@ TCGCSV variants now include enhanced pricing data and helpful summaries:
 
 - **789 products** enhanced with multiple price points
 - **100% backward compatibility** maintained
-- **5 price points per finish** (low, mid, high, market, direct)
+- **5 price points per finish** (low, mid, high, market, direct_low)
 - **Enhanced analytics** with price summaries
 - **Production ready** with comprehensive error handling
 
