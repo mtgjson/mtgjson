@@ -22,21 +22,25 @@ from mtgjson5.providers.tcgcsv_provider import TcgCsvProvider
 
 def main():
     """Demonstrate TcgCsvProvider functionality"""
-    
+
     print("=" * 60)
     print("TcgCsvProvider Demonstration")
+    print("Following ManapoolPrices Provider Pattern")
     print("=" * 60)
     print()
-    
+
     # Initialize the provider
     print("Initializing TcgCsvProvider...")
     provider = TcgCsvProvider()
     print(f"✓ Provider initialized with base URL: {provider.base_url}")
+    print(
+        f"✓ Uses ManapoolPrices-style pattern with _inner_translate_today_price_dict()"
+    )
     print()
-    
+
     # Real FIC group data for testing
     set_code = "FIC"  # Commander Final Fantasy
-    
+
     # Real group ID for FIC from tcgcsv
     # {
     #   "groupId": 24220,
@@ -48,34 +52,52 @@ def main():
     #   "categoryId": 1
     # }
     real_group_id = "24220"
-    
+
     print(f"Attempting to fetch prices for set {set_code}...")
     print(f"Using real group ID: {real_group_id}")
     print()
-    
+
     try:
-        # Fetch price data
+        # First, demonstrate the internal price mapping (ManapoolPrices pattern)
+        print("Step 1: Fetching and processing raw price data...")
+        price_mapping = provider._inner_translate_today_price_dict(
+            set_code, real_group_id
+        )
+
+        if price_mapping:
+            print(f"✓ Internal mapping processed {len(price_mapping)} unique products")
+
+            # Show sample raw mapping
+            print("\nSample raw price mapping (product_id -> finish_types):")
+            for i, (product_id, finishes) in enumerate(price_mapping.items()):
+                if i >= 2:  # Show first 2
+                    break
+                print(f"  {product_id}: {finishes}")
+
+        print("\nStep 2: Converting to MtgjsonPricesObject instances...")
+
+        # Fetch full price data (creates MtgjsonPricesObject instances)
         price_data = provider.generate_today_price_dict_for_set(set_code, real_group_id)
-        
+
         if price_data:
             print(f"✓ Successfully fetched {len(price_data)} price records")
             print()
-            
+
             # Display sample price data
             print("Sample price data:")
             print("-" * 40)
-            
+
             for i, (product_id, price_obj) in enumerate(price_data.items()):
                 if i >= 3:  # Show only first 3 records
                     print(f"... and {len(price_data) - 3} more records")
                     break
-                    
+
                 print(f"Product ID: {product_id}")
                 print(f"  Source: {price_obj.source}")
                 print(f"  Provider: {price_obj.provider}")
                 print(f"  Currency: {price_obj.currency}")
                 print(f"  Date: {price_obj.date}")
-                
+
                 if price_obj.sell_normal:
                     print(f"  Normal price: ${price_obj.sell_normal:.2f}")
                 if price_obj.sell_foil:
@@ -89,13 +111,13 @@ def main():
             print("  - API access restrictions")
             print("  - Network issues")
             print("  - Set not yet available in tcgcsv database")
-            
+
     except Exception as e:
         print(f"⚠ Error fetching price data: {e}")
         print()
         print("This could indicate API access restrictions or the set not being")
         print("available in the tcgcsv database yet.")
-    
+
     print()
     print("=" * 60)
     print("Provider Information")
@@ -103,11 +125,17 @@ def main():
     print(f"Base URL: {provider.base_url}")
     print(f"User Agent: {provider._build_http_header().get('User-Agent', 'N/A')}")
     print(f"Provider Class: {provider.__class__.__name__}")
-    
+
+    print()
+    print("ManapoolPrices Pattern Highlights:")
+    print("✓ _inner_translate_today_price_dict() processes raw API data")
+    print("✓ Separates data fetching from MtgjsonPricesObject creation")
+    print("✓ Each product gets its own price object instance")
+    print("✓ Clean finish-type mapping (normal/foil/etched)")
     print()
     print("Next Steps:")
-    print("1. Add collector number mapping between TCGCSV and MTGJSON")
-    print("2. Register provider in price_builder.py")
+    print("1. Add collector number mapping between TCGCSV and MTGJSON UUIDs")
+    print("2. Register provider in price_builder.py (like ManapoolPrices)")
     print("3. Integrate with MTGJSON build process")
     print("4. Test with production data pipeline")
 

@@ -6,12 +6,15 @@ This provider focuses on pricing data integration with MTGJSON.
 """
 
 import logging
+import pathlib
+from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
 from ..providers.abstract import AbstractProvider
+from ..utils import generate_entity_mapping
 
 LOGGER = logging.getLogger(__name__)
 
@@ -100,68 +103,53 @@ class TcgCsvProvider(AbstractProvider):
             )
             return []
 
-    def convert_to_mtgjson_prices(
-        self, price_data: List[Dict[str, Any]], set_code: str
-    ) -> Dict[str, MtgjsonPricesObject]:
+    def _inner_translate_today_price_dict(
+        self, set_code: str, group_id: str
+    ) -> Dict[str, Dict[str, float]]:
         """
-        Convert TCGCSV price data to MTGJSON price objects
+        Fetch pricing data and convert it to a dictionary of product IDs
+        with their pricing information by finish type
 
-        :param price_data: Raw price data from TCGCSV API
         :param set_code: Set code for logging
-        :return: Mapping of card keys to price objects
+        :param group_id: TCGCSV group ID for the set
+        :return: Dictionary of product IDs to price objects by finish type
         """
-        price_objects: Dict[str, MtgjsonPricesObject] = {}
+        mapping: Dict[str, Dict[str, float]] = defaultdict(dict)
 
+        # Fetch raw price data
+        price_data = self.fetch_set_prices(set_code, group_id)
+        if not price_data:
+            return mapping
+
+        # Process each price record
         for price_record in price_data:
             try:
-                # Extract price information
                 product_id = price_record.get("productId")
                 if not product_id:
                     continue
 
-                # Create price object for this product
-                # Use product_id as the key for now (will need mapping later)
+                # Get the market price and determine finish type
+                market_price = price_record.get("marketPrice")
+                if market_price is None:
+                    continue
+
+                sub_type_name = price_record.get("subTypeName", "").lower()
                 key = str(product_id)
 
-                # Create MTGJSON price object
-                price_obj = MtgjsonPricesObject(
-                    source="paper",
-                    provider="tcgcsv",
-                    date=self.today_date,
-                    currency="USD",
-                )
-
-                # Map price fields from TCGCSV to MTGJSON
-                market_price = price_record.get("marketPrice")
-                sub_type_name = price_record.get("subTypeName", "").lower()
-
-                # Determine if this is foil, etched, or normal
-                if market_price is not None:
-                    if "etched" in sub_type_name:
-                        price_obj.sell_etched = float(market_price)
-                    elif "foil" in sub_type_name:
-                        price_obj.sell_foil = float(market_price)
-                    else:
-                        price_obj.sell_normal = float(market_price)
-
-                # Add additional price points if available
-                low_price = price_record.get("lowPrice")
-                mid_price = price_record.get("midPrice")
-                high_price = price_record.get("highPrice")
-                direct_low_price = price_record.get("directLowPrice")
-
-                # Store additional pricing info in object attributes for potential future use
-                # Note: Current MtgjsonPricesObject doesn't have fields for these,
-                # but we can extend it or use them for enhanced pricing logic
-
-                price_objects[key] = price_obj
+                # Map to the appropriate finish type
+                if "etched" in sub_type_name:
+                    mapping[key]["etched"] = float(market_price)
+                elif "foil" in sub_type_name:
+                    mapping[key]["foil"] = float(market_price)
+                else:
+                    mapping[key]["normal"] = float(market_price)
 
             except Exception as e:
-                LOGGER.warning(f"Failed to convert price record for {set_code}: {e}")
+                LOGGER.warning(f"Failed to process price record for {set_code}: {e}")
                 continue
 
-        LOGGER.info(f"Converted {len(price_objects)} price records for {set_code}")
-        return price_objects
+        LOGGER.info(f"Processed {len(mapping)} unique product IDs for {set_code}")
+        return mapping
 
     def generate_today_price_dict_for_set(
         self, set_code: str, group_id: str
@@ -177,12 +165,51 @@ class TcgCsvProvider(AbstractProvider):
         """
         LOGGER.info(f"Building TCGCSV price data for set {set_code}")
 
-        # Fetch raw price data
-        price_data = self.fetch_set_prices(set_code, group_id)
-
-        if not price_data:
+        # Get pricing data by product ID and finish type
+        product_price_mapping = self._inner_translate_today_price_dict(
+            set_code, group_id
+        )
+        if not product_price_mapping:
             LOGGER.warning(f"No price data available for {set_code}")
             return {}
 
-        # Convert to MTGJSON format
-        return self.convert_to_mtgjson_prices(price_data, set_code)
+        # Build final price map - each card gets its own price object
+        final_data = {}
+        for product_id, finish_to_price in product_price_mapping.items():
+            # Currently using product_id as the key (will need UUID mapping later)
+            # This matches the structure in ManapoolPricesProvider
+            final_data[product_id] = MtgjsonPricesObject(
+                source="paper", provider="tcgcsv", date=self.today_date, currency="USD"
+            )
+
+            if "normal" in finish_to_price:
+                final_data[product_id].sell_normal = finish_to_price.get("normal")
+            if "foil" in finish_to_price:
+                final_data[product_id].sell_foil = finish_to_price.get("foil")
+            if "etched" in finish_to_price:
+                final_data[product_id].sell_etched = finish_to_price.get("etched")
+
+        LOGGER.info(f"Generated {len(final_data)} price entries for {set_code}")
+        return final_data
+
+    def generate_today_price_dict(
+        self, all_printings_path: pathlib.Path
+    ) -> Dict[str, MtgjsonPricesObject]:
+        """
+        Generate a single-day price structure for all sets
+
+        Note: This is a placeholder for integration with the price_builder system.
+        It will need to map product IDs to MTGJSON UUIDs using proper mapping tables.
+
+        :param all_printings_path: Path to AllPrintings.json for UUID mapping
+        :return: MTGJSON prices single day structure
+        """
+        LOGGER.info("Building TCGCSV retail data")
+        # TODO: Implement UUID mapping from tcgcsv product IDs to MTGJSON UUIDs
+        # TODO: Implement set code to group ID mapping
+
+        # This is a placeholder implementation for a single set (FIC)
+        # In the future, this will iterate over all available sets with mappings
+        final_data = self.generate_today_price_dict_for_set("FIC", "24220")
+
+        return final_data

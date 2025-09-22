@@ -93,33 +93,33 @@ Fetches raw pricing data for a specific set from TCGCSV API.
 
 **Error Handling**: Returns empty list on API errors or network issues
 
-#### `convert_to_mtgjson_prices(price_data: List[Dict], set_code: str) -> Dict[str, MtgjsonPricesObject]`
+#### `_inner_translate_today_price_dict(set_code: str, group_id: str) -> Dict[str, Dict[str, float]]`
 
-Converts TCGCSV price data to MTGJSON price objects.
+Fetches pricing data and converts it to a dictionary of product IDs with their pricing information by finish type. Follows the same pattern as ManapoolPricesProvider.
+
+**Returns**: Dictionary mapping product IDs to finish type dictionaries:
+```python
+{
+    "618871": {"foil": 0.70},
+    "618872": {"normal": 0.39, "foil": 1.25},
+    "618873": {"etched": 2.50}
+}
+```
 
 **Data Mapping**:
-- `productId` → Used as temporary key (needs UUID mapping)
-- `marketPrice` → `sell_normal`, `sell_foil`, or `sell_etched` based on `subTypeName`
-- `subTypeName` → Determines price field assignment
-
-**Price Field Logic**:
-```python
-if "etched" in sub_type_name.lower():
-    price_obj.sell_etched = market_price
-elif "foil" in sub_type_name.lower():
-    price_obj.sell_foil = market_price
-else:
-    price_obj.sell_normal = market_price
-```
+- `productId` → Dictionary key (needs UUID mapping later)
+- `marketPrice` → Float value in finish-specific sub-dictionary  
+- `subTypeName` → Determines finish type key ("normal", "foil", "etched")
 
 #### `generate_today_price_dict_for_set(set_code: str, group_id: str) -> Dict[str, MtgjsonPricesObject]`
 
 Main entry point for fetching and converting price data for a set.
 
 **Workflow**:
-1. Fetch raw price data via `fetch_set_prices()`
-2. Convert to MTGJSON format via `convert_to_mtgjson_prices()`
-3. Return price dictionary
+1. Get price mapping via `_inner_translate_today_price_dict()`
+2. Create individual MtgjsonPricesObject for each product
+3. Assign pricing by finish type following ManapoolPrices pattern
+4. Return price dictionary
 
 ## Integration Points
 
@@ -148,6 +148,7 @@ Main entry point for fetching and converting price data for a set.
 ## Example Usage
 
 ```python
+import pathlib
 from mtgjson5.providers.tcgcsv_provider import TcgCsvProvider
 
 # Initialize provider
@@ -162,6 +163,9 @@ print(f"Normal: ${price_obj.sell_normal}")
 print(f"Foil: ${price_obj.sell_foil}")     # $0.70
 print(f"Provider: {price_obj.provider}")  # "tcgcsv"
 print(f"Date: {price_obj.date}")          # "2025-09-22"
+
+# Or use the full provider interface (placeholder implementation)
+all_prices = provider.generate_today_price_dict(pathlib.Path("AllPrintings.json"))
 ```
 
 ### Tested with Real Data

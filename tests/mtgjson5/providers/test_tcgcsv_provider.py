@@ -94,47 +94,45 @@ class TestTcgCsvProvider:
             # Verify empty result on exception
             assert result == []
 
-    def test_convert_to_mtgjson_prices(self):
-        """Test conversion of TCGCSV data to MTGJSON price objects"""
-        # Sample TCGCSV price data
-        price_data = [
+    def test_inner_translate_today_price_dict(self):
+        """Test internal price data translation"""
+        # Mock price data
+        mock_price_data = [
             {
                 "productId": 1001,
                 "marketPrice": 15.50,
-                "lowPrice": 12.00,
                 "subTypeName": "Normal",
             },
             {"productId": 1002, "marketPrice": 30.25, "subTypeName": "Foil"},
             {"productId": 1003, "marketPrice": 45.00, "subTypeName": "Etched"},
         ]
 
-        # Convert to MTGJSON format
-        result = self.provider.convert_to_mtgjson_prices(price_data, "FIC")
+        with patch.object(
+            self.provider, "fetch_set_prices", return_value=mock_price_data
+        ) as mock_fetch:
+            # Test the method
+            result = self.provider._inner_translate_today_price_dict("FIC", "123")
 
-        # Verify results
-        assert len(result) == 3
+            # Verify results
+            assert len(result) == 3
+            assert "1001" in result
+            assert "1002" in result
+            assert "1003" in result
 
-        # Check normal card pricing
-        normal_price = result["1001"]
-        assert isinstance(normal_price, MtgjsonPricesObject)
-        assert normal_price.source == "paper"
-        assert normal_price.provider == "tcgcsv"
-        assert normal_price.currency == "USD"
-        assert normal_price.sell_normal == 15.50
-        assert normal_price.sell_foil is None
-        assert normal_price.sell_etched is None
+            # Check normal card pricing
+            assert result["1001"]["normal"] == 15.50
+            assert "foil" not in result["1001"]
+            assert "etched" not in result["1001"]
 
-        # Check foil card pricing
-        foil_price = result["1002"]
-        assert foil_price.sell_foil == 30.25
-        assert foil_price.sell_normal is None
+            # Check foil card pricing
+            assert result["1002"]["foil"] == 30.25
+            assert "normal" not in result["1002"]
 
-        # Check etched card pricing
-        etched_price = result["1003"]
-        assert etched_price.sell_etched == 45.00
-        assert etched_price.sell_normal is None
+            # Check etched card pricing
+            assert result["1003"]["etched"] == 45.00
+            assert "normal" not in result["1003"]
 
-    def test_convert_to_mtgjson_prices_malformed_data(self):
+    def test_inner_translate_today_price_dict_malformed_data(self):
         """Test handling of malformed price data"""
         # Price data with missing/invalid fields
         price_data = [
@@ -155,40 +153,45 @@ class TestTcgCsvProvider:
             },
         ]
 
-        # Convert to MTGJSON format
-        result = self.provider.convert_to_mtgjson_prices(price_data, "FIC")
+        with patch.object(self.provider, "fetch_set_prices", return_value=price_data):
+            # Convert to MTGJSON format
+            result = self.provider._inner_translate_today_price_dict("FIC", "123")
 
-        # Should handle malformed data gracefully
-        # Only valid records should be processed
-        assert len(result) <= len(price_data)
+            # Should handle malformed data gracefully
+            # Only valid records should be processed
+            assert len(result) <= len(price_data)
 
     def test_generate_today_price_dict_for_set(self):
         """Test the main price generation method"""
-        # Mock price data
-        mock_price_data = [
-            {"productId": 1001, "marketPrice": 20.00, "subTypeName": "Normal"}
-        ]
+        # Mock the internal translate method
+        mock_price_mapping = {"1001": {"normal": 20.00}}
 
         with patch.object(
-            self.provider, "fetch_set_prices", return_value=mock_price_data
-        ) as mock_fetch:
+            self.provider,
+            "_inner_translate_today_price_dict",
+            return_value=mock_price_mapping,
+        ) as mock_translate:
             # Test the method
             result = self.provider.generate_today_price_dict_for_set("FIC", "123")
 
             # Verify results
             assert len(result) == 1
             assert "1001" in result
+            assert isinstance(result["1001"], MtgjsonPricesObject)
             assert result["1001"].sell_normal == 20.00
+            assert result["1001"].source == "paper"
+            assert result["1001"].provider == "tcgcsv"
+            assert result["1001"].currency == "USD"
 
             # Verify internal method calls
-            mock_fetch.assert_called_once_with("FIC", "123")
+            mock_translate.assert_called_once_with("FIC", "123")
 
     def test_generate_today_price_dict_for_set_no_data(self):
         """Test handling when no price data is available"""
 
         with patch.object(
-            self.provider, "fetch_set_prices", return_value=[]
-        ) as mock_fetch:
+            self.provider, "_inner_translate_today_price_dict", return_value={}
+        ) as mock_translate:
             # Test the method
             result = self.provider.generate_today_price_dict_for_set("FIC", "123")
 
