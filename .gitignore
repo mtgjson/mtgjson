@@ -129,3 +129,6 @@ flamegraph.pl
 stacksampler.py
 
 .run/
+
+# WARP
+WARP.md
