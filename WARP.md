@@ -12,9 +12,32 @@ The project operates as a CLI-driven data pipeline that fetches, transforms, and
 
 ### Python Environment
 - **Python 3.9-3.13** (tested across all versions)
+- **asdf recommended** for Python version management: `asdf install python latest && asdf set python <version> -u`
 - Virtual environment recommended: `python -m venv venv && source venv/bin/activate`
-- Install dependencies: `pip install -r requirements.txt`
+- Install dependencies: `pip install --upgrade pip && pip install -r requirements.txt`
 - Development dependencies: `pip install -r requirements_test.txt`
+
+### Quick Setup (Complete Environment)
+```bash
+# 1. Install latest Python (if using asdf)
+asdf install python latest
+asdf set python $(asdf latest python) -u
+
+# 2. Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate
+
+# 3. Install all dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install -r requirements_test.txt
+
+# 4. Copy configuration file
+cp mtgjson.properties.example mtgjson5/resources/mtgjson.properties
+
+# 5. Verify setup
+python -m mtgjson5 --help
+```
 
 ### Configuration File
 - Copy `mtgjson.properties.example` to `mtgjson5/resources/mtgjson.properties`
@@ -164,7 +187,10 @@ CLI Args → Dispatcher → Providers (fetch) → Builders (transform) → Outpu
 ## Troubleshooting
 
 ### Common Issues
-- **Missing config file:** Ensure `mtgjson5/resources/mtgjson.properties` exists
+- **Missing config file:** Ensure `mtgjson5/resources/mtgjson.properties` exists (copy from `mtgjson.properties.example`)
+- **Python version issues:** Use asdf to install and manage Python versions: `asdf list all python | tail -10`
+- **Virtual environment not activated:** Always run `source venv/bin/activate` before running commands
+- **Missing dependencies:** Run `pip install -r requirements.txt -r requirements_test.txt` if imports fail
 - **Memory issues:** Use `--sets` for smaller builds, monitor RAM usage on full builds
 - **API rate limits:** Check provider implementations for rate limiting
 - **Invalid output:** Use `--pretty` for debugging JSON structure issues
@@ -174,3 +200,19 @@ CLI Args → Dispatcher → Providers (fetch) → Builders (transform) → Outpu
 - `--resume-build` skips already-built sets
 - Gevent enables concurrent processing where applicable
 - Consider `MTGJSON5_OUTPUT_PATH` on faster storage for large builds
+
+### Python Version Management
+This project uses asdf for Python version management. Key commands:
+```bash
+# List available Python versions
+asdf list all python | grep -E "^[0-9]+\.[0-9]+\.[0-9]+$" | sort -V | tail -10
+
+# Install latest Python
+asdf install python latest
+
+# Set Python version globally
+asdf set python <version> -u
+
+# Check current Python version
+asdf current python
+```
