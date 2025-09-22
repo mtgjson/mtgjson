@@ -140,16 +140,16 @@ class TcgCsvProvider(AbstractProvider):
 
     def _inner_translate_today_price_dict(
         self, set_code: str, group_id: str
-    ) -> Dict[str, Dict[str, float]]:
+    ) -> Dict[str, Dict[str, Dict[str, float]]]:
         """
         Fetch pricing data and convert it to a dictionary of product IDs
-        with their pricing information by finish type
+        with their enhanced pricing information by finish type and price point
 
         :param set_code: Set code for logging
         :param group_id: TCGCSV group ID for the set
-        :return: Dictionary of product IDs to price objects by finish type
+        :return: Dictionary of product IDs to price objects by finish type and price point
         """
-        mapping: Dict[str, Dict[str, float]] = defaultdict(dict)
+        mapping: Dict[str, Dict[str, Dict[str, float]]] = defaultdict(lambda: defaultdict(dict))
 
         # Fetch raw price data
         price_data = self.fetch_set_prices(set_code, group_id)
@@ -163,21 +163,35 @@ class TcgCsvProvider(AbstractProvider):
                 if not product_id:
                     continue
 
-                # Get the market price and determine finish type
-                market_price = price_record.get("marketPrice")
-                if market_price is None:
-                    continue
-
                 sub_type_name = price_record.get("subTypeName", "").lower()
                 key = str(product_id)
 
-                # Map to the appropriate finish type
+                # Determine finish type
+                finish_type = "normal"
                 if "etched" in sub_type_name:
-                    mapping[key]["etched"] = float(market_price)
+                    finish_type = "etched"
                 elif "foil" in sub_type_name:
-                    mapping[key]["foil"] = float(market_price)
-                else:
-                    mapping[key]["normal"] = float(market_price)
+                    finish_type = "foil"
+
+                # Extract all available price points
+                price_fields = {
+                    "low": price_record.get("lowPrice"),
+                    "mid": price_record.get("midPrice"), 
+                    "high": price_record.get("highPrice"),
+                    "market": price_record.get("marketPrice"),
+                    "direct": price_record.get("directLowPrice"),
+                }
+
+                # Add non-null prices to the mapping
+                for price_type, price_value in price_fields.items():
+                    if price_value is not None:
+                        try:
+                            mapping[key][finish_type][price_type] = float(price_value)
+                        except (ValueError, TypeError) as e:
+                            LOGGER.warning(
+                                f"Invalid price value for {set_code} product {product_id} "
+                                f"{finish_type} {price_type}: {price_value} - {e}"
+                            )
 
             except Exception as e:
                 LOGGER.warning(f"Failed to process price record for {set_code}: {e}")
@@ -242,14 +256,28 @@ class TcgCsvProvider(AbstractProvider):
                 )
                 continue
 
-        # Now add pricing data
+        # Now add enhanced pricing data
         price_mapping = self._inner_translate_today_price_dict(set_code, group_id)
-        for product_id, prices in price_mapping.items():
+        for product_id, finish_to_price_points in price_mapping.items():
+            # Convert enhanced pricing to simplified format for enrichment
+            simple_prices = {}
+            for finish_type, price_points in finish_to_price_points.items():
+                # Use market price as the primary price, fallback to others
+                if "market" in price_points:
+                    simple_prices[finish_type] = price_points["market"]
+                elif "mid" in price_points:
+                    simple_prices[finish_type] = price_points["mid"]
+                elif "low" in price_points:
+                    simple_prices[finish_type] = price_points["low"]
+                
+                # Store all price points for advanced users
+                simple_prices[f"{finish_type}_enhanced"] = price_points
+            
             if product_id in enrichment_data:
-                enrichment_data[product_id]["prices"] = prices
+                enrichment_data[product_id]["prices"] = simple_prices
             else:
                 # Product has pricing but no product metadata
-                enrichment_data[product_id] = {"prices": prices}
+                enrichment_data[product_id] = {"prices": simple_prices}
 
         LOGGER.info(
             f"Generated enrichment data for {len(enrichment_data)} products in {set_code}"
@@ -260,7 +288,7 @@ class TcgCsvProvider(AbstractProvider):
         self, set_code: str, group_id: str
     ) -> Dict[str, MtgjsonPricesObject]:
         """
-        Generate MTGJSON price dictionary for a specific set
+        Generate MTGJSON price dictionary for a specific set with enhanced pricing
 
         This is the main entry point for getting pricing data for a set.
 
@@ -270,7 +298,7 @@ class TcgCsvProvider(AbstractProvider):
         """
         LOGGER.info(f"Building TCGCSV price data for set {set_code}")
 
-        # Get pricing data by product ID and finish type
+        # Get enhanced pricing data by product ID, finish type, and price point
         product_price_mapping = self._inner_translate_today_price_dict(
             set_code, group_id
         )
@@ -278,23 +306,30 @@ class TcgCsvProvider(AbstractProvider):
             LOGGER.warning(f"No price data available for {set_code}")
             return {}
 
-        # Build final price map - each card gets its own price object
+        # Build final price map - each card gets its own enhanced price object
         final_data = {}
-        for product_id, finish_to_price in product_price_mapping.items():
-            # Currently using product_id as the key (will need UUID mapping later)
-            # This matches the structure in ManapoolPricesProvider
-            final_data[product_id] = MtgjsonPricesObject(
-                source="paper", provider="tcgcsv", date=self.today_date, currency="USD"
-            )
+        for product_id, finish_to_price_points in product_price_mapping.items():
+            # Build MtgjsonPricesObject with enhanced pricing parameters
+            price_params = {
+                "source": "paper",
+                "provider": "tcgcsv", 
+                "date": self.today_date,
+                "currency": "USD"
+            }
+            
+            # Add enhanced pricing data for each finish type
+            for finish_type, price_points in finish_to_price_points.items():
+                # Legacy compatibility - set basic price field to market price if available
+                if "market" in price_points:
+                    price_params[f"sell_{finish_type}"] = price_points["market"]
+                
+                # Enhanced pricing fields
+                for price_type, price_value in price_points.items():
+                    price_params[f"sell_{finish_type}_{price_type}"] = price_value
+            
+            final_data[product_id] = MtgjsonPricesObject(**price_params)
 
-            if "normal" in finish_to_price:
-                final_data[product_id].sell_normal = finish_to_price.get("normal")
-            if "foil" in finish_to_price:
-                final_data[product_id].sell_foil = finish_to_price.get("foil")
-            if "etched" in finish_to_price:
-                final_data[product_id].sell_etched = finish_to_price.get("etched")
-
-        LOGGER.info(f"Generated {len(final_data)} price entries for {set_code}")
+        LOGGER.info(f"Generated {len(final_data)} enhanced price entries for {set_code}")
         return final_data
 
     def generate_today_price_dict(

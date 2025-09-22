@@ -44,6 +44,7 @@ from .providers import (
     UuidCacheProvider,
     WhatsInStandardProvider,
 )
+from .providers.tcgcsv_provider import TcgCsvProvider
 from .utils import get_str_or_none, load_local_set_data, url_keygen
 
 LOGGER = logging.getLogger(__name__)
@@ -519,6 +520,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     add_other_face_ids(mtgjson_set.tokens)
     add_mcm_details(mtgjson_set)
     add_card_kingdom_details(mtgjson_set)
+    add_tcgcsv_enrichment_details(mtgjson_set)
 
     with RESOURCE_PATH.joinpath("tcgplayer_set_id_overrides.json").open(
         encoding="utf-8"
@@ -1388,6 +1390,117 @@ def link_same_card_different_details(mtgjson_set: MtgjsonSetObject) -> None:
             mtgjson_card.identifiers.mtgjson_non_foil_version_id = (
                 other_mtgjson_card.uuid
             )
+
+
+def add_tcgcsv_enrichment_details(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    Add TCGCSV enrichment data including surge foil display names
+    and additional product information for variants.
+    :param mtgjson_set: MTGJSON Set
+    """
+    # Only enrich specific sets that we know have TCGCSV data
+    # For now, focus on FIC (Commander Final Fantasy) for the TCG-77 spike
+    if mtgjson_set.code.upper() not in {"FIC"}:
+        LOGGER.debug(f"Skipping TCGCSV enrichment for {mtgjson_set.code} (not in supported set list)")
+        return
+        
+    LOGGER.info(f"Adding TCGCSV enrichment details for {mtgjson_set.code}")
+    
+    # Get the TCGCSV group ID for this set
+    tcgcsv_group_id = None
+    if mtgjson_set.code.upper() == "FIC":
+        tcgcsv_group_id = "24220"  # Known group ID for Commander Final Fantasy
+    
+    if not tcgcsv_group_id:
+        LOGGER.warning(f"No TCGCSV group ID mapping found for {mtgjson_set.code}")
+        return
+        
+    try:
+        # Fetch enrichment data from TCGCSV
+        tcgcsv_provider = TcgCsvProvider()
+        enrichment_data = tcgcsv_provider.fetch_set_enrichment_data(
+            mtgjson_set.code, tcgcsv_group_id
+        )
+        
+        if not enrichment_data:
+            LOGGER.warning(f"No TCGCSV enrichment data returned for {mtgjson_set.code}")
+            return
+            
+        # Build mapping from collector number to TCGCSV products
+        collector_to_tcgcsv = {}
+        for product_id, data in enrichment_data.items():
+            collector_number = data.get("collector_number")
+            if collector_number:
+                if collector_number not in collector_to_tcgcsv:
+                    collector_to_tcgcsv[collector_number] = []
+                collector_to_tcgcsv[collector_number].append((product_id, data))
+        
+        enriched_cards = 0
+        surge_foils_added = 0
+        
+        # Enrich MTGJSON cards with TCGCSV data
+        for mtgjson_card in mtgjson_set.cards:
+            card_collector_number = mtgjson_card.number
+            
+            if card_collector_number not in collector_to_tcgcsv:
+                continue
+                
+            # Find matching TCGCSV products for this collector number
+            tcgcsv_products = collector_to_tcgcsv[card_collector_number]
+            
+            # Look for surge foil variants and other enrichment data
+            for product_id, tcgcsv_data in tcgcsv_products:
+                display_name = tcgcsv_data.get("tcgplayer_display_name", "")
+                
+                # Store TCGCSV enrichment data on the card
+                if not hasattr(mtgjson_card, "tcgcsv_variants"):
+                    mtgjson_card.tcgcsv_variants = {}
+                
+                # Determine variant type based on display name
+                variant_type = "normal"
+                if "surge foil" in display_name.lower():
+                    variant_type = "surge_foil"
+                    surge_foils_added += 1
+                elif "extended art" in display_name.lower():
+                    variant_type = "extended_art"
+                elif "borderless" in display_name.lower():
+                    variant_type = "borderless"
+                    
+                # Store the enrichment data with enhanced pricing
+                variant_data = {
+                    "tcgplayer_product_id": product_id,
+                    "tcgplayer_display_name": display_name,
+                    "clean_name": tcgcsv_data.get("clean_name", ""),
+                    "tcgplayer_url": tcgcsv_data.get("tcgplayer_url", ""),
+                    "image_url": tcgcsv_data.get("image_url", ""),
+                    "prices": tcgcsv_data.get("prices", {})
+                }
+                
+                # Add enhanced pricing information if available
+                prices = tcgcsv_data.get("prices", {})
+                if f"{variant_type}_enhanced" in prices:
+                    enhanced_pricing = prices[f"{variant_type}_enhanced"]
+                    variant_data["enhanced_prices"] = enhanced_pricing
+                    
+                    # Also add summary of price points for easier access
+                    if enhanced_pricing:
+                        variant_data["price_summary"] = {
+                            "lowest": min(enhanced_pricing.values()),
+                            "highest": max(enhanced_pricing.values()),
+                            "available_price_points": list(enhanced_pricing.keys())
+                        }
+                
+                mtgjson_card.tcgcsv_variants[variant_type] = variant_data
+            
+            enriched_cards += 1
+        
+        LOGGER.info(
+            f"TCGCSV enrichment complete for {mtgjson_set.code}: "
+            f"{enriched_cards} cards enriched, {surge_foils_added} surge foil variants found"
+        )
+        
+    except Exception as e:
+        LOGGER.error(f"Failed to add TCGCSV enrichment for {mtgjson_set.code}: {e}")
 
 
 def add_card_kingdom_details(mtgjson_set: MtgjsonSetObject) -> None:
