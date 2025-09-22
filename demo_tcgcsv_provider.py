@@ -34,22 +34,28 @@ def main():
     print(f"✓ Provider initialized with base URL: {provider.base_url}")
     print()
     
-    # For demonstration, we'll use a test group ID
-    # In real usage, this would come from MTGJSON set data
+    # Real FIC group data for testing
     set_code = "FIC"  # Commander Final Fantasy
     
-    # Note: We need a real group ID for FIC from MTGJSON or tcgcsv-etl
-    # For demonstration purposes, let's use a placeholder
-    # In a real implementation, this would be retrieved from the set data
-    test_group_id = "12345"  # This would need to be the actual FIC group ID
+    # Real group ID for FIC from tcgcsv
+    # {
+    #   "groupId": 24220,
+    #   "name": "Commander: FINAL FANTASY",
+    #   "abbreviation": "FIC",
+    #   "isSupplemental": false,
+    #   "publishedOn": "2025-06-13T00:00:00",
+    #   "modifiedOn": "2025-08-29T16:54:29.893",
+    #   "categoryId": 1
+    # }
+    real_group_id = "24220"
     
     print(f"Attempting to fetch prices for set {set_code}...")
-    print(f"Using test group ID: {test_group_id}")
+    print(f"Using real group ID: {real_group_id}")
     print()
     
     try:
         # Fetch price data
-        price_data = provider.generate_today_price_dict_for_set(set_code, test_group_id)
+        price_data = provider.generate_today_price_dict_for_set(set_code, real_group_id)
         
         if price_data:
             print(f"✓ Successfully fetched {len(price_data)} price records")
@@ -80,15 +86,15 @@ def main():
         else:
             print("⚠ No price data retrieved")
             print("This could be due to:")
-            print("  - Invalid group ID (expected for demo)")
+            print("  - API access restrictions")
             print("  - Network issues")
-            print("  - API changes")
+            print("  - Set not yet available in tcgcsv database")
             
     except Exception as e:
         print(f"⚠ Error fetching price data: {e}")
         print()
-        print("This is expected in the demo since we're using a placeholder group ID.")
-        print("In real usage, the group ID would come from MTGJSON set metadata.")
+        print("This could indicate API access restrictions or the set not being")
+        print("available in the tcgcsv database yet.")
     
     print()
     print("=" * 60)
@@ -100,10 +106,10 @@ def main():
     
     print()
     print("Next Steps:")
-    print("1. Integrate with MTGJSON set data to get real group IDs")
-    print("2. Add collector number mapping between TCGCSV and MTGJSON")
-    print("3. Register provider in price_builder.py")
-    print("4. Test with real FIC set data")
+    print("1. Add collector number mapping between TCGCSV and MTGJSON")
+    print("2. Register provider in price_builder.py")
+    print("3. Integrate with MTGJSON build process")
+    print("4. Test with production data pipeline")
 
 
 if __name__ == "__main__":
