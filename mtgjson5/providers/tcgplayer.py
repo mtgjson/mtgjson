@@ -549,7 +549,13 @@ def get_tcgplayer_prices_map(
             continue
 
         is_non_foil = tcgplayer_object["subTypeName"] == "Normal"
-        card_price = tcgplayer_object["marketPrice"]
+        
+        # Extract all available pricing data points
+        market_price = tcgplayer_object["marketPrice"]
+        low_price = tcgplayer_object.get("lowPrice")
+        mid_price = tcgplayer_object.get("midPrice")
+        high_price = tcgplayer_object.get("highPrice")
+        direct_low_price = tcgplayer_object.get("directLowPrice")
 
         for key in keys:
             if key not in prices_map:
@@ -558,10 +564,40 @@ def get_tcgplayer_prices_map(
                 )
 
             if is_non_foil:
-                prices_map[key].sell_normal = card_price
+                # Market price (existing behavior)
+                prices_map[key].sell_normal = market_price
+                # Enhanced pricing fields
+                if low_price is not None:
+                    prices_map[key].sell_normal_low = low_price
+                if mid_price is not None:
+                    prices_map[key].sell_normal_mid = mid_price
+                if high_price is not None:
+                    prices_map[key].sell_normal_high = high_price
+                if direct_low_price is not None:
+                    prices_map[key].sell_normal_direct_low = direct_low_price
             elif keys_are_etched:
-                prices_map[key].sell_etched = card_price
+                # Market price (existing behavior)
+                prices_map[key].sell_etched = market_price
+                # Enhanced pricing fields
+                if low_price is not None:
+                    prices_map[key].sell_etched_low = low_price
+                if mid_price is not None:
+                    prices_map[key].sell_etched_mid = mid_price
+                if high_price is not None:
+                    prices_map[key].sell_etched_high = high_price
+                if direct_low_price is not None:
+                    prices_map[key].sell_etched_direct_low = direct_low_price
             else:
-                prices_map[key].sell_foil = card_price
+                # Market price (existing behavior)
+                prices_map[key].sell_foil = market_price
+                # Enhanced pricing fields
+                if low_price is not None:
+                    prices_map[key].sell_foil_low = low_price
+                if mid_price is not None:
+                    prices_map[key].sell_foil_mid = mid_price
+                if high_price is not None:
+                    prices_map[key].sell_foil_high = high_price
+                if direct_low_price is not None:
+                    prices_map[key].sell_foil_direct_low = direct_low_price
 
     return prices_map

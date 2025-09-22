@@ -23,6 +23,20 @@ class MtgjsonPricesObject(JsonObject):
     sell_normal: Optional[float]
     sell_foil: Optional[float]
     sell_etched: Optional[float]
+    
+    # Enhanced TCGPlayer pricing fields
+    sell_normal_low: Optional[float]
+    sell_normal_mid: Optional[float]
+    sell_normal_high: Optional[float]
+    sell_normal_direct_low: Optional[float]
+    sell_foil_low: Optional[float]
+    sell_foil_mid: Optional[float]
+    sell_foil_high: Optional[float]
+    sell_foil_direct_low: Optional[float]
+    sell_etched_low: Optional[float]
+    sell_etched_mid: Optional[float]
+    sell_etched_high: Optional[float]
+    sell_etched_direct_low: Optional[float]
 
     def __init__(
         self,
@@ -36,6 +50,19 @@ class MtgjsonPricesObject(JsonObject):
         sell_normal: Optional[float] = None,
         sell_foil: Optional[float] = None,
         sell_etched: Optional[float] = None,
+        # Enhanced TCGPlayer pricing fields
+        sell_normal_low: Optional[float] = None,
+        sell_normal_mid: Optional[float] = None,
+        sell_normal_high: Optional[float] = None,
+        sell_normal_direct_low: Optional[float] = None,
+        sell_foil_low: Optional[float] = None,
+        sell_foil_mid: Optional[float] = None,
+        sell_foil_high: Optional[float] = None,
+        sell_foil_direct_low: Optional[float] = None,
+        sell_etched_low: Optional[float] = None,
+        sell_etched_mid: Optional[float] = None,
+        sell_etched_high: Optional[float] = None,
+        sell_etched_direct_low: Optional[float] = None,
     ) -> None:
         """
         Initializer for Pricing Container
@@ -50,6 +77,20 @@ class MtgjsonPricesObject(JsonObject):
         self.sell_normal = sell_normal
         self.sell_foil = sell_foil
         self.sell_etched = sell_etched
+        
+        # Enhanced TCGPlayer pricing fields
+        self.sell_normal_low = sell_normal_low
+        self.sell_normal_mid = sell_normal_mid
+        self.sell_normal_high = sell_normal_high
+        self.sell_normal_direct_low = sell_normal_direct_low
+        self.sell_foil_low = sell_foil_low
+        self.sell_foil_mid = sell_foil_mid
+        self.sell_foil_high = sell_foil_high
+        self.sell_foil_direct_low = sell_foil_direct_low
+        self.sell_etched_low = sell_etched_low
+        self.sell_etched_mid = sell_etched_mid
+        self.sell_etched_high = sell_etched_high
+        self.sell_etched_direct_low = sell_etched_direct_low
 
     def items(self) -> List[Tuple[str, Optional[float]]]:
         """
@@ -85,5 +126,45 @@ class MtgjsonPricesObject(JsonObject):
             buy_sell_option["retail"]["foil"][self.date] = self.sell_foil
         if self.sell_etched is not None:
             buy_sell_option["retail"]["etched"][self.date] = self.sell_etched
+        
+        # Add enhanced pricing fields if any are present
+        has_enhanced_pricing = any([
+            self.sell_normal_low, self.sell_normal_mid, self.sell_normal_high, self.sell_normal_direct_low,
+            self.sell_foil_low, self.sell_foil_mid, self.sell_foil_high, self.sell_foil_direct_low,
+            self.sell_etched_low, self.sell_etched_mid, self.sell_etched_high, self.sell_etched_direct_low
+        ])
+        
+        if has_enhanced_pricing:
+            buy_sell_option["retail_enhanced"] = defaultdict(lambda: defaultdict(dict))
+            
+            # Normal enhanced pricing
+            if self.sell_normal_low is not None:
+                buy_sell_option["retail_enhanced"]["normal"]["low"][self.date] = self.sell_normal_low
+            if self.sell_normal_mid is not None:
+                buy_sell_option["retail_enhanced"]["normal"]["mid"][self.date] = self.sell_normal_mid
+            if self.sell_normal_high is not None:
+                buy_sell_option["retail_enhanced"]["normal"]["high"][self.date] = self.sell_normal_high
+            if self.sell_normal_direct_low is not None:
+                buy_sell_option["retail_enhanced"]["normal"]["direct_low"][self.date] = self.sell_normal_direct_low
+            
+            # Foil enhanced pricing
+            if self.sell_foil_low is not None:
+                buy_sell_option["retail_enhanced"]["foil"]["low"][self.date] = self.sell_foil_low
+            if self.sell_foil_mid is not None:
+                buy_sell_option["retail_enhanced"]["foil"]["mid"][self.date] = self.sell_foil_mid
+            if self.sell_foil_high is not None:
+                buy_sell_option["retail_enhanced"]["foil"]["high"][self.date] = self.sell_foil_high
+            if self.sell_foil_direct_low is not None:
+                buy_sell_option["retail_enhanced"]["foil"]["direct_low"][self.date] = self.sell_foil_direct_low
+            
+            # Etched enhanced pricing
+            if self.sell_etched_low is not None:
+                buy_sell_option["retail_enhanced"]["etched"]["low"][self.date] = self.sell_etched_low
+            if self.sell_etched_mid is not None:
+                buy_sell_option["retail_enhanced"]["etched"]["mid"][self.date] = self.sell_etched_mid
+            if self.sell_etched_high is not None:
+                buy_sell_option["retail_enhanced"]["etched"]["high"][self.date] = self.sell_etched_high
+            if self.sell_etched_direct_low is not None:
+                buy_sell_option["retail_enhanced"]["etched"]["direct_low"][self.date] = self.sell_etched_direct_low
 
         return {self.source: {self.provider: buy_sell_option}}
