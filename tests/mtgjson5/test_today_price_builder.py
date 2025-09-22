@@ -198,6 +198,15 @@ def test_tcgplayer_build_today_prices():
             111.01,
             222.01,
             None,
+            # Enhanced pricing fields from test data
+            sell_normal_low=0.01,
+            sell_normal_mid=0.02,
+            sell_normal_high=0.03,
+            sell_normal_direct_low=0.04,
+            sell_foil_low=0.01,
+            sell_foil_mid=0.02,
+            sell_foil_high=0.03,
+            sell_foil_direct_low=0.04,
         ),
         MtgjsonPricesObject(
             "paper",
@@ -210,6 +219,11 @@ def test_tcgplayer_build_today_prices():
             None,
             None,
             333.01,
+            # Enhanced pricing fields for etched
+            sell_etched_low=0.01,
+            sell_etched_mid=0.02,
+            sell_etched_high=0.03,
+            sell_etched_direct_low=0.04,
         ),
     ]
 
