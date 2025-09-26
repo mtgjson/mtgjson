@@ -1,3 +1,4 @@
+import copy
 import logging
 import pathlib
 from collections import defaultdict
@@ -74,7 +75,7 @@ class ManapoolPricesProvider(AbstractProvider):
                 continue
 
             for mtgjson_uuid in scryfall_id_to_mtgjson_id[scryfall_uuid]:
-                final_data[mtgjson_uuid] = default_prices_obj
+                final_data[mtgjson_uuid] = copy.copy(default_prices_obj)
                 if "normal" in card_finish_to_price:
                     final_data[mtgjson_uuid].sell_normal = card_finish_to_price.get(
                         "normal"
