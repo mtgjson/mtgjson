@@ -89,6 +89,9 @@ class GitHubDecksProvider(AbstractProvider):
                 mtgjson_deck.set_sanitized_name(mtgjson_deck.name)
                 mtgjson_deck.type = deck["type"]
                 mtgjson_deck.release_date = deck["release_date"]
+                mtgjson_deck.source_set_codes = list(
+                    map(str.upper, deck["sourceSetCodes"])
+                )
 
                 zip_list = [
                     ("cards", mtgjson_deck.main_board),
@@ -146,6 +149,7 @@ class GitHubDecksProvider(AbstractProvider):
             this_deck.set_sanitized_name(this_deck.name)
             this_deck.type = deck["type"]
             this_deck.release_date = deck["release_date"]
+            this_deck.source_set_codes = list(map(str.upper, deck["sourceSetCodes"]))
 
             try:
                 this_deck.main_board = parallel_call(
