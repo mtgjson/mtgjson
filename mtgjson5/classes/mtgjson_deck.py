@@ -27,6 +27,7 @@ class MtgjsonDeckObject(JsonObject):
     name: str
     release_date: str
     sealed_product_uuids: Optional[List[str]]
+    source_set_codes: List[str]
     type: str
     file_name: str
 
