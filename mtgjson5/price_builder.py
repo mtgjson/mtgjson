@@ -198,8 +198,9 @@ class PriceBuilder:
 
         Note: The legacy format does not preserve price variant information (e.g., whether
         a TCGPlayer price is 'market', 'low', 'mid', 'high', or 'tcgdirect_low'). Therefore,
-        all converted prices use 'default' as the price_variant. In the future, providers
-        can generate v2 records directly with actual variant information.
+        all converted prices use 'legacy' as the price_variant to indicate they originated
+        from the legacy format. In the future, providers can generate v2 records directly
+        with actual variant information.
 
         :param legacy_prices: Legacy price structure
         :return: V2 price container with converted records
@@ -219,7 +220,7 @@ class PriceBuilder:
                                 treatment=treatment,
                                 currency=currency,
                                 price_value=float(price_value),
-                                price_variant="default",
+                                price_variant="legacy",
                                 uuid=uuid,
                                 platform=platform,
                                 price_type="retail",
@@ -235,7 +236,7 @@ class PriceBuilder:
                                 treatment=treatment,
                                 currency=currency,
                                 price_value=float(price_value),
-                                price_variant="default",
+                                price_variant="legacy",
                                 uuid=uuid,
                                 platform=platform,
                                 price_type="buy_list",

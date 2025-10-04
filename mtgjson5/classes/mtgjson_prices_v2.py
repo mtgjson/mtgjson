@@ -31,7 +31,7 @@ class MtgjsonPricesRecordV2(JsonObject):
     - currency: Currency code (e.g., 'USD', 'EUR')
     - price_value: The actual price value as a float
     - price_variant: Provider-specific price tier/type:
-        * 'default': Used for legacy conversions where variant is unknown
+        * 'legacy': Used for conversions from legacy format where variant is unknown
         * TCGPlayer: 'market', 'low', 'mid', 'high', 'tcgdirect_low'
         * Other providers may have their own variants
     - uuid: MTGJSON card UUID this price applies to
