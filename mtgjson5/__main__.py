@@ -100,7 +100,10 @@ def dispatcher(args: argparse.Namespace) -> None:
 
     # If a price build, simply build prices and exit
     if args.price_build:
-        generate_compiled_prices_output(*PriceBuilder().build_prices(), args.pretty)
+        (legacy_all, legacy_today), (v2_all, v2_today) = PriceBuilder().build_prices()
+        generate_compiled_prices_output(
+            legacy_all, legacy_today, v2_all, v2_today, args.pretty
+        )
         if args.compress:
             compress_mtgjson_contents(MtgjsonConfig().output_path)
         generate_output_file_hashes(MtgjsonConfig().output_path)
