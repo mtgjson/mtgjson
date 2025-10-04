@@ -318,7 +318,7 @@ def test_v2_record_to_json():
         treatment="foil",
         currency="EUR",
         price_value=15.75,
-        price_variant="retail",
+        price_variant="market",
         uuid="test-uuid-123",
         platform="paper",
         price_type="retail",
@@ -332,7 +332,7 @@ def test_v2_record_to_json():
     assert result["treatment"] == "foil"
     assert result["currency"] == "EUR"
     assert result["priceValue"] == 15.75
-    assert result["priceVariant"] == "retail"
+    assert result["priceVariant"] == "market"
     assert result["uuid"] == "test-uuid-123"
     assert result["platform"] == "paper"
     assert result["priceType"] == "retail"
@@ -347,7 +347,7 @@ def test_v2_record_to_json_without_subtype():
         treatment="normal",
         currency="USD",
         price_value=5.0,
-        price_variant="buylist",
+        price_variant="low",
         uuid="test-uuid-456",
         platform="mtgo",
         price_type="buy_list",
@@ -359,3 +359,4 @@ def test_v2_record_to_json_without_subtype():
     assert "subtype" not in result
     assert result["provider"] == "testprovider"
     assert result["priceValue"] == 5.0
+    assert result["priceVariant"] == "low"

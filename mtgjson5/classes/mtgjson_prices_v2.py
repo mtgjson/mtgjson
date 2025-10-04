@@ -30,7 +30,10 @@ class MtgjsonPricesRecordV2(JsonObject):
     - subtype: Optional additional categorization (e.g., price tier)
     - currency: Currency code (e.g., 'USD', 'EUR')
     - price_value: The actual price value as a float
-    - price_variant: Price point type ('low', 'mid', 'high', 'direct_low', etc.)
+    - price_variant: Provider-specific price tier/type:
+        * 'default': Used for legacy conversions where variant is unknown
+        * TCGPlayer: 'market', 'low', 'mid', 'high', 'tcgdirect_low'
+        * Other providers may have their own variants
     - uuid: MTGJSON card UUID this price applies to
     - platform: Trading platform ('paper', 'mtgo')
     - price_type: Transaction type ('retail', 'buy_list')

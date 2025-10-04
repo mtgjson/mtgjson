@@ -196,6 +196,11 @@ class PriceBuilder:
         Legacy format: {uuid: {platform: {provider: {retail/buylist: {treatment: {date: price}}}}}}
         V2 format: {provider: [MtgjsonPricesRecordV2(...), ...]}
 
+        Note: The legacy format does not preserve price variant information (e.g., whether
+        a TCGPlayer price is 'market', 'low', 'mid', 'high', or 'tcgdirect_low'). Therefore,
+        all converted prices use 'default' as the price_variant. In the future, providers
+        can generate v2 records directly with actual variant information.
+
         :param legacy_prices: Legacy price structure
         :return: V2 price container with converted records
         """
@@ -214,7 +219,7 @@ class PriceBuilder:
                                 treatment=treatment,
                                 currency=currency,
                                 price_value=float(price_value),
-                                price_variant="retail",
+                                price_variant="default",
                                 uuid=uuid,
                                 platform=platform,
                                 price_type="retail",
@@ -230,7 +235,7 @@ class PriceBuilder:
                                 treatment=treatment,
                                 currency=currency,
                                 price_value=float(price_value),
-                                price_variant="buylist",
+                                price_variant="default",
                                 uuid=uuid,
                                 platform=platform,
                                 price_type="buy_list",
