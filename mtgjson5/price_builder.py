@@ -15,6 +15,7 @@ import mergedeep
 import requests
 
 from . import constants
+from .classes import MtgjsonPricesRecordV2, MtgjsonPricesV2Container
 from .mtgjson_config import MtgjsonConfig
 from .mtgjson_s3_handler import MtgjsonS3Handler
 from .providers import (
@@ -187,6 +188,58 @@ class PriceBuilder:
             f"Finished compressing content to {local_save_path} (Size = {local_save_path.stat().st_size} bytes)"
         )
 
+    @staticmethod
+    def convert_legacy_to_v2(legacy_prices: Dict[str, Any]) -> MtgjsonPricesV2Container:
+        """
+        Convert legacy price format to v2 price record format.
+
+        Legacy format: {uuid: {platform: {provider: {retail/buylist: {treatment: {date: price}}}}}}
+        V2 format: {provider: [MtgjsonPricesRecordV2(...), ...]}
+
+        :param legacy_prices: Legacy price structure
+        :return: V2 price container with converted records
+        """
+        v2_container = MtgjsonPricesV2Container()
+
+        for uuid, platforms in legacy_prices.items():
+            for platform, providers in platforms.items():
+                for provider, price_data in providers.items():
+                    currency = price_data.get("currency", "USD")
+
+                    # Process retail (sell) prices
+                    for treatment, dates in price_data.get("retail", {}).items():
+                        for date, price_value in dates.items():
+                            record = MtgjsonPricesRecordV2(
+                                provider=provider,
+                                treatment=treatment,
+                                currency=currency,
+                                price_value=float(price_value),
+                                price_variant="retail",
+                                uuid=uuid,
+                                platform=platform,
+                                price_type="retail",
+                                date=date,
+                            )
+                            v2_container.add_record(record)
+
+                    # Process buylist (buy) prices
+                    for treatment, dates in price_data.get("buylist", {}).items():
+                        for date, price_value in dates.items():
+                            record = MtgjsonPricesRecordV2(
+                                provider=provider,
+                                treatment=treatment,
+                                currency=currency,
+                                price_value=float(price_value),
+                                price_variant="buylist",
+                                uuid=uuid,
+                                platform=platform,
+                                price_type="buy_list",
+                                date=date,
+                            )
+                            v2_container.add_record(record)
+
+        return v2_container
+
     def download_old_all_printings(self) -> None:
         """
         Download the hosted version of AllPrintings from MTGJSON
@@ -204,11 +257,21 @@ class PriceBuilder:
         with self.all_printings_path.open("w", encoding="utf8") as f:
             f.write(lzma.decompress(file_bytes).decode())
 
-    def build_prices(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def build_prices(
+        self,
+    ) -> Tuple[
+        Tuple[Dict[str, Any], Dict[str, Any]],
+        Tuple[MtgjsonPricesV2Container, MtgjsonPricesV2Container],
+    ]:
         """
-        The full build prices operation
-        Prune & Update remote database
-        :return Latest prices
+        The full build prices operation.
+        Prune & Update remote database.
+
+        Returns both legacy and v2 price formats:
+        - Legacy: (all_prices, today_prices) as nested dictionaries
+        - V2: (all_prices_v2, today_prices_v2) as MtgjsonPricesV2Container objects
+
+        :return: Tuple of ((legacy_all, legacy_today), (v2_all, v2_today))
         """
         LOGGER.info("Prices Build - Building Prices")
 
@@ -222,10 +285,13 @@ class PriceBuilder:
         today_prices = self.build_today_prices()
         if not today_prices:
             LOGGER.warning("Pricing information failed to generate")
-            return {}, {}
+            empty_v2 = MtgjsonPricesV2Container()
+            return ({}, {}), (empty_v2, empty_v2)
 
         if not MtgjsonConfig().has_section("Prices"):
-            return today_prices, today_prices
+            # Convert to v2 format
+            today_prices_v2 = self.convert_legacy_to_v2(today_prices)
+            return (today_prices, today_prices), (today_prices_v2, today_prices_v2)
 
         bucket_name = MtgjsonConfig().get("Prices", "bucket_name")
         bucket_object_path = MtgjsonConfig().get("Prices", "bucket_object_path")
@@ -251,4 +317,9 @@ class PriceBuilder:
         )
         local_zip_file.unlink()
 
-        return archive_prices, today_prices
+        # Convert both legacy formats to v2
+        LOGGER.info("Converting legacy prices to v2 format")
+        archive_prices_v2 = self.convert_legacy_to_v2(archive_prices)
+        today_prices_v2 = self.convert_legacy_to_v2(today_prices)
+
+        return (archive_prices, today_prices), (archive_prices_v2, today_prices_v2)
