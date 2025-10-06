@@ -12,7 +12,8 @@ from .mtgjson_leadership_skills import MtgjsonLeadershipSkillsObject
 from .mtgjson_legalities import MtgjsonLegalitiesObject
 from .mtgjson_meta import MtgjsonMetaObject
 from .mtgjson_prices import MtgjsonPricesObject
-from .mtgjson_prices_v2 import MtgjsonPricesRecordV2, MtgjsonPricesV2Container
+from .mtgjson_prices_v2 import MtgjsonPricesRecordV2
+from .mtgjson_prices_v2_container import MtgjsonPricesV2Container
 from .mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
 from .mtgjson_related_cards import MtgjsonRelatedCardsObject
 from .mtgjson_rulings import MtgjsonRulingObject
