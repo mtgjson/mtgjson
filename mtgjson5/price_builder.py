@@ -138,9 +138,7 @@ class PriceBuilder:
                 records = provider.build_v2_prices(self.all_printings_path)
                 if records:
                     v2_container.add_records(records)
-                    LOGGER.info(
-                        f"Added {len(records)} v2 records from {provider_name}"
-                    )
+                    LOGGER.info(f"Added {len(records)} v2 records from {provider_name}")
                 else:
                     LOGGER.info(f"{provider_name} returned no v2 records")
             except Exception as exception:
@@ -151,7 +149,6 @@ class PriceBuilder:
         total_records = v2_container.get_record_count()
         LOGGER.info(f"Built {total_records} total v2 price records")
         return v2_container
-
 
     def _generate_prices(self, provider: Any) -> Dict[str, Any]:
         """
@@ -226,7 +223,6 @@ class PriceBuilder:
         LOGGER.info(
             f"Finished compressing content to {local_save_path} (Size = {local_save_path.stat().st_size} bytes)"
         )
-
 
     def download_old_all_printings(self) -> None:
         """
@@ -334,9 +330,7 @@ class PriceBuilder:
         )
 
         # Download existing v2 archive (dict format: {provider: [records...]})
-        archive_dict = self.get_price_archive_data(
-            bucket_name, bucket_object_path_v2
-        )
+        archive_dict = self.get_price_archive_data(bucket_name, bucket_object_path_v2)
 
         # Reconstruct container from downloaded archive
         archive_prices_v2 = self._reconstruct_v2_container_from_dict(archive_dict)
@@ -451,10 +445,11 @@ class PriceBuilder:
         pruned_container = MtgjsonPricesV2Container()
 
         # Iterate through all providers and their records
+        # pylint: disable=protected-access
         for provider in archive.get_providers():
             # Access internal _records directly since there's no public getter
-            if provider in archive._records:  # pylint: disable=protected-access
-                for record in archive._records[provider]:  # pylint: disable=protected-access
+            if provider in archive._records:
+                for record in archive._records[provider]:
                     # Keep record if date is after cutoff
                     if record.date >= cutoff_date_str:
                         pruned_container.add_record(record)
