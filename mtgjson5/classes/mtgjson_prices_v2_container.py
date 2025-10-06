@@ -72,3 +72,28 @@ class MtgjsonPricesV2Container:
         :return: Total number of records across all providers
         """
         return sum(len(records) for records in self._records.values())
+
+    def get_records_for_provider(self, provider: str) -> List[MtgjsonPricesRecordV2]:
+        """
+        Get all records for a specific provider.
+
+        :param provider: Provider name
+        :return: List of records for the provider, empty list if provider not found
+        """
+        return self._records.get(provider, [])
+
+    def get_all_records(self) -> Dict[str, List[MtgjsonPricesRecordV2]]:
+        """
+        Get all records from the container.
+
+        :return: Dictionary mapping provider names to lists of records
+        """
+        return self._records
+
+    def set_records(self, records: Dict[str, List[MtgjsonPricesRecordV2]]) -> None:
+        """
+        Replace all records in the container.
+
+        :param records: Dictionary mapping provider names to lists of records
+        """
+        self._records = records

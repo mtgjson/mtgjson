@@ -445,14 +445,11 @@ class PriceBuilder:
         pruned_container = MtgjsonPricesV2Container()
 
         # Iterate through all providers and their records
-        # pylint: disable=protected-access
         for provider in archive.get_providers():
-            # Access internal _records directly since there's no public getter
-            if provider in archive._records:
-                for record in archive._records[provider]:
-                    # Keep record if date is after cutoff
-                    if record.date >= cutoff_date_str:
-                        pruned_container.add_record(record)
+            for record in archive.get_records_for_provider(provider):
+                # Keep record if date is after cutoff
+                if record.date >= cutoff_date_str:
+                    pruned_container.add_record(record)
 
         # Replace archive contents with pruned data
-        archive._records = pruned_container._records  # pylint: disable=protected-access
+        archive.set_records(pruned_container.get_all_records())
