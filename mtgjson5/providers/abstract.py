@@ -161,7 +161,7 @@ class AbstractProvider(abc.ABC):
         return "sell_normal" if is_sell else "buy_normal"
 
     def build_v2_prices(
-        self, all_printings_path: pathlib.Path
+        self, all_printings_path: pathlib.Path  # pylint: disable=unused-argument
     ) -> List[MtgjsonPricesRecordV2]:
         """
         Build native v2 price records with rich metadata.
