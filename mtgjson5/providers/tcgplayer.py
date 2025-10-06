@@ -316,7 +316,7 @@ class TCGPlayerProvider(AbstractProvider):
             fold_list=True,
         )
 
-        all_records = retail_records + buylist_records
+        all_records: List[MtgjsonPricesRecordV2] = retail_records + buylist_records
         LOGGER.info(f"Generated {len(all_records)} TCGPlayer v2 price records")
         return all_records
 

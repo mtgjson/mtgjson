@@ -412,9 +412,13 @@ class PriceBuilder:
 
         # Convert legacy archive prices to v2 ONLY for providers without v2 support
         # This prevents duplicate data from providers that already emit v2 records
-        legacy_archive_for_conversion = {}
+        legacy_archive_for_conversion: Dict[str, Any] = {}
         for uuid, platforms in archive_prices.items():
+            if not isinstance(platforms, dict):
+                continue
             for platform, providers_data in platforms.items():
+                if not isinstance(providers_data, dict):
+                    continue
                 for provider, price_data in providers_data.items():
                     # Skip providers with native v2 support
                     if provider.lower() in providers_with_v2:
