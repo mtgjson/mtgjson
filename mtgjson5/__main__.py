@@ -100,7 +100,9 @@ def dispatcher(args: argparse.Namespace) -> None:
 
     # If a price build, simply build prices and exit
     if args.price_build:
-        (legacy_all, legacy_today), (v2_all, v2_today) = PriceBuilder().build_prices()
+        price_builder = PriceBuilder()
+        legacy_all, legacy_today = price_builder.build_prices()
+        v2_all, v2_today = price_builder.build_prices_v2()
         generate_compiled_prices_output(
             legacy_all, legacy_today, v2_all, v2_today, args.pretty
         )
