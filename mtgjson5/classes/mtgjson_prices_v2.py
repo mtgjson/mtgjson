@@ -10,7 +10,7 @@ price datasets with better provider and variant granularity.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from .json_object import JsonObject
 
