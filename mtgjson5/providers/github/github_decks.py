@@ -65,6 +65,7 @@ class GitHubDecksProvider(AbstractProvider):
         mtgjson_card.uuid = card["mtgjson_uuid"]
         mtgjson_card.count = card["count"]
         mtgjson_card.is_foil = card["foil"]
+        mtgjson_card.is_etched = card["etched"]
         del mtgjson_card.colors
         del mtgjson_card.identifiers
         del mtgjson_card.purchase_urls
@@ -202,6 +203,7 @@ def build_single_card(card: Dict[str, Any]) -> List[Dict[str, Any]]:
         if card["mtgjson_uuid"] == mtgjson_card["uuid"]:
             mtgjson_card["count"] = card["count"]
             mtgjson_card["isFoil"] = card["foil"]
+            mtgjson_card["isEtched"] = card["etched"]
             cards.append(copy.deepcopy(mtgjson_card))
 
     if not cards:
