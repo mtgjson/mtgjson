@@ -60,6 +60,7 @@ class MtgjsonCardObject(JsonObject):
     identifiers: MtgjsonIdentifiersObject
     is_alternative: Optional[bool]
     is_foil: Optional[bool]
+    is_etched: Optional[bool]
     is_full_art: Optional[bool]
     is_funny: Optional[bool]
     is_game_changer: Optional[bool]
