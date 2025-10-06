@@ -18,9 +18,11 @@ class MtgjsonPricesV2Container:
     by the AllPricesv2.json output.
     """
 
+    _records: Dict[str, List[MtgjsonPricesRecordV2]]
+
     def __init__(self) -> None:
         """Initialize an empty price records container."""
-        self._records: Dict[str, List[MtgjsonPricesRecordV2]] = {}
+        self._records = {}
 
     def add_record(self, record: MtgjsonPricesRecordV2) -> None:
         """
