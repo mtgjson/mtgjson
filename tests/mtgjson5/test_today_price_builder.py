@@ -248,69 +248,6 @@ def test_multiverse_bridge_cardsphere_build_today_prices():
     assert_build_today_prices(provider, expected_results)
 
 
-def test_convert_legacy_to_v2():
-    """Test conversion from legacy price format to v2 format."""
-    legacy_prices = {
-        "00000000-0000-0000-0000-000000000001": {
-            "paper": {
-                "cardkingdom": {
-                    "currency": "USD",
-                    "retail": {
-                        "normal": {"2024-01-01": 10.5, "2024-01-02": 11.0},
-                        "foil": {"2024-01-01": 20.5},
-                    },
-                    "buylist": {
-                        "normal": {"2024-01-01": 8.0},
-                    },
-                }
-            }
-        },
-        "00000000-0000-0000-0000-000000000002": {
-            "mtgo": {
-                "cardhoarder": {
-                    "currency": "USD",
-                    "retail": {
-                        "normal": {"2024-01-01": 5.5},
-                    },
-                }
-            }
-        },
-    }
-
-    v2_container = PriceBuilder.convert_legacy_to_v2(legacy_prices)
-
-    # Verify container has correct providers
-    assert set(v2_container.get_providers()) == {"cardkingdom", "cardhoarder"}
-
-    # Verify total record count
-    # cardkingdom: 2 retail normal + 1 retail foil + 1 buylist normal = 4
-    # cardhoarder: 1 retail normal = 1
-    # Total = 5
-    assert v2_container.get_record_count() == 5
-
-    # Verify JSON serialization structure
-    v2_json = v2_container.to_json()
-    assert "cardkingdom" in v2_json
-    assert "cardhoarder" in v2_json
-    assert len(v2_json["cardkingdom"]) == 4
-    assert len(v2_json["cardhoarder"]) == 1
-
-    # Verify a specific record
-    ck_records = v2_json["cardkingdom"]
-    normal_retail_records = [
-        r
-        for r in ck_records
-        if r["treatment"] == "normal"
-        and r["priceType"] == "retail"
-        and r["date"] == "2024-01-01"
-    ]
-    assert len(normal_retail_records) == 1
-    assert normal_retail_records[0]["priceValue"] == 10.5
-    assert normal_retail_records[0]["uuid"] == "00000000-0000-0000-0000-000000000001"
-    assert normal_retail_records[0]["platform"] == "paper"
-    assert normal_retail_records[0]["currency"] == "USD"
-
-
 def test_v2_record_to_json():
     """Test MtgjsonPricesRecordV2 serialization."""
     record = MtgjsonPricesRecordV2(
