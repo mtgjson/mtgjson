@@ -6,13 +6,14 @@ import abc
 import copy
 import datetime
 import logging
+import pathlib
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Union
 
 import requests
 import requests_cache
 
-from ..classes import MtgjsonPricesObject
+from ..classes import MtgjsonPricesObject, MtgjsonPricesRecordV2
 from ..mtgjson_config import MtgjsonConfig
 from ..retryable_session import retryable_session
 
@@ -158,3 +159,22 @@ class AbstractProvider(abc.ABC):
         if is_foil:
             return "sell_foil" if is_sell else "buy_foil"
         return "sell_normal" if is_sell else "buy_normal"
+
+    def build_v2_prices(
+        self, all_printings_path: pathlib.Path
+    ) -> List[MtgjsonPricesRecordV2]:
+        """
+        Build native v2 price records with rich metadata.
+
+        This is the v2 strategy interface that providers can override to emit
+        MtgjsonPricesRecordV2 instances directly, preserving provider-specific
+        price variants (e.g., TCGPlayer's market/low/mid/high/directLow),
+        subtypes, and other metadata that would be lost in legacy conversion.
+
+        Default implementation returns empty list; providers supporting v2
+        should override this method.
+
+        :param all_printings_path: Path to AllPrintings.json for ID mapping
+        :return: List of v2 price records with full metadata
+        """
+        return []

@@ -8,7 +8,7 @@ import logging
 import lzma
 import pathlib
 import subprocess
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import dateutil.relativedelta
 import mergedeep
@@ -113,6 +113,66 @@ class PriceBuilder:
         )
 
         return final_results
+
+    def build_today_prices_v2(self) -> MtgjsonPricesV2Container:
+        """
+        Build v2 price records by calling build_v2_prices() on each provider.
+
+        Aggregates v2 records from providers that support the v2 interface.
+        Providers without v2 support will return empty lists.
+
+        :return: Container with all v2 price records from today
+        """
+        if not self.all_printings_path.is_file():
+            LOGGER.error(
+                f"Unable to build v2 prices. AllPrintings not found in {MtgjsonConfig().output_path}"
+            )
+            return MtgjsonPricesV2Container()
+
+        v2_container = MtgjsonPricesV2Container()
+
+        for provider in self.providers:
+            provider_name = type(provider).__name__
+            try:
+                LOGGER.info(f"Building v2 prices for {provider_name}")
+                records = provider.build_v2_prices(self.all_printings_path)
+                if records:
+                    v2_container.add_records(records)
+                    LOGGER.info(
+                        f"Added {len(records)} v2 records from {provider_name}"
+                    )
+                else:
+                    LOGGER.info(f"{provider_name} returned no v2 records")
+            except Exception as exception:
+                LOGGER.error(
+                    f"Failed to build v2 prices for {provider_name} with error: {exception}"
+                )
+
+        total_records = v2_container.get_record_count()
+        LOGGER.info(f"Built {total_records} total v2 price records")
+        return v2_container
+
+    def _get_providers_with_v2_support(self) -> Set[str]:
+        """
+        Identify which providers have native v2 support.
+
+        Checks if each provider has overridden the default build_v2_prices()
+        method, indicating native v2 support.
+
+        :return: Set of provider names (lowercase) with v2 support
+        """
+        providers_with_v2 = set()
+        for provider in self.providers:
+            provider_class = type(provider)
+            # Check if the provider has overridden build_v2_prices
+            # by comparing its method to the abstract base class method
+            if (
+                hasattr(provider_class, "build_v2_prices")
+                and provider_class.build_v2_prices
+                != AbstractProvider.build_v2_prices
+            ):
+                providers_with_v2.add(type(provider).__name__.lower())
+        return providers_with_v2
 
     def _generate_prices(self, provider: Any) -> Dict[str, Any]:
         """
@@ -323,9 +383,71 @@ class PriceBuilder:
         )
         local_zip_file.unlink()
 
-        # Convert both legacy formats to v2
-        LOGGER.info("Converting legacy prices to v2 format")
-        archive_prices_v2 = self.convert_legacy_to_v2(archive_prices)
-        today_prices_v2 = self.convert_legacy_to_v2(today_prices)
+        # Build v2 prices natively from providers
+        LOGGER.info("Building v2 prices from providers")
+        today_prices_v2 = self.build_today_prices_v2()
+
+        # For archive, start with today's v2 records
+        # We need to reconstruct MtgjsonPricesRecordV2 objects from the JSON
+        archive_prices_v2 = MtgjsonPricesV2Container()
+        for provider, records_json in today_prices_v2.to_json().items():
+            for record_dict in records_json:
+                record = MtgjsonPricesRecordV2(
+                    provider=record_dict["provider"],
+                    treatment=record_dict["treatment"],
+                    currency=record_dict["currency"],
+                    price_value=record_dict["priceValue"],
+                    price_variant=record_dict["priceVariant"],
+                    uuid=record_dict["uuid"],
+                    platform=record_dict["platform"],
+                    price_type=record_dict["priceType"],
+                    date=record_dict["date"],
+                    subtype=record_dict.get("subtype"),
+                )
+                archive_prices_v2.add_record(record)
+
+        # Identify providers with v2 support to avoid duplicate conversion
+        providers_with_v2 = self._get_providers_with_v2_support()
+        LOGGER.info(f"Providers with v2 support: {providers_with_v2}")
+
+        # Convert legacy archive prices to v2 ONLY for providers without v2 support
+        # This prevents duplicate data from providers that already emit v2 records
+        legacy_archive_for_conversion = {}
+        for uuid, platforms in archive_prices.items():
+            for platform, providers_data in platforms.items():
+                for provider, price_data in providers_data.items():
+                    # Skip providers with native v2 support
+                    if provider.lower() in providers_with_v2:
+                        continue
+
+                    # Only convert legacy data from providers without v2 support
+                    if uuid not in legacy_archive_for_conversion:
+                        legacy_archive_for_conversion[uuid] = {}
+                    if platform not in legacy_archive_for_conversion[uuid]:
+                        legacy_archive_for_conversion[uuid][platform] = {}
+                    legacy_archive_for_conversion[uuid][platform][provider] = price_data
+
+        if legacy_archive_for_conversion:
+            LOGGER.info(
+                "Converting legacy archive prices to v2 format for non-v2 providers"
+            )
+            legacy_v2_records = self.convert_legacy_to_v2(legacy_archive_for_conversion)
+            # Merge legacy-converted records into archive
+            for provider, records in legacy_v2_records.to_json().items():
+                for record_dict in records:
+                    # Reconstruct MtgjsonPricesRecordV2 from dict
+                    record = MtgjsonPricesRecordV2(
+                        provider=record_dict["provider"],
+                        treatment=record_dict["treatment"],
+                        currency=record_dict["currency"],
+                        price_value=record_dict["priceValue"],
+                        price_variant=record_dict["priceVariant"],
+                        uuid=record_dict["uuid"],
+                        platform=record_dict["platform"],
+                        price_type=record_dict["priceType"],
+                        date=record_dict["date"],
+                        subtype=record_dict.get("subtype"),
+                    )
+                    archive_prices_v2.add_record(record)
 
         return (archive_prices, today_prices), (archive_prices_v2, today_prices_v2)
