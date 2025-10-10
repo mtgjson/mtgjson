@@ -101,6 +101,7 @@ class GitHubDecksProvider(AbstractProvider):
                     ("commander", mtgjson_deck.commander),
                     ("planarDeck", mtgjson_deck.planes),
                     ("schemeDeck", mtgjson_deck.schemes),
+                    ("tokens", mtgjson_deck.tokens),
                 ]
                 for decks_key, mtgjson_deck_list in zip_list:
                     for card in deck.get(decks_key, []):
