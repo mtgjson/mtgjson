@@ -14,7 +14,11 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 import requests
 from singleton_decorator import singleton
 
-from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
+from ..classes import (
+    MtgjsonPricesObject,
+    MtgjsonPricesRecordV2,
+    MtgjsonSealedProductObject,
+)
 from ..mtgjson_config import MtgjsonConfig
 from ..parallel_call import parallel_call
 from ..providers.abstract import AbstractProvider
@@ -265,6 +269,56 @@ class TCGPlayerProvider(AbstractProvider):
                 combined_listings[key] = value
 
         return dict(combined_listings)
+
+    def build_v2_prices(
+        self, all_printings_path: pathlib.Path
+    ) -> List[MtgjsonPricesRecordV2]:
+        """
+        Build native v2 price records with all TCGPlayer price variants.
+
+        Generates MtgjsonPricesRecordV2 instances with proper price_variant
+        metadata for each TCGPlayer price type:
+        - Retail: market, low, mid, high, direct_low
+        - Buylist: high
+
+        :param all_printings_path: Path to AllPrintings.json for ID mapping
+        :return: List of v2 price records with TCGPlayer-specific variants
+        """
+        ids_and_names = self.get_tcgplayer_magic_set_ids()
+        tcg_foil_and_non_foil_to_mtgjson_map = generate_entity_mapping(
+            all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
+        )
+        tcg_etched_foil_to_mtgjson_map = generate_entity_mapping(
+            all_printings_path,
+            ("identifiers", "tcgplayerEtchedProductId"),
+            ("uuid",),
+        )
+
+        LOGGER.info("Building TCGPlayer v2 retail data")
+        retail_records = parallel_call(
+            build_tcgplayer_v2_retail_records,
+            ids_and_names,
+            repeatable_args=[
+                tcg_foil_and_non_foil_to_mtgjson_map,
+                tcg_etched_foil_to_mtgjson_map,
+            ],
+            fold_list=True,
+        )
+
+        LOGGER.info("Building TCGPlayer v2 buylist data")
+        buylist_records = parallel_call(
+            build_tcgplayer_v2_buylist_records,
+            ids_and_names,
+            repeatable_args=[
+                tcg_foil_and_non_foil_to_mtgjson_map,
+                tcg_etched_foil_to_mtgjson_map,
+            ],
+            fold_list=True,
+        )
+
+        all_records: List[MtgjsonPricesRecordV2] = retail_records + buylist_records
+        LOGGER.info(f"Generated {len(all_records)} TCGPlayer v2 price records")
+        return all_records
 
     @staticmethod
     def update_sealed_urls(sealed_products: List[MtgjsonSealedProductObject]) -> None:
@@ -565,3 +619,159 @@ def get_tcgplayer_prices_map(
                 prices_map[key].sell_foil = card_price
 
     return prices_map
+
+
+def build_tcgplayer_v2_retail_records(
+    group_id_and_name: Tuple[str, str],
+    tcg_foil_and_non_foil_to_mtgjson_map: Dict[str, Set[str]],
+    tcg_etched_foil_to_mtgjson_map: Dict[str, Set[str]],
+) -> List[MtgjsonPricesRecordV2]:
+    """
+    Build v2 price records for TCGPlayer retail prices with all variants.
+
+    :param group_id_and_name: TCGPlayer Set ID & Name to build
+    :param tcg_foil_and_non_foil_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
+    :param tcg_etched_foil_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
+    :return: List of v2 records with all retail price variants
+    """
+    results = TCGPlayerProvider().get_api_results(
+        f"https://api.tcgplayer.com/[API_VERSION]/pricing/group/{group_id_and_name[0]}"
+    )
+    if not results:
+        return []
+
+    records: List[MtgjsonPricesRecordV2] = []
+    today_date = TCGPlayerProvider().today_date
+
+    # Map price field names to price_variant values
+    price_variants = {
+        "marketPrice": "market",
+        "lowPrice": "low",
+        "midPrice": "mid",
+        "highPrice": "high",
+        "directLowPrice": "direct_low",
+    }
+
+    for tcgplayer_object in results:
+        product_id = str(tcgplayer_object["productId"])
+        subtype_name = tcgplayer_object["subTypeName"]
+
+        # Determine if this is etched and get the appropriate UUID mapping
+        keys_are_etched = False
+        keys = tcg_foil_and_non_foil_to_mtgjson_map.get(product_id)
+        if not keys:
+            keys_are_etched = True
+            keys = tcg_etched_foil_to_mtgjson_map.get(product_id)
+        if not keys:
+            continue
+
+        # Determine treatment based on subtype
+        if subtype_name == "Normal":
+            treatment = "normal"
+        elif keys_are_etched:
+            treatment = "etched"
+        else:
+            treatment = "foil"
+
+        # Create a record for each price variant that has a value
+        for price_field, price_variant in price_variants.items():
+            price_value = tcgplayer_object.get(price_field)
+            if price_value and price_value > 0:
+                for uuid in keys:
+                    record = MtgjsonPricesRecordV2(
+                        provider="tcgplayer",
+                        treatment=treatment,
+                        currency="USD",
+                        price_value=float(price_value),
+                        price_variant=price_variant,
+                        uuid=uuid,
+                        platform="paper",
+                        price_type="retail",
+                        date=today_date,
+                        subtype=subtype_name,
+                    )
+                    records.append(record)
+
+    return records
+
+
+def build_tcgplayer_v2_buylist_records(
+    group_id_and_name: Tuple[str, str],
+    tcg_foil_and_non_foil_to_mtgjson_map: Dict[str, Set[str]],
+    tcg_etched_foil_to_mtgjson_map: Dict[str, Set[str]],
+) -> List[MtgjsonPricesRecordV2]:
+    """
+    Build v2 price records for TCGPlayer buylist prices.
+
+    :param group_id_and_name: TCGPlayer Set ID & Name to build
+    :param tcg_foil_and_non_foil_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
+    :param tcg_etched_foil_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
+    :return: List of v2 records with buylist prices
+    """
+    results = TCGPlayerProvider().get_api_results(
+        f"https://api.tcgplayer.com/pricing/buy/group/{group_id_and_name[0]}"
+    )
+    if not results:
+        return []
+
+    records: List[MtgjsonPricesRecordV2] = []
+    today_date = TCGPlayerProvider().today_date
+
+    # Get SKU data to determine foil/nonfoil for buylist
+    tcgplayer_sku_data = TCGPlayerProvider().get_tcgplayer_sku_data(group_id_and_name)
+    sku_map = TCGPlayerProvider().get_tcgplayer_sku_map(tcgplayer_sku_data)
+
+    for buylist_data in results:
+        product_id = str(buylist_data["productId"])
+
+        # Determine if this is etched and get the appropriate UUID mapping
+        keys_are_etched = False
+        keys = tcg_foil_and_non_foil_to_mtgjson_map.get(product_id)
+        if not keys:
+            keys_are_etched = True
+            keys = tcg_etched_foil_to_mtgjson_map.get(product_id)
+        if not keys:
+            continue
+
+        if not sku_map.get(product_id):
+            LOGGER.debug(f"TCGPlayer ProductId {product_id} not found in SKU map")
+            continue
+
+        for sku in buylist_data["skus"]:
+            high_price = sku["prices"].get("high")
+            if not high_price or high_price <= 0:
+                continue
+
+            product_sku = sku["skuId"]
+            treatment = None
+            subtype = None
+
+            # Determine treatment based on SKU mapping
+            if sku_map[product_id].get("nonfoil_sku") == product_sku:
+                treatment = "normal"
+                subtype = "Normal"
+            elif sku_map[product_id].get("foil_sku") == product_sku:
+                if keys_are_etched:
+                    treatment = "etched"
+                    subtype = "Etched"
+                else:
+                    treatment = "foil"
+                    subtype = "Foil"
+
+            if treatment:
+                for uuid in keys:
+                    record = MtgjsonPricesRecordV2(
+                        provider="tcgplayer",
+                        treatment=treatment,
+                        currency="USD",
+                        price_value=float(high_price),
+                        price_variant="high",
+                        uuid=uuid,
+                        platform="paper",
+                        price_type="buy_list",
+                        date=today_date,
+                        subtype=subtype,
+                    )
+                    records.append(record)
+
+    return records
