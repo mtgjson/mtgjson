@@ -79,12 +79,29 @@ MTGJSON is built on and tested against a wide range of Python3 versions. Current
 
 #### Install MTGJSON
 ##### Local Installation
-`python3 -m pip install /path/to/mtgjson5/`
+###### Install uv
+
+We use `uv` to handle project dependencies. Please read [`uv` installation instructions](https://docs.astral.sh/uv/) for your platform.
+
+Then run the following command from the mtgjson source directory to create your working virtualenv:
+
+```bash
+uv sync
+```
+
+To run commands from within the virtual environment, use the `uv run` command.
+
+At this point you can already run mtgjson and show its help page with:
+
+```bash
+uv run python3 -m mtgjson5 -h
+```
+
 ##### PyPi Repository
 We intend to put MTGJSON5 on the pip package archive in the near future, once the first set of revisions takes place.
 
 #### Using MTGJSON
-A fully up-to-date help menu can be achieved via `python3 -m mtgjson5 -h`, but for your convenience here is a recent rundown:  
+A fully up-to-date help menu can be achieved via `uv run python3 -m mtgjson5 -h`, but for your convenience here is a recent rundown:
 ```
 usage: mtgjson5 [-h] [-s [SET [SET ...]] | -a] [-c] [-x] [-z] [-p]
                 [-SS [SET [SET ...]]] [-PB] [-R] [-NA]
