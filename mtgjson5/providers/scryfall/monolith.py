@@ -2,13 +2,14 @@
 Scryfall 3rd party provider
 """
 
+from functools import wraps
 import argparse
 import logging
 import pathlib
 import re
 import sys
 import time
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union, Callable
 
 import ratelimit
 import requests.exceptions
@@ -21,6 +22,18 @@ from . import sf_utils
 
 LOGGER = logging.getLogger(__name__)
 
+def warn_on_rate_limit(func: Callable, logger: logging.Logger=None):
+    _logger = logger or logging.getLogger(__name__)
+
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ratelimit.RateLimitException as err:
+            _logger.warn(f"Rate limit reached, {vars(err)}")
+            raise
+
+    return wrapped
 
 @singleton
 class ScryfallProvider(AbstractProvider):
@@ -97,6 +110,7 @@ class ScryfallProvider(AbstractProvider):
         return all_cards
 
     @ratelimit.sleep_and_retry
+    @warn_on_rate_limit
     @ratelimit.limits(calls=15, period=1)
     def download(
         self,
