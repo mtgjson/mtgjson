@@ -49,12 +49,13 @@ class ScryfallProviderOrientationDetector(AbstractProvider):
         """
         Parse card orientation from bs4 Tag
         """
-        return str(orientation_header.find("a").get("id"))
+        a_tags = orientation_header.find("a") or {}
+        return str(a_tags.get("id"))
 
     @staticmethod
     def _parse_card_entries(scryfall_card_ids: bs4.Tag) -> List[str]:
         """
         Parse out all card UUIDs from bs4 Tag
         """
-        card_items = scryfall_card_ids.find_all("div", class_="card-grid-item")
+        card_items = scryfall_card_ids.find_all("div", class_="card-grid-item") or []
         return [card_item.get("data-card-id") for card_item in card_items]
