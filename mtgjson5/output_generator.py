@@ -31,15 +31,26 @@ LOGGER = logging.getLogger(__name__)
 
 
 def generate_compiled_prices_output(
-    all_price_data: Dict[str, Any], today_price_data: Dict[str, Any], pretty_print: bool
+    all_price_data: Dict[str, Any],
+    today_price_data: Dict[str, Any],
+    all_price_data_v2: Any,
+    today_price_data_v2: Any,
+    pretty_print: bool,
 ) -> None:
     """
-    Dump AllPrices to a file
-    :param all_price_data: Data to dump for larger file
-    :param today_price_data: data to dump for smaller file
+    Dump AllPrices (legacy and v2) to files.
+
+    Writes both legacy nested dictionary format and new v2 normalized record format:
+    - AllPrices.json / AllPricesToday.json (legacy)
+    - AllPricesv2.json / AllPricesTodayv2.json (v2)
+
+    :param all_price_data: Legacy format data for larger file
+    :param today_price_data: Legacy format data for smaller file
+    :param all_price_data_v2: V2 format container for larger file
+    :param today_price_data_v2: V2 format container for smaller file
     :param pretty_print: Pretty or minimal
     """
-    LOGGER.info("Building Prices")
+    LOGGER.info("Building Prices (Legacy Format)")
     create_compiled_output(
         MtgjsonStructuresObject().all_prices,
         all_price_data,
@@ -50,6 +61,21 @@ def generate_compiled_prices_output(
     create_compiled_output(
         MtgjsonStructuresObject().all_prices_today,
         today_price_data,
+        pretty_print,
+        sort_keys=False,
+    )
+
+    LOGGER.info("Building Prices (V2 Format)")
+    create_compiled_output(
+        MtgjsonStructuresObject().all_prices_v2,
+        all_price_data_v2,
+        pretty_print,
+        sort_keys=False,
+    )
+
+    create_compiled_output(
+        MtgjsonStructuresObject().all_prices_today_v2,
+        today_price_data_v2,
         pretty_print,
         sort_keys=False,
     )
@@ -198,8 +224,13 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
         pretty_print,
     )
 
-    # AllPrices.json
-    generate_compiled_prices_output(*PriceBuilder().build_prices(), pretty_print)
+    # AllPrices.json (legacy and v2)
+    price_builder = PriceBuilder()
+    legacy_all, legacy_today = price_builder.build_prices()
+    v2_all, v2_today = price_builder.build_prices_v2()
+    generate_compiled_prices_output(
+        legacy_all, legacy_today, v2_all, v2_today, pretty_print
+    )
 
     # CompiledList.json
     create_compiled_output(
