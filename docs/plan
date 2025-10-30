@@ -1,0 +1,54 @@
+Step 1 — Test the prices_map shape for TCGplayer (planning only)
+
+Objective
+- Prove the return shape of get_tcgplayer_prices_map (mtgjson5/providers/tcgplayer.py:522) using a recorded HTTP cassette, without changing runtime behavior.
+
+Assumptions
+- Tests run under pytest.
+- Network calls must be recorded or mocked; no live calls in CI.
+- Minimal cassette data is sufficient (one group with a few products).
+
+Plan Steps
+1. Add vcrpy to test dependencies (requirements_test.txt).
+2. Configure VCR in tests/conftest.py (record=once, filter secrets).
+3. Create a cassette for TCGplayer pricing/group endpoint.
+4. Write test asserting shape of prices_map.
+5. Document how to re-record cassettes locally.
+
+Scope Details
+- Function under test: get_tcgplayer_prices_map(group_id_and_name, foil_nonfoil_map, etched_map).
+- Input maps: small, deterministic dicts mapping TCGplayer productId → set of MTGJSON UUIDs.
+- Cassette: includes token POST (filter client_id/client_secret) and pricing response with 2–3 entries covering Normal, Foil, and Etched cases.
+
+Assertions
+- Return type: dict[str, MtgjsonPricesObject].
+- Keys: expected UUIDs only (from provided maps).
+- Values: source="paper", provider="tcgplayer", currency="USD".
+- Field mapping:
+  - subTypeName "Normal" → sell_normal set to marketPrice.
+  - subTypeName "Foil" + normal mapping → sell_foil set to marketPrice.
+  - subTypeName "Foil" + etched mapping → sell_etched set to marketPrice.
+- No buylist fields are set by this function.
+
+Acceptance Criteria
+- pytest collects and runs the new test without network access using the cassette.
+- Test passes with the asserted keys and MtgjsonPricesObject fields populated as described.
+- Credentials and sensitive headers are not present in committed cassettes.
+
+Risks & Mitigations
+- TCGplayer auth token recording leaks secrets → filter headers/body via VCR config.
+- API response shape changes → freeze minimal fields in cassette and document re-record steps.
+- Time-dependent fields (dates) on MtgjsonPricesObject → do not assert exact date; or patch today_date during test.
+
+Handoff Checklist (for implementor)
+- Update requirements_test.txt: add vcrpy.
+- Add tests/conftest.py VCR configuration:
+  - record_mode: "once" (CI), "all" (local re-record).
+  - filter_headers: Authorization, client_id, client_secret.
+  - match_on: method, path, query (ignore transient headers).
+- Create cassette at tests/mtgjson5/providers/cassettes/tcgplayer_prices_map.yaml.
+- Add test file at tests/mtgjson5/providers/test_tcgplayer_prices_map_shape.py with assertions listed above.
+- Local re-record guide:
+  - Set TCGplayer creds in mtgjson5/resources/mtgjson.properties.
+  - Run: PYTHONPATH=. pytest -k tcgplayer_prices_map_shape --record-mode=all
+
