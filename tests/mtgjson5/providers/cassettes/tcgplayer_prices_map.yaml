@@ -1,0 +1,61 @@
+version: 1
+interactions:
+- request:
+    body: grant_type=client_credentials&client_id=FILTERED&client_secret=FILTERED
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '85'
+      Content-Type:
+      - application/x-www-form-urlencoded
+      User-Agent:
+      - python-requests/2.31.0
+    method: POST
+    uri: https://api.tcgplayer.com/token
+  response:
+    body:
+      string: '{"access_token":"FILTERED_BEARER_TOKEN","token_type":"bearer","expires_in":1209600,".issued":"Thu,
+        30 Oct 2025 01:00:00 GMT",".expires":"Thu, 13 Nov 2025 01:00:00 GMT"}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Type:
+      - application/json;charset=UTF-8
+      Date:
+      - Thu, 30 Oct 2025 01:00:00 GMT
+      Pragma:
+      - no-cache
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.31.0
+    method: GET
+    uri: https://api.tcgplayer.com/pricing/group/3094
+  response:
+    body:
+      string: '{"success":true,"errors":[],"results":[{"productId":530197,"lowPrice":0.15,"midPrice":0.25,"highPrice":0.35,"marketPrice":0.28,"directLowPrice":0.20,"subTypeName":"Normal"},{"productId":530197,"lowPrice":0.50,"midPrice":0.75,"highPrice":1.00,"marketPrice":0.85,"directLowPrice":0.60,"subTypeName":"Foil"},{"productId":530198,"lowPrice":1.00,"midPrice":2.00,"highPrice":3.00,"marketPrice":2.25,"directLowPrice":1.50,"subTypeName":"Normal"},{"productId":530199,"lowPrice":5.00,"midPrice":7.50,"highPrice":10.00,"marketPrice":8.00,"directLowPrice":6.00,"subTypeName":"Foil"}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 30 Oct 2025 01:00:00 GMT
+    status:
+      code: 200
+      message: OK
