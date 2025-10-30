@@ -12,6 +12,10 @@ Plan Steps
 1. Add vcrpy to test dependencies (requirements_test.txt).
 2. Configure VCR in tests/conftest.py (record=once, filter secrets).
 3. Create a cassette for TCGplayer pricing/group endpoint.
+   - Record from live HTTP using VCR.py with record_mode="all" (initial run only).
+   - VCR will intercept both requests.post (token) and requests.Session.get (pricing).
+   - Filter sensitive data: filter_headers ["Authorization"] and redact POST form fields (client_id, client_secret) via before_record.
+   - After cassette exists, switch to record_mode "once" (local) or "none" (CI) to avoid live calls.
 4. Write test asserting shape of prices_map.
 5. Document how to re-record cassettes locally.
 
@@ -51,4 +55,3 @@ Handoff Checklist (for implementor)
 - Local re-record guide:
   - Set TCGplayer creds in mtgjson5/resources/mtgjson.properties.
   - Run: PYTHONPATH=. pytest -k tcgplayer_prices_map_shape --record-mode=all
-

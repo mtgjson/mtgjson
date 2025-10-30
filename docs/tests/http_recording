@@ -1,0 +1,51 @@
+HTTP Recording with VCR.py (local re-recording)
+
+Overview
+- Record real HTTP once, then replay deterministically in tests.
+- Use VCR.py cassettes to avoid live calls in CI and local dev.
+
+Prerequisites
+- Working network access on your machine.
+- Valid TCGplayer credentials in `mtgjson5/resources/mtgjson.properties` under `[TCGPlayer]` (`client_id`, `client_secret`).
+- pytest runs with `PYTHONPATH=.` from the repo root.
+
+Re-record a cassette (TCGplayer pricing/group)
+1) Temporarily enable recording in the test
+   - In the test using `@vcr.use_cassette(...)`, set `record_mode="all"` for the session you’re re-recording.
+   - Example target cassette: `tests/mtgjson5/providers/cassettes/tcgplayer_prices_map.yaml`.
+
+2) Run only the targeted test
+   - Command: `PYTHONPATH=. pytest -k tcgplayer_prices_map_shape -q`
+   - This makes live HTTP requests and writes the cassette file.
+
+3) Verify cassette contents
+   - Confirm the cassette file exists/updated at `tests/mtgjson5/providers/cassettes/tcgplayer_prices_map.yaml`.
+
+4) Restore safe playback mode
+   - Change the test decorator back to `record_mode="once"` (local default) or `record_mode="none"` (CI) to prevent further live calls.
+
+Redacting secrets (strongly recommended)
+- Filter Authorization and redact client credentials when recording.
+- Suggested tests/conftest.py (planner note; implementor adds this):
+  
+  import vcr
+
+  def _before_record(request):
+      if request.uri.endswith("/token") and request.body:
+          # wipe client_id/client_secret from token POST
+          request.body = "grant_type=client_credentials"
+      return request
+
+  vcr_default = vcr.VCR(
+      record_mode="once",
+      filter_headers=["Authorization"],
+      before_record_request=_before_record,
+      match_on=["method", "scheme", "host", "port", "path", "query"],
+  )
+
+Notes and tips
+- Delete a cassette to force a fresh recording with `record_mode="once"`.
+- Keep cassettes minimal: only fields required by assertions (e.g., `productId`, `subTypeName`, `marketPrice`).
+- Do not check in real credentials; ensure cassettes do not include tokens or secrets.
+- If API responses change, re-record and adjust tests only if shape or required fields change.
+
