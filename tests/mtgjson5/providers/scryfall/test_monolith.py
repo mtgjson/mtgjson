@@ -13,7 +13,7 @@ def test_catalog_keyword_abilities(disable_cache):
     Uses shared host-based VCR cassette for offline deterministic testing.
 
     To record/update cassettes:
-        pytest --record-mode=all --export-cassettes
+        pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
 
     Multiple Scryfall tests can share the same api.scryfall.com.yml cassette.
     """

@@ -124,8 +124,6 @@ Due to how the new system is built, a few advanced values can be set by the user
 ### Testing with VCR Cassettes
 MTGJSON uses [VCR.py](https://vcrpy.readthedocs.io/) to record and replay HTTP interactions for deterministic offline testing. This allows tests to run without live network access while still validating against real API responses.
 
-VCR cassettes are automatically exported from requests-cache during test runs, allowing you to use normal development workflows with caching.
-
 #### Cassette Organization
 
 Cassettes are organized by **host** (e.g., `api.scryfall.com.yml`, `api.cardmarket.com.yml`) so multiple tests can share the same cassette file. This makes maintenance easier as you add more tests.
@@ -134,10 +132,8 @@ Cassettes are organized by **host** (e.g., `api.scryfall.com.yml`, `api.cardmark
 
 **Record new cassettes:**
 ```bash
-# Record new cassettes and export from requests-cache
-pytest tests/mtgjson5/providers/scryfall/ --record-mode=all --export-cassettes
-
-# The --export-cassettes flag automatically exports requests-cache to VCR cassettes
+# VCR records HTTP calls during test execution
+pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
 ```
 
 **Run tests offline:**
