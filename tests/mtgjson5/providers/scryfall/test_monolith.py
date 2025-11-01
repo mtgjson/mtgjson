@@ -1,4 +1,18 @@
-"""Tests for Scryfall provider using VCR cassettes."""
+"""Tests for Scryfall provider using VCR cassettes.
+
+Example of using with_test_session fixture for VCR-based provider testing.
+The fixture automatically:
+- Resets all singleton providers for test isolation
+- Injects cached_session during recording OR plain session during VCR playback
+- Works with any provider (not just Scryfall)
+
+Usage in other provider tests:
+    @pytest.mark.vcr("api.provider-host.com.yml")
+    def test_my_provider(with_test_session):
+        provider = MyProvider()
+        result = provider.some_method()
+        assert result is not None
+"""
 
 from typing import Any
 
@@ -11,10 +25,13 @@ def test_catalog_keyword_abilities(reset_scryfall_singleton: Any) -> None:
     """
     Test that we can fetch keyword abilities catalog from Scryfall.
 
+    Note: Uses reset_scryfall_singleton (backward compat). New tests should
+    use with_test_session which has the same functionality for all providers.
+
     Recording workflow (when cassette needs updating):
     1. Remove @pytest.mark.vcr() decorator temporarily
     2. pytest tests/mtgjson5/providers/scryfall/
-       → Caches HTTP responses via reset_scryfall_singleton fixture
+       → Caches HTTP responses via fixture (works with all providers)
     3. pytest tests/mtgjson5/providers/scryfall/ --export-cassettes
        → Exports cache to tests/cassettes/api.scryfall.com.yml
     4. Re-add @pytest.mark.vcr() decorator
