@@ -124,7 +124,7 @@ Due to how the new system is built, a few advanced values can be set by the user
 ### Testing with VCR Cassettes
 MTGJSON uses [VCR.py](https://vcrpy.readthedocs.io/) to record and replay HTTP interactions for deterministic offline testing. This allows tests to run without live network access while still validating against real API responses.
 
-VCR cassettes are generated from requests-cache exports, allowing you to use normal development workflows with caching, then export those cached responses for testing.
+VCR cassettes are automatically exported from requests-cache during test runs, allowing you to use normal development workflows with caching.
 
 #### Cassette Organization
 
@@ -132,25 +132,18 @@ Cassettes are organized by **host** (e.g., `api.scryfall.com.yml`, `api.cardmark
 
 #### Workflow
 
-**1. Populate requests-cache (normal development):**
+**Record new cassettes:**
 ```bash
-# Just run the provider code normally - requests-cache is enabled by default
-python -c "from mtgjson5.providers.scryfall.monolith import ScryfallProvider; ScryfallProvider().get_catalog_entry('keyword-abilities')"
+# Record new cassettes and export from requests-cache
+pytest tests/mtgjson5/providers/scryfall/ --record-mode=all --export-cassettes
+
+# The --export-cassettes flag automatically exports requests-cache to VCR cassettes
 ```
 
-**2. Export cache to VCR cassettes:**
-```bash
-# Export all provider caches to host-based cassettes
-python scripts/generate_scryfall_cassette.py
-
-# Or export a specific provider only
-python scripts/generate_scryfall_cassette.py ScryfallProvider
-```
-
-**3. Run tests offline:**
+**Run tests offline:**
 ```bash
 # Tests use VCR cassettes for offline deterministic testing
-python -m pytest tests/mtgjson5/providers/scryfall/ --record-mode=none
+pytest tests/mtgjson5/providers/scryfall/ --record-mode=none
 
 # CI enforces offline mode automatically
 tox -e unit

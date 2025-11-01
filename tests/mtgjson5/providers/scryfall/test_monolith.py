@@ -9,8 +9,9 @@ def test_catalog_keyword_abilities(disable_cache):
     Test that we can fetch keyword abilities catalog from Scryfall.
 
     Uses shared host-based VCR cassette for offline deterministic testing.
-    VCR cassettes are generated from requests-cache exports using
-    scripts/generate_scryfall_cassette.py
+
+    To record/update cassettes:
+        pytest --record-mode=all --export-cassettes
 
     Multiple Scryfall tests can share the same api.scryfall.com.yml cassette.
     """
