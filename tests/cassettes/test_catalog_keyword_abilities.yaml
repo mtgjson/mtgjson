@@ -28,7 +28,7 @@ interactions:
         speed","Fear","Mobilize","Double team","Job select","Mayhem","Web-slinging","Prowl"]}'
     headers:
       CF-RAY:
-      - 997bd22a29c1be82-EWR
+      - 997bdac9db8e5564-EWR
       Cache-Control:
       - public
       Connection:
@@ -36,7 +36,7 @@ interactions:
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Sat, 01 Nov 2025 13:43:24 GMT
+      - Sat, 01 Nov 2025 13:49:17 GMT
       Server:
       - cloudflare
       access-control-allow-headers:
@@ -64,9 +64,9 @@ interactions:
       referrer-policy:
       - strict-origin-when-cross-origin
       report-to:
-      - '{"group":"heroku-nel","endpoints":[{"url":"https://nel.heroku.com/reports?s=%2BIWgdqcyu%2FjgoQF57YpjaRGEde8OwFyUvxFAgx2bRlA%3D\u0026sid=929419e7-33ea-4e2f-85f0-7d8b7cd5cbd6\u0026ts=1762004604"}],"max_age":3600}'
+      - '{"group":"heroku-nel","endpoints":[{"url":"https://nel.heroku.com/reports?s=SujhVTlV6PVE8bB4EHJRCOwIsRbg7qs1L70rSShT84k%3D\u0026sid=929419e7-33ea-4e2f-85f0-7d8b7cd5cbd6\u0026ts=1762004957"}],"max_age":3600}'
       reporting-endpoints:
-      - heroku-nel="https://nel.heroku.com/reports?s=%2BIWgdqcyu%2FjgoQF57YpjaRGEde8OwFyUvxFAgx2bRlA%3D&sid=929419e7-33ea-4e2f-85f0-7d8b7cd5cbd6&ts=1762004604"
+      - heroku-nel="https://nel.heroku.com/reports?s=SujhVTlV6PVE8bB4EHJRCOwIsRbg7qs1L70rSShT84k%3D&sid=929419e7-33ea-4e2f-85f0-7d8b7cd5cbd6&ts=1762004957"
       strict-transport-security:
       - max-age=31536000; includeSubDomains; preload
       vary:

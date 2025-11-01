@@ -129,10 +129,10 @@ MTGJSON uses [VCR.py](https://vcrpy.readthedocs.io/) to record and replay HTTP i
 **Local development:**
 ```bash
 # Record cassettes once, then reuse them for fast offline testing
-pytest tests/mtgjson5/providers/scryfall/ --record-mode=once
+python -m pytest tests/mtgjson5/providers/scryfall/ --record-mode=once
 
 # Refresh stale cassettes with fresh data from live APIs
-pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
+python -m pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
 ```
 
 **CI (automatic via tox.ini):**
