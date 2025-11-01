@@ -54,50 +54,8 @@ def with_test_session(
        - cached_session during recording (no VCR) for cache population
        - plain Session during playback (VCR active) to avoid conflicts
 
-    Use this fixture in provider tests that need fresh instances.
-
-    Aliases: reset_scryfall_singleton (for backward compatibility)
-    """
-    # Discover and clear all singleton provider instances
-    singleton_providers = _get_all_singleton_providers()
-    for provider in singleton_providers:
-        provider._instance = None
-
-    # Check if VCR is active for this test
-    vcr_markers = [mark for mark in request.node.iter_markers(name="vcr")]
-    using_vcr = len(vcr_markers) > 0
-
-    # Monkey-patch retryable_session where it's imported and used
-    original_retryable_session = abstract.retryable_session
-
-    if using_vcr:
-        # VCR playback mode: use plain session to avoid requests-cache/VCR conflict
-        abstract.retryable_session = lambda *args, **kwargs: requests.Session()
-    else:
-        # Recording mode: use cached_session to populate cache for later export
-        abstract.retryable_session = lambda *args, **kwargs: cached_session
-
-    yield
-
-    # Restore original retryable_session
-    abstract.retryable_session = original_retryable_session
-
-    # Clean up all singleton instances
-    for provider in singleton_providers:
-        provider._instance = None
-
-
-# Backward compatibility alias
-@pytest.fixture(autouse=False)
-def reset_scryfall_singleton(
-    request: pytest.FixtureRequest, cached_session: requests_cache.CachedSession
-) -> Generator[None, None, None]:
-    """
-    Backward compatibility alias for with_test_session.
-
-    Deprecated: Use with_test_session instead. This fixture has the same
-    implementation but with a more specific name that is now misleading
-    since it resets ALL provider singletons, not just Scryfall.
+    Use this fixture in provider tests that need fresh instances and
+    deterministic HTTP testing with VCR cassettes.
     """
     # Discover and clear all singleton provider instances
     singleton_providers = _get_all_singleton_providers()

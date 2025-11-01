@@ -21,17 +21,14 @@ from mtgjson5.providers.scryfall.monolith import ScryfallProvider
 
 
 @pytest.mark.vcr("api.scryfall.com.yml")
-def test_catalog_keyword_abilities(reset_scryfall_singleton: Any) -> None:
+def test_catalog_keyword_abilities(with_test_session: Any) -> None:
     """
     Test that we can fetch keyword abilities catalog from Scryfall.
-
-    Note: Uses reset_scryfall_singleton (backward compat). New tests should
-    use with_test_session which has the same functionality for all providers.
 
     Recording workflow (when cassette needs updating):
     1. Remove @pytest.mark.vcr() decorator temporarily
     2. pytest tests/mtgjson5/providers/scryfall/
-       → Caches HTTP responses via fixture (works with all providers)
+       → Caches HTTP responses via with_test_session fixture
     3. pytest tests/mtgjson5/providers/scryfall/ --export-cassettes
        → Exports cache to tests/cassettes/api.scryfall.com.yml
     4. Re-add @pytest.mark.vcr() decorator
