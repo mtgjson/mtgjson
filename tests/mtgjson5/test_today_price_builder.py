@@ -6,10 +6,10 @@ from unittest.mock import patch
 from mtgjson5.classes import MtgjsonPricesObject
 from mtgjson5.price_builder import PriceBuilder
 from mtgjson5.providers import (
-    CardKingdomProvider,
     CardHoarderProvider,
-    TCGPlayerProvider,
+    CardKingdomProvider,
     MultiverseBridgeProvider,
+    TCGPlayerProvider,
 )
 from mtgjson5.providers.abstract import AbstractProvider
 from mtgjson5.providers.cardmarket.monolith import CardMarketProvider
