@@ -124,20 +124,35 @@ Due to how the new system is built, a few advanced values can be set by the user
 ### Testing with VCR Cassettes
 MTGJSON uses [VCR.py](https://vcrpy.readthedocs.io/) to record and replay HTTP interactions for deterministic offline testing. This allows tests to run without live network access while still validating against real API responses.
 
-#### Testing Workflow
+VCR cassettes are generated from requests-cache exports, allowing you to use normal development workflows with caching, then export those cached responses for testing.
 
-**Local development:**
+#### Cassette Organization
+
+Cassettes are organized by **host** (e.g., `api.scryfall.com.yml`, `api.cardmarket.com.yml`) so multiple tests can share the same cassette file. This makes maintenance easier as you add more tests.
+
+#### Workflow
+
+**1. Populate requests-cache (normal development):**
 ```bash
-# Record cassettes once, then reuse them for fast offline testing
-python -m pytest tests/mtgjson5/providers/scryfall/ --record-mode=once
-
-# Refresh stale cassettes with fresh data from live APIs
-python -m pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
+# Just run the provider code normally - requests-cache is enabled by default
+python -c "from mtgjson5.providers.scryfall.monolith import ScryfallProvider; ScryfallProvider().get_catalog_entry('keyword-abilities')"
 ```
 
-**CI (automatic via tox.ini):**
+**2. Export cache to VCR cassettes:**
 ```bash
-# Enforces offline mode - no network calls allowed
+# Export all provider caches to host-based cassettes
+python scripts/generate_scryfall_cassette.py
+
+# Or export a specific provider only
+python scripts/generate_scryfall_cassette.py ScryfallProvider
+```
+
+**3. Run tests offline:**
+```bash
+# Tests use VCR cassettes for offline deterministic testing
+python -m pytest tests/mtgjson5/providers/scryfall/ --record-mode=none
+
+# CI enforces offline mode automatically
 tox -e unit
 ```
 
@@ -146,7 +161,7 @@ tox -e unit
 - `none` - Only replay, fail if cassette missing (enforced in CI)
 - `all` - Always record, overwrite existing cassettes
 
-Cassettes are stored in `tests/cassettes/` and should be committed to the repository.
+Cassettes are stored in `tests/cassettes/` organized by host and should be committed to the repository.
 
 ## Licensing  
 MTGJSON is a freely available product under the [MIT License](https://github.com/mtgjson/mtgjson/blob/master/LICENSE.txt), allowing our users to enjoy Magic: the Gathering data free of charge, in perpetuity.

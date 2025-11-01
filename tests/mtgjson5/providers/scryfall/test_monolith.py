@@ -3,14 +3,16 @@
 import pytest
 
 
-@pytest.mark.vcr()
+@pytest.mark.vcr("api.scryfall.com.yml")
 def test_catalog_keyword_abilities(disable_cache):
     """
     Test that we can fetch keyword abilities catalog from Scryfall.
 
-    Uses VCR cassette for offline deterministic testing.
+    Uses shared host-based VCR cassette for offline deterministic testing.
     VCR cassettes are generated from requests-cache exports using
     scripts/generate_scryfall_cassette.py
+
+    Multiple Scryfall tests can share the same api.scryfall.com.yml cassette.
     """
     from mtgjson5.providers.scryfall.monolith import ScryfallProvider
 
