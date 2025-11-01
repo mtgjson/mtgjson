@@ -1,5 +1,6 @@
-import mtgjson5.providers
 import pytest
+
+import mtgjson5.providers
 import mtgjson5.set_builder
 
 
