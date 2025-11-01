@@ -121,5 +121,32 @@ Due to how the new system is built, a few advanced values can be set by the user
 - `MTGJSON5_OUTPUT_PATH` When set, MTGJSON will dump all outputs to a specific directory
     - Ex:  `MTGJSON5_OUTPUT_PATH=~/Desktop` will dump database files to `/home/USER/Desktop/mtgjson_build_5XXX` and log files to `/home/USER/Desktop/logs`
 
+### Testing with VCR Cassettes
+MTGJSON uses [VCR.py](https://vcrpy.readthedocs.io/) to record and replay HTTP interactions for deterministic offline testing. This allows tests to run without live network access while still validating against real API responses.
+
+#### Testing Workflow
+
+**Local development:**
+```bash
+# Record cassettes once, then reuse them for fast offline testing
+pytest tests/mtgjson5/providers/scryfall/ --record-mode=once
+
+# Refresh stale cassettes with fresh data from live APIs
+pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
+```
+
+**CI (automatic via tox.ini):**
+```bash
+# Enforces offline mode - no network calls allowed
+tox -e unit
+```
+
+**Recording modes:**
+- `once` - Record new cassettes if missing, replay existing ones (default for local dev)
+- `none` - Only replay, fail if cassette missing (enforced in CI)
+- `all` - Always record, overwrite existing cassettes
+
+Cassettes are stored in `tests/cassettes/` and should be committed to the repository.
+
 ## Licensing  
 MTGJSON is a freely available product under the [MIT License](https://github.com/mtgjson/mtgjson/blob/master/LICENSE.txt), allowing our users to enjoy Magic: the Gathering data free of charge, in perpetuity.
