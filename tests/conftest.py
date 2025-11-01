@@ -12,10 +12,16 @@ def disable_cache() -> Generator[None, None, None]:
     """
     Disable requests-cache for VCR tests.
 
-    From requests-cache docs (compatibility.md):
-    "If you have an application that uses requests-cache and you just want to use
-    [another mocking library] in your tests, the easiest thing to do is to disable
-    requests-cache."
+    Uses requests_cache.disabled() context manager (the official API) rather than
+    monkey-patching CachedSession. This approach:
+    - Is documented in requests-cache compatibility guide
+    - Properly handles global cache state
+    - Won't break if library internals change
+    - Makes the intent explicit
+
+    Alternative (NOT used): unittest.mock.patch('requests_cache.CachedSession', requests.Session)
+    - More brittle, depends on internal implementation details
+    - Doesn't handle all caching mechanisms (e.g., globally installed cache)
 
     While requests-cache and VCR can coexist, disabling the cache during VCR tests
     ensures deterministic playback from cassettes without cache interference.
@@ -38,7 +44,7 @@ def vcr_config() -> Dict[str, Any]:
         # Remove headers that change between requests to ensure cassette stability
         # Without this, cassettes would be invalidated on every API change
         "filter_headers": [
-            "authorization",     # API keys/tokens (security + stability)
+            "authorization",    # API keys/tokens (security + stability)
             "date",             # Server timestamp (changes every request)
             "server",           # Server version info (changes with deployments)
             "cf-cache-status",  # Cloudflare cache status (non-deterministic)
