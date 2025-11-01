@@ -2,6 +2,8 @@
 
 import pytest
 
+from mtgjson5.providers.scryfall.monolith import ScryfallProvider
+
 
 @pytest.mark.vcr("api.scryfall.com.yml")
 def test_catalog_keyword_abilities(disable_cache):
@@ -15,8 +17,6 @@ def test_catalog_keyword_abilities(disable_cache):
 
     Multiple Scryfall tests can share the same api.scryfall.com.yml cassette.
     """
-    from mtgjson5.providers.scryfall.monolith import ScryfallProvider
-
     provider = ScryfallProvider()
     data = provider.get_catalog_entry("keyword-abilities")
 
