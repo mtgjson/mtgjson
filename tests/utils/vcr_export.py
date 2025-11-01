@@ -32,8 +32,8 @@ def to_vcr_cassette_dict(responses):
     :return: Dictionary in VCR cassette format
     """
     return {
-        "http_interactions": [to_vcr_episode(r) for r in responses],
-        "recorded_with": f"requests-cache {__version__}",
+        "interactions": [to_vcr_episode(r) for r in responses],
+        "version": 1,
     }
 
 

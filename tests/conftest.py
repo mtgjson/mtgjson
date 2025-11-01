@@ -1,57 +1,39 @@
 """Pytest configuration and fixtures for MTGJSON tests."""
 
 import os
-from typing import Generator
-
 import pytest
 import requests_cache
 
 
-@pytest.fixture(autouse=True)
-def disable_cache() -> Generator[None, None, None]:
-    """
-    Disable requests-cache for all tests.
-
-    VCR cassettes should be the single source of truth for HTTP responses in tests.
-    Disabling the cache ensures that all HTTP requests go through VCR for recording
-    or playback, providing deterministic offline testing.
-    """
-    from mtgjson5.mtgjson_config import MtgjsonConfig
-
-    # Save original cache setting
-    config = MtgjsonConfig()
-    original_use_cache = config.use_cache
-
-    # Disable caching at config level so providers don't create cached sessions
-    config.use_cache = False
-
-    try:
-        with requests_cache.disabled():
-            yield
-    finally:
-        # Restore original setting
-        config.use_cache = original_use_cache
-
-
 @pytest.fixture(autouse=False)
-def reset_scryfall_singleton():
+def reset_scryfall_singleton(cached_session):
     """
-    Reset ScryfallProvider singleton before tests.
+    Reset ScryfallProvider singleton and inject test session.
 
     The ScryfallProvider uses @singleton decorator which persists across tests.
-    This fixture clears the singleton instance to ensure proper test isolation
-    and allow VCR to record all HTTP requests including those in __init__.
+    This fixture:
+    1. Clears the singleton instance for test isolation
+    2. Monkey-patches retryable_session() in the abstract module
+       so that __init__ requests are captured in the test cache
 
     Use this fixture in tests that need a fresh ScryfallProvider instance.
     """
     from mtgjson5.providers.scryfall.monolith import ScryfallProvider
+    from mtgjson5.providers import abstract
 
     # Clear the singleton instance (ScryfallProvider is a _SingletonWrapper)
     ScryfallProvider._instance = None
 
+    # Monkey-patch retryable_session where it's imported and used
+    original_retryable_session = abstract.retryable_session
+    abstract.retryable_session = lambda *args, **kwargs: cached_session
+
     yield
 
-    # Clean up after test (optional, but good practice)
+    # Restore original retryable_session
+    abstract.retryable_session = original_retryable_session
+
+    # Clean up singleton
     ScryfallProvider._instance = None
 
 
@@ -125,7 +107,7 @@ def pytest_sessionfinish(session, exitstatus):
         return
 
     try:
-        from .utils.vcr_export import to_vcr_cassettes_by_host
+        from tests.utils.vcr_export import to_vcr_cassettes_by_host
 
         # Load the cache from the cached_session
         cache_path = "tests/.http_cache.sqlite"
