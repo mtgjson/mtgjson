@@ -82,10 +82,12 @@ class AbstractProvider(abc.ABC):
         Log how the URL was acquired
         :param response: Response from Server
         """
-        from_cache = getattr(response, "from_cache", False) if MtgjsonConfig().use_cache else False
-        LOGGER.debug(
-            f"Downloaded {response.url} (Cache = {from_cache})"
+        from_cache = (
+            getattr(response, "from_cache", False)
+            if MtgjsonConfig().use_cache
+            else False
         )
+        LOGGER.debug(f"Downloaded {response.url} (Cache = {from_cache})")
 
     def generic_generate_today_price_dict(
         self,
