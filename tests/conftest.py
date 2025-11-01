@@ -6,27 +6,39 @@ import requests_cache
 
 
 @pytest.fixture(autouse=False)
-def reset_scryfall_singleton(cached_session):
+def reset_scryfall_singleton(request, cached_session):
     """
-    Reset ScryfallProvider singleton and inject test session.
+    Reset ScryfallProvider singleton and inject appropriate session.
 
     The ScryfallProvider uses @singleton decorator which persists across tests.
     This fixture:
     1. Clears the singleton instance for test isolation
-    2. Monkey-patches retryable_session() in the abstract module
-       so that __init__ requests are captured in the test cache
+    2. Monkey-patches retryable_session() to return:
+       - cached_session during recording (no VCR) for cache population
+       - plain Session during playback (VCR active) to avoid conflicts
 
     Use this fixture in tests that need a fresh ScryfallProvider instance.
     """
+    import requests
     from mtgjson5.providers.scryfall.monolith import ScryfallProvider
     from mtgjson5.providers import abstract
 
     # Clear the singleton instance (ScryfallProvider is a _SingletonWrapper)
     ScryfallProvider._instance = None
 
+    # Check if VCR is active for this test
+    vcr_markers = [mark for mark in request.node.iter_markers(name='vcr')]
+    using_vcr = len(vcr_markers) > 0
+
     # Monkey-patch retryable_session where it's imported and used
     original_retryable_session = abstract.retryable_session
-    abstract.retryable_session = lambda *args, **kwargs: cached_session
+
+    if using_vcr:
+        # VCR playback mode: use plain session to avoid requests-cache/VCR conflict
+        abstract.retryable_session = lambda *args, **kwargs: requests.Session()
+    else:
+        # Recording mode: use cached_session to populate cache for later export
+        abstract.retryable_session = lambda *args, **kwargs: cached_session
 
     yield
 
