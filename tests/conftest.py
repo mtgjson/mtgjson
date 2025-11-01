@@ -17,10 +17,10 @@ def disable_cache() -> Generator[None, None, None]:
     [another mocking library] in your tests, the easiest thing to do is to disable
     requests-cache."
 
-    VCR and requests-cache cannot be used together - VCR intercepts at the httplib
-    level while requests-cache wraps responses, causing conflicts.
+    While requests-cache and VCR can coexist, disabling the cache during VCR tests
+    ensures deterministic playback from cassettes without cache interference.
 
-    See: https://requests-cache.readthedocs.io/en/stable/user_guide/compatibility.html#vcr
+    See: https://requests-cache.readthedocs.io/en/stable/user_guide/compatibility.html
     """
     with requests_cache.disabled():
         yield
