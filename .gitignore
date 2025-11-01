@@ -129,3 +129,9 @@ flamegraph.pl
 stacksampler.py
 
 .run/
+
+# Yianna's AI stuff
+.beads/
+AGENTS.md
+CLAUDE.md
+WARP.md
