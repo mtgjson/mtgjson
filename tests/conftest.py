@@ -1,8 +1,58 @@
 """Pytest configuration and fixtures for MTGJSON tests."""
 
 import os
+from typing import Generator
+
 import pytest
 import requests_cache
+
+
+@pytest.fixture(autouse=True)
+def disable_cache() -> Generator[None, None, None]:
+    """
+    Disable requests-cache for all tests.
+
+    VCR cassettes should be the single source of truth for HTTP responses in tests.
+    Disabling the cache ensures that all HTTP requests go through VCR for recording
+    or playback, providing deterministic offline testing.
+    """
+    from mtgjson5.mtgjson_config import MtgjsonConfig
+
+    # Save original cache setting
+    config = MtgjsonConfig()
+    original_use_cache = config.use_cache
+
+    # Disable caching at config level so providers don't create cached sessions
+    config.use_cache = False
+
+    try:
+        with requests_cache.disabled():
+            yield
+    finally:
+        # Restore original setting
+        config.use_cache = original_use_cache
+
+
+@pytest.fixture(autouse=False)
+def reset_scryfall_singleton():
+    """
+    Reset ScryfallProvider singleton before tests.
+
+    The ScryfallProvider uses @singleton decorator which persists across tests.
+    This fixture clears the singleton instance to ensure proper test isolation
+    and allow VCR to record all HTTP requests including those in __init__.
+
+    Use this fixture in tests that need a fresh ScryfallProvider instance.
+    """
+    from mtgjson5.providers.scryfall.monolith import ScryfallProvider
+
+    # Clear the singleton instance (ScryfallProvider is a _SingletonWrapper)
+    ScryfallProvider._instance = None
+
+    yield
+
+    # Clean up after test (optional, but good practice)
+    ScryfallProvider._instance = None
 
 
 # VCR configuration

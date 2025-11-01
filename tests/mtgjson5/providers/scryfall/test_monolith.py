@@ -1,26 +1,22 @@
 """Tests for Scryfall provider using VCR cassettes."""
 
 import pytest
-import requests
 
 
 @pytest.mark.vcr()
-def test_catalog_keyword_abilities():
+def test_catalog_keyword_abilities(reset_scryfall_singleton):
     """
     Test that we can fetch keyword abilities catalog from Scryfall.
 
     Uses VCR cassette for offline deterministic testing.
     VCR will intercept and record/replay HTTP calls automatically.
+
+    Resets the ScryfallProvider singleton to ensure test isolation and
+    allow VCR to record all HTTP requests including those in __init__.
     """
     from mtgjson5.providers.scryfall.monolith import ScryfallProvider
 
     provider = ScryfallProvider()
-
-    # Replace cached session with plain session to avoid VCR/requests-cache conflict
-    provider.set_session(requests.Session())
-
-    # Fetch keyword abilities catalog
-    # VCR will intercept this call and record/replay it
     data = provider.get_catalog_entry("keyword-abilities")
 
     # Assert on stable, well-known keyword abilities
