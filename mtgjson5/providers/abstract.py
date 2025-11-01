@@ -52,6 +52,13 @@ class AbstractProvider(abc.ABC):
         :param params: Options to give to the GET request
         """
 
+    def set_session(self, session: requests.Session) -> None:
+        """
+        Override the HTTP session (primarily for test injection).
+        :param session: Custom session to use for HTTP requests
+        """
+        self.session = session
+
     # Class Methods
     @classmethod
     def get_class_name(cls) -> str:
@@ -75,9 +82,12 @@ class AbstractProvider(abc.ABC):
         Log how the URL was acquired
         :param response: Response from Server
         """
-        LOGGER.debug(
-            f"Downloaded {response.url} (Cache = {response.from_cache if MtgjsonConfig().use_cache else False})"
+        from_cache = (
+            getattr(response, "from_cache", False)
+            if MtgjsonConfig().use_cache
+            else False
         )
+        LOGGER.debug(f"Downloaded {response.url} (Cache = {from_cache})")
 
     def generic_generate_today_price_dict(
         self,
