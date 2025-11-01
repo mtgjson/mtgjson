@@ -128,8 +128,8 @@ MTGJSON uses [VCR.py](https://vcrpy.readthedocs.io/) to record and replay HTTP i
 
 **Local development:**
 ```bash
-# Record cassettes once, then reuse them for fast offline testing
-python -m pytest tests/mtgjson5/providers/scryfall/ --record-mode=once
+# Normal workflow - no flag needed (uses "once" by default)
+python -m pytest tests/mtgjson5/providers/scryfall/
 
 # Refresh stale cassettes with fresh data from live APIs
 python -m pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
@@ -141,10 +141,17 @@ python -m pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
 tox -e unit
 ```
 
-**Recording modes:**
-- `once` - Record new cassettes if missing, replay existing ones (default for local dev)
-- `none` - Only replay, fail if cassette missing (enforced in CI)
-- `all` - Always record, overwrite existing cassettes
+#### VCR Recording Modes
+
+| Mode   | What it means                               | When to use |
+|--------|---------------------------------------------|-------------|
+| `once` | Record once, then keep using cassette       | Normal local dev (default) |
+| `all`  | Always record fresh (ignore old cassettes)  | Update cassettes when API changes |
+| `none` | Only playback, never record                 | CI - ensure offline testing |
+
+**Default behavior** (no `--record-mode` flag):
+- **Local development:** `once` - records if cassette missing, replays if exists
+- **CI environment:** `none` - fails if cassette missing (enforced via `CI` env var)
 
 Cassettes are stored in `tests/cassettes/` and should be committed to the repository.
 
