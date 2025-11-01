@@ -1,12 +1,14 @@
 """Pytest configuration and fixtures for MTGJSON tests."""
 
 import os
+from typing import Any, Dict, Generator
+
 import pytest
 import requests_cache
 
 
 @pytest.fixture
-def disable_cache():
+def disable_cache() -> Generator[None, None, None]:
     """
     Disable requests-cache for VCR tests.
 
@@ -26,7 +28,7 @@ def disable_cache():
 
 # VCR configuration
 @pytest.fixture(scope="module")
-def vcr_config():
+def vcr_config() -> Dict[str, Any]:
     """
     Configure VCR for deterministic HTTP testing.
 
@@ -48,6 +50,6 @@ def vcr_config():
 
 
 @pytest.fixture(scope="session")
-def vcr_cassette_dir(pytestconfig):
+def vcr_cassette_dir(pytestconfig: pytest.Config) -> str:
     """Set cassette directory for VCR."""
     return "tests/cassettes"
