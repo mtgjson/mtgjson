@@ -121,5 +121,43 @@ Due to how the new system is built, a few advanced values can be set by the user
 - `MTGJSON5_OUTPUT_PATH` When set, MTGJSON will dump all outputs to a specific directory
     - Ex:  `MTGJSON5_OUTPUT_PATH=~/Desktop` will dump database files to `/home/USER/Desktop/mtgjson_build_5XXX` and log files to `/home/USER/Desktop/logs`
 
+### Testing with VCR Cassettes
+MTGJSON uses [VCR.py](https://vcrpy.readthedocs.io/) to record and replay HTTP interactions for deterministic offline testing. This allows tests to run without live network access while still validating against real API responses.
+
+#### Cassette Organization
+
+Cassettes are organized by **host** (e.g., `api.scryfall.com.yml`, `api.cardmarket.com.yml`) so multiple tests can share the same cassette file. This makes maintenance easier as you add more tests.
+
+#### Workflow
+
+**Normal local development (no flag):**
+```bash
+# Default: uses "once" mode - replays from cassettes if they exist,
+# records new cassettes if they're missing
+pytest tests/mtgjson5/providers/scryfall/
+```
+
+**Record new cassettes:**
+```bash
+# Use "all" mode to overwrite existing cassettes with fresh recordings
+pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
+```
+
+**Run tests in strict offline mode:**
+```bash
+# Use "none" mode - only replays, fails if any cassette is missing
+pytest tests/mtgjson5/providers/scryfall/ --record-mode=none
+
+# Or set MTGJSON_OFFLINE_MODE environment variable (used in CI)
+MTGJSON_OFFLINE_MODE=1 pytest tests/
+```
+
+**Recording modes:**
+- `once` - Record new cassettes if missing, replay existing ones (**default for local dev**)
+- `none` - Only replay, fail if cassette missing (enforced in CI via `MTGJSON_OFFLINE_MODE`)
+- `all` - Always record, overwrite existing cassettes
+
+Cassettes are stored in `tests/cassettes/` organized by host and should be committed to the repository.
+
 ## Licensing  
 MTGJSON is a freely available product under the [MIT License](https://github.com/mtgjson/mtgjson/blob/master/LICENSE.txt), allowing our users to enjoy Magic: the Gathering data free of charge, in perpetuity.

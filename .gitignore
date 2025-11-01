@@ -129,3 +129,12 @@ flamegraph.pl
 stacksampler.py
 
 .run/
+
+# AI Tools
+.beads/
+AGENTS.md
+CLAUDE.md
+WARP.md
+
+# asdf languange/version manager
+.tool-versions
