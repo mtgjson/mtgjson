@@ -130,9 +130,11 @@ stacksampler.py
 
 .run/
 
-# Yianna's stuff
+# AI Tools
 .beads/
 AGENTS.md
 CLAUDE.md
 WARP.md
+
+# asdf languange/version manager
 .tool-versions

@@ -130,24 +130,31 @@ Cassettes are organized by **host** (e.g., `api.scryfall.com.yml`, `api.cardmark
 
 #### Workflow
 
+**Normal local development (no flag):**
+```bash
+# Default: uses "once" mode - replays from cassettes if they exist,
+# records new cassettes if they're missing
+pytest tests/mtgjson5/providers/scryfall/
+```
+
 **Record new cassettes:**
 ```bash
-# VCR records HTTP calls during test execution
+# Use "all" mode to overwrite existing cassettes with fresh recordings
 pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
 ```
 
-**Run tests offline:**
+**Run tests in strict offline mode:**
 ```bash
-# Tests use VCR cassettes for offline deterministic testing
+# Use "none" mode - only replays, fails if any cassette is missing
 pytest tests/mtgjson5/providers/scryfall/ --record-mode=none
 
-# CI enforces offline mode automatically
-tox -e unit
+# Or set MTGJSON_OFFLINE_MODE environment variable (used in CI)
+MTGJSON_OFFLINE_MODE=1 pytest tests/
 ```
 
 **Recording modes:**
-- `once` - Record new cassettes if missing, replay existing ones (default for local dev)
-- `none` - Only replay, fail if cassette missing (enforced in CI)
+- `once` - Record new cassettes if missing, replay existing ones (**default for local dev**)
+- `none` - Only replay, fail if cassette missing (enforced in CI via `MTGJSON_OFFLINE_MODE`)
 - `all` - Always record, overwrite existing cassettes
 
 Cassettes are stored in `tests/cassettes/` organized by host and should be committed to the repository.

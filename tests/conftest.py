@@ -32,20 +32,27 @@ def vcr_config() -> Dict[str, Any]:
     """
     Configure VCR for deterministic HTTP testing.
 
-    Filters volatile data-sensitive headers and sets decode mode for reproducible cassettes.
+    Filters volatile headers and sets decode mode for reproducible cassettes.
     """
     return {
+        # Remove headers that change between requests to ensure cassette stability
+        # Without this, cassettes would be invalidated on every API change
         "filter_headers": [
-            "authorization",
-            "date",
-            "server",
-            "cf-cache-status",
-            "expires",
-            "etag",
-            "last-modified",
+            "authorization",     # API keys/tokens (security + stability)
+            "date",             # Server timestamp (changes every request)
+            "server",           # Server version info (changes with deployments)
+            "cf-cache-status",  # Cloudflare cache status (non-deterministic)
+            "expires",          # Cache expiry time (time-dependent)
+            "etag",             # Resource version identifier (changes with updates)
+            "last-modified",    # Resource modification time (time-dependent)
         ],
+        # Automatically decode gzip/deflate responses for human-readable cassettes
+        # Without this, cassette YAML would contain binary compressed data
         "decode_compressed_response": True,
-        "record_mode": "none" if os.environ.get("CI") else "once",
+        # Default record mode: "once" for local dev, "none" for offline/CI testing
+        # Can be overridden with --record-mode flag
+        # See README "Testing with VCR Cassettes" for mode explanations
+        "record_mode": "none" if os.environ.get("MTGJSON_OFFLINE_MODE") else "once",
     }
 
 
