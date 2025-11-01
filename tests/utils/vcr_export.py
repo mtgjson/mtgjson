@@ -6,6 +6,7 @@ Adapted from requests-cache documentation for VCR integration.
 
 from os import makedirs
 from os.path import abspath, dirname, expanduser
+from typing import Any, Dict, Iterable, List
 from urllib.parse import urlparse
 
 import yaml
@@ -24,7 +25,7 @@ def to_vcr_cassette(cache: BaseCache, path: str) -> None:
     write_cassette(to_vcr_cassette_dict(responses), path)
 
 
-def to_vcr_cassette_dict(responses):
+def to_vcr_cassette_dict(responses: Iterable[CachedResponse]) -> Dict[str, Any]:
     """
     Convert cached responses to VCR cassette dictionary format.
 
@@ -37,7 +38,7 @@ def to_vcr_cassette_dict(responses):
     }
 
 
-def to_vcr_episode(response: CachedResponse):
+def to_vcr_episode(response: CachedResponse) -> Dict[str, Any]:
     """
     Convert a single CachedResponse to a VCR episode (interaction).
 
@@ -45,17 +46,20 @@ def to_vcr_episode(response: CachedResponse):
     :return: Dictionary in VCR episode format
     """
     rd = yaml_preconf_stage.dumps(response)
-    md = lambda d: {k: [v] for k, v in d.items()}
+
+    def multidict(d: Dict[str, str]) -> Dict[str, List[str]]:
+        return {k: [v] for k, v in d.items()}
+
     return {
         "request": {
             "body": rd["request"]["body"],
-            "headers": md(rd["request"]["headers"]),
+            "headers": multidict(rd["request"]["headers"]),
             "method": rd["request"]["method"],
             "uri": rd["request"]["url"],
         },
         "response": {
             "body": {"string": rd["_content"], "encoding": rd["encoding"]},
-            "headers": md(rd["headers"]),
+            "headers": multidict(rd["headers"]),
             "status": {"code": rd["status_code"], "message": rd["reason"]},
             "url": rd["url"],
         },
@@ -63,7 +67,7 @@ def to_vcr_episode(response: CachedResponse):
     }
 
 
-def write_cassette(cassette, path):
+def write_cassette(cassette: Dict[str, Any], path: str) -> None:
     """
     Write a cassette dictionary to a YAML file.
 

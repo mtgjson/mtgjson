@@ -1,12 +1,19 @@
 """Pytest configuration and fixtures for MTGJSON tests."""
 
 import os
+from typing import Any, Dict, Generator
+
 import pytest
+import requests
 import requests_cache
+from mtgjson5.providers import abstract
+from mtgjson5.providers.scryfall.monolith import ScryfallProvider
 
 
 @pytest.fixture(autouse=False)
-def reset_scryfall_singleton(request, cached_session):
+def reset_scryfall_singleton(
+    request: pytest.FixtureRequest, cached_session: requests_cache.CachedSession
+) -> Generator[None, None, None]:
     """
     Reset ScryfallProvider singleton and inject appropriate session.
 
@@ -19,15 +26,11 @@ def reset_scryfall_singleton(request, cached_session):
 
     Use this fixture in tests that need a fresh ScryfallProvider instance.
     """
-    import requests
-    from mtgjson5.providers.scryfall.monolith import ScryfallProvider
-    from mtgjson5.providers import abstract
-
     # Clear the singleton instance (ScryfallProvider is a _SingletonWrapper)
     ScryfallProvider._instance = None
 
     # Check if VCR is active for this test
-    vcr_markers = [mark for mark in request.node.iter_markers(name='vcr')]
+    vcr_markers = [mark for mark in request.node.iter_markers(name="vcr")]
     using_vcr = len(vcr_markers) > 0
 
     # Monkey-patch retryable_session where it's imported and used
@@ -51,7 +54,7 @@ def reset_scryfall_singleton(request, cached_session):
 
 # VCR configuration
 @pytest.fixture(scope="module")
-def vcr_config():
+def vcr_config() -> Dict[str, Any]:
     """
     Configure VCR for deterministic HTTP testing.
 
@@ -73,13 +76,13 @@ def vcr_config():
 
 
 @pytest.fixture(scope="session")
-def vcr_cassette_dir(pytestconfig):
+def vcr_cassette_dir(pytestconfig: pytest.Config) -> str:
     """Set cassette directory for VCR."""
     return "tests/cassettes"
 
 
 @pytest.fixture(scope="session")
-def cached_session():
+def cached_session() -> requests_cache.CachedSession:
     """
     Provide a requests-cache session for tests.
 
@@ -95,7 +98,7 @@ def cached_session():
     return session
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: pytest.Parser) -> None:
     """Add custom pytest options."""
     parser.addoption(
         "--export-cassettes",
@@ -105,7 +108,7 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_sessionfinish(session, exitstatus):
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     """
     Export cached responses to VCR cassettes if --export-cassettes is set.
 

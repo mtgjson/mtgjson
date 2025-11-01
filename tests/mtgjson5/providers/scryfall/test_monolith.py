@@ -1,10 +1,13 @@
 """Tests for Scryfall provider using VCR cassettes."""
 
+from typing import Any
+
 import pytest
+from mtgjson5.providers.scryfall.monolith import ScryfallProvider
 
 
 @pytest.mark.vcr("api.scryfall.com.yml")
-def test_catalog_keyword_abilities(reset_scryfall_singleton):
+def test_catalog_keyword_abilities(reset_scryfall_singleton: Any) -> None:
     """
     Test that we can fetch keyword abilities catalog from Scryfall.
 
@@ -20,8 +23,6 @@ def test_catalog_keyword_abilities(reset_scryfall_singleton):
     Playback (normal use, CI):
     - VCR replays from api.scryfall.com.yml cassette (no network)
     """
-    from mtgjson5.providers.scryfall.monolith import ScryfallProvider
-
     provider = ScryfallProvider()
     data = provider.get_catalog_entry("keyword-abilities")
 
