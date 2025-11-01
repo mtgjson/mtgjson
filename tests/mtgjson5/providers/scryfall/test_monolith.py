@@ -29,6 +29,7 @@ def test_catalog_keyword_abilities(with_test_session: Any) -> None:
     1. Remove @pytest.mark.vcr() decorator temporarily
     2. pytest tests/mtgjson5/providers/scryfall/
        → Caches HTTP responses via with_test_session fixture
+       → Cache is automatically cleared at session start for fresh recordings
     3. pytest tests/mtgjson5/providers/scryfall/ --export-cassettes
        → Exports cache to tests/cassettes/api.scryfall.com.yml
     4. Re-add @pytest.mark.vcr() decorator

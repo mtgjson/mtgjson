@@ -115,6 +115,37 @@ def vcr_cassette_dir(pytestconfig: pytest.Config) -> str:
     return "tests/cassettes"
 
 
+@pytest.fixture(scope="session", autouse=True)
+def clear_cache_before_recording(request: pytest.FixtureRequest) -> None:
+    """
+    Clear requests-cache at session start when recording new cassettes.
+
+    This ensures fresh HTTP responses during recording and prevents stale
+    data from previous test runs from polluting new cassettes.
+
+    Only clears cache when:
+    - Not in CI (CI mode uses VCR playback only)
+    - Not in strict playback mode (--record-mode=none)
+
+    The cache is automatically cleared before each test session to ensure
+    developers always get fresh recordings without manual cleanup.
+    """
+    cache_path = "tests/.http_cache.sqlite"
+
+    # Don't clear in CI - tests use VCR cassettes only
+    if os.environ.get("CI"):
+        return
+
+    # Check if we're in strict playback mode
+    record_mode = request.config.getoption("--record-mode", default=None)
+    if record_mode == "none":
+        return  # Playback only, don't touch cache
+
+    # Clear cache to ensure fresh recordings
+    if os.path.exists(cache_path):
+        os.remove(cache_path)
+
+
 @pytest.fixture(scope="session")
 def cached_session() -> requests_cache.CachedSession:
     """
@@ -122,13 +153,15 @@ def cached_session() -> requests_cache.CachedSession:
 
     Used during recording to populate HTTP cache that can be exported to VCR cassettes.
     Cache stored at tests/.http_cache.sqlite with no expiration.
+
+    The cache is automatically cleared at session start (see clear_cache_before_recording)
+    to ensure fresh responses during recording.
     """
     session = requests_cache.CachedSession(
         "tests/.http_cache.sqlite",
         expire_after=None,
         stale_if_error=True,
     )
-    # Store in pytest config for access in sessionfinish
     return session
 
 
