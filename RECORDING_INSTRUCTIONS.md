@@ -6,6 +6,14 @@
 
 The other 4 tests work offline without recording.
 
+## Prerequisites
+
+Install test dependencies (includes `pytest-recording` and `vcrpy`):
+
+```bash
+pip install -r requirements_test.txt
+```
+
 ## Steps
 
 1. **Add real credentials** to `mtgjson5/resources/mtgjson.properties`:

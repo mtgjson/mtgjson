@@ -16,7 +16,12 @@ Dummy credentials will fail - TCGplayer validates credentials before returning a
 
 ### Prerequisites
 
-1. Add **real** TCGplayer credentials to `mtgjson5/resources/mtgjson.properties`:
+1. Install test dependencies:
+   ```bash
+   pip install -r requirements_test.txt
+   ```
+
+2. Add **real** TCGplayer credentials to `mtgjson5/resources/mtgjson.properties`:
    ```ini
    [TCGPlayer]
    client_id=<your_real_client_id>
