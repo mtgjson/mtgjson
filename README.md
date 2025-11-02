@@ -126,7 +126,7 @@ MTGJSON uses [VCR.py](https://vcrpy.readthedocs.io/) to record and replay HTTP i
 
 #### Cassette Organization
 
-Cassettes are organized by **host** (e.g., `api.scryfall.com.yml`, `api.cardmarket.com.yml`) so multiple tests can share the same cassette file. This makes maintenance easier as you add more tests.
+Cassettes are organized by **provider and test name** under `tests/cassettes/providers/<provider>/<test_name>.yml` (e.g., `providers/scryfall/test_catalog_keyword_abilities.yml`, `providers/tcgplayer/test_token_success_builds_header_and_sets_api_version.yml`). Each test has its own cassette file, making it easy to identify which cassette belongs to which test.
 
 #### Workflow
 
@@ -140,13 +140,16 @@ pytest tests/mtgjson5/providers/scryfall/
 **Record new cassettes:**
 ```bash
 # Use "all" mode to overwrite existing cassettes with fresh recordings
-pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
+pytest tests/mtgjson5/providers/scryfall/test_monolith.py::test_catalog_keyword_abilities --record-mode=all
 ```
 
 **Run tests in strict offline mode:**
 ```bash
 # Use "none" mode - only replays, fails if any cassette is missing
-pytest tests/mtgjson5/providers/scryfall/ --record-mode=none
+pytest tests/mtgjson5/providers/scryfall/test_monolith.py --record-mode=none
+
+# For TCGplayer tests with specific cassette
+pytest tests/mtgjson5/providers/tcgplayer/test_auth.py -k test_token_success_builds_header_and_sets_api_version --record-mode=none
 
 # Or set MTGJSON_OFFLINE_MODE environment variable (used in CI)
 MTGJSON_OFFLINE_MODE=1 pytest tests/
@@ -157,7 +160,7 @@ MTGJSON_OFFLINE_MODE=1 pytest tests/
 - `none` - Only replay, fail if cassette missing (enforced in CI via `MTGJSON_OFFLINE_MODE`)
 - `all` - Always record, overwrite existing cassettes
 
-Cassettes are stored in `tests/cassettes/` organized by host and should be committed to the repository.
+Cassettes are stored in `tests/cassettes/providers/<provider>/<test_name>.yml` and should be committed to the repository.
 
 ## Licensing  
 MTGJSON is a freely available product under the [MIT License](https://github.com/mtgjson/mtgjson/blob/master/LICENSE.txt), allowing our users to enjoy Magic: the Gathering data free of charge, in perpetuity.

@@ -32,7 +32,9 @@ class MtgjsonConfig:
         aws_ssm_config_name: Optional[str] = None,
     ):
         self.logger = logging.getLogger(__name__)
-        self.config_parser = configparser.ConfigParser()
+        # Disable interpolation to allow % characters in values (e.g., API keys)
+        # Without this, ConfigParser treats % as variable placeholders
+        self.config_parser = configparser.ConfigParser(interpolation=None)
 
         if aws_ssm_config_name:
             self.logger.info("Loading configuration from AWS SSM")
