@@ -21,31 +21,18 @@ def reset_tcgplayer_singleton():
 
 
 @pytest.mark.vcr()
-def test_token_success_builds_header_and_sets_api_version(
-    tcgplayer_config, disable_cache
-):
+def test_token_success_builds_header_and_sets_api_version(disable_cache):
     """
     Test successful token retrieval builds correct header and sets API version.
 
     Uses VCR cassette to replay recorded OAuth token exchange.
+    VCR automatically scrubs credentials from cassette.
     
-    RECORDING: Pass real credentials via TCGPLAYER_CLIENT_ID and TCGPLAYER_CLIENT_SECRET env vars
-    PLAYBACK: Uses cassette with dummy credentials
+    RECORDING: Uses real credentials from mtgjson.properties
+    PLAYBACK: Uses cassette (credentials already scrubbed)
     """
-    import os
-    
-    # For recording: use real credentials from environment
-    # For playback: use dummy credentials (cassette provides response)
-    client_id = os.environ.get("TCGPLAYER_CLIENT_ID", "dummy_id")
-    client_secret = os.environ.get("TCGPLAYER_CLIENT_SECRET", "dummy_secret")
-    
-    tcgplayer_config(
-        client_id=client_id,
-        client_secret=client_secret,
-        api_version="v1.39.0"
-    )
-
-    # Act
+    # Use real config from mtgjson.properties
+    # VCR will scrub credentials when recording the cassette
     provider = TCGPlayerProvider()
     header = provider._build_http_header()
 

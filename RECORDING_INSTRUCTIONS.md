@@ -16,11 +16,13 @@ pip install -r requirements_test.txt
 
 ## Steps
 
-1. **Set credentials as environment variables** (keeps them out of config file):
+1. **Add real credentials** to `mtgjson5/resources/mtgjson.properties`:
 
-   ```bash
-   export TCGPLAYER_CLIENT_ID="your_real_client_id"
-   export TCGPLAYER_CLIENT_SECRET="your_real_client_secret"
+   ```ini
+   [TCGPlayer]
+   client_id=your_real_client_id
+   client_secret=your_real_client_secret
+   api_version=v1.39.0
    ```
 
 2. **Record the cassette** (makes ONE real OAuth call):
@@ -62,14 +64,14 @@ TCGPlayer validates OAuth credentials **before** returning a token. Dummy/fake c
 
 ## Security Note
 
-✅ **The test fixture now clears ALL config sections during recording** to prevent other API keys from leaking into cassettes.
-
 The VCR filters automatically scrub:
 - POST parameters (credentials)
-- Response tokens
+- Response tokens  
 - Authorization headers
 
-**The committed cassette is safe** - it contains only test data with `REDACTED` placeholders.
+**The committed cassette is safe** - it contains only `REDACTED` placeholders.
+
+Always review the cassette file before committing to verify scrubbing worked correctly.
 
 ## Current Test Status
 

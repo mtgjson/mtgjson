@@ -21,10 +21,12 @@ Dummy credentials will fail - TCGplayer validates credentials before returning a
    pip install -r requirements_test.txt
    ```
 
-2. Set real TCGplayer credentials as environment variables:
-   ```bash
-   export TCGPLAYER_CLIENT_ID="your_real_client_id"
-   export TCGPLAYER_CLIENT_SECRET="your_real_client_secret"
+2. Add real TCGplayer credentials to `mtgjson5/resources/mtgjson.properties`:
+   ```ini
+   [TCGPlayer]
+   client_id=your_real_client_id
+   client_secret=your_real_client_secret
+   api_version=v1.39.0
    ```
 
 ### Recording
@@ -33,7 +35,7 @@ Dummy credentials will fail - TCGplayer validates credentials before returning a
 python -m pytest tests/mtgjson5/providers/tcgplayer/test_auth.py::test_token_success_builds_header_and_sets_api_version --record-mode=once -q
 ```
 
-This makes **one real OAuth call** to TCGplayer using the credentials from environment variables.
+This makes **one real OAuth call** to TCGplayer using credentials from mtgjson.properties.
 
 ### Verification
 
