@@ -1,7 +1,7 @@
 interactions:
 - recorded_at: '2024-11-02T13:00:00.000000+00:00'
   request:
-    body: !!binary ""
+    body: grant_type=<REDACTED>&client_id=<REDACTED>&client_secret=<REDACTED>
     headers:
       Accept:
       - '*/*'

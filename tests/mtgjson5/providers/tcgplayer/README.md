@@ -33,7 +33,7 @@ python -m pytest tests/mtgjson5/providers/tcgplayer/test_auth.py::test_token_suc
 After recording, verify the cassette has scrubbed secrets:
 
 ```bash
-cat tests/cassettes/mtgjson5/providers/tcgplayer/test_auth/test_token_success_builds_header_and_sets_api_version.yaml
+cat tests/cassettes/test_token_success_builds_header_and_sets_api_version.yaml
 ```
 
 Check that:
@@ -44,7 +44,7 @@ Check that:
 Then commit the cassette:
 
 ```bash
-git add tests/cassettes/mtgjson5/providers/tcgplayer/test_auth/
+git add tests/cassettes/test_token_success_builds_header_and_sets_api_version.yaml
 ```
 
 ## Test Coverage
