@@ -21,6 +21,10 @@ def reset_tcgplayer_singleton():
 
 
 @pytest.mark.vcr()
+@pytest.mark.skip(
+    reason="Cassette requires recording with real TCGplayer credentials. "
+    "See tests/mtgjson5/providers/tcgplayer/README.md for instructions."
+)
 def test_token_success_builds_header_and_sets_api_version(
     tcgplayer_config, disable_cache
 ):
