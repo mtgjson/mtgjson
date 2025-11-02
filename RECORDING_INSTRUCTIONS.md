@@ -62,7 +62,16 @@ pip install -r requirements_test.txt
 
 TCGPlayer validates OAuth credentials **before** returning a token. Dummy/fake credentials get a 400 Bad Request, which can't be used for testing the success path.
 
-The VCR filters automatically scrub all sensitive data during recording, so the committed cassette is safe.
+## Security Note
+
+✅ **The test fixture now clears ALL config sections during recording** to prevent other API keys from leaking into cassettes.
+
+The VCR filters automatically scrub:
+- POST parameters (credentials)
+- Response tokens
+- Authorization headers
+
+**The committed cassette is safe** - it contains only test data with `REDACTED` placeholders.
 
 ## Current Test Status
 

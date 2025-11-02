@@ -140,38 +140,38 @@ def tcgplayer_config() -> Generator[Any, None, None]:
         """
         Set or remove TCGPlayer configuration.
 
+        SECURITY: Clears ALL config sections first to prevent other API keys
+        from being captured in VCR cassettes during recording.
+
         Args:
             client_id: OAuth client ID (if provided)
             client_secret: OAuth client secret (if provided)
             api_version: API version string (if provided)
             present: If False, remove entire [TCGPlayer] section
         """
+        # IMPORTANT: Clear ALL sections to prevent key leakage in cassettes
+        # This ensures only test credentials are present during recording
+        for section in list(parser.sections()):
+            parser.remove_section(section)
+
         section = "TCGPlayer"
 
         if not present:
-            if parser.has_section(section):
-                parser.remove_section(section)
+            # Already cleared above, nothing more to do
             return
 
-        if not parser.has_section(section):
-            parser.add_section(section)
+        parser.add_section(section)
 
         # Only set keys that are explicitly provided
         # Omission simulates missing keys in config
         if client_id is not None:
             parser.set(section, "client_id", client_id)
-        elif parser.has_option(section, "client_id"):
-            parser.remove_option(section, "client_id")
 
         if client_secret is not None:
             parser.set(section, "client_secret", client_secret)
-        elif parser.has_option(section, "client_secret"):
-            parser.remove_option(section, "client_secret")
 
         if api_version is not None:
             parser.set(section, "api_version", api_version)
-        elif parser.has_option(section, "api_version"):
-            parser.remove_option(section, "api_version")
 
     try:
         yield set_tcgplayer_config
