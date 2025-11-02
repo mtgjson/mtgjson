@@ -10,15 +10,17 @@ python -m pytest tests/mtgjson5/providers/tcgplayer/test_auth.py -q --record-mod
 
 ## Recording the VCR Cassette
 
-The `test_token_success_builds_header_and_sets_api_version` test requires a VCR cassette with a real OAuth token exchange.
+**⚠️ IMPORTANT**: The `test_token_success_builds_header_and_sets_api_version` test **requires recording with real credentials**.
+
+Dummy credentials will fail - TCGplayer validates credentials before returning a token.
 
 ### Prerequisites
 
-1. Add real TCGplayer credentials to `mtgjson5/resources/mtgjson.properties`:
+1. Add **real** TCGplayer credentials to `mtgjson5/resources/mtgjson.properties`:
    ```ini
    [TCGPlayer]
-   client_id=<your_client_id>
-   client_secret=<your_client_secret>
+   client_id=<your_real_client_id>
+   client_secret=<your_real_client_secret>
    api_version=v1.39.0
    ```
 
@@ -27,6 +29,8 @@ The `test_token_success_builds_header_and_sets_api_version` test requires a VCR 
 ```bash
 python -m pytest tests/mtgjson5/providers/tcgplayer/test_auth.py::test_token_success_builds_header_and_sets_api_version --record-mode=once -q
 ```
+
+This makes **one real OAuth call** to TCGplayer and records the response.
 
 ### Verification
 
