@@ -28,11 +28,21 @@ def test_token_success_builds_header_and_sets_api_version(
     Test successful token retrieval builds correct header and sets API version.
 
     Uses VCR cassette to replay recorded OAuth token exchange.
-    Real credentials only needed when recording; cassette has secrets scrubbed.
+    
+    RECORDING: Pass real credentials via TCGPLAYER_CLIENT_ID and TCGPLAYER_CLIENT_SECRET env vars
+    PLAYBACK: Uses cassette with dummy credentials
     """
-    # Arrange: set valid config
+    import os
+    
+    # For recording: use real credentials from environment
+    # For playback: use dummy credentials (cassette provides response)
+    client_id = os.environ.get("TCGPLAYER_CLIENT_ID", "dummy_id")
+    client_secret = os.environ.get("TCGPLAYER_CLIENT_SECRET", "dummy_secret")
+    
     tcgplayer_config(
-        client_id="dummy_id", client_secret="dummy_secret", api_version="v1.39.0"
+        client_id=client_id,
+        client_secret=client_secret,
+        api_version="v1.39.0"
     )
 
     # Act

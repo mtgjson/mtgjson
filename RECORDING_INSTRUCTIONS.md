@@ -16,13 +16,11 @@ pip install -r requirements_test.txt
 
 ## Steps
 
-1. **Add real credentials** to `mtgjson5/resources/mtgjson.properties`:
+1. **Set credentials as environment variables** (keeps them out of config file):
 
-   ```ini
-   [TCGPlayer]
-   client_id=YOUR_REAL_CLIENT_ID
-   client_secret=YOUR_REAL_CLIENT_SECRET
-   api_version=v1.39.0
+   ```bash
+   export TCGPLAYER_CLIENT_ID="your_real_client_id"
+   export TCGPLAYER_CLIENT_SECRET="your_real_client_secret"
    ```
 
 2. **Record the cassette** (makes ONE real OAuth call):
