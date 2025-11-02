@@ -45,12 +45,15 @@ def vcr_config() -> Dict[str, Any]:
     """
     import json
 
-    def scrub_tcgplayer_access_token(response: Dict[str, Any]) -> Dict[str, Any]:
+    def scrub_tcgplayer_oauth_response(response: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Scrub access_token from TCGplayer OAuth responses.
+        Scrub sensitive fields from TCGplayer OAuth responses.
 
-        This ensures recorded cassettes don't contain actual bearer tokens,
-        which would be a security risk and cause cassette instability.
+        Redacts:
+        - access_token: Bearer token for API access
+        - userName: User identifier that may contain sensitive info
+
+        This ensures recorded cassettes don't contain actual credentials.
         """
         try:
             body = response["body"]["string"]
@@ -61,8 +64,11 @@ def vcr_config() -> Dict[str, Any]:
             # If we can't parse JSON, return response unchanged
             return response
 
-        if isinstance(data, dict) and "access_token" in data:
-            data["access_token"] = "REDACTED"
+        if isinstance(data, dict):
+            if "access_token" in data:
+                data["access_token"] = "REDACTED"
+            if "userName" in data:
+                data["userName"] = "REDACTED"
             response["body"]["string"] = json.dumps(data).encode("utf-8")
 
         return response
@@ -89,8 +95,8 @@ def vcr_config() -> Dict[str, Any]:
         # Automatically decode gzip/deflate responses for human-readable cassettes
         # Without this, cassette YAML would contain binary compressed data
         "decode_compressed_response": True,
-        # TCGplayer OAuth: scrub access_token from response bodies
-        "before_record_response": scrub_tcgplayer_access_token,
+        # TCGplayer OAuth: scrub access_token and userName from response bodies
+        "before_record_response": scrub_tcgplayer_oauth_response,
         # Match requests by method, scheme, host, port, path, and query
         # This ensures stable cassette matching for TCGplayer token requests
         "match_on": ["method", "scheme", "host", "port", "path", "query"],

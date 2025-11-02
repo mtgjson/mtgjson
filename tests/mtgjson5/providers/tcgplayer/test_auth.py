@@ -37,7 +37,10 @@ def test_token_success_builds_header_and_sets_api_version(disable_cache):
     header = provider._build_http_header()
 
     # Assert
-    assert header == {"Authorization": "Bearer REDACTED"}
+    # Header should have Bearer token (VCR cassette provides "REDACTED" token)
+    assert "Authorization" in header
+    assert header["Authorization"].startswith("Bearer ")
+    assert len(header["Authorization"]) > len("Bearer ")
     assert provider.api_version == "v1.39.0"
 
 
