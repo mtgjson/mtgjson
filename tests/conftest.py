@@ -6,6 +6,8 @@ from typing import Any, Dict, Generator, Optional
 import pytest
 import requests_cache
 
+from mtgjson5.mtgjson_config import MtgjsonConfig
+
 
 @pytest.fixture
 def disable_cache() -> Generator[None, None, None]:
@@ -122,8 +124,6 @@ def tcgplayer_config() -> Generator[Any, None, None]:
             tcgplayer_config(present=False)  # Remove entire [TCGPlayer] section
             # Test code that expects missing config
     """
-    from mtgjson5.mtgjson_config import MtgjsonConfig
-
     cfg = MtgjsonConfig()
     parser = cfg.config_parser
 
