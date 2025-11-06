@@ -87,7 +87,7 @@ class MultiverseBridgeProvider(AbstractProvider):
                 self.parse_rosetta_stone_sets(
                     self.download(self.ROSETTA_STONE_SETS_URL)
                 )
-            except urllib3.exceptions.MaxRetryError:
+            except Exception:
                 LOGGER.error(
                     "MultiverseBridge: Download cap exceeded, skipping for now"
                 )
