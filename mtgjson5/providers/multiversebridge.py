@@ -8,6 +8,7 @@ import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Union
 
+import urllib3.exceptions
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
@@ -82,7 +83,15 @@ class MultiverseBridgeProvider(AbstractProvider):
         :return Rosetta Stone of Set IDs
         """
         if not self.rosetta_stone_sets:
-            self.parse_rosetta_stone_sets(self.download(self.ROSETTA_STONE_SETS_URL))
+            try:
+                self.parse_rosetta_stone_sets(
+                    self.download(self.ROSETTA_STONE_SETS_URL)
+                )
+            except urllib3.exceptions.MaxRetryError:
+                LOGGER.error(
+                    "MultiverseBridge: Download cap exceeded, skipping for now"
+                )
+                self.rosetta_stone_sets = {"set_code": 12345}
         return self.rosetta_stone_sets
 
     def generate_today_price_dict(
