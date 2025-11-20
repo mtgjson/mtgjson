@@ -1,6 +1,8 @@
 """
 Wizards Gatherer 3rd party provider
 """
+from __future__ import annotations
+
 
 import logging
 from typing import Any, Dict, List, Optional, Union

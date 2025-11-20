@@ -11,7 +11,7 @@ import uuid
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from . import constants
-from .classes import (
+from .models import (
     MtgjsonCardObject,
     MtgjsonForeignDataObject,
     MtgjsonGameFormatsObject,
@@ -592,10 +592,10 @@ def add_sealed_purchase_url(sealed_products: List[MtgjsonSealedProductObject]) -
     """
     for sealed_product in sealed_products:
         if sealed_product.identifiers.tcgplayer_product_id:
-            sealed_product.raw_purchase_urls[
-                "tcgplayer"
-            ] = TCGPlayerProvider().product_url.format(
-                sealed_product.identifiers.tcgplayer_product_id
+            sealed_product.raw_purchase_urls["tcgplayer"] = (
+                TCGPlayerProvider().product_url.format(
+                    sealed_product.identifiers.tcgplayer_product_id
+                )
             )
 
             sealed_product.purchase_urls.tcgplayer = url_keygen(
@@ -1242,10 +1242,10 @@ def build_mtgjson_card(
         mtgjson_card.purchase_urls.tcgplayer = url_keygen(
             mtgjson_card.identifiers.tcgplayer_product_id + mtgjson_card.uuid
         )
-        mtgjson_card.raw_purchase_urls[
-            "tcgplayer"
-        ] = TCGPlayerProvider().product_url.format(
-            mtgjson_card.identifiers.tcgplayer_product_id
+        mtgjson_card.raw_purchase_urls["tcgplayer"] = (
+            TCGPlayerProvider().product_url.format(
+                mtgjson_card.identifiers.tcgplayer_product_id
+            )
         )
     if "tcgplayer_etched_id" in scryfall_object:
         mtgjson_card.identifiers.tcgplayer_etched_product_id = str(
@@ -1254,10 +1254,10 @@ def build_mtgjson_card(
         mtgjson_card.purchase_urls.tcgplayer_etched = url_keygen(
             mtgjson_card.identifiers.tcgplayer_etched_product_id + mtgjson_card.uuid
         )
-        mtgjson_card.raw_purchase_urls[
-            "tcgplayerEtched"
-        ] = TCGPlayerProvider().product_url.format(
-            mtgjson_card.identifiers.tcgplayer_etched_product_id
+        mtgjson_card.raw_purchase_urls["tcgplayerEtched"] = (
+            TCGPlayerProvider().product_url.format(
+                mtgjson_card.identifiers.tcgplayer_etched_product_id
+            )
         )
 
     add_related_cards(scryfall_object, mtgjson_card, is_token)

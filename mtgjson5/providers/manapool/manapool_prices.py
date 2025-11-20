@@ -2,13 +2,15 @@ import copy
 import logging
 import pathlib
 from collections import defaultdict
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, TYPE_CHECKING
 
 from singleton_decorator import singleton
 
-from mtgjson5.classes import MtgjsonPricesObject
 from mtgjson5.providers.abstract import AbstractProvider
 from mtgjson5.utils import generate_entity_mapping
+
+if TYPE_CHECKING:
+    from ...models import MtgjsonPricesObject
 
 LOGGER = logging.getLogger(__name__)
 
@@ -55,6 +57,7 @@ class ManapoolPricesProvider(AbstractProvider):
         Generate a single-day price structure for MTGO from Manapool
         :return MTGJSON prices single day structure
         """
+        from ...models import MtgjsonPricesObject
         LOGGER.info("Building Manapool retail data")
 
         scryfall_id_to_mtgjson_id = generate_entity_mapping(

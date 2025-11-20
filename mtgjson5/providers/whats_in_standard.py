@@ -1,6 +1,8 @@
 """
 Whats In Standard 3rd party provider
 """
+from __future__ import annotations
+
 
 import datetime
 import logging
