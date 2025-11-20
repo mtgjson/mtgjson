@@ -8,7 +8,7 @@ import shutil
 import subprocess
 from typing import List, Union
 
-from .compiled_classes import MtgjsonStructuresObject
+from .models import MtgjsonStructuresObject
 
 LOGGER = logging.getLogger(__name__)
 

@@ -8,8 +8,9 @@ import pathlib
 from typing import Any, Dict, List
 
 from . import constants
-from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject
-from .compiled_classes import (
+from .models import (
+    MtgjsonDeckHeaderObject,
+    MtgjsonMetaObject,
     MtgjsonAllIdentifiersObject,
     MtgjsonAllPrintingsObject,
     MtgjsonAtomicCardsObject,

@@ -6,8 +6,7 @@ import logging
 import re
 from typing import List, Pattern, Tuple, Union
 
-from .classes import MtgjsonCardObject, MtgjsonSetObject
-from .classes.mtgjson_sealed_product import MtgjsonSealedProductObject
+from .models import MtgjsonCardObject, MtgjsonSetObject, MtgjsonSealedProductObject
 from .mtgjson_config import MtgjsonConfig
 
 LOGGER = logging.getLogger(__name__)
@@ -70,9 +69,11 @@ def write_referral_map(single_set_referral_map: List[Tuple[str, str]]) -> None:
     :param single_set_referral_map: Referrals to dump
     """
     MtgjsonConfig().output_path.mkdir(parents=True, exist_ok=True)
-    with MtgjsonConfig().output_path.joinpath("ReferralMap.json").open(
-        "a", encoding="utf-8"
-    ) as file:
+    with (
+        MtgjsonConfig()
+        .output_path.joinpath("ReferralMap.json")
+        .open("a", encoding="utf-8") as file
+    ):
         for entry in single_set_referral_map:
             file.write(f"/links/{entry[0]}\t{entry[1]};\n")
 
@@ -81,13 +82,17 @@ def fixup_referral_map() -> None:
     """
     Sort and uniquify the referral map for proper Nginx support
     """
-    with MtgjsonConfig().output_path.joinpath("ReferralMap.json").open(
-        encoding="utf-8"
-    ) as file:
+    with (
+        MtgjsonConfig()
+        .output_path.joinpath("ReferralMap.json")
+        .open(encoding="utf-8") as file
+    ):
         uniq_map = dict(line.split("\t", 1) for line in file.readlines())
         lines = sorted([f"{key}\t{value}" for key, value in uniq_map.items()])
 
-    with MtgjsonConfig().output_path.joinpath("ReferralMap.json").open(
-        "w", encoding="utf-8"
-    ) as file:
+    with (
+        MtgjsonConfig()
+        .output_path.joinpath("ReferralMap.json")
+        .open("w", encoding="utf-8") as file
+    ):
         file.writelines(lines)
