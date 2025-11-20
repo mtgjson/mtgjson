@@ -1,17 +1,19 @@
 """
 MultiverseBridge 3rd party provider
 """
+from __future__ import annotations
+
 
 import logging
 import pathlib
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union, TYPE_CHECKING
 
-import urllib3.exceptions
 from singleton_decorator import singleton
 
-from ..classes import MtgjsonPricesObject
+if TYPE_CHECKING:
+    from ..models import MtgjsonPricesObject
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_entity_mapping
 
@@ -101,6 +103,7 @@ class MultiverseBridgeProvider(AbstractProvider):
         Generate a single-day price structure for Paper from CardSphere
         :return MTGJSON prices single day structure
         """
+        from ..models import MtgjsonPricesObject
         request_api_response: List[Dict[str, Any]] = self.download(
             self.ROSETTA_STONE_CARDS_URL
         )
