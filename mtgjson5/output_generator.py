@@ -9,16 +9,16 @@ from typing import Any, Dict, List
 
 from . import constants
 from .models import (
-    MtgjsonDeckHeaderObject,
-    MtgjsonMetaObject,
     MtgjsonAllIdentifiersObject,
     MtgjsonAllPrintingsObject,
     MtgjsonAtomicCardsObject,
     MtgjsonCardTypesObject,
     MtgjsonCompiledListObject,
+    MtgjsonDeckHeaderObject,
     MtgjsonDeckListObject,
     MtgjsonEnumValuesObject,
     MtgjsonKeywordsObject,
+    MtgjsonMetaObject,
     MtgjsonSetListObject,
     MtgjsonStructuresObject,
     MtgjsonTcgplayerSkusObject,
@@ -248,7 +248,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     # All Pre-constructed Decks
     deck_names = []
     for mtgjson_deck_obj in GitHubDecksProvider().iterate_precon_decks():
-        mtgjson_deck_header_obj = MtgjsonDeckHeaderObject(mtgjson_deck_obj)
+        mtgjson_deck_header_obj = MtgjsonDeckHeaderObject.from_deck(mtgjson_deck_obj)
         create_compiled_output(
             f"decks/{mtgjson_deck_header_obj.file_name}",
             mtgjson_deck_obj,
@@ -259,7 +259,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     # DeckList.json
     create_compiled_output(
         MtgjsonStructuresObject().deck_list,
-        MtgjsonDeckListObject(deck_names),
+        MtgjsonDeckListObject(data=deck_names),
         pretty_print,
     )
 

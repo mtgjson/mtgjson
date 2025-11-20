@@ -6,7 +6,7 @@ import logging
 import re
 from typing import List, Pattern, Tuple, Union
 
-from .models import MtgjsonCardObject, MtgjsonSetObject, MtgjsonSealedProductObject
+from .models import MtgjsonCardObject, MtgjsonSealedProductObject, MtgjsonSetObject
 from .mtgjson_config import MtgjsonConfig
 
 LOGGER = logging.getLogger(__name__)
