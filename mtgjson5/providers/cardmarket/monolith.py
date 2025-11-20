@@ -1,6 +1,7 @@
 """
 MKM 3rd party provider
 """
+from __future__ import annotations
 
 import json
 import logging
@@ -8,7 +9,7 @@ import os
 import pathlib
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 
 import mkmsdk.exceptions
 from mkmsdk.api_map import _API_MAP
@@ -16,10 +17,12 @@ from mkmsdk.mkm import Mkm
 from singleton_decorator import singleton
 
 from ... import constants
-from ...classes import MtgjsonPricesObject
 from ...mtgjson_config import MtgjsonConfig
 from ...providers.abstract import AbstractProvider
 from ...utils import generate_entity_mapping
+
+if TYPE_CHECKING:
+    from ...models import MtgjsonPricesObject
 
 LOGGER = logging.getLogger(__name__)
 
@@ -98,6 +101,7 @@ class CardMarketProvider(AbstractProvider):
         Generate a single-day price structure from Card Market
         :return MTGJSON prices single day structure
         """
+        from ...models import MtgjsonPricesObject
         mtgjson_finish_map = generate_entity_mapping(
             all_printings_path,
             ("identifiers", "mcmId"),
