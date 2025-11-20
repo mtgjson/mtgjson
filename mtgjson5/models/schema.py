@@ -1,663 +1,1573 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional
-from pydantic import BaseModel, Field, ConfigDict
-from pydantic.alias_generators import to_camel
+import re
+import datetime
+from typing import Any, Callable, Dict, List, Set
 
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_serializer
+from pydantic.alias_generators import to_camel
+from pydantic_core import core_schema
+
+
+_CAMEL_TO_SNAKE_1 = re.compile(r"(.)([A-Z][a-z]+)")
+_CAMEL_TO_SNAKE_2 = re.compile(r"([a-z0-9])([A-Z])")
 
 class MtgjsonBaseModel(BaseModel):
     """
-    Base model configuration to automatically map camelCase JSON 
+    Base model configuration to automatically map camelCase JSON
     to snake_case Python attributes.
     """
     model_config = ConfigDict(
-        alias_generator=to_camel, 
+        alias_generator=to_camel,
         populate_by_name=True,
-        arbitrary_types_allowed=True
+        extra="forbid",
+        use_enum_values=True,
+        validate_assignment=True,
+        validate_default=False,
+        revalidate_instances="never",
+        from_attributes=True,
+    )
+
+    @field_serializer("*", when_used="json", check_fields=False)
+    def serialize_dates_and_sets(self, value: Any) -> Any:
+        """field serializer for datetime and set types."""
+        if isinstance(value, (datetime.datetime, datetime.date)):
+            return value.strftime("%Y-%m-%d")
+        if isinstance(value, set):
+            return list(value)
+        return value
+
+    def build_keys_to_skip(self) -> Set[str]:
+        """Override to define fields to exclude dynamically."""
+        return set()
+
+    @model_serializer(mode="wrap")
+    def serialize_model(
+        self,
+        serializer: Callable[[Any], Dict[str, Any]],
+        info: core_schema.SerializationInfo,
+    ) -> Dict[str, Any]:
+        """Custom serialization respecting build_keys_to_skip()."""
+        data = serializer(self)
+        skip_keys = self.build_keys_to_skip()
+
+        if not skip_keys:
+            return data
+
+        result = {}
+        for field_name, value in data.items():
+            snake_case_field = self._to_snake_case(field_name)
+            if snake_case_field not in skip_keys:
+                result[field_name] = value
+
+        return result
+
+    @staticmethod
+    def _to_snake_case(camel_str: str) -> str:
+        """regex camelCase -> snake_case conversion."""
+        # module level regex compilation for a little speed boost
+        s1 = _CAMEL_TO_SNAKE_1.sub(r"\1_\2", camel_str)
+        return _CAMEL_TO_SNAKE_2.sub(r"\1_\2", s1).lower()
+
+    def to_json(self) -> Dict[str, Any]:
+        """Backward compatibility with existing to_json() calls."""
+        return self.model_dump(by_alias=True, exclude_none=True, mode="json")
+
+
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True, arbitrary_types_allowed=True
     )
 
 
 class MtgjsonIdentifiersObject(MtgjsonBaseModel):
-    abu_id: str | None = None
-    card_kingdom_etched_id: str | None = None
-    card_kingdom_foil_id: str | None = None
-    card_kingdom_id: str | None = None
-    cardsphere_id: str | None = None
-    cardsphere_foil_id: str | None = None
-    cardtrader_id: str | None = None
-    csi_id: str | None = None
-    mcm_id: str | None = None
-    mcm_meta_id: str | None = None
-    miniaturemarket_id: str | None = None
-    mtg_arena_id: str | None = None
-    mtgjson_foil_version_id: str | None = None
-    mtgjson_non_foil_version_id: str | None = None
-    mtgjson_v4_id: str | None = None
-    mtgo_foil_id: str | None = None
-    mtgo_id: str | None = None
-    multiverse_id: str | None = None
-    scg_id: str | None = None
-    scryfall_id: str | None = None
-    scryfall_card_back_id: str | None = None
-    scryfall_oracle_id: str | None = None
-    scryfall_illustration_id: str | None = None
-    tcgplayer_product_id: str | None = None
-    tcgplayer_etched_product_id: str | None = None
-    tnt_id: str | None = None
+    """
+    The Identifiers Data Model describes the properties of identifiers associated to a card or product.
+    """
+
+    abu_id: str | None = Field(default=None, description="The ABUGames identifier.")
+    card_kingdom_etched_id: str | None = Field(
+        default=None, description="The Card Kingdom etched card identifier."
+    )
+    card_kingdom_foil_id: str | None = Field(
+        default=None, description="The Card Kingdom foil card identifier."
+    )
+    card_kingdom_id: str | None = Field(
+        default=None, description="The Card Kingdom card identifier."
+    )
+    cardsphere_id: str | None = Field(
+        default=None, description="The Cardsphere card identifier."
+    )
+    cardsphere_foil_id: str | None = Field(
+        default=None, description="The Cardsphere foil card identifier."
+    )
+    cardtrader_id: str | None = Field(
+        default=None, description="The Card Trader card identifier."
+    )
+    csi_id: str | None = Field(default=None, description="The CoolStuffInc identifier.")
+    mcm_id: str | None = Field(
+        default=None, description="The Cardmarket card identifier."
+    )
+    mcm_meta_id: str | None = Field(
+        default=None, description="The Cardmarket card meta identifier."
+    )
+    miniaturemarket_id: str | None = Field(
+        default=None, description="The Miniature Market identifier."
+    )
+    mtg_arena_id: str | None = Field(
+        default=None, description="The Magic: The Gathering Arena card identifier."
+    )
+    mtgjson_foil_version_id: str | None = Field(
+        default=None,
+        description="The universal unique identifier (v4) generated by MTGJSON for the foil version of the card.",
+    )
+    mtgjson_non_foil_version_id: str | None = Field(
+        default=None,
+        description="The universal unique identifier (v4) generated by MTGJSON for the non-foil version of the card.",
+    )
+    mtgjson_v4_id: str | None = Field(
+        default=None,
+        description="The universal unique identifier (v4) generated by MTGJSON.",
+    )
+    mtgo_foil_id: str | None = Field(
+        default=None,
+        description="The Magic: The Gathering Online card foil identifier.",
+    )
+    mtgo_id: str | None = Field(
+        default=None, description="The Magic: The Gathering Online card identifier."
+    )
+    multiverse_id: str | None = Field(
+        default=None,
+        description="The Wizards of the Coast card identifier used in conjunction with Gatherer.",
+    )
+    scg_id: str | None = Field(
+        default=None, description="The StarCityGames identifier."
+    )
+    scryfall_id: str | None = Field(
+        default=None,
+        description="The universal unique identifier generated by Scryfall. Note that cards with multiple faces are not unique.",
+    )
+    scryfall_card_back_id: str | None = Field(
+        default=None,
+        description="The universal unique identifier generated by Scryfall for the back face of a card.",
+    )
+    scryfall_oracle_id: str | None = Field(
+        default=None,
+        description="The unique identifier generated by Scryfall for this card's oracle identity.",
+    )
+    scryfall_illustration_id: str | None = Field(
+        default=None,
+        description="The unique identifier generated by Scryfall for the card artwork that remains consistent across reprints.",
+    )
+    tcgplayer_product_id: str | None = Field(
+        default=None, description="The TCGplayer card identifier."
+    )
+    tcgplayer_etched_product_id: str | None = Field(
+        default=None, description="The TCGplayer etched card identifier."
+    )
+    tnt_id: str | None = Field(
+        default=None, description="The Troll and Toad identifier."
+    )
 
 
 class MtgjsonPurchaseUrlsObject(MtgjsonBaseModel):
-    card_kingdom: str | None = None
-    card_kingdom_etched: str | None = None
-    card_kingdom_foil: str | None = None
-    cardmarket: str | None = None
-    tcgplayer: str | None = None
-    tcgplayer_etched: str | None = None
+    """
+    The Purchase Urls Data Model describes the properties of links to purchase a product from a marketplace.
+    """
+
+    card_kingdom: str | None = Field(
+        default=None, description="The URL to purchase a product on Card Kingdom."
+    )
+    card_kingdom_etched: str | None = Field(
+        default=None,
+        description="The URL to purchase an etched product on Card Kingdom.",
+    )
+    card_kingdom_foil: str | None = Field(
+        default=None, description="The URL to purchase a foil product on Card Kingdom."
+    )
+    cardmarket: str | None = Field(
+        default=None, description="The URL to purchase a product on Cardmarket."
+    )
+    tcgplayer: str | None = Field(
+        default=None, description="The URL to purchase a product on TCGplayer."
+    )
+    tcgplayer_etched: str | None = Field(
+        default=None, description="The URL to purchase an etched product on TCGplayer."
+    )
 
 
 class MtgjsonRelatedCardsObject(MtgjsonBaseModel):
-    reverse_related: List[str] = Field(default_factory=list)
-    spellbook: List[str] = Field(default_factory=list)
+    """
+    The Related Cards Data Model describes the properties of a card that has relations to other cards.
+    """
+
+    reverse_related: List[str] = Field(
+        default_factory=list,
+        description="A list of card names associated to a card, such as 'meld' cards and token creation.",
+    )
+    spellbook: List[str] = Field(
+        default_factory=list,
+        description="A list of card names associated to a card's Spellbook mechanic.",
+    )
 
 
 class MtgjsonRulingsObject(MtgjsonBaseModel):
-    date: str
-    text: str
+    """
+    The Rulings Data Model describes the properties of rulings for a card.
+    """
+
+    date: str = Field(description="The release date in ISO 8601 format for the rule.")
+    text: str = Field(description="The text ruling of the card.")
 
 
 class MtgjsonLeadershipSkillsObject(MtgjsonBaseModel):
-    brawl: bool = False
-    commander: bool = False
-    oathbreaker: bool = False
+    """
+    The Leadership Skills Data Model describes the properties of formats that a card is legal to be your Commander.
+    """
+
+    brawl: bool = Field(
+        default=False,
+        description="If the card can be your commander in the Standard Brawl format.",
+    )
+    commander: bool = Field(
+        default=False,
+        description="If the card can be your commander in the Commander/EDH format.",
+    )
+    oathbreaker: bool = Field(
+        default=False,
+        description="If the card can be your commander in the Oathbreaker format.",
+    )
 
 
 class MtgjsonLegalitiesObject(MtgjsonBaseModel):
-    alchemy: str | None = None
-    brawl: str | None = None
-    commander: str | None = None
-    duel: str | None = None
-    explorer: str | None = None
-    future: str | None = None
-    gladiator: str | None = None
-    historic: str | None = None
-    historicbrawl: str | None = None
-    legacy: str | None = None
-    modern: str | None = None
-    oathbreaker: str | None = None
-    oldschool: str | None = None
-    pauper: str | None = None
-    paupercommander: str | None = None
-    penny: str | None = None
-    pioneer: str | None = None
-    predh: str | None = None
-    premodern: str | None = None
-    standard: str | None = None
-    standardbrawl: str | None = None
-    timeless: str | None = None
-    vintage: str | None = None
+    """
+    The Legalities Data Model describes the properties of legalities of a card in various game play formats.
+    """
+
+    alchemy: str | None = Field(
+        default=None, description="Legality of the card in the Alchemy play format."
+    )
+    brawl: str | None = Field(
+        default=None, description="Legality of the card in the Brawl play format."
+    )
+    commander: str | None = Field(
+        default=None, description="Legality of the card in the Commander play format."
+    )
+    duel: str | None = Field(
+        default=None,
+        description="Legality of the card in the Duel Commander play format.",
+    )
+    explorer: str | None = Field(
+        default=None, description="Legality of the card in the Explorer play format."
+    )
+    future: str | None = Field(
+        default=None,
+        description="Legality of the card in the future for the Standard play format.",
+    )
+    gladiator: str | None = Field(
+        default=None, description="Legality of the card in the Gladiator play format."
+    )
+    historic: str | None = Field(
+        default=None, description="Legality of the card in the Historic play format."
+    )
+    historicbrawl: str | None = Field(
+        default=None,
+        description="Legality of the card in the Historic Brawl play format.",
+    )
+    legacy: str | None = Field(
+        default=None, description="Legality of the card in the Legacy play format."
+    )
+    modern: str | None = Field(
+        default=None, description="Legality of the card in the Modern play format."
+    )
+    oathbreaker: str | None = Field(
+        default=None, description="Legality of the card in the Oathbreaker play format."
+    )
+    oldschool: str | None = Field(
+        default=None, description="Legality of the card in the Old School play format."
+    )
+    pauper: str | None = Field(
+        default=None, description="Legality of the card in the Pauper play format."
+    )
+    paupercommander: str | None = Field(
+        default=None,
+        description="Legality of the card in the Pauper Commander play format.",
+    )
+    penny: str | None = Field(
+        default=None,
+        description="Legality of the card in the Penny Dreadful play format.",
+    )
+    pioneer: str | None = Field(
+        default=None, description="Legality of the card in the Pioneer play format."
+    )
+    predh: str | None = Field(
+        default=None, description="Legality of the card in the PreDH play format."
+    )
+    premodern: str | None = Field(
+        default=None, description="Legality of the card in the Premodern play format."
+    )
+    standard: str | None = Field(
+        default=None, description="Legality of the card in the Standard play format."
+    )
+    standardbrawl: str | None = Field(
+        default=None,
+        description="Legality of the card in the Standard Brawl play format.",
+    )
+    timeless: str | None = Field(
+        default=None, description="Legality of the card in the Timeless play format."
+    )
+    vintage: str | None = Field(
+        default=None, description="Legality of the card in the Vintage play format."
+    )
 
 
 class MtgjsonForeignDataObject(MtgjsonBaseModel):
-    face_name: str | None = None
-    flavor_text: str | None = None
-    identifiers: MtgjsonIdentifiersObject = Field(default_factory=MtgjsonIdentifiersObject)
-    language: str
-    name: str
-    text: str | None = None
-    type: str | None = None
-    uuid: str
+    """
+    The Foreign Data Data Model describes the properties for a card in alternate languages.
+    """
+
+    face_name: str | None = Field(
+        default=None, description="The foreign name on the face of the card."
+    )
+    flavor_text: str | None = Field(
+        default=None, description="The foreign flavor text of the card."
+    )
+    identifiers: MtgjsonIdentifiersObject = Field(
+        default_factory=MtgjsonIdentifiersObject,
+        description="The identifiers associated to a card.",
+    )
+    language: str = Field(description="The foreign language of card.")
+    name: str = Field(description="The foreign name of the card.")
+    text: str | None = Field(default=None, description="The foreign text of the card.")
+    type: str | None = Field(
+        default=None,
+        description="The foreign type of the card, including any supertypes and subtypes.",
+    )
+    uuid: str = Field(
+        description="The universal unique identifier (v5) generated by MTGJSON."
+    )
 
 
 class MtgjsonTranslationsObject(MtgjsonBaseModel):
-    # Using alias to handle keys with spaces
-    ancient_greek: str | None = Field(default=None, alias="Ancient Greek")
-    arabic: str | None = Field(default=None, alias="Arabic")
-    chinese_simplified: str | None = Field(default=None, alias="Chinese Simplified")
-    chinese_traditional: str | None = Field(default=None, alias="Chinese Traditional")
-    french: str | None = Field(default=None, alias="French")
-    german: str | None = Field(default=None, alias="German")
-    hebrew: str | None = Field(default=None, alias="Hebrew")
-    italian: str | None = Field(default=None, alias="Italian")
-    japanese: str | None = Field(default=None, alias="Japanese")
-    korean: str | None = Field(default=None, alias="Korean")
-    latin: str | None = Field(default=None, alias="Latin")
-    phyrexian: str | None = Field(default=None, alias="Phyrexian")
-    portuguese_brazil: str | None = Field(default=None, alias="Portuguese (Brazil)")
-    russian: str | None = Field(default=None, alias="Russian")
-    sanskrit: str | None = Field(default=None, alias="Sanskrit")
-    spanish: str | None = Field(default=None, alias="Spanish")
+    """
+    The Translations Data Model describes the properties of a Set or Set List's name translated in various alternate languages.
+    """
+
+    ancient_greek: str | None = Field(
+        default=None,
+        alias="Ancient Greek",
+        description="The set name translation in Ancient Greek.",
+    )
+    arabic: str | None = Field(
+        default=None, alias="Arabic", description="The set name translation in Arabic."
+    )
+    chinese_simplified: str | None = Field(
+        default=None,
+        alias="Chinese Simplified",
+        description="The set name translation in Chinese Simplified.",
+    )
+    chinese_traditional: str | None = Field(
+        default=None,
+        alias="Chinese Traditional",
+        description="The set name translation in Chinese Traditional.",
+    )
+    french: str | None = Field(
+        default=None, alias="French", description="The set name translation in French."
+    )
+    german: str | None = Field(
+        default=None, alias="German", description="The set name translation in German."
+    )
+    hebrew: str | None = Field(
+        default=None, alias="Hebrew", description="The set name translation in Hebrew."
+    )
+    italian: str | None = Field(
+        default=None,
+        alias="Italian",
+        description="The set name translation in Italian.",
+    )
+    japanese: str | None = Field(
+        default=None,
+        alias="Japanese",
+        description="The set name translation in Japanese.",
+    )
+    korean: str | None = Field(
+        default=None, alias="Korean", description="The set name translation in Korean."
+    )
+    latin: str | None = Field(
+        default=None, alias="Latin", description="The set name translation in Latin."
+    )
+    phyrexian: str | None = Field(
+        default=None,
+        alias="Phyrexian",
+        description="The set name translation in Phyrexian.",
+    )
+    portuguese_brazil: str | None = Field(
+        default=None,
+        alias="Portuguese (Brazil)",
+        description="The set name translation in Portuguese (Brazil).",
+    )
+    russian: str | None = Field(
+        default=None,
+        alias="Russian",
+        description="The set name translation in Russian.",
+    )
+    sanskrit: str | None = Field(
+        default=None,
+        alias="Sanskrit",
+        description="The set name translation in Sanskrit.",
+    )
+    spanish: str | None = Field(
+        default=None,
+        alias="Spanish",
+        description="The set name translation in Spanish.",
+    )
 
 
 class MtgjsonKeywordsObject(MtgjsonBaseModel):
-    ability_words: List[str] = Field(default_factory=list)
-    keyword_abilities: List[str] = Field(default_factory=list)
-    keyword_actions: List[str] = Field(default_factory=list)
+    """
+    The Keywords Data Model describes the properties of keywords available to any card.
+    """
+
+    ability_words: List[str] = Field(
+        default_factory=list,
+        description="A list of ability words found in rules text on cards.",
+    )
+    keyword_abilities: List[str] = Field(
+        default_factory=list,
+        description="A list of keyword abilities found in rules text on cards.",
+    )
+    keyword_actions: List[str] = Field(
+        default_factory=list,
+        description="A list of keyword actions found in rules text on cards.",
+    )
 
 
 class MtgjsonSourceProductsObject(MtgjsonBaseModel):
-    etched: List[str] = Field(default_factory=list)
-    foil: List[str] = Field(default_factory=list)
-    nonfoil: List[str] = Field(default_factory=list)
+    """
+    The Source Products Data Model describes the uuids for the card version in a Sealed Product.
+    """
+
+    etched: List[str] = Field(
+        default_factory=list,
+        description="A list of UUIDs for the Sealed Product the etched card is found in.",
+    )
+    foil: List[str] = Field(
+        default_factory=list,
+        description="A list of UUIDs for the Sealed Product the foil card is found in.",
+    )
+    nonfoil: List[str] = Field(
+        default_factory=list,
+        description="A list of UUIDs for the Sealed Product the non-foil card is found in.",
+    )
 
 
 class MtgjsonTcgplayerSkusObject(MtgjsonBaseModel):
-    condition: str
-    finish: str
-    language: str
-    printing: str
-    product_id: str
-    sku_id: str
+    """
+    The Tcgplayer Skus Data Model describes the properties of the TCGplayer SKUs for a product.
+    """
+
+    condition: str = Field(description="The condition of the card.")
+    finish: str = Field(description="The finish of the card.")
+    language: str = Field(description="The language of the card.")
+    printing: str = Field(description="The printing style of the card.")
+    product_id: str = Field(description="The product identifier of the card.")
+    sku_id: str = Field(description="The SKU identifier of the card.")
 
 
 class MtgjsonMetaObject(MtgjsonBaseModel):
-    date: str
-    version: str
+    """
+    The Meta Data Model describes the properties of the MTGJSON application meta data.
+    """
+
+    date: str = Field(
+        description="The current release date in ISO 8601 format for the MTGJSON build."
+    )
+    version: str = Field(
+        description="The current SemVer version for the MTGJSON build appended with the build date."
+    )
 
 
 class MtgjsonPricePointsObject(MtgjsonBaseModel):
-    etched: Dict[str, float] = Field(default_factory=dict)
-    foil: Dict[str, float] = Field(default_factory=dict)
-    normal: Dict[str, float] = Field(default_factory=dict)
+    """
+    Describes the price points for different finishes of a card.
+    """
+
+    etched: Dict[str, float] = Field(
+        default_factory=dict, description="Prices for the etched version of the card."
+    )
+    foil: Dict[str, float] = Field(
+        default_factory=dict, description="Prices for the foil version of the card."
+    )
+    normal: Dict[str, float] = Field(
+        default_factory=dict, description="Prices for the normal version of the card."
+    )
 
 
 class MtgjsonPriceListObject(MtgjsonBaseModel):
-    buylist: MtgjsonPricePointsObject | None = None
-    currency: str
-    retail: MtgjsonPricePointsObject | None = None
+    """
+    Describes the pricing information for a specific currency and potential market type.
+    """
+
+    buylist: MtgjsonPricePointsObject | None = Field(
+        default=None, description="The buylist price points."
+    )
+    currency: str = Field(description="The currency of the prices.")
+    retail: MtgjsonPricePointsObject | None = Field(
+        default=None, description="The retail price points."
+    )
 
 
 class MtgjsonPriceFormatsObject(MtgjsonBaseModel):
-    mtgo: Dict[str, MtgjsonPriceListObject] = Field(default_factory=dict)
-    paper: Dict[str, MtgjsonPriceListObject] = Field(default_factory=dict)
+    """
+    Collection of price lists for different formats (paper vs mtgo).
+    """
+
+    mtgo: Dict[str, MtgjsonPriceListObject] = Field(
+        default_factory=dict, description="Prices for Magic: The Gathering Online."
+    )
+    paper: Dict[str, MtgjsonPriceListObject] = Field(
+        default_factory=dict, description="Prices for paper Magic."
+    )
 
 
 class MtgjsonBoosterPackObject(MtgjsonBaseModel):
-    contents: Dict[str, int] = Field(default_factory=dict)
-    weight: float
+    """
+    Represents a single booster pack configuration within a booster definition.
+    """
+
+    contents: Dict[str, int] = Field(
+        default_factory=dict,
+        description="The contents of the pack, mapping code to count.",
+    )
+    weight: float = Field(
+        description="The probability weight of this specific pack configuration."
+    )
 
 
 class MtgjsonBoosterSheetObject(MtgjsonBaseModel):
-    allow_duplicates: bool | None = None
-    balance_colors: bool | None = None
-    cards: Dict[str, int] = Field(default_factory=dict)
-    foil: bool
-    fixed: bool | None = None
-    total_weight: float
+    """
+    Describes a sheet of cards used to construct a booster pack.
+    """
+
+    allow_duplicates: bool | None = Field(
+        default=None, description="Whether duplicates are allowed on this sheet."
+    )
+    balance_colors: bool | None = Field(
+        default=None,
+        description="Whether to balance colors when selecting from this sheet.",
+    )
+    cards: Dict[str, int] = Field(
+        default_factory=dict,
+        description="The cards on this sheet and their relative weights.",
+    )
+    foil: bool = Field(description="Whether this sheet contains foil cards.")
+    fixed: bool | None = Field(
+        default=None, description="Whether this sheet has fixed contents."
+    )
+    total_weight: float = Field(
+        description="The total weight of all cards on the sheet."
+    )
 
 
 class MtgjsonBoosterConfigObject(MtgjsonBaseModel):
-    boosters: List[MtgjsonBoosterPackObject] = Field(default_factory=list)
-    boosters_total_weight: float
-    name: str | None = None
-    sheets: Dict[str, MtgjsonBoosterSheetObject] = Field(default_factory=dict)
-    source_set_codes: List[str] = Field(default_factory=list)
+    """
+    A breakdown of possibilities and weights of cards in a booster pack.
+    """
 
+    boosters: List[MtgjsonBoosterPackObject] = Field(
+        default_factory=list,
+        description="The list of possible booster pack configurations.",
+    )
+    boosters_total_weight: float = Field(
+        description="The total weight of all booster pack configurations."
+    )
+    name: str | None = Field(
+        default=None, description="The name of the booster configuration."
+    )
+    sheets: Dict[str, MtgjsonBoosterSheetObject] = Field(
+        default_factory=dict, description="The sheets used to generate the boosters."
+    )
+    source_set_codes: List[str] = Field(
+        default_factory=list,
+        description="The set codes where these cards are sourced from.",
+    )
 
-# --- Sealed Products ---
 
 class MtgjsonSealedProductCardObject(MtgjsonBaseModel):
-    foil: bool | None = None
-    name: str
-    number: str
-    set: str
-    uuid: str
+    """
+    Describes a card contained within a sealed product.
+    """
+
+    foil: bool | None = Field(default=None, description="Whether the card is foil.")
+    name: str = Field(description="The name of the card.")
+    number: str = Field(description="The card number.")
+    set: str = Field(description="The set code the card belongs to.")
+    uuid: str = Field(description="The unique identifier of the card.")
 
 
 class MtgjsonSealedProductDeckObject(MtgjsonBaseModel):
-    name: str
-    set: str
+    """
+    Describes a deck contained within a sealed product.
+    """
+
+    name: str = Field(description="The name of the deck.")
+    set: str = Field(description="The set code of the deck.")
 
 
 class MtgjsonSealedProductOtherObject(MtgjsonBaseModel):
-    name: str
+    """
+    Describes other items (like dice, rules inserts) contained in a sealed product.
+    """
+
+    name: str = Field(description="The name of the item.")
 
 
 class MtgjsonSealedProductPackObject(MtgjsonBaseModel):
-    code: str
-    set: str
+    """
+    Describes a booster pack contained within a sealed product.
+    """
+
+    code: str = Field(description="The set code of the pack.")
+    set: str = Field(description="The set code the pack belongs to.")
 
 
 class MtgjsonSealedProductSealedObject(MtgjsonBaseModel):
-    count: int
-    name: str
-    set: str
-    uuid: str
+    """
+    Describes a nested sealed product contained within a sealed product.
+    """
+
+    count: int = Field(description="The quantity of this product.")
+    name: str = Field(description="The name of the nested product.")
+    set: str = Field(description="The set code.")
+    uuid: str = Field(description="The UUID of the nested product.")
 
 
 class MtgjsonSealedProductContentsObject(MtgjsonBaseModel):
-    card: List[MtgjsonSealedProductCardObject] = Field(default_factory=list)
-    deck: List[MtgjsonSealedProductDeckObject] = Field(default_factory=list)
-    other: List[MtgjsonSealedProductOtherObject] = Field(default_factory=list)
-    pack: List[MtgjsonSealedProductPackObject] = Field(default_factory=list)
-    sealed: List[MtgjsonSealedProductSealedObject] = Field(default_factory=list)
+    """
+    The contents of a sealed product.
+    """
+
+    card: List[MtgjsonSealedProductCardObject] = Field(
+        default_factory=list, description="List of specific cards in the product."
+    )
+    deck: List[MtgjsonSealedProductDeckObject] = Field(
+        default_factory=list, description="List of decks in the product."
+    )
+    other: List[MtgjsonSealedProductOtherObject] = Field(
+        default_factory=list, description="List of other items in the product."
+    )
+    pack: List[MtgjsonSealedProductPackObject] = Field(
+        default_factory=list, description="List of packs in the product."
+    )
+    sealed: List[MtgjsonSealedProductSealedObject] = Field(
+        default_factory=list, description="List of other sealed products inside."
+    )
     # Recursive structure definition
-    variable: List[Dict[str, List[MtgjsonSealedProductContentsObject]]] = Field(default_factory=list)
+    variable: List[Dict[str, List[MtgjsonSealedProductContentsObject]]] = Field(
+        default_factory=list, description="Variable configurations of contents."
+    )
 
 
 class MtgjsonSealedProductObject(MtgjsonBaseModel):
-    card_count: int | None = None
-    category: str | None = None
-    contents: MtgjsonSealedProductContentsObject | None = None
-    identifiers: MtgjsonIdentifiersObject = Field(default_factory=MtgjsonIdentifiersObject)
-    name: str
-    product_size: int | None = None
-    purchase_urls: MtgjsonPurchaseUrlsObject = Field(default_factory=MtgjsonPurchaseUrlsObject)
-    release_date: str | None = None
-    subtype: str | None = None
-    uuid: str
+    """
+    The Sealed Product Data Model describes the properties for the purchaseable product of a Set.
+    """
 
+    card_count: int | None = Field(
+        default=None, description="The number of cards in this product."
+    )
+    category: str | None = Field(
+        default=None, description="The category of this product."
+    )
+    contents: MtgjsonSealedProductContentsObject | None = Field(
+        default=None, description="The contents of this product."
+    )
+    identifiers: MtgjsonIdentifiersObject = Field(
+        default_factory=MtgjsonIdentifiersObject,
+        description="The identifiers associated to a product.",
+    )
+    name: str = Field(description="The name of the product.")
+    product_size: int | None = Field(
+        default=None, description="The size of the product."
+    )
+    purchase_urls: MtgjsonPurchaseUrlsObject = Field(
+        default_factory=MtgjsonPurchaseUrlsObject,
+        description="Links that navigate to websites where the product can be purchased.",
+    )
+    release_date: str | None = Field(
+        default=None, description="The release date in ISO 8601 format for the product."
+    )
+    subtype: str | None = Field(
+        default=None, description="The category subtype of this product."
+    )
+    uuid: str = Field(
+        description="The universal unique identifier (v5) generated by MTGJSON."
+    )
 
-# --- Card Types ---
 
 class MtgjsonCardTypeObject(MtgjsonBaseModel):
-    sub_types: List[str] = Field(default_factory=list)
-    super_types: List[str] = Field(default_factory=list)
+    """
+    The Card Type Data Model describes the properties of any possible subtypes and supertypes of a CardType.
+    """
+
+    sub_types: List[str] = Field(
+        default_factory=list,
+        description="A list of subtypes associated to a card property.",
+    )
+    super_types: List[str] = Field(
+        default_factory=list,
+        description="A list of supertypes associated to a card property.",
+    )
 
 
 class MtgjsonCardTypesObject(MtgjsonBaseModel):
-    artifact: MtgjsonCardTypeObject
-    battle: MtgjsonCardTypeObject
-    conspiracy: MtgjsonCardTypeObject
-    creature: MtgjsonCardTypeObject
-    enchantment: MtgjsonCardTypeObject
-    instant: MtgjsonCardTypeObject
-    land: MtgjsonCardTypeObject
-    phenomenon: MtgjsonCardTypeObject
-    plane: MtgjsonCardTypeObject
-    planeswalker: MtgjsonCardTypeObject
-    scheme: MtgjsonCardTypeObject
-    sorcery: MtgjsonCardTypeObject
-    tribal: MtgjsonCardTypeObject
-    vanguard: MtgjsonCardTypeObject
+    """
+    The Card Types Data Model describes the properties of a Card Data Model that has possible configurations of associated subtypes and supertypes.
+    """
 
+    artifact: MtgjsonCardTypeObject = Field(description="The artifact type of a card.")
+    battle: MtgjsonCardTypeObject = Field(description="The battle type of a card.")
+    conspiracy: MtgjsonCardTypeObject = Field(
+        description="The conspiracy type of a card."
+    )
+    creature: MtgjsonCardTypeObject = Field(description="The creature type of a card.")
+    enchantment: MtgjsonCardTypeObject = Field(
+        description="The enchantment type of a card."
+    )
+    instant: MtgjsonCardTypeObject = Field(description="The instant type of a card.")
+    land: MtgjsonCardTypeObject = Field(description="The land type of a card.")
+    phenomenon: MtgjsonCardTypeObject = Field(
+        description="The phenomenon type of a card."
+    )
+    plane: MtgjsonCardTypeObject = Field(description="The plane type of a card.")
+    planeswalker: MtgjsonCardTypeObject = Field(
+        description="The planeswalker type of a card."
+    )
+    scheme: MtgjsonCardTypeObject = Field(description="The scheme type of a card.")
+    sorcery: MtgjsonCardTypeObject = Field(description="The sorcery type of a card.")
+    tribal: MtgjsonCardTypeObject = Field(description="The tribal type of a card.")
+    vanguard: MtgjsonCardTypeObject = Field(description="The vanguard type of a card.")
 
-# --- Cards ---
 
 class MtgjsonCardAtomicObject(MtgjsonBaseModel):
-    ascii_name: str | None = None
-    attraction_lights: List[int] | None = None
-    color_identity: List[str] = Field(default_factory=list)
-    color_indicator: List[str] | None = None
-    colors: List[str] = Field(default_factory=list)
-    converted_mana_cost: float
-    defense: str | None = None
-    edhrec_rank: int | None = None
-    edhrec_saltiness: float | None = None
-    face_converted_mana_cost: float | None = None
-    face_mana_value: float | None = None
-    face_name: str | None = None
-    first_printing: str | None = None
-    foreign_data: List[MtgjsonForeignDataObject] = Field(default_factory=list)
-    hand: str | None = None
-    has_alternative_deck_limit: bool | None = None
-    identifiers: MtgjsonIdentifiersObject = Field(default_factory=MtgjsonIdentifiersObject)
-    is_funny: bool | None = None
-    is_game_changer: bool | None = None
-    is_reserved: bool | None = None
-    keywords: List[str] = Field(default_factory=list)
-    layout: str
-    leadership_skills: MtgjsonLeadershipSkillsObject | None = None
-    legalities: MtgjsonLegalitiesObject = Field(default_factory=MtgjsonLegalitiesObject)
-    life: str | None = None
-    loyalty: str | None = None
-    mana_cost: str | None = None
-    mana_value: float
-    name: str
-    power: str | None = None
-    printings: List[str] = Field(default_factory=list)
-    purchase_urls: MtgjsonPurchaseUrlsObject = Field(default_factory=MtgjsonPurchaseUrlsObject)
-    related_cards: MtgjsonRelatedCardsObject = Field(default_factory=MtgjsonRelatedCardsObject)
-    rulings: List[MtgjsonRulingsObject] = Field(default_factory=list)
-    side: str | None = None
-    subsets: List[str] = Field(default_factory=list)
-    subtypes: List[str] = Field(default_factory=list)
-    supertypes: List[str] = Field(default_factory=list)
-    text: str | None = None
-    toughness: str | None = None
-    type: str
-    types: List[str] = Field(default_factory=list)
+    """
+    Card Atomic Data Model. Represents the abstract definition of a card regardless of specific printing.
+    """
+
+    ascii_name: str | None = Field(
+        default=None, description="The ASCII name of the card."
+    )
+    attraction_lights: List[int] | None = Field(
+        default=None, description="The attraction lights lit on the card."
+    )
+    color_identity: List[str] = Field(
+        default_factory=list, description="The color identity of the card."
+    )
+    color_indicator: List[str] | None = Field(
+        default=None, description="The color indicator of the card."
+    )
+    colors: List[str] = Field(
+        default_factory=list, description="The colors of the card."
+    )
+    converted_mana_cost: float = Field(
+        description="The converted mana cost of the card."
+    )
+    defense: str | None = Field(default=None, description="The defense of the card.")
+    edhrec_rank: int | None = Field(
+        default=None, description="The EDHREC rank of the card."
+    )
+    edhrec_saltiness: float | None = Field(
+        default=None, description="The EDHREC saltiness score of the card."
+    )
+    face_converted_mana_cost: float | None = Field(
+        default=None, description="The converted mana cost of the face of the card."
+    )
+    face_mana_value: float | None = Field(
+        default=None, description="The mana value of the face of the card."
+    )
+    face_name: str | None = Field(
+        default=None, description="The name on the face of the card."
+    )
+    first_printing: str | None = Field(
+        default=None, description="The set code of the first printing of the card."
+    )
+    foreign_data: List[MtgjsonForeignDataObject] = Field(
+        default_factory=list, description="Data for the card in other languages."
+    )
+    hand: str | None = Field(default=None, description="The hand modifier of the card.")
+    has_alternative_deck_limit: bool | None = Field(
+        default=None, description="If the card allows more than 4 copies in a deck."
+    )
+    identifiers: MtgjsonIdentifiersObject = Field(
+        default_factory=MtgjsonIdentifiersObject,
+        description="Identifiers for the card.",
+    )
+    is_funny: bool | None = Field(
+        default=None, description="If the card is from a funny set (Un-sets)."
+    )
+    is_game_changer: bool | None = Field(
+        default=None, description="If the card changes the rules of the game."
+    )
+    is_reserved: bool | None = Field(
+        default=None, description="If the card is on the Reserved List."
+    )
+    keywords: List[str] = Field(
+        default_factory=list, description="Keywords found on the card."
+    )
+    layout: str = Field(description="The layout of the card.")
+    leadership_skills: MtgjsonLeadershipSkillsObject | None = Field(
+        default=None, description="Formats where the card is legal as a commander."
+    )
+    legalities: MtgjsonLegalitiesObject = Field(
+        default_factory=MtgjsonLegalitiesObject,
+        description="Legality status of the card in various formats.",
+    )
+    life: str | None = Field(default=None, description="The life modifier of the card.")
+    loyalty: str | None = Field(default=None, description="The loyalty of the card.")
+    mana_cost: str | None = Field(
+        default=None, description="The mana cost of the card."
+    )
+    mana_value: float = Field(description="The mana value of the card.")
+    name: str = Field(description="The name of the card.")
+    power: str | None = Field(default=None, description="The power of the card.")
+    printings: List[str] = Field(
+        default_factory=list,
+        description="List of set codes where this card was printed.",
+    )
+    purchase_urls: MtgjsonPurchaseUrlsObject = Field(
+        default_factory=MtgjsonPurchaseUrlsObject,
+        description="URLs to purchase the card.",
+    )
+    related_cards: MtgjsonRelatedCardsObject = Field(
+        default_factory=MtgjsonRelatedCardsObject,
+        description="Cards related to this card.",
+    )
+    rulings: List[MtgjsonRulingsObject] = Field(
+        default_factory=list, description="Rulings for the card."
+    )
+    side: str | None = Field(default=None, description="The side of the card (a/b).")
+    subsets: List[str] = Field(
+        default_factory=list, description="Subsets the card belongs to."
+    )
+    subtypes: List[str] = Field(
+        default_factory=list, description="The subtypes of the card."
+    )
+    supertypes: List[str] = Field(
+        default_factory=list, description="The supertypes of the card."
+    )
+    text: str | None = Field(default=None, description="The rules text of the card.")
+    toughness: str | None = Field(
+        default=None, description="The toughness of the card."
+    )
+    type: str = Field(description="The full type line of the card.")
+    types: List[str] = Field(default_factory=list, description="The types of the card.")
 
 
 class MtgjsonCardDeckObject(MtgjsonBaseModel):
-    artist: str | None = None
-    artist_ids: List[str] = Field(default_factory=list)
-    ascii_name: str | None = None
-    attraction_lights: List[int] | None = None
-    availability: List[str] = Field(default_factory=list)
-    booster_types: List[str] = Field(default_factory=list)
-    border_color: str
-    card_parts: List[str] = Field(default_factory=list)
-    color_identity: List[str] = Field(default_factory=list)
-    color_indicator: List[str] | None = None
-    colors: List[str] = Field(default_factory=list)
-    converted_mana_cost: float
-    count: int
-    defense: str | None = None
-    duel_deck: str | None = None
-    edhrec_rank: int | None = None
-    edhrec_saltiness: float | None = None
-    face_converted_mana_cost: float | None = None
-    face_flavor_name: str | None = None
-    face_mana_value: float | None = None
-    face_name: str | None = None
-    finishes: List[str] = Field(default_factory=list)
-    flavor_name: str | None = None
-    flavor_text: str | None = None
-    foreign_data: List[MtgjsonForeignDataObject] = Field(default_factory=list)
-    frame_effects: List[str] = Field(default_factory=list)
-    frame_version: str
-    hand: str | None = None
-    has_alternative_deck_limit: bool | None = None
-    has_content_warning: bool | None = None
-    has_foil: bool
-    has_non_foil: bool
-    identifiers: MtgjsonIdentifiersObject = Field(default_factory=MtgjsonIdentifiersObject)
-    is_alternative: bool | None = None
-    is_foil: bool
-    is_full_art: bool | None = None
-    is_funny: bool | None = None
-    is_game_changer: bool | None = None
-    is_online_only: bool | None = None
-    is_oversized: bool | None = None
-    is_promo: bool | None = None
-    is_rebalanced: bool | None = None
-    is_reprint: bool | None = None
-    is_reserved: bool | None = None
-    is_starter: bool | None = None
-    is_story_spotlight: bool | None = None
-    is_textless: bool | None = None
-    is_timeshifted: bool | None = None
-    keywords: List[str] = Field(default_factory=list)
-    language: str
-    layout: str
-    leadership_skills: MtgjsonLeadershipSkillsObject | None = None
-    legalities: MtgjsonLegalitiesObject = Field(default_factory=MtgjsonLegalitiesObject)
-    life: str | None = None
-    loyalty: str | None = None
-    mana_cost: str | None = None
-    mana_value: float
-    name: str
-    number: str
-    original_printings: List[str] = Field(default_factory=list)
-    original_release_date: str | None = None
-    original_text: str | None = None
-    original_type: str | None = None
-    other_face_ids: List[str] = Field(default_factory=list)
-    power: str | None = None
-    printings: List[str] = Field(default_factory=list)
-    promo_types: List[str] = Field(default_factory=list)
-    purchase_urls: MtgjsonPurchaseUrlsObject = Field(default_factory=MtgjsonPurchaseUrlsObject)
-    rarity: str
-    related_cards: MtgjsonRelatedCardsObject | None = None
-    rebalanced_printings: List[str] = Field(default_factory=list)
-    rulings: List[MtgjsonRulingsObject] = Field(default_factory=list)
-    security_stamp: str | None = None
-    set_code: str
-    side: str | None = None
-    signature: str | None = None
-    source_products: List[str] = Field(default_factory=list)
-    subsets: List[str] = Field(default_factory=list)
-    subtypes: List[str] = Field(default_factory=list)
-    supertypes: List[str] = Field(default_factory=list)
-    text: str | None = None
-    toughness: str | None = None
-    type: str
-    types: List[str] = Field(default_factory=list)
-    uuid: str
-    variations: List[str] = Field(default_factory=list)
-    watermark: str | None = None
+    """
+    Card (Deck) Data Model. Represents a specific printing of a card within a Deck.
+    """
+
+    artist: str | None = Field(default=None, description="The artist of the card.")
+    artist_ids: List[str] = Field(
+        default_factory=list, description="The identifiers of the artist."
+    )
+    ascii_name: str | None = Field(
+        default=None, description="The ASCII name of the card."
+    )
+    attraction_lights: List[int] | None = Field(
+        default=None, description="The attraction lights lit on the card."
+    )
+    availability: List[str] = Field(
+        default_factory=list,
+        description="Where the card is available (paper, mtgo, arena).",
+    )
+    booster_types: List[str] = Field(
+        default_factory=list, description="Types of boosters this card appears in."
+    )
+    border_color: str = Field(description="The color of the card border.")
+    card_parts: List[str] = Field(
+        default_factory=list,
+        description="UUIDs of other parts of the card (e.g., for meld cards).",
+    )
+    color_identity: List[str] = Field(
+        default_factory=list, description="The color identity of the card."
+    )
+    color_indicator: List[str] | None = Field(
+        default=None, description="The color indicator of the card."
+    )
+    colors: List[str] = Field(
+        default_factory=list, description="The colors of the card."
+    )
+    converted_mana_cost: float = Field(
+        description="The converted mana cost of the card."
+    )
+    count: int = Field(description="The number of copies of this card in the deck.")
+    defense: str | None = Field(default=None, description="The defense of the card.")
+    duel_deck: str | None = Field(
+        default=None, description="The duel deck code if applicable."
+    )
+    edhrec_rank: int | None = Field(
+        default=None, description="The EDHREC rank of the card."
+    )
+    edhrec_saltiness: float | None = Field(
+        default=None, description="The EDHREC saltiness score."
+    )
+    face_converted_mana_cost: float | None = Field(
+        default=None, description="The converted mana cost of the face."
+    )
+    face_flavor_name: str | None = Field(
+        default=None, description="The flavor name on the face."
+    )
+    face_mana_value: float | None = Field(
+        default=None, description="The mana value of the face."
+    )
+    face_name: str | None = Field(default=None, description="The name on the face.")
+    finishes: List[str] = Field(
+        default_factory=list, description="The finishes available for this card."
+    )
+    flavor_name: str | None = Field(
+        default=None, description="The flavor name of the card."
+    )
+    flavor_text: str | None = Field(
+        default=None, description="The flavor text of the card."
+    )
+    foreign_data: List[MtgjsonForeignDataObject] = Field(
+        default_factory=list, description="Data for the card in other languages."
+    )
+    frame_effects: List[str] = Field(
+        default_factory=list, description="The frame effects on the card."
+    )
+    frame_version: str = Field(description="The version of the card frame.")
+    hand: str | None = Field(default=None, description="The hand modifier.")
+    has_alternative_deck_limit: bool | None = Field(
+        default=None, description="If the card allows more than 4 copies."
+    )
+    has_content_warning: bool | None = Field(
+        default=None, description="If the card has a content warning."
+    )
+    has_foil: bool = Field(description="If the card is available in foil.")
+    has_non_foil: bool = Field(description="If the card is available in non-foil.")
+    identifiers: MtgjsonIdentifiersObject = Field(
+        default_factory=MtgjsonIdentifiersObject,
+        description="Identifiers for the card.",
+    )
+    is_alternative: bool | None = Field(
+        default=None, description="If this is an alternative printing."
+    )
+    is_foil: bool = Field(description="If this specific card entry is foil.")
+    is_full_art: bool | None = Field(
+        default=None, description="If the card is full art."
+    )
+    is_funny: bool | None = Field(
+        default=None, description="If the card is from a funny set."
+    )
+    is_game_changer: bool | None = Field(
+        default=None, description="If the card changes the rules of the game."
+    )
+    is_online_only: bool | None = Field(
+        default=None, description="If the card is only available online."
+    )
+    is_oversized: bool | None = Field(
+        default=None, description="If the card is oversized."
+    )
+    is_promo: bool | None = Field(default=None, description="If the card is a promo.")
+    is_rebalanced: bool | None = Field(
+        default=None, description="If the card has been rebalanced."
+    )
+    is_reprint: bool | None = Field(
+        default=None, description="If the card is a reprint."
+    )
+    is_reserved: bool | None = Field(
+        default=None, description="If the card is on the Reserved List."
+    )
+    is_starter: bool | None = Field(
+        default=None, description="If the card is from a starter product."
+    )
+    is_story_spotlight: bool | None = Field(
+        default=None, description="If the card is a story spotlight."
+    )
+    is_textless: bool | None = Field(
+        default=None, description="If the card is textless."
+    )
+    is_timeshifted: bool | None = Field(
+        default=None, description="If the card is timeshifted."
+    )
+    keywords: List[str] = Field(
+        default_factory=list, description="Keywords on the card."
+    )
+    language: str = Field(description="The language of the card.")
+    layout: str = Field(description="The layout of the card.")
+    leadership_skills: MtgjsonLeadershipSkillsObject | None = Field(
+        default=None, description="Leadership skills."
+    )
+    legalities: MtgjsonLegalitiesObject = Field(
+        default_factory=MtgjsonLegalitiesObject, description="Legalities."
+    )
+    life: str | None = Field(default=None, description="Life modifier.")
+    loyalty: str | None = Field(default=None, description="Loyalty.")
+    mana_cost: str | None = Field(default=None, description="Mana cost.")
+    mana_value: float = Field(description="Mana value.")
+    name: str = Field(description="Card name.")
+    number: str = Field(description="Collector number.")
+    original_printings: List[str] = Field(
+        default_factory=list, description="Original printing set codes."
+    )
+    original_release_date: str | None = Field(
+        default=None, description="Original release date."
+    )
+    original_text: str | None = Field(default=None, description="Original rules text.")
+    original_type: str | None = Field(default=None, description="Original type line.")
+    other_face_ids: List[str] = Field(
+        default_factory=list, description="UUIDs of other faces."
+    )
+    power: str | None = Field(default=None, description="Power.")
+    printings: List[str] = Field(
+        default_factory=list, description="Set codes of printings."
+    )
+    promo_types: List[str] = Field(default_factory=list, description="Types of promo.")
+    purchase_urls: MtgjsonPurchaseUrlsObject = Field(
+        default_factory=MtgjsonPurchaseUrlsObject, description="Purchase URLs."
+    )
+    rarity: str = Field(description="Rarity.")
+    related_cards: MtgjsonRelatedCardsObject | None = Field(
+        default=None, description="Related cards."
+    )
+    rebalanced_printings: List[str] = Field(
+        default_factory=list, description="Sets where this was rebalanced."
+    )
+    rulings: List[MtgjsonRulingsObject] = Field(
+        default_factory=list, description="Rulings."
+    )
+    security_stamp: str | None = Field(default=None, description="Security stamp type.")
+    set_code: str = Field(description="Set code.")
+    side: str | None = Field(default=None, description="Side (a/b).")
+    signature: str | None = Field(default=None, description="Signature on the card.")
+    source_products: List[str] = Field(
+        default_factory=list, description="Products this card comes from."
+    )
+    subsets: List[str] = Field(default_factory=list, description="Subsets.")
+    subtypes: List[str] = Field(default_factory=list, description="Subtypes.")
+    supertypes: List[str] = Field(default_factory=list, description="Supertypes.")
+    text: str | None = Field(default=None, description="Rules text.")
+    toughness: str | None = Field(default=None, description="Toughness.")
+    type: str = Field(description="Full type line.")
+    types: List[str] = Field(default_factory=list, description="Types.")
+    uuid: str = Field(description="Unique identifier.")
+    variations: List[str] = Field(
+        default_factory=list, description="UUIDs of variations."
+    )
+    watermark: str | None = Field(default=None, description="Watermark.")
 
 
 class MtgjsonCardSetDeckObject(MtgjsonBaseModel):
-    count: int
-    is_foil: bool | None = None
-    uuid: str
+    """
+    Describes a card within a deck that is part of a set definition.
+    """
+
+    count: int = Field(description="Number of copies.")
+    is_foil: bool | None = Field(default=None, description="If the card is foil.")
+    uuid: str = Field(description="UUID of the card.")
 
 
 class MtgjsonCardSetObject(MtgjsonBaseModel):
-    artist: str | None = None
-    artist_ids: List[str] = Field(default_factory=list)
-    ascii_name: str | None = None
-    attraction_lights: List[int] | None = None
-    availability: List[str] = Field(default_factory=list)
-    booster_types: List[str] = Field(default_factory=list)
-    border_color: str
-    card_parts: List[str] = Field(default_factory=list)
-    color_identity: List[str] = Field(default_factory=list)
-    color_indicator: List[str] | None = None
-    colors: List[str] = Field(default_factory=list)
-    converted_mana_cost: float
-    defense: str | None = None
-    duel_deck: str | None = None
-    edhrec_rank: int | None = None
-    edhrec_saltiness: float | None = None
-    face_converted_mana_cost: float | None = None
-    face_flavor_name: str | None = None
-    face_mana_value: float | None = None
-    face_name: str | None = None
-    finishes: List[str] = Field(default_factory=list)
-    flavor_name: str | None = None
-    flavor_text: str | None = None
-    foreign_data: List[MtgjsonForeignDataObject] = Field(default_factory=list)
-    frame_effects: List[str] = Field(default_factory=list)
-    frame_version: str
-    hand: str | None = None
-    has_alternative_deck_limit: bool | None = None
-    has_content_warning: bool | None = None
-    has_foil: bool
-    has_non_foil: bool
-    identifiers: MtgjsonIdentifiersObject = Field(default_factory=MtgjsonIdentifiersObject)
-    is_alternative: bool | None = None
-    is_full_art: bool | None = None
-    is_funny: bool | None = None
-    is_game_changer: bool | None = None
-    is_online_only: bool | None = None
-    is_oversized: bool | None = None
-    is_promo: bool | None = None
-    is_rebalanced: bool | None = None
-    is_reprint: bool | None = None
-    is_reserved: bool | None = None
-    is_starter: bool | None = None
-    is_story_spotlight: bool | None = None
-    is_textless: bool | None = None
-    is_timeshifted: bool | None = None
-    keywords: List[str] = Field(default_factory=list)
-    language: str
-    layout: str
-    leadership_skills: MtgjsonLeadershipSkillsObject | None = None
-    legalities: MtgjsonLegalitiesObject = Field(default_factory=MtgjsonLegalitiesObject)
-    life: str | None = None
-    loyalty: str | None = None
-    mana_cost: str | None = None
-    mana_value: float
-    name: str
-    number: str
-    original_printings: List[str] = Field(default_factory=list)
-    original_release_date: str | None = None
-    original_text: str | None = None
-    original_type: str | None = None
-    other_face_ids: List[str] = Field(default_factory=list)
-    power: str | None = None
-    printings: List[str] = Field(default_factory=list)
-    promo_types: List[str] = Field(default_factory=list)
-    purchase_urls: MtgjsonPurchaseUrlsObject = Field(default_factory=MtgjsonPurchaseUrlsObject)
-    rarity: str
-    related_cards: MtgjsonRelatedCardsObject | None = None
-    rebalanced_printings: List[str] = Field(default_factory=list)
-    rulings: List[MtgjsonRulingsObject] = Field(default_factory=list)
-    security_stamp: str | None = None
-    set_code: str
-    side: str | None = None
-    signature: str | None = None
-    source_products: MtgjsonSourceProductsObject | None = None
-    subsets: List[str] = Field(default_factory=list)
-    subtypes: List[str] = Field(default_factory=list)
-    supertypes: List[str] = Field(default_factory=list)
-    text: str | None = None
-    toughness: str | None = None
-    type: str
-    types: List[str] = Field(default_factory=list)
-    uuid: str
-    variations: List[str] = Field(default_factory=list)
-    watermark: str | None = None
+    """
+    Card (Set) Data Model. Represents a specific printing of a card within a Set.
+    """
+
+    artist: str | None = Field(default=None, description="The artist of the card.")
+    artist_ids: List[str] = Field(
+        default_factory=list, description="The identifiers of the artist."
+    )
+    ascii_name: str | None = Field(
+        default=None, description="The ASCII name of the card."
+    )
+    attraction_lights: List[int] | None = Field(
+        default=None, description="The attraction lights lit on the card."
+    )
+    availability: List[str] = Field(
+        default_factory=list, description="Where the card is available."
+    )
+    booster_types: List[str] = Field(
+        default_factory=list, description="Types of boosters this card appears in."
+    )
+    border_color: str = Field(description="The color of the card border.")
+    card_parts: List[str] = Field(
+        default_factory=list, description="UUIDs of other parts of the card."
+    )
+    color_identity: List[str] = Field(
+        default_factory=list, description="The color identity of the card."
+    )
+    color_indicator: List[str] | None = Field(
+        default=None, description="The color indicator of the card."
+    )
+    colors: List[str] = Field(
+        default_factory=list, description="The colors of the card."
+    )
+    converted_mana_cost: float = Field(
+        description="The converted mana cost of the card."
+    )
+    defense: str | None = Field(default=None, description="The defense of the card.")
+    duel_deck: str | None = Field(
+        default=None, description="The duel deck code if applicable."
+    )
+    edhrec_rank: int | None = Field(default=None, description="The EDHREC rank.")
+    edhrec_saltiness: float | None = Field(
+        default=None, description="The EDHREC saltiness score."
+    )
+    face_converted_mana_cost: float | None = Field(
+        default=None, description="The converted mana cost of the face."
+    )
+    face_flavor_name: str | None = Field(
+        default=None, description="The flavor name on the face."
+    )
+    face_mana_value: float | None = Field(
+        default=None, description="The mana value of the face."
+    )
+    face_name: str | None = Field(default=None, description="The name on the face.")
+    finishes: List[str] = Field(
+        default_factory=list, description="The finishes available for this card."
+    )
+    flavor_name: str | None = Field(
+        default=None, description="The flavor name of the card."
+    )
+    flavor_text: str | None = Field(
+        default=None, description="The flavor text of the card."
+    )
+    foreign_data: List[MtgjsonForeignDataObject] = Field(
+        default_factory=list, description="Data for the card in other languages."
+    )
+    frame_effects: List[str] = Field(
+        default_factory=list, description="The frame effects on the card."
+    )
+    frame_version: str = Field(description="The version of the card frame.")
+    hand: str | None = Field(default=None, description="The hand modifier.")
+    has_alternative_deck_limit: bool | None = Field(
+        default=None, description="If the card allows more than 4 copies."
+    )
+    has_content_warning: bool | None = Field(
+        default=None, description="If the card has a content warning."
+    )
+    has_foil: bool = Field(description="If the card is available in foil.")
+    has_non_foil: bool = Field(description="If the card is available in non-foil.")
+    identifiers: MtgjsonIdentifiersObject = Field(
+        default_factory=MtgjsonIdentifiersObject,
+        description="Identifiers for the card.",
+    )
+    is_alternative: bool | None = Field(
+        default=None, description="If this is an alternative printing."
+    )
+    is_full_art: bool | None = Field(
+        default=None, description="If the card is full art."
+    )
+    is_funny: bool | None = Field(
+        default=None, description="If the card is from a funny set."
+    )
+    is_game_changer: bool | None = Field(
+        default=None, description="If the card changes the rules of the game."
+    )
+    is_online_only: bool | None = Field(
+        default=None, description="If the card is only available online."
+    )
+    is_oversized: bool | None = Field(
+        default=None, description="If the card is oversized."
+    )
+    is_promo: bool | None = Field(default=None, description="If the card is a promo.")
+    is_rebalanced: bool | None = Field(
+        default=None, description="If the card has been rebalanced."
+    )
+    is_reprint: bool | None = Field(
+        default=None, description="If the card is a reprint."
+    )
+    is_reserved: bool | None = Field(
+        default=None, description="If the card is on the Reserved List."
+    )
+    is_starter: bool | None = Field(
+        default=None, description="If the card is from a starter product."
+    )
+    is_story_spotlight: bool | None = Field(
+        default=None, description="If the card is a story spotlight."
+    )
+    is_textless: bool | None = Field(
+        default=None, description="If the card is textless."
+    )
+    is_timeshifted: bool | None = Field(
+        default=None, description="If the card is timeshifted."
+    )
+    keywords: List[str] = Field(
+        default_factory=list, description="Keywords on the card."
+    )
+    language: str = Field(description="The language of the card.")
+    layout: str = Field(description="The layout of the card.")
+    leadership_skills: MtgjsonLeadershipSkillsObject | None = Field(
+        default=None, description="Leadership skills."
+    )
+    legalities: MtgjsonLegalitiesObject = Field(
+        default_factory=MtgjsonLegalitiesObject, description="Legalities."
+    )
+    life: str | None = Field(default=None, description="Life modifier.")
+    loyalty: str | None = Field(default=None, description="Loyalty.")
+    mana_cost: str | None = Field(default=None, description="Mana cost.")
+    mana_value: float = Field(description="Mana value.")
+    name: str = Field(description="Card name.")
+    number: str = Field(description="Collector number.")
+    original_printings: List[str] = Field(
+        default_factory=list, description="Original printing set codes."
+    )
+    original_release_date: str | None = Field(
+        default=None, description="Original release date."
+    )
+    original_text: str | None = Field(default=None, description="Original rules text.")
+    original_type: str | None = Field(default=None, description="Original type line.")
+    other_face_ids: List[str] = Field(
+        default_factory=list, description="UUIDs of other faces."
+    )
+    power: str | None = Field(default=None, description="Power.")
+    printings: List[str] = Field(
+        default_factory=list, description="Set codes of printings."
+    )
+    promo_types: List[str] = Field(default_factory=list, description="Types of promo.")
+    purchase_urls: MtgjsonPurchaseUrlsObject = Field(
+        default_factory=MtgjsonPurchaseUrlsObject, description="Purchase URLs."
+    )
+    rarity: str = Field(description="Rarity.")
+    related_cards: MtgjsonRelatedCardsObject | None = Field(
+        default=None, description="Related cards."
+    )
+    rebalanced_printings: List[str] = Field(
+        default_factory=list, description="Sets where this was rebalanced."
+    )
+    rulings: List[MtgjsonRulingsObject] = Field(
+        default_factory=list, description="Rulings."
+    )
+    security_stamp: str | None = Field(default=None, description="Security stamp type.")
+    set_code: str = Field(description="Set code.")
+    side: str | None = Field(default=None, description="Side (a/b).")
+    signature: str | None = Field(default=None, description="Signature on the card.")
+    source_products: MtgjsonSourceProductsObject | None = Field(
+        default=None, description="Source products."
+    )
+    subsets: List[str] = Field(default_factory=list, description="Subsets.")
+    subtypes: List[str] = Field(default_factory=list, description="Subtypes.")
+    supertypes: List[str] = Field(default_factory=list, description="Supertypes.")
+    text: str | None = Field(default=None, description="Rules text.")
+    toughness: str | None = Field(default=None, description="Toughness.")
+    type: str = Field(description="Full type line.")
+    types: List[str] = Field(default_factory=list, description="Types.")
+    uuid: str = Field(description="Unique identifier.")
+    variations: List[str] = Field(
+        default_factory=list, description="UUIDs of variations."
+    )
+    watermark: str | None = Field(default=None, description="Watermark.")
 
 
 class MtgjsonCardTokenObject(MtgjsonBaseModel):
-    artist: str | None = None
-    artist_ids: List[str] = Field(default_factory=list)
-    ascii_name: str | None = None
-    availability: List[str] = Field(default_factory=list)
-    booster_types: List[str] = Field(default_factory=list)
-    border_color: str
-    card_parts: List[str] = Field(default_factory=list)
-    color_identity: List[str] = Field(default_factory=list)
-    color_indicator: List[str] | None = None
-    colors: List[str] = Field(default_factory=list)
-    edhrec_saltiness: float | None = None
-    face_name: str | None = None
-    face_flavor_name: str | None = None
-    finishes: List[str] = Field(default_factory=list)
-    flavor_name: str | None = None
-    flavor_text: str | None = None
-    frame_effects: List[str] = Field(default_factory=list)
-    frame_version: str
-    has_foil: bool
-    has_non_foil: bool
-    identifiers: MtgjsonIdentifiersObject = Field(default_factory=MtgjsonIdentifiersObject)
-    is_full_art: bool | None = None
-    is_funny: bool | None = None
-    is_online_only: bool | None = None
-    is_oversized: bool | None = None
-    is_promo: bool | None = None
-    is_reprint: bool | None = None
-    is_textless: bool | None = None
-    keywords: List[str] = Field(default_factory=list)
-    language: str
-    layout: str
-    loyalty: str | None = None
-    mana_cost: str | None = None
-    name: str
-    number: str
-    orientation: str | None = None
-    original_text: str | None = None
-    original_type: str | None = None
-    other_face_ids: List[str] = Field(default_factory=list)
-    power: str | None = None
-    promo_types: List[str] = Field(default_factory=list)
-    related_cards: MtgjsonRelatedCardsObject | None = None
-    reverse_related: List[str] = Field(default_factory=list)
-    security_stamp: str | None = None
-    set_code: str
-    side: str | None = None
-    signature: str | None = None
-    source_products: List[str] = Field(default_factory=list)
-    subsets: List[str] = Field(default_factory=list)
-    subtypes: List[str] = Field(default_factory=list)
-    supertypes: List[str] = Field(default_factory=list)
-    text: str | None = None
-    toughness: str | None = None
-    type: str
-    types: List[str] = Field(default_factory=list)
-    uuid: str
-    watermark: str | None = None
+    """
+    Card (Token) Data Model. Represents a token card.
+    """
 
+    artist: str | None = Field(default=None, description="The artist.")
+    artist_ids: List[str] = Field(
+        default_factory=list, description="Artist identifiers."
+    )
+    ascii_name: str | None = Field(default=None, description="ASCII name.")
+    availability: List[str] = Field(default_factory=list, description="Availability.")
+    booster_types: List[str] = Field(default_factory=list, description="Booster types.")
+    border_color: str = Field(description="Border color.")
+    card_parts: List[str] = Field(default_factory=list, description="Card parts.")
+    color_identity: List[str] = Field(
+        default_factory=list, description="Color identity."
+    )
+    color_indicator: List[str] | None = Field(
+        default=None, description="Color indicator."
+    )
+    colors: List[str] = Field(default_factory=list, description="Colors.")
+    edhrec_saltiness: float | None = Field(default=None, description="Saltiness score.")
+    face_name: str | None = Field(default=None, description="Face name.")
+    face_flavor_name: str | None = Field(default=None, description="Face flavor name.")
+    finishes: List[str] = Field(default_factory=list, description="Finishes.")
+    flavor_name: str | None = Field(default=None, description="Flavor name.")
+    flavor_text: str | None = Field(default=None, description="Flavor text.")
+    frame_effects: List[str] = Field(default_factory=list, description="Frame effects.")
+    frame_version: str = Field(description="Frame version.")
+    has_foil: bool = Field(description="Has foil.")
+    has_non_foil: bool = Field(description="Has non-foil.")
+    identifiers: MtgjsonIdentifiersObject = Field(
+        default_factory=MtgjsonIdentifiersObject, description="Identifiers."
+    )
+    is_full_art: bool | None = Field(default=None, description="Is full art.")
+    is_funny: bool | None = Field(default=None, description="Is funny.")
+    is_online_only: bool | None = Field(default=None, description="Is online only.")
+    is_oversized: bool | None = Field(default=None, description="Is oversized.")
+    is_promo: bool | None = Field(default=None, description="Is promo.")
+    is_reprint: bool | None = Field(default=None, description="Is reprint.")
+    is_textless: bool | None = Field(default=None, description="Is textless.")
+    keywords: List[str] = Field(default_factory=list, description="Keywords.")
+    language: str = Field(description="Language.")
+    layout: str = Field(description="Layout.")
+    loyalty: str | None = Field(default=None, description="Loyalty.")
+    mana_cost: str | None = Field(default=None, description="Mana cost.")
+    name: str = Field(description="Name.")
+    number: str = Field(description="Number.")
+    orientation: str | None = Field(default=None, description="Orientation.")
+    original_text: str | None = Field(default=None, description="Original text.")
+    original_type: str | None = Field(default=None, description="Original type.")
+    other_face_ids: List[str] = Field(
+        default_factory=list, description="Other face UUIDs."
+    )
+    power: str | None = Field(default=None, description="Power.")
+    promo_types: List[str] = Field(default_factory=list, description="Promo types.")
+    related_cards: MtgjsonRelatedCardsObject | None = Field(
+        default=None, description="Related cards."
+    )
+    reverse_related: List[str] = Field(
+        default_factory=list, description="Reverse related cards."
+    )
+    security_stamp: str | None = Field(default=None, description="Security stamp.")
+    set_code: str = Field(description="Set code.")
+    side: str | None = Field(default=None, description="Side.")
+    signature: str | None = Field(default=None, description="Signature.")
+    source_products: List[str] = Field(
+        default_factory=list, description="Source products."
+    )
+    subsets: List[str] = Field(default_factory=list, description="Subsets.")
+    subtypes: List[str] = Field(default_factory=list, description="Subtypes.")
+    supertypes: List[str] = Field(default_factory=list, description="Supertypes.")
+    text: str | None = Field(default=None, description="Text.")
+    toughness: str | None = Field(default=None, description="Toughness.")
+    type: str = Field(description="Type.")
+    types: List[str] = Field(default_factory=list, description="Types.")
+    uuid: str = Field(description="UUID.")
+    watermark: str | None = Field(default=None, description="Watermark.")
 
-# --- Decks ---
 
 class MtgjsonDeckObject(MtgjsonBaseModel):
-    code: str
-    commander: List[MtgjsonCardDeckObject] = Field(default_factory=list)
-    main_board: List[MtgjsonCardDeckObject] = Field(default_factory=list)
-    name: str
-    release_date: str | None = None
-    sealed_product_uuids: str
-    side_board: List[MtgjsonCardDeckObject] = Field(default_factory=list)
-    tokens: List[MtgjsonCardDeckObject] = Field(default_factory=list)
-    type: str
+    """
+    The Deck Data Model describes the properties of an individual Deck.
+    """
+
+    code: str = Field(description="The printing set code for the deck.")
+    commander: List[MtgjsonCardDeckObject] = Field(
+        default_factory=list, description="The card that is the Commander in this deck."
+    )
+    main_board: List[MtgjsonCardDeckObject] = Field(
+        default_factory=list, description="The cards in the main-board."
+    )
+    name: str = Field(description="The name of the deck.")
+    release_date: str | None = Field(
+        default=None, description="The release date in ISO 8601 format for the set."
+    )
+    sealed_product_uuids: str = Field(
+        description="A cross-reference identifier to determine which sealed products contain this deck."
+    )
+    side_board: List[MtgjsonCardDeckObject] = Field(
+        default_factory=list, description="The cards in the side-board."
+    )
+    tokens: List[MtgjsonCardDeckObject] = Field(
+        default_factory=list, description="The tokens included with the product."
+    )
+    type: str = Field(description="The type of deck.")
 
 
 class MtgjsonDeckListObject(MtgjsonBaseModel):
-    code: str
-    file_name: str
-    name: str
-    release_date: str | None = None
-    type: str
+    """
+    The Deck List Data Model describes the meta data properties of an individual Deck.
+    """
+
+    code: str = Field(description="The printing deck code for the deck.")
+    file_name: str = Field(description="The file name for the deck.")
+    name: str = Field(description="The name of the deck.")
+    release_date: str | None = Field(
+        default=None, description="The release date in ISO 8601 format for the set."
+    )
+    type: str = Field(description="The type of the deck.")
 
 
 class MtgjsonDeckSetObject(MtgjsonBaseModel):
-    code: str
-    commander: List[MtgjsonCardSetDeckObject] = Field(default_factory=list)
-    main_board: List[MtgjsonCardSetDeckObject] = Field(default_factory=list)
-    name: str
-    release_date: str | None = None
-    sealed_product_uuids: List[str] | None = None
-    side_board: List[MtgjsonCardSetDeckObject] = Field(default_factory=list)
-    type: str
+    """
+    The Deck (Set) Data Model describes the properties of an individual Deck within a Set.
+    """
 
+    code: str = Field(description="The printing set code for the deck.")
+    commander: List[MtgjsonCardSetDeckObject] = Field(
+        default_factory=list, description="The card that is the Commander in this deck."
+    )
+    main_board: List[MtgjsonCardSetDeckObject] = Field(
+        default_factory=list, description="The cards in the main-board."
+    )
+    name: str = Field(description="The name of the deck.")
+    release_date: str | None = Field(
+        default=None, description="The release date in ISO 8601 format for the set."
+    )
+    sealed_product_uuids: List[str] | None = Field(
+        default=None,
+        description="A list of UUIDs associated to this Deck in a Sealed Product.",
+    )
+    side_board: List[MtgjsonCardSetDeckObject] = Field(
+        default_factory=list, description="The cards in the side-board."
+    )
+    type: str = Field(description="The type of deck.")
 
-# --- Sets ---
 
 class MtgjsonSetObject(MtgjsonBaseModel):
-    base_set_size: int
-    block: str | None = None
-    booster: Dict[str, MtgjsonBoosterConfigObject] = Field(default_factory=dict)
-    cards: List[MtgjsonCardSetObject] = Field(default_factory=list)
-    cardsphere_set_id: int | None = None
-    code: str
-    code_v3: str | None = None
-    decks: List[MtgjsonDeckSetObject] = Field(default_factory=list)
-    is_foreign_only: bool | None = None
-    is_foil_only: bool
-    is_non_foil_only: bool | None = None
-    is_online_only: bool
-    is_paper_only: bool | None = None
-    is_partial_preview: bool | None = None
-    keyrune_code: str
-    languages: List[str] = Field(default_factory=list)
-    mcm_id: int | None = None
-    mcm_id_extras: int | None = None
-    mcm_name: str | None = None
-    mtgo_code: str | None = None
-    name: str
-    parent_code: str | None = None
-    release_date: str
-    sealed_product: List[MtgjsonSealedProductObject] = Field(default_factory=list)
-    tcgplayer_group_id: int | None = None
-    tokens: List[MtgjsonCardTokenObject] = Field(default_factory=list)
-    token_set_code: str | None = None
-    total_set_size: int
-    translations: MtgjsonTranslationsObject = Field(default_factory=MtgjsonTranslationsObject)
-    type: str
+    """
+    The Set Data Model describes the properties of an individual set.
+    """
+
+    base_set_size: int = Field(description="The number of cards in the set.")
+    block: str | None = Field(default=None, description="The block name the set is in.")
+    booster: Dict[str, MtgjsonBoosterConfigObject] = Field(
+        default_factory=dict,
+        description="A breakdown of possibilities and weights of cards in a booster pack.",
+    )
+    cards: List[MtgjsonCardSetObject] = Field(
+        default_factory=list, description="The list of cards in the set."
+    )
+    cardsphere_set_id: int | None = Field(
+        default=None, description="The Cardsphere set identifier."
+    )
+    code: str = Field(description="The printing set code for the set.")
+    code_v3: str | None = Field(
+        default=None,
+        description="The alternate printing set code Wizards of the Coast uses for a select few duel deck sets.",
+    )
+    decks: List[MtgjsonDeckSetObject] = Field(
+        default_factory=list, description="All decks associated to the set."
+    )
+    is_foreign_only: bool | None = Field(
+        default=None,
+        description="If the set is only available outside the United States of America.",
+    )
+    is_foil_only: bool = Field(description="If the set is only available in foil.")
+    is_non_foil_only: bool | None = Field(
+        default=None, description="If the set is only available in non-foil."
+    )
+    is_online_only: bool = Field(
+        description="If the set is only available in online game play variations."
+    )
+    is_paper_only: bool | None = Field(
+        default=None, description="If the set is only available in paper game play."
+    )
+    is_partial_preview: bool | None = Field(
+        default=None, description="If the set is still in preview (spoiled)."
+    )
+    keyrune_code: str = Field(
+        description="The matching Keyrune code for set image icons."
+    )
+    languages: List[str] = Field(
+        default_factory=list, description="The languages the set was printed in."
+    )
+    mcm_id: int | None = Field(
+        default=None, description="The Cardmarket set identifier."
+    )
+    mcm_id_extras: int | None = Field(
+        default=None, description="The split Cardmarket set identifier."
+    )
+    mcm_name: str | None = Field(default=None, description="The Cardmarket set name.")
+    mtgo_code: str | None = Field(
+        default=None,
+        description="The set code for the set as it appears on Magic: The Gathering Online.",
+    )
+    name: str = Field(description="The name of the set.")
+    parent_code: str | None = Field(
+        default=None, description="The parent printing set code for set variations."
+    )
+    release_date: str = Field(
+        description="The release date in ISO 8601 format for the set."
+    )
+    sealed_product: List[MtgjsonSealedProductObject] = Field(
+        default_factory=list, description="The sealed product information for the set."
+    )
+    tcgplayer_group_id: int | None = Field(
+        default=None, description="The group identifier of the set on TCGplayer."
+    )
+    tokens: List[MtgjsonCardTokenObject] = Field(
+        default_factory=list, description="The tokens cards in the set."
+    )
+    token_set_code: str | None = Field(
+        default=None, description="The tokens set code, formatted in uppercase."
+    )
+    total_set_size: int = Field(description="The total number of cards in the set.")
+    translations: MtgjsonTranslationsObject = Field(
+        default_factory=MtgjsonTranslationsObject,
+        description="The translated set name by language.",
+    )
+    type: str = Field(description="The expansion type of the set.")
 
 
 class MtgjsonSetListObject(MtgjsonBaseModel):
-    base_set_size: int
-    block: str | None = None
-    cardsphere_set_id: int | None = None
-    code: str
-    code_v3: str | None = None
-    decks: List[MtgjsonDeckSetObject] = Field(default_factory=list)
-    is_foreign_only: bool | None = None
-    is_foil_only: bool
-    is_non_foil_only: bool | None = None
-    is_online_only: bool
-    is_paper_only: bool | None = None
-    is_partial_preview: bool | None = None
-    keyrune_code: str
-    languages: List[str] = Field(default_factory=list)
-    mcm_id: int | None = None
-    mcm_id_extras: int | None = None
-    mcm_name: str | None = None
-    mtgo_code: str | None = None
-    name: str
-    parent_code: str | None = None
-    release_date: str
-    sealed_product: List[MtgjsonSealedProductObject] = Field(default_factory=list)
-    tcgplayer_group_id: int | None = None
-    total_set_size: int
-    token_set_code: str | None = None
-    translations: MtgjsonTranslationsObject = Field(default_factory=MtgjsonTranslationsObject)
-    type: str
+    """
+    The Set List Data Model describes the meta data properties of an individual Set.
+    """
 
-# Rebuild models to ensure all recursive references are resolved
+    base_set_size: int = Field(description="The number of cards in the set.")
+    block: str | None = Field(default=None, description="The block name the set is in.")
+    cardsphere_set_id: int | None = Field(
+        default=None, description="The Cardsphere set identifier."
+    )
+    code: str = Field(description="The printing set code for the set.")
+    code_v3: str | None = Field(
+        default=None,
+        description="The alternate printing set code Wizards of the Coast uses.",
+    )
+    decks: List[MtgjsonDeckSetObject] = Field(
+        default_factory=list, description="All decks associated to the set."
+    )
+    is_foreign_only: bool | None = Field(
+        default=None,
+        description="If the set is only available outside the United States of America.",
+    )
+    is_foil_only: bool = Field(description="If the set is only available in foil.")
+    is_non_foil_only: bool | None = Field(
+        default=None, description="If the set is only available in non-foil."
+    )
+    is_online_only: bool = Field(
+        description="If the set is only available in online game play variations."
+    )
+    is_paper_only: bool | None = Field(
+        default=None, description="If the set is only available in paper game play."
+    )
+    is_partial_preview: bool | None = Field(
+        default=None, description="If the set is still in preview (spoiled)."
+    )
+    keyrune_code: str = Field(
+        description="The matching Keyrune code for set image icons."
+    )
+    languages: List[str] = Field(
+        default_factory=list, description="The languages the set was printed in."
+    )
+    mcm_id: int | None = Field(
+        default=None, description="The Cardmarket set identifier."
+    )
+    mcm_id_extras: int | None = Field(
+        default=None, description="The split Cardmarket set identifier."
+    )
+    mcm_name: str | None = Field(default=None, description="The Cardmarket set name.")
+    mtgo_code: str | None = Field(
+        default=None,
+        description="The set code for the set as it appears on Magic: The Gathering Online.",
+    )
+    name: str = Field(description="The name of the set.")
+    parent_code: str | None = Field(
+        default=None, description="The parent printing set code for set variations."
+    )
+    release_date: str = Field(
+        description="The release date in ISO 8601 format for the set."
+    )
+    sealed_product: List[MtgjsonSealedProductObject] = Field(
+        default_factory=list, description="The sealed product information for the set."
+    )
+    tcgplayer_group_id: int | None = Field(
+        default=None, description="The group identifier of the set on TCGplayer."
+    )
+    total_set_size: int = Field(description="The total number of cards in the set.")
+    token_set_code: str | None = Field(
+        default=None, description="The tokens set code, formatted in uppercase."
+    )
+    translations: MtgjsonTranslationsObject = Field(
+        default_factory=MtgjsonTranslationsObject,
+        description="The translated set name by language.",
+    )
+    type: str = Field(description="The expansion type of the set.")
+
+
 MtgjsonSealedProductContentsObject.model_rebuild()
