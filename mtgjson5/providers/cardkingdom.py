@@ -1,20 +1,24 @@
 """
 Card Kingdom 3rd party provider
 """
+from __future__ import annotations
+
 
 import logging
 import pathlib
 import re
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 
 from singleton_decorator import singleton
 
 from .. import constants
-from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_entity_mapping
 
+if TYPE_CHECKING:
+    from ..models import MtgjsonPricesObject, MtgjsonSealedProductObject
+    
 LOGGER = logging.getLogger(__name__)
 
 
@@ -85,6 +89,7 @@ class CardKingdomProvider(AbstractProvider):
         Generate a single-day price structure for MTGO from CardHoarder
         :return MTGJSON prices single day structure
         """
+        from ..models import MtgjsonPricesObject
         request_api_response: Dict[str, Any] = self.download(self.api_url)
         price_data_rows = request_api_response.get("data", [])
 
@@ -134,7 +139,7 @@ class CardKingdomProvider(AbstractProvider):
         Card Kingdom ID.
         :param sealed_products: Sealed products within the set
         """
-
+        from ..models import MtgjsonSealedProductObject
         api_data = self.download(self.sealed_url)
 
         for product in sealed_products:

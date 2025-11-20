@@ -1,6 +1,8 @@
 """
 TCGPlayer 3rd party provider
 """
+from __future__ import annotations
+
 
 import copy
 import enum
@@ -9,12 +11,13 @@ import logging
 import pathlib
 import re
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, TYPE_CHECKING
 
 import requests
 from singleton_decorator import singleton
 
-from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
+if TYPE_CHECKING:
+    from ..models import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..mtgjson_config import MtgjsonConfig
 from ..parallel_call import parallel_call
 from ..providers.abstract import AbstractProvider
@@ -221,6 +224,7 @@ class TCGPlayerProvider(AbstractProvider):
         :param all_printings_path Path to AllPrintings.json for pre-processing
         :return: Prices to combine with others
         """
+        from ..models import MtgjsonPricesObject
         ids_and_names = self.get_tcgplayer_magic_set_ids()
         tcg_foil_and_non_foil_to_mtgjson_map = generate_entity_mapping(
             all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
@@ -273,12 +277,13 @@ class TCGPlayerProvider(AbstractProvider):
         TCGPlayer ID.
         :param sealed_products: Sealed products within the set
         """
+        from ..models import MtgjsonSealedProductObject
         for sealed_product in sealed_products:
             if sealed_product.identifiers.tcgplayer_product_id:
-                sealed_product.raw_purchase_urls[
-                    "tcgplayer"
-                ] = TCGPlayerProvider().product_url.format(
-                    sealed_product.identifiers.tcgplayer_product_id
+                sealed_product.raw_purchase_urls["tcgplayer"] = (
+                    TCGPlayerProvider().product_url.format(
+                        sealed_product.identifiers.tcgplayer_product_id
+                    )
                 )
 
     def get_tcgplayer_sku_data(
@@ -467,6 +472,7 @@ def get_tcgplayer_buylist_prices_map(
     :param tcg_etched_foil_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
     :return: returns a map of tcgplayer buylist data to card uuids
     """
+    from ..models import MtgjsonPricesObject
     LOGGER.debug(f"Tcgplayer Building buylist data for {group_id_and_name[1]}")
 
     results = TCGPlayerProvider().get_api_results(
@@ -531,6 +537,7 @@ def get_tcgplayer_prices_map(
     :param tcg_etched_foil_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
     :return: Cards with prices from Set ID & Name
     """
+    from ..models import MtgjsonPricesObject
     results = TCGPlayerProvider().get_api_results(
         f"https://api.tcgplayer.com/[API_VERSION]/pricing/group/{group_id_and_name[0]}"
     )
