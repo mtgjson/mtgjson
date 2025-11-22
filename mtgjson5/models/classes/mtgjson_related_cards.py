@@ -9,11 +9,17 @@ from ..mtgjson_base import MTGJsonModel
 
 class MtgjsonRelatedCardsObject(MTGJsonModel):
     """
-    MTGJSON Related Cards Container
+    The Related Cards Data Model describes the properties of a card that has relations to other cards.
     """
 
-    reverse_related: List[str] = Field(default_factory=list)
-    spellbook: List[str] = Field(default_factory=list)
+    reverse_related: List[str] = Field(
+        default_factory=list,
+        description="A list of card names associated to a card, such as 'meld' cards and token creation.",
+    )
+    spellbook: List[str] = Field(
+        default_factory=list,
+        description="A list of card names associated to a card's Spellbook mechanic.",
+    )
 
     def present(self) -> bool:
         """
