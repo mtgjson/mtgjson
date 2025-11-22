@@ -335,13 +335,13 @@ class MtgjsonCardObject(MTGJsonCardModel):
 
             cached_uuid = UuidCacheProvider().get_uuid(str(scryfall_id), side)
             if cached_uuid:
-                self.uuid = cached_uuid
+                object.__setattr__(self, "uuid", cached_uuid)
                 return self
         except ImportError:
             pass
 
         # Generate new v5 UUID
-        self.uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v5))
+        object.__setattr__(self, "uuid", str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v5)))
 
         return self
 
@@ -626,9 +626,10 @@ class MtgjsonCardObject(MTGJsonCardModel):
                 if word:
                     subtypes.append(word)
 
-        self.supertypes = supertypes
-        self.types = types
-        self.subtypes = subtypes
+        # Use object.__setattr__ to avoid triggering validate_assignment and infinite recursion
+        object.__setattr__(self, "supertypes", supertypes)
+        object.__setattr__(self, "types", types)
+        object.__setattr__(self, "subtypes", subtypes)
 
         return self
 
@@ -643,7 +644,7 @@ class MtgjsonCardObject(MTGJsonCardModel):
         games = getattr(self, "_games_temp", [])
 
         if not hasattr(self, "availability") or not self.availability:
-            self.availability = MtgjsonGameFormatsObject()
+            object.__setattr__(self, "availability", MtgjsonGameFormatsObject())
 
         # Arena availability
         self.availability.arena = "arena" in games or (
@@ -676,7 +677,9 @@ class MtgjsonCardObject(MTGJsonCardModel):
         # set_type_temp is passed from Scryfall data
         set_type = getattr(self, "_set_type_temp", "")
 
-        self.is_funny = set_type in {"funny"} and self.frame_version == "future"
+        object.__setattr__(
+            self, "is_funny", set_type in {"funny"} and self.frame_version == "future"
+        )
 
         return self
 
