@@ -2,24 +2,84 @@
 
 from typing import Any, Dict, Optional
 
+from pydantic import Field
+
 from ..mtgjson_base import MTGJsonModel
 
 
 class MtgjsonTranslationsObject(MTGJsonModel):
     """
-    MTGJSON Set.Translations Object
+    The Translations Data Model describes the properties of a Set or Set List's name translated in various alternate languages.
     """
 
-    chinese_simplified: Optional[str] = None
-    chinese_traditional: Optional[str] = None
-    french: Optional[str] = None
-    german: Optional[str] = None
-    italian: Optional[str] = None
-    japanese: Optional[str] = None
-    korean: Optional[str] = None
-    portuguese_ob_brazil_cb: Optional[str] = None
-    russian: Optional[str] = None
-    spanish: Optional[str] = None
+    ancient_greek: str | None = Field(
+        default=None,
+        alias="Ancient Greek",
+        description="The set name translation in Ancient Greek.",
+    )
+    arabic: str | None = Field(
+        default=None, alias="Arabic", description="The set name translation in Arabic."
+    )
+    chinese_simplified: str | None = Field(
+        default=None,
+        alias="Chinese Simplified",
+        description="The set name translation in Chinese Simplified.",
+    )
+    chinese_traditional: str | None = Field(
+        default=None,
+        alias="Chinese Traditional",
+        description="The set name translation in Chinese Traditional.",
+    )
+    french: str | None = Field(
+        default=None, alias="French", description="The set name translation in French."
+    )
+    german: str | None = Field(
+        default=None, alias="German", description="The set name translation in German."
+    )
+    hebrew: str | None = Field(
+        default=None, alias="Hebrew", description="The set name translation in Hebrew."
+    )
+    italian: str | None = Field(
+        default=None,
+        alias="Italian",
+        description="The set name translation in Italian.",
+    )
+    japanese: str | None = Field(
+        default=None,
+        alias="Japanese",
+        description="The set name translation in Japanese.",
+    )
+    korean: str | None = Field(
+        default=None, alias="Korean", description="The set name translation in Korean."
+    )
+    latin: str | None = Field(
+        default=None, alias="Latin", description="The set name translation in Latin."
+    )
+    phyrexian: str | None = Field(
+        default=None,
+        alias="Phyrexian",
+        description="The set name translation in Phyrexian.",
+    )
+    portuguese_brazil: str | None = Field(
+        default=None,
+        alias="Portuguese (Brazil)",
+        description="The set name translation in Portuguese (Brazil).",
+    )
+    russian: str | None = Field(
+        default=None,
+        alias="Russian",
+        description="The set name translation in Russian.",
+    )
+    sanskrit: str | None = Field(
+        default=None,
+        alias="Sanskrit",
+        description="The set name translation in Sanskrit.",
+    )
+    spanish: str | None = Field(
+        default=None,
+        alias="Spanish",
+        description="The set name translation in Spanish.",
+    )
 
     def __init__(
         self, active_dict: Optional[Dict[str, str]] = None, **data: Any
@@ -31,15 +91,21 @@ class MtgjsonTranslationsObject(MTGJsonModel):
         if active_dict:
             data.update(
                 {
+                    "ancient_greek": active_dict.get("Ancient Greek"),
+                    "arabic": active_dict.get("Arabic"),
                     "chinese_simplified": active_dict.get("Chinese Simplified"),
                     "chinese_traditional": active_dict.get("Chinese Traditional"),
                     "french": active_dict.get("French", active_dict.get("fr")),
                     "german": active_dict.get("German", active_dict.get("de")),
+                    "hebrew": active_dict.get("Hebrew"),
                     "italian": active_dict.get("Italian", active_dict.get("it")),
                     "japanese": active_dict.get("Japanese"),
                     "korean": active_dict.get("Korean"),
-                    "portuguese_ob_brazil_cb": active_dict.get("Portuguese (Brazil)"),
+                    "latin": active_dict.get("Latin"),
+                    "phyrexian": active_dict.get("Phyrexian"),
+                    "portuguese_brazil": active_dict.get("Portuguese (Brazil)"),
                     "russian": active_dict.get("Russian"),
+                    "sanskrit": active_dict.get("Sanskrit"),
                     "spanish": active_dict.get("Spanish", active_dict.get("es")),
                 }
             )
