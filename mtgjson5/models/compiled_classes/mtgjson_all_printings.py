@@ -2,7 +2,7 @@
 
 import json
 import pathlib
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import Field
 
@@ -16,10 +16,13 @@ MtgjsonConfig = mtgjson_config.MtgjsonConfig
 
 class MtgjsonAllPrintingsObject(MTGJsonCompiledModel):
     """
-    MTGJSON AllPrintings Object
+    The AllPrintings compiled output containing all Set objects indexed by set code.
     """
 
-    all_sets_dict: Dict[str, MtgjsonSetObject] = Field(default_factory=dict)
+    all_sets_dict: dict[str, MtgjsonSetObject] = Field(
+        default_factory=dict,
+        description="A dictionary mapping set codes to their complete Set objects.",
+    )
 
     def __init__(self, **data: Any) -> None:
         """
@@ -33,8 +36,8 @@ class MtgjsonAllPrintingsObject(MTGJsonCompiledModel):
             self.iterate_all_sets(files_to_build)
 
     def get_set_contents(
-        self, sets: Optional[List[str]] = None
-    ) -> Dict[str, MtgjsonSetObject]:
+        self, sets: list[str] | None = None
+    ) -> dict[str, MtgjsonSetObject]:
         """
         Give the contents of certain sets. Empty for all sets.
         :param sets: Sets to get. Empty for all sets.
@@ -50,7 +53,7 @@ class MtgjsonAllPrintingsObject(MTGJsonCompiledModel):
         return self.all_sets_dict
 
     @staticmethod
-    def get_files_to_build(files_to_ignore: List[str]) -> List[pathlib.Path]:
+    def get_files_to_build(files_to_ignore: list[str]) -> list[pathlib.Path]:
         """
         Determine what file(s) to include in the build
         :param files_to_ignore: Files to exclude
@@ -62,7 +65,7 @@ class MtgjsonAllPrintingsObject(MTGJsonCompiledModel):
             if file_path.stem not in files_to_ignore
         ]
 
-    def iterate_all_sets(self, files_to_build: List[pathlib.Path]) -> None:
+    def iterate_all_sets(self, files_to_build: list[pathlib.Path]) -> None:
         """
         Iterate and all all MTGJSON sets to the dictionary
         indexed by file name
@@ -79,7 +82,7 @@ class MtgjsonAllPrintingsObject(MTGJsonCompiledModel):
 
             self.all_sets_dict[set_code] = file_content.get("data", {})
 
-    def to_json(self) -> Dict[str, MtgjsonSetObject]:
+    def to_json(self) -> dict[str, MtgjsonSetObject]:
         """
         Support json.dump()
         :return: JSON serialized object
