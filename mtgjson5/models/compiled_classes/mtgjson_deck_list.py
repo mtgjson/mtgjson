@@ -1,6 +1,6 @@
 """MTGJSON Deck List compiled model for pre-constructed deck collection."""
 
-from typing import Any, List, Optional
+from typing import Any
 
 from pydantic import Field
 
@@ -10,13 +10,16 @@ from ..mtgjson_base import MTGJsonModel
 
 class MtgjsonDeckListObject(MTGJsonModel):
     """
-    MTGJSON DeckList Object
+    The Deck List compiled output containing metadata for all pre-constructed decks.
     """
 
-    decks: List[MtgjsonDeckHeaderObject] = Field(default_factory=list)
+    decks: list[MtgjsonDeckHeaderObject] = Field(
+        default_factory=list,
+        description="A list of deck header objects containing metadata about each deck.",
+    )
 
     def __init__(
-        self, deck_headers: Optional[List[MtgjsonDeckHeaderObject]] = None, **data: Any
+        self, deck_headers: list[MtgjsonDeckHeaderObject] | None = None, **data: Any
     ) -> None:
         """
         Initialize deck list
@@ -26,7 +29,7 @@ class MtgjsonDeckListObject(MTGJsonModel):
             data["decks"] = deck_headers
         super().__init__(**data)
 
-    def to_json(self) -> List[MtgjsonDeckHeaderObject]:
+    def to_json(self) -> list[MtgjsonDeckHeaderObject]:
         """
         Support json.dump()
         :return: JSON serialized object (list of deck headers)
