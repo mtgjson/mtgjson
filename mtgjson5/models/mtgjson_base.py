@@ -1,40 +1,22 @@
 """Base Pydantic models for MTGJSON object serialization and deserialization."""
 
-import datetime
 import re
-from typing import Any, ClassVar, Set
+import datetime
+from typing import Any, Callable, ClassVar, Dict, Set
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    SerializerFunctionWrapHandler,
-    computed_field,
-    field_serializer,
-    model_serializer,
-)
-from pydantic.alias_generators import to_camel
 from pydantic_core import core_schema
-
-from mtgjson5.models.schema import MtgjsonIdentifiersObject
+from pydantic.alias_generators import to_camel
+from pydantic import (field_serializer, computed_field,
+    BaseModel, ConfigDict, Field, model_serializer
+)
 
 _CAMEL_TO_SNAKE_1 = re.compile(r"(.)([A-Z][a-z]+)")
 _CAMEL_TO_SNAKE_2 = re.compile(r"([a-z0-9])([A-Z])")
 
-
-class MTGJsonBaseModel(BaseModel):
-    """Base model for all MTGJSON objects with custom serialization."""
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        extra="forbid",
-        use_enum_values=True,
-        validate_assignment=True,
-        validate_default=False,
-        revalidate_instances="never",
-        from_attributes=True,
-    )
+class MTGJsonModel(BaseModel):
+    """
+    Base for all MTGJSON models with custom serialization logic.
+    """
 
     @field_serializer("*", when_used="json", check_fields=False)
     def serialize_dates_and_sets(self, value: Any) -> Any:
@@ -52,9 +34,9 @@ class MTGJsonBaseModel(BaseModel):
     @model_serializer(mode="wrap")
     def serialize_model(
         self,
-        serializer: SerializerFunctionWrapHandler,
+        serializer: Callable[[Any], Dict[str, Any]],
         _info: core_schema.SerializationInfo,
-    ) -> Any:
+    ) -> Dict[str, Any]:
         """Custom serialization respecting build_keys_to_skip()."""
         data = serializer(self)
         skip_keys = self.build_keys_to_skip()
@@ -77,19 +59,26 @@ class MTGJsonBaseModel(BaseModel):
         s1 = _CAMEL_TO_SNAKE_1.sub(r"\1_\2", camel_str)
         return _CAMEL_TO_SNAKE_2.sub(r"\1_\2", s1).lower()
 
-    def to_json(self) -> Any:
+    def to_json(self) -> Dict[str, Any]:
         """Backward compatibility with existing to_json() calls."""
         return self.model_dump(by_alias=True, exclude_none=True, mode="json")
 
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        extra='ignore',
+        use_enum_values=True,
+        validate_assignment=True,
+        validate_default=False,
+        revalidate_instances="never",
+        from_attributes=True,
+    )
 
-class MTGJsonModel(MTGJsonBaseModel):
-    """Base for simple models that don't need special behavior."""
+class MTGJsonCardBase(MTGJsonModel):
+    """
+    Extended Base for all MTGJSON Card models with dynamic field exclusion.
+    """
 
-
-class MTGJsonCardModel(MTGJsonBaseModel):
-    """Base for card objects with special exclusion rules."""
-
-    # Card-specific configuration
     _allow_if_falsey: ClassVar[Set[str]] = {
         "supertypes",
         "types",
@@ -165,11 +154,6 @@ class MTGJsonCardModel(MTGJsonBaseModel):
 
     uuid: str = Field(default="", exclude=False)
     is_token: bool = Field(default=False, exclude=True)
-    identifiers: MtgjsonIdentifiersObject = Field(
-        default_factory=MtgjsonIdentifiersObject,
-        description="Identifiers for the card.",
-        alias="identifiers",
-    )
 
     def build_keys_to_skip(self) -> Set[str]:
         """Dynamic field exclusion for cards."""
@@ -184,10 +168,19 @@ class MTGJsonCardModel(MTGJsonBaseModel):
                 excluded_keys.add(field_name)
 
         return excluded_keys
-
-
-class MTGJsonSetModel(MTGJsonBaseModel):
-    """Base for set objects."""
+    
+    def to_json(self) -> Dict[str, Any]:
+        """
+        Custom JSON serialization that filters out empty values
+        :return: JSON object
+        """
+        skip_keys = self.build_keys_to_skip()
+        return self.model_dump(by_alias=True, exclude=skip_keys, exclude_none=True, mode="json")
+        
+class MTGJsonSetModel(MTGJsonModel):
+    """
+    Extended Base for all MTGJSON Set models with custom Windows-safe set code.
+    """
 
     _BAD_FILE_NAMES: ClassVar[Set[str]] = {"CON", "PRN", "AUX", "NUL", "COM1", "LPT1"}
 
@@ -213,23 +206,3 @@ class MTGJsonSetModel(MTGJsonBaseModel):
         Kept for backward compatibility.
         """
         return self.windows_set_code
-
-
-class MTGJsonCompiledModel(MTGJsonBaseModel):
-    """Base for compiled output objects."""
-
-
-class ConditionalFieldModel(MTGJsonBaseModel):
-    """Extended base for conditional field inclusion/exclusion."""
-
-    _allow_if_falsey: ClassVar[Set[str]] = set()
-
-    def build_keys_to_skip(self) -> Set[str]:
-        """Skip falsey fields unless in _allow_if_falsey."""
-        excluded_keys = super().build_keys_to_skip()
-
-        for field_name, field_value in self.__dict__.items():
-            if not field_value and field_name not in self._allow_if_falsey:
-                excluded_keys.add(field_name)
-
-        return excluded_keys
