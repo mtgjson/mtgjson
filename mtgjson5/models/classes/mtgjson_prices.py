@@ -1,3 +1,5 @@
+"""MTGJSON Prices Object model for card pricing data from vendors."""
+
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -9,57 +11,16 @@ class MtgjsonPricesObject(MTGJsonModel):
     MTGJSON Singular Prices.Card Object
     """
 
-    source: str
-    provider: str
-    date: str
-    currency: str
+    source: str = ""
+    provider: str = ""
+    date: str = ""
+    currency: str = ""
     buy_normal: Optional[float] = None
     buy_foil: Optional[float] = None
     buy_etched: Optional[float] = None
     sell_normal: Optional[float] = None
     sell_foil: Optional[float] = None
     sell_etched: Optional[float] = None
-
-    def __init__(
-        self,
-        source: str,
-        provider: str,
-        date: str,
-        currency: str,
-        buy_normal: Optional[float] = None,
-        buy_foil: Optional[float] = None,
-        buy_etched: Optional[float] = None,
-        sell_normal: Optional[float] = None,
-        sell_foil: Optional[float] = None,
-        sell_etched: Optional[float] = None,
-        **data
-    ):
-        """
-        Initializer for Pricing Container
-        :param source: Price source
-        :param provider: Price provider
-        :param date: Price date
-        :param currency: Currency code
-        :param buy_normal: Buy price for normal
-        :param buy_foil: Buy price for foil
-        :param buy_etched: Buy price for etched
-        :param sell_normal: Sell price for normal
-        :param sell_foil: Sell price for foil
-        :param sell_etched: Sell price for etched
-        """
-        super().__init__(
-            source=source,
-            provider=provider,
-            date=date,
-            currency=currency,
-            buy_normal=buy_normal,
-            buy_foil=buy_foil,
-            buy_etched=buy_etched,
-            sell_normal=sell_normal,
-            sell_foil=sell_foil,
-            sell_etched=sell_etched,
-            **data
-        )
 
     def items(self) -> List[Tuple[str, Optional[float]]]:
         """

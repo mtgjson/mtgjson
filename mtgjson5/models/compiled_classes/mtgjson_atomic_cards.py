@@ -1,12 +1,15 @@
-from typing import Any, Dict, List, Optional
-from pydantic import Field
-from collections import defaultdict
+"""MTGJSON Atomic Cards compiled model for unique card data across printings."""
+
 import json
 import re
+from collections import defaultdict
+from typing import Any, Dict, List, Optional
+
+from pydantic import Field
 
 from ... import mtgjson_config, utils
-from ..mtgjson_base import MTGJsonCompiledModel
 from ...models.classes.mtgjson_card import MtgjsonCardObject
+from ..mtgjson_base import MTGJsonCompiledModel
 from .mtgjson_structures import MtgjsonStructuresObject
 
 MtgjsonConfig = mtgjson_config.MtgjsonConfig
@@ -21,7 +24,9 @@ class MtgjsonAtomicCardsObject(MTGJsonCompiledModel):
     atomic_cards_dict: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
     __name_regex = re.compile(r"^([^\n]+) \([a-z]\)$")
 
-    def __init__(self, cards_to_parse: Optional[List[Dict[str, Any]]] = None, **kwargs) -> None:
+    def __init__(
+        self, cards_to_parse: Optional[List[Dict[str, Any]]] = None, **kwargs: Any
+    ) -> None:
         """
         Initializer to build up the object
         """

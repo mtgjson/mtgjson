@@ -1,3 +1,5 @@
+"""MTGJSON Leadership Skills Object model for commander eligibility."""
+
 from ..mtgjson_base import MTGJsonModel
 
 
@@ -9,12 +11,3 @@ class MtgjsonLeadershipSkillsObject(MTGJsonModel):
     brawl: bool
     commander: bool
     oathbreaker: bool
-
-    def __init__(self, brawl: bool, commander: bool, oathbreaker: bool, **data):
-        """
-        Initialize leadership skills
-        :param brawl: Brawl legal
-        :param commander: Commander legal
-        :param oathbreaker: Oathbreaker legal
-        """
-        super().__init__(brawl=brawl, commander=commander, oathbreaker=oathbreaker, **data)

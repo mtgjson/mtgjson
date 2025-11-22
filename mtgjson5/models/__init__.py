@@ -1,23 +1,11 @@
-from __future__ import annotations
+"""MTGJSON models package - Pydantic models for MTG card data structures."""
 
-from .compiled_classes import (
-    MtgjsonAllIdentifiersObject,
-    MtgjsonAllPrintingsObject,
-    MtgjsonAtomicCardsObject,
-    MtgjsonCardTypesObject,
-    MtgjsonCompiledListObject,
-    MtgjsonDeckListObject,
-    MtgjsonEnumValuesObject,
-    MtgjsonKeywordsObject,
-    MtgjsonSetListObject,
-    MtgjsonStructuresObject,
-    MtgjsonTcgplayerSkusObject
-)
+from __future__ import annotations
 
 from .classes import (
     MtgjsonCardObject,
-    MtgjsonDeckObject,
     MtgjsonDeckHeaderObject,
+    MtgjsonDeckObject,
     MtgjsonForeignDataObject,
     MtgjsonGameFormatsObject,
     MtgjsonIdentifiersObject,
@@ -32,5 +20,18 @@ from .classes import (
     MtgjsonSealedProductObject,
     MtgjsonSealedProductSubtype,
     MtgjsonSetObject,
-    MtgjsonTranslationsObject
+    MtgjsonTranslationsObject,
+)
+from .compiled_classes import (
+    MtgjsonAllIdentifiersObject,
+    MtgjsonAllPrintingsObject,
+    MtgjsonAtomicCardsObject,
+    MtgjsonCardTypesObject,
+    MtgjsonCompiledListObject,
+    MtgjsonDeckListObject,
+    MtgjsonEnumValuesObject,
+    MtgjsonKeywordsObject,
+    MtgjsonSetListObject,
+    MtgjsonStructuresObject,
+    MtgjsonTcgplayerSkusObject,
 )

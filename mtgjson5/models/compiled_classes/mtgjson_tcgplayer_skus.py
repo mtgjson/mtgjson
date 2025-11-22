@@ -1,8 +1,11 @@
-from typing import DefaultDict, Dict, List, Set, Union
-from pydantic import Field
+"""MTGJSON TCGPlayer SKUs compiled model for product identifiers."""
+
 import logging
 import pathlib
 from collections import defaultdict
+from typing import Any, DefaultDict, Dict, List, Set, Union
+
+from pydantic import Field
 
 from ... import providers, utils
 from ..mtgjson_base import MTGJsonCompiledModel
@@ -13,16 +16,21 @@ generate_entity_mapping = utils.generate_entity_mapping
 LOGGER = logging.getLogger(__name__)
 
 
+def _default_sku_dict() -> DefaultDict[str, List[Dict[str, Union[int, str]]]]:
+    """Factory for creating typed defaultdict."""
+    return defaultdict(list)
+
+
 class MtgjsonTcgplayerSkusObject(MTGJsonCompiledModel):
     """
     MTGJSON TcgplayerSkus Object
     """
 
     enhanced_tcgplayer_skus: DefaultDict[str, List[Dict[str, Union[int, str]]]] = Field(
-        default_factory=lambda: defaultdict(list)
+        default_factory=_default_sku_dict
     )
 
-    def __init__(self, all_printings_path: pathlib.Path, **kwargs) -> None:
+    def __init__(self, all_printings_path: pathlib.Path, **kwargs: Any) -> None:
         """
         Initializer to build up the object
         :param all_printings_path: Path to AllPrintings file

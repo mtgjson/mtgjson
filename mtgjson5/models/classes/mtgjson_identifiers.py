@@ -1,3 +1,5 @@
+"""MTGJSON Identifiers Object model for cross-platform card identifiers."""
+
 from typing import Dict, Optional
 
 from ..mtgjson_base import MTGJsonModel
@@ -9,7 +11,7 @@ class MtgjsonIdentifiersObject(MTGJsonModel):
     """
 
     # Fields with empty string defaults (initialized in parent __init__)
-    multiverse_id: str = ""
+    multiverse_id: Optional[str] = None
     card_kingdom_id: str = ""
     tcgplayer_product_id: str = ""
 

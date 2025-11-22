@@ -1,5 +1,7 @@
+"""MTGJSON Meta Object model for build and version metadata."""
+
 import datetime
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from ... import constants
 from ...mtgjson_config import MtgjsonConfig
@@ -11,15 +13,15 @@ class MtgjsonMetaObject(MTGJsonModel):
     MTGJSON Meta Object
     """
 
-    date: str
-    version: str
+    date: str = ""
+    version: str = ""
 
     def __init__(
         self,
         date: Union[str, datetime.datetime, None] = None,
-        version: str = None,
-        **data
-    ):
+        version: Optional[str] = None,
+        **data: Any
+    ) -> None:
         """
         Initialize meta object with date and version
         :param date: Build date (string or datetime)
@@ -35,7 +37,9 @@ class MtgjsonMetaObject(MTGJsonModel):
         if version is None:
             version = MtgjsonConfig().mtgjson_version
 
-        super().__init__(date=date, version=version, **data)
+        super().__init__(**data)
+        self.date = date
+        self.version = version
 
     def to_json(self) -> Dict[str, Any]:
         """

@@ -1,3 +1,5 @@
+"""MTGJSON All Printings compiled model for complete set collection."""
+
 import json
 import pathlib
 from typing import Any, Dict, List, Optional
@@ -6,11 +8,11 @@ from pydantic import Field
 
 from ... import mtgjson_config
 from ...models.classes.mtgjson_set import MtgjsonSetObject
-
 from ..mtgjson_base import MTGJsonCompiledModel
 from .mtgjson_structures import MtgjsonStructuresObject
 
 MtgjsonConfig = mtgjson_config.MtgjsonConfig
+
 
 class MtgjsonAllPrintingsObject(MTGJsonCompiledModel):
     """

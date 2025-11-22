@@ -1,4 +1,7 @@
-from typing import List
+"""MTGJSON Related Cards Object model for card relationships and references."""
+
+from typing import List, Set
+
 from pydantic import Field
 
 from ..mtgjson_base import MTGJsonModel
@@ -19,14 +22,14 @@ class MtgjsonRelatedCardsObject(MTGJsonModel):
         """
         return bool(self.reverse_related or self.spellbook)
 
-    def build_keys_to_skip(self) -> List[str]:
+    def build_keys_to_skip(self) -> Set[str]:
         """
         Build keys to skip in JSON output
-        :return: List of keys to skip
+        :return: Set of keys to skip
         """
-        keys_to_skip = []
+        keys_to_skip: Set[str] = set()
         if not self.reverse_related:
-            keys_to_skip.append("reverse_related")
+            keys_to_skip.add("reverse_related")
         if not self.spellbook:
-            keys_to_skip.append("spellbook")
+            keys_to_skip.add("spellbook")
         return keys_to_skip

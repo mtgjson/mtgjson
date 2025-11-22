@@ -1,12 +1,13 @@
 """
 CardHoarder 3rd party provider
 """
+
 from __future__ import annotations
 
 import logging
 import pathlib
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
 
 from singleton_decorator import singleton
 
@@ -151,10 +152,14 @@ class CardHoarderProvider(AbstractProvider):
         :param cards: Cards to iterate
         """
         from ..models import MtgjsonPricesObject
+
         for key, value in cards.items():
             if key not in semi_completed_data.keys():
                 semi_completed_data[key] = MtgjsonPricesObject(
-                    "mtgo", "cardhoarder", self.today_date, "USD"
+                    source="mtgo",
+                    provider="cardhoarder",
+                    date=self.today_date,
+                    currency="USD",
                 )
 
             if is_mtgo_normal:

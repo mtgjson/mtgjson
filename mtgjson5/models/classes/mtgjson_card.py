@@ -1,5 +1,7 @@
+"""MTGJSON Card Object model for individual MTG card data."""
+
 import json
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, ClassVar, Dict, List, Optional, Set
 
 from pydantic import Field, PrivateAttr
 
@@ -22,7 +24,7 @@ class MtgjsonCardObject(MTGJsonCardModel):
     """
 
     # Configure field exclusion rules (class variables)
-    _allow_if_falsey: Set[str] = {
+    _allow_if_falsey: ClassVar[Set[str]] = {
         "supertypes",
         "types",
         "subtypes",
@@ -37,7 +39,7 @@ class MtgjsonCardObject(MTGJsonCardModel):
         "foreign_data",
         "reverse_related",
     }
-    _exclude_for_tokens: Set[str] = {
+    _exclude_for_tokens: ClassVar[Set[str]] = {
         "rulings",
         "rarity",
         "prices",
@@ -49,7 +51,9 @@ class MtgjsonCardObject(MTGJsonCardModel):
         "legalities",
         "leadership_skills",
     }
-    _exclude_for_cards: Set[str] = {"reverse_related"}
+    _exclude_for_cards: ClassVar[Set[str]] = {"reverse_related"}
+
+    # Atomic keys list for cards that don't change between printings
     _atomic_keys: List[str] = [
         "ascii_name",
         "color_identity",
@@ -104,7 +108,9 @@ class MtgjsonCardObject(MTGJsonCardModel):
     foreign_data: List[MtgjsonForeignDataObject] = Field(default_factory=list)
     frame_effects: List[str] = Field(default_factory=list)
     frame_version: str = ""
-    identifiers: MtgjsonIdentifiersObject = Field(default_factory=MtgjsonIdentifiersObject)
+    identifiers: MtgjsonIdentifiersObject = Field(
+        default_factory=MtgjsonIdentifiersObject
+    )
     keywords: List[str] = Field(default_factory=list)
     language: str = ""
     layout: str = ""
@@ -116,7 +122,9 @@ class MtgjsonCardObject(MTGJsonCardModel):
     power: str = ""
     printings: List[str] = Field(default_factory=list)
     promo_types: List[str] = Field(default_factory=list)
-    purchase_urls: MtgjsonPurchaseUrlsObject = Field(default_factory=MtgjsonPurchaseUrlsObject)
+    purchase_urls: MtgjsonPurchaseUrlsObject = Field(
+        default_factory=MtgjsonPurchaseUrlsObject
+    )
     rarity: str = ""
     rebalanced_printings: List[str] = Field(default_factory=list)
     subtypes: List[str] = Field(default_factory=list)
@@ -129,7 +137,9 @@ class MtgjsonCardObject(MTGJsonCardModel):
     variations: List[str] = Field(default_factory=list)
 
     # Fields that require complex types with defaults
-    availability: MtgjsonGameFormatsObject = Field(default_factory=MtgjsonGameFormatsObject)
+    availability: MtgjsonGameFormatsObject = Field(
+        default_factory=MtgjsonGameFormatsObject
+    )
     booster_types: List[str] = Field(default_factory=list)
     card_parts: List[str] = Field(default_factory=list)
     color_identity: List[str] = Field(default_factory=list)
@@ -192,6 +202,11 @@ class MtgjsonCardObject(MTGJsonCardModel):
     source_products: Optional[Dict[str, List[str]]] = None
     subsets: Optional[List[str]] = None
     watermark: Optional[str] = None
+    printed_name: Optional[str] = None
+    printed_type: Optional[str] = None
+    printed_text: Optional[str] = None
+    face_printed_name: Optional[str] = None
+    is_etched: Optional[bool] = None
 
     # Private fields (excluded from serialization)
     _names: Optional[List[str]] = PrivateAttr(default=None)
@@ -338,7 +353,7 @@ class MtgjsonCardObject(MTGJsonCardModel):
         """
         return self._atomic_keys
 
-    def build_keys_to_skip(self) -> Iterable[str]:
+    def build_keys_to_skip(self) -> Set[str]:
         """
         Build this object's instance of what keys to skip under certain circumstances
         :return: What keys to skip over

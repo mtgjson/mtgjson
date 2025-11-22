@@ -1,8 +1,8 @@
 """
 UUID Cache Provider for MTGJSONv5 Legacy UUIDs
 """
-from __future__ import annotations
 
+from __future__ import annotations
 
 import json
 import logging

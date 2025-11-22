@@ -2,7 +2,7 @@ import copy
 import logging
 import pathlib
 from collections import defaultdict
-from typing import Any, Dict, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 from singleton_decorator import singleton
 
@@ -58,6 +58,7 @@ class ManapoolPricesProvider(AbstractProvider):
         :return MTGJSON prices single day structure
         """
         from ...models import MtgjsonPricesObject
+
         LOGGER.info("Building Manapool retail data")
 
         scryfall_id_to_mtgjson_id = generate_entity_mapping(
@@ -65,7 +66,7 @@ class ManapoolPricesProvider(AbstractProvider):
         )
 
         default_prices_obj = MtgjsonPricesObject(
-            "paper", "manapool", self.today_date, "USD"
+            source="paper", provider="manapool", date=self.today_date, currency="USD"
         )
 
         final_data = {}

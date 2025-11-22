@@ -1,10 +1,11 @@
 """
 Sealed Products via GitHub 3rd party provider
 """
+
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from singleton_decorator import singleton
 
@@ -13,7 +14,11 @@ from ...providers.abstract import AbstractProvider
 from ...utils import to_snake_case
 
 if TYPE_CHECKING:
-    from ...models import MtgjsonSealedProductCategory, MtgjsonSealedProductObject, MtgjsonSealedProductSubtype
+    from ...models import (
+        MtgjsonSealedProductCategory,
+        MtgjsonSealedProductObject,
+        MtgjsonSealedProductSubtype,
+    )
 
 LOGGER = logging.getLogger(__name__)
 
@@ -75,7 +80,12 @@ class GitHubSealedProvider(AbstractProvider):
         :param set_code: Set to pull data from
         :return sealed product list, if applicable
         """
-        from ...models import MtgjsonSealedProductCategory, MtgjsonSealedProductObject, MtgjsonSealedProductSubtype
+        from ...models import (
+            MtgjsonSealedProductCategory,
+            MtgjsonSealedProductObject,
+            MtgjsonSealedProductSubtype,
+        )
+
         LOGGER.info(f"Getting sealed product data for {set_code}")
         products_list = []
         for sealed_product_name, sealed_product in self.sealed_products.get(
@@ -120,6 +130,7 @@ class GitHubSealedProvider(AbstractProvider):
         :param sealed_products: Sealed products within the set
         """
         from ...models import MtgjsonSealedProductObject
+
         LOGGER.info(f"Adding sealed product contents to {set_code}")
         set_contents = self.sealed_contents.get(set_code.lower())
         if not set_contents:

@@ -1,3 +1,5 @@
+"""MTGJSON Set List compiled model for set metadata collection."""
+
 import json
 from typing import Any, Dict, List
 

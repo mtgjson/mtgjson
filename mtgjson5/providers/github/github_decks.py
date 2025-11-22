@@ -1,6 +1,7 @@
 """
 Decks via GitHub 3rd party provider
 """
+
 from __future__ import annotations
 
 import copy
@@ -8,7 +9,7 @@ import json
 import logging
 import pathlib
 from collections import defaultdict
-from typing import Any, Dict, Iterator, List, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Union
 
 from singleton_decorator import singleton
 
@@ -27,13 +28,14 @@ class GitHubDecksProvider(AbstractProvider):
     """
     GitHubDecksProvider container
     """
+
     decks_api_url: str = (
         "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks_v2.json?raw=true"
     )
     decks_uuid_api_url: str = (
         "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/deck_map.json?raw=True"
     )
-     
+
     all_printings_cards: Dict[str, Any]
     decks_by_set: Dict[str, List[MtgjsonDeckObject]]
 
@@ -44,6 +46,7 @@ class GitHubDecksProvider(AbstractProvider):
         super().__init__(self._build_http_header())
         self.decks_by_set = defaultdict(list)
         from ...models import MtgjsonStructuresObject
+
         self.all_printings_file: pathlib.Path = MtgjsonConfig().output_path.joinpath(
             f"{MtgjsonStructuresObject().all_printings}.json"
         )
@@ -64,6 +67,7 @@ class GitHubDecksProvider(AbstractProvider):
         :returns MtgjsonCardObject, but lite
         """
         from ...models import MtgjsonCardObject
+
         mtgjson_card = MtgjsonCardObject()
         mtgjson_card.uuid = card["mtgjson_uuid"]
         mtgjson_card.count = card["count"]
@@ -82,7 +86,7 @@ class GitHubDecksProvider(AbstractProvider):
         :return Decks in set code
         """
         from ...models import MtgjsonDeckObject
-        
+
         if not self.decks_by_set:
             decks_uuid_content = self.download(self.decks_uuid_api_url)
             for deck in self.download(self.decks_api_url):
@@ -90,7 +94,9 @@ class GitHubDecksProvider(AbstractProvider):
                     deck["name"]
                 )
 
-                mtgjson_deck = MtgjsonDeckObject(deck["name"], sealed_uuids)
+                mtgjson_deck = MtgjsonDeckObject(
+                    name=deck["name"], sealed_product_uuids=sealed_uuids
+                )
                 mtgjson_deck.code = deck["set_code"].upper()
                 mtgjson_deck.set_sanitized_name(mtgjson_deck.name)
                 mtgjson_deck.type = deck["type"]
@@ -139,7 +145,7 @@ class GitHubDecksProvider(AbstractProvider):
         :return: Iterator of a deck object
         """
         from ...models import MtgjsonDeckObject
-        
+
         if not self.all_printings_file.is_file():
             LOGGER.error("Unable to construct decks. AllPrintings not found")
             return

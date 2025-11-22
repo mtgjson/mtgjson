@@ -1,7 +1,10 @@
-from typing import Any, Dict, List, Optional, Match
-from pydantic import Field
+"""MTGJSON Card Types compiled model for type line classifications."""
+
 import re
 import string
+from typing import Any, Dict, List, Match, Optional
+
+from pydantic import Field
 
 from ... import providers, utils
 from ..mtgjson_base import MTGJsonCompiledModel
@@ -65,7 +68,7 @@ class MtgjsonCardTypesObject(MTGJsonCompiledModel):
         tribal: List[str] = Field(default_factory=list)
         vanguard: List[str] = Field(default_factory=list)
 
-        def __init__(self, magic_rules: str, **kwargs) -> None:
+        def __init__(self, magic_rules: str, **kwargs: Any) -> None:
             """
             Internal initializer
             :param magic_rules: Rules for MTG from Wizards
@@ -83,7 +86,9 @@ class MtgjsonCardTypesObject(MTGJsonCompiledModel):
             self.land = ScryfallProvider().get_catalog_entry("land-types")
             self.phenomenon = []
             self.plane = regex_str_to_list(planar_regex.search(magic_rules))
-            self.planeswalker = ScryfallProvider().get_catalog_entry("planeswalker-types")
+            self.planeswalker = ScryfallProvider().get_catalog_entry(
+                "planeswalker-types"
+            )
             self.scheme = []
             self.sorcery = self.instant
             self.tribal = []
@@ -91,7 +96,7 @@ class MtgjsonCardTypesObject(MTGJsonCompiledModel):
 
     types: Dict[str, Dict[str, List[str]]] = Field(default_factory=dict)
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """
         Initializer to build up the object
         """

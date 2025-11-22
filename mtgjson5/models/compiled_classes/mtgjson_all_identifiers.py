@@ -1,3 +1,5 @@
+"""MTGJSON All Identifiers compiled model for cross-platform ID mappings."""
+
 import logging
 from typing import Any, Dict, Optional
 
@@ -16,7 +18,9 @@ class MtgjsonAllIdentifiersObject(MTGJsonCompiledModel):
 
     all_identifiers_dict: Dict[str, Any] = Field(default_factory=dict)
 
-    def __init__(self, all_printings: Optional[Dict[str, Any]] = None, **data: Any) -> None:
+    def __init__(
+        self, all_printings: Optional[Dict[str, Any]] = None, **data: Any
+    ) -> None:
         """
         Initialize to build up the object
         """

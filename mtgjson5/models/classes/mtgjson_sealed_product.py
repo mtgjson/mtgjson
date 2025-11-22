@@ -1,5 +1,8 @@
+"""MTGJSON Sealed Product Object model for booster boxes and sealed items."""
+
 import enum
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Optional, Set
+
 from pydantic import Field
 
 from ..mtgjson_base import MTGJsonModel
@@ -160,8 +163,12 @@ class MtgjsonSealedProductObject(MTGJsonModel):
 
     name: str = ""
     uuid: str = ""
-    identifiers: MtgjsonIdentifiersObject = Field(default_factory=MtgjsonIdentifiersObject)
-    purchase_urls: MtgjsonPurchaseUrlsObject = Field(default_factory=MtgjsonPurchaseUrlsObject)
+    identifiers: MtgjsonIdentifiersObject = Field(
+        default_factory=MtgjsonIdentifiersObject
+    )
+    purchase_urls: MtgjsonPurchaseUrlsObject = Field(
+        default_factory=MtgjsonPurchaseUrlsObject
+    )
     raw_purchase_urls: Dict[str, str] = Field(default_factory=dict, exclude=True)
     release_date: Optional[str] = None
     language: Optional[str] = None
@@ -171,7 +178,7 @@ class MtgjsonSealedProductObject(MTGJsonModel):
     product_size: Optional[int] = None
     card_count: Optional[int] = None
 
-    def build_keys_to_skip(self) -> Iterable[str]:
+    def build_keys_to_skip(self) -> Set[str]:
         """
         Keys to exclude from JSON output
         :return: Set of keys to skip

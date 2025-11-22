@@ -1,10 +1,13 @@
+"""MTGJSON Enum Values compiled model for enumerated field values."""
+
 from __future__ import annotations
 
-from typing import Any, Dict, List, Union, ClassVar
-from pydantic import Field
 import json
 import logging
 import pathlib
+from typing import Any, ClassVar, Dict, List, Union
+
+from pydantic import Field
 
 from ... import mtgjson_config, providers, utils
 from ..mtgjson_base import MTGJsonCompiledModel
@@ -23,7 +26,9 @@ class MtgjsonEnumValuesObject(MTGJsonCompiledModel):
     MTGJSON EnumValues Object
     """
 
-    attr_value_dict: Dict[str, Union[Dict[str, List[str]], List[str]]] = Field(default_factory=dict)
+    attr_value_dict: Dict[str, Union[Dict[str, List[str]], List[str]]] = Field(
+        default_factory=dict
+    )
 
     set_key_struct: ClassVar[Dict[str, Union[List[str], Dict[str, List[str]]]]] = {
         "card": [
@@ -54,10 +59,10 @@ class MtgjsonEnumValuesObject(MTGJsonCompiledModel):
             "sealedProduct": ["category", "subtype"],
         },
     }
-    
-    deck_key_struct: ClassVar[Dict[str, List[str]]] = {'deck': ['type']}
 
-    def __init__(self, **kwargs) -> None:
+    deck_key_struct: ClassVar[Dict[str, List[str]]] = {"deck": ["type"]}
+
+    def __init__(self, **kwargs: Any) -> None:
         """
         Initializer to build the internal mapping
         """

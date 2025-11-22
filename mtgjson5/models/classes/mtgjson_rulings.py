@@ -1,3 +1,5 @@
+"""MTGJSON Rulings Object model for official card rulings."""
+
 from ..mtgjson_base import MTGJsonModel
 
 
@@ -8,11 +10,3 @@ class MtgjsonRulingObject(MTGJsonModel):
 
     date: str
     text: str
-
-    def __init__(self, date: str, text: str, **data):
-        """
-        Set the ruling date and text
-        :param date: Ruling date
-        :param text: Ruling text
-        """
-        super().__init__(date=date, text=text, **data)

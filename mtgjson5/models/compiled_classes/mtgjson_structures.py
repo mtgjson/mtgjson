@@ -1,3 +1,5 @@
+"""MTGJSON Structures compiled model for output file definitions."""
+
 from typing import List
 
 from ..mtgjson_base import MTGJsonCompiledModel

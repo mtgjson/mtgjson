@@ -1,4 +1,6 @@
-from typing import Iterable
+"""MTGJSON Purchase URLs Object model for vendor purchase links."""
+
+from typing import Set
 
 from ..mtgjson_base import MTGJsonModel
 
@@ -15,12 +17,12 @@ class MtgjsonPurchaseUrlsObject(MTGJsonModel):
     tcgplayer: str = ""
     tcgplayer_etched: str = ""
 
-    def build_keys_to_skip(self) -> Iterable[str]:
+    def build_keys_to_skip(self) -> Set[str]:
         """
         Build this object's instance of what keys to skip under certain circumstances
         :return: Keys to skip over
         """
-        excluded_keys = set()
+        excluded_keys: Set[str] = set()
 
         for key, value in self.__dict__.items():
             if not value:

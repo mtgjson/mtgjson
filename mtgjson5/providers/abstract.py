@@ -1,15 +1,15 @@
 """
 API for how providers need to interact with other classes
 """
-from __future__ import annotations
 
+from __future__ import annotations
 
 import abc
 import copy
 import datetime
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
 
 import requests
 import requests_cache
@@ -123,6 +123,7 @@ class AbstractProvider(abc.ABC):
         :return Today's price setup in MTGJSON Price Format
         """
         from ..models import MtgjsonPricesObject
+
         today_dict: Dict[str, MtgjsonPricesObject] = defaultdict(
             lambda: copy.copy(default_prices_object)
         )

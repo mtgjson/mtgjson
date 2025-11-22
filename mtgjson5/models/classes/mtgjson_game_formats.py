@@ -1,4 +1,6 @@
-from typing import Iterable
+"""MTGJSON Game Formats Object model for card availability by platform."""
+
+from typing import List
 
 from ..mtgjson_base import MTGJsonModel
 
@@ -14,7 +16,7 @@ class MtgjsonGameFormatsObject(MTGJsonModel):
     shandalar: bool = False
     dreamcast: bool = False
 
-    def to_json(self) -> Iterable[str]:
+    def to_json(self) -> List[str]:
         """
         Custom JSON serialization that returns list of format names where value is True
         :return: List of available format names

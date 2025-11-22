@@ -1,8 +1,8 @@
 """
 Wizards Site 3rd party provider
 """
-from __future__ import annotations
 
+from __future__ import annotations
 
 import logging
 import re

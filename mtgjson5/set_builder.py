@@ -11,6 +11,7 @@ import uuid
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from . import constants
+from .constants import RESOURCE_PATH
 from .models import (
     MtgjsonCardObject,
     MtgjsonForeignDataObject,
@@ -24,7 +25,6 @@ from .models import (
     MtgjsonSetObject,
     MtgjsonTranslationsObject,
 )
-from .constants import RESOURCE_PATH
 from .parallel_call import parallel_call
 from .providers import (
     CardKingdomProvider,
@@ -312,7 +312,9 @@ def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
     mtgjson_rules: List[MtgjsonRulingObject] = []
 
     for sf_rule in rules_api_json["data"]:
-        mtgjson_rule = MtgjsonRulingObject(sf_rule["published_at"], sf_rule["comment"])
+        mtgjson_rule = MtgjsonRulingObject(
+            date=sf_rule["published_at"], text=sf_rule["comment"]
+        )
         mtgjson_rules.append(mtgjson_rule)
 
     return sorted(mtgjson_rules, key=lambda ruling: (ruling.date, ruling.text))
@@ -592,10 +594,10 @@ def add_sealed_purchase_url(sealed_products: List[MtgjsonSealedProductObject]) -
     """
     for sealed_product in sealed_products:
         if sealed_product.identifiers.tcgplayer_product_id:
-            sealed_product.raw_purchase_urls["tcgplayer"] = (
-                TCGPlayerProvider().product_url.format(
-                    sealed_product.identifiers.tcgplayer_product_id
-                )
+            sealed_product.raw_purchase_urls[
+                "tcgplayer"
+            ] = TCGPlayerProvider().product_url.format(
+                sealed_product.identifiers.tcgplayer_product_id
             )
 
             sealed_product.purchase_urls.tcgplayer = url_keygen(
@@ -711,7 +713,9 @@ def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
 
     if is_commander_legal or is_oathbreaker_legal or is_brawl_legal:
         mtgjson_card.leadership_skills = MtgjsonLeadershipSkillsObject(
-            is_brawl_legal, is_commander_legal, is_oathbreaker_legal
+            brawl=is_brawl_legal,
+            commander=is_commander_legal,
+            oathbreaker=is_oathbreaker_legal,
         )
 
 
@@ -826,7 +830,7 @@ def build_mtgjson_card(
     mtgjson_cards = []
 
     # Object Container
-    mtgjson_card = MtgjsonCardObject(is_token)
+    mtgjson_card = MtgjsonCardObject(is_token=is_token)
 
     mtgjson_card.name = scryfall_object["name"]
     mtgjson_card.language = constants.LANGUAGE_MAP.get(
@@ -914,7 +918,7 @@ def build_mtgjson_card(
 
         mtgjson_card.artist = scryfall_object["card_faces"][face_id].get("artist", "")
         mtgjson_card.artist_ids = scryfall_object["card_faces"][face_id].get(
-            "artist_ids", ""
+            "artist_ids", None
         )
 
         if face_id == 0:
@@ -1242,10 +1246,10 @@ def build_mtgjson_card(
         mtgjson_card.purchase_urls.tcgplayer = url_keygen(
             mtgjson_card.identifiers.tcgplayer_product_id + mtgjson_card.uuid
         )
-        mtgjson_card.raw_purchase_urls["tcgplayer"] = (
-            TCGPlayerProvider().product_url.format(
-                mtgjson_card.identifiers.tcgplayer_product_id
-            )
+        mtgjson_card.raw_purchase_urls[
+            "tcgplayer"
+        ] = TCGPlayerProvider().product_url.format(
+            mtgjson_card.identifiers.tcgplayer_product_id
         )
     if "tcgplayer_etched_id" in scryfall_object:
         mtgjson_card.identifiers.tcgplayer_etched_product_id = str(
@@ -1254,10 +1258,10 @@ def build_mtgjson_card(
         mtgjson_card.purchase_urls.tcgplayer_etched = url_keygen(
             mtgjson_card.identifiers.tcgplayer_etched_product_id + mtgjson_card.uuid
         )
-        mtgjson_card.raw_purchase_urls["tcgplayerEtched"] = (
-            TCGPlayerProvider().product_url.format(
-                mtgjson_card.identifiers.tcgplayer_etched_product_id
-            )
+        mtgjson_card.raw_purchase_urls[
+            "tcgplayerEtched"
+        ] = TCGPlayerProvider().product_url.format(
+            mtgjson_card.identifiers.tcgplayer_etched_product_id
         )
 
     add_related_cards(scryfall_object, mtgjson_card, is_token)

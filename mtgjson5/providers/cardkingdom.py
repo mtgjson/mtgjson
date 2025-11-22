@@ -1,14 +1,14 @@
 """
 Card Kingdom 3rd party provider
 """
-from __future__ import annotations
 
+from __future__ import annotations
 
 import logging
 import pathlib
 import re
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from singleton_decorator import singleton
 
@@ -18,7 +18,7 @@ from ..utils import generate_entity_mapping
 
 if TYPE_CHECKING:
     from ..models import MtgjsonPricesObject, MtgjsonSealedProductObject
-    
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -90,6 +90,7 @@ class CardKingdomProvider(AbstractProvider):
         :return MTGJSON prices single day structure
         """
         from ..models import MtgjsonPricesObject
+
         request_api_response: Dict[str, Any] = self.download(self.api_url)
         price_data_rows = request_api_response.get("data", [])
 
@@ -113,7 +114,7 @@ class CardKingdomProvider(AbstractProvider):
         )
 
         default_prices_obj = MtgjsonPricesObject(
-            "paper", "cardkingdom", self.today_date, "USD"
+            source="paper", provider="cardkingdom", date=self.today_date, currency="USD"
         )
 
         LOGGER.info("Building CardKingdom buylist & retail data")
@@ -139,7 +140,6 @@ class CardKingdomProvider(AbstractProvider):
         Card Kingdom ID.
         :param sealed_products: Sealed products within the set
         """
-        from ..models import MtgjsonSealedProductObject
         api_data = self.download(self.sealed_url)
 
         for product in sealed_products:

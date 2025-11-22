@@ -1,22 +1,25 @@
+"""MTGJSON Schema module for Pydantic model definitions and serialization."""
+
 from __future__ import annotations
 
-import re
 import datetime
+import re
 from typing import Any, Callable, Dict, List, Set
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_serializer
 from pydantic.alias_generators import to_camel
 from pydantic_core import core_schema
 
-
 _CAMEL_TO_SNAKE_1 = re.compile(r"(.)([A-Z][a-z]+)")
 _CAMEL_TO_SNAKE_2 = re.compile(r"([a-z0-9])([A-Z])")
+
 
 class MtgjsonBaseModel(BaseModel):
     """
     Base model configuration to automatically map camelCase JSON
     to snake_case Python attributes.
     """
+
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,
@@ -45,7 +48,7 @@ class MtgjsonBaseModel(BaseModel):
     def serialize_model(
         self,
         serializer: Callable[[Any], Dict[str, Any]],
-        info: core_schema.SerializationInfo,
+        _info: core_schema.SerializationInfo,
     ) -> Dict[str, Any]:
         """Custom serialization respecting build_keys_to_skip()."""
         data = serializer(self)
@@ -72,7 +75,6 @@ class MtgjsonBaseModel(BaseModel):
     def to_json(self) -> Dict[str, Any]:
         """Backward compatibility with existing to_json() calls."""
         return self.model_dump(by_alias=True, exclude_none=True, mode="json")
-
 
     model_config = ConfigDict(
         alias_generator=to_camel, populate_by_name=True, arbitrary_types_allowed=True

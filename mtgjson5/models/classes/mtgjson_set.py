@@ -1,3 +1,5 @@
+"""MTGJSON Set Object model for MTG card set data and metadata."""
+
 from typing import Any, Dict, List, Optional, Set
 
 from pydantic import Field
@@ -46,7 +48,9 @@ class MtgjsonSetObject(MTGJsonSetModel):
     sealed_product: List[MtgjsonSealedProductObject] = Field(default_factory=list)
     tokens: List[MtgjsonCardObject] = Field(default_factory=list)
     total_set_size: int = 0
-    translations: MtgjsonTranslationsObject = Field(default_factory=MtgjsonTranslationsObject)
+    translations: MtgjsonTranslationsObject = Field(
+        default_factory=MtgjsonTranslationsObject
+    )
     type: str = ""
     extra_tokens: List[Dict[str, Any]] = Field(default_factory=list, exclude=True)
     search_uri: str = Field(default="", exclude=True)

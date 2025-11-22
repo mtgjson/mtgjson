@@ -1,4 +1,7 @@
-from typing import List
+"""MTGJSON Keywords compiled model for card keyword abilities."""
+
+from typing import Any, List
+
 from pydantic import Field
 
 from ... import providers
@@ -16,7 +19,7 @@ class MtgjsonKeywordsObject(MTGJsonCompiledModel):
     keyword_actions: List[str] = Field(default_factory=list)
     keyword_abilities: List[str] = Field(default_factory=list)
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """
         Initializer to build up the object
         """
@@ -24,4 +27,6 @@ class MtgjsonKeywordsObject(MTGJsonCompiledModel):
 
         self.ability_words = ScryfallProvider().get_catalog_entry("ability-words")
         self.keyword_actions = ScryfallProvider().get_catalog_entry("keyword-actions")
-        self.keyword_abilities = ScryfallProvider().get_catalog_entry("keyword-abilities")
+        self.keyword_abilities = ScryfallProvider().get_catalog_entry(
+            "keyword-abilities"
+        )

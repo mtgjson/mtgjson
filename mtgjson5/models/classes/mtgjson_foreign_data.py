@@ -1,4 +1,7 @@
-from typing import Any, Dict, Iterable, Optional
+"""MTGJSON Foreign Data Object model for localized card information."""
+
+from typing import Any, Dict, Optional, Set
+
 from pydantic import Field
 
 from ..mtgjson_base import MTGJsonModel
@@ -10,8 +13,11 @@ class MtgjsonForeignDataObject(MTGJsonModel):
     MTGJSON Singular Card.ForeignData Object
     """
 
+    uuid: str = ""
     language: str = ""
-    identifiers: MtgjsonIdentifiersObject = Field(default_factory=MtgjsonIdentifiersObject)
+    identifiers: MtgjsonIdentifiersObject = Field(
+        default_factory=MtgjsonIdentifiersObject
+    )
     multiverse_id: Optional[int] = None
     face_name: Optional[str] = None
     flavor_text: Optional[str] = None
@@ -19,7 +25,7 @@ class MtgjsonForeignDataObject(MTGJsonModel):
     text: Optional[str] = None
     type: Optional[str] = None
 
-    def build_keys_to_skip(self) -> Iterable[str]:
+    def build_keys_to_skip(self) -> Set[str]:
         """
         Keys to skip in JSON output
         :return: Set of keys to skip

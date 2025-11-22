@@ -1,3 +1,5 @@
+"""MTGJSON Compiled List base model for list-based compiled outputs."""
+
 from typing import Any, List
 
 from pydantic import Field
