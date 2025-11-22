@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
+
+from pydantic import Field
 
 from ..mtgjson_base import MTGJsonModel
 from .mtgjson_deck import MtgjsonDeckObject
@@ -10,17 +12,19 @@ from .mtgjson_deck import MtgjsonDeckObject
 
 class MtgjsonDeckHeaderObject(MTGJsonModel):
     """
-    MTGJSON Singular Deck Header Object
+    The Deck List Data Model describes the meta data properties of an individual Deck.
     """
 
-    code: str = ""
-    file_name: str = ""
-    name: str = ""
-    release_date: str = ""
-    type: str = ""
+    code: str = Field(description="The printing deck code for the deck.")
+    file_name: str = Field(description="The file name for the deck.")
+    name: str = Field(description="The name of the deck.")
+    release_date: str | None = Field(
+        default=None, description="The release date in ISO 8601 format for the set."
+    )
+    type: str = Field(description="The type of the deck.")
 
     def __init__(
-        self, output_deck: Optional[MtgjsonDeckObject] = None, **data: Any
+        self, output_deck: MtgjsonDeckObject | None = None, **data: Any
     ) -> None:
         """
         Initialize deck header from deck object
