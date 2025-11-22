@@ -1,8 +1,8 @@
 from pydantic import Field
-from ..mtgjson_base import MTGJsonBaseModel
+from ..mtgjson_base import MTGJsonModel
 
 
-class MtgjsonBoosterPackObject(MTGJsonBaseModel):
+class MtgjsonBoosterPackObject(MTGJsonModel):
     """
     Represents a single booster pack configuration within a booster definition.
     """
@@ -16,7 +16,7 @@ class MtgjsonBoosterPackObject(MTGJsonBaseModel):
     )
 
 
-class MtgjsonBoosterSheetObject(MTGJsonBaseModel):
+class MtgjsonBoosterSheetObject(MTGJsonModel):
     """
     Describes a sheet of cards used to construct a booster pack.
     """
@@ -41,7 +41,7 @@ class MtgjsonBoosterSheetObject(MTGJsonBaseModel):
     )
 
 
-class MtgjsonBoosterConfigObject(MTGJsonBaseModel):
+class MtgjsonBoosterConfigObject(MTGJsonModel):
     """
     A breakdown of possibilities and weights of cards in a booster pack.
     """
