@@ -1,6 +1,6 @@
 """MTGJSON Compiled List base model for list-based compiled outputs."""
 
-from typing import Any, List
+from typing import Any
 
 from pydantic import Field
 
@@ -10,10 +10,13 @@ from .mtgjson_structures import MtgjsonStructuresObject
 
 class MtgjsonCompiledListObject(MTGJsonCompiledModel):
     """
-    MTGJSON CompiledList Object
+    The Compiled List output containing a list of all compiled file names.
     """
 
-    files: List[str] = Field(default_factory=list)
+    files: list[str] = Field(
+        default_factory=list,
+        description="A list of all available compiled output file names.",
+    )
 
     def __init__(self, **data: Any) -> None:
         """
@@ -23,7 +26,7 @@ class MtgjsonCompiledListObject(MTGJsonCompiledModel):
         if not self.files:
             self.files = sorted(MtgjsonStructuresObject().get_compiled_list_files())
 
-    def to_json(self) -> List[str]:
+    def to_json(self) -> list[str]:
         """
         Support json.dump()
         :return: JSON serialized object
