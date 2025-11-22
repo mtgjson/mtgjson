@@ -20,5 +20,10 @@ from .mtgjson_sealed_product import (
     MtgjsonSealedProductObject,
     MtgjsonSealedProductSubtype,
 )
+from .mtgjson_booster_config import (
+    MtgjsonBoosterConfigObject,
+    MtgjsonBoosterPackObject,
+    MtgjsonBoosterSheetObject
+)
 from .mtgjson_set import MtgjsonSetObject
 from .mtgjson_translations import MtgjsonTranslationsObject
