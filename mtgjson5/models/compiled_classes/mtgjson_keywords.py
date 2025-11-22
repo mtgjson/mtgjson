@@ -1,6 +1,6 @@
 """MTGJSON Keywords compiled model for card keyword abilities."""
 
-from typing import Any, List
+from typing import Any
 
 from pydantic import Field
 
@@ -12,12 +12,21 @@ ScryfallProvider = providers.scryfall.monolith.ScryfallProvider
 
 class MtgjsonKeywordsObject(MTGJsonCompiledModel):
     """
-    MTGJSON Keywords Object
+    The Keywords Data Model describes the properties of keywords available to any card.
     """
 
-    ability_words: List[str] = Field(default_factory=list)
-    keyword_actions: List[str] = Field(default_factory=list)
-    keyword_abilities: List[str] = Field(default_factory=list)
+    ability_words: list[str] = Field(
+        default_factory=list,
+        description="A list of ability words found in rules text on cards.",
+    )
+    keyword_actions: list[str] = Field(
+        default_factory=list,
+        description="A list of keyword actions found in rules text on cards.",
+    )
+    keyword_abilities: list[str] = Field(
+        default_factory=list,
+        description="A list of keyword abilities found in rules text on cards.",
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         """
