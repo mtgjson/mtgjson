@@ -1,14 +1,12 @@
 """MTGJSON Structures compiled model for output file definitions."""
 
-from typing import List
-
 from ..mtgjson_base import MTGJsonCompiledModel
 
 
 class MtgjsonStructuresObject(MTGJsonCompiledModel):
     """
-    MTGJSON Internal Object for Output Files
-    Note: Singleton pattern removed for Pydantic compatibility
+    Internal model defining all MTGJSON output file names and structure.
+    Note: Singleton pattern removed for Pydantic compatibility.
     """
 
     all_printings: str = "AllPrintings"
@@ -41,14 +39,14 @@ class MtgjsonStructuresObject(MTGJsonCompiledModel):
     atomic_cards_vintage: str = "VintageAtomic"
     atomic_cards_pauper: str = "PauperAtomic"
 
-    def get_all_compiled_file_names(self) -> List[str]:
+    def get_all_compiled_file_names(self) -> list[str]:
         """
         Get all files that are compiled outputs
         :return: Compiled outputs files
         """
         return list(set(self.model_dump().values()))
 
-    def get_compiled_list_files(self) -> List[str]:
+    def get_compiled_list_files(self) -> list[str]:
         """
         Get all files that should appear in CompiledList.json
         :return: Files for CompiledList.json
