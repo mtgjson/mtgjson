@@ -16,6 +16,8 @@ from pydantic import (
 from pydantic.alias_generators import to_camel
 from pydantic_core import core_schema
 
+from mtgjson5.models.schema import MtgjsonIdentifiersObject
+
 _CAMEL_TO_SNAKE_1 = re.compile(r"(.)([A-Z][a-z]+)")
 _CAMEL_TO_SNAKE_2 = re.compile(r"([a-z0-9])([A-Z])")
 
@@ -119,8 +121,55 @@ class MTGJsonCardModel(MTGJsonBaseModel):
 
     _exclude_for_cards: ClassVar[Set[str]] = {"reverse_related"}
 
+    _atomic_keys: list[str] = [
+        "ascii_name",
+        "color_identity",
+        "color_indicator",
+        "colors",
+        "converted_mana_cost",
+        "count",
+        "defense",
+        "edhrec_rank",
+        "edhrec_saltiness",
+        "face_converted_mana_cost",
+        "face_mana_value",
+        "face_name",
+        "foreign_data",
+        "hand",
+        "has_alternative_deck_limit",
+        "identifiers",
+        "is_funny",
+        "is_reserved",
+        "keywords",
+        "layout",
+        "leadership_skills",
+        "legalities",
+        "life",
+        "loyalty",
+        "mana_cost",
+        "mana_value",
+        "name",
+        "power",
+        "printings",
+        "purchase_urls",
+        "rulings",
+        "scryfall_oracle_id",
+        "side",
+        "subtypes",
+        "supertypes",
+        "text",
+        "toughness",
+        "type",
+        "types",
+    ]
+
     uuid: str = Field(default="", exclude=False)
     is_token: bool = Field(default=False, exclude=True)
+    identifiers: MtgjsonIdentifiersObject = Field(
+        default_factory=MtgjsonIdentifiersObject,
+        description="Identifiers for the card.",
+        alias="identifiers",
+    )
 
     def build_keys_to_skip(self) -> Set[str]:
         """Dynamic field exclusion for cards."""
