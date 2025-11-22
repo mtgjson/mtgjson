@@ -62,9 +62,9 @@ class MtgjsonSetListObject(MTGJsonCompiledModel):
 
         return sorted(all_sets_data, key=lambda set_info: set_info["name"])
 
-    def to_json(self) -> list[Any]:
+    def to_list(self) -> list[Any]:
         """
         Support json.dump()
-        :return: JSON serialized object
+        :return: List serialized object
         """
         return self.set_list

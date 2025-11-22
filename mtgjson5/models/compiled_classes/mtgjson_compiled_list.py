@@ -26,9 +26,9 @@ class MtgjsonCompiledListObject(MTGJsonCompiledModel):
         if not self.files:
             self.files = sorted(MtgjsonStructuresObject().get_compiled_list_files())
 
-    def to_json(self) -> list[str]:
+    def to_list(self) -> list[str]:
         """
         Support json.dump()
-        :return: JSON serialized object
+        :return: List serialized object
         """
         return self.files

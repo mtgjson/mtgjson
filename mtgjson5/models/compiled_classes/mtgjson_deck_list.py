@@ -29,9 +29,9 @@ class MtgjsonDeckListObject(MTGJsonModel):
             data["decks"] = deck_headers
         super().__init__(**data)
 
-    def to_json(self) -> list[MtgjsonDeckHeaderObject]:
+    def to_list(self) -> list[MtgjsonDeckHeaderObject]:
         """
         Support json.dump()
-        :return: JSON serialized object (list of deck headers)
+        :return: List serialized object (list of deck headers)
         """
         return self.decks

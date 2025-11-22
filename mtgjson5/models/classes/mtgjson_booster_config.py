@@ -1,4 +1,5 @@
 from pydantic import Field
+
 from ..mtgjson_base import MTGJsonModel
 
 
@@ -63,4 +64,3 @@ class MtgjsonBoosterConfigObject(MTGJsonModel):
         default_factory=list,
         description="The set codes where these cards are sourced from.",
     )
-

@@ -16,9 +16,9 @@ class MtgjsonGameFormatsObject(MTGJsonModel):
     shandalar: bool = False
     dreamcast: bool = False
 
-    def to_json(self) -> List[str]:
+    def to_list(self) -> List[str]:
         """
-        Custom JSON serialization that returns list of format names where value is True
+        Custom serialization that returns list of format names where value is True
         :return: List of available format names
         """
         parent = super().to_json()
