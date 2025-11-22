@@ -1,7 +1,7 @@
 """MTGJSON Deck Object model for pre-constructed and user deck data."""
 
 import re
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any
 
 from pydantic import Field, PrivateAttr, model_validator
 
@@ -12,33 +12,40 @@ from .mtgjson_sealed_product import MtgjsonSealedProductObject
 
 class MtgjsonDeckObject(MTGJsonModel):
     """
-    MTGJSON Singular Deck Object
+    The Deck Data Model describes the properties of an individual Deck.
     """
 
-    main_board: List[Union[MtgjsonCardObject, Dict[str, Any]]] = Field(
+    code: str = Field(default="", description="The printing set code for the deck.")
+    commander: list[MtgjsonCardObject | dict[str, Any]] = Field(
+        default_factory=list, description="The card that is the Commander in this deck."
+    )
+    main_board: list[MtgjsonCardObject | dict[str, Any]] = Field(
+        default_factory=list, description="The cards in the main-board."
+    )
+    name: str = Field(default="", description="The name of the deck.")
+    release_date: str | None = Field(
+        default=None, description="The release date in ISO 8601 format for the set."
+    )
+    sealed_product_uuids: list[str] | None = Field(
+        default=None,
+        description="A cross-reference identifier to determine which sealed products contain this deck.",
+    )
+    side_board: list[MtgjsonCardObject | dict[str, Any]] = Field(
+        default_factory=list, description="The cards in the side-board."
+    )
+    tokens: list[MtgjsonCardObject | dict[str, Any]] = Field(
+        default_factory=list, description="The tokens included with the product."
+    )
+    type: str = Field(default="", description="The type of deck.")
+
+    # Extended fields not in schema.py but used internally
+    display_commander: list[MtgjsonCardObject | dict[str, Any]] = Field(
         default_factory=list
     )
-    side_board: List[Union[MtgjsonCardObject, Dict[str, Any]]] = Field(
-        default_factory=list
-    )
-    display_commander: List[Union[MtgjsonCardObject, Dict[str, Any]]] = Field(
-        default_factory=list
-    )
-    commander: List[Union[MtgjsonCardObject, Dict[str, Any]]] = Field(
-        default_factory=list
-    )
-    planes: List[Union[MtgjsonCardObject, Dict[str, Any]]] = Field(default_factory=list)
-    schemes: List[Union[MtgjsonCardObject, Dict[str, Any]]] = Field(
-        default_factory=list
-    )
-    code: str = ""
-    name: str = ""
-    release_date: str = ""
-    type: str = ""
+    planes: list[MtgjsonCardObject | dict[str, Any]] = Field(default_factory=list)
+    schemes: list[MtgjsonCardObject | dict[str, Any]] = Field(default_factory=list)
     file_name: str = ""
-    sealed_product_uuids: Optional[List[str]] = None
-    source_set_codes: List[str] = Field(default_factory=list)
-    tokens: List[Union[MtgjsonCardObject, Dict[str, Any]]] = Field(default_factory=list)
+    source_set_codes: list[str] = Field(default_factory=list)
 
     # Private field (excluded from serialization)
     _alpha_numeric_name: str = PrivateAttr(default="")
@@ -61,7 +68,7 @@ class MtgjsonDeckObject(MTGJsonModel):
         self.file_name = f"{deck_name_sanitized}_{self.code}"
 
     def add_sealed_product_uuids(
-        self, mtgjson_set_sealed_products: List[MtgjsonSealedProductObject]
+        self, mtgjson_set_sealed_products: list[MtgjsonSealedProductObject]
     ) -> None:
         """
         Update the UUID for the deck to link back to sealed product, if able
@@ -74,7 +81,7 @@ class MtgjsonDeckObject(MTGJsonModel):
                     self.sealed_product_uuids = [sealed_product_entry.uuid]
                     break
 
-    def build_keys_to_skip(self) -> Set[str]:
+    def build_keys_to_skip(self) -> set[str]:
         """
         Keys to exclude from JSON output
         :return: Set of keys to skip
