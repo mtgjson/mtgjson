@@ -15,10 +15,12 @@ from pydantic.fields import FieldInfo
 # Import from your consolidated schema
 print("Loading models from consolidated schema...")
 try:
-    from mtgjson5.models.schema import (  # Leaf nodes; Prices; Boosters; Sealed Products; Card Types; Cards - all variants; Decks; Sets
+    from mtgjson5.models import (  # Booster classes from migrated models
         MtgjsonBoosterConfigObject,
         MtgjsonBoosterPackObject,
         MtgjsonBoosterSheetObject,
+    )
+    from mtgjson5.models.schema import (  # Leaf nodes; Prices; Sealed Products; Card Types; Cards - all variants; Decks; Sets
         MtgjsonCardAtomicObject,
         MtgjsonCardDeckObject,
         MtgjsonCardSetDeckObject,
@@ -58,7 +60,6 @@ try:
     print("✓ All models loaded successfully")
 except ImportError as e:
     print(f"✗ Failed to import models: {e}")
-    sys.exit(1)
 
 
 class TypeScriptGenerator:
