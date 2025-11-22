@@ -1,7 +1,7 @@
 """MTGJSON Set List compiled model for set metadata collection."""
 
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from pydantic import Field
 
@@ -14,10 +14,13 @@ MtgjsonConfig = mtgjson_config.MtgjsonConfig
 
 class MtgjsonSetListObject(MTGJsonCompiledModel):
     """
-    MTGJSON SetList Object
+    The Set List compiled output containing metadata for all sets.
     """
 
-    set_list: List[Dict[str, str]] = Field(default_factory=list)
+    set_list: list[dict[str, str]] = Field(
+        default_factory=list,
+        description="A list of set metadata objects containing basic information about each set.",
+    )
 
     def __init__(self, **data: Any) -> None:
         """
@@ -30,7 +33,7 @@ class MtgjsonSetListObject(MTGJsonCompiledModel):
             )
 
     @staticmethod
-    def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
+    def get_all_set_list(files_to_ignore: list[str]) -> list[dict[str, str]]:
         """
         This will create the SetList.json file
         by getting the info from all the files in
@@ -39,7 +42,7 @@ class MtgjsonSetListObject(MTGJsonCompiledModel):
         :param files_to_ignore: Files to ignore in set_outputs folder
         :return: List of all set dicts
         """
-        all_sets_data: List[Dict[str, str]] = []
+        all_sets_data: list[dict[str, str]] = []
 
         for set_file in MtgjsonConfig().output_path.glob("*.json"):
             if set_file.stem in files_to_ignore:
@@ -59,7 +62,7 @@ class MtgjsonSetListObject(MTGJsonCompiledModel):
 
         return sorted(all_sets_data, key=lambda set_info: set_info["name"])
 
-    def to_json(self) -> List[Any]:
+    def to_json(self) -> list[Any]:
         """
         Support json.dump()
         :return: JSON serialized object
