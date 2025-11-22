@@ -3,7 +3,7 @@ import pathlib
 from typing import List, TextIO
 from unittest.mock import patch
 
-from mtgjson5.classes import MtgjsonPricesObject
+from mtgjson5.models import MtgjsonPricesObject
 from mtgjson5.price_builder import PriceBuilder
 from mtgjson5.providers import (
     CardKingdomProvider,
@@ -60,28 +60,28 @@ def test_card_kingdom_build_today_prices():
 
     expected_results = [
         MtgjsonPricesObject(
-            "paper",
-            "cardkingdom",
-            provider.today_date,
-            "USD",
-            111.02,
-            222.02,
-            None,
-            111.01,
-            222.01,
-            None,
+            source="paper",
+            provider="cardkingdom",
+            date=provider.today_date,
+            currency="USD",
+            buy_normal=111.02,
+            buy_foil=222.02,
+            buy_etched=None,
+            sell_normal=111.01,
+            sell_foil=222.01,
+            sell_etched=None,
         ),
         MtgjsonPricesObject(
-            "paper",
-            "cardkingdom",
-            provider.today_date,
-            "USD",
-            None,
-            None,
-            333.02,
-            None,
-            None,
-            333.01,
+            source="paper",
+            provider="cardkingdom",
+            date=provider.today_date,
+            currency="USD",
+            buy_normal=None,
+            buy_foil=None,
+            buy_etched=333.02,
+            sell_normal=None,
+            sell_foil=None,
+            sell_etched=333.01,
         ),
     ]
 
@@ -100,28 +100,28 @@ def test_card_market_build_today_prices():
 
     expected_results = [
         MtgjsonPricesObject(
-            "paper",
-            "cardmarket",
-            provider.today_date,
-            "EUR",
-            None,
-            None,
-            None,
-            111.01,
-            222.01,
-            None,
+            source="paper",
+            provider="cardmarket",
+            date=provider.today_date,
+            currency="EUR",
+            buy_normal=None,
+            buy_foil=None,
+            buy_etched=None,
+            sell_normal=111.01,
+            sell_foil=222.01,
+            sell_etched=None,
         ),
         MtgjsonPricesObject(
-            "paper",
-            "cardmarket",
-            provider.today_date,
-            "EUR",
-            None,
-            None,
-            None,
-            None,
-            None,
-            333.01,
+            source="paper",
+            provider="cardmarket",
+            date=provider.today_date,
+            currency="EUR",
+            buy_normal=None,
+            buy_foil=None,
+            buy_etched=None,
+            sell_normal=None,
+            sell_foil=None,
+            sell_etched=333.01,
         ),
     ]
 
@@ -141,16 +141,16 @@ def test_card_hoarder_build_today_prices():
 
     expected_results = [
         MtgjsonPricesObject(
-            "mtgo",
-            "cardhoarder",
-            provider.today_date,
-            "USD",
-            None,
-            None,
-            None,
-            111.01,
-            222.01,
-            None,
+            source="mtgo",
+            provider="cardhoarder",
+            date=provider.today_date,
+            currency="USD",
+            buy_normal=None,
+            buy_foil=None,
+            buy_etched=None,
+            sell_normal=111.01,
+            sell_foil=222.01,
+            sell_etched=None,
         )
     ]
 
@@ -188,28 +188,28 @@ def test_tcgplayer_build_today_prices():
 
     expected_results = [
         MtgjsonPricesObject(
-            "paper",
-            "tcgplayer",
-            provider.today_date,
-            "USD",
-            111.02,
-            222.02,
-            None,
-            111.01,
-            222.01,
-            None,
+            source="paper",
+            provider="tcgplayer",
+            date=provider.today_date,
+            currency="USD",
+            buy_normal=111.02,
+            buy_foil=222.02,
+            buy_etched=None,
+            sell_normal=111.01,
+            sell_foil=222.01,
+            sell_etched=None,
         ),
         MtgjsonPricesObject(
-            "paper",
-            "tcgplayer",
-            provider.today_date,
-            "USD",
-            None,
-            None,
-            333.02,
-            None,
-            None,
-            333.01,
+            source="paper",
+            provider="tcgplayer",
+            date=provider.today_date,
+            currency="USD",
+            buy_normal=None,
+            buy_foil=None,
+            buy_etched=333.02,
+            sell_normal=None,
+            sell_foil=None,
+            sell_etched=333.01,
         ),
     ]
 
@@ -228,16 +228,16 @@ def test_multiverse_bridge_cardsphere_build_today_prices():
 
     expected_results = [
         MtgjsonPricesObject(
-            "paper",
-            "cardsphere",
-            provider.today_date,
-            "USD",
-            None,
-            None,
-            None,
-            111.01,
-            222.01,
-            None,
+            source="paper",
+            provider="cardsphere",
+            date=provider.today_date,
+            currency="USD",
+            buy_normal=None,
+            buy_foil=None,
+            buy_etched=None,
+            sell_normal=111.01,
+            sell_foil=222.01,
+            sell_etched=None,
         )
     ]
 
