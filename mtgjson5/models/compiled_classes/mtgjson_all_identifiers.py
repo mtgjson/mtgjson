@@ -1,7 +1,7 @@
 """MTGJSON All Identifiers compiled model for cross-platform ID mappings."""
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import Field
 
@@ -13,13 +13,16 @@ LOGGER = logging.getLogger(__name__)
 
 class MtgjsonAllIdentifiersObject(MTGJsonCompiledModel):
     """
-    MTGJSON AllIdentifiers Object
+    The All Identifiers compiled output mapping UUIDs to card/product data with identifiers.
     """
 
-    all_identifiers_dict: Dict[str, Any] = Field(default_factory=dict)
+    all_identifiers_dict: dict[str, Any] = Field(
+        default_factory=dict,
+        description="A dictionary mapping UUIDs to their corresponding card or product data.",
+    )
 
     def __init__(
-        self, all_printings: Optional[Dict[str, Any]] = None, **data: Any
+        self, all_printings: dict[str, Any] | None = None, **data: Any
     ) -> None:
         """
         Initialize to build up the object
@@ -38,7 +41,7 @@ class MtgjsonAllIdentifiersObject(MTGJsonCompiledModel):
 
                 self.all_identifiers_dict[card["uuid"]] = card
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """
         Support json.dump()
         :return: JSON serialized object
