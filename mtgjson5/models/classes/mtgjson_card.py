@@ -1,15 +1,22 @@
 """MTGJSON Card Object model for individual MTG card data."""
 
 import json
-from typing import Any, ClassVar, Dict, List, Optional, Set
+import unicodedata
+from typing import TYPE_CHECKING, Any
+import uuid
 
-from pydantic import Field, PrivateAttr
+from pydantic import (
+    Field,
+    PrivateAttr,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
 from ... import constants
 from ..mtgjson_base import MTGJsonCardModel
 from .mtgjson_foreign_data import MtgjsonForeignDataObject
 from .mtgjson_game_formats import MtgjsonGameFormatsObject
-from .mtgjson_identifiers import MtgjsonIdentifiersObject
 from .mtgjson_leadership_skills import MtgjsonLeadershipSkillsObject
 from .mtgjson_legalities import MtgjsonLegalitiesObject
 from .mtgjson_prices import MtgjsonPricesObject
@@ -17,201 +24,579 @@ from .mtgjson_purchase_urls import MtgjsonPurchaseUrlsObject
 from .mtgjson_related_cards import MtgjsonRelatedCardsObject
 from .mtgjson_rulings import MtgjsonRulingObject
 
+if TYPE_CHECKING:
+    from mtgjson5.providers.uuid_cache import UuidCacheProvider
+
 
 class MtgjsonCardObject(MTGJsonCardModel):
     """
-    MTGJSON Singular Card Object
+    Card (Set) Data Model. Represents a specific printing of a card within a Set.
     """
 
-    # Configure field exclusion rules (class variables)
-    _allow_if_falsey: ClassVar[Set[str]] = {
-        "supertypes",
-        "types",
-        "subtypes",
-        "has_foil",
-        "has_non_foil",
-        "color_identity",
-        "colors",
-        "converted_mana_cost",
-        "mana_value",
-        "face_converted_mana_cost",
-        "face_mana_value",
-        "foreign_data",
-        "reverse_related",
-    }
-    _exclude_for_tokens: ClassVar[Set[str]] = {
-        "rulings",
-        "rarity",
-        "prices",
-        "purchase_urls",
-        "printings",
-        "converted_mana_cost",
-        "mana_value",
-        "foreign_data",
-        "legalities",
-        "leadership_skills",
-    }
-    _exclude_for_cards: ClassVar[Set[str]] = {"reverse_related"}
-
-    # Atomic keys list for cards that don't change between printings
-    _atomic_keys: List[str] = [
-        "ascii_name",
-        "color_identity",
-        "color_indicator",
-        "colors",
-        "converted_mana_cost",
-        "count",
-        "defense",
-        "edhrec_rank",
-        "edhrec_saltiness",
-        "face_converted_mana_cost",
-        "face_mana_value",
-        "face_name",
-        "foreign_data",
-        "hand",
-        "has_alternative_deck_limit",
-        "identifiers",
-        "is_funny",
-        "is_reserved",
-        "keywords",
-        "layout",
-        "leadership_skills",
-        "legalities",
-        "life",
-        "loyalty",
-        "mana_cost",
-        "mana_value",
-        "name",
-        "power",
-        "printings",
-        "purchase_urls",
-        "rulings",
-        "scryfall_oracle_id",
-        "side",
-        "subtypes",
-        "supertypes",
-        "text",
-        "toughness",
-        "type",
-        "types",
-    ]
-
-    # Required fields with defaults
-    artist: str = ""
-    border_color: str = ""
-    colors: List[str] = Field(default_factory=list)
-    converted_mana_cost: float = 0.0
-    count: int = 1
-    face_converted_mana_cost: float = 0.0
-    face_mana_value: float = 0.0
-    finishes: List[str] = Field(default_factory=list)
-    foreign_data: List[MtgjsonForeignDataObject] = Field(default_factory=list)
-    frame_effects: List[str] = Field(default_factory=list)
-    frame_version: str = ""
-    identifiers: MtgjsonIdentifiersObject = Field(
-        default_factory=MtgjsonIdentifiersObject
+    artist: str | None = Field(default=None, alias="artist", description="The artist of the card.")
+    artist_ids: list[str] | None = Field(
+        default=None, alias="artist_ids", description="The identifiers of the artist."
     )
-    keywords: List[str] = Field(default_factory=list)
-    language: str = ""
-    layout: str = ""
-    mana_cost: str = ""
-    mana_value: float = 0.0
-    name: str = ""
-    number: str = "0"
-    other_face_ids: List[str] = Field(default_factory=list)
-    power: str = ""
-    printings: List[str] = Field(default_factory=list)
-    promo_types: List[str] = Field(default_factory=list)
-    purchase_urls: MtgjsonPurchaseUrlsObject = Field(
-        default_factory=MtgjsonPurchaseUrlsObject
-    )
-    rarity: str = ""
-    rebalanced_printings: List[str] = Field(default_factory=list)
-    subtypes: List[str] = Field(default_factory=list)
-    supertypes: List[str] = Field(default_factory=list)
-    text: str = ""
-    toughness: str = ""
-    type: str = ""
-    types: List[str] = Field(default_factory=list)
-    uuid: str = ""
-    variations: List[str] = Field(default_factory=list)
-
-    # Fields that require complex types with defaults
     availability: MtgjsonGameFormatsObject = Field(
-        default_factory=MtgjsonGameFormatsObject
+        default_factory=MtgjsonGameFormatsObject,
+        description="Where the card is available (paper, mtgo, arena).",
     )
-    booster_types: List[str] = Field(default_factory=list)
-    card_parts: List[str] = Field(default_factory=list)
-    color_identity: List[str] = Field(default_factory=list)
-    legalities: MtgjsonLegalitiesObject = Field(default_factory=MtgjsonLegalitiesObject)
-    original_printings: List[str] = Field(default_factory=list)
+    booster_types: list[str] = Field(
+        default_factory=list, description="Types of boosters this card appears in."
+    )
+    border_color: str = Field(
+        default="", alias="border_color", description="The color of the card border."
+    )
+    card_parts: list[str] = Field(
+        default_factory=list, description="UUIDs of other parts of the card."
+    )
+    color_identity: list[str] = Field(
+        default_factory=list,
+        alias="color_identity",
+        description="The color identity of the card.",
+    )
+    colors: list[str] = Field(
+        default_factory=list, alias="colors", description="The colors of the card."
+    )
+    count: int = Field(
+        default=1, description="The number of copies of this card in the deck."
+    )
+    finishes: list[str] = Field(
+        default_factory=list,
+        alias="finishes",
+        description="The finishes available for this card.",
+    )
+    foreign_data: list[MtgjsonForeignDataObject] = Field(
+        default_factory=list, description="Data for the card in other languages."
+    )
+    frame_effects: list[str] = Field(
+        default_factory=list,
+        alias="frame_effects",
+        description="The frame effects on the card.",
+    )
+    frame_version: str = Field(
+        default="", alias="frame", description="The version of the card frame."
+    )
+    has_foil: bool = Field(
+        default=False, description="If the card is available in foil."
+    )
+    has_non_foil: bool = Field(
+        default=False, description="If the card is available in non-foil."
+    )
+    keywords: list[str] = Field(
+        default_factory=list, alias="keywords", description="Keywords on the card."
+    )
+    language: str = Field(
+        default="", alias="lang", description="The language of the card."
+    )
+    layout: str = Field(
+        default="", alias="layout", description="The layout of the card."
+    )
+    legalities: MtgjsonLegalitiesObject = Field(
+        default_factory=MtgjsonLegalitiesObject,
+        alias="legalities",
+        description="Legalities.",
+    )
+    mana_cost: str | None = Field(
+        default="", alias="mana_cost", description="Mana cost."
+    )
+    mana_value: float = Field(default=0.0, alias="cmc", description="Mana value.")
+    name: str = Field(default="", alias="name", description="Card name.")
+    number: str = Field(
+        default="0", alias="collector_number", description="Collector number."
+    )
+    original_printings: list[str] = Field(
+        default_factory=list, description="Original printing set codes."
+    )
+    other_face_ids: list[str] = Field(
+        default_factory=list, description="UUIDs of other faces."
+    )
+    power: str | None = Field(default="", alias="power", description="Power.")
+    printings: list[str] = Field(
+        default_factory=list, description="Set codes of printings."
+    )
+    promo_types: list[str] = Field(
+        default_factory=list, alias="promo_types", description="Types of promo."
+    )
+    purchase_urls: MtgjsonPurchaseUrlsObject = Field(
+        default_factory=MtgjsonPurchaseUrlsObject, description="Purchase URLs."
+    )
+    rarity: str = Field(default="", alias="rarity", description="Rarity.")
+    rebalanced_printings: list[str] = Field(
+        default_factory=list, description="Sets where this was rebalanced."
+    )
+    subtypes: list[str] = Field(default_factory=list, description="Subtypes.")
+    supertypes: list[str] = Field(default_factory=list, description="Supertypes.")
+    text: str | None = Field(default="", alias="oracle_text", description="Rules text.")
+    toughness: str | None = Field(
+        default="", alias="toughness", description="Toughness."
+    )
+    type: str = Field(default="", alias="type_line", description="Full type line.")
+    types: list[str] = Field(default_factory=list, description="Types.")
+    uuid: str = Field(default="", description="Unique identifier.")
+    variations: list[str] = Field(
+        default_factory=list, description="UUIDs of variations."
+    )
+    face_mana_value: float | None = Field(
+        default=0.0, description="The mana value of the face."
+    )
     prices: MtgjsonPricesObject = Field(default_factory=MtgjsonPricesObject)
 
-    # Outside entities, not published
-    set_code: str = ""
+    set_code: str = Field(default="", alias="set", description="Set code.")
     is_token: bool = Field(default=False, exclude=True)
-    raw_purchase_urls: Dict[str, str] = Field(default_factory=dict, exclude=True)
+    raw_purchase_urls: dict[str, str] = Field(default_factory=dict, exclude=True)
 
-    # Optional fields
-    artist_ids: Optional[List[str]] = None
-    ascii_name: Optional[str] = None
-    attraction_lights: Optional[List[str]] = None
-    color_indicator: Optional[List[str]] = None
-    defense: Optional[str] = None
-    duel_deck: Optional[str] = None
-    edhrec_rank: Optional[int] = None
-    edhrec_saltiness: Optional[float] = None
-    face_flavor_name: Optional[str] = None
-    face_name: Optional[str] = None
-    first_printing: Optional[str] = None
-    flavor_name: Optional[str] = None
-    flavor_text: Optional[str] = None
-    hand: Optional[str] = None
-    has_alternative_deck_limit: Optional[bool] = None
-    has_content_warning: Optional[bool] = None
-    has_foil: Optional[bool] = None
-    has_non_foil: Optional[bool] = None
-    is_alternative: Optional[bool] = None
-    is_foil: Optional[bool] = None
-    is_full_art: Optional[bool] = None
-    is_funny: Optional[bool] = None
-    is_game_changer: Optional[bool] = None
-    is_online_only: Optional[bool] = None
-    is_oversized: Optional[bool] = None
-    is_promo: Optional[bool] = None
-    is_rebalanced: Optional[bool] = None
-    is_reprint: Optional[bool] = None
-    is_reserved: Optional[bool] = None
-    is_starter: Optional[bool] = None
-    is_story_spotlight: Optional[bool] = None
-    is_textless: Optional[bool] = None
-    is_timeshifted: Optional[bool] = None
-    leadership_skills: Optional[MtgjsonLeadershipSkillsObject] = None
-    life: Optional[str] = None
-    loyalty: Optional[str] = None
-    orientation: Optional[str] = None
-    original_release_date: Optional[str] = None
-    original_text: Optional[str] = None
-    original_type: Optional[str] = None
-    related_cards: Optional[MtgjsonRelatedCardsObject] = None
-    reverse_related: Optional[List[str]] = None
-    rulings: Optional[List[MtgjsonRulingObject]] = None
-    security_stamp: Optional[str] = None
-    side: Optional[str] = None
-    signature: Optional[str] = None
-    source_products: Optional[Dict[str, List[str]]] = None
-    subsets: Optional[List[str]] = None
-    watermark: Optional[str] = None
-    printed_name: Optional[str] = None
-    printed_type: Optional[str] = None
-    printed_text: Optional[str] = None
-    face_printed_name: Optional[str] = None
-    is_etched: Optional[bool] = None
+    attraction_lights: list[int] | None = Field(
+        default=None,
+        alias="attraction_lights",
+        description="The attraction lights lit on the card.",
+    )
+    color_indicator: list[str] | None = Field(
+        default=None,
+        alias="color_indicator",
+        description="The color indicator of the card.",
+    )
+    defense: str | None = Field(
+        default=None, alias="defense", description="The defense of the card."
+    )
+    duel_deck: str | None = Field(
+        default=None, description="The duel deck code if applicable."
+    )
+    edhrec_rank: int | None = Field(
+        default=None, alias="edhrec_rank", description="The EDHREC rank."
+    )
+    edhrec_saltiness: float | None = Field(
+        default=None, description="The EDHREC saltiness score."
+    )
+    face_flavor_name: str | None = Field(
+        default=None, description="The flavor name on the face."
+    )
+    face_name: str | None = Field(default=None, description="The name on the face.")
+    first_printing: str | None = Field(
+        default=None, description="The set code of the first printing of the card."
+    )
+    flavor_name: str | None = Field(
+        default=None, alias="flavor_name", description="The flavor name of the card."
+    )
+    flavor_text: str | None = Field(
+        default=None, alias="flavor_text", description="The flavor text of the card."
+    )
+    hand: str | None = Field(
+        default=None, alias="hand_modifier", description="The hand modifier."
+    )
+    has_alternative_deck_limit: bool | None = Field(
+        default=None, description="If the card allows more than 4 copies."
+    )
+    has_content_warning: bool | None = Field(
+        default=None,
+        alias="content_warning",
+        description="If the card has a content warning.",
+    )
+    is_alternative: bool | None = Field(
+        default=None, description="If this is an alternative printing."
+    )
+    is_foil: bool | None = Field(
+        default=None, alias="foil", description="If this specific card entry is foil."
+    )
+    is_full_art: bool | None = Field(
+        default=None, alias="full_art", description="If the card is full art."
+    )
+    is_funny: bool | None = Field(
+        default=None, description="If the card is from a funny set."
+    )
+    is_game_changer: bool | None = Field(
+        default=None,
+        alias="game_changer",
+        description="If the card changes the rules of the game.",
+    )
+    is_online_only: bool | None = Field(
+        default=None,
+        alias="digital",
+        description="If the card is only available online.",
+    )
+    is_oversized: bool | None = Field(
+        default=None, alias="oversized", description="If the card is oversized."
+    )
+    is_promo: bool | None = Field(
+        default=None, alias="promo", description="If the card is a promo."
+    )
+    is_rebalanced: bool | None = Field(
+        default=None, description="If the card has been rebalanced."
+    )
+    is_reprint: bool | None = Field(
+        default=None, alias="reprint", description="If the card is a reprint."
+    )
+    is_reserved: bool | None = Field(
+        default=None,
+        alias="reserved",
+        description="If the card is on the Reserved List.",
+    )
+    is_starter: bool | None = Field(
+        default=None, description="If the card is from a starter product."
+    )
+    is_story_spotlight: bool | None = Field(
+        default=None,
+        alias="story_spotlight",
+        description="If the card is a story spotlight.",
+    )
+    is_textless: bool | None = Field(
+        default=None, alias="textless", description="If the card is textless."
+    )
+    is_timeshifted: bool | None = Field(
+        default=None, description="If the card is timeshifted."
+    )
+    leadership_skills: MtgjsonLeadershipSkillsObject | None = Field(
+        default=None, description="Leadership skills."
+    )
+    life: str | None = Field(
+        default=None, alias="life_modifier", description="Life modifier."
+    )
+    loyalty: str | None = Field(default=None, alias="loyalty", description="Loyalty.")
+    orientation: str | None = Field(default=None, description="Orientation.")
+    original_release_date: str | None = Field(
+        default=None, alias="released_at", description="Original release date."
+    )
+    original_text: str | None = Field(default=None, description="Original rules text.")
+    original_type: str | None = Field(default=None, description="Original type line.")
+    related_cards: MtgjsonRelatedCardsObject | None = Field(
+        default=None, description="Related cards."
+    )
+    reverse_related: list[str] | None = Field(
+        default=None,
+        description="A list of card names associated to a card, such as 'meld' cards and token creation.",
+    )
+    rulings: list[MtgjsonRulingObject] | None = Field(
+        default=None, description="Rulings."
+    )
+    security_stamp: str | None = Field(
+        default=None, alias="security_stamp", description="Security stamp type."
+    )
+    side: str | None = Field(default=None, description="Side (a/b).")
+    signature: str | None = Field(default=None, description="Signature on the card.")
+    source_products: dict[str, list[str]] | None = Field(
+        default=None, description="Source products."
+    )
+    subsets: list[str] | None = Field(default=None, description="Subsets.")
+    watermark: str | None = Field(
+        default=None, alias="watermark", description="Watermark."
+    )
+    printed_name: str | None = Field(
+        default=None, alias="printed_name", description="The printed name of the card."
+    )
+    printed_type: str | None = Field(
+        default=None,
+        alias="printed_type_line",
+        description="The printed type line of the card.",
+    )
+    printed_text: str | None = Field(
+        default=None, alias="printed_text", description="The printed text of the card."
+    )
+    face_printed_name: str | None = Field(
+        default=None, description="The printed name on the face of the card."
+    )
+    is_etched: bool | None = Field(default=None, description="If the card is etched.")
 
-    # Private fields (excluded from serialization)
-    _names: Optional[List[str]] = PrivateAttr(default=None)
-    _illustration_ids: List[str] = PrivateAttr(default_factory=list)
-    _watermark_resource: Dict[str, List[Any]] = PrivateAttr(default_factory=dict)
+    _names: list[str] | None = PrivateAttr(default=None)
+    _illustration_ids: list[str] = PrivateAttr(default_factory=list)
+    _watermark_resource: dict[str, list[Any]] = PrivateAttr(default_factory=dict)
+
+    # model validators with mode set to 'after' will run after initialization automatically
+    @model_validator(mode="after")
+    def generate_uuid(self) -> "MtgjsonCardObject":
+        """
+        Generate UUIDv5 for card after model creation.
+        Also generates UUIDv4 for legacy support and foreign data UUIDs.
+        """
+        # Skip if UUID already set
+        if self.uuid:
+            return self
+
+        # Check for required fields
+        if not hasattr(self, "identifiers"):
+            return self
+
+        # Generate v4 ID for legacy support
+        self.identifiers.mtgjson_v4_id = self._generate_v4_uuid()
+
+        # Get scryfall_id and side for v5 UUID generation
+        scryfall_id = getattr(self.identifiers, "scryfall_id", None)
+        if not scryfall_id:
+            return self
+
+        side = getattr(self, "side", None) or "a"
+        id_source_v5 = str(scryfall_id) + side
+
+        # Generate foreign data UUIDs if foreign_data exists
+        self._add_foreign_uuids(id_source_v5)
+
+        # Check UUID cache for previously generated UUIDs
+        try:
+            from mtgjson5.providers.uuid_cache import UuidCacheProvider
+
+            cached_uuid = UuidCacheProvider().get_uuid(str(scryfall_id), side)
+            if cached_uuid:
+                self.uuid = cached_uuid
+                return self
+        except ImportError:
+            pass
+
+        # Generate new v5 UUID
+        self.uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v5))
+
+        return self
+
+    def _generate_v4_uuid(self) -> str:
+        """
+        Generate MTGJSONv4 UUID for legacy support.
+        Implementation based on card type (token vs normal card).
+        """
+        types = getattr(self, "types", None) or []
+
+        if {"Token", "Card"}.intersection(types):
+            # Tokens have a special generation method
+            face_name = getattr(self, "face_name", None)
+            name = getattr(self, "name", None)
+            colors = getattr(self, "colors", None) or []
+            power = getattr(self, "power", None) or ""
+            toughness = getattr(self, "toughness", None) or ""
+            side = getattr(self, "side", None) or ""
+            set_code = getattr(self, "set_code", "")
+            scryfall_id = getattr(self.identifiers, "scryfall_id", None) or ""
+
+            id_source_v4 = (
+                (face_name if face_name else name or "")
+                + "".join(colors)
+                + power
+                + toughness
+                + side
+                + set_code[1:].upper()
+                + str(scryfall_id)
+            )
+        else:
+            # Normal cards only need a few pieces of data
+            name = getattr(self, "name", None) or ""
+            set_code = getattr(self, "set_code", "")
+            scryfall_id = getattr(self.identifiers, "scryfall_id", None) or ""
+
+            id_source_v4 = name + set_code + str(scryfall_id)
+
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v4))
+
+    def _add_foreign_uuids(self, id_source_prefix: str) -> None:
+        """
+        Add unique identifiers to each language's printing of a card.
+
+        :param id_source_prefix: Base UUID source (scryfall_id + side)
+        """
+        foreign_data = getattr(self, "foreign_data", None)
+        if not foreign_data:
+            return
+
+        for language_entry in foreign_data:
+            language = getattr(language_entry, "language", None)
+            if language:
+                language_entry.uuid = str(
+                    uuid.uuid5(uuid.NAMESPACE_DNS, f"{id_source_prefix}_{language}")
+                )
+
+    # Model Validator for Scryfall Data Transformation
+    @model_validator(mode="before")
+    @classmethod
+    def extract_identifiers_from_scryfall(cls, data: Any) -> Any:
+        """
+        Extract identifier fields from top-level Scryfall data and nest them under 'identifiers'.
+
+        This allows Pydantic's field aliases in MtgjsonIdentifiersObject to work correctly.
+        """
+        if not isinstance(data, dict):
+            return data
+
+        # Skip if identifiers is already provided (already transformed)
+        if "identifiers" in data and isinstance(data["identifiers"], dict):
+            return data
+
+        # List of identifier field names that should be moved to the identifiers sub-object
+        # Using both Scryfall names (aliases) and MTGJSON names
+        identifier_fields = {
+            "id",
+            "oracle_id",
+            "illustration_id",
+            "card_back_id",  # Scryfall names
+            "arena_id",
+            "cardmarket_id",
+            "mtgo_id",
+            "mtgo_foil_id",  # Scryfall names
+            "multiverse_ids",
+            "tcgplayer_id",
+            "tcgplayer_etched_id",  # Scryfall names
+            "scryfall_id",
+            "scryfall_oracle_id",
+            "scryfall_illustration_id",  # MTGJSON names
+            "scryfall_card_back_id",
+            "mcm_id",
+            "mtg_arena_id",  # MTGJSON names
+            "tcgplayer_product_id",
+            "tcgplayer_etched_product_id",
+            "multiverse_id",  # MTGJSON names
+        }
+
+        # Extract identifier fields from top-level data
+        identifiers_data = {}
+        for field in identifier_fields:
+            if field in data:
+                identifiers_data[field] = data[field]
+
+        # Handle oracle_id fallback from card_faces if not present at top level
+        if "oracle_id" not in identifiers_data and "card_faces" in data:
+            face_id = data.get("_face_id", 0)
+            if (
+                isinstance(data["card_faces"], list)
+                and len(data["card_faces"]) > face_id
+            ):
+                face_oracle_id = data["card_faces"][face_id].get("oracle_id")
+                if face_oracle_id:
+                    identifiers_data["oracle_id"] = face_oracle_id
+
+        # Handle illustration_id fallback from card_faces if not present at top level
+        if "illustration_id" not in identifiers_data and "card_faces" in data:
+            face_id = data.get("_face_id", 0)
+            if (
+                isinstance(data["card_faces"], list)
+                and len(data["card_faces"]) > face_id
+            ):
+                face_illustration_id = data["card_faces"][face_id].get(
+                    "illustration_id"
+                )
+                if face_illustration_id:
+                    identifiers_data["illustration_id"] = face_illustration_id
+
+        # Only create identifiers if we found any identifier fields
+        if identifiers_data:
+            # Create or merge with existing identifiers
+            if "identifiers" not in data:
+                data["identifiers"] = {}
+            data["identifiers"].update(identifiers_data)
+
+        return data
+
+    @model_validator(mode="before")
+    @classmethod
+    def handle_multi_face_cards(cls, data: Any) -> Any:
+        """
+        Handle multi-face cards by merging face-specific data into the main card data.
+
+        For cards with card_faces, extracts the relevant face data based on _face_id
+        and merges it with the top-level data, handling fallbacks appropriately.
+        """
+        if not isinstance(data, dict):
+            return data
+
+        # Skip if no card_faces present
+        if "card_faces" not in data or not isinstance(data["card_faces"], list):
+            return data
+
+        face_id = data.get("_face_id", 0)
+        card_faces = data["card_faces"]
+
+        # Validate face_id
+        if face_id >= len(card_faces):
+            return data
+
+        face_data = card_faces[face_id]
+
+        # Split and store names if this is face 0
+        if face_id == 0 and "name" in data:
+            name_parts = [part.strip() for part in data["name"].split("//")]
+            data["_names_list"] = name_parts
+
+        # Merge face-specific fields (face data takes precedence over top-level)
+        # These fields should come from the specific face if available
+        face_priority_fields = [
+            "mana_cost",
+            "type_line",
+            "oracle_text",
+            "power",
+            "toughness",
+            "colors",
+            "color_indicator",
+            "loyalty",
+            "defense",
+            "artist",
+            "artist_ids",
+            "flavor_text",
+            "watermark",
+        ]
+
+        for field in face_priority_fields:
+            if field in face_data:
+                # For fields that exist in face, use face data
+                data[field] = face_data[field]
+
+        # Handle face_name - use the name from the specific face
+        if "name" in face_data:
+            data["face_name"] = face_data["name"]
+
+        # Handle printed versions
+        if "printed_name" in face_data:
+            data["face_printed_name"] = face_data["printed_name"]
+        if "printed_text" in face_data:
+            data["face_printed_text"] = face_data["printed_text"]
+        if "printed_type_line" in face_data:
+            data["face_printed_type_line"] = face_data["printed_type_line"]
+
+        # Handle mana value for this face
+        if "cmc" in face_data:
+            data["face_mana_value"] = face_data["cmc"]
+
+        # Handle flavor name
+        if "flavor_name" in face_data:
+            data["face_flavor_name"] = face_data["flavor_name"]
+
+        return data
+
+    # Field Validators for Transformations
+    @field_validator("set_code", mode="before")
+    @classmethod
+    def uppercase_set_code(cls, v: Any) -> str:
+        """Ensure set code is uppercase"""
+        return v.upper() if isinstance(v, str) else v
+
+    @field_validator("language", mode="before")
+    @classmethod
+    def map_language(cls, v: Any) -> str:
+        """Map language code to full language name"""
+        if not v:
+            return "unknown"
+        return constants.LANGUAGE_MAP.get(v, "unknown")
+
+    @field_validator("frame_effects", mode="before")
+    @classmethod
+    def sort_frame_effects(cls, v: Any) -> list[str]:
+        """Sort frame effects alphabetically"""
+        return sorted(v) if v else []
+
+    @field_validator("color_identity", mode="before")
+    @classmethod
+    def ensure_color_identity_is_list(cls, v: Any) -> list[str]:
+        """Ensure color_identity is a list (sometimes empty string from Scryfall)"""
+        return v if isinstance(v, list) else []
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def ascii_name(self) -> str:
+        """Generate ASCII-safe name from unicode name"""
+        if not self.name:
+            return ""
+        # Normalize unicode and encode to ASCII
+        normalized = unicodedata.normalize("NFD", self.name)
+        ascii_bytes = normalized.encode("ascii", "ignore")
+        return ascii_bytes.decode("ascii")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def converted_mana_cost(self) -> float:
+        """Deprecated alias for mana_value (backward compatibility)"""
+        return self.mana_value
 
     def __eq__(self, other: Any) -> bool:
         """
@@ -279,7 +664,7 @@ class MtgjsonCardObject(MTGJsonCardModel):
 
         return self_number_clean_int < other_number_clean_int
 
-    def set_illustration_ids(self, illustration_ids: List[str]) -> None:
+    def set_illustration_ids(self, illustration_ids: list[str]) -> None:
         """
         Set internal illustration IDs for this card to
         better identify what side we're working on,
@@ -288,7 +673,7 @@ class MtgjsonCardObject(MTGJsonCardModel):
         """
         self._illustration_ids = illustration_ids
 
-    def get_illustration_ids(self) -> List[str]:
+    def get_illustration_ids(self) -> list[str]:
         """
         Get the internal illustration IDs roster for this card
         to better identify the sides for Art and Token cards
@@ -296,14 +681,14 @@ class MtgjsonCardObject(MTGJsonCardModel):
         """
         return self._illustration_ids
 
-    def get_names(self) -> List[str]:
+    def get_names(self) -> list[str]:
         """
         Get internal names array for this card
         :return: Names array or empty list
         """
         return self._names or []
 
-    def set_names(self, names: Optional[List[str]]) -> None:
+    def set_names(self, names: list[str] | None) -> None:
         """
         Set internal names array for this card
         :param names: Names list (optional)
@@ -320,7 +705,7 @@ class MtgjsonCardObject(MTGJsonCardModel):
         else:
             self.set_names([name])
 
-    def set_watermark(self, watermark: Optional[str]) -> None:
+    def set_watermark(self, watermark: str | None) -> None:
         """
         Watermarks sometimes aren't specific enough, so we
         must manually update them. This only applies if the
@@ -345,7 +730,7 @@ class MtgjsonCardObject(MTGJsonCardModel):
 
         self.watermark = watermark
 
-    def get_atomic_keys(self) -> List[str]:
+    def get_atomic_keys(self) -> list[str]:
         """
         Get attributes of a card that don't change
         from printing to printing
@@ -353,7 +738,7 @@ class MtgjsonCardObject(MTGJsonCardModel):
         """
         return self._atomic_keys
 
-    def build_keys_to_skip(self) -> Set[str]:
+    def build_keys_to_skip(self) -> set[str]:
         """
         Build this object's instance of what keys to skip under certain circumstances
         :return: What keys to skip over
