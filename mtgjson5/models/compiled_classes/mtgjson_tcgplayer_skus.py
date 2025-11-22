@@ -3,7 +3,7 @@
 import logging
 import pathlib
 from collections import defaultdict
-from typing import Any, DefaultDict, Dict, List, Set, Union
+from typing import Any
 
 from pydantic import Field
 
@@ -16,18 +16,19 @@ generate_entity_mapping = utils.generate_entity_mapping
 LOGGER = logging.getLogger(__name__)
 
 
-def _default_sku_dict() -> DefaultDict[str, List[Dict[str, Union[int, str]]]]:
+def _default_sku_dict() -> dict[str, list[dict[str, int | str]]]:
     """Factory for creating typed defaultdict."""
-    return defaultdict(list)
+    return {}
 
 
 class MtgjsonTcgplayerSkusObject(MTGJsonCompiledModel):
     """
-    MTGJSON TcgplayerSkus Object
+    The TCGplayer SKUs compiled output mapping UUIDs to their TCGplayer product SKU data.
     """
 
-    enhanced_tcgplayer_skus: DefaultDict[str, List[Dict[str, Union[int, str]]]] = Field(
-        default_factory=_default_sku_dict
+    enhanced_tcgplayer_skus: dict[str, list[dict[str, int | str]]] = Field(
+        default_factory=dict,
+        description="A dictionary mapping UUIDs to their TCGplayer SKU information.",
     )
 
     def __init__(self, all_printings_path: pathlib.Path, **kwargs: Any) -> None:
@@ -55,8 +56,8 @@ class MtgjsonTcgplayerSkusObject(MTGJsonCompiledModel):
             tcgplayer_sku_data = TCGPlayerProvider().get_tcgplayer_sku_data(group)
             for product in tcgplayer_sku_data:
                 product_id = str(product["productId"])
-                normal_keys: Set[str] = tcg_normal_to_mtgjson_map.get(product_id, set())
-                etched_keys: Set[str] = tcg_etched_to_mtgjson_map.get(product_id, set())
+                normal_keys: set[str] = tcg_normal_to_mtgjson_map.get(product_id, set())
+                etched_keys: set[str] = tcg_etched_to_mtgjson_map.get(product_id, set())
                 for normal_key in normal_keys:
                     self.enhanced_tcgplayer_skus[normal_key].extend(
                         TCGPlayerProvider().convert_sku_data_enum(product)
@@ -66,7 +67,7 @@ class MtgjsonTcgplayerSkusObject(MTGJsonCompiledModel):
                         TCGPlayerProvider().convert_sku_data_enum(product)
                     )
 
-    def to_json(self) -> Dict[str, List[Dict[str, Union[int, str]]]]:
+    def to_json(self) -> dict[str, list[dict[str, int | str]]]:
         """
         Support json.dump()
         :return: JSON serialized object
