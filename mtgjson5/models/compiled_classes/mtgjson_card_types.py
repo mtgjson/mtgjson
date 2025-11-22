@@ -2,7 +2,7 @@
 
 import re
 import string
-from typing import Any, Dict, List, Match, Optional
+from typing import Any, Match
 
 from pydantic import Field
 
@@ -14,7 +14,7 @@ WizardsProvider = providers.wizards.WizardsProvider
 parse_magic_rules_subset = utils.parse_magic_rules_subset
 
 
-def regex_str_to_list(regex_match: Optional[Match]) -> List[str]:
+def regex_str_to_list(regex_match: Match | None) -> list[str]:
     """
     Take a regex match object and turn a string in
     format "a, b, c, ..., and z." into [a,b,c,...,z]
@@ -28,7 +28,7 @@ def regex_str_to_list(regex_match: Optional[Match]) -> List[str]:
     card_types = regex_match.group(1).split(". ")[0]
 
     # Split the types by comma
-    card_types_split: List[str] = card_types.split(", ")
+    card_types_split: list[str] = card_types.split(", ")
 
     # If there are only two elements, split by " and " instead
     if len(card_types_split) == 1:
@@ -45,28 +45,28 @@ def regex_str_to_list(regex_match: Optional[Match]) -> List[str]:
 
 class MtgjsonCardTypesObject(MTGJsonCompiledModel):
     """
-    MTGJSON CardTypes Object
+    The Card Types compiled output containing all possible card type configurations.
     """
 
     class MtgjsonCardTypesInnerObject(MTGJsonCompiledModel):
         """
-        MTGJSON CardTypes.CardTypesInner Object
+        Inner model representing card type categories with their subtypes.
         """
 
-        artifact: List[str] = Field(default_factory=list)
-        battle: List[str] = Field(default_factory=list)
-        conspiracy: List[str] = Field(default_factory=list)
-        creature: List[str] = Field(default_factory=list)
-        enchantment: List[str] = Field(default_factory=list)
-        instant: List[str] = Field(default_factory=list)
-        land: List[str] = Field(default_factory=list)
-        phenomenon: List[str] = Field(default_factory=list)
-        plane: List[str] = Field(default_factory=list)
-        planeswalker: List[str] = Field(default_factory=list)
-        scheme: List[str] = Field(default_factory=list)
-        sorcery: List[str] = Field(default_factory=list)
-        tribal: List[str] = Field(default_factory=list)
-        vanguard: List[str] = Field(default_factory=list)
+        artifact: list[str] = Field(default_factory=list)
+        battle: list[str] = Field(default_factory=list)
+        conspiracy: list[str] = Field(default_factory=list)
+        creature: list[str] = Field(default_factory=list)
+        enchantment: list[str] = Field(default_factory=list)
+        instant: list[str] = Field(default_factory=list)
+        land: list[str] = Field(default_factory=list)
+        phenomenon: list[str] = Field(default_factory=list)
+        plane: list[str] = Field(default_factory=list)
+        planeswalker: list[str] = Field(default_factory=list)
+        scheme: list[str] = Field(default_factory=list)
+        sorcery: list[str] = Field(default_factory=list)
+        tribal: list[str] = Field(default_factory=list)
+        vanguard: list[str] = Field(default_factory=list)
 
         def __init__(self, magic_rules: str, **kwargs: Any) -> None:
             """
@@ -94,7 +94,10 @@ class MtgjsonCardTypesObject(MTGJsonCompiledModel):
             self.tribal = []
             self.vanguard = []
 
-    types: Dict[str, Dict[str, List[str]]] = Field(default_factory=dict)
+    types: dict[str, dict[str, list[str]]] = Field(
+        default_factory=dict,
+        description="A dictionary mapping card types to their subtypes and supertypes.",
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         """
