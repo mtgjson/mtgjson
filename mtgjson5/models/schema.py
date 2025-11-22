@@ -20,17 +20,6 @@ class MtgjsonBaseModel(BaseModel):
     to snake_case Python attributes.
     """
 
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        extra="forbid",
-        use_enum_values=True,
-        validate_assignment=True,
-        validate_default=False,
-        revalidate_instances="never",
-        from_attributes=True,
-    )
-
     @field_serializer("*", when_used="json", check_fields=False)
     def serialize_dates_and_sets(self, value: Any) -> Any:
         """field serializer for datetime and set types."""
@@ -77,7 +66,14 @@ class MtgjsonBaseModel(BaseModel):
         return self.model_dump(by_alias=True, exclude_none=True, mode="json")
 
     model_config = ConfigDict(
-        alias_generator=to_camel, populate_by_name=True, arbitrary_types_allowed=True
+        alias_generator=to_camel,
+        populate_by_name=True,
+        extra="forbid",
+        use_enum_values=True,
+        validate_assignment=True,
+        validate_default=False,
+        revalidate_instances="never",
+        from_attributes=True,
     )
 
 
