@@ -581,6 +581,105 @@ class MtgjsonCardObject(MTGJsonCardModel):
         """Ensure color_identity is a list (sometimes empty string from Scryfall)"""
         return v if isinstance(v, list) else []
 
+    @model_validator(mode="after")
+    def parse_type_line(self) -> "MtgjsonCardObject":
+        """
+        Parse type_line to extract supertypes, types, and subtypes.
+
+        Handles special cases like multi-word subtypes (e.g., 'Time Lord').
+        """
+        if not self.type:
+            return self
+
+        type_line = self.type
+        supertypes = []
+        types = []
+        subtypes = []
+
+        # Split by em-dash or hyphen to separate main types from subtypes
+        if " — " in type_line:
+            main_part, sub_part = type_line.split(" — ", 1)
+        elif " - " in type_line:
+            main_part, sub_part = type_line.split(" - ", 1)
+        else:
+            main_part = type_line
+            sub_part = ""
+
+        # Parse main part for supertypes and types
+        main_words = main_part.split()
+        for word in main_words:
+            if word in constants.SUPER_TYPES:
+                supertypes.append(word)
+            else:
+                types.append(word)
+
+        # Parse subtypes (handle multi-word subtypes)
+        if sub_part:
+            remaining = sub_part
+            for multi_word_type in constants.MULTI_WORD_SUB_TYPES:
+                if multi_word_type in remaining:
+                    subtypes.append(multi_word_type)
+                    remaining = remaining.replace(multi_word_type, "")
+
+            # Add remaining single-word subtypes
+            for word in remaining.split():
+                if word:
+                    subtypes.append(word)
+
+        self.supertypes = supertypes
+        self.types = types
+        self.subtypes = subtypes
+
+        return self
+
+    @model_validator(mode="after")
+    def compute_availability(self) -> "MtgjsonCardObject":
+        """
+        Compute availability flags from Scryfall's 'games' field and identifiers.
+
+        The 'games' field is a temporary field passed from Scryfall data.
+        """
+        # Games field comes from Scryfall data
+        games = getattr(self, "_games_temp", [])
+
+        if not hasattr(self, "availability") or not self.availability:
+            self.availability = MtgjsonGameFormatsObject()
+
+        # Arena availability
+        self.availability.arena = "arena" in games or (
+            self.identifiers.mtg_arena_id is not None
+        )
+
+        # MTGO availability
+        self.availability.mtgo = "mtgo" in games or (
+            self.identifiers.mtgo_id is not None
+        )
+
+        # Paper availability
+        self.availability.paper = not self.is_online_only
+
+        # Shandalar availability
+        self.availability.shandalar = "astral" in games
+
+        # Dreamcast availability
+        self.availability.dreamcast = "sega" in games
+
+        return self
+
+    @model_validator(mode="after")
+    def compute_is_funny(self) -> "MtgjsonCardObject":
+        """
+        Determine if card is from a funny/un-set.
+
+        Based on set_type being 'funny' and frame being 'future'.
+        """
+        # set_type_temp is passed from Scryfall data
+        set_type = getattr(self, "_set_type_temp", "")
+
+        self.is_funny = set_type in {"funny"} and self.frame_version == "future"
+
+        return self
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def ascii_name(self) -> str:
