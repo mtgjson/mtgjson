@@ -3,6 +3,8 @@
 import datetime
 from typing import Any, Dict, Optional, Union
 
+from pydantic import Field
+
 from ... import constants
 from ...mtgjson_config import MtgjsonConfig
 from ..mtgjson_base import MTGJsonModel
@@ -10,11 +12,15 @@ from ..mtgjson_base import MTGJsonModel
 
 class MtgjsonMetaObject(MTGJsonModel):
     """
-    MTGJSON Meta Object
+    The Meta Data Model describes the properties of the MTGJSON application meta data.
     """
 
-    date: str = ""
-    version: str = ""
+    date: str = Field(
+        description="The current release date in ISO 8601 format for the MTGJSON build."
+    )
+    version: str = Field(
+        description="The current SemVer version for the MTGJSON build appended with the build date."
+    )
 
     def __init__(
         self,
