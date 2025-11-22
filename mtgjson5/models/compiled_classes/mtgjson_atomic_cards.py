@@ -3,7 +3,7 @@
 import json
 import re
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import Field
 
@@ -18,14 +18,17 @@ to_camel_case = utils.to_camel_case
 
 class MtgjsonAtomicCardsObject(MTGJsonCompiledModel):
     """
-    MTGJSON AtomicCards Object
+    The Atomic Cards compiled output containing card data independent of specific printings.
     """
 
-    atomic_cards_dict: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
+    atomic_cards_dict: dict[str, list[dict[str, Any]]] = Field(
+        default_factory=dict,
+        description="A dictionary mapping card names to lists of atomic card representations.",
+    )
     __name_regex = re.compile(r"^([^\n]+) \([a-z]\)$")
 
     def __init__(
-        self, cards_to_parse: Optional[List[Dict[str, Any]]] = None, **kwargs: Any
+        self, cards_to_parse: list[dict[str, Any]] | None = None, **kwargs: Any
     ) -> None:
         """
         Initializer to build up the object
@@ -38,8 +41,8 @@ class MtgjsonAtomicCardsObject(MTGJsonCompiledModel):
 
     def iterate_all_cards(
         self,
-        files_to_ignore: List[str],
-        cards_to_load: Optional[List[Dict[str, Any]]] = None,
+        files_to_ignore: list[str],
+        cards_to_load: list[dict[str, Any]] | None = None,
     ) -> None:
         """
         Iterate all MTGJSON sets in the dictionary
@@ -84,7 +87,7 @@ class MtgjsonAtomicCardsObject(MTGJsonCompiledModel):
             )
 
     def update_global_card_list(
-        self, card_list: List[Dict[str, Any]], valid_keys: List[str]
+        self, card_list: list[dict[str, Any]], valid_keys: list[str]
     ) -> None:
         """
         Update the global registrar for each card in the card list, using
@@ -95,7 +98,7 @@ class MtgjsonAtomicCardsObject(MTGJsonCompiledModel):
         __name_regex = re.compile(r"^([^\n]+) \([a-z]\)$")
 
         for card in card_list:
-            atomic_card: Dict[str, Any] = {
+            atomic_card: dict[str, Any] = {
                 to_camel_case(key): card.get(to_camel_case(key))
                 for key in valid_keys
                 if card.get(to_camel_case(key)) is not None
@@ -151,7 +154,7 @@ class MtgjsonAtomicCardsObject(MTGJsonCompiledModel):
                 if entry.get("text") == hold_entry.get("text"):
                     entry["foreignData"] = hold_entry.get("foreignData", [])
 
-    def to_json(self) -> Dict[str, List[Dict[str, Any]]]:
+    def to_json(self) -> dict[str, list[dict[str, Any]]]:
         """
         Support json.dump()
         :return: JSON serialized object
