@@ -68,7 +68,7 @@ class EnrichmentProvider:
         Get enrichment data for a card using multiple lookup strategies.
         This approach assumes that UUIDs are stable, but provides fallbacks.
         It also assumes that the enrichment is specific to a UUID, and a
-        future improvemnent may be to update the lookup to UUID and optionally
+        future improvement may be to update the lookup to UUID and optionally
         include language and/or side. The fallback would also need to include
         these additional key components.
         :param card: MTGJSON card object to enrich
