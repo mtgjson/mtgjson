@@ -1,17 +1,23 @@
 """Base Pydantic models for MTGJSON object serialization and deserialization."""
 
-import re
 import datetime
+import re
 from typing import Any, Callable, ClassVar, Dict, Set
 
-from pydantic_core import core_schema
-from pydantic.alias_generators import to_camel
-from pydantic import (field_serializer, computed_field,
-    BaseModel, ConfigDict, Field, model_serializer
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_serializer,
+    model_serializer,
 )
+from pydantic.alias_generators import to_camel
+from pydantic_core import core_schema
 
 _CAMEL_TO_SNAKE_1 = re.compile(r"(.)([A-Z][a-z]+)")
 _CAMEL_TO_SNAKE_2 = re.compile(r"([a-z0-9])([A-Z])")
+
 
 class MTGJsonModel(BaseModel):
     """
@@ -60,13 +66,17 @@ class MTGJsonModel(BaseModel):
         return _CAMEL_TO_SNAKE_2.sub(r"\1_\2", s1).lower()
 
     def to_json(self) -> Dict[str, Any]:
-        """Backward compatibility with existing to_json() calls."""
+        """
+        Backward compatibility with existing to_json() calls.
+        Uses by_alias=True so alias_generator=to_camel converts all fields to camelCase.
+        Fields with validation_alias (not alias) will use the generated camelCase name.
+        """
         return self.model_dump(by_alias=True, exclude_none=True, mode="json")
 
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,
-        extra='ignore',
+        extra="ignore",
         use_enum_values=True,
         validate_assignment=True,
         validate_default=False,
@@ -74,15 +84,31 @@ class MTGJsonModel(BaseModel):
         from_attributes=True,
     )
 
-class MTGJsonCardBase(MTGJsonModel):
+
+class MTGJsonCardModel(MTGJsonModel):
     """
     Extended Base for all MTGJSON Card models with dynamic field exclusion.
     """
 
     _allow_if_falsey: ClassVar[Set[str]] = {
+        # Required fields that must always be present
+        "uuid",
+        "set_code",
+        "text",
+        "type",
+        "layout",
+        "frame_version",
+        "language",
+        # List fields that should be present even if empty
         "supertypes",
         "types",
         "subtypes",
+        "booster_types",
+        "finishes",
+        "printings",
+        "variations",
+        "rulings",
+        # Numeric/boolean fields that should be present even if 0/false
         "has_foil",
         "has_non_foil",
         "color_identity",
@@ -91,6 +117,7 @@ class MTGJsonCardBase(MTGJsonModel):
         "mana_value",
         "face_converted_mana_cost",
         "face_mana_value",
+        # Other fields
         "foreign_data",
         "reverse_related",
     }
@@ -108,7 +135,13 @@ class MTGJsonCardBase(MTGJsonModel):
         "leadership_skills",
     }
 
-    _exclude_for_cards: ClassVar[Set[str]] = {"reverse_related"}
+    _exclude_for_cards: ClassVar[Set[str]] = {
+        "reverse_related",
+        "ascii_name",  # Only in atomic cards
+        "count",  # Only in deck lists
+        "face_mana_value",  # Only for multi-face cards
+        "prices",  # Excluded from card output
+    }
 
     _atomic_keys: list[str] = [
         "ascii_name",
@@ -168,15 +201,18 @@ class MTGJsonCardBase(MTGJsonModel):
                 excluded_keys.add(field_name)
 
         return excluded_keys
-    
+
     def to_json(self) -> Dict[str, Any]:
         """
         Custom JSON serialization that filters out empty values
         :return: JSON object
         """
         skip_keys = self.build_keys_to_skip()
-        return self.model_dump(by_alias=True, exclude=skip_keys, exclude_none=True, mode="json")
-        
+        return self.model_dump(
+            by_alias=True, exclude=skip_keys, exclude_none=True, mode="json"
+        )
+
+
 class MTGJsonSetModel(MTGJsonModel):
     """
     Extended Base for all MTGJSON Set models with custom Windows-safe set code.
@@ -206,3 +242,7 @@ class MTGJsonSetModel(MTGJsonModel):
         Kept for backward compatibility.
         """
         return self.windows_set_code
+
+
+class MTGJsonCompiledModel(MTGJsonModel):
+    """MTGJSON Compiled Base model"""

@@ -2,8 +2,8 @@
 
 import json
 import unicodedata
-from typing import TYPE_CHECKING, Any
 import uuid
+from typing import TYPE_CHECKING, Any
 
 from pydantic import (
     Field,
@@ -17,6 +17,7 @@ from ... import constants
 from ..mtgjson_base import MTGJsonCardModel
 from .mtgjson_foreign_data import MtgjsonForeignDataObject
 from .mtgjson_game_formats import MtgjsonGameFormatsObject
+from .mtgjson_identifiers import MtgjsonIdentifiersObject
 from .mtgjson_leadership_skills import MtgjsonLeadershipSkillsObject
 from .mtgjson_legalities import MtgjsonLegalitiesObject
 from .mtgjson_prices import MtgjsonPricesObject
@@ -33,9 +34,11 @@ class MtgjsonCardObject(MTGJsonCardModel):
     Card (Set) Data Model. Represents a specific printing of a card within a Set.
     """
 
-    artist: str | None = Field(default=None, alias="artist", description="The artist of the card.")
+    artist: str | None = Field(
+        default=None, description="The artist of the card."
+    )
     artist_ids: list[str] | None = Field(
-        default=None, alias="artist_ids", description="The identifiers of the artist."
+        default=None, description="The identifiers of the artist."
     )
     availability: MtgjsonGameFormatsObject = Field(
         default_factory=MtgjsonGameFormatsObject,
@@ -45,37 +48,34 @@ class MtgjsonCardObject(MTGJsonCardModel):
         default_factory=list, description="Types of boosters this card appears in."
     )
     border_color: str = Field(
-        default="", alias="border_color", description="The color of the card border."
+        default="", description="The color of the card border."
     )
     card_parts: list[str] = Field(
         default_factory=list, description="UUIDs of other parts of the card."
     )
     color_identity: list[str] = Field(
         default_factory=list,
-        alias="color_identity",
-        description="The color identity of the card.",
+                description="The color identity of the card.",
     )
     colors: list[str] = Field(
-        default_factory=list, alias="colors", description="The colors of the card."
+        default_factory=list, description="The colors of the card."
     )
     count: int = Field(
         default=1, description="The number of copies of this card in the deck."
     )
     finishes: list[str] = Field(
         default_factory=list,
-        alias="finishes",
-        description="The finishes available for this card.",
+                description="The finishes available for this card.",
     )
     foreign_data: list[MtgjsonForeignDataObject] = Field(
         default_factory=list, description="Data for the card in other languages."
     )
     frame_effects: list[str] = Field(
         default_factory=list,
-        alias="frame_effects",
-        description="The frame effects on the card.",
+                description="The frame effects on the card.",
     )
     frame_version: str = Field(
-        default="", alias="frame", description="The version of the card frame."
+        default="", validation_alias="frame", description="The version of the card frame."
     )
     has_foil: bool = Field(
         default=False, description="If the card is available in foil."
@@ -83,27 +83,29 @@ class MtgjsonCardObject(MTGJsonCardModel):
     has_non_foil: bool = Field(
         default=False, description="If the card is available in non-foil."
     )
+    identifiers: MtgjsonIdentifiersObject = Field(
+        default_factory=MtgjsonIdentifiersObject, description="Identifiers of the card."
+    )
     keywords: list[str] = Field(
-        default_factory=list, alias="keywords", description="Keywords on the card."
+        default_factory=list, description="Keywords on the card."
     )
     language: str = Field(
-        default="", alias="lang", description="The language of the card."
+        default="", validation_alias="lang", description="The language of the card."
     )
     layout: str = Field(
-        default="", alias="layout", description="The layout of the card."
+        default="", description="The layout of the card."
     )
     legalities: MtgjsonLegalitiesObject = Field(
         default_factory=MtgjsonLegalitiesObject,
-        alias="legalities",
-        description="Legalities.",
+                description="Legalities.",
     )
     mana_cost: str | None = Field(
-        default="", alias="mana_cost", description="Mana cost."
+        default="", description="Mana cost."
     )
-    mana_value: float = Field(default=0.0, alias="cmc", description="Mana value.")
-    name: str = Field(default="", alias="name", description="Card name.")
+    mana_value: float = Field(default=0.0, validation_alias="cmc", description="Mana value.")
+    name: str = Field(default="", description="Card name.")
     number: str = Field(
-        default="0", alias="collector_number", description="Collector number."
+        default="0", validation_alias="collector_number", description="Collector number."
     )
     original_printings: list[str] = Field(
         default_factory=list, description="Original printing set codes."
@@ -111,27 +113,27 @@ class MtgjsonCardObject(MTGJsonCardModel):
     other_face_ids: list[str] = Field(
         default_factory=list, description="UUIDs of other faces."
     )
-    power: str | None = Field(default="", alias="power", description="Power.")
+    power: str | None = Field(default="", description="Power.")
     printings: list[str] = Field(
         default_factory=list, description="Set codes of printings."
     )
     promo_types: list[str] = Field(
-        default_factory=list, alias="promo_types", description="Types of promo."
+        default_factory=list, description="Types of promo."
     )
     purchase_urls: MtgjsonPurchaseUrlsObject = Field(
         default_factory=MtgjsonPurchaseUrlsObject, description="Purchase URLs."
     )
-    rarity: str = Field(default="", alias="rarity", description="Rarity.")
+    rarity: str = Field(default="", description="Rarity.")
     rebalanced_printings: list[str] = Field(
         default_factory=list, description="Sets where this was rebalanced."
     )
     subtypes: list[str] = Field(default_factory=list, description="Subtypes.")
     supertypes: list[str] = Field(default_factory=list, description="Supertypes.")
-    text: str | None = Field(default="", alias="oracle_text", description="Rules text.")
+    text: str | None = Field(default="", validation_alias="oracle_text", description="Rules text.")
     toughness: str | None = Field(
-        default="", alias="toughness", description="Toughness."
+        default="", description="Toughness."
     )
-    type: str = Field(default="", alias="type_line", description="Full type line.")
+    type: str = Field(default="", validation_alias="type_line", description="Full type line.")
     types: list[str] = Field(default_factory=list, description="Types.")
     uuid: str = Field(default="", description="Unique identifier.")
     variations: list[str] = Field(
@@ -142,28 +144,26 @@ class MtgjsonCardObject(MTGJsonCardModel):
     )
     prices: MtgjsonPricesObject = Field(default_factory=MtgjsonPricesObject)
 
-    set_code: str = Field(default="", alias="set", description="Set code.")
+    set_code: str = Field(default="", validation_alias="set", description="Set code.")
     is_token: bool = Field(default=False, exclude=True)
     raw_purchase_urls: dict[str, str] = Field(default_factory=dict, exclude=True)
 
     attraction_lights: list[int] | None = Field(
         default=None,
-        alias="attraction_lights",
-        description="The attraction lights lit on the card.",
+                description="The attraction lights lit on the card.",
     )
     color_indicator: list[str] | None = Field(
         default=None,
-        alias="color_indicator",
-        description="The color indicator of the card.",
+                description="The color indicator of the card.",
     )
     defense: str | None = Field(
-        default=None, alias="defense", description="The defense of the card."
+        default=None, description="The defense of the card."
     )
     duel_deck: str | None = Field(
         default=None, description="The duel deck code if applicable."
     )
     edhrec_rank: int | None = Field(
-        default=None, alias="edhrec_rank", description="The EDHREC rank."
+        default=None, description="The EDHREC rank."
     )
     edhrec_saltiness: float | None = Field(
         default=None, description="The EDHREC saltiness score."
@@ -176,59 +176,59 @@ class MtgjsonCardObject(MTGJsonCardModel):
         default=None, description="The set code of the first printing of the card."
     )
     flavor_name: str | None = Field(
-        default=None, alias="flavor_name", description="The flavor name of the card."
+        default=None, description="The flavor name of the card."
     )
     flavor_text: str | None = Field(
-        default=None, alias="flavor_text", description="The flavor text of the card."
+        default=None, description="The flavor text of the card."
     )
     hand: str | None = Field(
-        default=None, alias="hand_modifier", description="The hand modifier."
+        default=None, validation_alias="hand_modifier", description="The hand modifier."
     )
     has_alternative_deck_limit: bool | None = Field(
         default=None, description="If the card allows more than 4 copies."
     )
     has_content_warning: bool | None = Field(
         default=None,
-        alias="content_warning",
+        validation_alias="content_warning",
         description="If the card has a content warning.",
     )
     is_alternative: bool | None = Field(
         default=None, description="If this is an alternative printing."
     )
     is_foil: bool | None = Field(
-        default=None, alias="foil", description="If this specific card entry is foil."
+        default=None, validation_alias="foil", description="If this specific card entry is foil."
     )
     is_full_art: bool | None = Field(
-        default=None, alias="full_art", description="If the card is full art."
+        default=None, validation_alias="full_art", description="If the card is full art."
     )
     is_funny: bool | None = Field(
         default=None, description="If the card is from a funny set."
     )
     is_game_changer: bool | None = Field(
         default=None,
-        alias="game_changer",
+        validation_alias="game_changer",
         description="If the card changes the rules of the game.",
     )
     is_online_only: bool | None = Field(
         default=None,
-        alias="digital",
+        validation_alias="digital",
         description="If the card is only available online.",
     )
     is_oversized: bool | None = Field(
-        default=None, alias="oversized", description="If the card is oversized."
+        default=None, validation_alias="oversized", description="If the card is oversized."
     )
     is_promo: bool | None = Field(
-        default=None, alias="promo", description="If the card is a promo."
+        default=None, validation_alias="promo", description="If the card is a promo."
     )
     is_rebalanced: bool | None = Field(
         default=None, description="If the card has been rebalanced."
     )
     is_reprint: bool | None = Field(
-        default=None, alias="reprint", description="If the card is a reprint."
+        default=None, validation_alias="reprint", description="If the card is a reprint."
     )
     is_reserved: bool | None = Field(
         default=None,
-        alias="reserved",
+        validation_alias="reserved",
         description="If the card is on the Reserved List.",
     )
     is_starter: bool | None = Field(
@@ -236,11 +236,11 @@ class MtgjsonCardObject(MTGJsonCardModel):
     )
     is_story_spotlight: bool | None = Field(
         default=None,
-        alias="story_spotlight",
+        validation_alias="story_spotlight",
         description="If the card is a story spotlight.",
     )
     is_textless: bool | None = Field(
-        default=None, alias="textless", description="If the card is textless."
+        default=None, validation_alias="textless", description="If the card is textless."
     )
     is_timeshifted: bool | None = Field(
         default=None, description="If the card is timeshifted."
@@ -249,12 +249,12 @@ class MtgjsonCardObject(MTGJsonCardModel):
         default=None, description="Leadership skills."
     )
     life: str | None = Field(
-        default=None, alias="life_modifier", description="Life modifier."
+        default=None, validation_alias="life_modifier", description="Life modifier."
     )
-    loyalty: str | None = Field(default=None, alias="loyalty", description="Loyalty.")
+    loyalty: str | None = Field(default=None, description="Loyalty.")
     orientation: str | None = Field(default=None, description="Orientation.")
     original_release_date: str | None = Field(
-        default=None, alias="released_at", description="Original release date."
+        default=None, validation_alias="released_at", description="Original release date."
     )
     original_text: str | None = Field(default=None, description="Original rules text.")
     original_type: str | None = Field(default=None, description="Original type line.")
@@ -269,7 +269,7 @@ class MtgjsonCardObject(MTGJsonCardModel):
         default=None, description="Rulings."
     )
     security_stamp: str | None = Field(
-        default=None, alias="security_stamp", description="Security stamp type."
+        default=None, description="Security stamp type."
     )
     side: str | None = Field(default=None, description="Side (a/b).")
     signature: str | None = Field(default=None, description="Signature on the card.")
@@ -278,18 +278,18 @@ class MtgjsonCardObject(MTGJsonCardModel):
     )
     subsets: list[str] | None = Field(default=None, description="Subsets.")
     watermark: str | None = Field(
-        default=None, alias="watermark", description="Watermark."
+        default=None, description="Watermark."
     )
     printed_name: str | None = Field(
-        default=None, alias="printed_name", description="The printed name of the card."
+        default=None, description="The printed name of the card."
     )
     printed_type: str | None = Field(
         default=None,
-        alias="printed_type_line",
+        validation_alias="printed_type_line",
         description="The printed type line of the card.",
     )
     printed_text: str | None = Field(
-        default=None, alias="printed_text", description="The printed text of the card."
+        default=None, description="The printed text of the card."
     )
     face_printed_name: str | None = Field(
         default=None, description="The printed name on the face of the card."
@@ -341,7 +341,9 @@ class MtgjsonCardObject(MTGJsonCardModel):
             pass
 
         # Generate new v5 UUID
-        object.__setattr__(self, "uuid", str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v5)))
+        object.__setattr__(
+            self, "uuid", str(uuid.uuid5(uuid.NAMESPACE_DNS, id_source_v5))
+        )
 
         return self
 
@@ -680,6 +682,90 @@ class MtgjsonCardObject(MTGJsonCardModel):
         object.__setattr__(
             self, "is_funny", set_type in {"funny"} and self.frame_version == "future"
         )
+
+        return self
+
+    @model_validator(mode="after")
+    def compute_is_alternative_and_rebalanced(self) -> "MtgjsonCardObject":
+        """
+        Determine if card is alternative/rebalanced printing.
+        Cards starting with 'A-' are both alternative and rebalanced.
+        """
+        if self.name and self.name.startswith("A-"):
+            object.__setattr__(self, "is_alternative", True)
+            object.__setattr__(self, "is_rebalanced", True)
+
+        return self
+
+    @model_validator(mode="after")
+    def compute_is_timeshifted(self) -> "MtgjsonCardObject":
+        """
+        Determine if card is timeshifted.
+        Based on frame being 'future' or set_code being 'TSB'.
+        """
+        is_timeshifted = (
+            self.frame_version == "future" or self.set_code.lower() == "tsb"
+        )
+        object.__setattr__(self, "is_timeshifted", is_timeshifted)
+
+        return self
+
+    @field_validator("text", mode="before")
+    @classmethod
+    def format_planeswalker_text(cls, v: Any, info: Any) -> Any:
+        """
+        Format planeswalker loyalty abilities with bracket notation.
+        Converts '+1:' to '[+1]:' for planeswalker cards.
+        """
+        if not v:
+            return v
+
+        # This runs before parse_type_line, so we need to check type_line
+        data = info.data if hasattr(info, "data") else {}
+        type_line = data.get("type_line", "")
+
+        # Also check if types list contains Planeswalker (from already-parsed data)
+        types = data.get("types", [])
+
+        if "Planeswalker" in type_line or "Planeswalker" in types:
+            import re
+
+            return re.sub(r"([+−-]?[0-9X]+):", r"[\1]:", v)
+
+        return v
+
+    @field_validator("keywords", mode="before")
+    @classmethod
+    def filter_keywords_by_text(cls, v: Any, info: Any) -> Any:
+        """
+        Filter keywords to only include those that appear in the card text.
+        Keywords from Scryfall are filtered against the oracle_text.
+        """
+        if not v or not isinstance(v, list):
+            return v
+
+        # Get the text from the data
+        data = info.data if hasattr(info, "data") else {}
+        text = data.get("oracle_text", "") or data.get("text", "")
+
+        if not text:
+            return v
+
+        # Filter keywords that appear in the text (case insensitive)
+        text_lower = text.lower()
+        return sorted([kw for kw in v if kw.lower() in text_lower])
+
+    @model_validator(mode="after")
+    def override_layout_for_special_cards(self) -> "MtgjsonCardObject":
+        """
+        Override layout for special card types (art_series, tokens).
+        """
+        # Art series cards have their own layout
+        if "//" not in self.name and any(
+            type_line in self.type.lower() for type_line in ("card", "token")
+        ):
+            # Cards labeled as "token" or "card" type are actually tokens
+            object.__setattr__(self, "layout", "token")
 
         return self
 
