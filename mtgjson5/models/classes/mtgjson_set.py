@@ -31,13 +31,13 @@ class MtgjsonSetObject(MTGJsonSetModel):
     # Required fields
     base_set_size: int = Field(default=0, description="The number of cards in the set.")
     block: str | None = Field(
-        default=None, alias="block", description="The block name the set is in."
+        default=None, description="The block name the set is in."
     )
     cards: list[MtgjsonCardObject] = Field(
         default_factory=list, description="The list of cards in the set."
     )
     code: str = Field(
-        default="", alias="code", description="The printing set code for the set."
+        default="", description="The printing set code for the set."
     )
     code_v3: str | None = Field(
         default=None,
@@ -52,17 +52,17 @@ class MtgjsonSetObject(MTGJsonSetModel):
     )
     is_foil_only: bool = Field(
         default=False,
-        alias="foil_only",
+        validation_alias="foil_only",
         description="If the set is only available in foil.",
     )
     is_non_foil_only: bool | None = Field(
         default=None,
-        alias="nonfoil_only",
+        validation_alias="nonfoil_only",
         description="If the set is only available in non-foil.",
     )
     is_online_only: bool = Field(
         default=False,
-        alias="digital",
+        validation_alias="digital",
         description="If the set is only available in online game play variations.",
     )
     is_partial_preview: bool | None = Field(
@@ -76,18 +76,17 @@ class MtgjsonSetObject(MTGJsonSetModel):
     )
     mtgo_code: str | None = Field(
         default=None,
-        alias="mtgo_code",
-        description="The set code for the set as it appears on Magic: The Gathering Online.",
+                description="The set code for the set as it appears on Magic: The Gathering Online.",
     )
-    name: str = Field(default="", alias="name", description="The name of the set.")
+    name: str = Field(default="", description="The name of the set.")
     parent_code: str | None = Field(
         default=None,
-        alias="parent_set_code",
+        validation_alias="parent_set_code",
         description="The parent printing set code for set variations.",
     )
     release_date: str = Field(
         default="",
-        alias="released_at",
+        validation_alias="released_at",
         description="The release date in ISO 8601 format for the set.",
     )
     sealed_product: list[MtgjsonSealedProductObject] = Field(
@@ -104,7 +103,7 @@ class MtgjsonSetObject(MTGJsonSetModel):
         description="The translated set name by language.",
     )
     type: str = Field(
-        default="", alias="set_type", description="The expansion type of the set."
+        default="", validation_alias="set_type", description="The expansion type of the set."
     )
 
     booster: dict[str, MtgjsonBoosterConfigObject] | None = Field(
@@ -132,7 +131,7 @@ class MtgjsonSetObject(MTGJsonSetModel):
 
     # Private/excluded fields
     extra_tokens: list[dict[str, Any]] = Field(default_factory=list, exclude=True)
-    search_uri: str = Field(default="", alias="search_uri", exclude=True)
+    search_uri: str = Field(default="", exclude=True)
 
     def __str__(self) -> str:
         """
