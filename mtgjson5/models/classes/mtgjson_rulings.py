@@ -11,10 +11,10 @@ class MtgjsonRulingObject(MTGJsonModel):
     """
 
     date: str = Field(
-        alias="published_at",
+        validation_alias="published_at",
         description="The release date in ISO 8601 format for the rule.",
     )
     text: str = Field(
-        alias="comment",
+        validation_alias="comment",
         description="The text ruling of the card.",
     )
