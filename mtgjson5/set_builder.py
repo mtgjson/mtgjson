@@ -44,9 +44,25 @@ from .providers import (
     UuidCacheProvider,
     WhatsInStandardProvider,
 )
+from .providers.enrichment_provider import EnrichmentProvider
 from .utils import get_str_or_none, load_local_set_data, url_keygen
 
 LOGGER = logging.getLogger(__name__)
+
+# Singleton instance cache for EnrichmentProvider
+_enrichment_provider_instance = None
+
+
+def get_enrichment_provider() -> EnrichmentProvider:
+    """
+    Get or create singleton instance of EnrichmentProvider.
+    This avoids reloading the enrichment JSON for every set.
+    :return: Cached EnrichmentProvider instance
+    """
+    global _enrichment_provider_instance
+    if _enrichment_provider_instance is None:
+        _enrichment_provider_instance = EnrichmentProvider()
+    return _enrichment_provider_instance
 
 
 def parse_foreign(
@@ -489,6 +505,78 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
         mtgjson_set.cards = build_base_mtgjson_cards(
             set_code, set_release_date=mtgjson_set.release_date
         )
+
+    # Apply enrichment if cards were built
+    # in the future may also want to do this for art cards/tokens
+    if getattr(mtgjson_set, "cards", None):
+        LOGGER.info(f"Applying card enrichment for {mtgjson_set.code}")
+        enr_provider = get_enrichment_provider()
+        enriched_count = 0
+        
+        for mtgjson_card in mtgjson_set.cards:
+            enrichment = enr_provider.get_enrichment_for_card(mtgjson_card)
+            if not enrichment:
+                continue
+
+            enriched_count += 1
+            for key, val in enrichment.items():
+                existing = getattr(mtgjson_card, key, None)
+
+                # Special handling for promo_types list merging
+                if key == "promo_types" and isinstance(existing, list) and isinstance(val, list):
+                    merged = list(dict.fromkeys(existing + val))
+                    # Remove generic "neonink" if specific color variants are present
+                    if any(pt.startswith("neonink") and pt != "neonink" for pt in merged):
+                        merged = [pt for pt in merged if pt != "neonink"]
+                    setattr(mtgjson_card, key, merged)
+                    LOGGER.debug(
+                        f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
+                        f"added promo_types {val}"
+                    )
+                    continue
+
+                # If both are lists, append new items and dedupe while preserving order
+                if isinstance(existing, list) and isinstance(val, list):
+                    merged = list(dict.fromkeys(existing + val))
+                    setattr(mtgjson_card, key, merged)
+                    LOGGER.debug(
+                        f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
+                        f"merged {key}"
+                    )
+                    continue
+
+                # If both are dicts, shallow-merge (enrichment overwrites keys if collision)
+                if isinstance(existing, dict) and isinstance(val, dict):
+                    merged = existing.copy()
+                    merged.update(val)
+                    setattr(mtgjson_card, key, merged)
+                    LOGGER.debug(
+                        f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
+                        f"merged dict {key}"
+                    )
+                    continue
+
+                # Scalars: only set if existing value is falsy
+                if not existing:
+                    setattr(mtgjson_card, key, val)
+                    LOGGER.debug(
+                        f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
+                        f"set {key} to {val}"
+                    )
+                else:
+                    LOGGER.debug(
+                        f"Enrichment skipped for {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
+                        f"key '{key}' already has value"
+                    )
+        
+        if enriched_count > 0:
+            LOGGER.info(
+                f"Finished applying card enrichment for {mtgjson_set.code}: "
+                f"{enriched_count} cards enriched"
+            )
+        else:
+            LOGGER.info(f"No enrichment data found for {mtgjson_set.code}")
+
     add_is_starter_option(set_code, mtgjson_set.search_uri, mtgjson_set.cards)
     add_rebalanced_to_original_linkage(mtgjson_set)
     relocate_miscellaneous_tokens(mtgjson_set)
