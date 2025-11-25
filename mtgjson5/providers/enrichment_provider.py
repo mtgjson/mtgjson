@@ -13,10 +13,10 @@ class EnrichmentProvider:
     """
     Loads mtgjson5/resources/card_enrichment.json and provides lookup helpers.
 
-    Lookup order attempted:
-      1) by_uuid
-      2) {SET}->{collector_number}|{name}
-      3) {SET}->{collector_number}
+    Lookup strategies are attempted in order:
+        1. by_uuid - Primary UUID lookup
+        2. {SET}->{collector_number}|{name} - Fallback with name
+        3. {SET}->{collector_number} - Final fallback without name
     """
 
     def __init__(self) -> None:
