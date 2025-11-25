@@ -2,6 +2,9 @@
 # Pickle collected data for later comparisons.
 persistent=yes
 
+# Allow pydantic to be analyzed for type information
+extension-pkg-allow-list=pydantic
+
 [MESSAGES CONTROL]
 # Disable the message, report, category or checker with the given id(s). You
 # can either give multiple identifiers separated by comma (,) or put this
@@ -64,3 +67,17 @@ notes=
 # A regular expression matching the name of dummy variables (i.e. expectedly
 # not used).
 dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)
+
+[TYPECHECK]
+# List of members which are set dynamically and missed by pylint inference
+# system, and so shouldn't trigger E1101 when accessed. Python regex expressions
+# are supported.
+generated-members=
+    mtg_arena_id,
+    mtgo_id,
+    scryfall_illustration_id,
+    tcgplayer_product_id,
+    tcgplayer_etched_product_id,
+    multiverse_id,
+    update,
+    pop

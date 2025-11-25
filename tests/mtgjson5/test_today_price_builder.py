@@ -3,7 +3,7 @@ import pathlib
 from typing import List, TextIO
 from unittest.mock import patch
 
-from mtgjson5.models import MtgjsonPricesObject
+from mtgjson5.models.classes import MtgjsonPricesObject
 from mtgjson5.price_builder import PriceBuilder
 from mtgjson5.providers import (
     CardKingdomProvider,

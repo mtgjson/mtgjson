@@ -17,7 +17,7 @@ if config_file.is_file():
 
 setuptools.setup(
     name="mtgjson5",
-    version=config.get("MTGJSON", "version", fallback="5.0.0+fallback"),
+    version=config.get("MTGJSON", "version", fallback="5.0.0+fallback") or "5.0.0+fallback",
     author="Zach Halpern",
     author_email="zach@mtgjson.com",
     url="https://mtgjson.com/",

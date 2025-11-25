@@ -1,6 +1,6 @@
 import random
 
-from mtgjson5.models import MtgjsonCardObject
+from mtgjson5.models.classes.mtgjson_card import MtgjsonCardObject
 
 
 def test_card_sorting():
