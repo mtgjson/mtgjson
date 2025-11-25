@@ -1,21 +1,9 @@
 """Test the EnrichmentProvider."""
 
-import json
-import tempfile
-from pathlib import Path
-from typing import Any, Dict
-
 import pytest
 
 from mtgjson5.classes import MtgjsonCardObject
 from mtgjson5.providers.enrichment_provider import EnrichmentProvider
-
-
-# Production UUIDs from card_enrichment.json
-# Format: SET_NUMBER_CARDNAME_COLOR
-FIN_551A_TRAVELING_CHOCOBO_YELLOW = "1b999e7e-83ff-5536-8f0c-b28413d157dc"
-FIN_551B_TRAVELING_CHOCOBO_PINK = "b923c4dd-9428-5faf-9362-2c9b3d53528a"
-LCI_410A_CAVERN_MULTICOLOR = "479e911d-ce0e-5e90-93c7-be72198cbd40"
 
 
 class TestEnrichmentProviderInit:
@@ -25,12 +13,10 @@ class TestEnrichmentProviderInit:
         """Test that EnrichmentProvider loads production enrichment file."""
         provider = EnrichmentProvider()
         # Should load the real file with production data
-        assert "_comment" in provider._data
-        assert "by_uuid" in provider._data
-        assert len(provider._data["by_uuid"]) > 0
-        # Check for known production UUID (FIN 551a - Traveling Chocobo, yellow)
-        assert FIN_551A_TRAVELING_CHOCOBO_YELLOW in provider._data["by_uuid"]
-        assert FIN_551B_TRAVELING_CHOCOBO_PINK in provider._data["by_uuid"]
+        assert "FIN" in provider._data
+        assert "NEO" in provider._data
+        # Check that set sections have card entries
+        assert "551a|Traveling Chocobo" in provider._data["FIN"]
 
     def test_init_handles_missing_file(self, tmp_path, monkeypatch):
         """Test that EnrichmentProvider handles missing enrichment file gracefully."""
@@ -88,29 +74,32 @@ class TestEnrichmentProviderValidation:
 class TestEnrichmentProviderLookup:
     """Test EnrichmentProvider lookup strategies."""
 
-    def test_lookup_by_uuid_primary(self):
-        """Test primary lookup by UUID (FIN 551a - Traveling Chocobo, yellow)."""
+    def test_lookup_by_set_number_name(self):
+        """Test primary lookup by set+number+name (FIN 551a - Traveling Chocobo, yellow)."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
-        card.uuid = FIN_551A_TRAVELING_CHOCOBO_YELLOW
+        card.set_code = "FIN"
+        card.number = "551a"
+        card.name = "Traveling Chocobo"
         
         result = provider.get_enrichment_for_card(card)
         assert result == {"promo_types": ["neoninkyellow"]}
 
-    def test_lookup_by_uuid_multiple_promo_types(self):
-        """Test UUID lookup with multiple promo_types (LCI 410a - Cavern of Souls, three-color/multicolor/rainbow)."""
+    def test_lookup_multiple_promo_types(self):
+        """Test lookup with multiple promo_types (LCI 410a - Cavern of Souls)."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
-        card.uuid = LCI_410A_CAVERN_MULTICOLOR
+        card.set_code = "LCI"
+        card.number = "410a"
+        card.name = "Cavern of Souls"
         
         result = provider.get_enrichment_for_card(card)
         assert result == {"promo_types": ["neoninkthreecolor", "neoninkmulticolor", "neoninkrainbow"]}
 
-    def test_lookup_by_set_number_name(self):
-        """Test fallback lookup by set+number+name (NEO 430 - Hidetsugu Devouring Chaos, green)."""
+    def test_lookup_neo_card(self):
+        """Test lookup for NEO card (NEO 430 - Hidetsugu Devouring Chaos, green)."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
-        card.uuid = "non-existent-uuid"
         card.set_code = "NEO"
         card.number = "430"
         card.name = "Hidetsugu, Devouring Chaos"
@@ -118,11 +107,10 @@ class TestEnrichmentProviderLookup:
         result = provider.get_enrichment_for_card(card)
         assert result == {"promo_types": ["neoninkgreen"]}
 
-    def test_lookup_by_set_number_name_with_wrong_name_returns_none(self):
+    def test_lookup_with_wrong_name_returns_none(self):
         """Test wrong name with correct set+number returns None (NEO 430 exists but name doesn't match)."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
-        card.uuid = "non-existent-uuid"
         card.set_code = "NEO"
         card.number = "430"
         card.name = "Different Name"
@@ -131,11 +119,10 @@ class TestEnrichmentProviderLookup:
         result = provider.get_enrichment_for_card(card)
         assert result is None
 
-    def test_lookup_prefers_number_name_over_uuid_when_uuid_missing(self):
-        """Test that set+number+name works when UUID not in enrichment data."""
+    def test_lookup_sld_card(self):
+        """Test lookup for SLD card (SLD 424 - Ghostly Prison, yellow)."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
-        card.uuid = "non-existent-uuid-12345"
         card.set_code = "SLD"
         card.number = "424"
         card.name = "Ghostly Prison"
@@ -147,7 +134,6 @@ class TestEnrichmentProviderLookup:
         """Test that lookup returns None for cards not in enrichment data."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
-        card.uuid = "non-existent-uuid-99999"
         card.set_code = "XXX"
         card.number = "999"
         card.name = "Non-existent Card"
@@ -159,7 +145,6 @@ class TestEnrichmentProviderLookup:
         """Test that lookup returns None for cards in non-existent set."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
-        card.uuid = "non-existent-uuid-88888"
         card.set_code = "MISSING"
         card.number = "1"
         card.name = "Some Card"
@@ -175,7 +160,9 @@ class TestEnrichmentProviderDeepCopy:
         """Test that returned data is a deep copy (FIN 551a - Traveling Chocobo, yellow)."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
-        card.uuid = FIN_551A_TRAVELING_CHOCOBO_YELLOW
+        card.set_code = "FIN"
+        card.number = "551a"
+        card.name = "Traveling Chocobo"
         
         result1 = provider.get_enrichment_for_card(card)
         result2 = provider.get_enrichment_for_card(card)
@@ -205,23 +192,10 @@ class TestEnrichmentProviderInvalidData:
 class TestEnrichmentProviderEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    def test_card_without_uuid(self):
-        """Test card without UUID falls back to set+number+name (NEO 430 - Hidetsugu, green)."""
-        provider = EnrichmentProvider()
-        card = MtgjsonCardObject()
-        # No UUID set
-        card.set_code = "NEO"
-        card.number = "430"
-        card.name = "Hidetsugu, Devouring Chaos"
-        
-        result = provider.get_enrichment_for_card(card)
-        assert result == {"promo_types": ["neoninkgreen"]}
-
     def test_card_without_number(self):
         """Test lookup for card without number returns None."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
-        card.uuid = "non-existent-uuid-77777"
         card.set_code = "NEO"
         # No number set
         card.name = "Test Card"
@@ -233,7 +207,6 @@ class TestEnrichmentProviderEdgeCases:
         """Test card without name returns None (NEO 430 requires name match)."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
-        card.uuid = "non-existent-uuid-66666"
         card.set_code = "NEO"
         card.number = "430"
         # No name set
@@ -241,11 +214,6 @@ class TestEnrichmentProviderEdgeCases:
         # NEO 430 is stored as "430|Hidetsugu, Devouring Chaos", number-only lookup fails
         result = provider.get_enrichment_for_card(card)
         assert result is None
-
-    def test_empty_by_uuid_section(self, tmp_path, monkeypatch):
-        """Test provider works when by_uuid section is empty."""
-        # Skip due to monkeypatch limitations
-        pytest.skip("RESOURCE_PATH mocking not supported due to import-time evaluation")
 
     def test_special_characters_in_card_name(self):
         """Test lookup with special characters in card name."""

@@ -3,20 +3,22 @@ import json
 import logging
 from typing import Any, Dict, Optional
 
+from singleton_decorator import singleton
+
 from ..classes import MtgjsonCardObject
 from ..constants import RESOURCE_PATH
 
 LOGGER = logging.getLogger(__name__)
 
 
+@singleton
 class EnrichmentProvider:
     """
     Loads mtgjson5/resources/card_enrichment.json and provides lookup helpers.
 
     Lookup strategies are attempted in order:
-        1. by_uuid - Primary UUID lookup
-        2. {SET}->{collector_number}|{name} - Fallback with name
-        3. {SET}->{collector_number} - Final fallback without name
+        1. {SET}->{collector_number}|{name} - Primary lookup with name
+        2. {SET}->{collector_number} - Fallback without name
     """
 
     def __init__(self) -> None:
@@ -24,12 +26,8 @@ class EnrichmentProvider:
         try:
             with resource.open(encoding="utf-8") as fp:
                 self._data: Dict[str, Any] = json.load(fp)
-            uuid_count = len(self._data.get("by_uuid", {}))
-            set_count = len([k for k in self._data.keys() if k != "by_uuid"])
-            LOGGER.info(
-                f"Loaded enrichment data: {uuid_count} UUID entries, "
-                f"{set_count} set-specific entries"
-            )
+            set_count = len(self._data.keys())
+            LOGGER.info(f"Loaded enrichment data: {set_count} set-specific entries")
         except FileNotFoundError:
             LOGGER.warning(
                 "card_enrichment.json not found, card enrichment disabled"
@@ -65,26 +63,10 @@ class EnrichmentProvider:
         self, card: MtgjsonCardObject
     ) -> Optional[Dict[str, Any]]:
         """
-        Get enrichment data for a card using multiple lookup strategies.
-        This approach assumes that UUIDs are stable, but provides fallbacks.
-        It also assumes that the enrichment is specific to a UUID, and a
-        future improvement may be to update the lookup to UUID and optionally
-        include language and/or side. The fallback would also need to include
-        these additional key components.
+        Get enrichment data for a card using set-based lookup strategies.
         :param card: MTGJSON card object to enrich
         :return: Enrichment data dictionary or None if not found
         """
-        # 1) by_uuid
-        by_uuid = self._data.get("by_uuid", {})
-        if by_uuid and getattr(card, "uuid", None) in by_uuid:
-            entry = by_uuid[card.uuid]
-            if self._validate_enrichment_entry(entry, f"UUID:{card.uuid}"):
-                # return a copy to avoid accidental mutation
-                return copy.deepcopy(entry)
-            return None
-
-        # 2) Fall-back if uuids ever change
-
         # set-scoped block
         set_block = self._data.get(getattr(card, "set_code", ""), {})
         if not set_block:

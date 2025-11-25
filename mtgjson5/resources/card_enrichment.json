@@ -1,80 +1,158 @@
 {
-  "_comment": "This file enriches card data not available from Scryfall. Lookup by UUID (preferred) or by set code with 'number|name' or 'number' as keys. Used to add specific neon ink colors to promo_types.",
-  "by_uuid": {
-    "1b999e7e-83ff-5536-8f0c-b28413d157dc": { "promo_types": ["neoninkyellow"] },
-    "b923c4dd-9428-5faf-9362-2c9b3d53528a": { "promo_types": ["neoninkpink"] },
-    "35b4adeb-8470-58f5-b550-bd703566d2ca": { "promo_types": ["neoninkblue"] },
-    "f8ce7ceb-d36d-5601-bc50-9f3b4f57cf4a": { "promo_types": ["neoninkgreen"] },
-    "479e911d-ce0e-5e90-93c7-be72198cbd40": { "promo_types": ["neoninkthreecolor", "neoninkmulticolor", "neoninkrainbow"] },
-    "38e8a848-e9d9-5edc-90dd-4d7460c0ca4e": { "promo_types": ["neoninkyellow"] },
-    "21e9a9c1-aa60-5b55-b568-54b54dc4a589": { "promo_types": ["neoninkblue"] },
-    "06d530fd-f068-599d-9ebe-05e870779ecc": { "promo_types": ["neoninkpurple"] },
-    "60319026-82e9-55e9-9f21-25a9d173238b": { "promo_types": ["neoninkred"] },
-    "237f6389-2174-55ff-84a6-26a34f80b679": { "promo_types": ["neoninkgreen"] },
-    "c8e496a3-684c-5c37-a5bb-0475c7fa699c": { "promo_types": ["neoninkred"] },
-    "d274e1a6-af18-5ab6-ad23-1b6f070fdd41": { "promo_types": ["neoninkgreen"] },
-    "3dac3f82-0eeb-591b-82f1-08d2fff5ac67": { "promo_types": ["neoninkblue"] },
-    "ca6df049-edea-5e26-ba38-6c0cb4c1807c": { "promo_types": ["neoninkyellow"] },
-    "69184d37-e76c-5146-a967-ff1d74befabd": { "promo_types": ["neoninkyellow"] },
-    "5f5a545e-9766-5ddd-bfc4-9c99e8018bcb": { "promo_types": ["neoninkyellow"] },
-    "e8bb34fe-3112-5b25-ab4e-685bfb302ec8": { "promo_types": ["neoninkyellow"] },
-    "1eda3486-4635-5465-969a-655e7c6f5134": { "promo_types": ["neoninkyellow"] },
-    "02e9bfa7-3a9c-5431-9465-21e0b34f865c": { "promo_types": ["neoninkthreecolor", "neoninkmulticolor", "neoninkrainbow"] },
-    "db458c8f-0cba-51d2-8ec3-dd4ead161494": { "promo_types": ["neoninkyellow"] },
-    "f4778dc8-a1f4-5995-bc4f-7a44eee26d37": { "promo_types": ["neoninkblue"] },
-    "2156d852-7a31-5c9b-802d-d22124b3967f": { "promo_types": ["neoninkpurple"] },
-    "ab3499f8-9b71-56b4-9dc5-d67d7b65d7bd": { "promo_types": ["neoninkred"] },
-    "5f3af24b-0c57-50cb-abd1-27317d972ea9": { "promo_types": ["neoninkgreen"] },
-    "93a762b0-d06a-531a-8971-bb5d7fe8967a": { "promo_types": ["neoninkyellow"] },
-    "66748b51-a88c-5a4b-b140-d28ad749457b": { "promo_types": ["neoninkyellow"] },
-    "8ce813a0-70ad-58a8-935f-70729706b0e2": { "promo_types": ["neoninkred"] },
-    "ba45eef9-123b-5b02-bcae-999e23049e2e": { "promo_types": ["neoninkblue"] },
-    "8d578f99-927e-5f6c-bb95-981e00869ed6": { "promo_types": ["neoninkgreen"] }
-  },
-
   "FIN": {
-    "551a|Traveling Chocobo": { "promo_types": ["neoninkyellow"] },
-    "551b|Traveling Chocobo": { "promo_types": ["neoninkpink"] },
-    "551c|Traveling Chocobo": { "promo_types": ["neoninkblue"] },
-    "551d|Traveling Chocobo": { "promo_types": ["neoninkgreen"] }
+    "551a|Traveling Chocobo": {
+      "promo_types": [
+        "neoninkyellow"
+      ]
+    },
+    "551b|Traveling Chocobo": {
+      "promo_types": [
+        "neoninkpink"
+      ]
+    },
+    "551c|Traveling Chocobo": {
+      "promo_types": [
+        "neoninkblue"
+      ]
+    },
+    "551d|Traveling Chocobo": {
+      "promo_types": [
+        "neoninkgreen"
+      ]
+    }
   },
-
   "LCI": {
-    "410a|Cavern of Souls":    { "promo_types": ["neoninkthreecolor", "neoninkmulticolor", "neoninkrainbow"] },
-    "410b|Cavern of Souls":    { "promo_types": ["neoninkyellow"] },
-    "410c|Cavern of Souls":    { "promo_types": ["neoninkblue"] },
-    "410d|Cavern of Souls":    { "promo_types": ["neoninkpurple"] },
-    "410e|Cavern of Souls":    { "promo_types": ["neoninkred"] },
-    "410f|Cavern of Souls":    { "promo_types": ["neoninkgreen"] }
+    "410a|Cavern of Souls": {
+      "promo_types": [
+        "neoninkthreecolor",
+        "neoninkmulticolor",
+        "neoninkrainbow"
+      ]
+    },
+    "410b|Cavern of Souls": {
+      "promo_types": [
+        "neoninkyellow"
+      ]
+    },
+    "410c|Cavern of Souls": {
+      "promo_types": [
+        "neoninkblue"
+      ]
+    },
+    "410d|Cavern of Souls": {
+      "promo_types": [
+        "neoninkpurple"
+      ]
+    },
+    "410e|Cavern of Souls": {
+      "promo_types": [
+        "neoninkred"
+      ]
+    },
+    "410f|Cavern of Souls": {
+      "promo_types": [
+        "neoninkgreen"
+      ]
+    }
   },
-
   "NEO": {
-    "429|Hidetsugu, Devouring Chaos": { "promo_types": ["neoninkred"] },
-    "430|Hidetsugu, Devouring Chaos": { "promo_types": ["neoninkgreen"] },
-    "431|Hidetsugu, Devouring Chaos": { "promo_types": ["neoninkblue"] },
-    "432|Hidetsugu, Devouring Chaos": { "promo_types": ["neoninkyellow"] }
+    "429|Hidetsugu, Devouring Chaos": {
+      "promo_types": [
+        "neoninkred"
+      ]
+    },
+    "430|Hidetsugu, Devouring Chaos": {
+      "promo_types": [
+        "neoninkgreen"
+      ]
+    },
+    "431|Hidetsugu, Devouring Chaos": {
+      "promo_types": [
+        "neoninkblue"
+      ]
+    },
+    "432|Hidetsugu, Devouring Chaos": {
+      "promo_types": [
+        "neoninkyellow"
+      ]
+    }
   },
-
   "SLD": {
-    "424|Ghostly Prison":             { "promo_types": ["neoninkyellow"] },
-    "425|Freed from the Real":        { "promo_types": ["neoninkyellow"] },
-    "426|Boseiju, Who Shelters All":  { "promo_types": ["neoninkyellow"] },
-    "427|Hall of the Bandit Lord":    { "promo_types": ["neoninkyellow"] }
+    "424|Ghostly Prison": {
+      "promo_types": [
+        "neoninkyellow"
+      ]
+    },
+    "425|Freed from the Real": {
+      "promo_types": [
+        "neoninkyellow"
+      ]
+    },
+    "426|Boseiju, Who Shelters All": {
+      "promo_types": [
+        "neoninkyellow"
+      ]
+    },
+    "427|Hall of the Bandit Lord": {
+      "promo_types": [
+        "neoninkyellow"
+      ]
+    }
   },
-
   "SPG": {
-    "17a|Mana Crypt": { "promo_types": ["neoninkthreecolor", "neoninkmulticolor", "neoninkrainbow"] },
-    "17b|Mana Crypt": { "promo_types": ["neoninkyellow"] },
-    "17c|Mana Crypt": { "promo_types": ["neoninkblue"] },
-    "17d|Mana Crypt": { "promo_types": ["neoninkpurple"] },
-    "17e|Mana Crypt": { "promo_types": ["neoninkred"] },
-    "17f|Mana Crypt": { "promo_types": ["neoninkgreen"] }
+    "17a|Mana Crypt": {
+      "promo_types": [
+        "neoninkthreecolor",
+        "neoninkmulticolor",
+        "neoninkrainbow"
+      ]
+    },
+    "17b|Mana Crypt": {
+      "promo_types": [
+        "neoninkyellow"
+      ]
+    },
+    "17c|Mana Crypt": {
+      "promo_types": [
+        "neoninkblue"
+      ]
+    },
+    "17d|Mana Crypt": {
+      "promo_types": [
+        "neoninkpurple"
+      ]
+    },
+    "17e|Mana Crypt": {
+      "promo_types": [
+        "neoninkred"
+      ]
+    },
+    "17f|Mana Crypt": {
+      "promo_types": [
+        "neoninkgreen"
+      ]
+    }
   },
-
   "TLA": {
-    "359|Aang, Swift Savior // Aang and La, Ocean's Fury": { "promo_types": ["neoninkyellow"] },
-    "360|Fire Lord Zuko":         { "promo_types": ["neoninkred"] },
-    "361|Katara, the Fearless":   { "promo_types": ["neoninkblue"] },
-    "362|Toph, the First Metalbender": { "promo_types": ["neoninkgreen"] }
+    "359|Aang, Swift Savior // Aang and La, Ocean's Fury": {
+      "promo_types": [
+        "neoninkyellow"
+      ]
+    },
+    "360|Fire Lord Zuko": {
+      "promo_types": [
+        "neoninkred"
+      ]
+    },
+    "361|Katara, the Fearless": {
+      "promo_types": [
+        "neoninkblue"
+      ]
+    },
+    "362|Toph, the First Metalbender": {
+      "promo_types": [
+        "neoninkgreen"
+      ]
+    }
   }
 }

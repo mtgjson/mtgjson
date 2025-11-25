@@ -30,6 +30,7 @@ from .providers import (
     CardKingdomProvider,
     CardMarketProvider,
     EdhrecProviderCardRanks,
+    EnrichmentProvider,
     GathererProvider,
     GitHubBoostersProvider,
     GitHubCardSealedProductsProvider,
@@ -44,25 +45,9 @@ from .providers import (
     UuidCacheProvider,
     WhatsInStandardProvider,
 )
-from .providers.enrichment_provider import EnrichmentProvider
 from .utils import get_str_or_none, load_local_set_data, url_keygen
 
 LOGGER = logging.getLogger(__name__)
-
-# Singleton instance cache for EnrichmentProvider
-_enrichment_provider_instance = None
-
-
-def get_enrichment_provider() -> EnrichmentProvider:
-    """
-    Get or create singleton instance of EnrichmentProvider.
-    This avoids reloading the enrichment JSON for every set.
-    :return: Cached EnrichmentProvider instance
-    """
-    global _enrichment_provider_instance
-    if _enrichment_provider_instance is None:
-        _enrichment_provider_instance = EnrichmentProvider()
-    return _enrichment_provider_instance
 
 
 def parse_foreign(
@@ -507,10 +492,10 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
         )
 
     # Apply enrichment if cards were built
-    # in the future may also want to do this for art cards/tokens
+    # In the future may also want to do this for art cards/tokens
     if getattr(mtgjson_set, "cards", None):
         LOGGER.info(f"Applying card enrichment for {mtgjson_set.code}")
-        enr_provider = get_enrichment_provider()
+        enr_provider = EnrichmentProvider()
         enriched_count = 0
         
         for mtgjson_card in mtgjson_set.cards:
@@ -525,9 +510,6 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
                 # Special handling for promo_types list merging
                 if key == "promo_types" and isinstance(existing, list) and isinstance(val, list):
                     merged = list(dict.fromkeys(existing + val))
-                    # Remove generic "neonink" if specific color variants are present
-                    if any(pt.startswith("neonink") and pt != "neonink" for pt in merged):
-                        merged = [pt for pt in merged if pt != "neonink"]
                     setattr(mtgjson_card, key, merged)
                     LOGGER.debug(
                         f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
