@@ -16,9 +16,7 @@ class EnrichmentProvider:
     """
     Loads mtgjson5/resources/card_enrichment.json and provides lookup helpers.
 
-    Lookup strategies are attempted in order:
-        1. {SET}->{collector_number}|{name} - Primary lookup with name
-        2. {SET}->{collector_number} - Fallback without name
+    Lookup key format: {SET}->{collector_number}|{name}
     """
 
     def __init__(self) -> None:
@@ -67,29 +65,16 @@ class EnrichmentProvider:
         :param card: MTGJSON card object to enrich
         :return: Enrichment data dictionary or None if not found
         """
-        # set-scoped block
-        set_block = self._data.get(getattr(card, "set_code", ""), {})
-        if not set_block:
-            return None
-
-        # Try collectorNumber|Name
+        set_block = self._data.get(card.set_code, {})
         number = getattr(card, "number", None)
         name = getattr(card, "name", None)
-        if number and name:
-            key = f"{number}|{name}"
-            if key in set_block:
-                entry = set_block[key]
-                context = f"{card.set_code}:{key}"
-                if self._validate_enrichment_entry(entry, context):
-                    return copy.deepcopy(entry)
-                return None
-
-        # Try just collector number
-        if number and number in set_block:
-            entry = set_block[number]
-            context = f"{card.set_code}:{number}"
-            if self._validate_enrichment_entry(entry, context):
-                return copy.deepcopy(entry)
+        if not set_block or not number or not name:
             return None
+
+        key = f"{number}|{name}"
+        if key in set_block:
+            context = f"{card.set_code}:{key}"
+            if self._validate_enrichment_entry(set_block[key], context):
+                return copy.deepcopy(set_block[key])
 
         return None

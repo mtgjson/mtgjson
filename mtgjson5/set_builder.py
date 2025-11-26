@@ -497,25 +497,21 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
         LOGGER.info(f"Applying card enrichment for {mtgjson_set.code}")
         enr_provider = EnrichmentProvider()
         enriched_count = 0
-        
+
         for mtgjson_card in mtgjson_set.cards:
             enrichment = enr_provider.get_enrichment_for_card(mtgjson_card)
             if not enrichment:
                 continue
 
             enriched_count += 1
+            # Apply enrichment data to card attributes generically.
+            # Currently only promo_types is enriched, but this handles any
+            # MtgjsonCardObject field type for future extensibility:
+            # - Lists: merge and dedupe (e.g., promo_types, keywords)
+            # - Dicts: shallow merge (e.g., source_products)
+            # - Scalars: set only if existing value is falsy
             for key, val in enrichment.items():
                 existing = getattr(mtgjson_card, key, None)
-
-                # Special handling for promo_types list merging
-                if key == "promo_types" and isinstance(existing, list) and isinstance(val, list):
-                    merged = list(dict.fromkeys(existing + val))
-                    setattr(mtgjson_card, key, merged)
-                    LOGGER.debug(
-                        f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
-                        f"added promo_types {val}"
-                    )
-                    continue
 
                 # If both are lists, append new items and dedupe while preserving order
                 if isinstance(existing, list) and isinstance(val, list):
@@ -550,7 +546,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
                         f"Enrichment skipped for {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
                         f"key '{key}' already has value"
                     )
-        
+
         if enriched_count > 0:
             LOGGER.info(
                 f"Finished applying card enrichment for {mtgjson_set.code}: "
