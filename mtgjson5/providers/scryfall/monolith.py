@@ -8,10 +8,15 @@ import pathlib
 import re
 import sys
 import time
-from typing import Any, Dict, List, Optional, Set, Union
+from datetime import datetime
+from typing import Any, Dict, List, Literal, Optional, Set, Union
+from uuid import UUID
 
+import polars as pl
 import ratelimit
+import requests
 import requests.exceptions
+from pydantic import BaseModel, Field, HttpUrl
 from singleton_decorator import singleton
 
 from ... import constants
@@ -20,6 +25,83 @@ from ...providers.abstract import AbstractProvider
 from . import sf_utils
 
 LOGGER = logging.getLogger(__name__)
+
+
+BulkDataType = Literal[
+    "oracle_cards", "unique_artwork", "default_cards", "all_cards", "rulings"
+]
+
+
+class BulkDataObject(BaseModel):
+    """Represents a single bulk data file available from Scryfall"""
+
+    object: Literal["bulk_data"] = Field(description="Type identifier")
+    id: UUID = Field(description="Unique identifier for this bulk data")
+    type: BulkDataType = Field(description="Type of bulk data")
+    updated_at: datetime = Field(description="When this file was last updated")
+    uri: HttpUrl = Field(description="API URI for this bulk data object")
+    name: str = Field(description="Human-readable name")
+    description: str = Field(description="Description of what this file contains")
+    size: int = Field(description="Size in bytes of the compressed file")
+    download_uri: HttpUrl = Field(description="Direct download URL for the file")
+    content_type: str = Field(description="MIME type of the file")
+    content_encoding: str = Field(description="Compression encoding (usually gzip)")
+
+    def download(
+        self, session: Optional[requests.Session] = None, timeout: int = 300
+    ) -> List[Dict[str, Any]]:
+        """Download the bulk data file.
+
+        Uses a plain requests.Session to avoid caching large bulk files
+        that can exceed SQLite's blob size limits.
+        """
+        download_session = requests.Session()
+        if session:
+            download_session.headers.update(session.headers)
+        LOGGER.info(
+            f"Downloading bulk data: {self.name} ({self.size / 1_000_000:.1f}MB)"
+        )
+        response = download_session.get(str(self.download_uri), timeout=timeout)
+        response.raise_for_status()
+        result: List[Dict[str, Any]] = response.json()
+        return result
+
+
+class BulkDataResponse(BaseModel):
+    """Response from Scryfall's bulk data API endpoint.
+
+    Attributes:
+        object: Response object type.
+        has_more: Whether there are more results.
+        data: List of available bulk data files.
+
+    Example:
+        >>> bulk_index = BulkDataResponse.fetch()
+        >>> rulings = bulk_index.get("rulings").download()
+    """
+
+    object: Literal["list"] = Field(description="Response object type")
+    has_more: bool = Field(description="Whether there are more results")
+    data: List[BulkDataObject] = Field(description="List of available bulk data files")
+
+    @classmethod
+    def fetch(
+        cls,
+        session: Optional[requests.Session] = None,
+        url: str = "https://api.scryfall.com/bulk-data/",
+    ) -> "BulkDataResponse":
+        """Fetch the bulk data index from Scryfall"""
+        session = session or requests.Session()
+        response = session.get(url, timeout=30)
+        response.raise_for_status()
+        return cls(**response.json())
+
+    def get(self, data_type: BulkDataType) -> Optional[BulkDataObject]:
+        """Get a specific bulk data object by type"""
+        for item in self.data:
+            if item.type == data_type:
+                return item
+        return None
 
 
 @singleton
@@ -273,3 +355,46 @@ class ScryfallProvider(AbstractProvider):
         :return All unique card names found
         """
         return list({card["name"] for card in self.download(url).get("data", {})})
+
+
+    def get_bulk_cards(self, force_refresh: bool = False) -> pl.DataFrame:
+        cache_dir = pathlib.Path(MtgjsonConfig().get("MTGJSON", "cache_path"))
+        parquet_path = cache_dir / "all_cards.parquet"
+
+        if force_refresh or not parquet_path.exists():
+            LOGGER.info("Refreshing Scryfall bulk card data")
+
+            bulk_index = BulkDataResponse.fetch()
+            bulk_cards_object = bulk_index.get("all_cards")
+
+            if not bulk_cards_object:
+                LOGGER.error("Scryfall bulk data for cards not found")
+                return pl.DataFrame()
+
+            data = bulk_cards_object.download()
+            df = pl.DataFrame(data, infer_schema_length=None)
+            df.write_parquet(parquet_path)
+            return df
+
+        return pl.read_parquet(parquet_path)
+
+    def get_bulk_rulings(self, force_refresh: bool = False) -> pl.DataFrame:
+        cache_dir = pathlib.Path(MtgjsonConfig().get("MTGJSON", "cache_path"))
+        parquet_path = cache_dir / "rulings.parquet"
+
+        if force_refresh or not parquet_path.exists():
+            LOGGER.info("Refreshing Scryfall bulk card data")
+
+            bulk_index = BulkDataResponse.fetch()
+            bulk_cards_object = bulk_index.get("rulings")
+
+            if not bulk_cards_object:
+                LOGGER.error("Scryfall bulk data for cards not found")
+                return pl.DataFrame()
+
+            data = bulk_cards_object.download()
+            df = pl.DataFrame(data, infer_schema_length=None)
+            df.write_parquet(parquet_path)
+            return df
+
+        return pl.read_parquet(parquet_path)
