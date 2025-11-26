@@ -5,17 +5,17 @@ import pytest
 from mtgjson5.providers.scryfall.monolith import ScryfallProvider
 
 
-@pytest.mark.vcr("api.scryfall.com.yml")
+@pytest.mark.vcr("providers/scryfall/test_catalog_keyword_abilities.yml")
 def test_catalog_keyword_abilities(disable_cache):
     """
     Test that we can fetch keyword abilities catalog from Scryfall.
 
-    Uses shared host-based VCR cassette for offline deterministic testing.
+    Uses per-test VCR cassette for offline deterministic testing.
 
-    To record/update cassettes:
-        pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
+    To record/update this test's cassette:
+        pytest tests/mtgjson5/providers/scryfall/test_monolith.py::test_catalog_keyword_abilities --record-mode=all
 
-    Multiple Scryfall tests can share the same api.scryfall.com.yml cassette.
+    Each test uses its own cassette under providers/scryfall/<test_name>.yml.
     """
     provider = ScryfallProvider()
     data = provider.get_catalog_entry("keyword-abilities")
