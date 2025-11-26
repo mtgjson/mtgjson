@@ -45,7 +45,7 @@ class EnrichmentProvider:
         """
         Validate enrichment entry has correct structure.
         :param entry: Enrichment data dictionary
-        :param context: Context string for logging (e.g., "UUID:abc123")
+        :param context: Context string for logging (e.g., "SET:number|name", e.g., "NEO:430|Hidetsugu, Devouring Chaos")
         :return: True if valid, False otherwise
         """
         if "promo_types" in entry:
