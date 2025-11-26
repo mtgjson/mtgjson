@@ -2,6 +2,8 @@
 TCGPlayer 3rd party provider
 """
 
+from __future__ import annotations
+
 import copy
 import enum
 import json
@@ -9,12 +11,14 @@ import logging
 import pathlib
 import re
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
 
 import requests
 from singleton_decorator import singleton
 
-from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
+if TYPE_CHECKING:
+    from ..models import MtgjsonPricesObject, MtgjsonSealedProductObject
+
 from ..mtgjson_config import MtgjsonConfig
 from ..parallel_call import parallel_call
 from ..providers.abstract import AbstractProvider
@@ -467,6 +471,8 @@ def get_tcgplayer_buylist_prices_map(
     :param tcg_etched_foil_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
     :return: returns a map of tcgplayer buylist data to card uuids
     """
+    from ..models import MtgjsonPricesObject
+
     LOGGER.debug(f"Tcgplayer Building buylist data for {group_id_and_name[1]}")
 
     results = TCGPlayerProvider().get_api_results(
@@ -478,7 +484,10 @@ def get_tcgplayer_buylist_prices_map(
     prices_map: Dict[str, MtgjsonPricesObject] = defaultdict(
         lambda: copy.copy(
             MtgjsonPricesObject(
-                "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
+                source="paper",
+                provider="tcgplayer",
+                date=TCGPlayerProvider().today_date,
+                currency="USD",
             )
         )
     )
@@ -531,6 +540,8 @@ def get_tcgplayer_prices_map(
     :param tcg_etched_foil_to_mtgjson_map: TCGPlayer ID to MTGJSON UUID mapping
     :return: Cards with prices from Set ID & Name
     """
+    from ..models import MtgjsonPricesObject
+
     results = TCGPlayerProvider().get_api_results(
         f"https://api.tcgplayer.com/[API_VERSION]/pricing/group/{group_id_and_name[0]}"
     )
@@ -554,7 +565,10 @@ def get_tcgplayer_prices_map(
         for key in keys:
             if key not in prices_map:
                 prices_map[key] = MtgjsonPricesObject(
-                    "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
+                    source="paper",
+                    provider="tcgplayer",
+                    date=TCGPlayerProvider().today_date,
+                    currency="USD",
                 )
 
             if is_non_foil:

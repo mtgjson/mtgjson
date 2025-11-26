@@ -23,6 +23,11 @@ MTGJSON_BUILD_DATE: str = datetime.datetime.today().strftime("%Y-%m-%d")
 
 CACHE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(".mtgjson5_cache")
 
+# Feature Flags
+USE_PYDANTIC_FIELD_ALIASES: bool = (
+    os.environ.get("MTGJSON_USE_FIELD_ALIASES", "false").lower() == "true"
+)
+
 HASH_TO_GENERATE = hashlib.sha256()
 
 CARD_MARKET_BUFFER: str = "10101"

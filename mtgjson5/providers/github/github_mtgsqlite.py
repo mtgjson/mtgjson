@@ -2,20 +2,24 @@
 MTGSqlite via GitHub 3rd party provider
 """
 
+from __future__ import annotations
+
 import logging
 import pathlib
 import shutil
 import subprocess
 import sys
-from typing import Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import git
 from singleton_decorator import singleton
 
 from ... import constants
-from ...compiled_classes.mtgjson_structures import MtgjsonStructuresObject
 from ...mtgjson_config import MtgjsonConfig
 from ...providers.abstract import AbstractProvider
+
+if TYPE_CHECKING:
+    from ...models import MtgjsonStructuresObject
 
 LOGGER = logging.getLogger(__name__)
 
@@ -27,9 +31,6 @@ class GitHubMTGSqliteProvider(AbstractProvider):
     """
 
     repo_url: str = "https://github.com/mtgjson/mtgsqlive/"
-    all_printings_file: pathlib.Path = MtgjsonConfig().output_path.joinpath(
-        f"{MtgjsonStructuresObject().all_printings}.json"
-    )
     temp_download_path: pathlib.Path = constants.CACHE_PATH.joinpath("GitHub-MTGSQLive")
 
     def __init__(self) -> None:
@@ -38,6 +39,11 @@ class GitHubMTGSqliteProvider(AbstractProvider):
         """
         super().__init__(self._build_http_header())
         self.download(self.repo_url)
+        from ...models import MtgjsonStructuresObject
+
+        self.all_printings_file: pathlib.Path = MtgjsonConfig().output_path.joinpath(
+            f"{MtgjsonStructuresObject().all_printings}.json"
+        )
 
     def _build_http_header(self) -> Dict[str, str]:
         """

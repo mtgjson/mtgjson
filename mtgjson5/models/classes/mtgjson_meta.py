@@ -1,0 +1,59 @@
+"""MTGJSON Meta Object model for build and version metadata."""
+
+import datetime
+from typing import Any, Dict, Optional, Union
+
+from pydantic import Field
+
+from ... import constants
+from ...mtgjson_config import MtgjsonConfig
+from ..mtgjson_base import MTGJsonModel
+
+
+class MtgjsonMetaObject(MTGJsonModel):
+    """
+    The Meta Data Model describes the properties of the MTGJSON application meta data.
+    """
+
+    date: str = Field(
+        description="The current release date in ISO 8601 format for the MTGJSON build."
+    )
+    version: str = Field(
+        description="The current SemVer version for the MTGJSON build appended with the build date."
+    )
+
+    def __init__(
+        self,
+        date: Union[str, datetime.datetime, None] = None,
+        version: Optional[str] = None,
+        **data: Any
+    ) -> None:
+        """
+        Initialize meta object with date and version
+        :param date: Build date (string or datetime)
+        :param version: MTGJSON version
+        """
+        # Handle date conversion
+        if date is None:
+            date = constants.MTGJSON_BUILD_DATE
+        if isinstance(date, datetime.datetime):
+            date = date.strftime("%Y-%m-%d")
+
+        # Handle version default
+        if version is None:
+            version = MtgjsonConfig().mtgjson_version
+
+        super().__init__(**data)
+        self.date = date
+        self.version = version
+
+    def to_json(self) -> Dict[str, Any]:
+        """
+        Custom JSON serialization with datetime handling
+        :return: JSON object
+        """
+        parent: Dict[str, Any] = super().to_json()
+        for key, value in parent.items():
+            if isinstance(value, datetime.datetime):
+                parent[key] = value.strftime("%Y-%m-%d")
+        return parent

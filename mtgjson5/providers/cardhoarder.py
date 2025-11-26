@@ -2,17 +2,21 @@
 CardHoarder 3rd party provider
 """
 
+from __future__ import annotations
+
 import logging
 import pathlib
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
 
 from singleton_decorator import singleton
 
-from ..classes import MtgjsonPricesObject
 from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 from ..utils import get_all_entities
+
+if TYPE_CHECKING:
+    from ..models import MtgjsonPricesObject
 
 LOGGER = logging.getLogger(__name__)
 
@@ -147,10 +151,15 @@ class CardHoarderProvider(AbstractProvider):
         :param semi_completed_data: MTGJSON set to update
         :param cards: Cards to iterate
         """
+        from ..models import MtgjsonPricesObject
+
         for key, value in cards.items():
             if key not in semi_completed_data.keys():
                 semi_completed_data[key] = MtgjsonPricesObject(
-                    "mtgo", "cardhoarder", self.today_date, "USD"
+                    source="mtgo",
+                    provider="cardhoarder",
+                    date=self.today_date,
+                    currency="USD",
                 )
 
             if is_mtgo_normal:

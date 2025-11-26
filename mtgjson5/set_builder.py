@@ -11,7 +11,8 @@ import uuid
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from . import constants
-from .classes import (
+from .constants import RESOURCE_PATH
+from .models import (
     MtgjsonCardObject,
     MtgjsonForeignDataObject,
     MtgjsonGameFormatsObject,
@@ -24,7 +25,6 @@ from .classes import (
     MtgjsonSetObject,
     MtgjsonTranslationsObject,
 )
-from .constants import RESOURCE_PATH
 from .parallel_call import parallel_call
 from .providers import (
     CardKingdomProvider,
@@ -117,7 +117,7 @@ def parse_foreign(
                 card_foreign_entry.face_name = foreign_card.get("name")
 
         if not card_foreign_entry.name:
-            card_foreign_entry.name = foreign_card.get("printed_name")
+            card_foreign_entry.name = foreign_card.get("printed_name") or ""
 
             # https://github.com/mtgjson/mtgjson/issues/611
             if set_name.upper() == "IKO" and card_foreign_entry.language == "Japanese":
@@ -312,7 +312,9 @@ def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
     mtgjson_rules: List[MtgjsonRulingObject] = []
 
     for sf_rule in rules_api_json["data"]:
-        mtgjson_rule = MtgjsonRulingObject(sf_rule["published_at"], sf_rule["comment"])
+        mtgjson_rule = MtgjsonRulingObject(
+            date=sf_rule["published_at"], text=sf_rule["comment"]
+        )
         mtgjson_rules.append(mtgjson_rule)
 
     return sorted(mtgjson_rules, key=lambda ruling: (ruling.date, ruling.text))
@@ -699,7 +701,7 @@ def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
             # Exclude Melded cards and backside of Transform cards
             and (mtgjson_card.side == "a" if mtgjson_card.side else True)
         )
-        or ("can be your commander" in mtgjson_card.text)
+        or ("can be your commander" in (mtgjson_card.text or ""))
     )
 
     is_oathbreaker_legal = "Planeswalker" in mtgjson_card.type
@@ -711,7 +713,9 @@ def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
 
     if is_commander_legal or is_oathbreaker_legal or is_brawl_legal:
         mtgjson_card.leadership_skills = MtgjsonLeadershipSkillsObject(
-            is_brawl_legal, is_commander_legal, is_oathbreaker_legal
+            brawl=is_brawl_legal,
+            commander=is_commander_legal,
+            oathbreaker=is_oathbreaker_legal,
         )
 
 
@@ -797,6 +801,62 @@ def add_extra_language_uuids(
         )
 
 
+def build_mtgjson_card_v2(
+    scryfall_object: Dict[str, Any],
+    face_id: int = 0,
+    is_token: bool = False,
+    set_release_date: str = "",
+) -> List[MtgjsonCardObject]:
+    """
+    Construct MTGJSON Card object from 3rd party entities.
+    uses pydantic field aliases and validators to map Scryfall data to MTGJSON fields automatically.
+
+    :param scryfall_object: Scryfall Card Object
+    :param face_id: What face to build for (set internally)
+    :param is_token: Is this a token object? (some diff fields)
+    :param set_release_date: Original set release date
+    :return: List of card objects that were constructed
+    """
+    # Temporary hack to address SF naming issue with dual-sided, adventure dragon cards
+    if scryfall_object["set"].upper() == "TDM":
+        name_splitter = list(map(str.strip, scryfall_object["name"].split("//")))
+        if len(name_splitter) == 3 and name_splitter[0] == name_splitter[2]:
+            name_splitter.append(name_splitter[1])
+            scryfall_object["name"] = " // ".join(name_splitter)
+
+    LOGGER.info(f"Building {scryfall_object['set'].upper()}: {scryfall_object['name']}")
+
+    # Return list for multi-face cards
+    mtgjson_cards = []
+
+    # Add private/temporary fields for validators to use
+    prepared_data = {
+        **scryfall_object,
+        "is_token": is_token,
+        "_face_id": face_id,
+        "_set_release_date": set_release_date,
+        "_games_temp": scryfall_object.get("games", []),
+        "_set_type_temp": scryfall_object.get("set_type", ""),
+    }
+
+    # Let pydantic validators handle most of the field mapping
+    mtgjson_card = MtgjsonCardObject.model_validate(
+        prepared_data, context={"face_id": face_id, "is_token": is_token}
+    )
+    
+    # Handle multi-face cards - build other faces recursively
+    if "card_faces" in scryfall_object and face_id == 0:
+        for i in range(1, len(scryfall_object["card_faces"])):
+            mtgjson_cards.extend(
+                build_mtgjson_card_v2(scryfall_object, i, is_token, set_release_date)
+            )
+
+    # Add the current card to the return list
+    mtgjson_cards.insert(0, mtgjson_card)
+
+    return mtgjson_cards
+
+
 def build_mtgjson_card(
     scryfall_object: Dict[str, Any],
     face_id: int = 0,
@@ -804,14 +864,19 @@ def build_mtgjson_card(
     set_release_date: str = "",
 ) -> List[MtgjsonCardObject]:
     """
-    Construct a MTGJSON Card object from 3rd party
-    entities
+    Construct a MTGJSON Card object from 3rd party entities
+
     :param scryfall_object: Scryfall Card Object
     :param face_id: What face to build for (set internally)
     :param is_token: Is this a token object? (some diff fields)
     :param set_release_date: Original set release date
     :return: List of card objects that were constructed
     """
+    # Route to new Pydantic implementation if feature flag is enabled
+    if constants.USE_PYDANTIC_FIELD_ALIASES:
+        return build_mtgjson_card_v2(
+            scryfall_object, face_id, is_token, set_release_date
+        )
 
     # Temporary hack to address SF naming issue with dual-sided, adventure dragon cards
     if scryfall_object["set"].upper() == "TDM":
@@ -826,7 +891,7 @@ def build_mtgjson_card(
     mtgjson_cards = []
 
     # Object Container
-    mtgjson_card = MtgjsonCardObject(is_token)
+    mtgjson_card = MtgjsonCardObject(is_token=is_token)
 
     mtgjson_card.name = scryfall_object["name"]
     mtgjson_card.language = constants.LANGUAGE_MAP.get(
@@ -882,10 +947,7 @@ def build_mtgjson_card(
             mtgjson_card.face_mana_value = get_card_cmc(
                 scryfall_object["mana_cost"].split("//")[face_id]
             )
-            # Deprecated - Remove in 6.0.0
-            mtgjson_card.face_converted_mana_cost = get_card_cmc(
-                scryfall_object["mana_cost"].split("//")[face_id]
-            )
+
         elif scryfall_object["layout"] in {
             "split",
             "transform",
@@ -893,15 +955,12 @@ def build_mtgjson_card(
             "adventure",
         }:
             mtgjson_card.face_mana_value = get_card_cmc(face_data.get("mana_cost", "0"))
-            # Deprecated - Remove in 6.0.0
-            mtgjson_card.face_converted_mana_cost = mtgjson_card.face_mana_value
 
             # Modal DFCs have their face & normal mana cost the same
         elif scryfall_object["layout"] == "modal_dfc":
             mtgjson_card.mana_value = get_card_cmc(face_data.get("mana_cost", "0"))
             mtgjson_card.face_mana_value = mtgjson_card.mana_value
-            # Deprecated - Remove in 6.0.0
-            mtgjson_card.converted_mana_cost = mtgjson_card.mana_value
+
             mtgjson_card.face_converted_mana_cost = mtgjson_card.face_mana_value
         elif scryfall_object["layout"] == "reversible_card":
             mtgjson_card.mana_value = face_data.get("cmc", 0)
@@ -914,7 +973,7 @@ def build_mtgjson_card(
 
         mtgjson_card.artist = scryfall_object["card_faces"][face_id].get("artist", "")
         mtgjson_card.artist_ids = scryfall_object["card_faces"][face_id].get(
-            "artist_ids", ""
+            "artist_ids", None
         )
 
         if face_id == 0:
@@ -1051,14 +1110,11 @@ def build_mtgjson_card(
     mtgjson_card.loyalty = face_data.get("loyalty")
     mtgjson_card.defense = face_data.get("defense")
 
-    ascii_name = (
-        unicodedata.normalize("NFD", mtgjson_card.name)
-        .encode("ascii", "ignore")
-        .decode()
-    )
-    if mtgjson_card.name != ascii_name:
-        LOGGER.debug(f"Adding ascii name for {mtgjson_card.name} -> {ascii_name}")
-        mtgjson_card.ascii_name = ascii_name
+    # pydantic computed field handles transformation, leaving logging here for clarity and... you know, logging.
+    if mtgjson_card.name != mtgjson_card.ascii_name:
+        LOGGER.debug(
+            f"Adding ascii name for {mtgjson_card.name} -> {mtgjson_card.ascii_name}"
+        )
 
     mtgjson_card.power = face_data.get("power", "")
     mtgjson_card.text = face_data.get("oracle_text", "")
@@ -1463,7 +1519,7 @@ def add_token_signatures(mtgjson_set: MtgjsonSetObject) -> None:
     if mtgjson_set.name.endswith("Art Series") and mtgjson_set.code != "MH1":
         # All Art Series (except MH1) have signature options, up to this point
         for mtgjson_card in mtgjson_set.tokens:
-            add_signature(mtgjson_card, mtgjson_card.artist)
+            add_signature(mtgjson_card, mtgjson_card.artist or "")
     elif mtgjson_set.type == "memorabilia":
         # Gold Border Memorabilia sets contain signatures
         for mtgjson_cards in [mtgjson_set.tokens, mtgjson_set.cards]:
