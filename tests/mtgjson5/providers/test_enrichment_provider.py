@@ -202,3 +202,164 @@ class TestEnrichmentProviderEdgeCases:
         
         result = provider.get_enrichment_for_card(card)
         assert result == {"promo_types": ["neoninkyellow"]}
+
+
+class TestEnrichmentProviderGetEnrichmentForSet:
+    """Test get_enrichment_for_set method used in production."""
+
+    def test_get_enrichment_for_set_returns_dict_for_existing_set(self):
+        """Test that get_enrichment_for_set returns dictionary for existing set."""
+        provider = EnrichmentProvider()
+        result = provider.get_enrichment_for_set("FIN")
+        
+        assert result is not None
+        assert isinstance(result, dict)
+        assert "551a|Traveling Chocobo" in result
+
+    def test_get_enrichment_for_set_returns_none_for_missing_set(self):
+        """Test that get_enrichment_for_set returns None for non-existent set."""
+        provider = EnrichmentProvider()
+        result = provider.get_enrichment_for_set("NOTASET")
+        
+        assert result is None
+
+    def test_get_enrichment_for_set_multiple_cards(self):
+        """Test that get_enrichment_for_set returns all cards in set."""
+        provider = EnrichmentProvider()
+        result = provider.get_enrichment_for_set("NEO")
+        
+        assert result is not None
+        assert isinstance(result, dict)
+        assert len(result) > 1  # NEO has multiple enriched cards
+        assert "430|Hidetsugu, Devouring Chaos" in result
+
+
+class TestEnrichmentProviderGetEnrichmentFromSetData:
+    """Test get_enrichment_from_set_data method used in production."""
+
+    def test_get_enrichment_from_set_data_basic_lookup(self):
+        """Test basic card lookup using get_enrichment_from_set_data."""
+        provider = EnrichmentProvider()
+        set_enrichment = provider.get_enrichment_for_set("FIN")
+        
+        card = MtgjsonCardObject()
+        card.set_code = "FIN"
+        card.number = "551a"
+        card.name = "Traveling Chocobo"
+        
+        result = provider.get_enrichment_from_set_data(set_enrichment, card)
+        assert result == {"promo_types": ["neoninkyellow"]}
+
+    def test_get_enrichment_from_set_data_returns_none_for_missing_card(self):
+        """Test that get_enrichment_from_set_data returns None for missing card."""
+        provider = EnrichmentProvider()
+        set_enrichment = provider.get_enrichment_for_set("NEO")
+        
+        card = MtgjsonCardObject()
+        card.set_code = "NEO"
+        card.number = "999"
+        card.name = "Non-existent Card"
+        
+        result = provider.get_enrichment_from_set_data(set_enrichment, card)
+        assert result is None
+
+    def test_get_enrichment_from_set_data_no_deep_copy(self):
+        """Test that get_enrichment_from_set_data returns reference (no deep copy)."""
+        provider = EnrichmentProvider()
+        set_enrichment = provider.get_enrichment_for_set("FIN")
+        
+        card = MtgjsonCardObject()
+        card.set_code = "FIN"
+        card.number = "551a"
+        card.name = "Traveling Chocobo"
+        
+        result1 = provider.get_enrichment_from_set_data(set_enrichment, card)
+        result2 = provider.get_enrichment_from_set_data(set_enrichment, card)
+        
+        # Both should be the same reference from the dictionary
+        assert result1 is result2
+
+    def test_get_enrichment_from_set_data_with_multiple_promo_types(self):
+        """Test get_enrichment_from_set_data with multiple promo_types."""
+        provider = EnrichmentProvider()
+        set_enrichment = provider.get_enrichment_for_set("LCI")
+        
+        card = MtgjsonCardObject()
+        card.set_code = "LCI"
+        card.number = "410a"
+        card.name = "Cavern of Souls"
+        
+        result = provider.get_enrichment_from_set_data(set_enrichment, card)
+        assert result == {"promo_types": ["neoninkthreecolor", "neoninkmulticolor", "neoninkrainbow"]}
+
+    def test_get_enrichment_from_set_data_special_characters(self):
+        """Test get_enrichment_from_set_data with special characters in card name."""
+        provider = EnrichmentProvider()
+        set_enrichment = provider.get_enrichment_for_set("TLA")
+        
+        card = MtgjsonCardObject()
+        card.set_code = "TLA"
+        card.number = "359"
+        card.name = "Aang, Swift Savior // Aang and La, Ocean's Fury"
+        
+        result = provider.get_enrichment_from_set_data(set_enrichment, card)
+        assert result == {"promo_types": ["neoninkyellow"]}
+
+
+class TestEnrichmentProviderProductionWorkflow:
+    """Test the production workflow: get_enrichment_for_set + get_enrichment_from_set_data."""
+
+    def test_production_workflow_matches_get_enrichment_for_card(self):
+        """Test that production workflow gives same results as get_enrichment_for_card (without deep copy)."""
+        provider = EnrichmentProvider()
+        
+        card = MtgjsonCardObject()
+        card.set_code = "NEO"
+        card.number = "430"
+        card.name = "Hidetsugu, Devouring Chaos"
+        
+        # Old method (with validation and deep copy)
+        old_result = provider.get_enrichment_for_card(card)
+        
+        # Production workflow (without deep copy)
+        set_enrichment = provider.get_enrichment_for_set("NEO")
+        new_result = provider.get_enrichment_from_set_data(set_enrichment, card)
+        
+        # Results should be equal but not the same object
+        assert old_result == new_result
+        assert old_result == {"promo_types": ["neoninkgreen"]}
+
+    def test_production_workflow_early_return_for_missing_set(self):
+        """Test production workflow handles missing set gracefully."""
+        provider = EnrichmentProvider()
+        
+        set_enrichment = provider.get_enrichment_for_set("NOTASET")
+        assert set_enrichment is None
+        
+        # Caller should check for None before calling get_enrichment_from_set_data
+
+    def test_production_workflow_iteration_over_multiple_cards(self):
+        """Test production workflow for iterating over multiple cards in a set."""
+        provider = EnrichmentProvider()
+        set_enrichment = provider.get_enrichment_for_set("FIN")
+        
+        # Simulate multiple cards
+        cards = [
+            ("551a", "Traveling Chocobo"),
+            ("999", "Non-existent Card"),
+        ]
+        
+        results = []
+        for number, name in cards:
+            card = MtgjsonCardObject()
+            card.set_code = "FIN"
+            card.number = number
+            card.name = name
+            
+            result = provider.get_enrichment_from_set_data(set_enrichment, card)
+            if result:
+                results.append(result)
+        
+        assert len(results) == 1
+        assert results[0] == {"promo_types": ["neoninkyellow"]}
+
