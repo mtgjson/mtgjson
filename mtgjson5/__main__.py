@@ -9,11 +9,13 @@ gevent.monkey.patch_all()  # isort:skip
 import argparse
 import logging
 import traceback
+import urllib3.exceptions
 from typing import List, Set, Union
 
 import urllib3.exceptions
 
 from mtgjson5 import constants
+from mtgjson5.cache_builder import global_cache
 from mtgjson5.utils import init_logger, load_local_set_data
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -146,6 +148,9 @@ def main() -> None:
     LOGGER.info(
         f"Starting {MtgjsonConfig().mtgjson_version} on {constants.MTGJSON_BUILD_DATE}"
     )
+    
+    LOGGER.info("Building cache...")
+    global_cache.load_all(force_refresh=args.skip_cache if hasattr(args, 'skip_cache') else False)
 
     try:
         if not args.no_alerts:
