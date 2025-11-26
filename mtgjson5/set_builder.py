@@ -336,7 +336,7 @@ def add_enrichment_data(mtgjson_set: MtgjsonSetObject) -> None:
     enriched_count = 0
 
     for mtgjson_card in mtgjson_set.cards:
-        enrichment = enr_provider.get_enrichment_from_set_data(set_enrichment, mtgjson_card)
+        enrichment = enr_provider.get_enrichment_for_card(set_enrichment, mtgjson_card)
         if not enrichment:
             continue
 
