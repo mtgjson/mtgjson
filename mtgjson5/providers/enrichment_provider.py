@@ -25,7 +25,8 @@ class EnrichmentProvider:
             with resource.open(encoding="utf-8") as fp:
                 self._data: Dict[str, Any] = json.load(fp)
             set_count = len(self._data.keys())
-            LOGGER.info(f"Loaded enrichment data: {set_count} set-specific entries")
+            card_count = sum(len(entries) for entries in self._data.values())
+            LOGGER.info(f"Loaded enrichment data: {card_count} cards across {set_count} sets")
         except FileNotFoundError:
             LOGGER.warning(
                 "card_enrichment.json not found, card enrichment disabled"
@@ -57,6 +58,34 @@ class EnrichmentProvider:
                 return False
         return True
 
+    def _make_card_key(self, card: MtgjsonCardObject) -> str:
+        """
+        Construct the lookup key for a card.
+        :param card: MTGJSON card object
+        :return: Lookup key in format "{number}|{name}"
+        """
+        return f"{card.number}|{card.name}"
+
+    def get_enrichment_for_set(self, set_code: str) -> Optional[Dict[str, Dict[str, Any]]]:
+        """
+        Get all enrichment data for a given set code.
+        :param set_code: Set code to look up
+        :return: Dictionary of enrichment data keyed by "{number}|{name}", or None if not found
+        """
+        return self._data.get(set_code, None)
+
+    def get_enrichment_from_set_data(
+        self, set_enrichment: Dict[str, Dict[str, Any]], card: MtgjsonCardObject
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get enrichment data for a card from already-fetched set enrichment data.
+        :param set_enrichment: Set-level enrichment dictionary from get_enrichment_for_set()
+        :param card: MTGJSON card object to enrich
+        :return: Enrichment data dictionary or None if not found
+        """
+        key = self._make_card_key(card)
+        return set_enrichment.get(key)
+
     def get_enrichment_for_card(
         self, card: MtgjsonCardObject
     ) -> Optional[Dict[str, Any]]:
@@ -65,16 +94,15 @@ class EnrichmentProvider:
         :param card: MTGJSON card object to enrich
         :return: Enrichment data dictionary or None if not found
         """
-        set_block = self._data.get(card.set_code, {})
-        number = getattr(card, "number", None)
-        name = getattr(card, "name", None)
-        if not set_block or not number or not name:
+        set_block = self._data.get(card.set_code, None)
+        if not set_block:
             return None
 
-        key = f"{number}|{name}"
-        if key in set_block:
+        enrichment = self.get_enrichment_from_set_data(set_block, card)
+        if enrichment:
+            key = self._make_card_key(card)
             context = f"{card.set_code}:{key}"
-            if self._validate_enrichment_entry(set_block[key], context):
-                return copy.deepcopy(set_block[key])
+            if self._validate_enrichment_entry(enrichment, context):
+                return copy.deepcopy(enrichment)
 
         return None

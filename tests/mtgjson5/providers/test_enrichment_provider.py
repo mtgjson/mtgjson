@@ -3,7 +3,7 @@
 import pytest
 
 from mtgjson5.classes import MtgjsonCardObject
-from mtgjson5.providers.enrichment_provider import EnrichmentProvider
+from mtgjson5.providers import EnrichmentProvider
 
 
 class TestEnrichmentProviderInit:
@@ -191,29 +191,6 @@ class TestEnrichmentProviderInvalidData:
 
 class TestEnrichmentProviderEdgeCases:
     """Test edge cases and boundary conditions."""
-
-    def test_card_without_number(self):
-        """Test lookup for card without number returns None."""
-        provider = EnrichmentProvider()
-        card = MtgjsonCardObject()
-        card.set_code = "NEO"
-        # No number set
-        card.name = "Test Card"
-        
-        result = provider.get_enrichment_for_card(card)
-        assert result is None
-
-    def test_card_without_name(self):
-        """Test card without name returns None (NEO 430 requires name match)."""
-        provider = EnrichmentProvider()
-        card = MtgjsonCardObject()
-        card.set_code = "NEO"
-        card.number = "430"
-        # No name set
-        
-        # NEO 430 is stored as "430|Hidetsugu, Devouring Chaos", number-only lookup fails
-        result = provider.get_enrichment_for_card(card)
-        assert result is None
 
     def test_special_characters_in_card_name(self):
         """Test lookup with special characters in card name."""

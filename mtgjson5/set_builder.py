@@ -319,6 +319,77 @@ def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
     return sorted(mtgjson_rules, key=lambda ruling: (ruling.date, ruling.text))
 
 
+def add_enrichment_data(mtgjson_set: MtgjsonSetObject) -> None:
+    """
+    Apply enrichment data to cards in the set from card_enrichment.json.
+    Enrichment can include promo types, keywords, and other card attributes.
+    :param mtgjson_set: MTGJSON Set object
+    """
+    enr_provider = EnrichmentProvider()
+    set_enrichment = enr_provider.get_enrichment_for_set(mtgjson_set.code)
+    
+    if not set_enrichment:
+        LOGGER.info(f"No enrichment data found for {mtgjson_set.code}")
+        return
+
+    LOGGER.info(f"Applying card enrichment for {mtgjson_set.code}")
+    enriched_count = 0
+
+    for mtgjson_card in mtgjson_set.cards:
+        enrichment = enr_provider.get_enrichment_from_set_data(set_enrichment, mtgjson_card)
+        if not enrichment:
+            continue
+
+        enriched_count += 1
+        # Apply enrichment data to card attributes generically.
+        # Currently only promo_types is enriched, but this handles any
+        # MtgjsonCardObject field type for future extensibility:
+        # - Lists: merge and dedupe (e.g., promo_types, keywords)
+        # - Dicts: shallow merge (e.g., source_products)
+        # - Scalars: set only if existing value is falsy
+        for key, val in enrichment.items():
+            existing = getattr(mtgjson_card, key, None)
+
+            # If both are lists, append new items and dedupe while preserving order
+            if isinstance(existing, list) and isinstance(val, list):
+                merged = list(dict.fromkeys(existing + val))
+                setattr(mtgjson_card, key, merged)
+                LOGGER.debug(
+                    f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
+                    f"merged {key}"
+                )
+                continue
+
+            # If both are dicts, shallow-merge (enrichment overwrites keys if collision)
+            if isinstance(existing, dict) and isinstance(val, dict):
+                merged = existing.copy()
+                merged.update(val)
+                setattr(mtgjson_card, key, merged)
+                LOGGER.debug(
+                    f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
+                    f"merged dict {key}"
+                )
+                continue
+
+            # Scalars: only set if existing value is falsy
+            if not existing:
+                setattr(mtgjson_card, key, val)
+                LOGGER.debug(
+                    f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
+                    f"set {key} to {val}"
+                )
+            else:
+                LOGGER.debug(
+                    f"Enrichment skipped for {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
+                    f"key '{key}' already has value"
+                )
+
+    LOGGER.info(
+        f"Finished applying card enrichment for {mtgjson_set.code}: "
+        f"{enriched_count} cards enriched"
+    )
+
+
 def add_rebalanced_to_original_linkage(mtgjson_set: MtgjsonSetObject) -> None:
     """
     When Wizards rebalances a card, they break the link between
@@ -491,70 +562,6 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
             set_code, set_release_date=mtgjson_set.release_date
         )
 
-    # Apply enrichment if cards were built
-    # In the future may also want to do this for art cards/tokens
-    if getattr(mtgjson_set, "cards", None):
-        LOGGER.info(f"Applying card enrichment for {mtgjson_set.code}")
-        enr_provider = EnrichmentProvider()
-        enriched_count = 0
-
-        for mtgjson_card in mtgjson_set.cards:
-            enrichment = enr_provider.get_enrichment_for_card(mtgjson_card)
-            if not enrichment:
-                continue
-
-            enriched_count += 1
-            # Apply enrichment data to card attributes generically.
-            # Currently only promo_types is enriched, but this handles any
-            # MtgjsonCardObject field type for future extensibility:
-            # - Lists: merge and dedupe (e.g., promo_types, keywords)
-            # - Dicts: shallow merge (e.g., source_products)
-            # - Scalars: set only if existing value is falsy
-            for key, val in enrichment.items():
-                existing = getattr(mtgjson_card, key, None)
-
-                # If both are lists, append new items and dedupe while preserving order
-                if isinstance(existing, list) and isinstance(val, list):
-                    merged = list(dict.fromkeys(existing + val))
-                    setattr(mtgjson_card, key, merged)
-                    LOGGER.debug(
-                        f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
-                        f"merged {key}"
-                    )
-                    continue
-
-                # If both are dicts, shallow-merge (enrichment overwrites keys if collision)
-                if isinstance(existing, dict) and isinstance(val, dict):
-                    merged = existing.copy()
-                    merged.update(val)
-                    setattr(mtgjson_card, key, merged)
-                    LOGGER.debug(
-                        f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
-                        f"merged dict {key}"
-                    )
-                    continue
-
-                # Scalars: only set if existing value is falsy
-                if not existing:
-                    setattr(mtgjson_card, key, val)
-                    LOGGER.debug(
-                        f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
-                        f"set {key} to {val}"
-                    )
-                else:
-                    LOGGER.debug(
-                        f"Enrichment skipped for {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
-                        f"key '{key}' already has value"
-                    )
-
-        if enriched_count > 0:
-            LOGGER.info(
-                f"Finished applying card enrichment for {mtgjson_set.code}: "
-                f"{enriched_count} cards enriched"
-            )
-        else:
-            LOGGER.info(f"No enrichment data found for {mtgjson_set.code}")
-
     add_is_starter_option(set_code, mtgjson_set.search_uri, mtgjson_set.cards)
     add_rebalanced_to_original_linkage(mtgjson_set)
     relocate_miscellaneous_tokens(mtgjson_set)
@@ -574,6 +581,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
 
     add_other_face_ids(mtgjson_set.cards)
     add_variations_and_alternative_fields(mtgjson_set)
+    add_enrichment_data(mtgjson_set)
 
     # Build tokens, a little less of a process
     mtgjson_set.tokens = build_base_mtgjson_tokens(
