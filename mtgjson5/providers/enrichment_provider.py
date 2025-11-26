@@ -35,6 +35,9 @@ class EnrichmentProvider:
         except json.JSONDecodeError as e:
             LOGGER.error(f"Malformed card_enrichment.json: {e}")
             self._data = {}
+        except OSError as e:
+            LOGGER.error(f"Error reading card_enrichment.json: {e}")
+            self._data = {}
 
     def _validate_enrichment_entry(
         self, entry: Dict[str, Any], context: str
