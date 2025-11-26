@@ -75,7 +75,7 @@ class EnrichmentProvider:
         :param set_code: Set code to look up
         :return: Dictionary of enrichment data keyed by "{number}|{name}", or None if not found
         """
-        return self._data.get(set_code, None)
+        return self._data.get(set_code)
 
     def get_enrichment_from_set_data(
         self, set_enrichment: Dict[str, Dict[str, Any]], card: MtgjsonCardObject
