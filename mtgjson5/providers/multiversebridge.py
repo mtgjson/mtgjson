@@ -8,7 +8,6 @@ import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Union
 
-import urllib3.exceptions
 from singleton_decorator import singleton
 
 from ..classes import MtgjsonPricesObject
