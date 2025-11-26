@@ -97,7 +97,7 @@ class TestEnrichmentProviderLookup:
         assert result == {"promo_types": ["neoninkthreecolor", "neoninkmulticolor", "neoninkrainbow"]}
 
     def test_lookup_neo_card(self):
-        """Test lookup for NEO card (NEO 430 - Hidetsugu Devouring Chaos, green)."""
+        """Test lookup for NEO card (NEO 430 - Hidetsugu, Devouring Chaos, green)."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
         card.set_code = "NEO"
