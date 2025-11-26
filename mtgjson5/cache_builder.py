@@ -298,7 +298,7 @@ class GlobalCache:
         """Load Multiverse Bridge Rosetta Stone sets."""
         LOGGER.info("Loading Multiverse Bridge Rosetta Stone sets...")
         from mtgjson5.providers import MultiverseBridgeProvider
-        return MultiverseBridgeProvider().rosetta_stone_sets()
+        return MultiverseBridgeProvider().get_rosetta_stone_sets()
     
     def _load_gatherer_data(self) -> dict[str, list[dict[str, str]]]:
         """Load Gatherer data for cards."""
