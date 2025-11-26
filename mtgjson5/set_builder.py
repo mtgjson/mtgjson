@@ -561,7 +561,6 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
         mtgjson_set.cards = build_base_mtgjson_cards(
             set_code, set_release_date=mtgjson_set.release_date
         )
-
     add_is_starter_option(set_code, mtgjson_set.search_uri, mtgjson_set.cards)
     add_rebalanced_to_original_linkage(mtgjson_set)
     relocate_miscellaneous_tokens(mtgjson_set)
