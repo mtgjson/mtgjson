@@ -24,7 +24,7 @@ class EnrichmentProvider:
         try:
             with resource.open(encoding="utf-8") as fp:
                 self._data: Dict[str, Any] = json.load(fp)
-            set_count = len(self._data.keys())
+            set_count = len(self._data)
             card_count = sum(len(entries) for entries in self._data.values())
             LOGGER.info(f"Loaded enrichment data: {card_count} cards across {set_count} sets")
         except FileNotFoundError:
