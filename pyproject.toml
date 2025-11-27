@@ -1,0 +1,29 @@
+[tool.black]
+line-length = 88
+target-version = ["py39",
+"py310",
+"py311",
+"py312",
+"py313"]
+
+[tool.isort]
+profile = "black"
+
+
+# 501 - line too long
+# E402 - module level import not at top of file
+# W503 - line break before binary operator
+# W293 - blank line contains whitespace
+# E302 - expected 2 blank lines, found N
+# W291 - trailing whitespace
+[tool.flake8]
+extend-ignore = [
+    "E501",
+    "E402",
+    "W503",
+    "W293",
+    "E302",
+    "W291"
+]
+# F401 in __init__.py - imported but unused
+per-file-ignores = ["__init__.py:F401"]
