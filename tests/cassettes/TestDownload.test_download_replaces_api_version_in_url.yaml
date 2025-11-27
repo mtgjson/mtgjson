@@ -1,0 +1,148 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '127'
+      Content-Type:
+      - application/x-www-form-urlencoded
+      User-Agent:
+      - python-requests/2.32.4
+    method: POST
+    uri: https://api.tcgplayer.com/token
+  response:
+    body:
+      string: '{"access_token": "REDACTED", "token_type": "bearer", "expires_in":
+        1209599, "userName": "REDACTED", ".issued": "Thu, 27 Nov 2025 03:40:10 GMT",
+        ".expires": "Thu, 11 Dec 2025 03:40:10 GMT"}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '523'
+      Content-Type:
+      - application/json;charset=UTF-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:10 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=vVa8WoBLqTtA1SsTwCixPZtcn+InIGRJdQpnQE+kWttnTgfnNizM6jMTQAMjbdE1a9X7jasIwMq/QmzcabIsOKH3TEbWeBKvVE6qJL8Og8x+Ls0MRTCzdKIJzh4N;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/
+      - AWSALBCORS=vVa8WoBLqTtA1SsTwCixPZtcn+InIGRJdQpnQE+kWttnTgfnNizM6jMTQAMjbdE1a9X7jasIwMq/QmzcabIsOKH3TEbWeBKvVE6qJL8Og8x+Ls0MRTCzdKIJzh4N;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories
+  response:
+    body:
+      string: '{"totalItems": 89, "success": true, "errors": [], "results": [{"categoryId":
+        75, "name": "Akora", "modifiedOn": "2025-03-03T16:34:28.783", "displayName":
+        "Akora TCG", "seoCategoryName": "Akora Trading Card Game", "categoryDescription":
+        "Akora Trading Card Game", "categoryPageTitle": "Akora Trading Card Game",
+        "sealedLabel": "Sealed Products", "nonSealedLabel": "Cards", "conditionGuideUrl":
+        "https://store.tcgplayer.com/", "isScannable": true, "popularity": 0, "isDirect":
+        false}, {"categoryId": 78, "name": "Alpha Clash", "modifiedOn": "2025-10-07T13:36:29.4",
+        "displayName": "Alpha Clash", "seoCategoryName": "Alpha Clash Trading Card
+        Game", "categoryDescription": "Alpha Clash Trading Card Game", "categoryPageTitle":
+        "Alpha Clash", "sealedLabel": "Sealed Products", "nonSealedLabel": "Cards",
+        "conditionGuideUrl": "https://store.tcgplayer.com/", "isScannable": true,
+        "popularity": 0, "isDirect": false}, {"categoryId": 64, "name": "Alternate
+        Souls", "modifiedOn": "2025-05-05T20:29:51.33", "displayName": "Alternate
+        Souls", "seoCategoryName": "Alternate Souls", "categoryDescription": "Summon
+        armies and battle to become the Ultimate Soul in this arena card game by Force
+        of Will creator Eiji Shishido. Shop thousands of sellers for the best prices
+        on Alternate Souls cards, decks, booster boxes, and more.", "categoryPageTitle":
+        "TCGplayer - Buy Alternate Souls cards, decks, and booster pack", "sealedLabel":
+        "Sealed Products", "nonSealedLabel": "Cards", "conditionGuideUrl": "https://store.tcgplayer.com/",
+        "isScannable": false, "popularity": 0, "isDirect": false}, {"categoryId":
+        55, "name": "Architect TCG", "modifiedOn": "2021-10-11T21:26:34.46", "displayName":
+        "Architect TCG", "seoCategoryName": "Architect TCG", "categoryDescription":
+        null, "categoryPageTitle": null, "sealedLabel": "Sealed Products", "nonSealedLabel":
+        "Singles", "conditionGuideUrl": "https://store.tcgplayer.com/", "isScannable":
+        true, "popularity": 0, "isDirect": false}, {"categoryId": 61, "name": "Argent
+        Saga TCG", "modifiedOn": "2025-03-04T17:27:20.437", "displayName": "Argent
+        Saga TCG", "seoCategoryName": "Argent Saga TCG", "categoryDescription": "Lead
+        armies, cast powerful spells, and storm your opponent''s Towers of Power to
+        claim the Argent Tower! Shop thousands of sellers for the best prices on Argent
+        Saga TCG cards, starter decks, booster packs, and more.", "categoryPageTitle":
+        "TCGplayer - Buy Argent Saga TCG cards, starter decks, and booster pack",
+        "sealedLabel": "Sealed Products", "nonSealedLabel": "Cards", "conditionGuideUrl":
+        "https://store.tcgplayer.com/", "isScannable": true, "popularity": 0, "isDirect":
+        false}, {"categoryId": 4, "name": "Axis & Allies", "modifiedOn": "2024-08-30T21:04:46.373",
+        "displayName": "Axis & Allies", "seoCategoryName": "Axis & Allies", "categoryDescription":
+        "", "categoryPageTitle": "", "sealedLabel": "Sealed Products", "nonSealedLabel":
+        "Miniatures", "conditionGuideUrl": "https://store.tcgplayer.com/", "isScannable":
+        false, "popularity": 0, "isDirect": false}, {"categoryId": 58, "name": "Bakugan
+        TCG", "modifiedOn": "2023-06-20T19:20:30.28", "displayName": "Bakugan TCG",
+        "seoCategoryName": "Bakugan TCG", "categoryDescription": "Join forces with
+        powerful Bakugan and battle for the fate of two worlds! Browse and buy Bakugan
+        TCG cards and singles, booster packs, and BakuCores so you can become the
+        ultimate Bakugan Brawler.", "categoryPageTitle": "TCGplayer - Buy Bakugan
+        Cards, Singles, and Set", "sealedLabel": "Sealed Products", "nonSealedLabel":
+        "Singles", "conditionGuideUrl": "https://store.tcgplayer.com/", "isScannable":
+        true, "popularity": 0, "isDirect": false}, {"categoryId": 72, "name": "Battle
+        Spirits Saga", "modifiedOn": "2025-04-21T17:07:23.56", "displayName": "Battle
+        Spirits Saga", "seoCategoryName": "BANDAI Battle Spirits Saga Card Game 2023",
+        "categoryDescription": "BANDAI Battle Spirits Saga Card Game 2023", "categoryPageTitle":
+        "Battle Spirits Saga", "sealedLabel": null, "nonSealedLabel": null, "conditionGuideUrl":
+        "https://store.tcgplayer.com/", "isScannable": true, "popularity": 0, "isDirect":
+        false}, {"categoryId": 5, "name": "Boardgames", "modifiedOn": "2023-07-25T19:21:49.43",
+        "displayName": "Boardgames", "seoCategoryName": "Boardgames", "categoryDescription":
+        null, "categoryPageTitle": null, "sealedLabel": "Sealed Products", "nonSealedLabel":
+        "Unopened Games", "conditionGuideUrl": "https://store.tcgplayer.com/", "isScannable":
+        false, "popularity": 1, "isDirect": false}, {"categoryId": 46, "name": "Books",
+        "modifiedOn": "2025-04-29T18:09:04.84", "displayName": "Books", "seoCategoryName":
+        "Books", "categoryDescription": "Books: they''re like the internet, but with
+        fewer ads and trolls. Shop thousands of sellers for the best prices on books
+        by Osprey Publishing.", "categoryPageTitle": "TCGplayer - Buy books by Osprey
+        Publishing", "sealedLabel": "Sealed Products", "nonSealedLabel": "Non-Sealed
+        Products", "conditionGuideUrl": "https://store.tcgplayer.com/", "isScannable":
+        false, "popularity": 1, "isDirect": false}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '4745'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:10 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=g6xQGHC5UX+GIU8eAMseAPzdIrweOqwkZVbzL0N8FiEkW5MMQM0skxo/PxS6xZHPhWVBta7vyjCS0BladMGfh0YswNWOrOZyQsHtSWSNsEN4FoYQzWv/JcFQdQed;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/
+      - AWSALBCORS=g6xQGHC5UX+GIU8eAMseAPzdIrweOqwkZVbzL0N8FiEkW5MMQM0skxo/PxS6xZHPhWVBta7vyjCS0BladMGfh0YswNWOrOZyQsHtSWSNsEN4FoYQzWv/JcFQdQed;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+version: 1

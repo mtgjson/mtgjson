@@ -1,0 +1,47 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '127'
+      Content-Type:
+      - application/x-www-form-urlencoded
+      User-Agent:
+      - python-requests/2.32.4
+    method: POST
+    uri: https://api.tcgplayer.com/token
+  response:
+    body:
+      string: '{"access_token": "REDACTED", "token_type": "bearer", "expires_in":
+        1209599, "userName": "REDACTED", ".issued": "Thu, 27 Nov 2025 03:40:13 GMT",
+        ".expires": "Thu, 11 Dec 2025 03:40:13 GMT"}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '523'
+      Content-Type:
+      - application/json;charset=UTF-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:13 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=Uu2OHCTq48ijiqJYBf5lc05VGigY7MhHylfI2/he2NicXG7GzuOc1BEozPFvDHeg4W+O4+6BD0SxxENdajqv4k45RBFTR5XOY6osL/ATJjYyVGt6CsASB9/EEBGx;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/
+      - AWSALBCORS=Uu2OHCTq48ijiqJYBf5lc05VGigY7MhHylfI2/he2NicXG7GzuOc1BEozPFvDHeg4W+O4+6BD0SxxENdajqv4k45RBFTR5XOY6osL/ATJjYyVGt6CsASB9/EEBGx;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+version: 1
