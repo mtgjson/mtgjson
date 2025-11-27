@@ -1,0 +1,95 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '127'
+      Content-Type:
+      - application/x-www-form-urlencoded
+      User-Agent:
+      - python-requests/2.32.4
+    method: POST
+    uri: https://api.tcgplayer.com/token
+  response:
+    body:
+      string: '{"access_token": "REDACTED", "token_type": "bearer", "expires_in":
+        1209599, "userName": "REDACTED", ".issued": "Sun, 02 Nov 2025 16:02:43 GMT",
+        ".expires": "Sun, 16 Nov 2025 16:02:43 GMT"}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '523'
+      Content-Type:
+      - application/json;charset=UTF-8
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.32.4
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=0
+  response:
+    body:
+      string: '{"success": true, "errors": [], "results": [{"groupId": 1, "name":
+        "Alpha", "abbreviation": "LEA", "supplemental": false, "publishedOn": "1993-08-05T00:00:00",
+        "modifiedOn": "2020-01-01T00:00:00", "categoryId": 1}, {"groupId": 2, "name":
+        "Beta", "abbreviation": "LEB", "supplemental": false, "publishedOn": "1993-10-01T00:00:00",
+        "modifiedOn": "2020-01-01T00:00:00", "categoryId": 1}, {"groupId": 3, "name":
+        "Unlimited", "abbreviation": "2ED", "supplemental": false, "publishedOn":
+        "1993-12-01T00:00:00", "modifiedOn": "2020-01-01T00:00:00", "categoryId":
+        1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json; charset=utf-8
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.32.4
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=3
+  response:
+    body:
+      string: '{"success": true, "errors": [], "results": []}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json; charset=utf-8
+    status:
+      code: 200
+      message: OK
+version: 1

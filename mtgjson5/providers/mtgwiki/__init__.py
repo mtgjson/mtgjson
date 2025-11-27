@@ -1,0 +1,1 @@
+"""mtgwiki provider package"""

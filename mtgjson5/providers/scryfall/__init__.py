@@ -1,0 +1,1 @@
+"""Scryfall provider package"""

@@ -1,0 +1,1 @@
+"""manapool provider package"""
