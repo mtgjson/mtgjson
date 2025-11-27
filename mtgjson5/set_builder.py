@@ -68,7 +68,11 @@ class CardBuildContext:
     def face_data(self) -> dict[str, Any]:
         """Get the relevant face data, or the card itself for single-face."""
         if self.is_multi_face:
-            return self.scryfall["card_faces"][self.face_id]
+            faces = self.scryfall.get("card_faces") or []
+            if self.face_id < len(faces):
+                return faces[self.face_id]
+            # fallback to first face or card itself
+            return self.faces[0] if faces else self.scryfall
         return self.scryfall
     
     @property
