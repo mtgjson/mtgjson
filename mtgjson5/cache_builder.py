@@ -3,11 +3,13 @@ Global cache for MTGJSON provider data and pre-computed aggregations.
 """
 
 import json
+import ijson
 import logging
+import pathlib
+import requests
 from concurrent.futures import ThreadPoolExecutor  # pylint: disable=no-name-in-module
 from functools import cache
 from typing import Any, Optional, TypeVar
-
 import polars as pl
 
 from mtgjson5 import constants
@@ -22,6 +24,67 @@ LOGGER = logging.getLogger(__name__)
 
 
 T = TypeVar("T")
+
+
+def fetch_bulk_data(url: str, destination: str) -> None:
+    """
+    Fetch bulk data from Scryfall and save to destination file.
+    :param url: URL to fetch from
+    :param destination: File path to save data
+    """
+    LOGGER.info(f"Fetching bulk data from {url}...")
+    response = requests.get(url, stream=True)
+    response.raise_for_status()
+    
+    dest_path = pathlib.Path(destination)
+    with dest_path.open('wb') as f:
+        # strip array brackets from stream
+        for item in ijson.items(response.raw, 'item'):
+            f.write(json.dumps(item) + b'\n')
+    
+    LOGGER.info(f"Saved bulk data to {destination}")
+
+
+def get_scryfall_lazyframe(ndjson_path: str) -> pl.LazyFrame:
+    """
+    Load Scryfall NDJSON file into a Polars LazyFrame with schema overrides.
+    :param ndjson_path: Path to NDJSON file
+    :return: Polars LazyFrame with Scryfall data
+    """
+    # lock polymorphic fields to Utf8 to prevent type errors.
+    schema_overrides = {
+        "power": pl.Utf8, # to handle "*", "½", etc.
+        "toughness": pl.Utf8, 
+        "loyalty": pl.Utf8,
+        "defense": pl.Utf8,
+        "hand_modifier": pl.Utf8,
+        "life_modifier": pl.Utf8,
+        "collector_number": pl.Utf8, # "123a"
+        "mtgo_id": pl.Utf8,
+        "arena_id": pl.Utf8,
+        "tcgplayer_id": pl.Utf8,
+        "cardmarket_id": pl.Utf8,
+        "face_flavor_name": pl.Utf8, # Sparse field
+    }
+    
+    # infer_schema_length=None:
+    # Causes polars to create a "Union Schema" of every column in the file
+    # and then process it in one pass via rayon's parallel iterators.
+    # this solves the scryfall's Semi-Variable Schema problem lickedy-split.
+    return pl.scan_ndjson(
+        ndjson_path,
+        infer_schema_length=None, 
+        schema_overrides=schema_overrides,
+        batch_size=4096  # Larger batches = better SIMD vectorization
+    )
+    
+    # Usage in pipeline
+    # lf = get_scryfall_lazyframe("oracle-cards-latest.json")
+    
+    # Optimization Pushdown Example:
+    # Because we used scan_ndjson, this filter is pushed to the READER.
+    # The parser will skip decoding the JSON bodies of cards not in "LEA".
+    # standard_cards = lf.filter(pl.col("set") == "lea").collect()
 
 
 def extract_foreign_data(cards: pl.LazyFrame) -> pl.LazyFrame:
@@ -151,7 +214,7 @@ def resolve_foreign_entry(
 @cache
 def load_json(filename: str) -> Any:
     """Load a JSON resource from the resources directory."""
-    return json.loads((constants.RESOURCE_PATH / filename).read_text())
+    json.loads((constants.RESOURCE_PATH / filename).read_text())
 
 
 class GlobalCache:
@@ -374,8 +437,9 @@ class GlobalCache:
         if self.foreign_data_map is None:
             return []
 
+        # Note: Scryfall stores set codes in lowercase
         result = self.foreign_data_map.filter(
-            (pl.col("set") == set_code.upper())
+            (pl.col("set") == set_code.lower())
             & (pl.col("collector_number") == collector_number)
         )
 
