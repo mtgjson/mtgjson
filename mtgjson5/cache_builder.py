@@ -4,7 +4,7 @@ Global cache for MTGJSON provider data and pre-computed aggregations.
 
 import json
 import logging
-from concurrent.futures import ThreadPoolExecutor #noqa: F401
+from concurrent.futures import ThreadPoolExecutor  # pylint: disable=no-name-in-module
 from functools import cache
 from typing import Any, Optional, TypeVar
 
@@ -150,6 +150,7 @@ def resolve_foreign_entry(
 
 @cache
 def load_json(filename: str) -> Any:
+    """Load a JSON resource from the resources directory."""
     return json.loads((constants.RESOURCE_PATH / filename).read_text())
 
 
