@@ -122,6 +122,7 @@ class ScryfallProvider(AbstractProvider):
 
             LOGGER.error(f"Download failed: {error}... Maxed out retries")
             sys.exit(1)
+            return {}  # Unreachable in production, but makes tests safer
 
         try:
             return response.json()
