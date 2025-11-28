@@ -9,7 +9,7 @@ import re
 import unicodedata
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 import polars as pl
 
@@ -73,9 +73,9 @@ class CardBuildContext:
         if self.is_multi_face:
             faces = self.scryfall.get("card_faces") or []
             if self.face_id < len(faces):
-                return faces[self.face_id]
+                return cast(dict[str, Any], faces[self.face_id])
             # fallback to first face or card itself
-            return faces[0] if faces else self.scryfall
+            return cast(dict[str, Any], faces[0] if faces else self.scryfall)
         return self.scryfall
 
     @property
@@ -84,6 +84,13 @@ class CardBuildContext:
         if self.is_multi_face:
             return len(self.scryfall["card_faces"])
         return 1
+
+    @property
+    def side(self) -> str:
+        """Get the side identifier for this face."""
+        if self.is_multi_face:
+            return chr(ord("a") + self.face_id)
+        return ""
 
 
 def parse_foreign(
@@ -1257,10 +1264,10 @@ def _handle_all_parts(card: MtgjsonCardObject, ctx: CardBuildContext) -> None:
 
     # Meld triplet handling
     if names and len(names) == 3:
-        _finalize_meld(card, ctx)
+        _finalize_meld(card)
 
 
-def _finalize_meld(card: MtgjsonCardObject, ctx: CardBuildContext) -> None:
+def _finalize_meld(card: MtgjsonCardObject) -> None:
     """Finalize meld card names and sides."""
     for card_a, card_b, meld_c in GLOBAL_CACHE.meld_triplets:
         if card_a in card.get_names():
