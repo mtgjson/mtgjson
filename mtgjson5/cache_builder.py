@@ -4,21 +4,19 @@ Global cache for MTGJSON provider data and pre-computed aggregations.
 
 import json
 import logging
-from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor #noqa: F401
 from functools import cache
 from typing import Any, Optional, TypeVar
-from concurrent.futures import ThreadPoolExecutor
 
 import polars as pl
+
 from mtgjson5 import constants
 from mtgjson5.constants import LANGUAGE_MAP
 from mtgjson5.providers import (
-    ScryfallProvider,
-    MultiverseBridgeProvider,
     CardKingdomProvider,
     CardMarketProvider,
+    ScryfallProvider,
 )
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -54,32 +52,38 @@ def extract_foreign_data(cards: pl.LazyFrame) -> pl.LazyFrame:
                 .replace_strict(LANGUAGE_MAP, default=pl.col("lang"))
                 .alias("language"),
                 pl.col("multiverse_ids").list.first().alias("multiverse_id"),
-            ])
+            ]
         )
+    )
     foreign_struct = (
-        foreign.select([
+        foreign.select(
+            [
                 "set",
                 "collector_number",
-                pl.struct([
-                    "language",
-                    pl.col("id").alias("scryfall_id"),
-                    "multiverse_id",
-                    # scryfall name for face matching logic
-                    pl.col("name").alias("scryfall_name"),
-                    # for single-faces: use printed_name or fallback to name
-                    # for multi-faces: we overwrite at lookup
-                    pl.coalesce(["printed_name", "name"]).alias("name"),
-                    pl.col("printed_text").alias("text"),
-                    pl.col("printed_type_line").alias("type"),
-                    "flavor_text",
-                    # store full card_faces array for resolution later
-                    pl.col("card_faces"),
-                ]).alias("foreign_entry"),
-            ])
+                pl.struct(
+                    [
+                        "language",
+                        pl.col("id").alias("scryfall_id"),
+                        "multiverse_id",
+                        # scryfall name for face matching logic
+                        pl.col("name").alias("scryfall_name"),
+                        # for single-faces: use printed_name or fallback to name
+                        # for multi-faces: we overwrite at lookup
+                        pl.coalesce(["printed_name", "name"]).alias("name"),
+                        pl.col("printed_text").alias("text"),
+                        pl.col("printed_type_line").alias("type"),
+                        "flavor_text",
+                        # store full card_faces array for resolution later
+                        pl.col("card_faces"),
+                    ]
+                ).alias("foreign_entry"),
+            ]
+        )
         .group_by(["set", "collector_number"])
         .agg(pl.col("foreign_entry").alias("foreign_data"))
     )
     return foreign_struct
+
 
 def resolve_foreign_entry(
     entry: dict[str, Any],
@@ -87,47 +91,48 @@ def resolve_foreign_entry(
 ) -> dict[str, Any]:
     """
     Resolve a foreign data entry for a specific card face.
-    
+
     Matches original parse_foreign() logic:
     - For single-faced cards: return as-is
-    - For multi-faced cards: 
+    - For multi-faced cards:
       - Set name to joined printed names
       - Set face_name based on which face matches card_name
-    
+
     :param entry: Raw foreign entry from cache
     :param card_name: The face_name or name of the card being built
     :return: Resolved foreign entry with correct name/face_name
     """
     card_faces = entry.get("card_faces")
-    
+
     # Single-faced card - no special handling needed
     if not card_faces or len(card_faces) == 0:
         # Remove card_faces from output, add empty face_name
-        result = {k: v for k, v in entry.items() if k not in ("card_faces", "scryfall_name")}
+        result = {
+            k: v for k, v in entry.items() if k not in ("card_faces", "scryfall_name")
+        }
         result["face_name"] = None
         return result
-    
+
     # Multi-faced card - need to determine which face
     scryfall_name = entry.get("scryfall_name", "")
-    
+
     # Determine face index by matching card_name to first part of scryfall name
     # (card_name.lower() == foreign_card["name"].split("/")[0].strip().lower())
     first_face_name = scryfall_name.split("/")[0].strip().lower()
     face_idx = 0 if card_name.lower() == first_face_name else 1
-    
+
     # Clamp to available faces
     face_idx = min(face_idx, len(card_faces) - 1)
-    
+
     # Build joined name from all faces' printed names
     joined_name = " // ".join(
-        face.get("printed_name") or face.get("name", "")
-        for face in card_faces
+        face.get("printed_name") or face.get("name", "") for face in card_faces
     )
-    
+
     # Get face_name from the specific face
     target_face = card_faces[face_idx]
     face_name = target_face.get("printed_name") or target_face.get("name")
-    
+
     # Build resolved entry
     result = {
         "language": entry.get("language"),
@@ -139,8 +144,9 @@ def resolve_foreign_entry(
         "type": target_face.get("printed_type_line") or entry.get("type"),
         "flavor_text": target_face.get("flavor_text") or entry.get("flavor_text"),
     }
-    
+
     return result
+
 
 @cache
 def load_json(filename: str) -> Any:
@@ -151,7 +157,7 @@ class GlobalCache:
     """Global shared access cache for provider data."""
 
     _instance: Optional["GlobalCache"] = None
-    
+
     def __new__(cls) -> "GlobalCache":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -191,11 +197,11 @@ class GlobalCache:
         self._scryfall: ScryfallProvider | None = None
         self._card_kingdom: CardKingdomProvider | None = None
         self._cardmarket: CardMarketProvider | None = None
-        
+
         # Provider data caches
         self.gatherer_map: dict[str, list[dict[str, str]]] = {}
         self.standard_legal_sets: set[str] = set()
-        self.card_kingdom_map: dict[str, dict[str, Any]] = {}
+        self.card_kingdom_map: dict[str, list[dict[str, Any]]] = {}
         self.multiverse_bridge_cards: dict[str, list[dict[str, Any]]] = {}
         self.multiverse_bridge_sets: dict[str, int] = {}
 
@@ -204,18 +210,21 @@ class GlobalCache:
     # Lazy provider accessors
     @property
     def scryfall(self) -> ScryfallProvider:
+        """Get or create the Scryfall provider instance."""
         if self._scryfall is None:
             self._scryfall = ScryfallProvider()
         return self._scryfall
 
     @property
     def card_kingdom(self) -> CardKingdomProvider:
+        """Get or create the Card Kingdom provider instance."""
         if self._card_kingdom is None:
             self._card_kingdom = CardKingdomProvider()
         return self._card_kingdom
 
     @property
     def cardmarket(self) -> CardMarketProvider:
+        """Get or create the Cardmarket provider instance."""
         if self._cardmarket is None:
             self._cardmarket = CardMarketProvider()
         return self._cardmarket
@@ -223,7 +232,7 @@ class GlobalCache:
     def load_all(self, force_refresh: bool = False) -> "GlobalCache":
         """Load all provider data and pre-compute aggregations."""
         LOGGER.info("Loading global cache data...")
-        
+
         self._load_sets_metadata()
 
         with ThreadPoolExecutor(max_workers=6) as executor:
@@ -236,19 +245,13 @@ class GlobalCache:
             ck_future = executor.submit(
                 self.card_kingdom.get_scryfall_translation_table
             )
-            mb_cards_future = executor.submit(
-                self._load_multiverse_bridge_cards
-            )
-            mb_sets_future = executor.submit(
-                self._load_multiverse_bridge_sets
-            )
-            gatherer_future = executor.submit(
-                self._load_gatherer_data
-            )
-            
+            mb_cards_future = executor.submit(self._load_multiverse_bridge_cards)
+            mb_sets_future = executor.submit(self._load_multiverse_bridge_sets)
+            gatherer_future = executor.submit(self._load_gatherer_data)
+
             # might as well load overrides while waiting
             self._load_overrides()
-            
+
             # Collect results
             self.cards_df = bulk_cards_future.result()
             self.rulings_df = bulk_rulings_future.result()
@@ -259,7 +262,7 @@ class GlobalCache:
 
         self._compute_aggregations()
         self._load_uuid_cache()
-        
+
         LOGGER.info("Global cache data loaded")
         return self
 
@@ -292,26 +295,29 @@ class GlobalCache:
         """Load Multiverse Bridge Rosetta Stone cards."""
         LOGGER.info("Loading Multiverse Bridge Rosetta Stone cards...")
         from mtgjson5.providers import MultiverseBridgeProvider
+
         return MultiverseBridgeProvider().get_rosetta_stone_cards()
-    
+
     def _load_multiverse_bridge_sets(self) -> dict[str, int]:
         """Load Multiverse Bridge Rosetta Stone sets."""
         LOGGER.info("Loading Multiverse Bridge Rosetta Stone sets...")
         from mtgjson5.providers import MultiverseBridgeProvider
-        return MultiverseBridgeProvider().rosetta_stone_sets()
-    
+
+        return MultiverseBridgeProvider().get_rosetta_stone_sets()
+
     def _load_gatherer_data(self) -> dict[str, list[dict[str, str]]]:
         """Load Gatherer data for cards."""
         LOGGER.info("Loading Gatherer data...")
         from mtgjson5.providers import GathererProvider
+
         provider = GathererProvider()
         return getattr(provider, "_cache", {})
-    
+
     def _compute_aggregations(self) -> None:
         """Build pre-computed maps from bulk data."""
         if self.cards_df is None:
             raise RuntimeError("Must load bulk data first")
-        
+
         LOGGER.info("Computing pre-aggregated maps...")
 
         # Printings: oracle_id -> list of set codes
@@ -319,37 +325,30 @@ class GlobalCache:
             self.cards_df.lazy()
             .filter(pl.col("lang") == "en")
             .group_by("oracle_id")
-            .agg(
-                pl.col("set")
-                .str.to_uppercase()
-                .unique()
-                .sort()
-                .alias("printings")
-            )
+            .agg(pl.col("set").str.to_uppercase().unique().sort().alias("printings"))
             .collect()
         )
-        
-        # Rulings: oracle_id -> list of {date, text}    
+
+        # Rulings: oracle_id -> list of {date, text}
         if self.rulings_df is not None:
             self.rulings_map = (
                 self.rulings_df.lazy()
                 .sort(["published_at", "comment"])
                 .group_by("oracle_id")
                 .agg(
-                    pl.struct([
-                        pl.col("published_at").alias("date"),
-                        pl.col("comment").alias("text"),
-                    ]).alias("rulings")
+                    pl.struct(
+                        [
+                            pl.col("published_at").alias("date"),
+                            pl.col("comment").alias("text"),
+                        ]
+                    ).alias("rulings")
                 )
                 .collect()
             )
-           
+
         # Foreign data: (set, collector_number) -> list of foreign entries
-        self.foreign_data_map = (
-            extract_foreign_data(self.cards_df.lazy())
-            .collect()
-        )
-        
+        self.foreign_data_map = extract_foreign_data(self.cards_df.lazy()).collect()
+
     def _load_uuid_cache(self) -> None:
         """Load legacy UUID mappings if available."""
         cache_path = constants.RESOURCE_PATH / "legacy_mtgjson_v5_uuid_mapping.json"
@@ -362,26 +361,6 @@ class GlobalCache:
         except Exception as e:
             LOGGER.warning(f"Failed to load UUID cache: {e}")
             self.uuid_cache_df = None
-    
-    def _load_external_providers(self) -> None:
-        """Load external provider data as DataFrames."""
-        ck_data = self.card_kingdom.download(self.card_kingdom.api_url)
-        self.card_kingdom_df = pl.DataFrame(ck_data.get("data") or [])
-        self.card_kingdom_map = self.card_kingdom.get_scryfall_translation_table()
-        self.card_market_provider = CardMarketProvider()._get_card_mmarket_data()
-        self.multiverse_bridge_map = (
-            MultiverseBridgeProvider().get_rosetta_stone_cards()
-        )
-        self.cardhoarder_map = CardMarketProvider().get_cardmarket_price_map()
-
-        self.uuid_cache_df = self._load_uuid_cache()
-
-    def _load_uuid_cache(self) -> pl.DataFrame | None:
-        """Load legacy UUID mappings if available."""
-        cache_path = Path("resources/legacy_mtgjson_v5_uuid_mapping.json")
-        if not cache_path.exists():
-            return None
-        return pl.read_json(cache_path)
 
     def get_set(self, set_code: str) -> dict[str, Any] | None:
         """Get set metadata by set code."""
@@ -426,4 +405,4 @@ class GlobalCache:
         return cls._instance
 
 
-global_cache = GlobalCache.get_instance()
+GLOBAL_CACHE = GlobalCache.get_instance()
