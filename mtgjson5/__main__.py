@@ -189,7 +189,7 @@ def main() -> None:
     )
 
     LOGGER.info("Building cache...")
-    GLOBAL_CACHE: GlobalCache = GlobalCache()
+    GLOBAL_CACHE: GlobalCache = GlobalCache()  # pylint: disable=invalid-name
 
     GLOBAL_CACHE.load_all(
         force_refresh=args.skip_cache if hasattr(args, "skip_cache") else False
