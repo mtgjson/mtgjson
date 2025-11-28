@@ -10,5 +10,4 @@ ratelimit==2.2.1
 requests-cache==1.2.1
 requests==2.32.4
 singleton-decorator==1.0.0
-urllib3==1.26.18; python_version < '3.10'
-urllib3==2.5.0; python_version >= '3.10'
+urllib3==2.5.0
