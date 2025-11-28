@@ -6,6 +6,7 @@ from .cardhoarder import CardHoarderProvider
 from .cardkingdom import CardKingdomProvider
 from .cardmarket.monolith import CardMarketProvider
 from .edhrec.card_ranks import EdhrecProviderCardRanks
+from .enrichment_provider import EnrichmentProvider
 from .gatherer import GathererProvider
 from .github.github_boosters import GitHubBoostersProvider
 from .github.github_card_sealed_products import GitHubCardSealedProductsProvider
