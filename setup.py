@@ -1,6 +1,7 @@
 """
 Installation setup for mtgjson5
 """
+
 import configparser
 import pathlib
 
@@ -36,11 +37,11 @@ setuptools.setup(
         "Operating System :: Microsoft :: Windows :: Windows 11",
         "Operating System :: Unix",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "Programming Language :: Python",
         "Topic :: Database",
         "Topic :: Software Development :: Version Control :: Git",
@@ -58,9 +59,9 @@ setuptools.setup(
     ],
     include_package_data=True,
     packages=setuptools.find_packages(),
-    install_requires=project_root.joinpath("requirements.txt")
-    .open(encoding="utf-8")
-    .readlines()
-    if project_root.joinpath("requirements.txt").is_file()
-    else [],  # Use the requirements file, if able
+    install_requires=(
+        project_root.joinpath("requirements.txt").open(encoding="utf-8").readlines()
+        if project_root.joinpath("requirements.txt").is_file()
+        else []
+    ),  # Use the requirements file, if able
 )
