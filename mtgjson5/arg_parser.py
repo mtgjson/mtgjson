@@ -91,6 +91,20 @@ def parse_args() -> argparse.Namespace:
         help="Enable the use of Scryfall bulk data files where possible.",
     )
 
+    # Developer/testing arguments
+    dev_arg_group = parser.add_argument_group("developer arguments")
+    dev_arg_group.add_argument(
+        "--random-card",
+        "-rc",
+        action="store_true",
+        help="Fetch a random card from Scryfall and build it (for testing card builder).",
+    )
+    dev_arg_group.add_argument(
+        "--skip-cache",
+        action="store_true",
+        help="Skip loading the full cache (for use with --random-card).",
+    )
+
     mtgjson_arg_group = parser.add_argument_group("mtgjson maintainer arguments")
     mtgjson_arg_group.add_argument(
         "--price-build",
