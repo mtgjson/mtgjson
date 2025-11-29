@@ -25,6 +25,7 @@ def parse_args() -> argparse.Namespace:
     )
 
     # What set(s) to build
+    # Support both space-separated (--sets ALA 2X2) and comma-separated (--sets ala,2x2)
     def parse_sets(s: str) -> list[str]:
         """Parse set codes, handling both comma and space separation."""
         return [code.strip().upper() for code in s.split(",") if code.strip()]
@@ -33,11 +34,11 @@ def parse_args() -> argparse.Namespace:
     sets_group.add_argument(
         "--sets",
         "-s",
-        type=lambda s: s.upper(),
+        type=parse_sets,
         nargs="*",
         metavar="SET",
         default=[],
-        help="Set(s) to build, using Scryfall set code notation. Non-existent sets silently ignored.",
+        help="Set(s) to build, using Scryfall set code notation. Supports comma or space separation. Non-existent sets silently ignored.",
     )
     sets_group.add_argument(
         "--all-sets",
@@ -103,6 +104,12 @@ def parse_args() -> argparse.Namespace:
         "--skip-cache",
         action="store_true",
         help="Skip loading the full cache (for use with --random-card).",
+    )
+    dev_arg_group.add_argument(
+        "--skip-tokens",
+        "-ST",
+        action="store_true",
+        help="Skip building tokens for sets (useful during development/testing).",
     )
 
     mtgjson_arg_group = parser.add_argument_group("mtgjson maintainer arguments")
