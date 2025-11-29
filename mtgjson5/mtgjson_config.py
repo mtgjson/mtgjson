@@ -64,8 +64,7 @@ class MtgjsonConfig:
         self.vectorized = self.get_boolean(
             "MTGJSON", "vectorized", True
         )
-        if self.vectorized:
-            self.logger.info("Using vectorized processing")
+        self.logger.info(f"Using vectorized processing: {self.vectorized}")
 
     def __load_config_from_aws_ssm(self, config_name: str) -> None:
         """
