@@ -26,6 +26,7 @@ class MtgjsonConfig:
     mtgjson_version: str
     use_cache: bool
     output_path: pathlib.Path
+    vectorized: bool
 
     def __init__(
         self,
@@ -33,7 +34,6 @@ class MtgjsonConfig:
     ):
         self.logger = logging.getLogger(__name__)
         self.config_parser = configparser.ConfigParser()
-
         if aws_ssm_config_name:
             self.logger.info("Loading configuration from AWS SSM")
             self.__load_config_from_aws_ssm(aws_ssm_config_name)
@@ -61,6 +61,11 @@ class MtgjsonConfig:
         self.output_path = constants.ENV_OUT_PATH.joinpath(
             f"mtgjson_build_{self.mtgjson_version}"
         )
+        self.vectorized = self.get_boolean(
+            "MTGJSON", "vectorized", True
+        )
+        if self.vectorized:
+            self.logger.info("Using vectorized processing")
 
     def __load_config_from_aws_ssm(self, config_name: str) -> None:
         """
