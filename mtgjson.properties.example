@@ -22,6 +22,7 @@ api_key=
 version=
 date=
 use_cache=
+vectorized=
 
 [Pushover]
 app_token=
