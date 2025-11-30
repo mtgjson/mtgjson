@@ -672,7 +672,7 @@ def build_base_mtgjson_cards(
         raise RuntimeError("Cache not initialized - call cache.load_all() first")
 
     # Use vectorized pipeline when enabled (and no additional cards to merge)
-    if _get_vectorized_flag():
+    if _get_vectorized_flag() and not additional_cards:
         from .card_pipeline import (
             add_purchase_urls_struct,
             add_duel_deck_side,
@@ -699,15 +699,9 @@ def build_base_mtgjson_cards(
         set_data = GLOBAL_CACHE.get_set(set_code.upper())
         set_name = set_data.get("name", "") if set_data else ""
         set_type = set_data.get("set_type", "") if set_data else ""
-        scryfall_ids = None
-        if additional_cards:
-            scryfall_ids = [card.get("id") for card in additional_cards if card.get("id")]
-            if not scryfall_ids:
-                LOGGER.info(f"No valid scryfall IDs for {set_code}, returning empty")
-                return []
 
         # Build cards using the LazyFrame pipeline
-        cards_lf = build_set_cards(set_code, set_release_date, scryfall_ids=scryfall_ids)
+        cards_lf = build_set_cards(set_code, set_release_date)
 
         # Select output columns and collect
         cards_df = select_output_columns(cards_lf).collect()

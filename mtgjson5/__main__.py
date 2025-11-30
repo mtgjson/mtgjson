@@ -2,10 +2,6 @@
 MTGJSON Main Executor
 """
 
-import gevent.monkey  # isort:skip
-
-gevent.monkey.patch_all()  # isort:skip
-
 import argparse
 import logging
 import traceback
@@ -21,7 +17,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 init_logger()
 LOGGER: logging.Logger = logging.getLogger(__name__)
-
 
 def build_mtgjson_sets(
     sets_to_build: Union[Set[str], List[str]],
@@ -110,11 +105,9 @@ def dispatcher(args: argparse.Namespace) -> None:
             compress_mtgjson_contents(MtgjsonConfig().output_path)
         generate_output_file_hashes(MtgjsonConfig().output_path)
         return
-
-    # Load global cache if using Polars pipeline or scryfall bulk files are enabled
-    if args.polars or args.bulk_files:
-        GlobalCache().load_all()
-
+    
+    GlobalCache().load_all()
+    
     sets_to_build = ScryfallProvider().get_sets_to_build(args)
     if args.all_sets:
         additional_set_keys = set(load_local_set_data().keys())
@@ -186,13 +179,6 @@ def main() -> None:
 
     LOGGER.info(
         f"Starting {MtgjsonConfig().mtgjson_version} on {constants.MTGJSON_BUILD_DATE}"
-    )
-
-    LOGGER.info("Building cache...")
-    GLOBAL_CACHE: GlobalCache = GlobalCache()  # pylint: disable=invalid-name
-
-    GLOBAL_CACHE.load_all(
-        force_refresh=args.skip_cache if hasattr(args, "skip_cache") else False
     )
 
     try:

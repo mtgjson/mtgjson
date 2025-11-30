@@ -22,3 +22,35 @@ from .tcgplayer import TCGPlayerProvider
 from .uuid_cache import UuidCacheProvider
 from .whats_in_standard import WhatsInStandardProvider
 from .wizards import WizardsProvider
+
+
+from .v2 import CardKingdomProviderV2
+from .v2 import GitHubDataProvider
+from .v2 import EdhrecSaltProvider
+
+
+__all__ = [
+    "CardHoarderProvider",
+    "CardKingdomProvider",
+    "CardMarketProvider",
+    "EdhrecProviderCardRanks",
+    "GathererProvider",
+    "GitHubBoostersProvider",
+    "GitHubCardSealedProductsProvider",
+    "GitHubDecksProvider",
+    "GitHubMTGSqliteProvider",
+    "GitHubSealedProvider",
+    "ManapoolPricesProvider",
+    "MtgWikiProviderSecretLair",
+    "MultiverseBridgeProvider",
+    "ScryfallProvider",
+    "ScryfallProviderOrientationDetector",
+    "ScryfallProviderSetLanguageDetector",
+    "TCGPlayerProvider",
+    "UuidCacheProvider",
+    "WhatsInStandardProvider",
+    "WizardsProvider",
+    "CardKingdomProviderV2",
+    "GitHubDataProvider",
+    "EdhrecSaltProvider",
+]

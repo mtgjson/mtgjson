@@ -74,22 +74,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--skip-sets",
         "-SS",
-        type=lambda s: s.upper(),
+        type=parse_sets,
         nargs="*",
         metavar="SET",
         default=[],
         help="Purposely exclude sets from the build that may have been set using --sets or --all-sets. Supports comma or space separation.",
-    )
-    parser.add_argument(
-        "--polars",
-        action="store_true",
-        help="Enables Polars based high performance pipeline.",
-    )
-    parser.add_argument(
-        "--bulk-files",
-        "-BF",
-        action="store_true",
-        help="Enable the use of Scryfall bulk data files where possible.",
     )
 
     # Developer/testing arguments
@@ -151,6 +140,9 @@ def parse_args() -> argparse.Namespace:
 
     parsed_args = parser.parse_args()
 
+    # Flatten nested lists from --sets parsing (nargs="*" + type=parse_sets)
+    # Handles: --sets ala,2x2 -> [['ALA', '2X2']] -> ['ALA', '2X2']
+    # Handles: --sets ala 2x2 -> [['ALA'], ['2X2']] -> ['ALA', '2X2']
     if parsed_args.sets:
         flattened_sets = []
         for item in parsed_args.sets:
