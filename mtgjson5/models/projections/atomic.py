@@ -1,0 +1,53 @@
+""" """
+from pydantic import BaseModel, Field
+from typing import List, Optional
+
+class AtomicCard(BaseModel):
+    artist: Optional[str] = Field(..., description="Name of the artist")
+    asciiName: Optional[str] = Field(..., description="ASCII representation of the card name")
+    attractionLights: Optional[List[int]] = Field(..., description="Attraction lights levels")
+    colorIdentity: List[str] = Field(..., description="Color identity of the card")
+    colorIndicator: Optional[str] = Field(..., description="Color indicator of the card")
+    colors: List[str] = Field(..., description="Colors of the card")
+    convertedManaCost: int = Field(..., description="Converted mana cost of the card")
+    defense: Optional[str] = Field(..., description="Defense value of the card")
+    edhrecRank: Optional[int] = Field(..., description="EDHREC rank of the card")
+    edhrecSaltiness: Optional[int] = Field(..., description="EDHREC saltiness of the card")
+    faceConvertedManaCost: Optional[int] = Field(..., description="Face converted mana cost of the card")
+    faceManaValue: Optional[int] = Field(..., description="Face mana value of the card")
+    faceName: Optional[str] = Field(..., description="Face name of the card")
+    firstPrinting: Optional[str] = Field(..., description="First printing set code")
+    foreignData: Optional[List[dict]] = Field(..., description="Foreign data of the card")
+    hand: Optional[str] = Field(..., description="Hand-size modifier of the card")
+    hasAlternativeDeckLimit: Optional[bool] = Field(..., description="Indicates if the card has an alternative deck limit other than 4")
+    identifiers: dict = Field(..., description="Identifiers for the card")
+    isFunny: Optional[bool] = Field(..., description="Indicates if the card is from an Un-set")
+    isGameChanger: Optional[bool] = Field(..., description="Indicates if the card is on the Game Changer list")
+    isReserved: Optional[bool] = Field(..., description="Indicates if the card is on the Reserved List")
+    keywords: Optional[List[str]] = Field(..., description="Keywords associated with the card")
+    layout: str = Field(..., description="Layout of the card")
+    leadershipSkills: Optional[dict] = Field(..., description="Leadership skills for the card")
+    legalities: dict = Field(..., description="Legalities of the card")
+    life: Optional[str] = Field(..., description="Life modifier of the card")
+    loyalty: Optional[str] = Field(..., description="Loyalty value of the card")
+    manaCost: Optional[str] = Field(..., description="Mana cost of the card")
+    manaValue: int = Field(..., description="Mana value of the card")
+    name: str = Field(..., description="Name of the card")
+    power: Optional[str] = Field(..., description="Power value of the card")
+    printings: Optional[List[str]] = Field(..., description="List of set codes where the card has been printed")
+    purchaseUrls: dict = Field(..., description="Purchase URLs for the card")
+    relatedCards: dict = Field(..., description="Related cards information")
+    rulings: Optional[List[dict]] = Field(..., description="Rulings associated with the card")
+    side: Optional[str] = Field(..., description="Side of the card (e.g., 'a' or 'b')")
+    subsets: Optional[List[str]] = Field(..., description="Subsets the card belongs to")
+    subtypes: List[str] = Field(..., description="Subtypes of the card")
+    supertypes: List[str] = Field(..., description="Supertypes of the card")
+    text: Optional[str] = Field(..., description="Text of the card")
+    toughness: Optional[str] = Field(..., description="Toughness value of the card")
+    type: str = Field(..., description="Type line of the card")
+    types: List[str] = Field(..., description="Types of the card")
+    
+    def list_fields(self) -> List[str]:
+        """Return a list of field names for the AtomicCard model."""
+        return list(self.model_fields.keys())
+    

@@ -2,8 +2,8 @@
 Global cache for MTGJSON provider data and pre-computed aggregations.
 """
 
+import gzip
 import json
-import ijson
 import logging
 import pathlib
 import requests
@@ -12,12 +12,16 @@ from functools import cache
 from typing import Any, Optional, TypeVar
 import polars as pl
 
-from mtgjson5 import constants
-from mtgjson5.constants import LANGUAGE_MAP
+from mtgjson5 import categoricals, constants
 from mtgjson5.providers import (
-    CardKingdomProvider,
     CardMarketProvider,
     ScryfallProvider,
+    MultiverseBridgeProvider,
+    GathererProvider,
+    GitHubDataProvider,
+    CardKingdomProviderV2,
+    WhatsInStandardProvider,
+    EdhrecSaltProvider   
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -26,71 +30,135 @@ LOGGER = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
-def fetch_bulk_data(url: str, destination: str) -> None:
+SCRYFALL_BULK_DATA_URL = "https://api.scryfall.com/bulk-data"
+CACHE_DIR = constants.RESOURCE_PATH / ".cache"
+
+
+def get_bulk_data_download_url(bulk_type: str) -> str:
     """
-    Fetch bulk data from Scryfall and save to destination file.
+    Get the download URL for a specific bulk data type from Scryfall.
+    :param bulk_type: Type of bulk data ("default_cards", "rulings", etc.)
+    :return: Download URL for the bulk data
+    """
+    response = requests.get(SCRYFALL_BULK_DATA_URL)
+    response.raise_for_status()
+    data = response.json()
+
+    for item in data.get("data", []):
+        if item.get("type") == bulk_type:
+            return item.get("download_uri", "")
+
+    raise ValueError(f"Bulk data type '{bulk_type}' not found")
+
+
+def fetch_bulk_data(url: str, destination: pathlib.Path) -> None:
+    """
+    Fetch bulk data from Scryfall and save as NDJSON file.
     :param url: URL to fetch from
     :param destination: File path to save data
     """
     LOGGER.info(f"Fetching bulk data from {url}...")
-    response = requests.get(url, stream=True)
+    response = requests.get(url)
     response.raise_for_status()
-    
-    dest_path = pathlib.Path(destination)
-    with dest_path.open('wb') as f:
-        # strip array brackets from stream
-        for item in ijson.items(response.raw, 'item'):
-            f.write(json.dumps(item) + b'\n')
-    
-    LOGGER.info(f"Saved bulk data to {destination}")
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    # Decompress if gzipped
+    content = response.content
+    if content[:2] == b'\x1f\x8b':
+        content = gzip.decompress(content)
+
+    # Parse JSON array and write as NDJSON
+    data = json.loads(content)
+    with destination.open('w', encoding='utf-8') as f:
+        for item in data:
+            f.write(json.dumps(item))
+            f.write('\n')
+
+    LOGGER.info(f"Saved {len(data)} items to {destination}")
 
 
-def get_scryfall_lazyframe(ndjson_path: str) -> pl.LazyFrame:
+def apply_categoricals(df: pl.DataFrame) -> pl.DataFrame:
     """
-    Load Scryfall NDJSON file into a Polars LazyFrame with schema overrides.
+    Cast string columns to categorical types using pre-defined categories.
+
+    This enables O(1) integer comparisons instead of O(n) string comparisons
+    for columns like rarity, layout, border_color, etc.
+
+    Should be called once when loading bulk data.
+    """
+    cats = categoricals.STATIC_CATEGORICALS
+    schema = df.collect_schema() if hasattr(df, 'collect_schema') else df.schema
+
+    casts = []
+    for col_name in cats.keys():
+        if col_name in schema:
+            col_type = schema[col_name]
+            # Only cast String columns, skip List columns
+            if col_type == pl.String or col_type == pl.Utf8:
+                dtype = pl.Categorical(ordering="physical")
+                casts.append(pl.col(col_name).cast(dtype))
+
+    if casts:
+        df = df.with_columns(casts)
+
+    return df
+
+
+def get_scryfall_DataFrame(ndjson_path: str) -> pl.DataFrame:
+    """
+    Load Scryfall NDJSON file into a Polars DataFrame with schema overrides.
     :param ndjson_path: Path to NDJSON file
-    :return: Polars LazyFrame with Scryfall data
+    :return: Polars DataFrame with Scryfall data
     """
+    LOGGER.info(f"[CACHE] Loading Scryfall NDJSON file from {ndjson_path}...")
     # lock polymorphic fields to Utf8 to prevent type errors.
     schema_overrides = {
-        "power": pl.Utf8, # to handle "*", "½", etc.
-        "toughness": pl.Utf8, 
+        "power": pl.Utf8,  # to handle "*", "1/2", etc.
+        "toughness": pl.Utf8,
         "loyalty": pl.Utf8,
         "defense": pl.Utf8,
         "hand_modifier": pl.Utf8,
         "life_modifier": pl.Utf8,
-        "collector_number": pl.Utf8, # "123a"
+        "collector_number": pl.Utf8,  # "123a"
         "mtgo_id": pl.Utf8,
         "arena_id": pl.Utf8,
         "tcgplayer_id": pl.Utf8,
         "cardmarket_id": pl.Utf8,
-        "face_flavor_name": pl.Utf8, # Sparse field
+        "illustration_id": pl.Utf8,
+        "card_back_id": pl.Utf8,
     }
     
-    # infer_schema_length=None:
-    # Causes polars to create a "Union Schema" of every column in the file
-    # and then process it in one pass via rayon's parallel iterators.
-    # this solves the scryfall's Semi-Variable Schema problem lickedy-split.
-    return pl.scan_ndjson(
-        ndjson_path,
-        infer_schema_length=None, 
-        schema_overrides=schema_overrides,
-        batch_size=4096  # Larger batches = better SIMD vectorization
-    )
-    
-    # Usage in pipeline
-    # lf = get_scryfall_lazyframe("oracle-cards-latest.json")
-    
-    # Optimization Pushdown Example:
-    # Because we used scan_ndjson, this filter is pushed to the READER.
-    # The parser will skip decoding the JSON bodies of cards not in "LEA".
-    # standard_cards = lf.filter(pl.col("set") == "lea").collect()
+    try:
+        # infer_schema_length=None:
+        # Causes polars to create a "Union Schema" of every column in the file
+        # and then process it in one pass via rayon's parallel iterators.
+        # this solves the scryfall's Semi-Variable Schema problem lickedy-split.
+        lf: pl.DataFrame = pl.scan_ndjson(
+            ndjson_path,
+            infer_schema_length=None,
+            schema_overrides=schema_overrides,
+            batch_size=4096
+        )
+        # Cast categorical fields before materialization (better memory usage)
+        lf = apply_categoricals(lf)
+        
+        # Materialize
+        df = lf.collect()
+
+        LOGGER.info(f"Loaded {df.shape[0]} records from {ndjson_path}")
+        return df
+    except Exception as e:
+        LOGGER.error(f"Error loading NDJSON file {ndjson_path}: {e}")
+        raise
 
 
 def extract_foreign_data(cards: pl.LazyFrame) -> pl.LazyFrame:
     """
     Extract foreign language data from non-English cards.
     Returns grouped foreign_data ready to join to English cards.
+
+    Orders by multiverse_id to match legacy MTGJSON behavior.
     """
     foreign = (
         cards.filter(pl.col("lang") != "en")
@@ -112,17 +180,20 @@ def extract_foreign_data(cards: pl.LazyFrame) -> pl.LazyFrame:
         .with_columns(
             [
                 pl.col("lang")
-                .replace_strict(LANGUAGE_MAP, default=pl.col("lang"))
+                .replace_strict(constants.LANGUAGE_MAP, default=pl.col("lang"))
                 .alias("language"),
                 pl.col("multiverse_ids").list.first().alias("multiverse_id"),
             ]
         )
     )
     foreign_struct = (
-        foreign.select(
+        foreign
+        .sort("language")  # Sort by language before grouping
+        .select(
             [
                 "set",
                 "collector_number",
+                "multiverse_id",  # Keep for sorting within group
                 pl.struct(
                     [
                         "language",
@@ -142,79 +213,18 @@ def extract_foreign_data(cards: pl.LazyFrame) -> pl.LazyFrame:
                 ).alias("foreign_entry"),
             ]
         )
+        .sort(["set", "collector_number", "multiverse_id"])  # Sort within groups
         .group_by(["set", "collector_number"])
         .agg(pl.col("foreign_entry").alias("foreign_data"))
     )
     return foreign_struct
 
 
-def resolve_foreign_entry(
-    entry: dict[str, Any],
-    card_name: str,
-) -> dict[str, Any]:
-    """
-    Resolve a foreign data entry for a specific card face.
-
-    Matches original parse_foreign() logic:
-    - For single-faced cards: return as-is
-    - For multi-faced cards:
-      - Set name to joined printed names
-      - Set face_name based on which face matches card_name
-
-    :param entry: Raw foreign entry from cache
-    :param card_name: The face_name or name of the card being built
-    :return: Resolved foreign entry with correct name/face_name
-    """
-    card_faces = entry.get("card_faces")
-
-    # Single-faced card - no special handling needed
-    if not card_faces or len(card_faces) == 0:
-        # Remove card_faces from output, add empty face_name
-        result = {
-            k: v for k, v in entry.items() if k not in ("card_faces", "scryfall_name")
-        }
-        result["face_name"] = None
-        return result
-
-    # Multi-faced card - need to determine which face
-    scryfall_name = entry.get("scryfall_name", "")
-
-    # Determine face index by matching card_name to first part of scryfall name
-    # (card_name.lower() == foreign_card["name"].split("/")[0].strip().lower())
-    first_face_name = scryfall_name.split("/")[0].strip().lower()
-    face_idx = 0 if card_name.lower() == first_face_name else 1
-
-    # Clamp to available faces
-    face_idx = min(face_idx, len(card_faces) - 1)
-
-    # Build joined name from all faces' printed names
-    joined_name = " // ".join(
-        face.get("printed_name") or face.get("name", "") for face in card_faces
-    )
-
-    # Get face_name from the specific face
-    target_face = card_faces[face_idx]
-    face_name = target_face.get("printed_name") or target_face.get("name")
-
-    # Build resolved entry
-    result = {
-        "language": entry.get("language"),
-        "scryfall_id": entry.get("scryfall_id"),
-        "multiverse_id": entry.get("multiverse_id"),
-        "name": joined_name,
-        "face_name": face_name,
-        "text": target_face.get("printed_text") or entry.get("text"),
-        "type": target_face.get("printed_type_line") or entry.get("type"),
-        "flavor_text": target_face.get("flavor_text") or entry.get("flavor_text"),
-    }
-
-    return result
-
 
 @cache
 def load_json(filename: str) -> Any:
     """Load a JSON resource from the resources directory."""
-    json.loads((constants.RESOURCE_PATH / filename).read_text())
+    return json.loads((constants.RESOURCE_PATH / filename).read_text())
 
 
 class GlobalCache:
@@ -231,22 +241,34 @@ class GlobalCache:
     def __init__(self) -> None:
         if getattr(self, "_initialized", False):
             return
+        LOGGER.info("[CACHE] Initializing...")
 
         # Bulk data files
         self.cards_df: pl.DataFrame | None = None
-        self.rulings_df: pl.DataFrame | None = None
+        self.raw_rulings_df: pl.DataFrame | None = None
 
+        # Providers (lazy loaded)
+        self._scryfall: ScryfallProvider | None = None
+        self._card_kingdom: CardKingdomProviderV2 | None = None
+        self._cardmarket: CardMarketProvider | None = None
+        self._gatherer: GathererProvider | None = None
+        self._multiverse: MultiverseBridgeProvider | None = None
+        self._github: GitHubDataProvider | None = None
+        self._edhrec: EdhrecSaltProvider | None = None
+        self._whats_in_standard: WhatsInStandardProvider | None = None
+        
         # Pre-computed aggregations
-        self.printings_map: pl.DataFrame | None = None
-        self.rulings_map: pl.DataFrame | None = None
-        self.foreign_data_map: pl.DataFrame | None = None
+        self.printings_df: pl.DataFrame | None = None
+        self.rulings_df: pl.DataFrame | None = None
+        self.foreign_data_df: pl.DataFrame | None = None
         self.card_kingdom_df: pl.DataFrame | None = None
         self.multiverse_bridge_df: pl.DataFrame | None = None
         self.uuid_cache_df: pl.DataFrame | None = None
-        self.cardhoarder_map: dict[str, dict[str, float | None]] = {}
+        self.salt_df: pl.DataFrame | None = None
+        self.cardhoarder_df: dict[str, dict[str, float | None]] = {}
 
         # Metadata
-        self.sets_map: dict[str, dict[str, Any]] = {}
+        self.sets_df: pl.DataFrame | None = None
 
         # Resource overrides
         self.manual_overrides: dict[str, dict[str, Any]] = {}
@@ -256,11 +278,6 @@ class GlobalCache:
         self.wc_signatures: dict[str, dict[str, str]] = {}
         self.mkm_translations: dict[str, dict[str, str]] = {}
         self.base_set_sizes: dict[str, int] = {}
-
-        # Providers (lazy loaded)
-        self._scryfall: ScryfallProvider | None = None
-        self._card_kingdom: CardKingdomProvider | None = None
-        self._cardmarket: CardMarketProvider | None = None
 
         # Provider data caches
         self.gatherer_map: dict[str, list[dict[str, str]]] = {}
@@ -280,10 +297,10 @@ class GlobalCache:
         return self._scryfall
 
     @property
-    def card_kingdom(self) -> CardKingdomProvider:
+    def card_kingdom(self) -> CardKingdomProviderV2:
         """Get or create the Card Kingdom provider instance."""
         if self._card_kingdom is None:
-            self._card_kingdom = CardKingdomProvider()
+            self._card_kingdom = CardKingdomProviderV2()
         return self._card_kingdom
 
     @property
@@ -292,6 +309,40 @@ class GlobalCache:
         if self._cardmarket is None:
             self._cardmarket = CardMarketProvider()
         return self._cardmarket
+    
+    @property
+    def multiverse(self) -> MultiverseBridgeProvider:
+        """Get or create the Multiverse Bridge provider instance."""
+        if self._multiverse is None:
+            self._multiverse = MultiverseBridgeProvider()
+        return self._multiverse
+    
+    @property
+    def gatherer(self) -> GathererProvider:
+        """Get or create the Gatherer provider instance."""
+        if self._gatherer is None:
+            self._gatherer = GathererProvider()
+        return self._gatherer
+    
+    @property
+    def github(self) -> GitHubDataProvider:
+        """Get or create the GitHub Data provider instance."""
+        if self._github is None:
+            self._github = GitHubDataProvider()
+        return self._github
+    
+    @property
+    def whats_in_standard(self) -> WhatsInStandardProvider:
+        if self._whats_in_standard is None:
+            self._whats_in_standard = WhatsInStandardProvider()
+        return self._whats_in_standard
+
+    @property
+    def edhrec(self) -> EdhrecSaltProvider:
+        """Get or create the EDHREC provider instance."""
+        if self._edhrec is None:
+            self._edhrec = EdhrecSaltProvider()
+        return self._edhrec
 
     def load_all(self, force_refresh: bool = False) -> "GlobalCache":
         """Load all provider data and pre-compute aggregations."""
@@ -299,49 +350,64 @@ class GlobalCache:
 
         self._load_sets_metadata()
 
-        with ThreadPoolExecutor(max_workers=6) as executor:
-            bulk_cards_future = executor.submit(
-                self.scryfall.get_bulk_cards, force_refresh
-            )
-            bulk_rulings_future = executor.submit(
-                self.scryfall.get_bulk_rulings, force_refresh
-            )
-            ck_future = executor.submit(
-                self.card_kingdom.get_scryfall_translation_table
-            )
+        # Load bulk data files
+        cards_cache = CACHE_DIR / "all_cards.ndjson"
+        rulings_cache = CACHE_DIR / "rulings.ndjson"
+        oracle_cache = CACHE_DIR / "default_cards.ndjson"
+        
+        if force_refresh or not cards_cache.exists() or cards_cache.stat().st_size == 0:
+            fetch_bulk_data(get_bulk_data_download_url("all_cards"), cards_cache)
+        if force_refresh or not rulings_cache.exists() or rulings_cache.stat().st_size == 0:
+            fetch_bulk_data(get_bulk_data_download_url("rulings"), rulings_cache)
+        if force_refresh or not oracle_cache.exists() or oracle_cache.stat().st_size == 0:
+            fetch_bulk_data(get_bulk_data_download_url("default_cards"), oracle_cache)
+            
+        self.foreign_data_df = extract_foreign_data(
+            get_scryfall_DataFrame(str(cards_cache)).lazy()
+        ).collect()
+        
+        self.cards_df = get_scryfall_DataFrame(str(cards_cache)).with_columns(
+            pl.col("set").str.to_uppercase()
+        )
+        self.oracle_df = get_scryfall_DataFrame(str(oracle_cache))
+        self.raw_rulings_df = pl.read_ndjson(str(rulings_cache))
+
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            ck_future = executor.submit(self._load_card_kingdom_v2)
             mb_cards_future = executor.submit(self._load_multiverse_bridge_cards)
             mb_sets_future = executor.submit(self._load_multiverse_bridge_sets)
             gatherer_future = executor.submit(self._load_gatherer_data)
-
-            # might as well load overrides while waiting
-            self._load_overrides()
-
-            # Collect results
-            self.cards_df = bulk_cards_future.result()
-            self.rulings_df = bulk_rulings_future.result()
-            self.card_kingdom_map = ck_future.result()
-            self.multiverse_bridge_cards = mb_cards_future.result()
-            self.multiverse_bridge_sets = mb_sets_future.result()
-            self.gatherer_map = gatherer_future.result()
-
+            github_future = executor.submit(self._load_github_data)
+            edhrec_future = executor.submit(self._load_salt_data)
+            self.card_kingdom_df = ck_future.result(timeout=180)
+            self.multiverse_bridge_cards = mb_cards_future.result(timeout=120)  
+            self.multiverse_bridge_sets = mb_sets_future.result(timeout=120)
+            self.gatherer_map = gatherer_future.result(timeout=120)
+            self.salt_df = edhrec_future.result(timeout=120)
+            github_future.result(timeout=120)
+        
         self._compute_aggregations()
         self._load_uuid_cache()
-
-        LOGGER.info("Global cache data loaded")
+        self._load_overrides()
+        
         return self
 
     def _load_sets_metadata(self) -> None:
         """Load set metadata from Scryfall."""
         LOGGER.info("Loading sets metadata...")
+         
         sets_response = self.scryfall.download(self.scryfall.ALL_SETS_URL)
+        
         if sets_response.get("object") == "error":
             LOGGER.error(f"Failed to load sets: {sets_response}")
-            self.sets_map = {}
+            self.sets_df = pl.DataFrame()
             return
-
         sets_data = sets_response.get("data", [])
-        self.sets_map = {s["code"].upper(): s for s in sets_data}
-        LOGGER.info(f"Loaded {len(self.sets_map)} sets into cache")
+        
+        for s in sets_data:
+            s["code"] = s["code"].upper()
+        
+        self.sets_df = pl.DataFrame(sets_data)
 
     def _load_overrides(self) -> None:
         """Load all resource overrides."""
@@ -357,46 +423,67 @@ class GlobalCache:
 
     def _load_multiverse_bridge_cards(self) -> dict[str, list[dict[str, Any]]]:
         """Load Multiverse Bridge Rosetta Stone cards."""
-        LOGGER.info("Loading Multiverse Bridge Rosetta Stone cards...")
-        from mtgjson5.providers import MultiverseBridgeProvider
-
-        return MultiverseBridgeProvider().get_rosetta_stone_cards()
+        LOGGER.info("[CACHE]Loading Multiverse Bridge Rosetta Stone cards...")
+        return getattr(self._multiverse, "rosetta_stone_cards", {})
 
     def _load_multiverse_bridge_sets(self) -> dict[str, int]:
         """Load Multiverse Bridge Rosetta Stone sets."""
-        LOGGER.info("Loading Multiverse Bridge Rosetta Stone sets...")
-        from mtgjson5.providers import MultiverseBridgeProvider
+        LOGGER.info("[CACHE]Loading Multiverse Bridge Rosetta Stone sets...")
+        return getattr(self._multiverse, "rosetta_stone_sets", {})
 
-        return MultiverseBridgeProvider().get_rosetta_stone_sets()
+    def _load_card_kingdom_v2(self) -> pl.DataFrame:
+        """Load Card Kingdom data using v2 provider with parquet caching."""
+        LOGGER.info("[CACHE]Loading Card Kingdom data...")
+        cache_path = CACHE_DIR / "ck_prices.parquet"
+
+        if cache_path.exists():
+            # Check if cache is less than 24 hours old
+            import time
+            cache_age_hours = (time.time() - cache_path.stat().st_mtime) / 3600
+            if cache_age_hours < 24:
+                LOGGER.info(f"Loading CK data from cache ({cache_age_hours:.1f}h old)")
+                self.card_kingdom.load(cache_path)
+                return self.card_kingdom.get_join_data()
+            else:
+                LOGGER.info(f"CK cache expired ({cache_age_hours:.1f}h old), refreshing...")
+
+        self.card_kingdom.download()
+        self.card_kingdom.save(cache_path)
+        return self.card_kingdom.get_join_data()
+
+    def _load_github_data(self) -> None:
+        """Load GitHub data (sealed products, boosters, card map)."""
+        LOGGER.info("[CACHE]Loading GitHub data...")
+        self.github.load(["card_map", "sealed", "boosters"])
 
     def _load_gatherer_data(self) -> dict[str, list[dict[str, str]]]:
         """Load Gatherer data for cards."""
-        LOGGER.info("Loading Gatherer data...")
-        from mtgjson5.providers import GathererProvider
-
-        provider = GathererProvider()
-        return getattr(provider, "_cache", {})
+        LOGGER.info("[CACHE]Loading Gatherer data...")
+        return getattr(self.gatherer, "_multiverse_id_to_data", {})
+    
+    def _load_salt_data(self) -> pl.DataFrame:
+        """Load EDHREC salt data for cards."""
+        LOGGER.info("[CACHE]Loading EDHREC salt data...")
+        return self.edhrec.get_data_frame()
 
     def _compute_aggregations(self) -> None:
         """Build pre-computed maps from bulk data."""
         if self.cards_df is None:
             raise RuntimeError("Must load bulk data first")
-
-        LOGGER.info("Computing pre-aggregated maps...")
-
-        # Printings: oracle_id -> list of set codes
-        self.printings_map = (
+        LOGGER.info("[CACHE]Computing pre-aggregated maps...")
+        # Printings: oracle_id -> list of set codes (all languages, not just English)
+        # Some sets like RFIN are Japanese-only promos
+        self.printings_df = (
             self.cards_df.lazy()
-            .filter(pl.col("lang") == "en")
             .group_by("oracle_id")
             .agg(pl.col("set").str.to_uppercase().unique().sort().alias("printings"))
             .collect()
         )
 
         # Rulings: oracle_id -> list of {date, text}
-        if self.rulings_df is not None:
-            self.rulings_map = (
-                self.rulings_df.lazy()
+        if self.raw_rulings_df is not None:
+            self.rulings_df = (
+                self.raw_rulings_df.lazy()
                 .sort(["published_at", "comment"])
                 .group_by("oracle_id")
                 .agg(
@@ -410,17 +497,33 @@ class GlobalCache:
                 .collect()
             )
 
-        # Foreign data: (set, collector_number) -> list of foreign entries
-        self.foreign_data_map = extract_foreign_data(self.cards_df.lazy()).collect()
-
     def _load_uuid_cache(self) -> None:
-        """Load legacy UUID mappings if available."""
+        """Load legacy UUID mappings if available.
+
+        The cache file is a JSON object: {scryfall_id: {side: mtgjson_uuid}}
+        We flatten this to a DataFrame with columns [scryfall_id, side, cached_uuid]
+        """
+        LOGGER.info("[CACHE]Loading legacy UUID cache...")
         cache_path = constants.RESOURCE_PATH / "legacy_mtgjson_v5_uuid_mapping.json"
         if not cache_path.exists():
             LOGGER.info("No UUID cache found")
             return
         try:
-            self.uuid_cache_df = pl.read_json(cache_path)
+            import json
+            with open(cache_path, "r") as f:
+                raw_cache = json.load(f)
+
+            # Flatten nested structure to rows
+            rows = []
+            for scryfall_id, sides_dict in raw_cache.items():
+                for side, cached_uuid in sides_dict.items():
+                    rows.append({
+                        "scryfall_id": scryfall_id,
+                        "side": side,
+                        "cached_uuid": cached_uuid,
+                    })
+
+            self.uuid_cache_df = pl.DataFrame(rows)
             LOGGER.info(f"Loaded UUID cache with {len(self.uuid_cache_df)} entries")
         except Exception as e:
             LOGGER.warning(f"Failed to load UUID cache: {e}")
@@ -428,18 +531,22 @@ class GlobalCache:
 
     def get_set(self, set_code: str) -> dict[str, Any] | None:
         """Get set metadata by set code."""
-        return self.sets_map.get(set_code.upper())
+        if self.sets_df is None or self.sets_df.is_empty():
+            return None
+        result = self.sets_df.filter(pl.col("code") == set_code.upper())
+        if result.is_empty():
+            return None
+        return result.row(0, named=True)
 
     def get_foreign_data(
         self, set_code: str, collector_number: str
     ) -> list[dict[str, Any]]:
         """Get foreign language data for a specific card."""
-        if self.foreign_data_map is None:
+        if self.foreign_data_df is None:
             return []
 
-        # Note: Scryfall stores set codes in lowercase
-        result = self.foreign_data_map.filter(
-            (pl.col("set") == set_code.lower())
+        result = self.foreign_data_df.filter(
+            (pl.col("set") == set_code)
             & (pl.col("collector_number") == collector_number)
         )
 
@@ -468,6 +575,7 @@ class GlobalCache:
             cls()
         assert cls._instance is not None
         return cls._instance
+    
 
 
 GLOBAL_CACHE = GlobalCache.get_instance()

@@ -5,7 +5,9 @@ MTGJSON output generator to write out contents to file & accessory methods
 import json
 import logging
 import pathlib
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+import polars as pl
 
 from . import constants
 from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject
@@ -24,7 +26,7 @@ from .compiled_classes import (
 )
 from .mtgjson_config import MtgjsonConfig
 from .price_builder import PriceBuilder
-from .providers import GitHubDecksProvider
+from .providers.github import GitHubDecksProvider
 from .utils import get_file_hash
 
 LOGGER = logging.getLogger(__name__)
@@ -434,3 +436,70 @@ def write_to_file(
             ensure_ascii=False,
             default=lambda o: o.to_json(),
         )
+
+
+def write_set_from_dataframe(
+    file_name: str,
+    cards_df: pl.DataFrame,
+    tokens_df: Optional[pl.DataFrame],
+    set_metadata: Dict[str, Any],
+    pretty_print: bool = False,
+) -> None:
+    """
+    Write a set file directly from DataFrames using Polars native JSON serialization.
+
+    This is the vectorized alternative to write_to_file for set outputs.
+    Streams the JSON structure to avoid loading everything into memory.
+
+    :param file_name: Output file name (without .json extension)
+    :param cards_df: DataFrame containing card data
+    :param tokens_df: DataFrame containing token data (or None)
+    :param set_metadata: Set-level metadata dict (code, name, releaseDate, etc.)
+    :param pretty_print: Whether to format JSON with indentation
+    """
+    import io
+
+    write_file = MtgjsonConfig().output_path.joinpath(f"{file_name}.json")
+    write_file.parent.mkdir(parents=True, exist_ok=True)
+
+    indent = 4 if pretty_print else None
+    sep = ",\n" if pretty_print else ","
+
+    with write_file.open("w", encoding="utf-8") as file:
+        # Write opening and meta
+        file.write('{"meta": ')
+        json.dump(MtgjsonMetaObject().to_json(), file, indent=indent, ensure_ascii=False)
+        file.write(f'{sep}"data": {{')
+
+        # Write set metadata fields (excluding cards/tokens)
+        first = True
+        for key, value in set_metadata.items():
+            if key in ("cards", "tokens"):
+                continue
+            if not first:
+                file.write(sep)
+            first = False
+            file.write(f'"{key}": ')
+            json.dump(value, file, indent=indent, ensure_ascii=False)
+
+        # Write cards array using Polars native JSON
+        file.write(f'{sep}"cards": ')
+        if cards_df is not None and len(cards_df) > 0:
+            # Use Polars write_json to buffer, then write
+            buffer = io.BytesIO()
+            cards_df.write_json(buffer, row_oriented=True)
+            file.write(buffer.getvalue().decode("utf-8"))
+        else:
+            file.write("[]")
+
+        # Write tokens array using Polars native JSON
+        file.write(f'{sep}"tokens": ')
+        if tokens_df is not None and len(tokens_df) > 0:
+            buffer = io.BytesIO()
+            tokens_df.write_json(buffer, row_oriented=True)
+            file.write(buffer.getvalue().decode("utf-8"))
+        else:
+            file.write("[]")
+
+        # Close data and root objects
+        file.write("}}")
