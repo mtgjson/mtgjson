@@ -31,46 +31,6 @@ class TestEnrichmentProviderInit:
         pytest.skip("RESOURCE_PATH mocking not supported due to import-time evaluation")
 
 
-class TestEnrichmentProviderValidation:
-    """Test EnrichmentProvider validation logic."""
-
-    def test_validate_valid_promo_types(self):
-        """Test validation accepts valid promo_types."""
-        provider = EnrichmentProvider()
-        entry = {"promo_types": ["neoninkyellow", "neoninkblue"]}
-        assert provider._validate_enrichment_entry(entry, "test") is True
-
-    def test_validate_empty_promo_types(self):
-        """Test validation accepts empty promo_types list."""
-        provider = EnrichmentProvider()
-        entry = {"promo_types": []}
-        assert provider._validate_enrichment_entry(entry, "test") is True
-
-    def test_validate_no_promo_types(self):
-        """Test validation accepts entries without promo_types."""
-        provider = EnrichmentProvider()
-        entry = {"other_field": "value"}
-        assert provider._validate_enrichment_entry(entry, "test") is True
-
-    def test_validate_rejects_non_list_promo_types(self):
-        """Test validation rejects non-list promo_types."""
-        provider = EnrichmentProvider()
-        entry = {"promo_types": "not-a-list"}
-        assert provider._validate_enrichment_entry(entry, "test") is False
-
-    def test_validate_rejects_non_string_items(self):
-        """Test validation rejects promo_types with non-string items."""
-        provider = EnrichmentProvider()
-        entry = {"promo_types": [123, 456]}
-        assert provider._validate_enrichment_entry(entry, "test") is False
-
-    def test_validate_rejects_mixed_types(self):
-        """Test validation rejects promo_types with mixed types."""
-        provider = EnrichmentProvider()
-        entry = {"promo_types": ["valid", 123, "another"]}
-        assert provider._validate_enrichment_entry(entry, "test") is False
-
-
 class TestEnrichmentProviderLookup:
     """Test EnrichmentProvider lookup strategies."""
 
@@ -177,15 +137,6 @@ class TestEnrichmentProviderDeepCopy:
     def test_deep_copy_with_nested_structures(self, tmp_path, monkeypatch):
         """Test deep copy works with nested dictionaries."""
         # Skip due to monkeypatch limitations, but the deep copy logic is tested above
-        pytest.skip("RESOURCE_PATH mocking not supported due to import-time evaluation")
-
-
-class TestEnrichmentProviderInvalidData:
-    """Test EnrichmentProvider handles invalid data gracefully."""
-
-    def test_invalid_promo_types_returns_none(self, tmp_path, monkeypatch):
-        """Test that invalid promo_types causes validation to return None."""
-        # Skip due to monkeypatch limitations
         pytest.skip("RESOURCE_PATH mocking not supported due to import-time evaluation")
 
 

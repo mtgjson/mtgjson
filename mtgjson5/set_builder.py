@@ -327,7 +327,7 @@ def add_enrichment_data(mtgjson_set: MtgjsonSetObject) -> None:
     """
     enr_provider = EnrichmentProvider()
     set_enrichment = enr_provider.get_enrichment_for_set(mtgjson_set.code)
-    
+
     if not set_enrichment:
         LOGGER.info(f"No enrichment data found for {mtgjson_set.code}")
         return
@@ -336,7 +336,9 @@ def add_enrichment_data(mtgjson_set: MtgjsonSetObject) -> None:
     enriched_count = 0
 
     for mtgjson_card in mtgjson_set.cards:
-        enrichment = enr_provider.get_enrichment_from_set_data(set_enrichment, mtgjson_card)
+        enrichment = enr_provider.get_enrichment_from_set_data(
+            set_enrichment, mtgjson_card
+        )
         if not enrichment:
             continue
 
@@ -362,9 +364,9 @@ def add_enrichment_data(mtgjson_set: MtgjsonSetObject) -> None:
 
             # If both are dicts, shallow-merge (enrichment overwrites keys if collision)
             if isinstance(existing, dict) and isinstance(val, dict):
-                merged = existing.copy()
-                merged.update(val)
-                setattr(mtgjson_card, key, merged)
+                merged_dict: Dict[str, Any] = existing.copy()
+                merged_dict.update(val)
+                setattr(mtgjson_card, key, merged_dict)
                 LOGGER.debug(
                     f"Enriched {mtgjson_card.set_code} {mtgjson_card.number} {mtgjson_card.name}: "
                     f"merged dict {key}"
