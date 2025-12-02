@@ -164,17 +164,18 @@ def _ascii_name_expr(expr: pl.Expr) -> pl.Expr:
 
 def _url_hash_batch(series: pl.Series) -> pl.Series:
     """Batch SHA256 hash generation for purchase URLs."""
+    import hashlib
     arr = series.to_numpy()
     n = len(arr)
     results = np.empty(n, dtype=object)
-    
+
     for i in range(n):
         val = arr[i]
         if val is None:
             results[i] = None
         else:
-            results[i] = plh.CryptographicHashingNameSpace.sha256(val.encode()).hexdigest()[:16]
-    
+            results[i] = hashlib.sha256(val.encode("utf-8")).hexdigest()[:16]
+
     return pl.Series(results, dtype=pl.String)
 
 
@@ -755,15 +756,9 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
             mtgArenaId=pl.col("arena_id").cast(pl.String),
             mtgoId=pl.col("mtgo_id").cast(pl.String),
             mtgoFoilId=pl.col("mtgo_foil_id").cast(pl.String),
-            multiverseId=pl.when(
-                pl.col("multiverse_ids").list.len() > pl.col("face_id").fill_null(0)
-            ).then(
-                pl.col("multiverse_ids")
-                    .list.get(pl.col("face_id").fill_null(0))
-                    .cast(pl.String)
-            ).otherwise(
-                pl.col("multiverse_ids").list.first().cast(pl.String)
-            ),
+            multiverseId=pl.col("multiverse_ids")
+                .list.get(pl.col("face_id").fill_null(0), null_on_oob=True)
+                .cast(pl.String),
 
             tcgplayerProductId=pl.col("tcgplayer_id").cast(pl.String),
             tcgplayerEtchedProductId=pl.col("tcgplayer_etched_id").cast(pl.String),
