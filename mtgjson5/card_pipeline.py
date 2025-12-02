@@ -2840,15 +2840,15 @@ def assemble_json_outputs(
         cards_df = pl.read_parquet(cards_path / "*.parquet")
         cards = cards_df.to_dicts()
 
-        # Read tokens for this set
+        # Read tokens for this set from the token set partition
+        # Token set code comes from metadata (e.g., TMOM for MOM)
         tokens = []
-        tokens_path = token_parquet_dir / f"setCode=T{set_code}"
+        token_set_code = meta_row.get("tokenSetCode", f"T{set_code}")
+        tokens_path = parquet_dir / f"setCode={token_set_code}"
         if tokens_path.exists():
             tokens_df = pl.read_parquet(tokens_path / "*.parquet")
             tokens = tokens_df.to_dicts()
-
-        # Get set metadata
-        meta_row = set_meta.get(set_code, {})
+            LOGGER.info(f"  Found {len(tokens)} tokens from {token_set_code}")
 
         # Get sealed products for this set
         set_sealed = sealed_products_df.filter(
