@@ -2,11 +2,11 @@
 Global cache for MTGJSON provider data and pre-computed aggregations.
 """
 
-from dataclasses import asdict
 import json
 import pathlib
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import asdict
 from typing import Optional
 
 import polars as pl
@@ -14,22 +14,22 @@ import polars as pl
 from mtgjson5 import constants
 from mtgjson5.categoricals import DynamicCategoricals, discover_categoricals
 from mtgjson5.providers import (
+    CardHoarderProvider,
+    CardKingdomProviderV2,
     CardMarketProvider,
-    ScryfallProvider,
-    MultiverseBridgeProvider,
+    EdhrecSaltProvider,
     GathererProvider,
     GitHubDataProvider,
-    CardKingdomProviderV2,
-    WhatsInStandardProvider,
-    EdhrecSaltProvider,
-    CardHoarderProvider,
     ManapoolPricesProvider,
     MtgWikiProviderSecretLair,
+    MultiverseBridgeProvider,
+    ScryfallProvider,
+    ScryfallProviderOrientationDetector,
     TCGPlayerProvider,
-    ZachsScryfallClassIsTooCoolForElmo
+    WhatsInStandardProvider,
+    ZachsScryfallClassIsTooCoolForElmo,
 )
 from mtgjson5.utils import LOGGER
-
 
 
 def load_resource_json(filename: str) -> dict | list:
@@ -64,13 +64,13 @@ class GlobalCache:
     def __init__(self) -> None:
         if getattr(self, "_initialized", False):
             return
-        
+
         self.CACHE_DIR: pathlib.Path = constants.CACHE_PATH
         self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
         # Dynamic categoricals
         self.categoricals: DynamicCategoricals = None
-        
+
         # Bulk data
         self.cards_df: pl.LazyFrame | None = None
         self.raw_rulings_df: pl.LazyFrame | None = None
@@ -81,7 +81,7 @@ class GlobalCache:
         self.rulings_df: pl.DataFrame | None = None
         self.foreign_data_df: pl.DataFrame | None = None
         self.uuid_cache_df: pl.DataFrame | None = None
-        
+
         # Provider DataFrames
         self.card_kingdom_df: pl.DataFrame | None = None
         self.mcm_lookup_df: pl.DataFrame | None = None
@@ -89,7 +89,8 @@ class GlobalCache:
         self.spellbook_df: pl.DataFrame | None = None
         self.meld_lookup_df: pl.DataFrame | None = None
         self.sld_subsets_df: pl.DataFrame | None = None
-        
+        self.orientation_df: pl.DataFrame | None = None
+
         # Raw resource data
         self.duel_deck_sides: dict = {}
         self.meld_triplets: dict = {}
@@ -113,7 +114,8 @@ class GlobalCache:
         self._cardhoarder: CardHoarderProvider | None = None
         self._tcgplayer: TCGPlayerProvider | None = None
         self._secretlair: MtgWikiProviderSecretLair | None = None
-        self._toocool: ZachsScryfallClassIsTooCoolForElmo | None = None
+        self._orientations: ScryfallProviderOrientationDetector | None = None
+        self._too_cool: ZachsScryfallClassIsTooCoolForElmo | None = None
 
         self._initialized = True
         self._loaded = False
@@ -125,7 +127,7 @@ class GlobalCache:
     def load_all(self, force_refresh: bool = False) -> "GlobalCache":
         """
         Load all data sources and pre-compute aggregations.
-        
+
         Call this once at startup before building any sets.
         """
         if self._loaded and not force_refresh:
@@ -154,8 +156,7 @@ class GlobalCache:
             logger=LOGGER,
         )
         self._loaded = True
-        
-        
+
         return self
 
     # =========================================================================
@@ -182,7 +183,9 @@ class GlobalCache:
 
         if needs_download:
             LOGGER.info("[1/5] Downloading bulk data...")
-            self.too_cool.download_bulk_files_sync(self.CACHE_DIR, ["all_cards", "rulings"], force_refresh)
+            self.too_cool.download_bulk_files_sync(
+                self.CACHE_DIR, ["all_cards", "rulings"], force_refresh
+            )
         else:
             LOGGER.info("[1/5] Using cached bulk data")
 
@@ -200,8 +203,12 @@ class GlobalCache:
         # Columns that may be numeric in some records but should be strings
         # (e.g., power/toughness can be "*", "1+*", etc.)
         string_cast_columns = [
-            "power", "toughness", "loyalty", "defense",
-            "hand_modifier", "life_modifier"
+            "power",
+            "toughness",
+            "loyalty",
+            "defense",
+            "hand_modifier",
+            "life_modifier",
         ]
 
         # Scan without schema overrides first (avoid errors on missing columns)
@@ -221,7 +228,9 @@ class GlobalCache:
 
         if cast_exprs:
             self.cards_df = self.cards_df.with_columns(cast_exprs)
-            LOGGER.info(f"  Cast {len(cast_exprs)} columns to Utf8: {[c for c in string_cast_columns if c in schema]}")
+            LOGGER.info(
+                f"  Cast {len(cast_exprs)} columns to Utf8: {[c for c in string_cast_columns if c in schema]}"
+            )
 
         # Add missing optional columns with null defaults
         # These columns may not exist in older Scryfall data or may be nested in card_faces
@@ -235,7 +244,9 @@ class GlobalCache:
 
         if missing_cols:
             self.cards_df = self.cards_df.with_columns(missing_cols)
-            LOGGER.info(f"  Added {len(missing_cols)} missing optional columns: {[c for c in optional_columns.keys() if c not in schema]}")
+            LOGGER.info(
+                f"  Added {len(missing_cols)} missing optional columns: {[c for c in optional_columns.keys() if c not in schema]}"
+            )
 
         self.raw_rulings_df = pl.scan_ndjson(rulings_path, infer_schema_length=1000)
         LOGGER.info("  Loaded bulk data as LazyFrames")
@@ -250,7 +261,9 @@ class GlobalCache:
 
         self.duel_deck_sides = load_resource_json("duel_deck_sides.json")
         self.meld_data = load_resource_json("meld_triplets.json")
-        self.world_championship_signatures = load_resource_json("world_championship_signatures.json")
+        self.world_championship_signatures = load_resource_json(
+            "world_championship_signatures.json"
+        )
         self.manual_overrides = load_resource_json("manual_overrides.json")
 
         # UUID cache -> DataFrame
@@ -280,11 +293,12 @@ class GlobalCache:
         LOGGER.info("[4/5] Loading provider data (parallel)...")
 
         # Load sets first (fast, ~0.3s) - needed by MCM loader
-        self._load_sets_metadata()
+
         LOGGER.info("  Loaded sets")
 
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = {
+                executor.submit(self._load_orientations): "orientations",
                 executor.submit(self._load_card_kingdom): "card_kingdom",
                 executor.submit(self._load_edhrec_salt): "edhrec",
                 executor.submit(self._load_multiverse_bridge): "multiverse_bridge",
@@ -362,7 +376,9 @@ class GlobalCache:
                 self.multiverse_bridge_sets = json.loads(f.read())
             return
 
-        self.multiverse_bridge_cards = getattr(self.multiverse, "rosetta_stone_cards", {})
+        self.multiverse_bridge_cards = getattr(
+            self.multiverse, "rosetta_stone_cards", {}
+        )
         self.multiverse_bridge_sets = getattr(self.multiverse, "rosetta_stone_sets", {})
 
         with cards_cache.open("w", encoding="utf-8") as f:
@@ -404,10 +420,16 @@ class GlobalCache:
         decks_cache = self.CACHE_DIR / "github_decks.parquet"
         booster_cache = self.CACHE_DIR / "github_booster.parquet"
 
-        all_cached = all(_cache_fresh(p) for p in [
-            card_to_products_cache, sealed_products_cache, sealed_contents_cache,
-            decks_cache, booster_cache
-        ])
+        all_cached = all(
+            _cache_fresh(p)
+            for p in [
+                card_to_products_cache,
+                sealed_products_cache,
+                sealed_contents_cache,
+                decks_cache,
+                booster_cache,
+            ]
+        )
 
         if all_cached:
             self.github._card_to_products_df = pl.read_parquet(card_to_products_cache)
@@ -429,6 +451,26 @@ class GlobalCache:
             self.github._decks_df.write_parquet(decks_cache)
         if self.github._booster_df is not None:
             self.github._booster_df.write_parquet(booster_cache)
+
+    def _load_orientations(self) -> None:
+        cache_path = self.CACHE_DIR / "orientations.parquet"
+        if _cache_fresh(cache_path):
+            self.orientation_df = pl.read_parquet(cache_path)
+            return
+        detector = self.ScryfallProviderOrientationDetector()
+        art_series_sets = self.sets_df.filter(
+            pl.col("name").str.contains("Art Series")
+        )["code"].to_list()
+
+        rows = []
+        for set_code in art_series_sets:
+            orientation_map = detector.get_uuid_to_orientation_map(set_code)
+            for scryfall_id, orientation in (orientation_map or {}).items():
+                rows.append({"scryfall_id": scryfall_id, "orientation": orientation})
+
+        self.orientation_df = pl.DataFrame(rows) if rows else pl.DataFrame()
+        if not self.orientation_df.is_empty():
+            self.orientation_df.write_parquet(cache_path)
 
     def _load_spellbook(self) -> None:
         """Load Alchemy spellbook data."""
@@ -453,8 +495,7 @@ class GlobalCache:
         relation_map = self.secretlair.download()
         if relation_map:
             rows = [
-                {"number": num, "subsets": [name]}
-                for num, name in relation_map.items()
+                {"number": num, "subsets": [name]} for num, name in relation_map.items()
             ]
             self.sld_subsets_df = pl.DataFrame(rows)
             self.sld_subsets_df.write_parquet(cache_path)
@@ -498,8 +539,7 @@ class GlobalCache:
 
         # Printings: oracle_id -> List[set_code]
         self.printings_df = (
-            self.cards_df
-            .select(["oracle_id", "set"])
+            self.cards_df.select(["oracle_id", "set"])
             .group_by("oracle_id")
             .agg(pl.col("set").str.to_uppercase().unique().sort().alias("printings"))
             .collect()
@@ -509,14 +549,15 @@ class GlobalCache:
         # Rulings: oracle_id -> List[{date, text}]
         if self.raw_rulings_df is not None:
             self.rulings_df = (
-                self.raw_rulings_df
-                .sort(["published_at", "comment"])
+                self.raw_rulings_df.sort(["published_at", "comment"])
                 .group_by("oracle_id")
                 .agg(
-                    pl.struct([
-                        pl.col("published_at").alias("date"),
-                        pl.col("comment").alias("text"),
-                    ]).alias("rulings")
+                    pl.struct(
+                        [
+                            pl.col("published_at").alias("date"),
+                            pl.col("comment").alias("text"),
+                        ]
+                    ).alias("rulings")
                 )
                 .collect()
             )
@@ -524,37 +565,42 @@ class GlobalCache:
 
         # Foreign data: (set, collector_number) -> List[ForeignData]
         self.foreign_data_df = (
-            self.cards_df
-            .filter(pl.col("lang") != "en")
-            .select([
-                pl.col("set").str.to_uppercase().alias("set_code"),
-                "collector_number",
-                "lang",
-                "id",
-                "name",
-                "printed_name",
-                "printed_text",
-                "printed_type_line",
-                "flavor_text",
-                "multiverse_ids",
-            ])
-            .with_columns([
-                pl.col("lang").replace_strict(
-                    constants.LANGUAGE_MAP, default=pl.col("lang")
-                ).alias("language"),
-                pl.col("multiverse_ids").list.first().alias("multiverse_id"),
-            ])
+            self.cards_df.filter(pl.col("lang") != "en")
+            .select(
+                [
+                    pl.col("set").str.to_uppercase().alias("set_code"),
+                    "collector_number",
+                    "lang",
+                    "id",
+                    "name",
+                    "printed_name",
+                    "printed_text",
+                    "printed_type_line",
+                    "flavor_text",
+                    "multiverse_ids",
+                ]
+            )
+            .with_columns(
+                [
+                    pl.col("lang")
+                    .replace_strict(constants.LANGUAGE_MAP, default=pl.col("lang"))
+                    .alias("language"),
+                    pl.col("multiverse_ids").list.first().alias("multiverse_id"),
+                ]
+            )
             .group_by(["set_code", "collector_number"])
             .agg(
-                pl.struct([
-                    "language",
-                    pl.col("id").alias("scryfall_id"),
-                    "multiverse_id",
-                    pl.coalesce("printed_name", "name").alias("name"),
-                    pl.col("printed_text").alias("text"),
-                    pl.col("printed_type_line").alias("type"),
-                    "flavor_text",
-                ]).alias("foreign_data")
+                pl.struct(
+                    [
+                        "language",
+                        pl.col("id").alias("scryfall_id"),
+                        "multiverse_id",
+                        pl.coalesce("printed_name", "name").alias("name"),
+                        pl.col("printed_text").alias("text"),
+                        pl.col("printed_type_line").alias("type"),
+                        "flavor_text",
+                    ]
+                ).alias("foreign_data")
             )
             .collect()
         )
@@ -567,7 +613,9 @@ class GlobalCache:
         with output_path.open("w", encoding="utf-8") as f:
             json.dump(asdict(self.categoricals), f, indent=2, sort_keys=True)
 
-    def load_previous_categoricals(self, path: pathlib.Path) -> DynamicCategoricals | None:
+    def load_previous_categoricals(
+        self, path: pathlib.Path
+    ) -> DynamicCategoricals | None:
         """Load previous categoricals for diff comparison."""
         if not path.exists():
             return None
@@ -656,8 +704,7 @@ class GlobalCache:
         if self._toocool is None:
             self._toocool = ZachsScryfallClassIsTooCoolForElmo()
         return self._toocool
-    
-    
+
     # =========================================================================
     # Singleton Access
     # =========================================================================
