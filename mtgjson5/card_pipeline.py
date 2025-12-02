@@ -251,26 +251,25 @@ def explode_card_faces(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     # Ensure schema consistency for columns that may have type mismatches
     # between single-face and multi-face cards in Scryfall data
-    common_cols = set(no_faces.columns) & set(exploded.columns)
+    # Skip _face_data since structs have different schemas by design
+    common_cols = (set(no_faces.columns) & set(exploded.columns)) - {"_face_data"}
     for col in common_cols:
         no_dtype = no_faces.schema[col]
         exp_dtype = exploded.schema[col]
         if no_dtype != exp_dtype:
-            LOGGER.info(f"Schema mismatch for '{col}': no_faces={no_dtype}, exploded={exp_dtype}")
-            # Always cast to the List type if one side has it
             no_is_list = str(no_dtype).startswith("List")
             exp_is_list = str(exp_dtype).startswith("List")
             if exp_is_list and not no_is_list:
-                LOGGER.info(f"  -> Casting no_faces.{col} to {exp_dtype}")
                 no_faces = no_faces.with_columns(pl.col(col).cast(exp_dtype))
             elif no_is_list and not exp_is_list:
-                LOGGER.info(f"  -> Casting exploded.{col} to {no_dtype}")
                 exploded = exploded.with_columns(pl.col(col).cast(no_dtype))
-            else:
-                # Both non-list but different types - try to unify
-                LOGGER.info(f"  -> Non-list mismatch, casting both to String")
-                no_faces = no_faces.with_columns(pl.col(col).cast(pl.String))
-                exploded = exploded.with_columns(pl.col(col).cast(pl.String))
+
+    # For _face_data, recreate in no_faces with exploded's schema (no_faces has all nulls anyway)
+    if "_face_data" in no_faces.columns and "_face_data" in exploded.columns:
+        exp_face_schema = exploded.schema["_face_data"]
+        no_faces = no_faces.drop("_face_data").with_columns(
+            pl.lit(None).cast(exp_face_schema).alias("_face_data")
+        )
 
     return pl.concat([no_faces, exploded], how="diagonal").lazy()
 
