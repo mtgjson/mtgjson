@@ -2871,23 +2871,43 @@ def assemble_json_outputs(
             "baseSetSize": len([c for c in cards if not c.get("isReprint")]),
             "cards": cards,
             "code": set_code,
-            "name": set_meta.get("name"),
-            "type": set_meta.get("set_type"),
-            "releaseDate": set_meta.get("released_at"),
-            "block": set_meta.get("block"),
-            "cards": cards_list,
-            "tokens": [],
+            "isFoilOnly": meta_row.get("isFoilOnly", False),
+            "isOnlineOnly": meta_row.get("isOnlineOnly", False),
+            "keyruneCode": meta_row.get("keyruneCode", set_code),
+            "name": meta_row.get("name", set_code),
+            "releaseDate": meta_row.get("releaseDate", ""),
+            "tcgplayerGroupId": meta_row.get("tcgplayerGroupId"),
+            "tokenSetCode": meta_row.get("tokenSetCode", f"T{set_code}"),
+            "tokens": tokens,
+            "totalSetSize": len(cards),
+            "type": meta_row.get("type", ""),
         }
 
-        set_path = output_dir / f"{set_code}.json"
-        with set_path.open("wb") as f:
-            f.write(orjson.dumps(
-                {
-                    "meta": {"date": datetime.now().strftime("%Y-%m-%d"), "version": "5.3.0"},
-                    "data": set_obj,
-                },
-                option=orjson.OPT_INDENT_2,
-            ))
-        LOGGER.info(f"Wrote {set_path} ({len(cards_list)} cards)")
+        # Add optional fields
+        if booster:
+            set_data["booster"] = booster
+        if set_sealed:
+            set_data["sealedProduct"] = set_sealed
+        if set_decks:
+            set_data["decks"] = set_decks
+        if meta_row.get("mtgoCode"):
+            set_data["mtgoCode"] = meta_row["mtgoCode"]
+        if meta_row.get("parentCode"):
+            set_data["parentCode"] = meta_row["parentCode"]
+        if meta_row.get("block"):
+            set_data["block"] = meta_row["block"]
 
-    LOGGER.info("Full vectorized build complete.")
+        # Final output
+        output = {"meta": meta_dict, "data": set_data}
+
+        # Write JSON
+        output_path = output_dir / f"{set_code}.json"
+        with output_path.open("wb") as f:
+            if pretty_print:
+                f.write(orjson.dumps(output, option=orjson.OPT_INDENT_2))
+            else:
+                f.write(orjson.dumps(output))
+
+        LOGGER.info(f"Wrote {output_path}")
+
+    LOGGER.info("JSON assembly complete.")
