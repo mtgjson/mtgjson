@@ -197,26 +197,48 @@ class GlobalCache:
         cards_path = self.CACHE_DIR / "all_cards.ndjson"
         rulings_path = self.CACHE_DIR / "rulings.ndjson"
 
-        # Schema overrides for polymorphic fields
-        schema_overrides = {
-            "power": pl.Utf8,
-            "toughness": pl.Utf8,
-            "loyalty": pl.Utf8,
-            "defense": pl.Utf8,
-            "hand_modifier": pl.Utf8,
-            "life_modifier": pl.Utf8,
-        }
+        # Columns that may be numeric in some records but should be strings
+        # (e.g., power/toughness can be "*", "1+*", etc.)
+        string_cast_columns = [
+            "power", "toughness", "loyalty", "defense",
+            "hand_modifier", "life_modifier"
+        ]
 
+        # Scan without schema overrides first (avoid errors on missing columns)
         self.cards_df = pl.scan_ndjson(
             cards_path,
-            infer_schema_length=None,
-            schema_overrides=schema_overrides,
+            infer_schema_length=10000,
         )
-        self.raw_rulings_df = pl.scan_ndjson(rulings_path)
 
-        # Quick row count for logging
-        card_count = self.cards_df.select(pl.len()).collect().item()
-        LOGGER.info(f"  Loaded {card_count:,} cards")
+        # Get the actual schema to know which columns exist
+        schema = self.cards_df.collect_schema()
+
+        # Build cast expressions only for columns that actually exist
+        cast_exprs = []
+        for col_name in string_cast_columns:
+            if col_name in schema:
+                cast_exprs.append(pl.col(col_name).cast(pl.Utf8))
+
+        if cast_exprs:
+            self.cards_df = self.cards_df.with_columns(cast_exprs)
+            LOGGER.info(f"  Cast {len(cast_exprs)} columns to Utf8: {[c for c in string_cast_columns if c in schema]}")
+
+        # Add missing optional columns with null defaults
+        # These columns may not exist in older Scryfall data or may be nested in card_faces
+        optional_columns = {
+            "defense": pl.Utf8,  # Battle cards only - may be nested in card_faces
+        }
+        missing_cols = []
+        for col_name, dtype in optional_columns.items():
+            if col_name not in schema:
+                missing_cols.append(pl.lit(None).cast(dtype).alias(col_name))
+
+        if missing_cols:
+            self.cards_df = self.cards_df.with_columns(missing_cols)
+            LOGGER.info(f"  Added {len(missing_cols)} missing optional columns: {[c for c in optional_columns.keys() if c not in schema]}")
+
+        self.raw_rulings_df = pl.scan_ndjson(rulings_path, infer_schema_length=1000)
+        LOGGER.info("  Loaded bulk data as LazyFrames")
 
     # =========================================================================
     # Step 3: Load Resources

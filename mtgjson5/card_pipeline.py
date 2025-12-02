@@ -1,13 +1,16 @@
+import json
 import pathlib
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, Optional
 import unicodedata
 import numpy as np
+import orjson
 import polars as pl
 import polars_hash as plh
 from mtgjson5 import constants
 from mtgjson5.cache_builder import GLOBAL_CACHE
+from mtgjson5.classes import MtgjsonMetaObject
 from mtgjson5.models.schema.scryfall import CardFace
 from mtgjson5.models.projections.mtgjson import ALL_CARD_FIELDS, ATOMIC_EXCLUDE, CARD_DECK_EXCLUDE, CARD_SET_EXCLUDE, TOKEN_EXCLUDE
 from mtgjson5.mtgjson_config import MtgjsonConfig
@@ -275,6 +278,66 @@ def explode_card_faces(lf: pl.LazyFrame) -> pl.LazyFrame:
     return pl.concat([no_faces, exploded], how="diagonal").lazy()
 
 
+# Token detection constants
+TOKEN_LAYOUTS = {"token", "double_faced_token", "emblem", "art_series"}
+
+
+def is_token_expr() -> pl.Expr:
+    """Expression to detect if a row is a token based on layout/type."""
+    return (
+        pl.col("layout").is_in(TOKEN_LAYOUTS)
+        | (pl.col("type_line").fill_null("") == "Dungeon")
+        | pl.col("type_line").fill_null("").str.contains("Token")
+    )
+
+
+# 1.1b: Mark tokens early in pipeline
+def mark_tokens(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Add _isToken boolean column to identify tokens.
+
+    Should be called early in the pipeline so conditional expressions can use it.
+    """
+    return lf.with_columns(
+        is_token_expr().alias("_isToken")
+    )
+
+
+# 1.1c: Conditional field expressions for tokens vs cards
+def token_conditional(
+    card_expr: pl.Expr,
+    token_expr: pl.Expr | None = None,
+    alias: str | None = None,
+) -> pl.Expr:
+    """
+    Return card_expr for cards, token_expr (or null) for tokens.
+
+    Usage:
+        .with_columns(
+            token_conditional(legalities_struct, alias="legalities"),  # null for tokens
+            token_conditional(pl.lit(None), reverse_related_expr, alias="reverseRelated"),  # only for tokens
+        )
+    """
+    expr = pl.when(~pl.col("_isToken")).then(card_expr)
+    if token_expr is not None:
+        expr = expr.otherwise(token_expr)
+    else:
+        expr = expr.otherwise(pl.lit(None))
+    if alias:
+        expr = expr.alias(alias)
+    return expr
+
+
+def card_only(expr: pl.Expr, alias: str | None = None) -> pl.Expr:
+    """Shorthand: expression only applies to cards (null for tokens)."""
+    return token_conditional(expr, None, alias)
+
+
+def token_only(expr: pl.Expr, alias: str | None = None) -> pl.Expr:
+    """Shorthand: expression only applies to tokens (null for cards)."""
+    return token_conditional(pl.lit(None), expr, alias)
+
+
 # 1.2: Add basic fields
 def add_basic_fields(lf: pl.LazyFrame, set_release_date: str = "") -> pl.LazyFrame:
     """
@@ -427,16 +490,17 @@ def parse_type_line_expr(lf: pl.LazyFrame) -> pl.LazyFrame:
 def add_mana_info(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Add mana cost, mana value, and colors.
-    
+
     Runs after add_basic_fields which renames mana_cost -> manaCost, cmc -> manaValue.
     """
     return lf.with_columns(
         # manaCost already exists from add_basic_fields rename
         pl.col("colors").fill_null([]).alias("colors"),
         pl.col("colorIdentity").fill_null([]),
-        # manaValue already exists from add_basic_fields rename
-        pl.col("manaValue").fill_null(0.0).alias("convertedManaCost"),
-        pl.col("manaValue").alias("faceManaValue"),
+        # Ensure manaValue stays as Float64
+        pl.col("manaValue").cast(pl.Float64).fill_null(0.0).alias("manaValue"),
+        pl.col("manaValue").cast(pl.Float64).fill_null(0.0).alias("convertedManaCost"),
+        pl.col("manaValue").cast(pl.Float64).fill_null(0.0).alias("faceManaValue"),
     )
     
 
@@ -1232,7 +1296,7 @@ def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
     ).drop("_all_parts")
 
 
-# 4.4: add relatedCards struct for Alchemy spellbooks
+# 4.4: add relatedCards struct combining spellbook and reverseRelated
 def add_related_cards_struct(lf: pl.LazyFrame, ctx: Optional[PipelineContext] = None) -> pl.LazyFrame:
     """
     Vectorized spellbook logic.
@@ -1246,18 +1310,28 @@ def add_related_cards_struct(lf: pl.LazyFrame, ctx: Optional[PipelineContext] = 
     spellbook_renamed = spellbook_df.rename({"spellbook": "_spellbook_list"})
     lf = lf.join(spellbook_renamed.lazy(), on="name", how="left")
 
-    # Only create the struct if the set_type is alchemy AND we found spellbook data
+    # Build relatedCards struct - include if either spellbook or reverseRelated has data
+    has_spellbook = (
+        pl.col("set_type").str.to_lowercase().str.contains("alchemy") &
+        pl.col("_spellbook_list").is_not_null() &
+        (pl.col("_spellbook_list").list.len() > 0)
+    )
+    has_reverse = (
+        pl.col("reverseRelated").is_not_null() &
+        (pl.col("reverseRelated").list.len() > 0)
+    )
+
     return lf.with_columns(
-        pl.when(
-            pl.col("set_type").str.to_lowercase().str.contains("alchemy") &
-            pl.col("_spellbook_list").is_not_null()
-        )
+        pl.when(has_spellbook | has_reverse)
         .then(
-            pl.struct(spellbook=pl.col("_spellbook_list"))
+            pl.struct(
+                spellbook=pl.col("_spellbook_list"),
+                reverseRelated=pl.col("reverseRelated"),
+            )
         )
         .otherwise(pl.lit(None))
         .alias("relatedCards")
-    ).drop("_spellbook_list")
+    ).drop(["_spellbook_list", "reverseRelated"], strict=False)
 
 
 # 4.5: add_alternative_deck_limit
@@ -2049,7 +2123,6 @@ def rename_all_the_things(lf: pl.LazyFrame, output_type: str = "card_set") -> pl
         "isAlternative": "isAlternative",
         "source_products": "sourceProducts",
         "relatedCards": "relatedCards",
-        "reverseRelated": "reverseRelated",
         "has_foil": "hasFoil",
         "has_non_foil": "hasNonFoil",
         "is_reserved": "isReserved",
@@ -2384,14 +2457,375 @@ def build_cards(
     # =========================================================================
     # PHASE 7: Final Selection & Sink
     # =========================================================================
-    LOGGER.info("Sinking to partitioned parquet...")
-    df = (
-        lf
-        .pipe(rename_all_the_things, output_type="card_set")
-        .collect()
+    LOGGER.info("Sinking to hive-partitioned parquet...")
+
+    final_lf = lf.pipe(rename_all_the_things, output_type="card_set")
+    final_lf.sink_parquet(
+        pl.PartitionByKey(
+            parquet_dir,
+            by=["setCode"],
+            include_key=True,
+        ),
+        mkdir=True,
     )
-    LOGGER.info(f"Final DataFrame shape: {df.shape} (rows, cols)")
-    LOGGER.info(f"Columns: {df.columns}")
-    parquet_dir.mkdir(parents=True, exist_ok=True)
-    df.write_parquet(parquet_dir / "cards.parquet")
-    LOGGER.info("Nice.")
+    LOGGER.info(f"Wrote hive-partitioned parquet to {parquet_dir}")
+
+
+def build_tokens(
+    set_codes: list[str] | None = None,
+    ctx: Optional[PipelineContext] = None,
+) -> None:
+    """
+    Build all tokens using the same vectorized pipeline as cards.
+
+    Tokens are filtered by layout (token, double_faced_token, emblem, art_series).
+    Output is written to _parquet_tokens/ partitioned by setCode.
+    """
+    if ctx is None:
+        if GLOBAL_CACHE.cards_df is None:
+            raise RuntimeError("Cache not loaded. Call GLOBAL_CACHE.load_all() first.")
+        ctx = PipelineContext.from_global_cache()
+
+    output_dir = MtgjsonConfig().output_path
+    token_parquet_dir = output_dir / "_parquet_tokens"
+
+    LOGGER.info("Building tokens pipeline...")
+
+    sets_lf = ctx.sets_df.lazy().select([
+        pl.col("code").str.to_uppercase().alias("set"),
+        pl.col("name").alias("set_name"),
+        pl.col("set_type"),
+        pl.col("card_count"),
+        pl.col("released_at").alias("set_release_date"),
+        pl.col("parent_set_code"),
+        pl.col("block"),
+        pl.col("block_code"),
+    ])
+
+    # Filter to tokens only
+    lf = (
+        ctx.cards_df
+        .filter(
+            (pl.col("lang") == "en") &
+            pl.col("layout").is_in(TOKEN_LAYOUTS)
+        )
+        .with_columns(pl.col("set").str.to_uppercase())
+        .join(sets_lf, on="set", how="left")
+    )
+
+    if set_codes:
+        lf = lf.filter(pl.col("set").is_in([s.upper() for s in set_codes]))
+
+    # Apply same transformations as cards (tokens need similar processing)
+    lf = (
+        lf
+        .pipe(explode_card_faces)
+        .pipe(add_basic_fields)
+        .pipe(parse_type_line_expr)
+        .pipe(add_mana_info)
+        .pipe(add_card_attributes)
+        .pipe(filter_keywords_for_face)
+        .pipe(partial(add_legalities_struct, ctx=ctx))
+        .pipe(partial(add_availability_struct, ctx=ctx))
+        .pipe(partial(join_card_kingdom_data, ctx=ctx))
+        .pipe(add_identifiers_struct)
+        .pipe(partial(add_uuid_expr, ctx=ctx))
+        .pipe(add_reverse_related)
+        .pipe(add_token_signatures)
+        .pipe(add_orientations)
+    )
+
+    LOGGER.info("Sinking tokens to hive-partitioned parquet...")
+
+    final_lf = lf.pipe(rename_all_the_things, output_type="token")
+    final_lf.sink_parquet(
+        pl.PartitionByKey(
+            token_parquet_dir,
+            by=["setCode"],
+            include_key=True,
+        ),
+        mkdir=True,
+    )
+    LOGGER.info(f"Wrote tokens parquet to {token_parquet_dir}")
+
+
+def build_sealed_products_df(set_code: str | None = None) -> pl.DataFrame:
+    """
+    Build sealed products DataFrame with contents struct.
+
+    Joins github_sealed_products with github_sealed_contents
+    and aggregates contents by type (card, sealed, other).
+
+    Args:
+        set_code: Optional set code filter. If None, returns all sets.
+
+    Returns:
+        DataFrame with columns: setCode, name, category, subtype, releaseDate,
+        identifiers (struct), contents (struct), uuid
+    """
+    import uuid as uuid_module
+
+    products_df = pl.read_parquet(GLOBAL_CACHE.CACHE_DIR / "github_sealed_products.parquet")
+    contents_df = pl.read_parquet(GLOBAL_CACHE.CACHE_DIR / "github_sealed_contents.parquet")
+
+    # Normalize set codes
+    products_df = products_df.with_columns(
+        pl.col("set_code").str.to_uppercase().alias("setCode")
+    )
+    contents_df = contents_df.with_columns(
+        pl.col("set_code").str.to_uppercase().alias("setCode")
+    )
+
+    if set_code:
+        products_df = products_df.filter(pl.col("setCode") == set_code.upper())
+        contents_df = contents_df.filter(pl.col("setCode") == set_code.upper())
+
+    # Aggregate contents by product and content_type
+    # Each content type becomes a list of structs
+    card_contents = (
+        contents_df
+        .filter(pl.col("content_type") == "card")
+        .group_by(["setCode", "product_name"])
+        .agg(
+            pl.struct(
+                name=pl.col("name"),
+                number=pl.col("number"),
+                set=pl.col("set"),
+                uuid=pl.col("uuid"),
+                foil=pl.col("foil"),
+            ).alias("_card_list")
+        )
+    )
+
+    sealed_contents = (
+        contents_df
+        .filter(pl.col("content_type") == "sealed")
+        .group_by(["setCode", "product_name"])
+        .agg(
+            pl.struct(
+                count=pl.col("count"),
+                name=pl.col("name"),
+                set=pl.col("set"),
+                uuid=pl.col("uuid"),
+            ).alias("_sealed_list")
+        )
+    )
+
+    other_contents = (
+        contents_df
+        .filter(pl.col("content_type") == "other")
+        .group_by(["setCode", "product_name"])
+        .agg(
+            pl.struct(
+                name=pl.col("name"),
+            ).alias("_other_list")
+        )
+    )
+
+    # Join contents to products
+    result = (
+        products_df
+        .join(card_contents, on=["setCode", "product_name"], how="left")
+        .join(sealed_contents, on=["setCode", "product_name"], how="left")
+        .join(other_contents, on=["setCode", "product_name"], how="left")
+    )
+
+    # Build contents struct
+    result = result.with_columns(
+        pl.struct(
+            card=pl.col("_card_list"),
+            sealed=pl.col("_sealed_list"),
+            other=pl.col("_other_list"),
+        ).alias("contents")
+    ).drop(["_card_list", "_sealed_list", "_other_list"])
+
+    # Clean up identifiers - remove null values
+    # identifiers is already a dict/struct from the parquet
+
+    # Generate UUID for each product
+    result = result.with_columns(
+        pl.col("product_name").map_elements(
+            lambda name: str(uuid_module.uuid5(uuid_module.NAMESPACE_DNS, name)),
+            return_dtype=pl.String
+        ).alias("uuid")
+    )
+
+    # Rename and select final columns
+    result = result.select([
+        "setCode",
+        pl.col("product_name").alias("name"),
+        pl.col("category").str.to_lowercase(),
+        pl.col("subtype").str.to_lowercase(),
+        pl.col("release_date").alias("releaseDate"),
+        "identifiers",
+        "contents",
+        "uuid",
+    ])
+
+    return result
+
+
+def build_set_metadata_df(ctx: Optional[PipelineContext] = None) -> pl.DataFrame:
+    """
+    Build a DataFrame containing all set-level metadata.
+
+    Includes: code, name, releaseDate, type, mcmId, tcgplayerGroupId,
+    booster configs, translations, etc.
+    """
+    if ctx is None:
+        ctx = PipelineContext.from_global_cache()
+
+    sets_df = ctx.sets_df
+
+    # Load booster configs
+    booster_df = pl.read_parquet(GLOBAL_CACHE.CACHE_DIR / "github_booster.parquet")
+
+    # Load translations
+    translations_path = constants.RESOURCE_PATH / "mkm_set_name_translations.json"
+    if translations_path.exists():
+        with translations_path.open(encoding="utf-8") as f:
+            translations_data = json.load(f)
+    else:
+        translations_data = {}
+
+    # Build set metadata DataFrame
+    set_meta = (
+        sets_df
+        .with_columns([
+            pl.col("code").str.to_uppercase().alias("code"),
+            pl.col("name"),
+            pl.col("released_at").alias("releaseDate"),
+            pl.col("set_type").alias("type"),
+            pl.col("mtgo_code").str.to_uppercase().alias("mtgoCode"),
+            pl.col("tcgplayer_id").alias("tcgplayerGroupId"),
+            pl.col("digital").alias("isOnlineOnly"),
+            pl.col("foil_only").alias("isFoilOnly"),
+            pl.col("nonfoil_only").alias("isNonFoilOnly"),
+            pl.col("parent_set_code").str.to_uppercase().alias("parentCode"),
+            pl.col("block"),
+            # Keyrune code from icon URL
+            pl.col("icon_svg_uri")
+                .str.extract(r"/([^/]+)\.svg", 1)
+                .str.to_uppercase()
+                .alias("keyruneCode"),
+            # Token set code
+            pl.when(pl.col("code").str.starts_with("T"))
+                .then(pl.col("code").str.to_uppercase())
+                .otherwise(pl.lit("T") + pl.col("code").str.to_uppercase())
+                .alias("tokenSetCode"),
+        ])
+        .join(
+            booster_df.with_columns(pl.col("set_code").str.to_uppercase().alias("code")),
+            on="code",
+            how="left",
+        )
+        .rename({"config": "booster"})
+    )
+
+    return set_meta
+
+
+def assemble_json_outputs(
+    set_codes: list[str] | None = None,
+    pretty_print: bool = False,
+) -> None:
+    """
+    Read parquet partitions and assemble final JSON files per set.
+
+    Combines cards, tokens, boosters, sealed products, decks into
+    the full MTGJSON set structure.
+    """
+    output_dir = MtgjsonConfig().output_path
+    parquet_dir = output_dir / "_parquet"
+    token_parquet_dir = output_dir / "_parquet_tokens"
+
+    LOGGER.info("Assembling JSON outputs from parquet...")
+
+    # Get list of sets to process
+    if set_codes:
+        sets_to_process = [s.upper() for s in set_codes]
+    else:
+        # Get all set codes from parquet partitions
+        sets_to_process = [
+            p.name.replace("setCode=", "")
+            for p in parquet_dir.iterdir()
+            if p.is_dir() and p.name.startswith("setCode=")
+        ]
+
+    # Load set metadata
+    set_meta_df = build_set_metadata_df()
+    set_meta = {row["code"]: row for row in set_meta_df.to_dicts()}
+
+    # Load sealed products with proper contents structure
+    sealed_products_df = build_sealed_products_df()
+
+    # Load decks
+    decks_df = pl.read_parquet(GLOBAL_CACHE.CACHE_DIR / "github_decks.parquet")
+
+    # Build meta object
+    meta = MtgjsonMetaObject()
+    meta_dict = {"date": meta.date, "version": meta.version}
+
+    for set_code in sets_to_process:
+        LOGGER.info(f"Assembling {set_code}...")
+
+        # Read cards for this set
+        cards_path = parquet_dir / f"setCode={set_code}"
+        if not cards_path.exists():
+            LOGGER.warning(f"No cards found for {set_code}")
+            continue
+
+        cards_df = pl.read_parquet(cards_path / "*.parquet")
+        cards = cards_df.to_dicts()
+
+        # Read tokens for this set
+        tokens = []
+        tokens_path = token_parquet_dir / f"setCode=T{set_code}"
+        if tokens_path.exists():
+            tokens_df = pl.read_parquet(tokens_path / "*.parquet")
+            tokens = tokens_df.to_dicts()
+
+        # Get set metadata
+        meta_row = set_meta.get(set_code, {})
+
+        # Get sealed products for this set
+        set_sealed = sealed_products_df.filter(
+            pl.col("setCode") == set_code
+        ).drop("setCode").to_dicts()
+
+        # Get decks for this set
+        set_decks = decks_df.filter(
+            pl.col("set_code").str.to_uppercase() == set_code
+        ).to_dicts()
+
+        # Get booster config
+        booster = meta_row.get("booster")
+        if booster:
+            # Filter out null booster types
+            booster = {k: v for k, v in booster.items() if v is not None}
+
+        # Assemble final set object
+        set_data = {
+            "baseSetSize": len([c for c in cards if not c.get("isReprint")]),
+            "cards": cards,
+            "code": set_code,
+            "name": set_meta.get("name"),
+            "type": set_meta.get("set_type"),
+            "releaseDate": set_meta.get("released_at"),
+            "block": set_meta.get("block"),
+            "cards": cards_list,
+            "tokens": [],
+        }
+
+        set_path = output_dir / f"{set_code}.json"
+        with set_path.open("wb") as f:
+            f.write(orjson.dumps(
+                {
+                    "meta": {"date": datetime.now().strftime("%Y-%m-%d"), "version": "5.3.0"},
+                    "data": set_obj,
+                },
+                option=orjson.OPT_INDENT_2,
+            ))
+        LOGGER.info(f"Wrote {set_path} ({len(cards_list)} cards)")
+
+    LOGGER.info("Full vectorized build complete.")
