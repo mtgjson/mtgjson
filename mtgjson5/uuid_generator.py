@@ -5,13 +5,13 @@ These functions process entire arrays at once, minimizing Python loop overhead
 while still using the standard library's uuid5 for RFC 4122 compliance.
 """
 
+import hashlib
 import uuid
-from hashlib import sha1
 from typing import Optional
 
 import numpy as np
 import polars as pl
-
+import polars_hash as plh
 
 NAMESPACE_DNS_BYTES = uuid.NAMESPACE_DNS.bytes
 
@@ -22,13 +22,11 @@ def _uuid5_from_string(name: str) -> str:
 
     Inlined implementation avoiding uuid.uuid5() object overhead.
     """
-    hash_bytes = sha1(NAMESPACE_DNS_BYTES + name.encode("utf-8")).digest()
+    hash_bytes = hashlib.sha1(NAMESPACE_DNS_BYTES + name.encode("utf-8")).digest()
 
-    # Set version (5) and variant (RFC 4122) bits
     b6 = (hash_bytes[6] & 0x0F) | 0x50
     b8 = (hash_bytes[8] & 0x3F) | 0x80
 
-    # Format as hyphenated UUID string directly
     h = hash_bytes
     return (
         f"{h[0]:02x}{h[1]:02x}{h[2]:02x}{h[3]:02x}-"

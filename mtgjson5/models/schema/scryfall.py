@@ -1,10 +1,12 @@
 from enum import Enum
 from datetime import date
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import Literal, Optional, TYPE_CHECKING
 from pydantic import BaseModel, Field, HttpUrl
 from uuid import UUID
 
+if TYPE_CHECKING:
+    import polars as pl
 
 class Color(str, Enum):
     """Magic color symbols."""
@@ -432,6 +434,44 @@ class CardFace(BaseModel):
         description="The layout of this card face, if the card is reversible.",
     )
 
+    @classmethod
+    def polars_schema(cls) -> "pl.Struct":
+        """Generate a Polars struct schema matching this model."""
+        import polars as pl
+        return pl.Struct({
+            "object": pl.String,
+            "name": pl.String,
+            "mana_cost": pl.String,
+            "type_line": pl.String,
+            "oracle_text": pl.String,
+            "colors": pl.List(pl.String),
+            "color_indicator": pl.List(pl.String),
+            "power": pl.String,
+            "toughness": pl.String,
+            "defense": pl.String,
+            "loyalty": pl.String,
+            "flavor_text": pl.String,
+            "illustration_id": pl.String,
+            "image_uris": pl.Struct({
+                "small": pl.String,
+                "normal": pl.String,
+                "large": pl.String,
+                "png": pl.String,
+                "art_crop": pl.String,
+                "border_crop": pl.String,
+            }),
+            "artist": pl.String,
+            "artist_id": pl.String,
+            "watermark": pl.String,
+            "printed_name": pl.String,
+            "printed_text": pl.String,
+            "printed_type_line": pl.String,
+            "cmc": pl.String,
+            "oracle_id": pl.String,
+            "layout": pl.String,
+            "flavor_name": pl.String,
+        })
+
 
 class RelatedCard(BaseModel):
     """
@@ -467,7 +507,6 @@ class RelatedCard(BaseModel):
             "on Scryfall's API."
         ),
     )
-
 
 class ScryfallCard(BaseModel):
     """
