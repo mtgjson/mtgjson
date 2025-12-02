@@ -2549,6 +2549,68 @@ def build_tokens(
     LOGGER.info(f"Wrote tokens parquet to {token_parquet_dir}")
 
 
+def build_decks_df(set_code: str | None = None) -> pl.DataFrame:
+    """
+    Build decks DataFrame with full card lists.
+
+    Fetches raw deck data and transforms to MTGJSON format with
+    mainBoard, sideBoard, commander as lists of {count, uuid}.
+
+    Args:
+        set_code: Optional set code filter. If None, returns all sets.
+
+    Returns:
+        DataFrame with full deck structure including card lists.
+    """
+    import requests
+
+    # Fetch raw deck data from GitHub
+    url = "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks_v2.json?raw=true"
+    try:
+        r = requests.get(url, timeout=30)
+        r.raise_for_status()
+        raw_decks = r.json()
+    except Exception as e:
+        LOGGER.warning(f"Failed to fetch deck data: {e}")
+        return pl.DataFrame()
+
+    def transform_card_list(cards: list[dict]) -> list[dict]:
+        """Transform raw card list to {count, uuid} format."""
+        return [
+            {"count": c.get("count", 1), "uuid": c.get("mtgjson_uuid")}
+            for c in cards
+            if c.get("mtgjson_uuid")
+        ]
+
+    decks = []
+    for deck in raw_decks:
+        deck_set_code = deck.get("set_code", "").upper()
+        if set_code and deck_set_code != set_code.upper():
+            continue
+
+        decks.append({
+            "setCode": deck_set_code,
+            "code": deck_set_code,
+            "name": deck.get("name"),
+            "type": deck.get("type"),
+            "releaseDate": deck.get("release_date"),
+            "sourceSetCodes": [s.upper() for s in deck.get("sourceSetCodes", [])],
+            "sealedProductUuids": None,  # Would need deck_map.json lookup
+            "mainBoard": transform_card_list(deck.get("cards", [])),
+            "sideBoard": transform_card_list(deck.get("sideboard", [])),
+            "commander": transform_card_list(deck.get("commander", [])),
+            "displayCommander": transform_card_list(deck.get("displayCommander", [])),
+            "planes": transform_card_list(deck.get("planarDeck", [])),
+            "schemes": transform_card_list(deck.get("schemeDeck", [])),
+            "tokens": transform_card_list(deck.get("tokens", [])),
+        })
+
+    if not decks:
+        return pl.DataFrame()
+
+    return pl.DataFrame(decks)
+
+
 def build_sealed_products_df(set_code: str | None = None) -> pl.DataFrame:
     """
     Build sealed products DataFrame with contents struct.
