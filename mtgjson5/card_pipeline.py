@@ -2152,16 +2152,9 @@ def rename_all_the_things(lf: pl.LazyFrame, output_type: str = "card_set") -> pl
         .alias("faceConvertedManaCost")
     ])
 
-    # Convert list ["paper", "mtgo"] -> Struct {paper: true, mtgo: true}
-    # This matches the MtgjsonGameFormatsObject
-    formats = ["paper", "mtgo", "arena", "shandalar", "dreamcast"]
-    
-    lf = lf.with_columns(
-        pl.struct([
-            pl.col("availability").list.contains(fmt).alias(fmt) 
-            for fmt in formats
-        ]).alias("availability")
-    )
+    # Keep availability as a sorted list of platforms
+    # e.g., ["arena", "mtgo", "paper"]
+    # (The struct format was used in older MTGJSON versions)
 
     # Get the allowed fields for this specific output type (e.g. 'card_set' vs 'card_token')
     if output_type == "card_set":
@@ -2821,8 +2814,9 @@ def assemble_json_outputs(
     # Load sealed products with proper contents structure
     sealed_products_df = build_sealed_products_df()
 
-    # Load decks
-    decks_df = pl.read_parquet(GLOBAL_CACHE.CACHE_DIR / "github_decks.parquet")
+    # Load decks with full card lists
+    LOGGER.info("Fetching deck data...")
+    decks_df = build_decks_df()
 
     # Build meta object
     meta = MtgjsonMetaObject()
@@ -2830,6 +2824,9 @@ def assemble_json_outputs(
 
     for set_code in sets_to_process:
         LOGGER.info(f"Assembling {set_code}...")
+
+        # Get set metadata first (need tokenSetCode)
+        meta_row = set_meta.get(set_code, {})
 
         # Read cards for this set
         cards_path = parquet_dir / f"setCode={set_code}"
@@ -2856,9 +2853,11 @@ def assemble_json_outputs(
         ).drop("setCode").to_dicts()
 
         # Get decks for this set
-        set_decks = decks_df.filter(
-            pl.col("set_code").str.to_uppercase() == set_code
-        ).to_dicts()
+        set_decks = []
+        if len(decks_df) > 0:
+            set_decks = decks_df.filter(
+                pl.col("setCode") == set_code
+            ).drop("setCode").to_dicts()
 
         # Get booster config
         booster = meta_row.get("booster")
