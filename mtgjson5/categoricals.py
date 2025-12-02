@@ -1,8 +1,9 @@
 """Categorical column definitions for processing Scryfall data in Polars."""
 
-import polars as pl
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict, List
+
+import polars as pl
 
 if TYPE_CHECKING:
     from logging import Logger
@@ -100,9 +101,7 @@ def discover_categoricals(
         if fields:
             setattr(cats, attr, fields)
             if logger:
-                logger.debug(
-                    f"Discovered {len(fields)} {attr} from {col_name} struct"
-                )
+                logger.debug(f"Discovered {len(fields)} {attr} from {col_name} struct")
     list_col_mappings = {
         "games": "games",
         "finishes": "finishes",
