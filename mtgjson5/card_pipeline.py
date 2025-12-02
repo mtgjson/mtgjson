@@ -755,9 +755,15 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
             mtgArenaId=pl.col("arena_id").cast(pl.String),
             mtgoId=pl.col("mtgo_id").cast(pl.String),
             mtgoFoilId=pl.col("mtgo_foil_id").cast(pl.String),
-            multiverseId=pl.col("multiverse_ids")
-                .list.get(pl.col("face_id").fill_null(0))
-                .cast(pl.String),
+            multiverseId=pl.when(
+                pl.col("multiverse_ids").list.len() > pl.col("face_id").fill_null(0)
+            ).then(
+                pl.col("multiverse_ids")
+                    .list.get(pl.col("face_id").fill_null(0))
+                    .cast(pl.String)
+            ).otherwise(
+                pl.col("multiverse_ids").list.first().cast(pl.String)
+            ),
 
             tcgplayerProductId=pl.col("tcgplayer_id").cast(pl.String),
             tcgplayerEtchedProductId=pl.col("tcgplayer_etched_id").cast(pl.String),
