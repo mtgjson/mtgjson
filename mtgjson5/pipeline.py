@@ -2075,6 +2075,7 @@ def add_orientations(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     return lf
 
+
 def rename_all_the_things(lf: pl.LazyFrame, output_type: str = "card_set") -> pl.LazyFrame:
     """
     Final transformation: Renames internal columns to MTGJSON CamelCase,
@@ -2188,6 +2189,164 @@ def rename_all_the_things(lf: pl.LazyFrame, output_type: str = "card_set") -> pl
     final_cols = sorted(existing_cols & allowed_fields)
 
     return df.select(final_cols).lazy()
+
+
+def select_card_set_fields(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Select and order columns for CardSet output."""
+    fields = ALL_CARD_FIELDS - CARD_SET_EXCLUDE
+    existing = sorted(c for c in df.columns if c in fields)
+    return df.select(existing)
+
+
+def select_card_token_fields(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Select and order columns for CardToken output."""
+    fields = ALL_CARD_FIELDS - TOKEN_EXCLUDE
+    existing = sorted(c for c in df.columns if c in fields)
+    return df.select(existing)
+
+
+def select_card_atomic_fields(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Select and order columns for CardAtomic output."""
+    fields = ALL_CARD_FIELDS - ATOMIC_EXCLUDE
+    existing = sorted(c for c in df.columns if c in fields)
+    return df.select(existing)
+
+
+def select_card_deck_fields(df: pl.LazyFrame) -> pl.LazyFrame:
+    """Select and order columns for CardDeck output."""
+    fields = (ALL_CARD_FIELDS - CARD_DECK_EXCLUDE) | {"count", "isFoil"}
+    existing = sorted(c for c in df.columns if c in fields)
+    return df.select(existing)
+
+
+def filter_out_tokens(df: pl.LazyFrame) -> tuple[pl.LazyFrame, pl.LazyFrame]:
+    """
+    Separate tokens from main cards.
+
+    Tokens are identified by:
+    - layout in {"token", "double_faced_token", "emblem", "art_series"}
+    - type == "Dungeon"
+    - "Token" in type string
+
+    Returns:
+        Tuple of (cards_df, tokens_df) - cards without tokens, and the filtered tokens
+    """
+    TOKEN_LAYOUTS = {"token", "double_faced_token", "emblem", "art_series"}
+
+    is_token = (
+        pl.col("layout").is_in(TOKEN_LAYOUTS)
+        | (pl.col("type") == "Dungeon")
+        | pl.col("type").str.contains("Token")
+    )
+
+    tokens_df = df.filter(is_token)
+    cards_df = df.filter(~is_token)
+
+    return cards_df, tokens_df
+
+
+def build_json_outputs(parquet_dir: pathlib.Path, output_dir: pathlib.Path) -> None:
+    """
+    Build all JSON outputs from partitioned parquet.
+
+    Runs after pipeline sink completes.
+    """
+    from datetime import datetime
+
+    import orjson
+
+    LOGGER.info("Building individual set files...")
+
+    all_sets = {}
+
+    for set_folder in sorted(parquet_dir.glob("set=*")):
+        set_code = set_folder.name.replace("set=", "")
+
+        df = pl.read_parquet(set_folder / "*.parquet")
+
+        # Split cards vs tokens
+        cards_df, tokens_df = filter_out_tokens(df.lazy())
+        cards_df = rename_all_the_things(cards_df, "card_set").collect()
+        tokens_df = rename_all_the_things(tokens_df, "card_token").collect()
+
+        # Get set metadata
+        set_meta = GLOBAL_CACHE.sets_df.filter(pl.col("code") == set_code).to_dicts()
+        set_meta = set_meta[0] if set_meta else {}
+
+        set_obj = {
+            "code": set_code,
+            "name": set_meta.get("name"),
+            "type": set_meta.get("set_type"),
+            "releaseDate": set_meta.get("released_at"),
+            "block": set_meta.get("block"),
+            "cards": cards_df.to_dicts(),
+            "tokens": tokens_df.to_dicts(),
+        }
+
+        all_sets[set_code] = set_obj
+
+        # Write individual set file
+        set_path = output_dir / f"{set_code}.json"
+        with set_path.open("wb") as f:
+            f.write(
+                orjson.dumps(
+                    {
+                        "meta": {
+                            "date": datetime.now().strftime("%Y-%m-%d"),
+                            "version": "5.3.0",
+                        },
+                        "data": set_obj,
+                    },
+                    option=orjson.OPT_INDENT_2,
+                )
+            )
+
+        LOGGER.info(f"  {set_code}: {len(cards_df)} cards, {len(tokens_df)} tokens")
+
+    # AllPrintings.json
+    LOGGER.info("Writing AllPrintings.json...")
+    with (output_dir / "AllPrintings.json").open("wb") as f:
+        f.write(
+            orjson.dumps(
+                {
+                    "meta": {
+                        "date": datetime.now().strftime("%Y-%m-%d"),
+                        "version": "5.3.0",
+                    },
+                    "data": all_sets,
+                }
+            )
+        )
+
+    # AllIdentifiers.json
+    LOGGER.info("Writing AllIdentifiers.json...")
+    df = (
+        pl.scan_parquet(parquet_dir / "**/*.parquet")
+        .select(["uuid", "identifiers"])
+        .collect()
+    )
+    identifiers_map = {row["uuid"]: row["identifiers"] for row in df.to_dicts()}
+    with (output_dir / "AllIdentifiers.json").open("wb") as f:
+        f.write(orjson.dumps({"meta": {}, "data": identifiers_map}))
+
+    # AtomicCards.json
+    LOGGER.info("Writing AtomicCards.json...")
+    df = (
+        pl.scan_parquet(parquet_dir / "**/*.parquet")
+        .filter(pl.col("oracle_id").is_not_null())
+        .unique(subset=["oracle_id"], keep="first")
+        .pipe(lambda x: rename_all_the_things(x, "card_atomic"))
+        .collect()
+    )
+    atomic_map: dict[str, list] = {}
+    for row in df.to_dicts():
+        name = row.get("name", "Unknown")
+        atomic_map.setdefault(name, []).append(row)
+    with (output_dir / "AtomicCards.json").open("wb") as f:
+        f.write(orjson.dumps({"meta": {}, "data": atomic_map}))
+
+    LOGGER.info("JSON outputs complete.")
+
 
 def build_cards(
     set_codes: list[str] | None = None,
