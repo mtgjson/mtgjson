@@ -4,6 +4,7 @@ import polars as pl
 from mtgjson5 import constants
 from mtgjson5.cache import GLOBAL_CACHE
 from mtgjson5.models.providers.scryfall import CardFace
+from mtgjson5.utils import LOGGER
 
 
 TOKEN_LAYOUTS={"token", "double_faced_token", "emblem", "art_series"}
@@ -581,6 +582,7 @@ def add_legalities_struct(lf: pl.LazyFrame, ctx: PipelineContext = None ) -> pl.
         formats, strict=False
     )
 
+
 def add_availability_struct(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
     """
     Build availability list from games column.
@@ -623,4 +625,379 @@ def add_availability_struct(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl
     else:
         # List format: ["paper", "mtgo"]
         return lf.with_columns(pl.col("games").list.sort().alias("availability"))
+
+
+def join_card_kingdom_data(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Join pre-pivoted Card Kingdom data to add CK identifiers and URLs.
+
+    The CK data is pivoted during cache loading to one row per scryfall_id.
+    Also computes MTGJSON redirect URLs from the CK URL paths.
+    """
+    ck_df = ctx.card_kingdom_df if ctx else GLOBAL_CACHE.card_kingdom_df
+
+    if ck_df is None:
+        LOGGER.debug("Card Kingdom LazyFrame not loaded, skipping CK data")
+        return lf.with_columns(
+            pl.lit(None).cast(pl.String).alias("cardKingdomId"),
+            pl.lit(None).cast(pl.String).alias("cardKingdomFoilId"),
+            pl.lit(None).cast(pl.String).alias("cardKingdomEtchedId"),
+            pl.lit(None).cast(pl.String).alias("cardKingdomUrl"),
+            pl.lit(None).cast(pl.String).alias("cardKingdomFoilUrl"),
+            pl.lit(None).cast(pl.String).alias("cardKingdomEtchedUrl"),
+        )
+
+    # Join CK data - v2 provider uses 'id' column, pipeline has 'scryfallId' after rename
+    lf = lf.join(
+        ck_df.lazy(),
+        left_on="scryfallId",
+        right_on="id",
+        how="left",
+    )
+
+    # Rename columns from v2 provider to expected names
+    # v2 provider columns: card_kingdom_id, card_kingdom_foil_id, card_kingdom_url, card_kingdom_foil_url
+    return lf.with_columns(
+        [
+            pl.col("card_kingdom_id").alias("cardKingdomId"),
+            pl.col("card_kingdom_foil_id").alias("cardKingdomFoilId"),
+            pl.lit(None)
+            .cast(pl.String)
+            .alias("cardKingdomEtchedId"),  # v2 doesn't have etched yet
+            pl.col("card_kingdom_url").alias("cardKingdomUrl"),
+            pl.col("card_kingdom_foil_url").alias("cardKingdomFoilUrl"),
+            pl.lit(None).cast(pl.String).alias("cardKingdomEtchedUrl"),
+        ]
+    ).drop(
+        [
+            "card_kingdom_id",
+            "card_kingdom_foil_id",
+            "card_kingdom_url",
+            "card_kingdom_foil_url",
+        ],
+        strict=False,
+    )
+
+
+def join_cardmarket_ids(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Vectorized Join using the pre-computed global lookup table.
+    """
+    mcm_df = ctx.mcm_lookup_df if ctx else GLOBAL_CACHE.mcm_lookup_df
+    if mcm_df is None:
+        return lf.with_columns(
+            [
+                pl.lit(None).cast(pl.String).alias("mcmId"),
+                pl.lit(None).cast(pl.String).alias("mcmMetaId"),
+            ]
+        )
+    # Ensure the lookup table is available as a LazyFrame
+    mcm_lookup = mcm_df.lazy()
+
+    lf = lf.with_columns(
+        [
+            # Lowercase name for matching
+            pl.col("name").str.to_lowercase().alias("_join_name"),
+            # Scryfall numbers often have leading zeros (e.g., "001"),
+            # while MCM strips them. We strip them here to match.
+            pl.col("number").str.strip_chars_start("0").alias("_join_number"),
+        ]
+    )
+
+    # Left join on Set + Name + Number
+    lf = lf.join(
+        mcm_lookup,
+        left_on=["setCode", "_join_name", "_join_number"],
+        right_on=["set_code", "name_lower", "number"],
+        how="left",
+    )
+
+    # Keep mcmId and mcmMetaId columns - they'll be added to identifiers struct later
+    lf = lf.drop(["_join_name", "_join_number"])
+
+    return lf
+
+
+def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Build the identifiers struct lazily.
+    """
+    # For multi-face cards, prefer face-specific IDs; for single-face, use root field
+    # _face_data is now properly typed as a struct (even when null), so coalesce works
+    return lf.with_columns(
+        pl.struct(
+            scryfallId=pl.col("scryfallId"),
+            scryfallOracleId=pl.coalesce(
+                pl.col("_face_data").struct.field("oracle_id"),
+                pl.col("oracleId"),
+            ),
+            scryfallIllustrationId=pl.coalesce(
+                pl.col("_face_data").struct.field("illustration_id"),
+                pl.col("illustration_id"),
+            ),
+            scryfallCardBackId=pl.col("cardBackId"),
+            # MCM IDs from CardMarket lookup (mcmId, mcmMetaId columns from join_cardmarket_ids)
+            mcmId=pl.col("mcmId"),
+            mcmMetaId=pl.col("mcmMetaId"),
+            mtgArenaId=pl.col("arena_id").cast(pl.String),
+            mtgoId=pl.col("mtgo_id").cast(pl.String),
+            mtgoFoilId=pl.col("mtgo_foil_id").cast(pl.String),
+            multiverseId=pl.col("multiverse_ids")
+            .list.get(pl.col("face_id").fill_null(0), null_on_oob=True)
+            .cast(pl.String),
+            tcgplayerProductId=pl.col("tcgplayer_id").cast(pl.String),
+            tcgplayerEtchedProductId=pl.col("tcgplayer_etched_id").cast(pl.String),
+            cardKingdomId=pl.col("cardKingdomId"),
+            cardKingdomFoilId=pl.col("cardKingdomFoilId"),
+            cardKingdomEtchedId=pl.col("cardKingdomEtchedId"),
+        ).alias("identifiers")
+    ).drop(["mcmId", "mcmMetaId"], strict=False)
+
+
+def join_printings(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Join printings map - replaces parse_printings() per-card lookups.
+
+    Single join replaces N filter operations.
+    Also computes originalReleaseDate (first printing date) for reprints.
+    """
+    printings_df = ctx.printings_df if ctx else GLOBAL_CACHE.printings_df
+    sets_df = ctx.sets_df if ctx else GLOBAL_CACHE.sets_df
+
+    if printings_df is None:
+        return lf.with_columns(
+            [
+                pl.lit([]).cast(pl.List(pl.String)).alias("printings"),
+                pl.lit(None).cast(pl.String).alias("originalReleaseDate"),
+            ]
+        )
+
+    lf = lf.join(
+        printings_df.lazy(),
+        left_on="oracleId",
+        right_on="oracle_id",
+        how="left",
+    ).with_columns(pl.col("printings").fill_null([]).list.sort())
+
+    # Compute originalReleaseDate: earliest release date among all printings
+    # Only set for reprints (cards where current set isn't the first printing)
+    if sets_df is not None:
+        # Build set_code -> release_date lookup
+        set_dates = sets_df.select(
+            [
+                pl.col("code").str.to_uppercase().alias("set_code"),
+                pl.col("released_at").alias("release_date"),
+            ]
+        ).lazy()
+
+        # Explode printings to join with set dates
+        first_printing = (
+            lf.select(["oracleId", "printings"])
+            .explode("printings")
+            .join(set_dates, left_on="printings", right_on="set_code", how="left")
+            .group_by("oracleId")
+            .agg(pl.col("release_date").min().alias("_first_release_date"))
+        )
+
+        lf = lf.join(first_printing, on="oracleId", how="left")
+
+        # Only populate originalReleaseDate for reprints
+        # (current set's release_date > first_release_date)
+        lf = lf.with_columns(
+            pl.when(pl.col("isReprint"))
+            .then(pl.col("_first_release_date"))
+            .otherwise(pl.lit(None).cast(pl.String))
+            .alias("originalReleaseDate")
+        ).drop("_first_release_date", strict=False)
+    else:
+        lf = lf.with_columns(pl.lit(None).cast(pl.String).alias("originalReleaseDate"))
+
+    return lf
+
+
+def join_rulings(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Join rulings map - replaces parse_rulings() per-card lookups.
+    """
+    rulings_df = ctx.rulings_df if ctx else GLOBAL_CACHE.rulings_df
+    if rulings_df is None:
+        return lf.with_columns(pl.lit([]).alias("rulings"))
+
+    return lf.join(
+        rulings_df.lazy(),
+        left_on="oracleId",
+        right_on="oracle_id",
+        how="left",
+    ).with_columns(pl.col("rulings").fill_null([]))
+
+
+def join_foreign_data(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """Join foreign data from raw Scryfall bulk data."""
+    # Build foreign data from raw cards_df (not from lf which is English-only)
+    cards_df = ctx.cards_df if ctx else GLOBAL_CACHE.cards_df
+    if cards_df is None:
+        return lf.with_columns(pl.lit([]).alias("foreignData"))
+    raw_cards = cards_df
+
+    flf = (
+        raw_cards.filter(pl.col("lang") != "en")
+        .with_columns(pl.col("set").str.to_uppercase().alias("set"))
+        .select(
+            "set",
+            "collector_number",
+            pl.col("lang")
+            .replace_strict(constants.LANGUAGE_MAP, default=pl.col("lang"))
+            .alias("language"),
+            pl.col("id").alias("scryfall_id"),
+            pl.col("multiverse_ids").list.first().alias("multiverse_id"),
+            pl.col("name").alias("scryfall_name"),
+            pl.coalesce("printed_name", "name").alias("name"),
+            pl.col("printed_text").alias("text"),
+            pl.col("printed_type_line").alias("type"),
+            "flavor_text",
+            "card_faces",
+        )
+        .sort("set", "collector_number", "language")
+        .group_by("set", "collector_number")
+        .agg(
+            pl.struct(
+                "language",
+                "scryfall_id",
+                "multiverse_id",
+                "scryfall_name",
+                "name",
+                "text",
+                "type",
+                "flavor_text",
+                "card_faces",
+            ).alias("foreign_data")
+        )
+    )
+
+    return (
+        lf.join(
+            flf,
+            left_on=["setCode", "number"],
+            right_on=["set", "collector_number"],
+            how="left",
+        )
+        .with_columns(
+            pl.when(pl.col("foreign_data").list.len() > 0)
+            .then(
+                pl.col("foreign_data").list.eval(
+                    pl.struct(
+                        pl.element().struct.field("flavor_text").alias("flavorText"),
+                        pl.struct(
+                            pl.element()
+                            .struct.field("scryfall_id")
+                            .alias("scryfallId"),
+                            pl.element()
+                            .struct.field("multiverse_id")
+                            .cast(pl.String)
+                            .alias("multiverseId"),
+                        ).alias("identifiers"),
+                        pl.element().struct.field("language"),
+                        pl.element().struct.field("name"),
+                        pl.element().struct.field("text"),
+                        pl.element().struct.field("type"),
+                    )
+                )
+            )
+            .otherwise(
+                pl.lit([]).cast(
+                    pl.List(
+                        pl.Struct(
+                            {
+                                "flavorText": pl.String,
+                                "identifiers": pl.Struct(
+                                    {
+                                        "scryfallId": pl.String,
+                                        "multiverseId": pl.String,
+                                    }
+                                ),
+                                "language": pl.String,
+                                "name": pl.String,
+                                "text": pl.String,
+                                "type": pl.String,
+                            }
+                        )
+                    )
+                )
+            )
+            .alias("foreignData")
+        )
+        .drop("foreign_data")
+    )
+
+
+def join_edhrec_data(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """Join EDHREC saltiness and rank by oracle_id."""
+    edhrec_df = ctx.salt_df if ctx else GLOBAL_CACHE.salt_df
+
+    if edhrec_df is None or edhrec_df.is_empty():
+        return lf.with_columns(
+            [
+                pl.lit(None).cast(pl.Float64).alias("edhrecSaltiness"),
+            ]
+        )
+
+    return lf.join(
+        edhrec_df.lazy().select(["oracle_id", "edhrecSaltiness"]),
+        left_on="oracleId",
+        right_on="oracle_id",
+        how="left",
+    )
+
+
+def join_gatherer_data(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Join Gatherer original text and type by multiverse ID.
+    """
+    gatherer_map = ctx.gatherer_map if ctx else GLOBAL_CACHE.gatherer_map
+
+    if not gatherer_map:
+        return lf.with_columns(
+            [
+                pl.lit(None).cast(pl.String).alias("originalText"),
+                pl.lit(None).cast(pl.String).alias("originalType"),
+            ]
+        )
+
+    # Build lookup LazyFrame from gatherer_map
+    # gatherer_map: {multiverse_id: [{original_text, original_types}, ...]}
+    rows = []
+    for mv_id, entries in gatherer_map.items():
+        if entries:
+            entry = entries[0]  # Take first entry
+            rows.append(
+                {
+                    "multiverse_id": str(mv_id),
+                    "originalText": entry.get("original_text"),
+                    "originalType": entry.get("original_types"),
+                }
+            )
+
+    if not rows:
+        return lf.with_columns(
+            [
+                pl.lit(None).cast(pl.String).alias("originalText"),
+                pl.lit(None).cast(pl.String).alias("originalType"),
+            ]
+        )
+
+    gatherer_df = pl.LazyFrame(rows)
+
+    # Extract multiverse_id from identifiers for join
+    lf = lf.with_columns(
+        pl.col("identifiers").struct.field("multiverseId").alias("_mv_id_lookup")
+    )
+
+    lf = lf.join(
+        gatherer_df.lazy(),
+        left_on="_mv_id_lookup",
+        right_on="multiverse_id",
+        how="left",
+    )
+
+    return lf.drop("_mv_id_lookup")
 
