@@ -1249,3 +1249,19 @@ def add_leadership_skills_expr(lf: pl.LazyFrame, ctx: PipelineContext = None) ->
     )
 
 
+def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Compute reverseRelated for tokens from all_parts.
+
+    For tokens, this lists the names of cards that create/reference this token.
+    """
+    # Extract names from all_parts where name differs from card name
+    # all_parts is List[Struct{name, ...}]
+    return lf.with_columns(
+        pl.col("_all_parts")
+        .list.eval(pl.element().struct.field("name"))
+        .list.set_difference(pl.col("name").cast(pl.List(pl.String)))
+        .list.sort()
+        .alias("reverseRelated")
+    ).drop("_all_parts")
+
