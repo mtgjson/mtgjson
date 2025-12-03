@@ -1620,3 +1620,166 @@ def add_rebalanced_linkage(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     return lf
 
+def link_foil_nonfoil_versions(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Link foil and non-foil versions that have different card details.
+
+    Only applies to specific sets: CN2, FRF, ONS, 10E, UNH.
+    Adds mtgjsonFoilVersionId and mtgjsonNonFoilVersionId to identifiers.
+
+    Assumes setCode column exists.
+    """
+    FOIL_LINK_SETS = {"CN2", "FRF", "ONS", "10E", "UNH"}
+
+    in_target_sets = pl.col("setCode").is_in(FOIL_LINK_SETS)
+
+    # Extract illustration_id for grouping
+    ill_id_expr = pl.col("identifiers").struct.field("scryfallIllustrationId")
+
+    # Find pairs: same illustration_id, same set, exactly 2 cards
+    pairs = (
+        lf.filter(in_target_sets & ill_id_expr.is_not_null())
+        .select(
+            [
+                pl.col("setCode"),
+                ill_id_expr.alias("_ill_id"),
+                pl.col("uuid"),
+                pl.col("finishes"),
+            ]
+        )
+        .group_by(["setCode", "_ill_id"])
+        .agg(
+            [
+                pl.col("uuid"),
+                pl.col("finishes"),
+            ]
+        )
+        .filter(pl.col("uuid").list.len() == 2)
+    )
+
+    # Explode and determine foil status for each card in pair
+    pair_cards = (
+        pairs.with_columns(
+            [
+                pl.col("uuid").list.get(0).alias("uuid_0"),
+                pl.col("uuid").list.get(1).alias("uuid_1"),
+                pl.col("finishes").list.get(0).alias("finishes_0"),
+                pl.col("finishes").list.get(1).alias("finishes_1"),
+            ]
+        )
+        .with_columns(
+            [
+                # Card is foil-only if "nonfoil" NOT in its finishes
+                ~pl.col("finishes_0").list.contains("nonfoil").alias("_is_foil_0"),
+                ~pl.col("finishes_1").list.contains("nonfoil").alias("_is_foil_1"),
+            ]
+        )
+        .filter(
+            # Only process pairs where one is foil and one is nonfoil
+            pl.col("_is_foil_0") != pl.col("_is_foil_1")
+        )
+    )
+
+    # Build lookup: for each uuid, what's its foil/nonfoil counterpart?
+    # If card 0 is foil: card 1's foil_version = card 0, card 0's nonfoil_version = card 1
+    foil_map = pair_cards.select(
+        [
+            # For the non-foil card, its foil version is the foil card
+            pl.when(pl.col("_is_foil_0"))
+            .then(pl.col("uuid_1"))
+            .otherwise(pl.col("uuid_0"))
+            .alias("uuid"),
+            pl.when(pl.col("_is_foil_0"))
+            .then(pl.col("uuid_0"))
+            .otherwise(pl.col("uuid_1"))
+            .alias("_foil_version"),
+        ]
+    )
+
+    nonfoil_map = pair_cards.select(
+        [
+            # For the foil card, its nonfoil version is the non-foil card
+            pl.when(pl.col("_is_foil_0"))
+            .then(pl.col("uuid_0"))
+            .otherwise(pl.col("uuid_1"))
+            .alias("uuid"),
+            pl.when(pl.col("_is_foil_0"))
+            .then(pl.col("uuid_1"))
+            .otherwise(pl.col("uuid_0"))
+            .alias("_nonfoil_version"),
+        ]
+    )
+
+    # Join mappings back to main LazyFrame
+    lf = lf.join(foil_map, on="uuid", how="left")
+    lf = lf.join(nonfoil_map, on="uuid", how="left")
+
+    # Inject into identifiers struct
+    lf = lf.with_columns(
+        pl.col("identifiers").struct.with_fields(
+            [
+                pl.col("_foil_version").alias("mtgjsonFoilVersionId"),
+                pl.col("_nonfoil_version").alias("mtgjsonNonFoilVersionId"),
+            ]
+        )
+    ).drop(["_foil_version", "_nonfoil_version"])
+
+    return lf
+
+
+def add_duel_deck_side(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Add duelDeck field for Duel Deck (DD*) and GS1 sets.
+
+    Uses duel_deck_sides.json mapping.
+    Assumes setCode column exists.
+    """
+    import json
+
+    sides_path = constants.RESOURCE_PATH / "duel_deck_sides.json"
+    if not sides_path.exists():
+        return lf.with_columns(pl.lit(None).cast(pl.String).alias("duelDeck"))
+
+    with sides_path.open(encoding="utf-8") as f:
+        all_sides = json.load(f)
+
+    # Flatten to DataFrame: setCode, number, duelDeck
+    side_rows = []
+    for set_code, number_map in all_sides.items():
+        for number, side in number_map.items():
+            side_rows.append(
+                {
+                    "_dd_set": set_code,
+                    "_dd_number": number,
+                    "duelDeck": side,
+                }
+            )
+
+    if not side_rows:
+        return lf.with_columns(pl.lit(None).cast(pl.String).alias("duelDeck"))
+
+    sides_df = pl.LazyFrame(side_rows)
+
+    # Only applies to DD* and GS1 sets
+    is_duel_deck = pl.col("setCode").str.starts_with("DD") | (
+        pl.col("setCode") == "GS1"
+    )
+
+    # Join on setCode + number
+    lf = lf.join(
+        sides_df,
+        left_on=["setCode", "number"],
+        right_on=["_dd_set", "_dd_number"],
+        how="left",
+    )
+
+    # Null out duelDeck for non-duel-deck sets (in case of number collisions)
+    lf = lf.with_columns(
+        pl.when(is_duel_deck)
+        .then(pl.col("duelDeck"))
+        .otherwise(pl.lit(None))
+        .alias("duelDeck")
+    )
+
+    return lf
+
