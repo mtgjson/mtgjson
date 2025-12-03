@@ -1783,3 +1783,72 @@ def add_duel_deck_side(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     return lf
 
+def add_secret_lair_subsets(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Add subsets field for Secret Lair (SLD) cards.
+
+    Links collector numbers to drop names.
+    """
+    sld_df = ctx.sld_subsets_df if ctx else GLOBAL_CACHE.sld_subsets_df
+    if sld_df is None or sld_df.is_empty():
+        return lf.with_columns(pl.lit(None).cast(pl.List(pl.String)).alias("subsets"))
+
+    # Rename the subsets column before joining to avoid conflicts
+    sld_renamed = sld_df.rename({"subsets": "_sld_subsets"})
+    lf = lf.join(
+        sld_renamed.lazy(),
+        on="number",
+        how="left",
+    )
+
+    return lf.with_columns(
+        pl.when(pl.col("setCode") == "SLD")
+        .then(pl.col("_sld_subsets"))
+        .otherwise(pl.lit(None))
+        .alias("subsets")
+    ).drop("_sld_subsets", strict=False)
+
+
+def add_source_products(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Add sourceProducts field linking cards to sealed products.
+
+    Uses GitHubDataProvider.card_to_products_df for lazy join.
+    """
+    card_to_products_df = (
+        ctx.card_to_products_df if ctx else GLOBAL_CACHE.github.card_to_products_df
+    )
+
+    if card_to_products_df is None or card_to_products_df.is_empty():
+        return lf.with_columns(
+            pl.lit(None)
+            .cast(
+                pl.Struct(
+                    {
+                        "foil": pl.List(pl.String),
+                        "nonfoil": pl.List(pl.String),
+                        "etched": pl.List(pl.String),
+                    }
+                )
+            )
+            .alias("sourceProducts")
+        )
+
+    return (
+        lf.join(
+            card_to_products_df.lazy(),
+            on="uuid",
+            how="left",
+        )
+        .with_columns(
+            pl.struct(
+                [
+                    pl.col("foil"),
+                    pl.col("nonfoil"),
+                    pl.col("etched"),
+                ]
+            ).alias("sourceProducts")
+        )
+        .drop(["foil", "nonfoil", "etched"])
+    )
+
