@@ -1301,3 +1301,26 @@ def add_related_cards_struct(lf: pl.LazyFrame, ctx: PipelineContext = None) -> p
         .alias("relatedCards")
     ).drop(["_spellbook_list", "reverseRelated"], strict=False)
 
+
+def add_alternative_deck_limit(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Mark cards that don't have the standard 4-copy deck limit.
+
+    Uses Scryfall's cards_without_limits list (12 cards total like Seven Dwarves, Rat Colony, etc).
+    """
+    unlimited_cards = (
+        ctx.unlimited_cards if ctx else GLOBAL_CACHE.scryfall.cards_without_limits
+    )
+
+    if not unlimited_cards:
+        return lf.with_columns(
+            pl.lit(None).cast(pl.Boolean).alias("hasAlternativeDeckLimit")
+        )
+
+    return lf.with_columns(
+        pl.when(pl.col("name").is_in(list(unlimited_cards)))
+        .then(pl.lit(True))
+        .otherwise(pl.lit(None).cast(pl.Boolean))
+        .alias("hasAlternativeDeckLimit")
+    )
+
