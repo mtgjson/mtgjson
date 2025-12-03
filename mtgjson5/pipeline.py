@@ -1505,3 +1505,118 @@ def apply_manual_overrides(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.
 
     return lf
 
+def add_meld_card_parts(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Add cardParts for meld cards.
+
+    Uses meld_triplets lookup from cache (name -> [top, bottom, combined]).
+    Falls back to computed logic for new meld cards not in resource file.
+    """
+    meld_triplets = ctx.meld_triplets if ctx else GLOBAL_CACHE.meld_triplets
+
+    if not meld_triplets:
+        return lf.with_columns(pl.lit(None).cast(pl.List(pl.String)).alias("cardParts"))
+
+    # Build lookup DataFrame
+    meld_lookup = pl.LazyFrame(
+        [
+            {"_lookup_name": name, "_resource_parts": parts}
+            for name, parts in meld_triplets.items()
+        ]
+    )
+
+    # Join on faceName (or name if faceName is null)
+    lf = lf.with_columns(
+        pl.coalesce(pl.col("faceName"), pl.col("name")).alias("_meld_key")
+    )
+
+    lf = lf.join(meld_lookup, left_on="_meld_key", right_on="_lookup_name", how="left")
+
+    # Only set cardParts for meld layout cards
+    lf = lf.with_columns(
+        pl.when(pl.col("layout") == "meld")
+        .then(pl.col("_resource_parts"))
+        .otherwise(pl.lit(None))
+        .alias("cardParts")
+    )
+
+    return lf.drop(["_meld_key", "_resource_parts"], strict=False)
+
+
+def add_rebalanced_linkage(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Link rebalanced cards (A-Name) to their original printings and vice versa.
+
+    Adds:
+    - isRebalanced: True for Alchemy rebalanced cards (A-Name or promo_types contains 'rebalanced')
+    - originalPrintings: UUIDs of the original card (on rebalanced cards)
+    - rebalancedPrintings: UUIDs of the rebalanced version (on original cards)
+    """
+    # Rebalanced cards: names starting with "A-" or promo_types contains 'rebalanced'
+    # Original cards: names that match the stripped "A-" version
+
+    is_rebalanced = pl.col("name").str.starts_with("A-") | pl.col(
+        "promoTypes"
+    ).list.contains("rebalanced")
+
+    # Add isRebalanced boolean (True for rebalanced, null otherwise)
+    lf = lf.with_columns(
+        pl.when(is_rebalanced)
+        .then(pl.lit(True))
+        .otherwise(pl.lit(None).cast(pl.Boolean))
+        .alias("isRebalanced")
+    )
+
+    is_rebalanced = pl.col("name").str.starts_with("A-")
+    original_name_expr = pl.col("name").str.replace("^A-", "")
+
+    # Build rebalanced -> original name mapping with UUIDs
+    rebalanced_map = (
+        lf.filter(is_rebalanced)
+        .select(
+            [
+                original_name_expr.alias("_original_name"),
+                pl.col("uuid"),
+            ]
+        )
+        .group_by("_original_name")
+        .agg(pl.col("uuid").alias("_rebalanced_uuids"))
+    )
+
+    # Build original name -> original UUIDs mapping
+    # (cards that DON'T start with A- but whose name matches a rebalanced card's base name)
+    original_map = (
+        lf.filter(~is_rebalanced)
+        .select(
+            [
+                pl.col("name").alias("_original_name"),
+                pl.col("uuid"),
+            ]
+        )
+        .join(
+            rebalanced_map.select("_original_name").unique(),
+            on="_original_name",
+            how="semi",  # Only keep names that have a rebalanced version
+        )
+        .group_by("_original_name")
+        .agg(pl.col("uuid").alias("_original_uuids"))
+    )
+
+    # Join rebalancedPrintings onto original cards (by name)
+    lf = lf.join(
+        rebalanced_map,
+        left_on="name",
+        right_on="_original_name",
+        how="left",
+    ).rename({"_rebalanced_uuids": "rebalancedPrintings"})
+
+    # Join originalPrintings onto rebalanced cards (by stripped name)
+    lf = lf.join(
+        original_map,
+        left_on=original_name_expr,
+        right_on="_original_name",
+        how="left",
+    ).rename({"_original_uuids": "originalPrintings"})
+
+    return lf
+
