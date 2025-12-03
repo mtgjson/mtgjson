@@ -1001,3 +1001,50 @@ def join_gatherer_data(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.Lazy
 
     return lf.drop("_mv_id_lookup")
 
+def add_uuid_expr(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Generate MTGJSON UUIDs.
+
+    - Checks legacy cache first
+    - Falls back to deterministic UUID5(scryfallId + side)
+    - Uses numpy-vectorized batch computation
+    """
+    cache_df = ctx.uuid_cache_df if ctx else GLOBAL_CACHE.uuid_cache_df
+
+    if cache_df is None:
+        # No cache - generate all UUIDs from scratch
+        return lf.with_columns(
+            pl.concat_str(
+                [
+                    pl.col("scryfallId"),
+                    pl.col("side").fill_null("a"),
+                ]
+            )
+            .map_batches(uuid5_batch, return_dtype=pl.String)
+            .alias("uuid")
+        )
+
+    return (
+        lf.join(
+            cache_df.lazy(),
+            left_on=["scryfallId", "side"],
+            right_on=["scryfall_id", "side"],
+            how="left",
+        )
+        .with_columns(
+            pl.coalesce(
+                [
+                    pl.col("cached_uuid"),
+                    pl.concat_str(
+                        [
+                            pl.col("scryfallId"),
+                            pl.col("side").fill_null("a"),
+                        ]
+                    ).map_batches(uuid5_batch, return_dtype=pl.String),
+                ]
+            ).alias("uuid")
+        )
+        .drop("cached_uuid")
+    )
+
+
