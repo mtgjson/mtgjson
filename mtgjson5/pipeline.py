@@ -2334,3 +2334,458 @@ def build_cards(
     )
     LOGGER.info(f"Wrote hive-partitioned parquet to {parquet_dir}")
 
+
+def build_tokens(set_codes: list[str] | None = None, ctx: PipelineContext = None) -> None:
+    """
+    Build all tokens using the same vectorized pipeline as cards.
+
+    Tokens are filtered by layout (token, double_faced_token, emblem, art_series).
+    Output is written to _parquet_tokens/ partitioned by setCode.
+    """
+    if ctx is None:
+        if GLOBAL_CACHE.cards_df is None:
+            raise RuntimeError("Cache not loaded. Call GLOBAL_CACHE.load_all() first.")
+        ctx = PipelineContext.from_global_cache()
+
+    output_dir = MtgjsonConfig().output_path
+    token_parquet_dir = output_dir / "_parquet_tokens"
+
+    LOGGER.info("Building tokens pipeline...")
+
+    sets_lf = ctx.sets_df.lazy().select(
+        [
+            pl.col("code").str.to_uppercase().alias("set"),
+            pl.col("name").alias("set_name"),
+            pl.col("set_type"),
+            pl.col("card_count"),
+            pl.col("released_at").alias("set_release_date"),
+            pl.col("parent_set_code"),
+            pl.col("block"),
+            pl.col("block_code"),
+        ]
+    )
+
+    # Filter to tokens only
+    lf = (
+        ctx.cards_df.filter(
+            (pl.col("lang") == "en") & pl.col("layout").is_in(TOKEN_LAYOUTS)
+        )
+        .with_columns(pl.col("set").str.to_uppercase())
+        .join(sets_lf, on="set", how="left")
+    )
+
+    if set_codes:
+        lf = lf.filter(pl.col("set").is_in([s.upper() for s in set_codes]))
+
+    # Apply same transformations as cards (tokens need similar processing)
+    lf = (
+        lf.pipe(explode_card_faces)
+        .pipe(add_basic_fields)
+        .pipe(parse_type_line_expr)
+        .pipe(add_mana_info)
+        .pipe(add_card_attributes)
+        .pipe(filter_keywords_for_face)
+        .pipe(partial(add_legalities_struct, ctx=ctx))
+        .pipe(partial(add_availability_struct, ctx=ctx))
+        .pipe(partial(join_card_kingdom_data, ctx=ctx))
+        .pipe(add_identifiers_struct)
+        .pipe(partial(add_uuid_expr, ctx=ctx))
+        .pipe(add_reverse_related)
+        .pipe(add_token_signatures)
+        .pipe(add_orientations)
+    )
+
+    LOGGER.info("Sinking tokens to hive-partitioned parquet...")
+
+    final_lf = lf.pipe(rename_all_the_things, output_type="token")
+    final_lf.sink_parquet(
+        pl.PartitionByKey(
+            token_parquet_dir,
+            by=["setCode"],
+            include_key=True,
+        ),
+        mkdir=True,
+    )
+    LOGGER.info(f"Wrote tokens parquet to {token_parquet_dir}")
+
+
+def build_decks_df(set_code: str | None = None) -> pl.DataFrame:
+    """
+    Build decks DataFrame with full card lists.
+
+    Fetches raw deck data and transforms to MTGJSON format with
+    mainBoard, sideBoard, commander as lists of {count, uuid}.
+
+    Args:
+        set_code: set code filter. If None, returns all sets.
+
+    Returns:
+        DataFrame with full deck structure including card lists.
+    """
+    import requests
+
+    # Fetch raw deck data from GitHub
+    url = "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks_v2.json?raw=true"
+    try:
+        r = requests.get(url, timeout=30)
+        r.raise_for_status()
+        raw_decks = r.json()
+    except Exception as e:
+        LOGGER.warning(f"Failed to fetch deck data: {e}")
+        return pl.DataFrame()
+
+    def transform_card_list(cards: list[dict]) -> list[dict]:
+        """Transform raw card list to {count, uuid} format."""
+        return [
+            {"count": c.get("count", 1), "uuid": c.get("mtgjson_uuid")}
+            for c in cards
+            if c.get("mtgjson_uuid")
+        ]
+
+    decks = []
+    for deck in raw_decks:
+        deck_set_code = deck.get("set_code", "").upper()
+        if set_code and deck_set_code != set_code.upper():
+            continue
+
+        decks.append(
+            {
+                "setCode": deck_set_code,
+                "code": deck_set_code,
+                "name": deck.get("name"),
+                "type": deck.get("type"),
+                "releaseDate": deck.get("release_date"),
+                "sourceSetCodes": [s.upper() for s in deck.get("sourceSetCodes", [])],
+                "sealedProductUuids": None,  # Would need deck_map.json lookup
+                "mainBoard": transform_card_list(deck.get("cards", [])),
+                "sideBoard": transform_card_list(deck.get("sideboard", [])),
+                "commander": transform_card_list(deck.get("commander", [])),
+                "displayCommander": transform_card_list(
+                    deck.get("displayCommander", [])
+                ),
+                "planes": transform_card_list(deck.get("planarDeck", [])),
+                "schemes": transform_card_list(deck.get("schemeDeck", [])),
+                "tokens": transform_card_list(deck.get("tokens", [])),
+            }
+        )
+
+    if not decks:
+        return pl.DataFrame()
+
+    return pl.DataFrame(decks)
+
+
+def build_sealed_products_df(set_code: str | None = None) -> pl.DataFrame:
+    """
+    Build sealed products DataFrame with contents struct.
+
+    Joins github_sealed_products with github_sealed_contents
+    and aggregates contents by type (card, sealed, other).
+
+    Args:
+        set_code: set code filter. If None, returns all sets.
+
+    Returns:
+        DataFrame with columns: setCode, name, category, subtype, releaseDate,
+        identifiers (struct), contents (struct), uuid
+    """
+    import uuid as uuid_module
+
+    products_df = pl.read_parquet(
+        GLOBAL_CACHE.CACHE_DIR / "github_sealed_products.parquet"
+    )
+    contents_df = pl.read_parquet(
+        GLOBAL_CACHE.CACHE_DIR / "github_sealed_contents.parquet"
+    )
+
+    # Normalize set codes
+    products_df = products_df.with_columns(
+        pl.col("set_code").str.to_uppercase().alias("setCode")
+    )
+    contents_df = contents_df.with_columns(
+        pl.col("set_code").str.to_uppercase().alias("setCode")
+    )
+
+    if set_code:
+        products_df = products_df.filter(pl.col("setCode") == set_code.upper())
+        contents_df = contents_df.filter(pl.col("setCode") == set_code.upper())
+
+    # Aggregate contents by product and content_type
+    # Each content type becomes a list of structs
+    card_contents = (
+        contents_df.filter(pl.col("content_type") == "card")
+        .group_by(["setCode", "product_name"])
+        .agg(
+            pl.struct(
+                name=pl.col("name"),
+                number=pl.col("number"),
+                set=pl.col("set"),
+                uuid=pl.col("uuid"),
+                foil=pl.col("foil"),
+            ).alias("_card_list")
+        )
+    )
+
+    sealed_contents = (
+        contents_df.filter(pl.col("content_type") == "sealed")
+        .group_by(["setCode", "product_name"])
+        .agg(
+            pl.struct(
+                count=pl.col("count"),
+                name=pl.col("name"),
+                set=pl.col("set"),
+                uuid=pl.col("uuid"),
+            ).alias("_sealed_list")
+        )
+    )
+
+    other_contents = (
+        contents_df.filter(pl.col("content_type") == "other")
+        .group_by(["setCode", "product_name"])
+        .agg(
+            pl.struct(
+                name=pl.col("name"),
+            ).alias("_other_list")
+        )
+    )
+
+    # Join contents to products
+    result = (
+        products_df.join(card_contents, on=["setCode", "product_name"], how="left")
+        .join(sealed_contents, on=["setCode", "product_name"], how="left")
+        .join(other_contents, on=["setCode", "product_name"], how="left")
+    )
+
+    # Build contents struct
+    result = result.with_columns(
+        pl.struct(
+            card=pl.col("_card_list"),
+            sealed=pl.col("_sealed_list"),
+            other=pl.col("_other_list"),
+        ).alias("contents")
+    ).drop(["_card_list", "_sealed_list", "_other_list"])
+
+    # Clean up identifiers - remove null values
+    # identifiers is already a dict/struct from the parquet
+
+    # Generate UUID for each product
+    result = result.with_columns(
+        pl.col("product_name")
+        .map_elements(
+            lambda name: str(uuid_module.uuid5(uuid_module.NAMESPACE_DNS, name)),
+            return_dtype=pl.String,
+        )
+        .alias("uuid")
+    )
+
+    # Rename and select final columns
+    result = result.select(
+        [
+            "setCode",
+            pl.col("product_name").alias("name"),
+            pl.col("category").str.to_lowercase(),
+            pl.col("subtype").str.to_lowercase(),
+            pl.col("release_date").alias("releaseDate"),
+            "identifiers",
+            "contents",
+            "uuid",
+        ]
+    )
+
+    return result
+
+
+def build_set_metadata_df(ctx: PipelineContext] = None) -> pl.DataFrame:
+    """
+    Build a DataFrame containing all set-level metadata.
+
+    Includes: code, name, releaseDate, type, mcmId, tcgplayerGroupId,
+    booster configs, translations, etc.
+    """
+    if ctx is None:
+        ctx = PipelineContext.from_global_cache()
+
+    sets_df = ctx.sets_df
+
+    # Load booster configs
+    booster_df = pl.read_parquet(GLOBAL_CACHE.CACHE_DIR / "github_booster.parquet")
+
+    # Load translations
+    translations_path = constants.RESOURCE_PATH / "mkm_set_name_translations.json"
+    if translations_path.exists():
+        with translations_path.open(encoding="utf-8") as f:
+            json.load(f)
+    else:
+        pass
+
+    # Build set metadata DataFrame
+    set_meta = (
+        sets_df.with_columns(
+            [
+                pl.col("code").str.to_uppercase().alias("code"),
+                pl.col("name"),
+                pl.col("released_at").alias("releaseDate"),
+                pl.col("set_type").alias("type"),
+                pl.col("mtgo_code").str.to_uppercase().alias("mtgoCode"),
+                pl.col("tcgplayer_id").alias("tcgplayerGroupId"),
+                pl.col("digital").alias("isOnlineOnly"),
+                pl.col("foil_only").alias("isFoilOnly"),
+                pl.col("nonfoil_only").alias("isNonFoilOnly"),
+                pl.col("parent_set_code").str.to_uppercase().alias("parentCode"),
+                pl.col("block"),
+                # Keyrune code from icon URL
+                pl.col("icon_svg_uri")
+                .str.extract(r"/([^/]+)\.svg", 1)
+                .str.to_uppercase()
+                .alias("keyruneCode"),
+                # Token set code
+                pl.when(pl.col("code").str.starts_with("T"))
+                .then(pl.col("code").str.to_uppercase())
+                .otherwise(pl.lit("T") + pl.col("code").str.to_uppercase())
+                .alias("tokenSetCode"),
+            ]
+        )
+        .join(
+            booster_df.with_columns(
+                pl.col("set_code").str.to_uppercase().alias("code")
+            ),
+            on="code",
+            how="left",
+        )
+        .rename({"config": "booster"})
+    )
+
+    return set_meta
+
+
+def assemble_json_outputs(
+    set_codes: list[str] | None = None,
+    pretty_print: bool = False,
+) -> None:
+    """
+    Read parquet partitions and assemble final JSON files per set.
+
+    Combines cards, tokens, boosters, sealed products, decks into
+    the full MTGJSON set structure.
+    """
+    output_dir = MtgjsonConfig().output_path
+    parquet_dir = output_dir / "_parquet"
+
+    LOGGER.info("Assembling JSON outputs from parquet...")
+
+    # Get list of sets to process
+    if set_codes:
+        sets_to_process = [s.upper() for s in set_codes]
+    else:
+        # Get all set codes from parquet partitions
+        sets_to_process = [
+            p.name.replace("setCode=", "")
+            for p in parquet_dir.iterdir()
+            if p.is_dir() and p.name.startswith("setCode=")
+        ]
+
+    # Load set metadata
+    set_meta_df = build_set_metadata_df()
+    set_meta = {row["code"]: row for row in set_meta_df.to_dicts()}
+
+    # Load sealed products with proper contents structure
+    sealed_products_df = build_sealed_products_df()
+
+    # Load decks with full card lists
+    LOGGER.info("Fetching deck data...")
+    decks_df = build_decks_df()
+
+    # Build meta object
+    meta = MtgjsonMetaObject()
+    meta_dict = {"date": meta.date, "version": meta.version}
+
+    for set_code in sets_to_process:
+        LOGGER.info(f"Assembling {set_code}...")
+
+        # Get set metadata first (need tokenSetCode)
+        meta_row = set_meta.get(set_code, {})
+
+        # Read cards for this set
+        cards_path = parquet_dir / f"setCode={set_code}"
+        if not cards_path.exists():
+            LOGGER.warning(f"No cards found for {set_code}")
+            continue
+
+        cards_df = pl.read_parquet(cards_path / "*.parquet")
+        cards = cards_df.to_dicts()
+
+        # Read tokens for this set from the token set partition
+        # Token set code comes from metadata (e.g., TMOM for MOM)
+        tokens = []
+        token_set_code = meta_row.get("tokenSetCode", f"T{set_code}")
+        tokens_path = parquet_dir / f"setCode={token_set_code}"
+        if tokens_path.exists():
+            tokens_df = pl.read_parquet(tokens_path / "*.parquet")
+            tokens = tokens_df.to_dicts()
+            LOGGER.info(f"  Found {len(tokens)} tokens from {token_set_code}")
+
+        # Get sealed products for this set
+        set_sealed = (
+            sealed_products_df.filter(pl.col("setCode") == set_code)
+            .drop("setCode")
+            .to_dicts()
+        )
+
+        # Get decks for this set
+        set_decks = []
+        if len(decks_df) > 0:
+            set_decks = (
+                decks_df.filter(pl.col("setCode") == set_code)
+                .drop("setCode")
+                .to_dicts()
+            )
+
+        # Get booster config
+        booster = meta_row.get("booster")
+        if booster:
+            # Filter out null booster types
+            booster = {k: v for k, v in booster.items() if v is not None}
+
+        # Assemble final set object
+        set_data = {
+            "baseSetSize": len([c for c in cards if not c.get("isReprint")]),
+            "cards": cards,
+            "code": set_code,
+            "isFoilOnly": meta_row.get("isFoilOnly", False),
+            "isOnlineOnly": meta_row.get("isOnlineOnly", False),
+            "keyruneCode": meta_row.get("keyruneCode", set_code),
+            "name": meta_row.get("name", set_code),
+            "releaseDate": meta_row.get("releaseDate", ""),
+            "tcgplayerGroupId": meta_row.get("tcgplayerGroupId"),
+            "tokenSetCode": meta_row.get("tokenSetCode", f"T{set_code}"),
+            "tokens": tokens,
+            "totalSetSize": len(cards),
+            "type": meta_row.get("type", ""),
+        }
+
+        # Add optional fields
+        if booster:
+            set_data["booster"] = booster
+        if set_sealed:
+            set_data["sealedProduct"] = set_sealed
+        if set_decks:  
+            set_data["decks"] = set_decks
+        if meta_row.get("mtgoCode"):
+            set_data["mtgoCode"] = meta_row["mtgoCode"]
+        if meta_row.get("parentCode"):
+            set_data["parentCode"] = meta_row["parentCode"]
+        if meta_row.get("block"):
+            set_data["block"] = meta_row["block"]
+
+        # Final output
+        output = {"meta": meta_dict, "data": set_data}
+
+        # Write JSON
+        output_path = output_dir / f"{set_code}.json"
+        with output_path.open("wb") as f:
+            if pretty_print:
+                f.write(orjson.dumps(output, option=orjson.OPT_INDENT_2))
+            else:
+                f.write(orjson.dumps(output))
+        LOGGER.info(f"Wrote {output_path}")
+    LOGGER.info("JSON assembly complete.")
