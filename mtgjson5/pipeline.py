@@ -1265,3 +1265,39 @@ def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
         .alias("reverseRelated")
     ).drop("_all_parts")
 
+
+def add_related_cards_struct(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Vectorized spellbook logic.
+    Prerequisite: 'set_type' column must exist in lf.
+    """
+    spellbook_df = ctx.spellbook_df if ctx else GLOBAL_CACHE.spellbook_df
+    if spellbook_df is None or spellbook_df.is_empty():
+        return lf.with_columns(pl.lit(None).alias("relatedCards"))
+
+    # Rename 'spellbook' to '_spellbook_list' for internal use and join on name
+    spellbook_renamed = spellbook_df.rename({"spellbook": "_spellbook_list"})
+    lf = lf.join(spellbook_renamed.lazy(), on="name", how="left")
+
+    # Build relatedCards struct - include if either spellbook or reverseRelated has data
+    has_spellbook = (
+        pl.col("set_type").str.to_lowercase().str.contains("alchemy")
+        & pl.col("_spellbook_list").is_not_null()
+        & (pl.col("_spellbook_list").list.len() > 0)
+    )
+    has_reverse = pl.col("reverseRelated").is_not_null() & (
+        pl.col("reverseRelated").list.len() > 0
+    )
+
+    return lf.with_columns(
+        pl.when(has_spellbook | has_reverse)
+        .then(
+            pl.struct(
+                spellbook=pl.col("_spellbook_list"),
+                reverseRelated=pl.col("reverseRelated"),
+            )
+        )
+        .otherwise(pl.lit(None))
+        .alias("relatedCards")
+    ).drop(["_spellbook_list", "reverseRelated"], strict=False)
+
