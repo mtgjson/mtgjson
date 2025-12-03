@@ -1442,3 +1442,66 @@ def add_purchase_urls_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
         )
     )
 
+
+def apply_manual_overrides(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Apply manual field overrides keyed by UUID.
+
+    Handles special cases like Final Fantasy meld cards.
+    """
+    overrides = ctx.manual_overrides if ctx else GLOBAL_CACHE.manual_overrides
+    if not overrides:
+        return lf
+
+    # Map old field names to new pipeline names
+    field_name_map = {
+        "collector_number": "number",
+        "id": "scryfallId",
+        "oracle_id": "oracleId",
+        "set": "setCode",
+        "card_back_id": "cardBackId",
+    }
+
+    # Group overrides by field (using mapped names)
+    field_overrides: dict[str, dict[str, Any]] = {}
+    for uuid_key, fields in overrides.items():
+        for field_name, value in fields.items():
+            if field_name.startswith("__"):
+                continue
+            mapped_field = field_name_map.get(field_name, field_name)
+            if mapped_field not in field_overrides:
+                field_overrides[mapped_field] = {}
+            field_overrides[mapped_field][uuid_key] = value
+
+    # Get column names once
+    schema_names = lf.collect_schema().names()
+
+    # Apply each field's overrides
+    for field_name, uuid_map in field_overrides.items():
+        if field not in schema_names:
+            continue
+
+        # Determine return dtype from first value
+        sample_value = next(iter(uuid_map.values()))
+        if isinstance(sample_value, list):
+            return_dtype = pl.List(pl.String)
+        elif isinstance(sample_value, str):
+            return_dtype = pl.String
+        else:
+            return_dtype = pl.String
+
+        lf = lf.with_columns(
+            pl.when(pl.col("uuid").is_in(list(uuid_map.keys())))
+            .then(
+                pl.col("uuid").replace_strict(
+                    uuid_map,
+                    default=pl.col(field),
+                    return_dtype=return_dtype,
+                )
+            )
+            .otherwise(pl.col(field))
+            .alias(field)
+        )
+
+    return lf
+
