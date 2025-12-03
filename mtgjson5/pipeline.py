@@ -544,3 +544,83 @@ def add_booster_types(lf: pl.LazyFrame) -> pl.LazyFrame:
     ).drop("_in_booster")
 
 
+def add_legalities_struct(lf: pl.LazyFrame, ctx: PipelineContext = None ) -> pl.LazyFrame:
+    """
+    Builds legalities struct from Scryfall's legalities column.
+
+    Uses dynamically discovered format names instead of hardcoded list.
+    """
+    # Unnest the source struct to get individual format columns
+    lf = lf.unnest("legalities")
+
+    # Use discovered formats from source data
+    categoricals = ctx.categoricals if ctx else GLOBAL_CACHE.categoricals
+    formats = categoricals.legality_formats if categoricals else []
+
+    if not formats:
+        # Fallback: return empty struct if no formats discovered
+        return lf.with_columns(pl.lit(None).alias("legalities"))
+
+    # Build expressions for each format
+    struct_fields = []
+    for fmt in formats:
+        expr = (
+            pl.when(
+                pl.col(fmt).is_not_null()
+                & (pl.col(fmt) != "not_legal")
+                & (pl.col("set_type") != "memorabilia")
+            )
+            .then(pl.col(fmt).str.to_titlecase())
+            .otherwise(pl.lit(None))
+            .alias(fmt)
+        )
+        struct_fields.append(expr)
+
+    # Repack into struct and drop the unpacked columns
+    return lf.with_columns(pl.struct(struct_fields).alias("legalities")).drop(
+        formats, strict=False
+    )
+
+def add_availability_struct(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Build availability list from games column.
+
+    Uses dynamically discovered game platforms.
+    """
+    schema = lf.collect_schema()
+
+    if "games" not in schema.names():
+        return lf.with_columns(
+            pl.lit([]).cast(pl.List(pl.String)).alias("availability")
+        )
+
+    # Use discovered platforms
+    categoricals = ctx.categoricals if ctx else GLOBAL_CACHE.categoricals
+    platforms = categoricals.games if categoricals else []
+
+    if not platforms:
+        # Fallback: just pass through games as availability
+        return lf.with_columns(pl.col("games").alias("availability"))
+
+    games_dtype = schema["games"]
+
+    # Handle struct format (from parquet) vs list format (from JSON)
+    if isinstance(games_dtype, pl.Struct):
+        # Struct format: {paper: true, arena: false, mtgo: true}
+        return lf.with_columns(
+            pl.concat_list(
+                [
+                    pl.when(pl.col("games").struct.field(p).fill_null(False))
+                    .then(pl.lit(p))
+                    .otherwise(pl.lit(None))
+                    for p in platforms
+                ]
+            )
+            .list.drop_nulls()
+            .list.sort()
+            .alias("availability")
+        )
+    else:
+        # List format: ["paper", "mtgo"]
+        return lf.with_columns(pl.col("games").list.sort().alias("availability"))
+
