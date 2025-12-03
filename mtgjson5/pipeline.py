@@ -2189,3 +2189,148 @@ def rename_all_the_things(lf: pl.LazyFrame, output_type: str = "card_set") -> pl
 
     return df.select(final_cols).lazy()
 
+def build_cards(
+    set_codes: list[str] | None = None,
+    skip_tokens: bool = False,
+    ctx: PipelineContext = None
+    ) -> None:
+    """
+    Build all cards using fully vectorized Polars pipeline.
+
+    All operations run on the complete LazyFrame before a single sink.
+    No per-set iteration until final JSON output.
+
+    Args:
+        set_codes: list of set codes to filter. If None, builds all sets.
+        skip_tokens: If True, skip token-type cards.
+        ctx: PipelineContext with lookup data. If None, uses GLOBAL_CACHE.
+    """
+    # Use provided context or create from global cache
+    if ctx is None:
+        if GLOBAL_CACHE.cards_df is None:
+            raise RuntimeError("Cache not loaded. Call GLOBAL_CACHE.load_all() first.")
+        ctx = PipelineContext.from_global_cache()
+
+    if ctx.cards_df is None or ctx.sets_df is None:
+        raise RuntimeError("PipelineContext missing required cards_df or sets_df")
+
+    output_dir = MtgjsonConfig().output_path
+    output_dir.mkdir(parents=True, exist_ok=True)
+    parquet_dir = output_dir / "_parquet"
+
+    LOGGER.info("Building card pipeline...")
+
+    # =========================================================================
+    # Set Metadata Join
+    # =========================================================================
+    sets_lf = ctx.sets_df.lazy().select(
+        [
+            pl.col("code").str.to_uppercase().alias("set"),
+            pl.col("name").alias("set_name"),
+            pl.col("set_type"),
+            pl.col("card_count"),
+            pl.col("released_at").alias("set_release_date"),
+            pl.col("parent_set_code"),
+            pl.col("block"),
+            pl.col("block_code"),
+        ]
+    )
+
+    lf = (
+        ctx.cards_df.filter(pl.col("lang") == "en")
+        .with_columns(pl.col("set").str.to_uppercase())
+        .join(sets_lf, on="set", how="left")
+    )
+
+    if set_codes:
+        lf = lf.filter(pl.col("set").is_in([s.upper() for s in set_codes]))
+
+    if skip_tokens:
+        lf = lf.filter(
+            ~pl.col("layout").is_in(["token", "double_faced_token", "emblem"])
+        )
+
+    # =========================================================================
+    # PHASE 1: Core Transformations
+    # =========================================================================
+    lf = (
+        lf.pipe(explode_card_faces)
+        .pipe(add_basic_fields)
+        .pipe(parse_type_line_expr)
+        .pipe(add_mana_info)
+        .pipe(add_card_attributes)
+        .pipe(filter_keywords_for_face)
+        .pipe(add_booster_types)
+        .pipe(partial(add_legalities_struct, ctx=ctx))
+        .pipe(partial(add_availability_struct, ctx=ctx))
+    )
+
+    # =========================================================================
+    # PHASE 2: External Data Joins
+    # =========================================================================
+    lf = (
+        lf.pipe(partial(join_card_kingdom_data, ctx=ctx))
+        .pipe(partial(join_cardmarket_ids, ctx=ctx))
+        .pipe(add_identifiers_struct)
+        .pipe(partial(join_printings, ctx=ctx))
+        .pipe(partial(join_rulings, ctx=ctx))
+        .pipe(partial(join_foreign_data, ctx=ctx))
+        .pipe(partial(join_edhrec_data, ctx=ctx))
+        .pipe(partial(join_gatherer_data, ctx=ctx))
+    )
+
+    # =========================================================================
+    # PHASE 3: UUID Generation
+    # =========================================================================
+    lf = lf.pipe(partial(add_uuid_expr, ctx=ctx))
+
+    # =========================================================================
+    # PHASE 4: UUID-Dependent Derivations
+    # =========================================================================
+    lf = (
+        lf.pipe(add_other_face_ids)
+        .pipe(add_variations)
+        .pipe(partial(add_leadership_skills_expr, ctx=ctx))
+        .pipe(add_reverse_related)
+        .pipe(partial(add_related_cards_struct, ctx=ctx))
+        .pipe(partial(add_alternative_deck_limit, ctx=ctx))
+        .pipe(partial(add_is_funny, ctx=ctx))
+        .pipe(add_is_timeshifted)
+        .pipe(add_purchase_urls_struct)
+    )
+
+    # =========================================================================
+    # PHASE 5: Cross-Card Linkages (all lazy, no per-set iteration)
+    # =========================================================================
+    lf = (
+        lf.pipe(partial(apply_manual_overrides, ctx=ctx))
+        .pipe(partial(add_meld_card_parts, ctx=ctx))
+        .pipe(add_rebalanced_linkage)
+        .pipe(link_foil_nonfoil_versions)
+        .pipe(add_duel_deck_side)
+        .pipe(partial(add_secret_lair_subsets, ctx=ctx))
+        .pipe(partial(add_source_products, ctx=ctx))
+        .pipe(partial(add_multiverse_bridge_ids, ctx=ctx))
+    )
+
+    # =========================================================================
+    # PHASE 6: Token-Specific (still lazy, conditional on set_type/set_name)
+    # =========================================================================
+    lf = lf.pipe(add_token_signatures).pipe(add_orientations)
+
+    # =========================================================================
+    # PHASE 7: Final Selection & Sink
+    # =========================================================================
+    LOGGER.info("Sinking to hive-partitioned parquet...")
+
+    final_lf = lf.pipe(rename_all_the_things, output_type="card_set")
+    final_lf.sink_parquet(
+        pl.PartitionByKey(
+            parquet_dir,
+            by=["setCode"],
+            include_key=True,
+        ),
+        mkdir=True,
+    )
+    LOGGER.info(f"Wrote hive-partitioned parquet to {parquet_dir}")
+
