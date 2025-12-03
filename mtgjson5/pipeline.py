@@ -1364,3 +1364,81 @@ def add_is_timeshifted(lf: pl.LazyFrame) -> pl.LazyFrame:
         .alias("isTimeshifted")
     )
 
+
+def add_purchase_urls_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """Build purchaseUrls struct with SHA256 redirect hashes."""
+    base_url = "https://mtgjson.com/links/"
+
+    # Access identifier fields from inside the identifiers struct
+    ck_id = pl.col("identifiers").struct.field("cardKingdomId")
+    ckf_id = pl.col("identifiers").struct.field("cardKingdomFoilId")
+    cke_id = pl.col("identifiers").struct.field("cardKingdomEtchedId")
+    mcm_id = pl.col("identifiers").struct.field("mcmId")
+    tcg_id = pl.col("identifiers").struct.field("tcgplayerProductId")
+    tcge_id = pl.col("identifiers").struct.field("tcgplayerEtchedProductId")
+
+    return (
+        lf.with_columns(
+            [
+                pl.concat_str([pl.col("uuid"), pl.lit("cardKingdom")])
+                .map_batches(_url_hash_batch, return_dtype=pl.String)
+                .alias("_ck_hash"),
+                pl.concat_str([pl.col("uuid"), pl.lit("cardKingdomFoil")])
+                .map_batches(_url_hash_batch, return_dtype=pl.String)
+                .alias("_ckf_hash"),
+                pl.concat_str([pl.col("uuid"), pl.lit("cardKingdomEtched")])
+                .map_batches(_url_hash_batch, return_dtype=pl.String)
+                .alias("_cke_hash"),
+                pl.concat_str([pl.col("uuid"), pl.lit("cardmarket")])
+                .map_batches(_url_hash_batch, return_dtype=pl.String)
+                .alias("_cm_hash"),
+                pl.concat_str([pl.col("uuid"), pl.lit("tcgplayer")])
+                .map_batches(_url_hash_batch, return_dtype=pl.String)
+                .alias("_tcg_hash"),
+                pl.concat_str([pl.col("uuid"), pl.lit("tcgplayerEtched")])
+                .map_batches(_url_hash_batch, return_dtype=pl.String)
+                .alias("_tcge_hash"),
+            ]
+        )
+        .with_columns(
+            pl.struct(
+                [
+                    pl.when(ck_id.is_not_null())
+                    .then(pl.lit(base_url) + pl.col("_ck_hash"))
+                    .otherwise(None)
+                    .alias("cardKingdom"),
+                    pl.when(ckf_id.is_not_null())
+                    .then(pl.lit(base_url) + pl.col("_ckf_hash"))
+                    .otherwise(None)
+                    .alias("cardKingdomFoil"),
+                    pl.when(cke_id.is_not_null())
+                    .then(pl.lit(base_url) + pl.col("_cke_hash"))
+                    .otherwise(None)
+                    .alias("cardKingdomEtched"),
+                    pl.when(mcm_id.is_not_null())
+                    .then(pl.lit(base_url) + pl.col("_cm_hash"))
+                    .otherwise(None)
+                    .alias("cardmarket"),
+                    pl.when(tcg_id.is_not_null())
+                    .then(pl.lit(base_url) + pl.col("_tcg_hash"))
+                    .otherwise(None)
+                    .alias("tcgplayer"),
+                    pl.when(tcge_id.is_not_null())
+                    .then(pl.lit(base_url) + pl.col("_tcge_hash"))
+                    .otherwise(None)
+                    .alias("tcgplayerEtched"),
+                ]
+            ).alias("purchaseUrls")
+        )
+        .drop(
+            [
+                "_ck_hash",
+                "_ckf_hash",
+                "_cke_hash",
+                "_cm_hash",
+                "_tcg_hash",
+                "_tcge_hash",
+            ]
+        )
+    )
+
