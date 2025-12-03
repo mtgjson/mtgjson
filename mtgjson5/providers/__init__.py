@@ -2,8 +2,10 @@
 Provider Dispatcher
 """
 
+from .v2.bulkdata import BulkDataProvider
 from .cardhoarder import CardHoarderProvider
 from .cardkingdom import CardKingdomProvider
+from .v2.cardkingdom2 import CardKingdomProviderV2
 from .cardmarket.monolith import CardMarketProvider
 from .edhrec.card_ranks import EdhrecProviderCardRanks
 from .gatherer import GathererProvider
@@ -23,34 +25,7 @@ from .uuid_cache import UuidCacheProvider
 from .whats_in_standard import WhatsInStandardProvider
 from .wizards import WizardsProvider
 
-
-from .v2 import CardKingdomProviderV2
-from .v2 import GitHubDataProvider
 from .v2 import EdhrecSaltProvider
-
-
-__all__ = [
-    "CardHoarderProvider",
-    "CardKingdomProvider",
-    "CardMarketProvider",
-    "EdhrecProviderCardRanks",
-    "GathererProvider",
-    "GitHubBoostersProvider",
-    "GitHubCardSealedProductsProvider",
-    "GitHubDecksProvider",
-    "GitHubMTGSqliteProvider",
-    "GitHubSealedProvider",
-    "ManapoolPricesProvider",
-    "MtgWikiProviderSecretLair",
-    "MultiverseBridgeProvider",
-    "ScryfallProvider",
-    "ScryfallProviderOrientationDetector",
-    "ScryfallProviderSetLanguageDetector",
-    "TCGPlayerProvider",
-    "UuidCacheProvider",
-    "WhatsInStandardProvider",
-    "WizardsProvider",
-    "CardKingdomProviderV2",
-    "GitHubDataProvider",
-    "EdhrecSaltProvider",
-]
+from .v2 import CardKingdomProviderV2
+from .v2 import BulkDataProvider
+from .v2 import GitHubDataProvider

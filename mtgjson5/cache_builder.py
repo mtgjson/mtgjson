@@ -27,7 +27,7 @@ from mtgjson5.providers import (
     ScryfallProviderOrientationDetector,
     TCGPlayerProvider,
     WhatsInStandardProvider,
-    ZachsScryfallClassIsTooCoolForElmo,
+    BulkDataProvider,
 )
 from mtgjson5.utils import LOGGER
 
@@ -115,7 +115,7 @@ class GlobalCache:
         self._tcgplayer: TCGPlayerProvider | None = None
         self._secretlair: MtgWikiProviderSecretLair | None = None
         self._orientations: ScryfallProviderOrientationDetector | None = None
-        self._too_cool: ZachsScryfallClassIsTooCoolForElmo | None = None
+        self._too_cool: BulkDataProvider | None = None
 
         self._initialized = True
         self._loaded = False
@@ -133,6 +133,7 @@ class GlobalCache:
         if self._loaded and not force_refresh:
             LOGGER.info("Cache already loaded, skipping")
             return self
+        
 
         # Download bulk data if needed
         self._download_bulk_data(force_refresh)
@@ -293,7 +294,7 @@ class GlobalCache:
         LOGGER.info("[4/5] Loading provider data (parallel)...")
 
         # Load sets first (fast, ~0.3s) - needed by MCM loader
-
+        self._load_sets_metadata()
         LOGGER.info("  Loaded sets")
 
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -622,7 +623,15 @@ class GlobalCache:
         with path.open(encoding="utf-8") as f:
             data = json.load(f)
         return DynamicCategoricals(**data)
-
+    
+    def get_set(self) -> set[str]:
+        """Get all set codes from sets_df."""
+        if self.sets_df is None or self.sets_df.is_empty():
+            return set()
+        return set(
+            code.upper()
+            for code in self.sets_df.select(pl.col("code")).to_series().to_list()
+        )
     # =========================================================================
     # Provider Properties (Lazy Init)
     # =========================================================================
@@ -700,9 +709,9 @@ class GlobalCache:
         return self._secretlair
 
     @property
-    def too_cool(self) -> ZachsScryfallClassIsTooCoolForElmo:
+    def too_cool(self) -> BulkDataProvider:
         if self._toocool is None:
-            self._toocool = ZachsScryfallClassIsTooCoolForElmo()
+            self._toocool = BulkDataProvider()
         return self._toocool
 
     # =========================================================================
