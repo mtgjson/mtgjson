@@ -1353,3 +1353,14 @@ def add_is_funny(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
     )
 
 
+def add_is_timeshifted(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Vectorized 'isTimeshifted' logic.
+    """
+    return lf.with_columns(
+        pl.when((pl.col("frameVersion") == "future") | (pl.col("setCode") == "TSB"))
+        .then(pl.lit(True))
+        .otherwise(pl.lit(None))
+        .alias("isTimeshifted")
+    )
+
