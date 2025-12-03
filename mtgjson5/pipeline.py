@@ -2018,3 +2018,60 @@ def add_token_signatures(lf: pl.LazyFrame) -> pl.LazyFrame:
         ["_num_prefix", "_num_digits", "_num_suffix", "_sig_name"], strict=False
     )
 
+
+def add_orientations(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Add orientation field for Art Series tokens.
+
+    Fetches orientation maps for all Art Series sets in one pass,
+    then joins to the LazyFrame.
+
+    Assumes set metadata columns: set_name, setCode
+    """
+    # Identify Art Series sets in the data
+    art_series_sets = (
+        lf.filter(pl.col("set_name").str.contains("Art Series"))
+        .select("setCode")
+        .unique()
+        .collect()
+        .to_series()
+        .to_list()
+    )
+
+    if not art_series_sets:
+        return lf.with_columns(pl.lit(None).cast(pl.String).alias("orientation"))
+
+    # Fetch orientation maps for all Art Series sets
+    detector = ScryfallProviderOrientationDetector()
+    all_orientations = []
+
+    for set_code in art_series_sets:
+        orientation_map = detector.get_uuid_to_orientation_map(set_code)
+        if orientation_map:
+            for scryfall_id, orientation in orientation_map.items():
+                all_orientations.append(
+                    {
+                        "_orient_scryfall_id": scryfall_id,
+                        "orientation": orientation,
+                    }
+                )
+
+    if not all_orientations:
+        return lf.with_columns(pl.lit(None).cast(pl.String).alias("orientation"))
+
+    orientation_df = pl.LazyFrame(all_orientations)
+
+    # Join on scryfall_id from identifiers
+    lf = lf.with_columns(
+        pl.col("identifiers").struct.field("scryfallId").alias("_scryfall_id_orient")
+    )
+
+    lf = lf.join(
+        orientation_df,
+        left_on="_scryfall_id_orient",
+        right_on="_orient_scryfall_id",
+        how="left",
+    ).drop("_scryfall_id_orient")
+
+    return lf
+
