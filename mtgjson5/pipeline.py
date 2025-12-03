@@ -1197,3 +1197,55 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
     return lf.drop(["_base_name", "_group_uuids", "_printing_key"])
 
 
+def add_leadership_skills_expr(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Determine if a card can be a commander/oathbreaker/brawl commander.
+
+    Uses vectorized string operations instead of per-card checks.
+    """
+    # Override cards that can always be commander
+    override_cards = ["Grist, the Hunger Tide"]
+
+    # Commander legal check
+    is_legendary = pl.col("type").str.contains("Legendary")
+    is_creature = pl.col("type").str.contains("Creature")
+    is_vehicle_or_spacecraft = pl.col("type").str.contains("Vehicle|Spacecraft")
+    has_power_toughness = (
+        pl.col("power").is_not_null() & pl.col("toughness").is_not_null()
+    )
+    is_front_face = pl.col("side").is_null() | (pl.col("side") == "a")
+    can_be_commander_text = pl.col("text").str.contains("can be your commander")
+    is_override = pl.col("name").is_in(override_cards)
+
+    is_commander_legal = (
+        is_override
+        | (
+            is_legendary
+            & (is_creature | (is_vehicle_or_spacecraft & has_power_toughness))
+            & is_front_face
+        )
+        | can_be_commander_text
+    )
+
+    # Oathbreaker legal = is a planeswalker
+    is_oathbreaker_legal = pl.col("type").str.contains("Planeswalker")
+
+    # Brawl legal = set is in Standard AND (commander or oathbreaker eligible)
+    standard_sets = ctx.standard_legal_sets if ctx else GLOBAL_CACHE.standard_legal_sets
+    is_in_standard = pl.col("setCode").is_in(standard_sets or set())
+    is_brawl_legal = is_in_standard & (is_commander_legal | is_oathbreaker_legal)
+
+    return lf.with_columns(
+        pl.when(is_commander_legal | is_oathbreaker_legal | is_brawl_legal)
+        .then(
+            pl.struct(
+                brawl=is_brawl_legal,
+                commander=is_commander_legal,
+                oathbreaker=is_oathbreaker_legal,
+            )
+        )
+        .otherwise(pl.lit(None))
+        .alias("leadershipSkills")
+    )
+
+
