@@ -1852,3 +1852,69 @@ def add_source_products(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.Laz
         .drop(["foil", "nonfoil", "etched"])
     )
 
+
+def add_multiverse_bridge_ids(df: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Add Cardsphere and Deckbox IDs from MultiverseBridge data.
+
+    Joins on scryfall_id (from identifiers) to add:
+    - cardsphereId (non-foil)
+    - cardsphereFoilId (foil)
+    - deckboxId
+
+    These get merged into the identifiers struct.
+    """
+    rosetta_cards = (
+        ctx.multiverse_bridge_cards if ctx else GLOBAL_CACHE.multiverse_bridge_cards
+    )
+    if not rosetta_cards:
+        LOGGER.debug("MultiverseBridge cache not loaded, skipping")
+        return df
+
+    # Build lookup LazyFrame from rosetta data
+    # Input format: {scryfall_id: [{cs_id, is_foil, deckbox_id}, ...]}
+    records = []
+    for scryfall_id, entries in rosetta_cards.items():
+        cs_id = None
+        cs_foil_id = None
+        deckbox_id = None
+        for entry in entries:
+            if entry.get("is_foil"):
+                cs_foil_id = str(entry.get("cs_id", "")) if entry.get("cs_id") else None
+            else:
+                cs_id = str(entry.get("cs_id", "")) if entry.get("cs_id") else None
+            # deckbox_id is the same for foil/non-foil
+            if entry.get("deckbox_id") and not deckbox_id:
+                deckbox_id = str(entry["deckbox_id"])
+
+        records.append(
+            {
+                "_mb_scryfall_id": scryfall_id,
+                "cardsphereId": cs_id,
+                "cardsphereFoilId": cs_foil_id,
+                "deckboxId": deckbox_id,
+            }
+        )
+
+    if not records:
+        return df
+
+    rosetta_df = pl.LazyFrame(records)
+
+    # Extract scryfall_id from identifiers for join
+    df = df.with_columns(
+        pl.col("identifiers").struct.field("scryfallId").alias("_scryfall_id_for_mb")
+    )
+
+    # Join
+    df = df.join(
+        rosetta_df,
+        left_on="_scryfall_id_for_mb",
+        right_on="_mb_scryfall_id",
+        how="left",
+    )
+
+    # The identifiers struct will be rebuilt in LazyFrame_to_card_objects
+    # Just keep the columns for now
+    return df.drop("_scryfall_id_for_mb")
+
