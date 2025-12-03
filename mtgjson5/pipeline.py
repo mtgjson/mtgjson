@@ -1,6 +1,10 @@
 from dataclasses import dataclass, field
 import polars as pl
 
+from mtgjson5.cache import GLOBAL_CACHE
+
+
+TOKEN_LAYOUTS={"token", "double_faced_token", "emblem", "art_series"}
 
 @dataclass
 class PipelineContext:
@@ -35,6 +39,35 @@ class PipelineContext:
     # GitHub data
     card_to_products_df: pl.DataFrame|None = None
    
+   
+    @classmethod
+    def from_global_cache(cls) -> "PipelineContext":
+        """Create a PipelineContext from the global cache."""
+        return cls(
+            cards_df=GLOBAL_CACHE.cards_df,
+            sets_df=GLOBAL_CACHE.sets_df,
+            card_kingdom_df=GLOBAL_CACHE.card_kingdom_df,
+            mcm_lookup_df=GLOBAL_CACHE.mcm_lookup_df,
+            printings_df=GLOBAL_CACHE.printings_df,
+            rulings_df=GLOBAL_CACHE.rulings_df,
+            salt_df=GLOBAL_CACHE.salt_df,
+            spellbook_df=GLOBAL_CACHE.spellbook_df,
+            sld_subsets_df=GLOBAL_CACHE.sld_subsets_df,
+            uuid_cache_df=GLOBAL_CACHE.uuid_cache_df,
+            gatherer_map=GLOBAL_CACHE.gatherer_map,
+            meld_triplets=GLOBAL_CACHE.meld_triplets,
+            manual_overrides=GLOBAL_CACHE.manual_overrides,
+            multiverse_bridge_cards=GLOBAL_CACHE.multiverse_bridge_cards,
+            standard_legal_sets=GLOBAL_CACHE.standard_legal_sets,
+            unlimited_cards=GLOBAL_CACHE.scryfall.cards_without_limits
+            if GLOBAL_CACHE._scryfall
+            else set(),
+            categoricals=GLOBAL_CACHE.categoricals,
+            card_to_products_df=GLOBAL_CACHE.github.card_to_products_df
+            if GLOBAL_CACHE._github
+            else None,
+        )
+
  
 def _ascii_name_expr(expr: pl.Expr) -> pl.Expr:
     """
@@ -100,10 +133,16 @@ def _ascii_name_expr(expr: pl.Expr) -> pl.Expr:
         .str.replace_all("ç", "c")
     )
     
+
 def is_token_expr() -> pl.Expr:
-    """Expression to detect if a row is a token based on layout/type."""
+    """
+    Expression to detect if a row is a token based on layout/type.
+
+    Returns:
+        pl.Expr: Boolean expression for token detection.
+    """
     return (
-        pl.col("layout").is_in({"token", "double_faced_token", "emblem", "art_series"})
+        pl.col("layout").is_in(TOKEN_LAYOUTS)
         | (pl.col("type_line").fill_null("") == "Dungeon")
         | pl.col("type_line").fill_null("").str.contains("Token")
     )
@@ -116,3 +155,27 @@ def mark_tokens(lf: pl.LazyFrame) -> pl.LazyFrame:
     Should be called early in the pipeline so conditional expressions can use it.
     """
     return lf.with_columns(is_token_expr().alias("_isToken"))
+
+
+def token_conditional(
+    card_expr: pl.Expr,
+    token_expr: pl.Expr | None = None,
+    alias: str | None = None,
+) -> pl.Expr:
+    """
+    Return card_expr for cards, token_expr (or null) for tokens.
+
+    Usage:
+        .with_columns(
+            token_conditional(legalities_struct, alias="legalities"),  # null for tokens
+            token_conditional(pl.lit(None), reverse_related_expr, alias="reverseRelated"),  # only for tokens
+        )
+    """
+    expr = pl.when(~pl.col("_isToken")).then(card_expr)
+    if token_expr is not None:
+        expr = expr.otherwise(token_expr)
+    else:
+        expr = expr.otherwise(pl.lit(None))
+    if alias:
+        expr = expr.alias(alias)
+    return expr
