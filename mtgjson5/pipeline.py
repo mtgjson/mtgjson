@@ -1048,3 +1048,28 @@ def add_uuid_expr(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame
     )
 
 
+def add_identifiers_v4_uuid(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Add mtgjsonV4Id to identifiers struct.
+
+    Uses struct-based batch computation for v4 UUID formula.
+    """
+    return lf.with_columns(
+        pl.struct(
+            [
+                pl.col("scryfallId").alias("id"),
+                pl.col("name"),
+                pl.col("faceName").alias("face_name"),
+                pl.col("types"),
+                pl.col("colors"),
+                pl.col("power"),
+                pl.col("toughness"),
+                pl.col("side"),
+                pl.col("setCode").alias("set"),
+            ]
+        )
+        .map_batches(compute_v4_uuid_from_struct, return_dtype=pl.String)
+        .alias("mtgjsonV4Id")
+    )
+
+
