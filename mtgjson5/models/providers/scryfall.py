@@ -1,6 +1,8 @@
 from typing import Literal, Optional
 from uuid import UUID
+
 from pydantic.dataclasses import BaseModel, Field, dataclass
+
 
 @dataclass
 class CardFace(BaseModel):
@@ -127,7 +129,7 @@ class CardFace(BaseModel):
         default=None,
         description="The layout of this card face, if the card is reversible.",
     )
-    
+
     def get_schema(self) -> dict:
         """Return the schema representation of this dataclass."""
         return self.__class__.model_json_schema()

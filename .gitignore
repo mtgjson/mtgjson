@@ -113,7 +113,7 @@ venv*/
 # MTG JSON
 set_outputs/
 json_*/
-v*/
+
 mtgjson_logs/
 mtgjson_build_*/
 compiled_outputs/

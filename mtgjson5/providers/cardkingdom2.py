@@ -4,12 +4,13 @@ Card Kingdom price data fetcher and processor.
 Fetches pricing data from the Card Kingdom API and provides it in formats
 optimized for joining to MTGJSON card data.
 """
-import aiohttp
+
 import hashlib
 import logging
 from pathlib import Path
 from typing import Optional
 
+import aiohttp
 import polars as pl
 from pydantic import BaseModel, Field
 
@@ -18,6 +19,7 @@ LOGGER = logging.getLogger(__name__)
 
 class ConditionValues(BaseModel):
     """Condition-specific pricing from Card Kingdom."""
+
     nm_price: Optional[str] = None
     nm_qty: int = 0
     ex_price: Optional[str] = None
@@ -30,6 +32,7 @@ class ConditionValues(BaseModel):
 
 class CardRecord(BaseModel):
     """Single card record from Card Kingdom API."""
+
     id: int
     sku: str
     scryfall_id: Optional[str] = None
@@ -47,12 +50,14 @@ class CardRecord(BaseModel):
 
 class ApiMeta(BaseModel):
     """Metadata from Card Kingdom API response."""
+
     created_at: str
     base_url: str
 
 
 class ApiResponse(BaseModel):
     """Full Card Kingdom API response."""
+
     meta: ApiMeta
     data: list[CardRecord]
 
@@ -70,10 +75,12 @@ async def fetch_card_kingdom_data(timeout: float = 120.0) -> ApiResponse:
     LOGGER.info("Fetching data from Card Kingdom API...")
     headers = {"User-Agent": "mtgelmo-dev/mtgjson", "Accept": "application/json"}
     async with aiohttp.ClientSession(headers=headers) as client:
-        async with client.get(CK_API_URL, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
+        async with client.get(
+            CK_API_URL, timeout=aiohttp.ClientTimeout(total=timeout)
+        ) as response:
             response.raise_for_status()
             data = await response.json()
-        
+
     api_response = ApiResponse.model_validate(data)
     LOGGER.info(f"Successfully fetched {len(api_response.data):,} CK records")
     return api_response
@@ -92,85 +99,89 @@ def _parse_price(price_str: Optional[str]) -> Optional[float]:
 def _to_lazyframe(response: ApiResponse) -> pl.LazyFrame:
     """
     Convert API response to a flat Polars DataFrame.
-    
+
     This is the raw format with one row per SKU (foil and non-foil separate).
     """
     records = []
-    
+
     for card in response.data:
-        records.append({
-            "id": card.id,
-            "sku": card.sku,
-            "name": card.name,
-            "edition": card.edition,
-            "variation": card.variation,
-            "is_foil": card.is_foil,
-            "scryfall_id": card.scryfall_id,
-            "url": card.url,
-            "price_retail": _parse_price(card.price_retail),
-            "qty_retail": card.qty_retail,
-            "price_buy": _parse_price(card.price_buy),
-            "qty_buying": card.qty_buying,
-            "condition_nm_price": _parse_price(card.condition_values.nm_price),
-            "condition_nm_qty": card.condition_values.nm_qty,
-            "condition_ex_price": _parse_price(card.condition_values.ex_price),
-            "condition_ex_qty": card.condition_values.ex_qty,
-            "condition_vg_price": _parse_price(card.condition_values.vg_price),
-            "condition_vg_qty": card.condition_values.vg_qty,
-            "condition_g_price": _parse_price(card.condition_values.g_price),
-            "condition_g_qty": card.condition_values.g_qty,
-        })
-    
+        records.append(
+            {
+                "id": card.id,
+                "sku": card.sku,
+                "name": card.name,
+                "edition": card.edition,
+                "variation": card.variation,
+                "is_foil": card.is_foil,
+                "scryfall_id": card.scryfall_id,
+                "url": card.url,
+                "price_retail": _parse_price(card.price_retail),
+                "qty_retail": card.qty_retail,
+                "price_buy": _parse_price(card.price_buy),
+                "qty_buying": card.qty_buying,
+                "condition_nm_price": _parse_price(card.condition_values.nm_price),
+                "condition_nm_qty": card.condition_values.nm_qty,
+                "condition_ex_price": _parse_price(card.condition_values.ex_price),
+                "condition_ex_qty": card.condition_values.ex_qty,
+                "condition_vg_price": _parse_price(card.condition_values.vg_price),
+                "condition_vg_qty": card.condition_values.vg_qty,
+                "condition_g_price": _parse_price(card.condition_values.g_price),
+                "condition_g_qty": card.condition_values.g_qty,
+            }
+        )
+
     return pl.DataFrame(records).lazy()
 
 
 def to_pivoted_dataframe(response: ApiResponse) -> pl.LazyFrame:
     """
     Convert API response to a pivoted DataFrame ready for MTGJSON joins.
-    
+
     Output has one row per scryfall_id with columns:
     - scryfall_id (renamed to 'id' for joining to Scryfall data)
     - card_kingdom_id (non-foil CK product ID as string)
     - card_kingdom_foil_id (foil CK product ID as string)
     - card_kingdom_url (non-foil URL path)
     - card_kingdom_foil_url (foil URL path)
-    
+
     Cards without scryfall_id are excluded.
     """
     lf = _to_lazyframe(response)
-    
+
     # Filter to cards with scryfall_id and pivot
     return (
-        lf
-        .filter(pl.col("scryfall_id").is_not_null())
+        lf.filter(pl.col("scryfall_id").is_not_null())
         .with_columns(
             # Determine foil from SKU prefix (F prefix = foil)
-            pl.col("sku").str.starts_with("F").alias("_is_foil")
+            pl.col("sku")
+            .str.starts_with("F")
+            .alias("_is_foil")
         )
         .group_by("scryfall_id")
-        .agg([
-            # Non-foil: id and url
-            pl.col("id")
+        .agg(
+            [
+                # Non-foil: id and url
+                pl.col("id")
                 .filter(~pl.col("_is_foil"))
-                .first() # Get first non-foil ID
-                .cast(pl.String) # cast and alias
+                .first()  # Get first non-foil ID
+                .cast(pl.String)  # cast and alias
                 .alias("card_kingdom_id"),
-            pl.col("url") # aggregate URL
+                pl.col("url")  # aggregate URL
                 .filter(~pl.col("_is_foil"))
                 .first()
                 .alias("card_kingdom_url"),
-            
-            # Foil: id and url (same as above)
-            pl.col("id")
+                # Foil: id and url (same as above)
+                pl.col("id")
                 .filter(pl.col("_is_foil"))
                 .first()
                 .cast(pl.String)
                 .alias("card_kingdom_foil_id"),
-            pl.col("url")
+                pl.col("url")
                 .filter(pl.col("_is_foil"))
                 .first()
                 .alias("card_kingdom_foil_url"),
-        ])
+            ]
+        )
         # Rename to match Scryfall bulk data join key
         .rename({"scryfall_id": "id"})
     )
@@ -185,17 +196,18 @@ def url_keygen(seed: str) -> str:
 def generate_purchase_url(url_path: str | None, uuid: str) -> str | None:
     """
     Generate MTGJSON-style purchase URL for Card Kingdom.
-    
+
     Args:
         url_path: CK URL path (e.g., "/mtg/card/name")
         uuid: MTGJSON card UUID
-    
+
     Returns:
         Hashed redirect URL or None if url_path is None
     """
     if not url_path:
         return None
     return url_keygen(f"{CK_URL_PREFIX}{url_path}{uuid}")
+
 
 def write_parquet(
     df: pl.DataFrame,
@@ -217,7 +229,7 @@ def write_parquet(
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     df.write_parquet(
         path,
         compression=compression,
@@ -228,7 +240,7 @@ def write_parquet(
 
     size_mb = path.stat().st_size / 1024 / 1024
     LOGGER.info(f"Wrote {len(df):,} records to {path} ({size_mb:.2f} MB)")
-    
+
     return path
 
 
@@ -240,7 +252,7 @@ def load_parquet(path: str | Path) -> pl.DataFrame:
 class CardKingdomProviderV2:
     """
     Card Kingdom V2 data provider for MTGJSON pipeline.
-    
+
     Fetches pricing data and provides it in formats ready for joining
     to MTGJSON card data.
     (V2 provides a more detailed API than V1, but also lacks etched-foil data
@@ -250,18 +262,18 @@ class CardKingdomProviderV2:
         provider = CardKingdomProvider()
         provider.fetch()
         df = provider.get_join_data()
-        
+
         # Or load from cached parquet
         provider = CardKingdomProvider()
         provider.load("./cache/ck_prices.parquet")
         df = provider.get_join_data()
     """
-    
+
     def __init__(self):
         self._raw_df: pl.DataFrame | None = None
         self._pivoted_df: pl.DataFrame | None = None
         self._api_meta: ApiMeta | None = None
-    
+
     async def download(self, timeout: float = 120.0) -> "CardKingdomProviderV2":
         """Fetch fresh data from Card Kingdom API."""
         response = await fetch_card_kingdom_data(timeout=timeout)
@@ -269,13 +281,13 @@ class CardKingdomProviderV2:
         self._raw_df = _to_lazyframe(response).collect()
         self._pivoted_df = None
         return self
-    
+
     def load(self, path: str | Path) -> "CardKingdomProviderV2":
         """Load data from Parquet file."""
         self._raw_df = load_parquet(path)
         self._pivoted_df = None
         return self
-    
+
     def save(
         self,
         path: str | Path,
@@ -286,20 +298,20 @@ class CardKingdomProviderV2:
         if self._raw_df is None:
             raise ValueError("No data loaded. Call fetch() or load() first.")
         return write_parquet(self._raw_df, path, compression, compression_level)
-    
+
     @property
     def raw_df(self) -> pl.DataFrame:
         """Raw DataFrame with one row per SKU."""
         if self._raw_df is None:
             raise ValueError("No data loaded. Call fetch() or load() first.")
         return self._raw_df
-    
+
     def get_join_data(self) -> pl.DataFrame:
         """
         Get pivoted DataFrame ready for joining to MTGJSON cards.
 
         Join on 'id' column (scryfall_id).
-        
+
         Columns:
         - id: Scryfall ID (join key)
         - card_kingdom_id: Non-foil CK product ID
@@ -319,32 +331,31 @@ class CardKingdomProviderV2:
             raise ValueError("No data loaded.")
 
         return (
-            self._raw_df
-            .filter(pl.col("scryfall_id").is_not_null())
-            .with_columns(
-                pl.col("sku").str.starts_with("F").alias("_is_foil")
-            )
+            self._raw_df.filter(pl.col("scryfall_id").is_not_null())
+            .with_columns(pl.col("sku").str.starts_with("F").alias("_is_foil"))
             .group_by("scryfall_id")
-            .agg([
-                pl.col("id")
-                .filter(~pl.col("_is_foil"))
-                .first()
-                .cast(pl.String)
-                .alias("card_kingdom_id"),
-                pl.col("url")
-                .filter(~pl.col("_is_foil"))
-                .first()
-                .alias("card_kingdom_url"),
-                pl.col("id")
-                .filter(pl.col("_is_foil"))
-                .first()
-                .cast(pl.String)
-                .alias("card_kingdom_foil_id"),
-                pl.col("url")
-                .filter(pl.col("_is_foil"))
-                .first()
-                .alias("card_kingdom_foil_url"),
-            ])
+            .agg(
+                [
+                    pl.col("id")
+                    .filter(~pl.col("_is_foil"))
+                    .first()
+                    .cast(pl.String)
+                    .alias("card_kingdom_id"),
+                    pl.col("url")
+                    .filter(~pl.col("_is_foil"))
+                    .first()
+                    .alias("card_kingdom_url"),
+                    pl.col("id")
+                    .filter(pl.col("_is_foil"))
+                    .first()
+                    .cast(pl.String)
+                    .alias("card_kingdom_foil_id"),
+                    pl.col("url")
+                    .filter(pl.col("_is_foil"))
+                    .first()
+                    .alias("card_kingdom_foil_url"),
+                ]
+            )
             .rename({"scryfall_id": "id"})
         )
 
@@ -353,7 +364,7 @@ class CardKingdomProviderV2:
         if self._raw_df is None:
             return 0
         return len(self._raw_df)
-    
+
     def __repr__(self) -> str:
         status = "loaded" if self._raw_df is not None else "empty"
         count = len(self) if self._raw_df is not None else 0

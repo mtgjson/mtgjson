@@ -1,9 +1,19 @@
 from dataclasses import dataclass, field
+from functools import partial
+import pathlib
+import orjson
 import polars as pl
-
+from .categoricals import (
+    ALL_CARD_FIELDS,
+    TOKEN_EXCLUDE,
+    ATOMIC_EXCLUDE,
+    CARD_DECK_EXCLUDE,
+)
 from mtgjson5 import constants
 from mtgjson5.cache import GLOBAL_CACHE
+from mtgjson5.classes.mtgjson_meta import MtgjsonMetaObject
 from mtgjson5.models.providers.scryfall import CardFace
+from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.utils import LOGGER
 
 
@@ -1073,6 +1083,7 @@ def add_identifiers_v4_uuid(lf: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+
 def add_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Link multi-face cards via Scryfall ID.
@@ -1505,6 +1516,7 @@ def apply_manual_overrides(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.
 
     return lf
 
+
 def add_meld_card_parts(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
     """
     Add cardParts for meld cards.
@@ -1619,6 +1631,7 @@ def add_rebalanced_linkage(lf: pl.LazyFrame) -> pl.LazyFrame:
     ).rename({"_original_uuids": "originalPrintings"})
 
     return lf
+
 
 def link_foil_nonfoil_versions(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
@@ -1782,6 +1795,7 @@ def add_duel_deck_side(lf: pl.LazyFrame) -> pl.LazyFrame:
     )
 
     return lf
+
 
 def add_secret_lair_subsets(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
     """
@@ -2754,7 +2768,7 @@ def build_sealed_products_df(set_code: str | None = None) -> pl.DataFrame:
     return result
 
 
-def build_set_metadata_df(ctx: PipelineContext] = None) -> pl.DataFrame:
+def build_set_metadata_df(ctx: PipelineContext = None) -> pl.DataFrame:
     """
     Build a DataFrame containing all set-level metadata.
 

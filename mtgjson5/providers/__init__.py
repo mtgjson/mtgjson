@@ -2,6 +2,7 @@
 Provider Dispatcher
 """
 
+from .bulkdata import BulkDataProvider
 from .cardhoarder import CardHoarderProvider
 from .cardkingdom import CardKingdomProvider
 from .cardkingdom2 import CardKingdomProviderV2
@@ -23,4 +24,3 @@ from .tcgplayer import TCGPlayerProvider
 from .uuid_cache import UuidCacheProvider
 from .whats_in_standard import WhatsInStandardProvider
 from .wizards import WizardsProvider
-from .bulkdata import BulkDataProvider
