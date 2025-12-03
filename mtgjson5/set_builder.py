@@ -217,7 +217,7 @@ def get_scryfall_set_data(set_code: str) -> Optional[Dict[str, Any]]:
     :param set_code: Set to grab header for
     :return: Set header, if it exists
     """
-    set_data = GLOBAL_CACHE.get_set(set_code.upper())
+    set_data = GLOBAL_CACHE.get_set_metadata(set_code.upper())
     if set_data is None:
         LOGGER.warning(f"Set {set_code} not found in cache")
         return None
