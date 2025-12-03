@@ -1324,3 +1324,32 @@ def add_alternative_deck_limit(lf: pl.LazyFrame, ctx: PipelineContext = None) ->
         .alias("hasAlternativeDeckLimit")
     )
 
+
+def add_is_funny(lf: pl.LazyFrame, ctx: PipelineContext = None) -> pl.LazyFrame:
+    """
+    Vectorized 'isFunny' logic.
+
+    Note: This still uses hardcoded "funny" check since it's a semantic
+    value not just a categorical enumeration. But we could validate that
+    "funny" exists in categoricals.set_types if desired.
+    """
+    categoricals = ctx.categoricals if ctx else GLOBAL_CACHE.categoricals
+    # Validate "funny" is a known set_type (optional sanity check)
+    if categoricals is None or "funny" not in categoricals.set_types:
+        # No funny sets exist - return all null
+        return lf.with_columns(pl.lit(None).cast(pl.Boolean).alias("isFunny"))
+
+    return lf.with_columns(
+        pl.when(pl.col("set_type") != "funny")
+        .then(pl.lit(None))
+        .when(pl.col("setCode") == "UNF")
+        .then(
+            pl.when(pl.col("securityStamp") == "acorn")
+            .then(pl.lit(True))
+            .otherwise(pl.lit(None))
+        )
+        .otherwise(pl.lit(True))
+        .alias("isFunny")
+    )
+
+
