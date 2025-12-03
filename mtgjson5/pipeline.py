@@ -480,3 +480,67 @@ def add_card_attributes(lf: pl.LazyFrame) -> pl.LazyFrame:
         # allParts already exists from add_basic_fields rename
         pl.col("allParts").fill_null([]).alias("_all_parts"),
     )
+
+
+def filter_keywords_for_face(lf: pl.LazyFrame) -> pl.LazyFrame:
+    lf = lf.with_row_index("_kw_row_idx")
+    lf = lf.with_columns(
+        pl.col("text").fill_null("").str.to_lowercase().alias("_text_lower"),
+        pl.col("_all_keywords").fill_null([]),
+    )
+
+    # Process only rows that have keywords
+    keywords_filtered = (
+        lf.select("_kw_row_idx", "_text_lower", "_all_keywords")
+        .filter(pl.col("_all_keywords").list.len() > 0)
+        .explode("_all_keywords")
+        .filter(
+            pl.col("_text_lower").str.contains(
+                pl.col("_all_keywords").str.to_lowercase()
+            )
+        )
+        .group_by("_kw_row_idx")
+        .agg(pl.col("_all_keywords").sort().alias("keywords"))
+    )
+
+    # Left join preserves rows with no keywords; fill_null gives them []
+    return (
+        lf.join(keywords_filtered, on="_kw_row_idx", how="left")
+        .with_columns(pl.col("keywords").fill_null([]))
+        .drop(["_kw_row_idx", "_text_lower", "_all_keywords"])
+    )
+
+
+def add_booster_types(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Compute boosterTypes based on Scryfall booster field and promoTypes.
+
+    - If card is in boosters (booster=True), add "default"
+    - If promoTypes contains "starterdeck" or "planeswalkerdeck", add "deck"
+    """
+    return lf.with_columns(
+        pl.when(pl.col("_in_booster").fill_null(False))
+        .then(
+            pl.when(
+                pl.col("promoTypes")
+                .list.set_intersection(pl.lit(["starterdeck", "planeswalkerdeck"]))
+                .list.len()
+                > 0
+            )
+            .then(pl.lit(["default", "deck"]))
+            .otherwise(pl.lit(["default"]))
+        )
+        .otherwise(
+            pl.when(
+                pl.col("promoTypes")
+                .list.set_intersection(pl.lit(["starterdeck", "planeswalkerdeck"]))
+                .list.len()
+                > 0
+            )
+            .then(pl.lit(["deck"]))
+            .otherwise(pl.lit([]).cast(pl.List(pl.String)))
+        )
+        .alias("boosterTypes")
+    ).drop("_in_booster")
+
+
