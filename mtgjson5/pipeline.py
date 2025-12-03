@@ -1918,3 +1918,103 @@ def add_multiverse_bridge_ids(df: pl.LazyFrame, ctx: PipelineContext = None) -> 
     # Just keep the columns for now
     return df.drop("_scryfall_id_for_mb")
 
+
+def add_token_signatures(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Add signature field and "signed" finish for Art Series and memorabilia cards.
+
+    Assumes set metadata columns: set_name, set_type, setCode
+
+    Logic:
+    - Art Series (except MH1): signature = artist
+    - Memorabilia with gold border: signature from world_championship_signatures.json
+    """
+    import json
+
+    # Condition expressions
+    is_art_series = pl.col("set_name").str.ends_with("Art Series") & (
+        pl.col("setCode") != "MH1"
+    )
+    is_memorabilia = pl.col("set_type") == "memorabilia"
+
+    # Load world championship signatures
+    signatures_path = constants.RESOURCE_PATH / "world_championship_signatures.json"
+
+    if signatures_path.exists():
+        with signatures_path.open(encoding="utf-8") as f:
+            signatures_by_set = json.load(f)
+
+        # Flatten to DataFrame: setCode, prefix, signature_name
+        sig_rows = []
+        for set_code, prefix_map in signatures_by_set.items():
+            for prefix, sig_name in prefix_map.items():
+                sig_rows.append(
+                    {
+                        "_sig_set": set_code,
+                        "_sig_prefix": prefix,
+                        "_sig_name": sig_name,
+                    }
+                )
+
+        signatures_df = pl.LazyFrame(sig_rows) if sig_rows else None
+    else:
+        signatures_df = None
+
+    # Extract number prefix for memorabilia lookup
+    lf = lf.with_columns(
+        [
+            pl.col("number").str.extract(r"^([^0-9]+)", 1).alias("_num_prefix"),
+            pl.col("number").str.extract(r"^[^0-9]+([0-9]+)", 1).alias("_num_digits"),
+            pl.col("number").str.extract(r"^[^0-9]+[0-9]+(.*)", 1).alias("_num_suffix"),
+        ]
+    )
+
+    # Join signatures for memorabilia
+    if signatures_df is not None:
+        lf = lf.join(
+            signatures_df,
+            left_on=["setCode", "_num_prefix"],
+            right_on=["_sig_set", "_sig_prefix"],
+            how="left",
+        )
+    else:
+        lf = lf.with_columns(pl.lit(None).cast(pl.String).alias("_sig_name"))
+
+    # Compute signature field
+    # Art Series: signature = artist
+    # Memorabilia: signature from lookup (if gold border and valid number)
+    memorabilia_signature = (
+        pl.when(
+            (pl.col("borderColor") == "gold")
+            & pl.col("_sig_name").is_not_null()
+            & ~((pl.col("_num_digits") == "0") & (pl.col("_num_suffix") == "b"))
+        )
+        .then(pl.col("_sig_name"))
+        .otherwise(pl.lit(None))
+    )
+
+    lf = lf.with_columns(
+        pl.when(is_art_series)
+        .then(pl.col("artist"))
+        .when(is_memorabilia)
+        .then(memorabilia_signature)
+        .otherwise(pl.lit(None))
+        .alias("signature")
+    )
+
+    # Update finishes to include "signed" where signature exists
+    lf = lf.with_columns(
+        pl.when(
+            pl.col("signature").is_not_null()
+            & ~pl.col("finishes").list.contains("signed")
+        )
+        .then(pl.col("finishes").list.concat(pl.lit(["signed"])))
+        .otherwise(pl.col("finishes"))
+        .alias("finishes")
+    )
+
+    # Cleanup
+    return lf.drop(
+        ["_num_prefix", "_num_digits", "_num_suffix", "_sig_name"], strict=False
+    )
+
