@@ -1100,3 +1100,100 @@ def add_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Vectorized detection of Variations and Alternatives.
+
+    Variations: Cards with the same base name and face name but different UUID
+    is_alternative: Within cards sharing a "printing key", only the first is NOT alternative
+    """
+
+    # Normalize to base name by stripping " (" and beyond
+    lf = lf.with_columns(
+        pl.col("name").str.split(" (").list.first().alias("_base_name")
+    )
+
+    # Collect all UUIDs for each (set, base_name, faceName) group
+    variation_groups = (
+        lf.select(["setCode", "_base_name", "faceName", "uuid"])
+        .group_by(["setCode", "_base_name", "faceName"])
+        .agg(pl.col("uuid").alias("_group_uuids"))
+    )
+
+    # Join back to attach the full UUID list to each card
+    lf = lf.join(variation_groups, on=["setCode", "_base_name", "faceName"], how="left")
+
+    # Variations = group UUIDs minus self UUID
+    lf = lf.with_columns(
+        pl.when(pl.col("_group_uuids").list.len() > 1)
+        .then(
+            pl.col("_group_uuids")
+            .list.set_difference(pl.col("uuid").implode())  # Remove self
+            .list.sort()
+        )
+        .otherwise(pl.lit([]).cast(pl.List(pl.String)))
+        .alias("variations")
+    )
+
+    # Build the "printing key" that defines uniqueness within a set
+    frame_effects_str = pl.col("frameEffects").list.sort().list.join(",").fill_null("")
+
+    finishes_str = pl.col("finishes").list.sort().list.join(",").fill_null("")
+
+    # Base key: name|border|frame|effects|side
+    base_key = pl.concat_str(
+        [
+            pl.col("name"),
+            pl.lit("|"),
+            pl.col("borderColor").fill_null(""),
+            pl.lit("|"),
+            pl.col("frameVersion").fill_null(""),
+            pl.lit("|"),
+            frame_effects_str,
+            pl.lit("|"),
+            pl.col("side").fill_null(""),
+        ]
+    )
+
+    # For UNH/10E, also include finishes in the key
+    printing_key = (
+        pl.when(pl.col("setCode").is_in(["UNH", "10E"]))
+        .then(pl.concat_str([base_key, pl.lit("|"), finishes_str]))
+        .otherwise(base_key)
+        .alias("_printing_key")
+    )
+
+    lf = lf.with_columns(printing_key)
+
+    # Within each printing key, min(uuid) is the "canonical" first printing
+    # All others with the same key are alternatives
+    first_uuid_expr = pl.col("uuid").min().over(["setCode", "_printing_key"])
+
+    basic_lands = [
+        "Plains",
+        "Island",
+        "Swamp",
+        "Mountain",
+        "Forest",
+        "Snow-Covered Plains",
+        "Snow-Covered Island",
+        "Snow-Covered Swamp",
+        "Snow-Covered Mountain",
+        "Snow-Covered Forest",
+        "Wastes",
+    ]
+
+    lf = lf.with_columns(
+        pl.when(
+            (pl.col("variations").list.len() > 0)  # Has variations
+            & (~pl.col("name").is_in(basic_lands))  # Not a basic land
+            & (pl.col("uuid") != first_uuid_expr)  # Not the first in group
+        )
+        .then(pl.lit(True))
+        .otherwise(pl.lit(None))
+        .alias("isAlternative")
+    )
+    # Cleanup temp columns
+    return lf.drop(["_base_name", "_group_uuids", "_printing_key"])
+
+
