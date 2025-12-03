@@ -1073,3 +1073,30 @@ def add_identifiers_v4_uuid(lf: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+def add_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Link multi-face cards via Scryfall ID.
+
+    Since scryfallId is shared by all faces of a split card/MDFC,
+    grouping by scryfallId gathers all sibling UUIDs.
+    """
+    # Group by Scryfall ID to get list of MTGJSON UUIDs for this object
+    face_links = (
+        lf.select(["scryfallId", "uuid"])
+        .group_by("scryfallId")
+        .agg(pl.col("uuid").alias("_all_uuids"))
+    )
+
+    return (
+        lf.join(face_links, on="scryfallId", how="left")
+        .with_columns(
+            # Filter out own UUID from the list
+            # Cast scalar uuid to List(String) for set_difference
+            pl.col("_all_uuids")
+            .list.set_difference(pl.col("uuid").cast(pl.List(pl.String)))
+            .alias("otherFaceIds")
+        )
+        .drop("_all_uuids")
+    )
+
+
