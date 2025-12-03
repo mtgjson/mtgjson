@@ -2075,3 +2075,117 @@ def add_orientations(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     return lf
 
+def rename_all_the_things(lf: pl.LazyFrame, output_type: str = "card_set") -> pl.LazyFrame:
+    """
+    Final transformation: Renames internal columns to MTGJSON CamelCase,
+    builds nested structs, and selects only fields valid for the output_type.
+    """
+
+    # Rename Map: Internal (Snake/Scryfall) -> External (MTGJSON CamelCase)
+    rename_map = {
+        "uuid": "uuid",
+        "name": "name",
+        "faceName": "faceName",
+        "set": "setCode",
+        "number": "number",
+        "layout": "layout",
+        "manaCost": "manaCost",
+        "cmc": "convertedManaCost",
+        "manaValue": "manaValue",
+        "faceConvertedManaCost": "faceConvertedManaCost",
+        "faceManaValue": "faceManaValue",
+        "colors": "colors",
+        "colorIdentity": "colorIdentity",
+        "text": "text",
+        "flavorText": "flavorText",
+        "power": "power",
+        "toughness": "toughness",
+        "loyalty": "loyalty",
+        "defense": "defense",
+        "rarity": "rarity",
+        "artist": "artist",
+        "artistIds": "artistIds",
+        "borderColor": "borderColor",
+        "frameVersion": "frameVersion",
+        "frameEffects": "frameEffects",
+        "securityStamp": "securityStamp",
+        "watermark": "watermark",
+        "finishes": "finishes",
+        "promoTypes": "promoTypes",
+        "boosterTypes": "boosterTypes",
+        "edhrecRank": "edhrecRank",
+        "foreignData": "foreignData",
+        "identifiers": "identifiers",
+        "legalities": "legalities",
+        "rulings": "rulings",
+        "variations": "variations",
+        "isAlternative": "isAlternative",
+        "source_products": "sourceProducts",
+        "relatedCards": "relatedCards",
+        "has_foil": "hasFoil",
+        "has_non_foil": "hasNonFoil",
+        "is_reserved": "isReserved",
+        "is_oversized": "isOversized",
+        "is_promo": "isPromo",
+        "is_reprint": "isReprint",
+        "is_online_only": "isOnlineOnly",
+        "is_full_art": "isFullArt",
+        "is_textless": "isTextless",
+        "is_story_spotlight": "isStorySpotlight",
+        "is_funny": "isFunny",
+        "is_timeshifted": "isTimeshifted",
+    }
+
+    # We use strict=False because some source cols might be missing in specific batches
+    lf = lf.rename({k: v for k, v in rename_map.items()}, strict=False)
+
+    # Handle Special Logic (Face Mana Value)
+    # faceManaValue is already computed in add_mana_colors as the face-specific CMC
+    # faceConvertedManaCost is the deprecated name for the same field
+    # For non-multiface cards, these should be null (omitted from output)
+    multiface_layouts = [
+        "split",
+        "flip",
+        "transform",
+        "modal_dfc",
+        "meld",
+        "adventure",
+        "reversible_card",
+    ]
+
+    lf = lf.with_columns(
+        [
+            pl.when(pl.col("layout").is_in(multiface_layouts))
+            .then(pl.col("faceManaValue"))
+            .otherwise(pl.lit(None).cast(pl.Float64))
+            .alias("faceManaValue"),
+            pl.when(pl.col("layout").is_in(multiface_layouts))
+            .then(pl.col("faceManaValue"))
+            .otherwise(pl.lit(None).cast(pl.Float64))
+            .alias("faceConvertedManaCost"),
+        ]
+    )
+
+    # Keep availability as a sorted list of platforms
+    # e.g., ["arena", "mtgo", "paper"]
+    # (The struct format was used in older MTGJSON versions)
+
+    # Get the allowed fields for this specific output type (e.g. 'card_set' vs 'card_token')
+    if output_type == "card_set":
+        allowed_fields = ALL_CARD_FIELDS - CARD_SET_EXCLUDE
+    elif output_type == "card_token":
+        allowed_fields = ALL_CARD_FIELDS - TOKEN_EXCLUDE
+    elif output_type == "card_atomic":
+        allowed_fields = ALL_CARD_FIELDS - ATOMIC_EXCLUDE
+    elif output_type == "card_deck":
+        allowed_fields = (ALL_CARD_FIELDS - CARD_DECK_EXCLUDE) | {"count", "isFoil"}
+    else:
+        raise ValueError(f"Unknown output type: {output_type}")
+
+    # Collect to get actual schema, then select only allowed fields that exist
+    df = lf.collect()
+    existing_cols = set(df.columns)
+    final_cols = sorted(existing_cols & allowed_fields)
+
+    return df.select(final_cols).lazy()
+
