@@ -1,158 +1,242 @@
 {
   "FIN": {
-    "551a|Traveling Chocobo": {
-      "promo_types": [
-        "neoninkyellow"
-      ]
+    "551a": {
+      "name": "Traveling Chocobo",
+      "enrichment": {
+        "promo_types": [
+          "neoninkyellow"
+        ]
+      }
     },
-    "551b|Traveling Chocobo": {
-      "promo_types": [
-        "neoninkpink"
-      ]
+    "551b": {
+      "name": "Traveling Chocobo",
+      "enrichment": {
+        "promo_types": [
+          "neoninkpink"
+        ]
+      }
     },
-    "551c|Traveling Chocobo": {
-      "promo_types": [
-        "neoninkblue"
-      ]
+    "551c": {
+      "name": "Traveling Chocobo",
+      "enrichment": {
+        "promo_types": [
+          "neoninkblue"
+        ]
+      }
     },
-    "551d|Traveling Chocobo": {
-      "promo_types": [
-        "neoninkgreen"
-      ]
+    "551d": {
+      "name": "Traveling Chocobo",
+      "enrichment": {
+        "promo_types": [
+          "neoninkgreen"
+        ]
+      }
     }
   },
   "LCI": {
-    "410a|Cavern of Souls": {
-      "promo_types": [
-        "neoninkthreecolor",
-        "neoninkmulticolor",
-        "neoninkrainbow"
-      ]
+    "410a": {
+      "name": "Cavern of Souls",
+      "enrichment": {
+        "promo_types": [
+          "neoninkthreecolor",
+          "neoninkmulticolor",
+          "neoninkrainbow"
+        ]
+      }
     },
-    "410b|Cavern of Souls": {
-      "promo_types": [
-        "neoninkyellow"
-      ]
+    "410b": {
+      "name": "Cavern of Souls",
+      "enrichment": {
+        "promo_types": [
+          "neoninkyellow"
+        ]
+      }
     },
-    "410c|Cavern of Souls": {
-      "promo_types": [
-        "neoninkblue"
-      ]
+    "410c": {
+      "name": "Cavern of Souls",
+      "enrichment": {
+        "promo_types": [
+          "neoninkblue"
+        ]
+      }
     },
-    "410d|Cavern of Souls": {
-      "promo_types": [
-        "neoninkpurple"
-      ]
+    "410d": {
+      "name": "Cavern of Souls",
+      "enrichment": {
+        "promo_types": [
+          "neoninkpurple"
+        ]
+      }
     },
-    "410e|Cavern of Souls": {
-      "promo_types": [
-        "neoninkred"
-      ]
+    "410e": {
+      "name": "Cavern of Souls",
+      "enrichment": {
+        "promo_types": [
+          "neoninkred"
+        ]
+      }
     },
-    "410f|Cavern of Souls": {
-      "promo_types": [
-        "neoninkgreen"
-      ]
+    "410f": {
+      "name": "Cavern of Souls",
+      "enrichment": {
+        "promo_types": [
+          "neoninkgreen"
+        ]
+      }
     }
   },
   "NEO": {
-    "429|Hidetsugu, Devouring Chaos": {
-      "promo_types": [
-        "neoninkred"
-      ]
+    "429": {
+      "name": "Hidetsugu, Devouring Chaos",
+      "enrichment": {
+        "promo_types": [
+          "neoninkred"
+        ]
+      }
     },
-    "430|Hidetsugu, Devouring Chaos": {
-      "promo_types": [
-        "neoninkgreen"
-      ]
+    "430": {
+      "name": "Hidetsugu, Devouring Chaos",
+      "enrichment": {
+        "promo_types": [
+          "neoninkgreen"
+        ]
+      }
     },
-    "431|Hidetsugu, Devouring Chaos": {
-      "promo_types": [
-        "neoninkblue"
-      ]
+    "431": {
+      "name": "Hidetsugu, Devouring Chaos",
+      "enrichment": {
+        "promo_types": [
+          "neoninkblue"
+        ]
+      }
     },
-    "432|Hidetsugu, Devouring Chaos": {
-      "promo_types": [
-        "neoninkyellow"
-      ]
+    "432": {
+      "name": "Hidetsugu, Devouring Chaos",
+      "enrichment": {
+        "promo_types": [
+          "neoninkyellow"
+        ]
+      }
     }
   },
   "SLD": {
-    "424|Ghostly Prison": {
-      "promo_types": [
-        "neoninkyellow"
-      ]
+    "424": {
+      "name": "Ghostly Prison",
+      "enrichment": {
+        "promo_types": [
+          "neoninkyellow"
+        ]
+      }
     },
-    "425|Freed from the Real": {
-      "promo_types": [
-        "neoninkyellow"
-      ]
+    "425": {
+      "name": "Freed from the Real",
+      "enrichment": {
+        "promo_types": [
+          "neoninkyellow"
+        ]
+      }
     },
-    "426|Boseiju, Who Shelters All": {
-      "promo_types": [
-        "neoninkyellow"
-      ]
+    "426": {
+      "name": "Boseiju, Who Shelters All",
+      "enrichment": {
+        "promo_types": [
+          "neoninkyellow"
+        ]
+      }
     },
-    "427|Hall of the Bandit Lord": {
-      "promo_types": [
-        "neoninkyellow"
-      ]
+    "427": {
+      "name": "Hall of the Bandit Lord",
+      "enrichment": {
+        "promo_types": [
+          "neoninkyellow"
+        ]
+      }
     }
   },
   "SPG": {
-    "17a|Mana Crypt": {
-      "promo_types": [
-        "neoninkthreecolor",
-        "neoninkmulticolor",
-        "neoninkrainbow"
-      ]
+    "17a": {
+      "name": "Mana Crypt",
+      "enrichment": {
+        "promo_types": [
+          "neoninkthreecolor",
+          "neoninkmulticolor",
+          "neoninkrainbow"
+        ]
+      }
     },
-    "17b|Mana Crypt": {
-      "promo_types": [
-        "neoninkyellow"
-      ]
+    "17b": {
+      "name": "Mana Crypt",
+      "enrichment": {
+        "promo_types": [
+          "neoninkyellow"
+        ]
+      }
     },
-    "17c|Mana Crypt": {
-      "promo_types": [
-        "neoninkblue"
-      ]
+    "17c": {
+      "name": "Mana Crypt",
+      "enrichment": {
+        "promo_types": [
+          "neoninkblue"
+        ]
+      }
     },
-    "17d|Mana Crypt": {
-      "promo_types": [
-        "neoninkpurple"
-      ]
+    "17d": {
+      "name": "Mana Crypt",
+      "enrichment": {
+        "promo_types": [
+          "neoninkpurple"
+        ]
+      }
     },
-    "17e|Mana Crypt": {
-      "promo_types": [
-        "neoninkred"
-      ]
+    "17e": {
+      "name": "Mana Crypt",
+      "enrichment": {
+        "promo_types": [
+          "neoninkred"
+        ]
+      }
     },
-    "17f|Mana Crypt": {
-      "promo_types": [
-        "neoninkgreen"
-      ]
+    "17f": {
+      "name": "Mana Crypt",
+      "enrichment": {
+        "promo_types": [
+          "neoninkgreen"
+        ]
+      }
     }
   },
   "TLA": {
-    "359|Aang, Swift Savior // Aang and La, Ocean's Fury": {
-      "promo_types": [
-        "neoninkyellow"
-      ]
+    "359": {
+      "name": "Aang, Swift Savior // Aang and La, Ocean's Fury",
+      "enrichment": {
+        "promo_types": [
+          "neoninkyellow"
+        ]
+      }
     },
-    "360|Fire Lord Zuko": {
-      "promo_types": [
-        "neoninkred"
-      ]
+    "360": {
+      "name": "Fire Lord Zuko",
+      "enrichment": {
+        "promo_types": [
+          "neoninkred"
+        ]
+      }
     },
-    "361|Katara, the Fearless": {
-      "promo_types": [
-        "neoninkblue"
-      ]
+    "361": {
+      "name": "Katara, the Fearless",
+      "enrichment": {
+        "promo_types": [
+          "neoninkblue"
+        ]
+      }
     },
-    "362|Toph, the First Metalbender": {
-      "promo_types": [
-        "neoninkgreen"
-      ]
+    "362": {
+      "name": "Toph, the First Metalbender",
+      "enrichment": {
+        "promo_types": [
+          "neoninkgreen"
+        ]
+      }
     }
   }
 }

@@ -16,7 +16,7 @@ class TestEnrichmentProviderInit:
         assert "FIN" in provider._data
         assert "NEO" in provider._data
         # Check that set sections have card entries
-        assert "551a|Traveling Chocobo" in provider._data["FIN"]
+        assert "551a" in provider._data["FIN"]
 
     def test_init_handles_missing_file(self, tmp_path, monkeypatch):
         """Test that EnrichmentProvider handles missing enrichment file gracefully."""
@@ -34,8 +34,8 @@ class TestEnrichmentProviderInit:
 class TestEnrichmentProviderLookup:
     """Test EnrichmentProvider lookup strategies."""
 
-    def test_lookup_by_set_number_name(self):
-        """Test primary lookup by set+number+name (FIN 551a - Traveling Chocobo, yellow)."""
+    def test_lookup_by_set_number(self):
+        """Test primary lookup by set+number (FIN 551a - Traveling Chocobo, yellow)."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
         card.set_code = "FIN"
@@ -67,17 +67,30 @@ class TestEnrichmentProviderLookup:
         result = provider.get_enrichment_for_card(card)
         assert result == {"promo_types": ["neoninkgreen"]}
 
-    def test_lookup_with_wrong_name_returns_none(self):
-        """Test wrong name with correct set+number returns None (NEO 430 exists but name doesn't match)."""
+    def test_lookup_with_wrong_name_returns_none_and_logs_warning(self, caplog):
+        """Test wrong name with correct set+number returns None and logs a warning."""
         provider = EnrichmentProvider()
         card = MtgjsonCardObject()
         card.set_code = "NEO"
         card.number = "430"
         card.name = "Different Name"
         
-        # Production data has "430|Hidetsugu, Devouring Chaos" - name must match
         result = provider.get_enrichment_for_card(card)
+
         assert result is None
+        assert "Enrichment name mismatch for NEO:430" in caplog.text
+        assert "Card name 'Different Name' does not match expected name 'Hidetsugu, Devouring Chaos'" in caplog.text
+
+    def test_lookup_with_case_insensitive_name_returns_enrichment(self):
+        """Test case-insensitive name matching returns enrichment."""
+        provider = EnrichmentProvider()
+        card = MtgjsonCardObject()
+        card.set_code = "NEO"
+        card.number = "430"
+        card.name = "hidetsugu, devouring chaos"
+
+        result = provider.get_enrichment_for_card(card)
+        assert result == {"promo_types": ["neoninkgreen"]}
 
     def test_lookup_sld_card(self):
         """Test lookup for SLD card (SLD 424 - Ghostly Prison, yellow)."""
@@ -165,7 +178,7 @@ class TestEnrichmentProviderGetEnrichmentForSet:
         
         assert result is not None
         assert isinstance(result, dict)
-        assert "551a|Traveling Chocobo" in result
+        assert "551a" in result
 
     def test_get_enrichment_for_set_returns_none_for_missing_set(self):
         """Test that get_enrichment_for_set returns None for non-existent set."""
@@ -182,7 +195,7 @@ class TestEnrichmentProviderGetEnrichmentForSet:
         assert result is not None
         assert isinstance(result, dict)
         assert len(result) > 1  # NEO has multiple enriched cards
-        assert "430|Hidetsugu, Devouring Chaos" in result
+        assert "430" in result
 
 
 class TestEnrichmentProviderGetEnrichmentFromSetData:
@@ -218,15 +231,15 @@ class TestEnrichmentProviderGetEnrichmentFromSetData:
         """Test that get_enrichment_from_set_data returns reference (no deep copy)."""
         provider = EnrichmentProvider()
         set_enrichment = provider.get_enrichment_for_set("FIN")
-        
+
         card = MtgjsonCardObject()
         card.set_code = "FIN"
         card.number = "551a"
         card.name = "Traveling Chocobo"
-        
+
         result1 = provider.get_enrichment_from_set_data(set_enrichment, card)
         result2 = provider.get_enrichment_from_set_data(set_enrichment, card)
-        
+
         # Both should be the same reference from the dictionary
         assert result1 is result2
 

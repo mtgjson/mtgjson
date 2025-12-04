@@ -20,7 +20,7 @@ class EnrichmentProvider:
     """
     Loads mtgjson5/resources/card_enrichment.json and provides lookup helpers.
 
-    Lookup key format: {SET}->{collector_number}|{name}
+    Lookup key format: {SET}->{collector_number}
     """
 
     def __init__(self) -> None:
@@ -47,9 +47,9 @@ class EnrichmentProvider:
         """
         Construct the lookup key for a card.
         :param card: MTGJSON card object
-        :return: Lookup key in format "{number}|{name}"
+        :return: Lookup key in format "{number}"
         """
-        return f"{card.number}|{card.name}"
+        return card.number
 
     def get_enrichment_for_set(
         self, set_code: str
@@ -57,7 +57,7 @@ class EnrichmentProvider:
         """
         Get all enrichment data for a given set code.
         :param set_code: Set code to look up
-        :return: Dictionary of enrichment data keyed by "{number}|{name}", or None if not found
+        :return: Dictionary of enrichment data keyed by "{number}", or None if not found
         """
         return self._data.get(set_code)
 
@@ -71,7 +71,19 @@ class EnrichmentProvider:
         :return: Enrichment data dictionary or None if not found
         """
         key = self._make_card_key(card)
-        return set_enrichment.get(key)
+        entry = set_enrichment.get(key)
+        if not entry:
+            return None
+
+        expected_name = entry.get("name", "")
+        if card.name.lower() == expected_name.lower():
+            return entry.get("enrichment")
+
+        LOGGER.warning(
+            f"Enrichment name mismatch for {card.set_code}:{card.number}: "
+            f"Card name '{card.name}' does not match expected name '{expected_name}'"
+        )
+        return None
 
     def get_enrichment_for_card(
         self, card: MtgjsonCardObject
