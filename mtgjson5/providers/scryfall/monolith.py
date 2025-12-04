@@ -17,6 +17,7 @@ from singleton_decorator import singleton
 from ... import constants
 from ...mtgjson_config import MtgjsonConfig
 from ...providers.abstract import AbstractProvider
+from .data_source import get_bulk_data_source
 from . import sf_utils
 
 LOGGER = logging.getLogger(__name__)
@@ -68,6 +69,15 @@ class ScryfallProvider(AbstractProvider):
         :param starting_url: First Page URL
         :param params: Params to pass to Scryfall API
         """
+        # Delegate to bulk data source (falls through to API if needed)
+        return get_bulk_data_source().search(starting_url)
+
+    def _download_all_pages_api(
+        self,
+        starting_url: Optional[str],
+        params: Optional[Dict[str, Union[str, int]]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Original API-based pagination implementation."""
         all_cards: List[Dict[str, Any]] = []
 
         page_downloaded = 1
@@ -96,8 +106,6 @@ class ScryfallProvider(AbstractProvider):
 
         return all_cards
 
-    @ratelimit.sleep_and_retry
-    @ratelimit.limits(calls=15, period=1)
     def download(
         self,
         url: str,
@@ -105,8 +113,46 @@ class ScryfallProvider(AbstractProvider):
         retry_ttl: int = 3,
     ) -> Any:
         """
-        Download content from Scryfall
-        Api calls always return JSON from Scryfall
+        Download content from Scryfall.
+
+        Delegates to bulk data source for card search queries when available.
+        Falls back to API for non-card queries or when bulk data is unavailable.
+
+        :param url: URL to download from
+        :param params: Options for URL download
+        :param retry_ttl: How many times to retry if Chunk Error
+        """
+        # Check if this is a card search query that can use bulk data
+        if "/cards/search?" in url:
+            from .data_source import get_bulk_data_source
+            bulk_source = get_bulk_data_source()
+            if bulk_source._bulk_available or not bulk_source._loaded:
+                # Ensure bulk data is loaded
+                bulk_source._ensure_loaded()
+                if bulk_source._bulk_available:
+                    # Return in API response format with pagination wrapper
+                    cards = bulk_source.search(url)
+                    return {
+                        "object": "list",
+                        "total_cards": len(cards),
+                        "has_more": False,
+                        "data": cards
+                    }
+
+        # Fall through to rate-limited API call
+        return self._download_api(url, params, retry_ttl)
+
+    @ratelimit.sleep_and_retry
+    @ratelimit.limits(calls=15, period=1)
+    def _download_api(
+        self,
+        url: str,
+        params: Optional[Dict[str, Union[str, int]]] = None,
+        retry_ttl: int = 3,
+    ) -> Any:
+        """
+        Rate-limited API download for Scryfall.
+
         :param url: URL to download from
         :param params: Options for URL download
         :param retry_ttl: How many times to retry if Chunk Error
@@ -118,7 +164,7 @@ class ScryfallProvider(AbstractProvider):
             if retry_ttl:
                 LOGGER.warning(f"Download failed: {error}... Retrying")
                 time.sleep(3 - retry_ttl)
-                return self.download(url, params, retry_ttl - 1)
+                return self._download_api(url, params, retry_ttl - 1)
 
             LOGGER.error(f"Download failed: {error}... Maxed out retries")
             sys.exit(1)
@@ -134,15 +180,19 @@ class ScryfallProvider(AbstractProvider):
                 )
 
             time.sleep(5)
-            return self.download(url, params)
+            return self._download_api(url, params)
 
     def download_cards(self, set_code: str) -> List[Dict[str, Any]]:
         """
-        Get all cards from Scryfall API for a particular set code
+        Get all cards from Scryfall API for a particular set code.
+
+        Uses bulk data if available (via --bulk-files flag), otherwise
+        makes API calls.
+
         :param set_code: Set to download (Ex: AER, M19)
         :return: List of all card objects
         """
-        LOGGER.info(f"Downloading {set_code} cards")
+        LOGGER.info(f"Fetching {set_code} cards")
         scryfall_cards = self.download_all_pages(
             self.CARDS_URL_ALL_DETAIL_BY_SET_CODE.format(set_code)
         )
