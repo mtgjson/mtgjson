@@ -25,6 +25,10 @@ def parse_args() -> argparse.Namespace:
     )
 
     # What set(s) to build
+    def parse_sets(s: str) -> list[str]:
+        """Parse set codes, handling both comma and space separation."""
+        return [code.strip().upper() for code in s.split(",") if code.strip()]
+
     sets_group = parser.add_mutually_exclusive_group()
     sets_group.add_argument(
         "--sets",
@@ -73,7 +77,18 @@ def parse_args() -> argparse.Namespace:
         nargs="*",
         metavar="SET",
         default=[],
-        help="Purposely exclude sets from the build that may have been set using --sets or --all-sets.",
+        help="Purposely exclude sets from the build that may have been set using --sets or --all-sets. Supports comma or space separation.",
+    )
+    parser.add_argument(
+        "--polars",
+        action="store_true",
+        help="Enables Polars based high performance pipeline.",
+    )
+    parser.add_argument(
+        "--bulk-files",
+        "-BF",
+        action="store_true",
+        help="Enable the use of Scryfall bulk data files where possible.",
     )
 
     mtgjson_arg_group = parser.add_argument_group("mtgjson maintainer arguments")
@@ -115,6 +130,15 @@ def parse_args() -> argparse.Namespace:
 
     parsed_args = parser.parse_args()
 
+    if parsed_args.sets:
+        flattened_sets = []
+        for item in parsed_args.sets:
+            if isinstance(item, list):
+                flattened_sets.extend(item)
+            else:
+                flattened_sets.append(item.upper())
+        parsed_args.sets = flattened_sets
+
     if parsed_args.use_envvars:
         LOGGER.info("Using environment variables over parser flags")
         parsed_args.sets = list(filter(None, os.environ.get("SETS", "").split(",")))
@@ -123,6 +147,8 @@ def parse_args() -> argparse.Namespace:
         parsed_args.resume_build = bool(os.environ.get("RESUME_BUILD", False))
         parsed_args.compress = bool(os.environ.get("COMPRESS", False))
         parsed_args.pretty = bool(os.environ.get("PRETTY", False))
+        parsed_args.polars = bool(os.environ.get("POLARS", False))
+        parsed_args.bulk_files = bool(os.environ.get("USE_BULK", False))
         parsed_args.skip_sets = list(
             filter(None, os.environ.get("SKIP_SETS", "").split(","))
         )
