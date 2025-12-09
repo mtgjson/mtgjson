@@ -86,8 +86,7 @@ def dispatcher(args: argparse.Namespace) -> None:
     """
     from mtgjson5.compress_generator import (
         compress_mtgjson_contents,
-        compress_mtgjson_contents_parallel,
-        compress_mtgjson_contents_threaded,
+        compress_mtgjson_contents_parallel
     )
     from mtgjson5.context import PipelineContext
     from mtgjson5.mtgjson_config import MtgjsonConfig
@@ -115,9 +114,14 @@ def dispatcher(args: argparse.Namespace) -> None:
     outputs_requested = {o.lower() for o in (args.outputs or [])}
     export_formats = {f.lower() for f in (args.export or [])} if args.export else None
 
-    # Load global cache if using Polars pipeline or scryfall bulk files are enabled
+    # Enable bulk data for Scryfall searches when --bulk-files is set
+    # This allows legacy mode to use bulk NDJSON files instead of API calls
+    if args.bulk_files:
+        MtgjsonConfig().use_bulk_for_searches = True
+
+    # Load global cache only when using Polars pipeline
     # Pass set_codes to filter aggregation computations to only requested sets
-    if args.polars or args.bulk_files:
+    if args.polars:
         set_filter = None
         if sets_to_build and not args.all_sets:
             # Include token sets (T{code}) for each requested set
@@ -185,12 +189,11 @@ def dispatcher(args: argparse.Namespace) -> None:
             GitHubMTGSqliteProvider().build_alternative_formats()
 
     if args.compress:
-        if args.polars:
+        if args.parallel | args.polars:
             compress_mtgjson_contents_parallel(MtgjsonConfig().output_path)
-        elif args.parallel:
-            compress_mtgjson_contents_threaded(MtgjsonConfig().output_path)
         else:
             compress_mtgjson_contents(MtgjsonConfig().output_path)
+    
     generate_output_file_hashes(MtgjsonConfig().output_path)
 
     if args.aws_s3_upload_bucket:

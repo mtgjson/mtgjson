@@ -27,6 +27,7 @@ class MtgjsonConfig:
     use_cache: bool
     output_path: pathlib.Path
     vectorized: bool
+    use_bulk_for_searches: bool
 
     def __init__(
         self,
@@ -58,6 +59,7 @@ class MtgjsonConfig:
             )
 
         self.use_cache = self.get_boolean("MTGJSON", "use_cache", False)
+        self.use_bulk_for_searches = False  # Set by --polars or --bulk-files flags
         self.output_path = constants.ENV_OUT_PATH.joinpath(
             f"mtgjson_build_{self.mtgjson_version}"
         )
