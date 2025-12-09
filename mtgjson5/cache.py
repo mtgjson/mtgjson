@@ -462,16 +462,16 @@ class GlobalCache:
                 needs_download = True
 
         if needs_download:
-            LOGGER.info("[1/5] Downloading bulk data...")
+            LOGGER.info("Downloading bulk scryfall data...")
             self.bulkdata.download_bulk_files_sync(
                 self.cache_path, ["all_cards", "rulings"], force_refresh
             )
         else:
-            LOGGER.info("[1/5] Using cached bulk data")
+            LOGGER.info("Using cached bulk data")
 
     def _load_bulk_data(self) -> None:
         """Load bulk NDJSON files into LazyFrames."""
-        LOGGER.info("[2/5] Loading bulk data into LazyFrames...")
+        LOGGER.info("Loading LazyFrames...")
 
         cards_path = self.cache_path / "all_cards.ndjson"
         rulings_path = self.cache_path / "rulings.ndjson"
@@ -520,42 +520,17 @@ class GlobalCache:
 
         self.raw_rulings_df = pl.scan_ndjson(rulings_path, infer_schema_length=1000)
 
-        # Log file sizes
-        cards_size_mb = cards_path.stat().st_size / (1024 * 1024)
-        rulings_size_mb = rulings_path.stat().st_size / (1024 * 1024)
-        LOGGER.info(f"  [bulk] all_cards.ndjson: {cards_size_mb:.1f} MB")
-        LOGGER.info(f"  [bulk] rulings.ndjson: {rulings_size_mb:.1f} MB")
-
+       
     def _load_resources(self) -> None:
         """Load local JSON resource files."""
-        LOGGER.info("[3/5] Loading resource files...")
+        LOGGER.info("Loading resource files...")
 
         self.duel_deck_sides = cast(dict, load_resource_json("duel_deck_sides.json"))
-        LOGGER.info(
-            f"  [resource] duel_deck_sides: {_format_dict_size(self.duel_deck_sides)}"
-        )
-
         self.meld_data = load_resource_json("meld_triplets.json")
-        meld_count = (
-            len(self.meld_data)
-            if isinstance(self.meld_data, list)
-            else len(self.meld_data)
-        )
-        LOGGER.info(f"  [resource] meld_triplets: {meld_count} entries")
-
         self.world_championship_signatures = cast(
             dict, load_resource_json("world_championship_signatures.json")
         )
-        LOGGER.info(
-            f"  [resource] world_championship_signatures: {_format_dict_size(self.world_championship_signatures)}"
-        )
-
         self.manual_overrides = cast(dict, load_resource_json("manual_overrides.json"))
-        LOGGER.info(
-            f"  [resource] manual_overrides: {_format_dict_size(self.manual_overrides)}"
-        )
-
-        # UUID cache -> DataFrame (camelCase column names for consistency)
         uuid_raw = cast(dict, load_resource_json("legacy_mtgjson_v5_uuid_mapping.json"))
         if uuid_raw:
             rows = [
@@ -564,34 +539,27 @@ class GlobalCache:
                 for side, uuid in sides.items()
             ]
             self.uuid_cache_df = pl.DataFrame(rows)
-            LOGGER.info(
-                f"  [resource] uuid_cache_df: {_format_size(self.uuid_cache_df)}"
-            )
-
-        # Meld triplets -> DataFrame for joining
+       
         meld_triplets_expanded: dict[str, list[str]] = {}
         if isinstance(self.meld_data, list):
             for triplet in self.meld_data:
                 if len(triplet) == 3:
                     for name in triplet:
                         meld_triplets_expanded[name] = triplet
+       
         self.meld_triplets = meld_triplets_expanded
-        LOGGER.info(
-            f"  [resource] meld_triplets (expanded): {_format_dict_size(self.meld_triplets)}"
-        )
-
+        LOGGER.info("Loaded resource files")
+       
     def _load_sets_metadata(self) -> None:
         """Load set metadata from Scryfall."""
         cache_path = self.cache_path / "sets.parquet"
 
         if _cache_fresh(cache_path):
             self.sets_df = pl.read_parquet(cache_path).lazy()
-            LOGGER.info(f"  [sets] Loaded from cache: {_format_size(self.sets_df)}")
             return
 
         sets_response = self.scryfall.download(self.scryfall.ALL_SETS_URL)
         if sets_response.get("object") == "error":
-            LOGGER.warning("Failed to fetch sets from Scryfall")
             return
 
         sets_data = sets_response.get("data", [])
@@ -607,7 +575,7 @@ class GlobalCache:
             .select(
                 [
                     pl.col("parent_set_code"),
-                    pl.col("code").alias("tokenSetCode"),  # Already uppercased above
+                    pl.col("code").alias("tokenSetCode"),
                 ]
             )
         )
@@ -621,7 +589,6 @@ class GlobalCache:
 
         sets_df.write_parquet(cache_path)
         self.sets_df = sets_df.lazy()
-        LOGGER.info(f"  [sets] Fetched from Scryfall: {_format_size(self.sets_df)}")
 
     def _load_card_kingdom(self) -> None:
         """Load Card Kingdom data with caching.
@@ -637,9 +604,6 @@ class GlobalCache:
         if _cache_fresh(pivoted_cache) and _cache_fresh(raw_cache):
             self.card_kingdom_df = pl.read_parquet(pivoted_cache)
             self.card_kingdom_raw_df = pl.read_parquet(raw_cache)
-            LOGGER.info(
-                f"  [card_kingdom] Loaded from cache - pivoted: {_format_size(self.card_kingdom_df)}, raw: {_format_size(self.card_kingdom_raw_df)}"
-            )
             return
 
         # Initialize empty DataFrames
@@ -680,11 +644,7 @@ class GlobalCache:
             ):
                 self.card_kingdom_raw_df = self.card_kingdom._raw_df
                 self.card_kingdom_raw_df.write_parquet(raw_cache)
-            # pylint: enable=protected-access
 
-            LOGGER.info(
-                f"  [card_kingdom] Fetched - pivoted: {_format_size(self.card_kingdom_df)}, raw: {_format_size(self.card_kingdom_raw_df)}"
-            )
         except Exception as e:
             LOGGER.warning(f"Failed to fetch Card Kingdom data: {e}")
 
@@ -694,16 +654,12 @@ class GlobalCache:
 
         if _cache_fresh(cache_path):
             self.salt_df = pl.read_parquet(cache_path)
-            LOGGER.info(f"  [edhrec] Loaded from cache: {_format_size(self.salt_df)}")
             return
 
         self.salt_df = self.edhrec.get_data_frame()
         if self.salt_df is not None and len(self.salt_df) > 0:
             self.salt_df.write_parquet(cache_path)
-            LOGGER.info(f"  [edhrec] Fetched: {_format_size(self.salt_df)}")
-        else:
-            LOGGER.info("  [edhrec] No data available")
-
+           
     def _load_multiverse_bridge(self) -> None:
         """Load MultiverseBridge Rosetta Stone data."""
         cards_cache = self.cache_path / "multiverse_bridge_cards.json"
@@ -714,9 +670,6 @@ class GlobalCache:
                 self.multiverse_bridge_cards = json.loads(f.read())
             with sets_cache.open("rb") as f:
                 self.multiverse_bridge_sets = json.loads(f.read())
-            LOGGER.info(
-                f"  [multiverse_bridge] Loaded from cache - cards: {_format_dict_size(self.multiverse_bridge_cards)}, sets: {_format_dict_size(self.multiverse_bridge_sets)}"
-            )
             return
 
         self.multiverse_bridge_cards = self.multiverse.get_rosetta_stone_cards()
@@ -727,9 +680,6 @@ class GlobalCache:
         with sets_cache.open("w", encoding="utf-8") as f:
             json.dump(self.multiverse_bridge_sets, f)
 
-        LOGGER.info(
-            f"  [multiverse_bridge] Fetched - cards: {_format_dict_size(self.multiverse_bridge_cards)}, sets: {_format_dict_size(self.multiverse_bridge_sets)}"
-        )
 
     def _load_gatherer(self) -> None:
         """Load Gatherer original text data."""
@@ -738,18 +688,12 @@ class GlobalCache:
         if _cache_fresh(cache_path):
             with cache_path.open("rb") as f:
                 self.gatherer_map = json.loads(f.read())
-            LOGGER.info(
-                f"  [gatherer] Loaded map from cache: {_format_dict_size(self.gatherer_map)}"
-            )
+                
         else:
             self.gatherer_map = getattr(self.gatherer, "_multiverse_id_to_data", {})
             with cache_path.open("w", encoding="utf-8") as f:
                 json.dump(self.gatherer_map, f)
-            LOGGER.info(
-                f"  [gatherer] Built map: {_format_dict_size(self.gatherer_map)}"
-            )
 
-        # gatherer_map: {multiverse_id: [{original_text, original_types}, ...]}
         if self.gatherer_map:
             rows = []
             for mv_id, entries in self.gatherer_map.items():
@@ -775,16 +719,12 @@ class GlobalCache:
         if _cache_fresh(cache_path):
             with cache_path.open("rb") as f:
                 self.standard_legal_sets = set(json.loads(f.read()))
-            LOGGER.info(
-                f"  [standard] Loaded from cache: {len(self.standard_legal_sets)} sets"
-            )
             return
 
         self.standard_legal_sets = set(self.whats_in_standard.set_codes or [])
         with cache_path.open("w", encoding="utf-8") as f:
             json.dump(list(self.standard_legal_sets), f)
-        LOGGER.info(f"  [standard] Fetched: {len(self.standard_legal_sets)} sets")
-
+        
     def _load_github_data(self) -> None:
         """Load GitHub sealed/deck/booster data."""
         card_to_products_cache = self.cache_path / "github_card_to_products.parquet"
@@ -811,25 +751,12 @@ class GlobalCache:
             self.sealed_contents_df = pl.read_parquet(sealed_contents_cache).lazy()
             self.decks_df = pl.read_parquet(decks_cache).lazy()
             self.boosters_df = pl.read_parquet(booster_cache).lazy()
-
-            # Log sizes
-            sealed_cards_kb = card_to_products_cache.stat().st_size / 1024
-            sealed_products_kb = sealed_products_cache.stat().st_size / 1024
-            sealed_contents_kb = sealed_contents_cache.stat().st_size / 1024
-            decks_kb = decks_cache.stat().st_size / 1024
-            boosters_kb = booster_cache.stat().st_size / 1024
-            LOGGER.info("  [github] Loaded from cache:")
-            LOGGER.info(f"    sealed_cards: {sealed_cards_kb:.1f} KB")
-            LOGGER.info(f"    sealed_products: {sealed_products_kb:.1f} KB")
-            LOGGER.info(f"    sealed_contents: {sealed_contents_kb:.1f} KB")
-            LOGGER.info(f"    decks: {decks_kb:.1f} KB")
-            LOGGER.info(f"    boosters: {boosters_kb:.1f} KB")
             return
 
         # Start async load in background with callback
         def on_github_complete(provider: SealedDataProvider) -> None:
             """Called when GitHub data finishes loading."""
-            LOGGER.info("  [github] Data loaded, transferring to GlobalCache...")
+            LOGGER.info("Sealedd loaded - transferring to GlobalCache...")
 
             # Save to cache
             if provider.card_to_products_df is not None:
@@ -837,40 +764,27 @@ class GlobalCache:
                     card_to_products_cache
                 )
                 self.sealed_cards_df = provider.card_to_products_df
-                LOGGER.info(
-                    f"    sealed_cards: {_format_size(provider.card_to_products_df)}"
-                )
 
             if provider.sealed_products_df is not None:
                 provider.sealed_products_df.collect().write_parquet(
                     sealed_products_cache
                 )
                 self.sealed_products_df = provider.sealed_products_df
-                LOGGER.info(
-                    f"    sealed_products: {_format_size(provider.sealed_products_df)}"
-                )
 
             if provider.sealed_contents_df is not None:
                 provider.sealed_contents_df.collect().write_parquet(
                     sealed_contents_cache
                 )
                 self.sealed_contents_df = provider.sealed_contents_df
-                LOGGER.info(
-                    f"    sealed_contents: {_format_size(provider.sealed_contents_df)}"
-                )
 
             if provider.decks_df is not None:
                 provider.decks_df.collect().write_parquet(decks_cache)
                 self.decks_df = provider.decks_df
-                LOGGER.info(f"    decks: {_format_size(provider.decks_df)}")
-
+                
             if provider.boosters_df is not None:
                 provider.boosters_df.collect().write_parquet(booster_cache)
                 self.boosters_df = provider.boosters_df
-                LOGGER.info(f"    boosters: {_format_size(provider.boosters_df)}")
-
-            LOGGER.info("  [github] Transfer complete")
-
+                
         self.github.load_async_background(on_complete=on_github_complete)
 
     def _load_orientations(self) -> None:
@@ -878,10 +792,8 @@ class GlobalCache:
         cache_path = self.cache_path / "orientations.parquet"
         if _cache_fresh(cache_path):
             self.orientation_df = pl.read_parquet(cache_path)
-            LOGGER.info(
-                f"  [orientations] Loaded from cache: {_format_size(self.orientation_df)}"
-            )
             return
+        
         detector = ScryfallProviderOrientationDetector()
         sets_df_raw = self.sets_df
         if sets_df_raw is None:
@@ -905,17 +817,13 @@ class GlobalCache:
         self.orientation_df = pl.DataFrame(rows) if rows else pl.DataFrame()
         if len(self.orientation_df) > 0:
             self.orientation_df.write_parquet(cache_path)
-        LOGGER.info(f"  [orientations] Built: {_format_size(self.orientation_df)}")
-
+        
     def _load_secretlair_subsets(self) -> None:
         """Load Secret Lair subset mappings."""
         cache_path = self.cache_path / "sld_subsets.parquet"
 
         if _cache_fresh(cache_path):
             self.sld_subsets_df = pl.read_parquet(cache_path)
-            LOGGER.info(
-                f"  [secretlair] Loaded from cache: {_format_size(self.sld_subsets_df)}"
-            )
             return
 
         relation_map = self.secretlair.download()
@@ -925,10 +833,7 @@ class GlobalCache:
             ]
             self.sld_subsets_df = pl.DataFrame(rows)
             self.sld_subsets_df.write_parquet(cache_path)
-            LOGGER.info(f"  [secretlair] Fetched: {_format_size(self.sld_subsets_df)}")
-        else:
-            LOGGER.info("  [secretlair] No data available")
-
+            
     def _load_mcm_lookup(self) -> None:
         """
         Build MCM lookup table from CardMarket provider.
@@ -940,9 +845,6 @@ class GlobalCache:
 
         if _cache_fresh(cache_path):
             self.mcm_lookup_df = pl.read_parquet(cache_path)
-            LOGGER.info(
-                f"  [mcm] Loaded from cache: {_format_size(self.mcm_lookup_df)}"
-            )
             return
 
         sets_df_raw = self.sets_df
@@ -958,7 +860,6 @@ class GlobalCache:
             LOGGER.warning("Sets not loaded, skipping MCM lookup table")
             return
 
-        LOGGER.info("  [mcm] Building lookup table (this may take a few minutes)...")
         try:
             self.mcm_lookup_df = pl.DataFrame(
                 {
@@ -976,9 +877,6 @@ class GlobalCache:
                     "nameLower": pl.String,
                     "number": pl.String,
                 }
-            )
-            LOGGER.info(
-                f"  [mcm] Built empty placeholder: {_format_size(self.mcm_lookup_df)}"
             )
         except Exception as e:
             LOGGER.error(f"Failed to build MCM lookup: {e}")

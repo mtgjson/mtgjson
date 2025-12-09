@@ -61,10 +61,6 @@ class MtgjsonConfig:
         self.output_path = constants.ENV_OUT_PATH.joinpath(
             f"mtgjson_build_{self.mtgjson_version}"
         )
-        self.vectorized = self.get_boolean(
-            "MTGJSON", "vectorized", True
-        )
-        self.logger.info(f"Using vectorized processing: {self.vectorized}")
 
     def __load_config_from_aws_ssm(self, config_name: str) -> None:
         """
