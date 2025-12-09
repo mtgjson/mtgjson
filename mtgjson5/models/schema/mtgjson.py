@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     import pyarrow as pa
 
 
+# All available card fields
 ALL_CARD_FIELDS: FrozenSet[str] = frozenset(
     {
         # Identity
@@ -143,6 +144,7 @@ ALL_CARD_FIELDS: FrozenSet[str] = frozenset(
     }
 )
 
+# Fields for identifiers struct
 IDENTIFIER_FIELDS: FrozenSet[str] = frozenset(
     {
         "abuId",
@@ -174,6 +176,7 @@ IDENTIFIER_FIELDS: FrozenSet[str] = frozenset(
     }
 )
 
+# Fields for legalities struct
 LEGALITY_FORMATS: FrozenSet[str] = frozenset(
     {
         "alchemy",
@@ -202,6 +205,7 @@ LEGALITY_FORMATS: FrozenSet[str] = frozenset(
     }
 )
 
+# Fields for purchaseUrls struct
 PURCHASE_URL_FIELDS: FrozenSet[str] = frozenset(
     {
         "cardKingdom",
@@ -213,6 +217,7 @@ PURCHASE_URL_FIELDS: FrozenSet[str] = frozenset(
     }
 )
 
+# Fields that may be optionally omitted if all False in Card output
 OPTIONAL_BOOL_FIELDS: FrozenSet[str] = frozenset(
     {
         "hasAlternativeDeckLimit",
@@ -234,6 +239,7 @@ OPTIONAL_BOOL_FIELDS: FrozenSet[str] = frozenset(
     }
 )
 
+# Fields that must be present as booleans in Card output
 REQUIRED_BOOL_FIELDS: FrozenSet[str] = frozenset(
     {
         "hasFoil",
@@ -241,6 +247,7 @@ REQUIRED_BOOL_FIELDS: FrozenSet[str] = frozenset(
     }
 )
 
+# Fields that must be present as lists in Deck output
 REQUIRED_DECK_LIST_FIELDS: FrozenSet[str] = frozenset(
     {
         "commander",
@@ -254,6 +261,140 @@ REQUIRED_DECK_LIST_FIELDS: FrozenSet[str] = frozenset(
     }
 )
 
+# Fields NOT present on CardToken
+TOKEN_EXCLUDE: FrozenSet[str] = frozenset(
+    {
+        # No mana value on tokens
+        "manaValue",
+        "convertedManaCost",
+        "faceManaValue",
+        "faceConvertedManaCost",
+        # No gameplay metadata
+        "rarity",
+        "edhrecRank",
+        "legalities",
+        "leadershipSkills",
+        "purchaseUrls",
+        "rulings",
+        "foreignData",
+        "printings",
+        "firstPrinting",
+        # No rebalancing
+        "isRebalanced",
+        "originalPrintings",
+        "rebalancedPrintings",
+        # No starter/reserved status
+        "isStarter",
+        "isReserved",
+        "isTimeshifted",
+        "isAlternative",
+        "isGameChanger",
+        # No deck limit info
+        "hasAlternativeDeckLimit",
+        "hasContentWarning",
+        # Other missing
+        "duelDeck",
+        "variations",
+        "hand",
+        "life",
+        "printedName",
+        "printedText",
+        "printedType",
+        "originalReleaseDate",
+        "sourceProducts",
+        # Deck-specific
+        "count",
+        "isFoil",
+    }
+)
+
+# Fields NOT present on CardSet (the standard card type)
+CARD_SET_EXCLUDE: FrozenSet[str] = frozenset(
+    {
+        # Token-only
+        "orientation",
+        "reverseRelated",  # On CardSet this is inside relatedCards
+        # Atomic-only
+        "firstPrinting",
+        # Deck-only
+        "count",
+        "isFoil",
+    }
+)
+
+# Fields NOT present on CardAtomic (oracle-level, no printing info)
+ATOMIC_EXCLUDE: FrozenSet[str] = frozenset(
+    {
+        # No printing-specific data
+        "setCode",
+        "number",
+        "artist",
+        "artistIds",
+        "borderColor",
+        "frameVersion",
+        "frameEffects",
+        "securityStamp",
+        "watermark",
+        "signature",
+        "orientation",
+        "finishes",
+        "hasFoil",
+        "hasNonFoil",
+        "availability",
+        "boosterTypes",
+        "flavorText",
+        "flavorName",
+        "faceFlavorName",
+        "originalReleaseDate",
+        "promoTypes",
+        "rarity",
+        "language",
+        "printedName",
+        "printedText",
+        "printedType",
+        "duelDeck",
+        # No per-printing flags
+        "isAlternative",
+        "isFullArt",
+        "isOnlineOnly",
+        "isOversized",
+        "isPromo",
+        "isRebalanced",
+        "isReprint",
+        "isStarter",
+        "isStorySpotlight",
+        "isTextless",
+        "isTimeshifted",
+        "hasContentWarning",
+        # No per-printing relations
+        "otherFaceIds",
+        "variations",
+        "originalPrintings",
+        "rebalancedPrintings",
+        "reverseRelated",
+        "sourceProducts",
+        "foreignData",
+        # No per-printing rankings
+        "edhrecRank",
+        # Deck-specific
+        "count",
+        "isFoil",
+    }
+)
+
+# Fields NOT present on CardDeck
+CARD_DECK_EXCLUDE: FrozenSet[str] = frozenset(
+    {
+        # Token-only
+        "orientation",
+        # Atomic-only
+        "firstPrinting",
+        # Not included in deck card output
+        "originalReleaseDate",
+    }
+)
+
+# Polars data types for all card fields
 FIELD_TYPES: dict[str, pl.DataType] = {
     # Identity
     "uuid": pl.String(),
@@ -387,6 +528,7 @@ FIELD_TYPES: dict[str, pl.DataType] = {
     "count": pl.Int64(),
     "isFoil": pl.Boolean(),
 }
+
 
 CardTypes = Literal["card_set", "card_token", "card_atomic", "card_deck"]
 
