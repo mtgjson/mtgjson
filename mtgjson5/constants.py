@@ -16,6 +16,7 @@ ENV_OUT_PATH: pathlib.Path = (
     .expanduser()
     .resolve()
 )
+OUTPUT_PATH: pathlib.Path = ENV_OUT_PATH.joinpath("output")
 
 LOG_PATH: pathlib.Path = ENV_OUT_PATH.joinpath("mtgjson_logs")
 
@@ -49,28 +50,29 @@ FOREIGN_SETS: Set[str] = {
     "4BB",
     "FBB",
 }
+TOKEN_LAYOUTS = {"token", "double_faced_token", "emblem", "art_series"}
 SUPER_TYPES: Set[str] = {"Basic", "Host", "Legendary", "Ongoing", "Snow", "World"}
 BASIC_LAND_NAMES: Set[str] = {"Plains", "Island", "Swamp", "Mountain", "Forest"}
 LANGUAGE_MAP: Dict[str, str] = {
-    "en": "English",
-    "es": "Spanish",
-    "fr": "French",
-    "de": "German",
-    "it": "Italian",
-    "pt": "Portuguese (Brazil)",
-    "ja": "Japanese",
-    "ko": "Korean",
-    "ru": "Russian",
-    "zhs": "Chinese Simplified",
-    "zht": "Chinese Traditional",
-    "he": "Hebrew",
-    "la": "Latin",
     "grc": "Ancient Greek",
     "ar": "Arabic",
-    "sa": "Sanskrit",
+    "zhs": "Chinese Simplified",
+    "zht": "Chinese Traditional",
+    "en": "English",
+    "fr": "French",
+    "de": "German",
+    "he": "Hebrew",
+    "it": "Italian",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "la": "Latin",
     "ph": "Phyrexian",
     "px": "Phyrexian",
+    "pt": "Portuguese (Brazil)",
     "qya": "Quenya",
+    "ru": "Russian",
+    "sa": "Sanskrit",
+    "es": "Spanish",
 }
 SYMBOL_MAP: Dict[str, str] = {
     "White": "W",

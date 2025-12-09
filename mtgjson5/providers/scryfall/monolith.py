@@ -78,10 +78,12 @@ class ScryfallProvider(AbstractProvider):
         :param starting_url: First Page URL
         :param params: Params to pass to Scryfall API
         """
-        # Delegate to bulk data source (falls through to API if needed)
         if starting_url is None:
             return []
-        return get_bulk_data_source().search(starting_url)
+        # Use bulk data if enabled, otherwise fall back to API
+        if MtgjsonConfig().use_bulk_for_searches:
+            return get_bulk_data_source().search(starting_url)
+        return self.download_all_pages_api(starting_url, params)
 
     def download_all_pages_api(
         self,
@@ -135,7 +137,8 @@ class ScryfallProvider(AbstractProvider):
         :param retry_ttl: How many times to retry if Chunk Error
         """
         # Check if this is a card search query that can use bulk data
-        if "/cards/search?" in url:
+        # Only use bulk data if explicitly enabled via --polars or --bulk-files flag
+        if "/cards/search?" in url and MtgjsonConfig().use_bulk_for_searches:
             bulk_source = get_bulk_data_source()
             if bulk_source.is_available or not bulk_source.is_loaded:
                 # Ensure bulk data is loaded
