@@ -11,7 +11,6 @@ from typing import Optional
 
 import numpy as np
 import polars as pl
-import polars_hash as plh
 
 NAMESPACE_DNS_BYTES = uuid.NAMESPACE_DNS.bytes
 
@@ -23,18 +22,7 @@ def _uuid5_from_string(name: str) -> str:
     Inlined implementation avoiding uuid.uuid5() object overhead.
     """
     hash_bytes = hashlib.sha1(NAMESPACE_DNS_BYTES + name.encode("utf-8")).digest()
-
-    b6 = (hash_bytes[6] & 0x0F) | 0x50
-    b8 = (hash_bytes[8] & 0x3F) | 0x80
-
-    h = hash_bytes
-    return (
-        f"{h[0]:02x}{h[1]:02x}{h[2]:02x}{h[3]:02x}-"
-        f"{h[4]:02x}{h[5]:02x}-"
-        f"{b6:02x}{h[7]:02x}-"
-        f"{b8:02x}{h[9]:02x}-"
-        f"{h[10]:02x}{h[11]:02x}{h[12]:02x}{h[13]:02x}{h[14]:02x}{h[15]:02x}"
-    )
+    return str(uuid.UUID(bytes=hash_bytes[:16], version=5))
 
 
 def compute_v5_uuids_numpy(
@@ -148,32 +136,6 @@ def compute_v4_uuids_numpy(
     return results
 
 
-def compute_v4_uuids_polars(
-    scryfall_ids: pl.Series,
-    names: pl.Series,
-    face_names: pl.Series,
-    types: pl.Series,
-    colors: pl.Series,
-    powers: pl.Series,
-    toughnesses: pl.Series,
-    sides: pl.Series,
-    set_codes: pl.Series,
-) -> pl.Series:
-    """Polars-compatible wrapper for v4 UUID generation."""
-    results = compute_v4_uuids_numpy(
-        scryfall_ids.to_numpy(),
-        names.to_numpy(),
-        face_names.to_numpy(),
-        types.to_list(),  # List columns need to_list()
-        colors.to_list(),
-        powers.to_numpy(),
-        toughnesses.to_numpy(),
-        sides.to_numpy(),
-        set_codes.to_numpy(),
-    )
-    return pl.Series(results, dtype=pl.String)
-
-
 def compute_sealed_product_uuids_numpy(names: np.ndarray) -> np.ndarray:
     """
     Compute UUIDs for sealed products.
@@ -263,4 +225,25 @@ def compute_v4_uuid_from_struct(struct_series: pl.Series) -> pl.Series:
 
         results[i] = _uuid5_from_string(id_source)
 
+    return pl.Series(results, dtype=pl.String)
+
+
+def url_hash_batch(
+    series: pl.Series, *, _return_dtype: pl.DataType | None = None
+) -> pl.Series:
+    """
+    Optimized batch SHA256 hash generation for purchase URLs.
+
+    Uses list comprehension for reliable string output.
+    The return_dtype parameter is accepted for Polars map_batches compatibility.
+    """
+    if series.is_empty():
+        return pl.Series([], dtype=pl.String)
+
+    def hash_single(val: str | None) -> str | None:
+        if val is None:
+            return None
+        return hashlib.sha256(val.encode("utf-8")).hexdigest()[:16]
+
+    results = [hash_single(v) for v in series.to_list()]
     return pl.Series(results, dtype=pl.String)
