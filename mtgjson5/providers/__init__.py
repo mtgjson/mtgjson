@@ -2,10 +2,8 @@
 Provider Dispatcher
 """
 
-from .v2.bulkdata import BulkDataProvider
 from .cardhoarder import CardHoarderProvider
 from .cardkingdom import CardKingdomProvider
-from .v2.cardkingdom2 import CardKingdomProviderV2
 from .cardmarket.monolith import CardMarketProvider
 from .edhrec.card_ranks import EdhrecProviderCardRanks
 from .gatherer import GathererProvider
@@ -22,10 +20,12 @@ from .scryfall.orientation_detector import ScryfallProviderOrientationDetector
 from .scryfall.set_language_detector import ScryfallProviderSetLanguageDetector
 from .tcgplayer import TCGPlayerProvider
 from .uuid_cache import UuidCacheProvider
+from .v2 import (
+    BulkDataProvider,
+    CKProvider,
+    EdhrecSaltProvider,
+    SealedDataProvider,
+    TCGProvider,
+)
 from .whats_in_standard import WhatsInStandardProvider
 from .wizards import WizardsProvider
-
-from .v2 import EdhrecSaltProvider
-from .v2 import CardKingdomProviderV2
-from .v2 import BulkDataProvider
-from .v2 import GitHubDataProvider
