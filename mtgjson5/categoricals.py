@@ -39,7 +39,7 @@ class DynamicCategoricals:
     def summary(self) -> dict[str, int]:
         """Return counts for logging."""
         return {
-            "legalities": len(self.legality_formats),
+            "legalities": len(self.legalities),
             "price_keys": len(self.price_keys),
             "games": len(self.games),
             "finishes": len(self.finishes),
@@ -56,7 +56,7 @@ class DynamicCategoricals:
             "languages": len(self.languages),
         }
 
-    def _extract_struct_fields(self, schema: pl.Schema, col_name: str) -> list[str]:
+    def extract_struct_fields(self, schema: pl.Schema, col_name: str) -> list[str]:
         """Extract field names from a Struct column's schema."""
         if col_name not in schema.names():
             return []
@@ -64,19 +64,6 @@ class DynamicCategoricals:
         if isinstance(dtype, pl.Struct):
             return sorted(f.name for f in dtype.fields)
         return []
-
-    def _flatten_list_result(self, values: list) -> list[str]:
-        """Flatten potentially nested list results from Polars aggregation."""
-        if not values:
-            return []
-        # If first element is a list, we have nested structure from explode
-        if isinstance(values[0], list):
-            flat = set()
-            for sublist in values:
-                if sublist:
-                    flat.update(v for v in sublist if v is not None)
-            return sorted(flat)
-        return sorted(v for v in values if v is not None)
 
 
 def discover_categoricals(
@@ -90,18 +77,19 @@ def discover_categoricals(
     cats = DynamicCategoricals()
     schema = cards_lf.collect_schema()
     struct_mappings = {
-        "legalities": "legality_formats",
+        "legalities": "legalities",
         "prices": "price_keys",
         "image_uris": "image_uri_keys",
         "purchase_uris": "purchase_uri_keys",
         "related_uris": "related_uri_keys",
     }
     for col_name, attr in struct_mappings.items():
-        fields = cats._extract_struct_fields(schema, col_name)
+        fields = cats.extract_struct_fields(schema, col_name)
         if fields:
             setattr(cats, attr, fields)
             if logger:
                 logger.debug(f"Discovered {len(fields)} {attr} from {col_name} struct")
+
     list_col_mappings = {
         "games": "games",
         "finishes": "finishes",
@@ -110,6 +98,7 @@ def discover_categoricals(
         "frame_effects": "frame_effects",
         "keywords": "keywords",
     }
+
     list_agg_exprs = []
     list_attrs = []
     for col, attr in list_col_mappings.items():
@@ -157,14 +146,22 @@ def discover_categoricals(
                 values = result[col_name].to_list()[0]
                 if values:
                     setattr(cats, attr, list(values))
-    if sets_lf is not None and "set_type" in sets_lf.collect_schema().names():
-        set_types = (
-            sets_lf.select(pl.col("set_type").drop_nulls().unique())
-            .collect()
-            .to_series()
-            .to_list()
+    if sets_lf is not None:
+        schema = (
+            sets_lf.collect_schema()
+            if isinstance(sets_lf, pl.LazyFrame)
+            else sets_lf.schema
         )
-        cats.set_types = sorted(set(cats.set_types) | set(set_types))
+        if "set_type" in schema.names():
+            sets_df = (
+                sets_lf.collect() if isinstance(sets_lf, pl.LazyFrame) else sets_lf
+            )
+            set_types = (
+                sets_df.select(pl.col("set_type").drop_nulls().unique())
+                .to_series()
+                .to_list()
+            )
+            cats.set_types = sorted(set(cats.set_types) | set(set_types))
     if logger:
         summary = cats.summary()
         total = sum(summary.values())
@@ -172,42 +169,6 @@ def discover_categoricals(
             f"  Discovered {total} categorical values across {len(summary)} categories"
         )
     return cats
-
-
-def log_categoricals_diff(
-    current: DynamicCategoricals,
-    previous: DynamicCategoricals | None,
-    logger: "Logger",
-) -> None:
-    """
-    Log differences between current and previous categorical values.
-
-    Useful for detecting when Scryfall adds new formats, layouts, etc.
-    """
-    if previous is None:
-        return
-
-    attrs = [
-        "legalities",
-        "games",
-        "finishes",
-        "layouts",
-        "rarities",
-        "security_stamps",
-        "set_types",
-    ]
-
-    for attr in attrs:
-        current_vals = set(getattr(current, attr))
-        previous_vals = set(getattr(previous, attr))
-
-        added = current_vals - previous_vals
-        removed = previous_vals - current_vals
-
-        if added:
-            logger.info(f"  New {attr}: {sorted(added)}")
-        if removed:
-            logger.warning(f"  Removed {attr}: {sorted(removed)}")
 
 
 # These require .list.eval() for casting
