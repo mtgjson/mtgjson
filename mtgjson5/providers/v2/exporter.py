@@ -1,8 +1,4 @@
-"""
-Parquet export utilities for MTGJSON data.
-
-Generates properly normalized parquet files from hive-partitioned card data.
-"""
+"""Export utilities for MTGJSON data."""
 
 import json
 import logging
@@ -13,7 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Callable, Iterator, Literal, cast
+from typing import Any, Callable, Iterator, Literal
 
 import orjson
 import polars as pl
@@ -24,8 +20,6 @@ from mtgjson5.classes import MtgjsonMetaObject
 from mtgjson5.constants import TOKEN_LAYOUTS
 from mtgjson5.serialize import clean_nested, dataframe_to_cards_list
 
-# Import pipeline functions lazily to avoid circular import
-# Used in build_all_printings_json()
 
 LOGGER = logging.getLogger(__name__)
 
@@ -677,6 +671,35 @@ class ExportConfig:
     enable_profiling: bool = False
 
 
+def _escape_postgres(value: Any) -> str:
+    """Escape value for PostgreSQL COPY format."""
+    if value is None:
+        return "\\N"
+    if isinstance(value, bool):
+        return "t" if value else "f"
+    if isinstance(value, (int, float)):
+        return str(value)
+    s = json.dumps(value) if isinstance(value, (list, dict)) else str(value)
+    return (
+        s.replace("\\", "\\\\")
+        .replace("\t", "\\t")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+    )
+
+
+def _batched(iterable: Any, n: int) -> Iterator[list[Any]]:
+    """Yield batches of n items."""
+    batch: list[Any] = []
+    for item in iterable:
+        batch.append(item)
+        if len(batch) >= n:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
+
 def export_tables(
     parquet_dir: Path | str,
     output_path: Path | str,
@@ -859,35 +882,6 @@ def _export_postgresql(tables: dict[str, pl.DataFrame], output_path: Path) -> Pa
     return output_path
 
 
-def _escape_postgres(value: Any) -> str:
-    """Escape value for PostgreSQL COPY format."""
-    if value is None:
-        return "\\N"
-    if isinstance(value, bool):
-        return "t" if value else "f"
-    if isinstance(value, (int, float)):
-        return str(value)
-    s = json.dumps(value) if isinstance(value, (list, dict)) else str(value)
-    return (
-        s.replace("\\", "\\\\")
-        .replace("\t", "\\t")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-    )
-
-
-def _batched(iterable: Any, n: int) -> Iterator[list[Any]]:
-    """Yield batches of n items."""
-    batch: list[Any] = []
-    for item in iterable:
-        batch.append(item)
-        if len(batch) >= n:
-            yield batch
-            batch = []
-    if batch:
-        yield batch
-
-
 def _create_sqlite_indexes(cursor: Any) -> None:
     """Create common indexes for SQLite."""
     indexes = [
@@ -919,95 +913,9 @@ def _write_postgres_indexes(f: Any) -> None:
         f.write(f'CREATE INDEX IF NOT EXISTS "{idx_name}" ON "{table}" ("{col}");\n')
 
 
-# Convenience functions with profiling support
-def export_all_parquet(
-    parquet_dir: Path | str,
-    output_dir: Path | str,
-    sets_metadata: dict[str, dict] | None = None,
-    boosters_df: pl.DataFrame | None = None,
-    _enable_profiling: bool = False,
-    **kwargs: Any,
-) -> dict[str, Path]:
-    """Export all tables to parquet files."""
-    return cast(
-        dict[str, Path],
-        export_tables(
-            parquet_dir,
-            output_dir,
-            ExportConfig(ExportFormat.PARQUET, enable_profiling=_enable_profiling),
-            sets_metadata=sets_metadata,
-            boosters_df=boosters_df,
-            **kwargs,
-        ),
-    )
-
-
-def export_all_csv(
-    parquet_dir: Path | str,
-    output_dir: Path | str,
-    sets_metadata: dict[str, dict] | None = None,
-    boosters_df: pl.DataFrame | None = None,
-    _enable_profiling: bool = False,
-    **kwargs: Any,
-) -> dict[str, Path]:
-    """Export all tables to CSV files."""
-    return cast(
-        dict[str, Path],
-        export_tables(
-            parquet_dir,
-            output_dir,
-            ExportConfig(ExportFormat.CSV, enable_profiling=_enable_profiling),
-            sets_metadata=sets_metadata,
-            boosters_df=boosters_df,
-            **kwargs,
-        ),
-    )
-
-
-def export_to_sqlite(
-    parquet_dir: Path | str,
-    output_path: Path | str,
-    sets_metadata: dict[str, dict] | None = None,
-    _enable_profiling: bool = False,
-    **kwargs: Any,
-) -> Path:
-    """Export to SQLite database."""
-    return cast(
-        Path,
-        export_tables(
-            parquet_dir,
-            output_path,
-            ExportConfig(ExportFormat.SQLITE, enable_profiling=_enable_profiling),
-            sets_metadata=sets_metadata,
-            **kwargs,
-        ),
-    )
-
-
-def export_to_postgresql(
-    parquet_dir: Path | str,
-    output_path: Path | str,
-    sets_metadata: dict[str, dict] | None = None,
-    _enable_profiling: bool = False,
-    **kwargs: Any,
-) -> Path:
-    """Export to PostgreSQL dump file."""
-    return cast(
-        Path,
-        export_tables(
-            parquet_dir,
-            output_path,
-            ExportConfig(ExportFormat.POSTGRESQL, enable_profiling=_enable_profiling),
-            sets_metadata=sets_metadata,
-            **kwargs,
-        ),
-    )
-
-
 def build_all_printings_json(
     output_path: Path | str,
     cards_df: pl.DataFrame | None = None,
-    _enable_profiling: bool = False,
 ) -> Path:
     """
     Build AllPrintings.json with complete MTGJSON structure.
