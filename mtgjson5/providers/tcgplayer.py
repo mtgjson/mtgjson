@@ -222,14 +222,29 @@ class TCGPlayerProvider(AbstractProvider):
         :return: Prices to combine with others
         """
         ids_and_names = self.get_tcgplayer_magic_set_ids()
-        tcg_foil_and_non_foil_to_mtgjson_map = generate_entity_mapping(
-            all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
+
+        # Use cached mappings from GLOBAL_CACHE if available (when --polars/--bulk-files used)
+        # Otherwise fall back to parsing AllPrintings.json
+        # pylint: disable=cyclic-import
+        from ..cache import GLOBAL_CACHE
+
+        tcg_foil_and_non_foil_to_mtgjson_map: Union[
+            Dict[str, str], Dict[str, Set[Any]]
+        ] = GLOBAL_CACHE.get_tcg_to_uuid_map()
+        if not tcg_foil_and_non_foil_to_mtgjson_map:
+            tcg_foil_and_non_foil_to_mtgjson_map = generate_entity_mapping(
+                all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
+            )
+
+        tcg_etched_foil_to_mtgjson_map: Union[Dict[str, str], Dict[str, Set[Any]]] = (
+            GLOBAL_CACHE.get_tcg_etched_to_uuid_map()
         )
-        tcg_etched_foil_to_mtgjson_map = generate_entity_mapping(
-            all_printings_path,
-            ("identifiers", "tcgplayerEtchedProductId"),
-            ("uuid",),
-        )
+        if not tcg_etched_foil_to_mtgjson_map:
+            tcg_etched_foil_to_mtgjson_map = generate_entity_mapping(
+                all_printings_path,
+                ("identifiers", "tcgplayerEtchedProductId"),
+                ("uuid",),
+            )
 
         LOGGER.info("Building TCGPlayer buylist data")
         buylist_dict = parallel_call(

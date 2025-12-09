@@ -118,15 +118,28 @@ class CardHoarderProvider(AbstractProvider):
     ) -> Dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure for MTGO from CardHoarder
+        :param all_printings_path: Path to AllPrintings.json for pre-processing
         :return MTGJSON prices single day structure
         """
-        mtgo_to_mtgjson_map = self.get_mtgo_to_mtgjson_map(all_printings_path)
+        # Use cached mapping from GLOBAL_CACHE if available (when --polars/--bulk-files used)
+        # Otherwise fall back to parsing AllPrintings.json
+        # pylint: disable=cyclic-import
+        from ..cache import GLOBAL_CACHE
 
-        normal_cards = self.convert_cardhoarder_to_mtgjson(
-            self.ch_api_url, mtgo_to_mtgjson_map
+        mtgo_to_mtgjson_map: Union[Dict[str, str], Dict[str, Set[str]]] = (
+            GLOBAL_CACHE.get_mtgo_to_uuid_map()
         )
+        if not mtgo_to_mtgjson_map:
+            mtgo_to_mtgjson_map = self.get_mtgo_to_mtgjson_map(all_printings_path)
+
+        # Cast to expected type - either source returns Set[str] values
+        mtgo_map: Dict[str, Set[str]] = {
+            k: (v if isinstance(v, set) else {v})
+            for k, v in mtgo_to_mtgjson_map.items()
+        }
+        normal_cards = self.convert_cardhoarder_to_mtgjson(self.ch_api_url, mtgo_map)
         foil_cards = self.convert_cardhoarder_to_mtgjson(
-            self.ch_api_url + "/foil", mtgo_to_mtgjson_map
+            self.ch_api_url + "/foil", mtgo_map
         )
 
         db_contents: Dict[str, MtgjsonPricesObject] = {}
