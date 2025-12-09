@@ -13,23 +13,22 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, runtime_checkable
 
 import polars as pl
 
-from ... import constants
+from mtgjson5 import constants
+
+if TYPE_CHECKING:
+    from .monolith import ScryfallProvider
 
 LOGGER = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Scryfall Query Parser -> SQL Translator
-# =============================================================================
 
 
 @dataclass
 class ParsedQuery:
     """Parsed Scryfall search query components."""
+
     set_code: Optional[str] = None
     oracle_id: Optional[str] = None  # oracleid:{uuid} search
     is_booster: bool = False
@@ -37,7 +36,9 @@ class ParsedQuery:
     lang_any: bool = False  # lang:any - include all languages
     oracle_regex: Optional[str] = None
     oracle_contains: List[str] = field(default_factory=list)
-    oracle_or_groups: List[List[str]] = field(default_factory=list)  # For complex OR logic
+    oracle_or_groups: List[List[str]] = field(
+        default_factory=list
+    )  # For complex OR logic
     spellbook_name: Optional[str] = None
     include_extras: bool = False
     include_variations: bool = False
@@ -175,7 +176,9 @@ def build_sql_query(query: ParsedQuery, table_name: str = "cards") -> str:
     if query.oracle_contains:
         for word in query.oracle_contains:
             escaped_word = word.replace("'", "''").lower()
-            conditions.append(f"LOWER(COALESCE(oracle_text, '')) LIKE '%{escaped_word}%'")
+            conditions.append(
+                f"LOWER(COALESCE(oracle_text, '')) LIKE '%{escaped_word}%'"
+            )
 
     # Oracle OR groups - complex (group1 AND words) OR (group2 AND words)
     if query.oracle_or_groups:
@@ -184,7 +187,9 @@ def build_sql_query(query: ParsedQuery, table_name: str = "cards") -> str:
             and_clauses = []
             for word in group:
                 escaped_word = word.replace("'", "''").lower()
-                and_clauses.append(f"LOWER(COALESCE(oracle_text, '')) LIKE '%{escaped_word}%'")
+                and_clauses.append(
+                    f"LOWER(COALESCE(oracle_text, '')) LIKE '%{escaped_word}%'"
+                )
             if and_clauses:
                 or_clauses.append(f"({' AND '.join(and_clauses)})")
         if or_clauses:
@@ -217,16 +222,20 @@ def build_sql_query(query: ParsedQuery, table_name: str = "cards") -> str:
     return sql
 
 
-# =============================================================================
-# Type Coercion (Polars NDJSON reads numbers as strings)
-# =============================================================================
-
 # Fields that should be float but Polars may read as strings from NDJSON
 FLOAT_FIELDS = {"cmc"}
 
 # Fields that should be int but Polars may read as strings from NDJSON
-INT_FIELDS = {"edhrec_rank", "penny_rank", "mtgo_id", "mtgo_foil_id",
-              "tcgplayer_id", "tcgplayer_etched_id", "cardmarket_id", "arena_id"}
+INT_FIELDS = {
+    "edhrec_rank",
+    "penny_rank",
+    "mtgo_id",
+    "mtgo_foil_id",
+    "tcgplayer_id",
+    "tcgplayer_etched_id",
+    "cardmarket_id",
+    "arena_id",
+}
 
 
 def _coerce_types(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -281,11 +290,9 @@ class ScryfallDataSource(Protocol):
         Returns:
             List of card objects as dicts (same format as API response)
         """
-        ...
 
     def get_card_by_id(self, scryfall_id: str) -> Optional[Dict[str, Any]]:
         """Get a single card by its Scryfall ID."""
-        ...
 
 
 class BulkDataSource:
@@ -305,7 +312,7 @@ class BulkDataSource:
         self,
         cache_path: Optional[Path] = None,
         api_fallback: bool = True,
-        api_provider: Optional[Any] = None,
+        api_provider: Optional["ScryfallProvider"] = None,
     ):
         """
         Initialize the bulk data source.
@@ -317,7 +324,7 @@ class BulkDataSource:
         """
         self.cache_path = cache_path or constants.CACHE_PATH
         self.api_fallback = api_fallback
-        self._api_provider = api_provider
+        self._api_provider: Optional["ScryfallProvider"] = api_provider
         self._cards_df: Optional[pl.LazyFrame] = None
         self._rulings_df: Optional[pl.LazyFrame] = None
         self._sql_context: Optional[pl.SQLContext] = None
@@ -328,13 +335,28 @@ class BulkDataSource:
         self._oracle_id_cache_built = False
 
     @property
-    def api_provider(self):
+    def api_provider(self) -> "ScryfallProvider":
         """Lazy-load the API provider for fallback."""
         if self._api_provider is None:
             # Import here to avoid circular imports
-            from .monolith import ScryfallProvider # noqa: F401
+            from .monolith import ScryfallProvider
+
             self._api_provider = ScryfallProvider()
         return self._api_provider
+
+    @property
+    def is_loaded(self) -> bool:
+        """Whether bulk data loading has been attempted."""
+        return self._loaded
+
+    @property
+    def is_available(self) -> bool:
+        """Whether bulk data is available for queries."""
+        return self._bulk_available
+
+    def ensure_loaded(self) -> None:
+        """Public method to ensure bulk data is loaded."""
+        self._ensure_loaded()
 
     def _ensure_loaded(self) -> None:
         """Lazy-load bulk data on first access."""
@@ -353,11 +375,10 @@ class BulkDataSource:
                 self._loaded = True
                 self._bulk_available = False
                 return
-            else:
-                raise FileNotFoundError(
-                    f"Bulk cards file not found: {cards_path}. "
-                    "Run with --polars first to download bulk data, or remove --bulk-files flag."
-                )
+            raise FileNotFoundError(
+                f"Bulk cards file not found: {cards_path}. "
+                "Run with --polars first to download bulk data, or remove --bulk-files flag."
+            )
 
         LOGGER.info(f"Loading bulk data from {self.cache_path}")
 
@@ -396,11 +417,13 @@ class BulkDataSource:
 
         # Get all cards and group by oracle_id
         sql = "SELECT * FROM cards"
-        result = self._sql_context.execute(sql).collect()
+        result = self._sql_context.execute(sql)
 
         # Build the lookup dictionary
         self._oracle_id_cache = {}
-        for card in _coerce_types(result.to_dicts()):
+        # SQLContext.execute() returns LazyFrame, need to collect first
+        result_df = result.collect() if isinstance(result, pl.LazyFrame) else result
+        for card in _coerce_types(result_df.to_dicts()):
             oracle_id = card.get("oracle_id")
             if oracle_id:
                 if oracle_id not in self._oracle_id_cache:
@@ -408,7 +431,9 @@ class BulkDataSource:
                 self._oracle_id_cache[oracle_id].append(card)
 
         self._oracle_id_cache_built = True
-        LOGGER.info(f"Oracle ID cache built: {len(self._oracle_id_cache)} unique oracle IDs")
+        LOGGER.info(
+            f"Oracle ID cache built: {len(self._oracle_id_cache)} unique oracle IDs"
+        )
 
     def _get_by_oracle_id(
         self, oracle_id: str, lang_any: bool = False
@@ -454,7 +479,7 @@ class BulkDataSource:
         if not self._bulk_available:
             if self.api_fallback:
                 LOGGER.debug(f"Using API fallback (no bulk data): {url}")
-                return self.api_provider._download_all_pages_api(url)
+                return list(self.api_provider.download_all_pages_api(url))
             return []
 
         if self._sql_context is None:
@@ -469,7 +494,7 @@ class BulkDataSource:
             results = self._get_by_oracle_id(parsed.oracle_id, parsed.lang_any)
             if not results and self.api_fallback:
                 LOGGER.info(f"Oracle ID not in cache, falling back to API: {url}")
-                return self.api_provider._download_all_pages_api(url)
+                return list(self.api_provider.download_all_pages_api(url))
             return results
 
         # Build SQL query for other query types
@@ -488,13 +513,15 @@ class BulkDataSource:
             # unique=prints is default - no deduplication
 
             # Collect and convert to dicts
-            collected = result_lf.collect()
-            LOGGER.info(f"SQL query returned {len(collected)} cards")
-
+            collected = (
+                result_lf
+                if isinstance(result_lf, pl.DataFrame)
+                else result_lf.collect()
+            )
             # If no results and fallback enabled, try API
             if collected.is_empty() and self.api_fallback:
                 LOGGER.info(f"No bulk results, falling back to API: {url}")
-                return self.api_provider._download_all_pages_api(url)
+                return list(self.api_provider.download_all_pages_api(url))
 
             # Coerce types to match API response format
             return _coerce_types(collected.to_dicts())
@@ -503,7 +530,7 @@ class BulkDataSource:
             LOGGER.error(f"SQL query failed: {e}\nQuery: {sql}")
             if self.api_fallback:
                 LOGGER.info(f"SQL failed, falling back to API: {url}")
-                return self.api_provider._download_all_pages_api(url)
+                return list(self.api_provider.download_all_pages_api(url))
             return []
 
     def search_sql(self, sql: str) -> List[Dict[str, Any]]:
@@ -519,8 +546,8 @@ class BulkDataSource:
 
         try:
             result_lf = self._sql_context.execute(sql)
-            collected = result_lf.collect()
-            return _coerce_types(collected.to_dicts())
+            collected = result_lf
+            return list(_coerce_types(collected.to_dicts()))
         except Exception as e:
             LOGGER.error(f"SQL query failed: {e}\nQuery: {sql}")
             return []
@@ -533,9 +560,10 @@ class BulkDataSource:
         if not self._bulk_available:
             if self.api_fallback:
                 LOGGER.debug(f"Using API fallback for card: {scryfall_id}")
-                return self.api_provider.download(
+                result = self.api_provider.download(
                     f"https://api.scryfall.com/cards/{scryfall_id}"
                 )
+                return result if result else None
             return None
 
         if self._sql_context is None:
@@ -543,22 +571,27 @@ class BulkDataSource:
 
         sql = f"SELECT * FROM cards WHERE id = '{scryfall_id}' LIMIT 1"
         try:
-            result = self._sql_context.execute(sql).collect()
+            result = self._sql_context.execute(sql)
             if result.is_empty():
                 # Card not in bulk data - try API fallback
                 if self.api_fallback:
-                    LOGGER.info(f"Card {scryfall_id} not in bulk data, falling back to API")
-                    return self.api_provider.download(
+                    LOGGER.info(
+                        f"Card {scryfall_id} not in bulk data, falling back to API"
+                    )
+                    api_result = self.api_provider.download(
                         f"https://api.scryfall.com/cards/{scryfall_id}"
                     )
+                    return api_result if api_result else None
                 return None
-            return result.to_dicts()[0]
+            dicts = result.to_dicts()
+            return dicts[0] if dicts else None
         except Exception as e:
             LOGGER.error(f"SQL query failed: {e}")
             if self.api_fallback:
-                return self.api_provider.download(
+                api_result = self.api_provider.download(
                     f"https://api.scryfall.com/cards/{scryfall_id}"
                 )
+                return api_result if api_result else None
             return None
 
     def get_cards_by_set(self, set_code: str) -> List[Dict[str, Any]]:
@@ -585,7 +618,6 @@ class BulkDataSource:
 
         Equivalent to CARDS_WITHOUT_LIMITS_URL query.
         """
-        # This is a complex OR query - use direct SQL for clarity
         sql = """
         SELECT * FROM cards
         WHERE lang = 'en' AND (
@@ -637,7 +669,9 @@ class BulkDataSource:
         """
         return self.search_sql(sql)
 
-    def get_foreign_cards(self, set_code: str, collector_number: str) -> List[Dict[str, Any]]:
+    def get_foreign_cards(
+        self, set_code: str, collector_number: str
+    ) -> List[Dict[str, Any]]:
         """
         Get non-English printings of a card.
 
@@ -663,18 +697,20 @@ class BulkDataSource:
 # Module-level singleton management
 # =============================================================================
 
-_bulk_data_source: Optional[BulkDataSource] = None
+
+class _SingletonHolder:
+    """Container class to avoid global statement for singleton management."""
+
+    instance: Optional[BulkDataSource] = None
 
 
 def get_bulk_data_source() -> BulkDataSource:
     """Get or create the singleton bulk data source."""
-    global _bulk_data_source
-    if _bulk_data_source is None:
-        _bulk_data_source = BulkDataSource()
-    return _bulk_data_source
+    if _SingletonHolder.instance is None:
+        _SingletonHolder.instance = BulkDataSource()
+    return _SingletonHolder.instance
 
 
 def reset_bulk_data_source() -> None:
     """Reset the singleton (useful for testing)."""
-    global _bulk_data_source
-    _bulk_data_source = None
+    _SingletonHolder.instance = None
