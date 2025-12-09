@@ -20,9 +20,9 @@ from ...mtgjson_config import MtgjsonConfig
 from ...providers.abstract import AbstractProvider
 from .data_source import get_bulk_data_source
 from . import sf_utils
+from .data_source import get_bulk_data_source
 
 LOGGER = logging.getLogger(__name__)
-
 
 
 @singleton
@@ -58,12 +58,19 @@ class ScryfallProvider(AbstractProvider):
         self.cards_without_limits = set(self.generate_cards_without_limits())
 
     def _build_http_header(self) -> Dict[str, str]:
+        """
+        Build HTTP headers for Scryfall API requests.
+
+        :return: Dictionary of HTTP headers
+        """
         return sf_utils.build_http_header()
 
     def download_all_pages(
         self,
         starting_url: Optional[str],
-        params: Optional[Dict[str, Union[str, int]]] = None,
+        params: Optional[
+            Dict[str, Union[str, int]]
+        ] = None,  # pylint: disable=unused-argument
     ) -> List[Dict[str, Any]]:
         """
         Connects to Scryfall API and goes through all redirects to get the
@@ -72,14 +79,16 @@ class ScryfallProvider(AbstractProvider):
         :param params: Params to pass to Scryfall API
         """
         # Delegate to bulk data source (falls through to API if needed)
+        if starting_url is None:
+            return []
         return get_bulk_data_source().search(starting_url)
 
-    def _download_all_pages_api(
+    def download_all_pages_api(
         self,
         starting_url: Optional[str],
         params: Optional[Dict[str, Union[str, int]]] = None,
     ) -> List[Dict[str, Any]]:
-        """Original API-based pagination implementation."""
+        """API-based pagination implementation for Scryfall card searches."""
         all_cards: List[Dict[str, Any]] = []
 
         page_downloaded = 1
@@ -89,7 +98,8 @@ class ScryfallProvider(AbstractProvider):
             LOGGER.debug(f"Downloading page {page_downloaded} -- {starting_url}")
             page_downloaded += 1
 
-            response: Dict[str, Any] = self.download(starting_url, params)
+            # Use _download_api directly to avoid routing back through bulk data
+            response: Dict[str, Any] = self._download_api(starting_url, params)
             if response["object"] == "error":
                 if response["code"] != "not_found":
                     LOGGER.warning(f"Unable to download {starting_url}: {response}")
@@ -126,19 +136,18 @@ class ScryfallProvider(AbstractProvider):
         """
         # Check if this is a card search query that can use bulk data
         if "/cards/search?" in url:
-            from .data_source import get_bulk_data_source
             bulk_source = get_bulk_data_source()
-            if bulk_source._bulk_available or not bulk_source._loaded:
+            if bulk_source.is_available or not bulk_source.is_loaded:
                 # Ensure bulk data is loaded
-                bulk_source._ensure_loaded()
-                if bulk_source._bulk_available:
+                bulk_source.ensure_loaded()
+                if bulk_source.is_available:
                     # Return in API response format with pagination wrapper
                     cards = bulk_source.search(url)
                     return {
                         "object": "list",
                         "total_cards": len(cards),
                         "has_more": False,
-                        "data": cards
+                        "data": cards,
                     }
 
         # Fall through to rate-limited API call
@@ -325,4 +334,3 @@ class ScryfallProvider(AbstractProvider):
         :return All unique card names found
         """
         return list({card["name"] for card in self.download(url).get("data", {})})
-    
