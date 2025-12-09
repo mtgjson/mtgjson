@@ -8,7 +8,7 @@ import os
 import pathlib
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 import mkmsdk.exceptions
 from mkmsdk.api_map import _API_MAP
@@ -96,16 +96,27 @@ class CardMarketProvider(AbstractProvider):
     ) -> Dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure from Card Market
+        :param all_printings_path: Path to AllPrintings.json for pre-processing
         :return MTGJSON prices single day structure
         """
+        # Use cached ID mapping from GLOBAL_CACHE if available (when --polars/--bulk-files used)
+        # Otherwise fall back to parsing AllPrintings.json
+        # pylint: disable=cyclic-import
+        from ...cache import GLOBAL_CACHE
+
+        mtgjson_id_map: Union[Dict[str, str], Dict[str, Set[Any]]] = (
+            GLOBAL_CACHE.get_cardmarket_to_uuid_map()
+        )
+        if not mtgjson_id_map:
+            mtgjson_id_map = generate_entity_mapping(
+                all_printings_path, ("identifiers", "mcmId"), ("uuid",)
+            )
+
+        # Finish map still uses fallback since it requires finishes data not in cache
         mtgjson_finish_map = generate_entity_mapping(
             all_printings_path,
             ("identifiers", "mcmId"),
             ("finishes",),
-        )
-
-        mtgjson_id_map = generate_entity_mapping(
-            all_printings_path, ("identifiers", "mcmId"), ("uuid",)
         )
 
         LOGGER.info("Building CardMarket retail data")
