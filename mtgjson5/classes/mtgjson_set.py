@@ -2,7 +2,7 @@
 MTGJSON Singular Set Object
 """
 
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set
 
 from .. import constants
 from ..classes.mtgjson_card import MtgjsonCardObject
@@ -20,7 +20,7 @@ class MtgjsonSetObject(JsonObject):
     base_set_size: int
     block: str
     booster: Optional[Dict[str, Any]]
-    cards: List[Union[MtgjsonCardObject, Dict[str, Any]]]
+    cards: List[MtgjsonCardObject]
     cardsphere_set_id: Optional[int]
     code: str
     code_v3: str
@@ -41,7 +41,7 @@ class MtgjsonSetObject(JsonObject):
     release_date: str
     tcgplayer_group_id: Optional[int]
     sealed_product: List[MtgjsonSealedProductObject]
-    tokens: List[Union[MtgjsonCardObject, Dict[str, Any]]]
+    tokens: List[MtgjsonCardObject]
     token_set_code: Optional[str]
     total_set_size: int
     translations: MtgjsonTranslationsObject

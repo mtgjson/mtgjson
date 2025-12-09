@@ -3,7 +3,7 @@ MTGJSON Singular Deck Object
 """
 
 import re
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Iterable, List, Optional
 
 from .json_object import JsonObject
 from .mtgjson_card import MtgjsonCardObject
@@ -15,13 +15,13 @@ class MtgjsonDeckObject(JsonObject):
     MTGJSON Singular Card Object
     """
 
-    main_board: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    side_board: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    display_commander: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    commander: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    planes: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    schemes: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    tokens: List[Union[MtgjsonCardObject, Dict[str, Any]]]
+    main_board: List[MtgjsonCardObject]
+    side_board: List[MtgjsonCardObject]
+    display_commander: List[MtgjsonCardObject]
+    commander: List[MtgjsonCardObject]
+    planes: List[MtgjsonCardObject]
+    schemes: List[MtgjsonCardObject]
+    tokens: List[MtgjsonCardObject]
 
     code: str
     name: str
