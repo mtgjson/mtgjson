@@ -113,7 +113,7 @@ venv*/
 # MTG JSON
 set_outputs/
 json_*/
-v*/
+
 mtgjson_logs/
 mtgjson_build_*/
 compiled_outputs/
@@ -127,9 +127,15 @@ stocks_data.json
 .*_cache/
 flamegraph.pl
 stacksampler.py
-
+*.psql
+*.json
+*.sh
+*.parquet
+docs/*
+benchmark*
 .run/
-
+*.bak
+*.tsv
 # AI Tools
 .beads/
 AGENTS.md
