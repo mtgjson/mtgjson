@@ -25,7 +25,6 @@ def parse_args() -> argparse.Namespace:
     )
 
     # What set(s) to build
-    # Support both space-separated (--sets ALA 2X2) and comma-separated (--sets ala,2x2)
     def parse_sets(s: str) -> list[str]:
         """Parse set codes, handling both comma and space separation."""
         return [code.strip().upper() for code in s.split(",") if code.strip()]
@@ -66,6 +65,12 @@ def parse_args() -> argparse.Namespace:
         help="Compress the output folder's contents for distribution.",
     )
     parser.add_argument(
+        "--parallel",
+        "-P",
+        action="store_true",
+        help="Use parallel compression with ThreadPoolExecutor (use with --compress).",
+    )
+    parser.add_argument(
         "--pretty",
         "-p",
         action="store_true",
@@ -81,26 +86,37 @@ def parse_args() -> argparse.Namespace:
         help="Purposely exclude sets from the build that may have been set using --sets or --all-sets. Supports comma or space separation.",
     )
 
-    # Developer/testing arguments
-    dev_arg_group = parser.add_argument_group("developer arguments")
-    dev_arg_group.add_argument(
-        "--random-card",
-        "-rc",
+    # Pipeline arguments - controls pipeline and selective output
+    pipeline_group = parser.add_argument_group("pipeline arguments")
+    pipeline_group.add_argument(
+        "--polars",
         action="store_true",
-        help="Fetch a random card from Scryfall and build it (for testing card builder).",
+        help="Enables Polars-based pipeline.",
     )
-    dev_arg_group.add_argument(
-        "--skip-cache",
+    pipeline_group.add_argument(
+        "--bulk-files",
+        "-B",
         action="store_true",
-        help="Skip loading the full cache (for use with --random-card).",
+        help="Enable the use of Scryfall bulk data files where possible.",
     )
-    dev_arg_group.add_argument(
-        "--skip-tokens",
-        "-ST",
-        action="store_true",
-        help="Skip building tokens for sets (useful during development/testing).",
+    pipeline_group.add_argument(
+        "--outputs",
+        "-O",
+        type=lambda s: [x.strip() for x in s.split(",") if x.strip()],
+        metavar="LIST",
+        default=None,
+        help="Compiled outputs to build: AllPrintings, AllIdentifie rs, TcgplayerSkus, AllPrices, CompiledList, Keywords, CardTypes, Meta, SetList, AtomicCards, Decks, EnumValues. Defaults to all.",
+    )
+    pipeline_group.add_argument(
+        "--export",
+        "-E",
+        type=lambda s: [x.strip().lower() for x in s.split(",") if x.strip()],
+        metavar="LIST",
+        default=None,
+        help="Export formats: JSON, parquet, csv, sqlite, psql. Defaults to JSON.",
     )
 
+    # MTGJSON maintainer arguments
     mtgjson_arg_group = parser.add_argument_group("mtgjson maintainer arguments")
     mtgjson_arg_group.add_argument(
         "--price-build",
@@ -140,9 +156,6 @@ def parse_args() -> argparse.Namespace:
 
     parsed_args = parser.parse_args()
 
-    # Flatten nested lists from --sets parsing (nargs="*" + type=parse_sets)
-    # Handles: --sets ala,2x2 -> [['ALA', '2X2']] -> ['ALA', '2X2']
-    # Handles: --sets ala 2x2 -> [['ALA'], ['2X2']] -> ['ALA', '2X2']
     if parsed_args.sets:
         flattened_sets = []
         for item in parsed_args.sets:
@@ -159,6 +172,7 @@ def parse_args() -> argparse.Namespace:
         parsed_args.full_build = bool(os.environ.get("FULL_BUILD", False))
         parsed_args.resume_build = bool(os.environ.get("RESUME_BUILD", False))
         parsed_args.compress = bool(os.environ.get("COMPRESS", False))
+        parsed_args.parallel = bool(os.environ.get("PARALLEL", False))
         parsed_args.pretty = bool(os.environ.get("PRETTY", False))
         parsed_args.polars = bool(os.environ.get("POLARS", False))
         parsed_args.bulk_files = bool(os.environ.get("USE_BULK", False))
@@ -170,5 +184,12 @@ def parse_args() -> argparse.Namespace:
         parsed_args.no_alerts = bool(os.environ.get("NO_ALERTS", False))
         parsed_args.aws_ssm_download_config = os.environ.get("AWS_SSM_DOWNLOAD_CONFIG")
         parsed_args.aws_s3_upload_bucket = os.environ.get("AWS_S3_UPLOAD_BUCKET")
+        parsed_args.outputs = (
+            list(filter(None, os.environ.get("OUTPUTS", "").split(","))) or None
+        )
+        parsed_args.export_formats = (
+            list(filter(None, os.environ.get("EXPORT_FORMATS", "").lower().split(",")))
+            or None
+        )
 
     return parsed_args
