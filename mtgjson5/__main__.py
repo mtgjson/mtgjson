@@ -10,13 +10,14 @@ from typing import List, Set, Union
 import urllib3.exceptions
 
 from mtgjson5 import constants
-from mtgjson5.cache_builder import GlobalCache
+from mtgjson5.cache import GlobalCache
 from mtgjson5.utils import init_logger, load_local_set_data
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 init_logger()
 LOGGER: logging.Logger = logging.getLogger(__name__)
+
 
 def build_mtgjson_sets(
     sets_to_build: Union[Set[str], List[str]],
@@ -86,7 +87,9 @@ def dispatcher(args: argparse.Namespace) -> None:
     from mtgjson5.compress_generator import (
         compress_mtgjson_contents,
         compress_mtgjson_contents_parallel,
+        compress_mtgjson_contents_threaded,
     )
+    from mtgjson5.context import PipelineContext
     from mtgjson5.mtgjson_config import MtgjsonConfig
     from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
     from mtgjson5.output_generator import (
@@ -105,53 +108,87 @@ def dispatcher(args: argparse.Namespace) -> None:
             compress_mtgjson_contents(MtgjsonConfig().output_path)
         generate_output_file_hashes(MtgjsonConfig().output_path)
         return
-    
-    GlobalCache().load_all()
-    
+
     sets_to_build = ScryfallProvider().get_sets_to_build(args)
+
+    # Check if only specific outputs or formats requested
+    outputs_requested = {o.lower() for o in (args.outputs or [])}
+    export_formats = {f.lower() for f in (args.export or [])} if args.export else None
+
+    # Load global cache if using Polars pipeline or scryfall bulk files are enabled
+    # Pass set_codes to filter aggregation computations to only requested sets
+    if args.polars or args.bulk_files:
+        set_filter = None
+        if sets_to_build and not args.all_sets:
+            # Include token sets (T{code}) for each requested set
+            set_filter = []
+            for code in sets_to_build:
+                set_filter.append(code.upper())
+                set_filter.append(f"T{code.upper()}")
+            set_filter = sorted(set(set_filter))
+        GlobalCache().load_all(
+            set_codes=set_filter,
+            output_types=outputs_requested,
+            export_formats=export_formats,
+        )
     if args.all_sets:
         additional_set_keys = set(load_local_set_data().keys())
         additional_set_keys -= set(args.skip_sets)
         sets_to_build = list(set(sets_to_build).union(additional_set_keys))
+        args.sets = sorted(sets_to_build)
 
-    if sets_to_build:
+    decks_only = outputs_requested == {"decks"}
+
+    # Create context for Polars pipeline (needed for builds and/or exports)
+    ctx = None
+    if args.polars:
+        ctx = PipelineContext.from_global_cache(args=args)
+        ctx.consolidate_lookups()
+
+    if sets_to_build or decks_only:
         if args.polars:
-            LOGGER.info("Using vectorized Polars pipeline")
-            # Build cards using vectorized Polars pipeline
-            build_cards(set_codes=sorted(sets_to_build) if not args.all_sets else None)
-            # Sink decks to parquet
-            from mtgjson5.pipeline import build_decks
-            build_decks(sink=True)
-            # Assemble JSON outputs from parquet
-            assemble_json_outputs(
-                set_codes=sorted(sets_to_build) if not args.all_sets else None,
-                pretty_print=args.pretty,
-                include_referrals=args.referrals,
-            )
+            if ctx is None:
+                raise ValueError("PipelineContext not initialized")
+
+            build_cards(ctx)
+
+            if decks_only:
+                # Only build deck files, skip set JSON assembly
+                from mtgjson5.pipeline import (
+                    build_decks_expanded,
+                    write_deck_json_files,
+                )
+
+                decks_df = build_decks_expanded(ctx)
+                write_deck_json_files(decks_df, pretty_print=args.pretty)
+            else:
+                assemble_json_outputs(
+                    ctx, include_referrals=args.referrals, parallel=True, max_workers=30
+                )
         else:
-            # Legacy per-set build path
             build_mtgjson_sets(sorted(sets_to_build), args.pretty, args.referrals)
 
-    if args.full_build:
+    # --outputs or --export implies --full-build (unless only decks requested)
+    should_export = (
+        args.full_build or export_formats or (args.outputs and not decks_only)
+    )
+    if should_export:
         if args.polars:
-            # Use native Polars exports for all compiled outputs
-            from mtgjson5.pipeline import export_all_formats
-            export_all_formats(
-                include_parquet=True,
-                include_csv=True,
-                include_sqlite=True,
-                include_postgresql=True,
-                include_all_printings_json=True,
-            )
+            if ctx is None:
+                raise ValueError("PipelineContext not initialized")
+
+            from mtgjson5.outputs import OutputWriter
+
+            OutputWriter.from_args(ctx).write_all()
         else:
-            # Legacy compiled output generation
-            generate_compiled_output_files(args.pretty)
-            # Legacy MTGSQLive subprocess
+            generate_compiled_output_files(args.pretty, args.outputs)
             GitHubMTGSqliteProvider().build_alternative_formats()
 
     if args.compress:
         if args.polars:
             compress_mtgjson_contents_parallel(MtgjsonConfig().output_path)
+        elif args.parallel:
+            compress_mtgjson_contents_threaded(MtgjsonConfig().output_path)
         else:
             compress_mtgjson_contents(MtgjsonConfig().output_path)
     generate_output_file_hashes(MtgjsonConfig().output_path)
