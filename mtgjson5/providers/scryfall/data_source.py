@@ -546,7 +546,7 @@ class BulkDataSource:
 
         try:
             result_lf = self._sql_context.execute(sql)
-            collected = result_lf
+            collected = result_lf.collect()
             return list(_coerce_types(collected.to_dicts()))
         except Exception as e:
             LOGGER.error(f"SQL query failed: {e}\nQuery: {sql}")
@@ -571,7 +571,7 @@ class BulkDataSource:
 
         sql = f"SELECT * FROM cards WHERE id = '{scryfall_id}' LIMIT 1"
         try:
-            result = self._sql_context.execute(sql)
+            result = self._sql_context.execute(sql).collect()
             if result.is_empty():
                 # Card not in bulk data - try API fallback
                 if self.api_fallback:
