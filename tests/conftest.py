@@ -1,10 +1,58 @@
 """Pytest configuration and fixtures for MTGJSON tests."""
 
+import json
 import os
+from pathlib import Path
 from typing import Any, Dict, Generator
 
 import pytest
 import requests_cache
+import responses
+
+FIXTURES_DIR = Path(__file__).parent / "fixtures" / "scryfall"
+
+
+def load_fixture(name: str) -> Dict[str, Any]:
+    """Load a JSON fixture file and return parsed data."""
+    return json.loads((FIXTURES_DIR / f"{name}.json").read_text())
+
+
+@pytest.fixture
+def reset_scryfall_singleton():
+    """Reset the ScryfallProvider singleton between tests."""
+    from mtgjson5.providers.scryfall.monolith import ScryfallProvider
+
+    # Clear the singleton instance if it exists
+    if hasattr(ScryfallProvider, "_instance"):
+        ScryfallProvider._instance = None
+    yield
+    # Clean up after test
+    if hasattr(ScryfallProvider, "_instance"):
+        ScryfallProvider._instance = None
+
+
+@pytest.fixture
+def mock_scryfall_catalog(reset_scryfall_singleton):
+    """Mock Scryfall catalog endpoints with static fixture data."""
+    with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
+        # Mock the cards_without_limits endpoint (called during ScryfallProvider init)
+        cards_without_limits = load_fixture("cards_without_limits")
+        rsps.add(
+            responses.GET,
+            "https://api.scryfall.com/cards/search",
+            json=cards_without_limits,
+            status=200,
+        )
+
+        # Mock the catalog endpoint
+        catalog_data = load_fixture("catalog_keyword_abilities")
+        rsps.add(
+            responses.GET,
+            "https://api.scryfall.com/catalog/keyword-abilities",
+            json=catalog_data,
+            status=200,
+        )
+        yield rsps
 
 
 @pytest.fixture
