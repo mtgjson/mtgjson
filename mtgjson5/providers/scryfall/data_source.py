@@ -545,7 +545,7 @@ class BulkDataSource:
             return []
 
         try:
-            result_lf = self._sql_context.execute(sql)
+            result_lf = self._sql_context.execute(sql).lazy()
             collected = result_lf.collect()
             return list(_coerce_types(collected.to_dicts()))
         except Exception as e:
@@ -571,7 +571,7 @@ class BulkDataSource:
 
         sql = f"SELECT * FROM cards WHERE id = '{scryfall_id}' LIMIT 1"
         try:
-            result = self._sql_context.execute(sql).collect()
+            result = self._sql_context.execute(sql).lazy().collect()
             if result.is_empty():
                 # Card not in bulk data - try API fallback
                 if self.api_fallback:

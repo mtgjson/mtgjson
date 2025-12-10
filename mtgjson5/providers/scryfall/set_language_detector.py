@@ -1,3 +1,5 @@
+"""Scryfall provider for detecting available printing languages per set."""
+
 import logging
 import time
 from typing import Any, Dict, List, Optional, Union
@@ -14,6 +16,8 @@ LOGGER = logging.getLogger(__name__)
 
 @singleton
 class ScryfallProviderSetLanguageDetector(AbstractProvider):
+    """Provider to detect which languages a set was printed in via Scryfall API."""
+
     FIRST_CARD_URL = "https://api.scryfall.com/cards/search?q=set:{}&unique=prints&include_extras=true"
     LANG_QUERY_URL = 'https://api.scryfall.com/cards/search?q=set:{}%20number:"{}"%20lang:any&unique=prints&include_extras=true'
 
@@ -50,6 +54,7 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
             return None
 
     def get_set_printing_languages(self, set_code: str) -> List[str]:
+        """Get the list of languages a set was printed in."""
         first_card_response = self.download(self.FIRST_CARD_URL.format(set_code))
 
         if not first_card_response or first_card_response.get("object") != "list":
