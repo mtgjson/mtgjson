@@ -20,15 +20,31 @@ class TestEnrichmentProviderInit:
 
     def test_init_handles_missing_file(self, tmp_path, monkeypatch):
         """Test that EnrichmentProvider handles missing enrichment file gracefully."""
-        # This test demonstrates the behavior, but monkeypatch doesn't work
-        # due to Python's module-level constant caching. Keeping for documentation.
-        pytest.skip("RESOURCE_PATH mocking not supported due to import-time evaluation")
+        # Temporarily remove singleton decorator by directly instantiating the wrapped class
+        from mtgjson5.providers.enrichment_provider import EnrichmentProvider as EP
+        
+        # Get the actual class from under the singleton decorator
+        actual_class = EP.__wrapped__ if hasattr(EP, '__wrapped__') else EP.__class__.__bases__[0]
+        
+        # Create instance directly
+        provider = actual_class(resource_path=tmp_path / "nonexistent")
+        assert provider._data == {}
 
     def test_init_handles_malformed_json(self, tmp_path, monkeypatch):
         """Test that EnrichmentProvider handles malformed JSON gracefully."""
-        # This test demonstrates the behavior, but monkeypatch doesn't work
-        # due to Python's module-level constant caching. Keeping for documentation.
-        pytest.skip("RESOURCE_PATH mocking not supported due to import-time evaluation")
+        # Temporarily remove singleton decorator by directly instantiating the wrapped class
+        from mtgjson5.providers.enrichment_provider import EnrichmentProvider as EP
+        
+        # Get the actual class from under the singleton decorator
+        actual_class = EP.__wrapped__ if hasattr(EP, '__wrapped__') else EP.__class__.__bases__[0]
+        
+        # Create a malformed JSON file
+        bad_json = tmp_path / "card_enrichment.json"
+        bad_json.write_text("{invalid json}")
+        
+        # Create instance directly
+        provider = actual_class(resource_path=tmp_path)
+        assert provider._data == {}
 
 
 class TestEnrichmentProviderLookup:

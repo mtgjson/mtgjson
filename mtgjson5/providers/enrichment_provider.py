@@ -5,6 +5,7 @@ Enrichment Provider for MTGJSON
 import copy
 import json
 import logging
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from singleton_decorator import singleton
@@ -23,8 +24,12 @@ class EnrichmentProvider:
     Lookup key format: {SET}->{collector_number}
     """
 
-    def __init__(self) -> None:
-        resource = RESOURCE_PATH.joinpath("card_enrichment.json")
+    _data: Dict[str, Any]
+
+    def __init__(self, resource_path: Optional[Path] = None) -> None:
+        if resource_path is None:
+            resource_path = RESOURCE_PATH
+        resource = resource_path.joinpath("card_enrichment.json")
         try:
             with resource.open(encoding="utf-8") as fp:
                 self._data: Dict[str, Any] = json.load(fp)
@@ -75,7 +80,13 @@ class EnrichmentProvider:
         if not entry:
             return None
 
-        expected_name = entry.get("name", "")
+        expected_name = entry.get("name")
+        if not expected_name:
+            LOGGER.warning(
+                f"Enrichment entry for {card.set_code}:{card.number} missing 'name' field"
+            )
+            return None
+
         if card.name.lower() == expected_name.lower():
             return entry.get("enrichment")
 
