@@ -345,7 +345,9 @@ def compress_mtgjson_contents_parallel(
         Dict with compression statistics
     """
     workers = max_workers or _get_compression_workers()
-    LOGGER.info(f"Starting parallel compression on {directory.name} ({workers} workers)")
+    LOGGER.info(
+        f"Starting parallel compression on {directory.name} ({workers} workers)"
+    )
 
     compiled_names = MtgjsonStructuresObject().get_all_compiled_file_names()
 
@@ -441,4 +443,3 @@ def compress_mtgjson_contents_parallel(
         f"Finished parallel compression: {stats['success']}/{stats['total']} files"
     )
     return stats
-

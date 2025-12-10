@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-import pathlib
-from typing import Optional
-
-from mtgjson5 import constants
-=======
 """
 Global cache for MTGJSON provider data and pre-computed aggregations.
 """
@@ -106,7 +100,6 @@ def _normalize_columns(
     cols = df.collect_schema().names() if isinstance(df, pl.LazyFrame) else df.columns
     renames = {c: _snake_to_camel(c) for c in cols if "_" in c}
     return df.rename(renames) if renames else df
->>>>>>> a158cad (Introduces a singleton-based cache to manage bulk provider data,)
 
 
 class GlobalCache:
@@ -114,35 +107,12 @@ class GlobalCache:
 
     _instance: Optional["GlobalCache"] = None
 
-<<<<<<< HEAD
-    def __new__(cls) -> "GlobalCache":
-=======
     def __new__(cls, args: Namespace | None = None) -> "GlobalCache":
->>>>>>> a158cad (Introduces a singleton-based cache to manage bulk provider data,)
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
-<<<<<<< HEAD
-    def __init__(self) -> None:
-        if getattr(self, "_initialized", False):
-            return
-        
-        self.CACHE_DIR: pathlib.Path = constants.CACHE_PATH
-        self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        
-        self._initialized = True
-        
-        @classmethod
-        def get_instance(cls) -> "GlobalCache":
-            if cls._instance is None:
-                cls()
-            return cls._instance
-
-
-GLOBAL_CACHE = GlobalCache.get_instance()
-=======
     def __init__(self, _args: Namespace | None = None) -> None:
         if getattr(self, "_initialized", False):
             return
@@ -550,7 +520,6 @@ GLOBAL_CACHE = GlobalCache.get_instance()
 
         self.raw_rulings_df = pl.scan_ndjson(rulings_path, infer_schema_length=1000)
 
-       
     def _load_resources(self) -> None:
         """Load local JSON resource files."""
         LOGGER.info("Loading resource files...")
@@ -569,17 +538,17 @@ GLOBAL_CACHE = GlobalCache.get_instance()
                 for side, uuid in sides.items()
             ]
             self.uuid_cache_df = pl.DataFrame(rows)
-       
+
         meld_triplets_expanded: dict[str, list[str]] = {}
         if isinstance(self.meld_data, list):
             for triplet in self.meld_data:
                 if len(triplet) == 3:
                     for name in triplet:
                         meld_triplets_expanded[name] = triplet
-       
+
         self.meld_triplets = meld_triplets_expanded
         LOGGER.info("Loaded resource files")
-       
+
     def _load_sets_metadata(self) -> None:
         """Load set metadata from Scryfall."""
         cache_path = self.cache_path / "sets.parquet"
@@ -689,7 +658,7 @@ GLOBAL_CACHE = GlobalCache.get_instance()
         self.salt_df = self.edhrec.get_data_frame()
         if self.salt_df is not None and len(self.salt_df) > 0:
             self.salt_df.write_parquet(cache_path)
-           
+
     def _load_multiverse_bridge(self) -> None:
         """Load MultiverseBridge Rosetta Stone data."""
         cards_cache = self.cache_path / "multiverse_bridge_cards.json"
@@ -710,7 +679,6 @@ GLOBAL_CACHE = GlobalCache.get_instance()
         with sets_cache.open("w", encoding="utf-8") as f:
             json.dump(self.multiverse_bridge_sets, f)
 
-
     def _load_gatherer(self) -> None:
         """Load Gatherer original text data."""
         cache_path = self.cache_path / "gatherer_map.json"
@@ -718,7 +686,7 @@ GLOBAL_CACHE = GlobalCache.get_instance()
         if _cache_fresh(cache_path):
             with cache_path.open("rb") as f:
                 self.gatherer_map = json.loads(f.read())
-                
+
         else:
             self.gatherer_map = getattr(self.gatherer, "_multiverse_id_to_data", {})
             with cache_path.open("w", encoding="utf-8") as f:
@@ -754,7 +722,7 @@ GLOBAL_CACHE = GlobalCache.get_instance()
         self.standard_legal_sets = set(self.whats_in_standard.set_codes or [])
         with cache_path.open("w", encoding="utf-8") as f:
             json.dump(list(self.standard_legal_sets), f)
-        
+
     def _load_github_data(self) -> None:
         """Load GitHub sealed/deck/booster data."""
         card_to_products_cache = self.cache_path / "github_card_to_products.parquet"
@@ -810,11 +778,11 @@ GLOBAL_CACHE = GlobalCache.get_instance()
             if provider.decks_df is not None:
                 provider.decks_df.collect().write_parquet(decks_cache)
                 self.decks_df = provider.decks_df
-                
+
             if provider.boosters_df is not None:
                 provider.boosters_df.collect().write_parquet(booster_cache)
                 self.boosters_df = provider.boosters_df
-                
+
         self.github.load_async_background(on_complete=on_github_complete)
 
     def _load_orientations(self) -> None:
@@ -823,7 +791,7 @@ GLOBAL_CACHE = GlobalCache.get_instance()
         if _cache_fresh(cache_path):
             self.orientation_df = pl.read_parquet(cache_path)
             return
-        
+
         detector = ScryfallProviderOrientationDetector()
         sets_df_raw = self.sets_df
         if sets_df_raw is None:
@@ -847,7 +815,7 @@ GLOBAL_CACHE = GlobalCache.get_instance()
         self.orientation_df = pl.DataFrame(rows) if rows else pl.DataFrame()
         if len(self.orientation_df) > 0:
             self.orientation_df.write_parquet(cache_path)
-        
+
     def _load_secretlair_subsets(self) -> None:
         """Load Secret Lair subset mappings."""
         cache_path = self.cache_path / "sld_subsets.parquet"
@@ -863,7 +831,7 @@ GLOBAL_CACHE = GlobalCache.get_instance()
             ]
             self.sld_subsets_df = pl.DataFrame(rows)
             self.sld_subsets_df.write_parquet(cache_path)
-            
+
     def _load_mcm_lookup(self) -> None:
         """
         Build MCM lookup table from CardMarket provider.
@@ -1107,4 +1075,3 @@ GLOBAL_CACHE = GlobalCache.get_instance()
 
 
 GLOBAL_CACHE = GlobalCache.get_instance()
->>>>>>> a158cad (Introduces a singleton-based cache to manage bulk provider data,)

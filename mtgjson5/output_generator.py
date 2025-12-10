@@ -457,8 +457,6 @@ def write_set_from_dataframe(
     :param set_metadata: Set-level metadata dict (code, name, releaseDate, etc.)
     :param pretty_print: Whether to format JSON with indentation
     """
-    import io
-
     write_file = MtgjsonConfig().output_path.joinpath(f"{file_name}.json")
     write_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -468,7 +466,9 @@ def write_set_from_dataframe(
     with write_file.open("w", encoding="utf-8") as file:
         # Write opening and meta
         file.write('{"meta": ')
-        json.dump(MtgjsonMetaObject().to_json(), file, indent=indent, ensure_ascii=False)
+        json.dump(
+            MtgjsonMetaObject().to_json(), file, indent=indent, ensure_ascii=False
+        )
         file.write(f'{sep}"data": {{')
 
         # Write set metadata fields (excluding cards/tokens)
@@ -485,19 +485,15 @@ def write_set_from_dataframe(
         # Write cards array using Polars native JSON
         file.write(f'{sep}"cards": ')
         if cards_df is not None and len(cards_df) > 0:
-            # Use Polars write_json to buffer, then write
-            buffer = io.BytesIO()
-            cards_df.write_json(buffer, row_oriented=True)
-            file.write(buffer.getvalue().decode("utf-8"))
+            # Use Polars write_json which returns row-oriented JSON string
+            file.write(cards_df.write_json())
         else:
             file.write("[]")
 
         # Write tokens array using Polars native JSON
         file.write(f'{sep}"tokens": ')
         if tokens_df is not None and len(tokens_df) > 0:
-            buffer = io.BytesIO()
-            tokens_df.write_json(buffer, row_oriented=True)
-            file.write(buffer.getvalue().decode("utf-8"))
+            file.write(tokens_df.write_json())
         else:
             file.write("[]")
 

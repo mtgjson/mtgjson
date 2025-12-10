@@ -20,7 +20,6 @@ from mtgjson5.classes import MtgjsonMetaObject
 from mtgjson5.constants import TOKEN_LAYOUTS
 from mtgjson5.serialize import clean_nested, dataframe_to_cards_list
 
-
 LOGGER = logging.getLogger(__name__)
 
 

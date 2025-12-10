@@ -18,7 +18,6 @@ from singleton_decorator import singleton
 from ... import constants
 from ...mtgjson_config import MtgjsonConfig
 from ...providers.abstract import AbstractProvider
-from .data_source import get_bulk_data_source
 from . import sf_utils
 from .data_source import get_bulk_data_source
 

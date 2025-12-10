@@ -40,4 +40,3 @@ __all__ = [
     "generate_purchase_url",
     "url_keygen",
 ]
-

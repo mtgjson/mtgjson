@@ -86,7 +86,7 @@ def dispatcher(args: argparse.Namespace) -> None:
     """
     from mtgjson5.compress_generator import (
         compress_mtgjson_contents,
-        compress_mtgjson_contents_parallel
+        compress_mtgjson_contents_parallel,
     )
     from mtgjson5.context import PipelineContext
     from mtgjson5.mtgjson_config import MtgjsonConfig
@@ -185,7 +185,7 @@ def dispatcher(args: argparse.Namespace) -> None:
 
             OutputWriter.from_args(ctx).write_all()
         else:
-            generate_compiled_output_files(args.pretty, args.outputs)
+            generate_compiled_output_files(args.pretty)
             GitHubMTGSqliteProvider().build_alternative_formats()
 
     if args.compress:
@@ -193,7 +193,7 @@ def dispatcher(args: argparse.Namespace) -> None:
             compress_mtgjson_contents_parallel(MtgjsonConfig().output_path)
         else:
             compress_mtgjson_contents(MtgjsonConfig().output_path)
-    
+
     generate_output_file_hashes(MtgjsonConfig().output_path)
 
     if args.aws_s3_upload_bucket:
