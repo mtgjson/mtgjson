@@ -351,13 +351,11 @@ def compress_mtgjson_contents_parallel(
 
     compiled_names = MtgjsonStructuresObject().get_all_compiled_file_names()
 
-    # Set files in AllSetFiles/
-    set_files = list(directory.joinpath("AllSetFiles").glob("*/*.json"))
-
-    # Deck files in AllDeckFiles/
-    deck_files = list(directory.joinpath("AllDeckFiles").glob("*/*/*.json"))
-    if not deck_files:
-        deck_files = list(directory.joinpath("decks").glob("*.json"))
+    set_files = [
+        f for f in directory.glob("*.json")
+        if f.stem not in compiled_names and f.stem.isupper()
+    ]
+    deck_files = list(directory.joinpath("decks").glob("*.json"))
 
     # SQL files
     sql_dir = directory.joinpath("sql")
@@ -389,16 +387,9 @@ def compress_mtgjson_contents_parallel(
             f for f in directory.glob("*.json") if f.stem in compiled_names
         ]
 
-    # Single set files (legacy layout)
-    single_set_files = [
-        f for f in directory.glob("*.json") if f.stem not in compiled_names
-    ]
-
     all_files = (
         set_files + deck_files + sql_files + csv_files + parquet_files + compiled_files
     )
-    if not set_files:
-        all_files += single_set_files
 
     stats = {"total": 0, "success": 0, "failed": 0}
 
@@ -408,28 +399,18 @@ def compress_mtgjson_contents_parallel(
 
     # Directory archives
     if set_files:
-        LOGGER.info("Creating archive: AllSetFiles")
-        _compress_directory_python(set_files, directory.joinpath("AllSetFiles"))
-    elif single_set_files:
         LOGGER.info(f"Creating archive: {MtgjsonStructuresObject().all_sets_directory}")
         _compress_directory_python(
-            single_set_files,
+            set_files,
             directory.joinpath(MtgjsonStructuresObject().all_sets_directory),
         )
 
     if deck_files:
-        deck_dir = directory.joinpath("AllDeckFiles")
-        if deck_dir.exists():
-            LOGGER.info("Creating archive: AllDeckFiles")
-            _compress_directory_python(deck_files, deck_dir)
-        else:
-            LOGGER.info(
-                f"Creating archive: {MtgjsonStructuresObject().all_decks_directory}"
-            )
-            _compress_directory_python(
-                deck_files,
-                directory.joinpath(MtgjsonStructuresObject().all_decks_directory),
-            )
+        LOGGER.info(f"Creating archive: {MtgjsonStructuresObject().all_decks_directory}")
+        _compress_directory_python(
+            deck_files,
+            directory.joinpath(MtgjsonStructuresObject().all_decks_directory),
+        )
 
     if csv_files:
         LOGGER.info("Creating archive: csv")

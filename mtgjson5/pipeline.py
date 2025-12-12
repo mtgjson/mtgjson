@@ -1644,9 +1644,9 @@ def sink_cards(ctx: PipelineContext) -> None:
     Sink card pipeline to partitioned parquet using streaming execution.
 
     Output structure (Hive-style partitioning, compatible with assemble_json_outputs):
-        _parquet/setCode={SET_CODE}/0.parquet  (cards)
-        output_dir/_parquet_tokens/setCode={SET_CODE}/0.parquet  (tokens)
-        _parquet_decks/setCode={SET_CODE}/0.parquet  (decks)
+        CACHE_PATH/_parquet/setCode={SET_CODE}/0.parquet
+        CACHE_PATH/_parquet_tokens/setCode={SET_CODE}/0.parquet
+        CACHE_PATH/_parquet_decks/setCode={SET_CODE}/0.parquet
 
     Uses pl.PartitionByKey with sink_parquet for true streaming - data flows
     directly from source to partitioned output files without full materialization.
@@ -1660,9 +1660,8 @@ def sink_cards(ctx: PipelineContext) -> None:
 
     # Cards go to _parquet/ (assemble_json_outputs expects this)
     cards_dir = constants.CACHE_PATH / "_parquet"
-    # Tokens go to output_dir/_parquet_tokens/ (assemble_json_outputs expects this)
-    output_dir = MtgjsonConfig().output_path
-    tokens_dir = output_dir / "_parquet_tokens"
+    # Tokens go to cache/_parquet_tokens/
+    tokens_dir = constants.CACHE_PATH / "_parquet_tokens"
 
     for path in [cards_dir, tokens_dir]:
         path.mkdir(parents=True, exist_ok=True)
@@ -2425,7 +2424,6 @@ def write_deck_json_files(
         output_dir = MtgjsonConfig().output_path
     else:
         output_dir = pathlib.Path(output_dir)
-    deck_output_dir = output_dir / "AllDeckFiles"
 
     if decks_df is None:
         LOGGER.info("No decks to write")
@@ -2453,18 +2451,14 @@ def write_deck_json_files(
     count = 0
     for deck in decks_df.to_dicts():
         deck_name = deck.get("name", "Unknown")
-        deck_type = deck.get("type", "Unknown")
         set_code = deck.get("setCode", deck.get("code", "UNK"))
 
-        safe_name = "".join(
-            c if c.isalnum() or c in " -_" else "_" for c in deck_name
-        ).strip()
-        safe_type = "".join(
-            c if c.isalnum() or c in " -_" else " " for c in str(deck_type)
-        ).strip()
+        # Remove spaces and special chars, append set_code
+        safe_name = "".join(c for c in deck_name if c.isalnum())
+        filename = f"{safe_name}_{set_code}"
 
-        # Create directory: AllDeckFiles/<type>/<setCode>/
-        out_dir = deck_output_dir / safe_type / set_code
+        # Create flat directory: decks/
+        out_dir = output_dir / "decks"
         out_dir.mkdir(parents=True, exist_ok=True)
 
         # Remove setCode from output (type is kept)
@@ -2474,7 +2468,7 @@ def write_deck_json_files(
 
         output = {"meta": meta_dict, "data": deep_sort_keys(deck_data)}
 
-        output_path = out_dir / f"{safe_name}.json"
+        output_path = out_dir / f"{filename}.json"
         with output_path.open("wb") as f:
             if pretty_print:
                 f.write(orjson.dumps(output, option=orjson.OPT_INDENT_2))
@@ -2482,7 +2476,7 @@ def write_deck_json_files(
                 f.write(orjson.dumps(output))
 
         # Write SHA256 hash
-        sha_path = out_dir / f"{safe_name}.json.sha256"
+        sha_path = out_dir / f"{filename}.json.sha256"
         with output_path.open("rb") as f:
             import hashlib
 
@@ -2491,7 +2485,7 @@ def write_deck_json_files(
 
         count += 1
 
-    LOGGER.info(f"Wrote {count} deck files to {deck_output_dir}")
+    LOGGER.info(f"Wrote {count} deck files to {out_dir}")
     return count
 
 
@@ -2893,7 +2887,7 @@ def build_set_metadata_df(
 
 def assemble_json_outputs(
     ctx: PipelineContext,
-    include_referrals: bool = False,  # should come from ctx (has config)
+    include_referrals: bool = False,
     parallel: bool = False,
     max_workers: int | None = None,
 ) -> None:
@@ -2994,10 +2988,9 @@ def assemble_json_outputs(
             cards_df = pl.read_parquet(cards_path / "*.parquet")
             cards = dataframe_to_cards_list(cards_df)
 
-            # Read tokens from _parquet_tokens/
             tokens = []
             token_set_code = meta_row.get("tokenSetCode", f"T{set_code}")
-            tokens_parquet_dir = output_dir / "_parquet_tokens"
+            tokens_parquet_dir = constants.CACHE_PATH / "_parquet_tokens"
             tokens_path = tokens_parquet_dir / f"setCode={token_set_code}"
             if tokens_path.exists():
                 tokens_df = pl.read_parquet(tokens_path / "*.parquet")
@@ -3092,10 +3085,9 @@ def assemble_json_outputs(
             # Final output - sort data keys recursively, meta comes first
             output = {"meta": meta_dict, "data": deep_sort_keys(set_data)}
 
-            # Write JSON to AllSetFiles/<SET>/<SET>.json
-            set_dir = output_dir / "AllSetFiles" / set_code
-            set_dir.mkdir(parents=True, exist_ok=True)
-            output_path = set_dir / f"{set_code}.json"
+            # Write JSON to output/<SET>.json
+            output_dir.mkdir(parents=True, exist_ok=True)
+            output_path = output_dir / f"{set_code}.json"
             with output_path.open("wb") as f:
                 f.write(orjson.dumps(output))
 
@@ -3155,7 +3147,7 @@ def assemble_json_outputs(
         write_referral_map(all_referral_entries)
         fixup_referral_map()
 
-    # Assemble deck JSON files using already-loaded deck data
+    # Assemble deck JSON files
     write_deck_json_files(decks_df)
 
     LOGGER.info(
