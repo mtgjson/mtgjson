@@ -105,15 +105,19 @@ def parse_args() -> argparse.Namespace:
         type=lambda s: [x.strip() for x in s.split(",") if x.strip()],
         metavar="LIST",
         default=None,
-        help="Compiled outputs to build: AllPrintings, AllIdentifie rs, TcgplayerSkus, AllPrices, CompiledList, Keywords, CardTypes, Meta, SetList, AtomicCards, Decks, EnumValues. Defaults to all.",
+        help="Compiled outputs to build: AllPrintings, AllIdentifiers, TcgplayerSkus, AllPrices, CompiledList, Keywords, CardTypes, Meta, SetList, AtomicCards, Decks, EnumValues. Defaults to all.",
     )
     pipeline_group.add_argument(
         "--export",
         "-E",
-        type=lambda s: [x.strip().lower() for x in s.split(",") if x.strip()],
+        type=lambda s: (
+            ["json", "sql", "sqlite", "psql", "csv", "parquet"]
+            if s.strip().lower() == "all"
+            else [x.strip().lower() for x in s.split(",") if x.strip()]
+        ),
         metavar="LIST",
         default=None,
-        help="Export formats: JSON, parquet, csv, sqlite, psql. Defaults to JSON.",
+        help="Export formats: json, sql, sqlite, psql, csv, parquet, or 'all' for everything.",
     )
 
     # MTGJSON maintainer arguments
