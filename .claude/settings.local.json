@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(command du -sh C:Usersrpratprojectsmtgjson-projectsmtgjson-v5.worktreesmaster)"
-    ],
-    "deny": [],
-    "ask": []
-  }
-}
