@@ -17,7 +17,7 @@ from mtgjson5.serialize import clean_nested, dataframe_to_cards_list
 from mtgjson5.utils import LOGGER, deep_sort_keys
 
 from .base import EXPORT_SCHEMAS, ExportSchema
-from .utils import escape_postgres, serialize_complex_types
+from .utils import escape_postgres, escape_sqlite, serialize_complex_types
 
 if TYPE_CHECKING:
     from mtgjson5.context import PipelineContext
@@ -78,14 +78,16 @@ class OutputWriter:
         fmt = schema_cls.FORMAT
         LOGGER.info(f"Writing {fmt} format...")
 
+        if fmt == "csv":
+            return self._write_csv(schema_cls)
         if fmt == "json":
             return self._write_json(schema_cls)
         if fmt == "sql":
+            return self._write_sql(schema_cls)
+        if fmt == "sqlite":
             return self._write_sqlite(schema_cls)
         if fmt == "psql":
             return self._write_postgresql(schema_cls)
-        if fmt == "csv":
-            return self._write_csv(schema_cls)
         if fmt == "parquet":
             return self._write_parquet(schema_cls)
         LOGGER.error(f"Unsupported format: {fmt}")
@@ -301,6 +303,38 @@ class OutputWriter:
 
         LOGGER.info(f"Wrote {schema.FILE_NAME} ({len(serialized):,} rows)")
         return db_path
+
+    def _write_sql(self, schema: type[ExportSchema]) -> Path | None:
+        """Write SQLite text file."""
+        cards_df = self._load_cards()
+        if cards_df is None:
+            return None
+
+        flat_df = self._flatten_for_sql(cards_df)
+        serialized = serialize_complex_types(flat_df)
+
+        sql_path = self.output_path / schema.FILE_NAME
+        with open(sql_path, "w", encoding="utf-8") as f:
+            f.write(
+                f"-- MTGJSON SQLite Dump\n-- Generated: {datetime.now().strftime('%Y-%m-%d')}\n"
+            )
+            f.write("BEGIN TRANSACTION;\n\n")
+
+            cols = ",\n    ".join([f'"{c}" TEXT' for c in serialized.columns])
+            f.write(f'CREATE TABLE IF NOT EXISTS "cards" (\n    {cols}\n);\n\n')
+
+            col_names = ", ".join([f'"{c}"' for c in serialized.columns])
+            for row in serialized.rows():
+                values = ", ".join(escape_sqlite(v) for v in row)
+                f.write(f'INSERT INTO "cards" ({col_names}) VALUES ({values});\n')
+
+            f.write('\nCREATE INDEX IF NOT EXISTS "idx_cards_uuid" ON "cards" ("uuid");\n')
+            f.write('CREATE INDEX IF NOT EXISTS "idx_cards_name" ON "cards" ("name");\n')
+            f.write('CREATE INDEX IF NOT EXISTS "idx_cards_setCode" ON "cards" ("setCode");\n')
+            f.write("\nCOMMIT;\n")
+
+        LOGGER.info(f"Wrote {schema.FILE_NAME} ({len(serialized):,} rows)")
+        return sql_path
 
     def _write_postgresql(self, schema: type[ExportSchema]) -> Path | None:
         """Write PostgreSQL - direct ADBC or dump file."""

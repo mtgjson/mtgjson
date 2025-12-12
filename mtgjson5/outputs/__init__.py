@@ -9,6 +9,7 @@ from .base import (
     ParquetSchema,
     PsqlSchema,
     SqlSchema,
+    SqliteSchema
 )
 from .writer import OutputWriter
 
@@ -17,6 +18,7 @@ __all__ = [
     "ExportFormatType",
     "JsonSchema",
     "SqlSchema",
+    "SqliteSchema",
     "PsqlSchema",
     "CsvSchema",
     "ParquetSchema",

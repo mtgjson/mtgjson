@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, ClassVar, Literal
 if TYPE_CHECKING:
     from mtgjson5.context import PipelineContext
 
-ExportFormatType = Literal["json", "sql", "psql", "csv", "parquet"]
+ExportFormatType = Literal["json", "sql", "sqlite", "psql", "csv", "parquet"]
 OutputTypeStr = Literal["atomic", "deck", "set"]
 
 EXPORT_FORMAT_REGISTRY: dict[str, type["ExportFormat"]] = {}
@@ -95,11 +95,17 @@ class JsonSchema(ExportSchema):
     FORMAT: ClassVar[ExportFormatType] = "json"
     FILE_NAME: ClassVar[str] = "AllPrintings.json"
 
-
 class SqlSchema(ExportSchema):
-    """SQLite database export."""
+    """SQLite text dump export."""
 
     FORMAT: ClassVar[ExportFormatType] = "sql"
+    FILE_NAME: ClassVar[str] = "AllPrintings.sql"
+
+
+class SqliteSchema(ExportSchema):
+    """SQLite database export."""
+
+    FORMAT: ClassVar[ExportFormatType] = "sqlite"
     FILE_NAME: ClassVar[str] = "AllPrintings.sqlite"
 
 
@@ -128,6 +134,7 @@ class ParquetSchema(ExportSchema):
 EXPORT_SCHEMAS: dict[str, type[ExportSchema]] = {
     "json": JsonSchema,
     "sql": SqlSchema,
+    "sqlite": SqliteSchema,
     "psql": PsqlSchema,
     "csv": CsvSchema,
     "parquet": ParquetSchema,

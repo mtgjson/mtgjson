@@ -74,3 +74,15 @@ def escape_postgres(value: Any) -> str:
         .replace("\n", "\\n")
         .replace("\r", "\\r")
     )
+
+
+def escape_sqlite(value: Any) -> str:
+    """Escape value for SQLite INSERT statement."""
+    if value is None:
+        return "NULL"
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    if isinstance(value, (int, float)):
+        return str(value)
+    s = json.dumps(value) if isinstance(value, (list, dict)) else str(value)
+    return "'" + s.replace("'", "''") + "'"
