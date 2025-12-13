@@ -132,6 +132,7 @@ def parse_foreign(
         if card_foreign_entry.name:
             card_foreign_entries.append(card_foreign_entry)
 
+    card_foreign_entries.sort(key=lambda card: card.language)
     return card_foreign_entries
 
 
