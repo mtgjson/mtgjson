@@ -1,31 +1,21 @@
-"""Tests for Scryfall provider using VCR cassettes."""
-
-import pytest
+"""Tests for Scryfall provider using Pydantic-validated fixtures."""
 
 from mtgjson5.providers.scryfall.monolith import ScryfallProvider
 
 
-@pytest.mark.vcr("api.scryfall.com.yml")
-def test_catalog_keyword_abilities(disable_cache):
+def test_catalog_keyword_abilities(mock_scryfall_catalog, disable_cache):
     """
     Test that we can fetch keyword abilities catalog from Scryfall.
 
-    Uses shared host-based VCR cassette for offline deterministic testing.
-
-    To record/update cassettes:
-        pytest tests/mtgjson5/providers/scryfall/ --record-mode=all
-
-    Multiple Scryfall tests can share the same api.scryfall.com.yml cassette.
+    Uses static JSON fixtures validated against Pydantic schemas for
+    deterministic, offline testing without VCR cassettes.
     """
     provider = ScryfallProvider()
     data = provider.get_catalog_entry("keyword-abilities")
 
-    # Assert on stable, well-known keyword abilities
     assert isinstance(data, list), "Catalog should return a list"
     assert len(data) > 0, "Catalog should not be empty"
 
-    # Check for some common keyword abilities that have been in Magic for years
-    # Note: Scryfall returns them in title case
     expected_keywords = ["Flying", "Haste", "Vigilance", "Trample", "Lifelink"]
     for keyword in expected_keywords:
         assert keyword in data, f"Expected keyword '{keyword}' not found in catalog"

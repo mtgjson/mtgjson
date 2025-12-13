@@ -1,0 +1,19 @@
+{
+  "object": "list",
+  "total_cards": 12,
+  "has_more": false,
+  "data": [
+    {"name": "Dragon's Approach"},
+    {"name": "Persistent Petitioners"},
+    {"name": "Rat Colony"},
+    {"name": "Relentless Rats"},
+    {"name": "Shadowborn Apostle"},
+    {"name": "Seven Dwarves"},
+    {"name": "Slime Against Humanity"},
+    {"name": "Templar Knight"},
+    {"name": "Nazgul"},
+    {"name": "Plague Rat"},
+    {"name": "Hare Apparent"},
+    {"name": "Charming Scoundrel"}
+  ]
+}
