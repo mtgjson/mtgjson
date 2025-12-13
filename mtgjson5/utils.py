@@ -11,8 +11,8 @@ import pathlib
 import time
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
 
+import polars as pl
 import requests
-import requests.adapters
 
 from . import constants
 from .mtgjson_config import MtgjsonConfig
@@ -286,3 +286,69 @@ def recursive_sort(unsorted_dict: Dict[str, Any]) -> Dict[str, Any]:
         key: recursive_sort(value) if isinstance(value, Dict) else value
         for key, value in sorted(unsorted_dict.items())
     }
+
+
+def deep_sort_keys(obj: Any) -> Any:
+    """
+    Recursively sort dictionary keys, including within lists.
+    """
+    if isinstance(obj, dict):
+        return {key: deep_sort_keys(value) for key, value in sorted(obj.items())}
+    if isinstance(obj, list):
+        return [deep_sort_keys(item) for item in obj]
+    return obj
+
+
+def get_expanded_set_codes(
+    set_codes: str | list[str] | None = None,
+) -> list[str]:
+    """
+    Expand set codes to include all sets with matching release dates
+    in order to selectively build Decks and other potentially cross-set products
+    Returns:
+        List of uppercase set codes (original + expanded by release date).
+    """
+    response = requests.get("https://api.scryfall.com/sets", timeout=30)
+    response.raise_for_status()
+    data = response.json()
+
+    # filter out unwanted set types
+    sets_lf = (
+        pl.DataFrame(data["data"])
+        .filter(
+            ~pl.col("set_type").is_in(["memorabilia", "promo", "alchemy"])
+            & ~pl.col("name").str.contains("Art Series")
+        )
+        .lazy()
+    )
+
+    # return all sets if None
+    if set_codes is None:
+        return sets_lf.select("code").collect().to_series().to_list()
+
+    # Normalize to list
+    codes_list: list[str] = [set_codes] if isinstance(set_codes, str) else set_codes
+
+    # Get release dates for requested sets
+    release_dates = (
+        sets_lf.filter(pl.col("code").is_in(codes_list))
+        .select("released_at")
+        .unique()
+        .collect()
+        .to_series()
+    )
+
+    # Find all sets with matching release dates, excluding unwanted types
+    return (
+        sets_lf.filter(
+            pl.col("released_at").is_in(release_dates)
+            & (
+                pl.col("code").is_in(codes_list)
+                | pl.col("parent_set_code").is_in(codes_list)
+            )
+        )
+        .select("code")
+        .collect()
+        .to_series()
+        .to_list()
+    )

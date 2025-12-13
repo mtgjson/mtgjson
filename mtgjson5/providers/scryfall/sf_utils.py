@@ -1,3 +1,5 @@
+"""Utility functions for Scryfall provider HTTP configuration."""
+
 import logging
 from typing import Dict
 
