@@ -8,7 +8,7 @@ import pathlib
 import re
 import sys
 import time
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any
 
 import ratelimit
 import requests
@@ -20,6 +20,7 @@ from ...mtgjson_config import MtgjsonConfig
 from ...providers.abstract import AbstractProvider
 from . import sf_utils
 from .data_source import get_bulk_data_source
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -50,13 +51,13 @@ class ScryfallProvider(AbstractProvider):
     SPELLBOOK_SEARCH_URL = (
         "https://api.scryfall.com/cards/search?q=spellbook:%22{}%22&include_extras=true"
     )
-    cards_without_limits: Set[str]
+    cards_without_limits: set[str]
 
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
         self.cards_without_limits = set(self.generate_cards_without_limits())
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Build HTTP headers for Scryfall API requests.
 
@@ -66,11 +67,9 @@ class ScryfallProvider(AbstractProvider):
 
     def download_all_pages(
         self,
-        starting_url: Optional[str],
-        params: Optional[
-            Dict[str, Union[str, int]]
-        ] = None,  # pylint: disable=unused-argument
-    ) -> List[Dict[str, Any]]:
+        starting_url: str | None,
+        params: dict[str, str | int] | None = None,  # pylint: disable=unused-argument
+    ) -> list[dict[str, Any]]:
         """
         Connects to Scryfall API and goes through all redirects to get the
         card data from their several pages via multiple API calls
@@ -86,11 +85,11 @@ class ScryfallProvider(AbstractProvider):
 
     def download_all_pages_api(
         self,
-        starting_url: Optional[str],
-        params: Optional[Dict[str, Union[str, int]]] = None,
-    ) -> List[Dict[str, Any]]:
+        starting_url: str | None,
+        params: dict[str, str | int] | None = None,
+    ) -> list[dict[str, Any]]:
         """API-based pagination implementation for Scryfall card searches."""
-        all_cards: List[Dict[str, Any]] = []
+        all_cards: list[dict[str, Any]] = []
 
         page_downloaded = 1
         starting_url = f"{starting_url}&page={page_downloaded}"
@@ -100,13 +99,13 @@ class ScryfallProvider(AbstractProvider):
             page_downloaded += 1
 
             # Use _download_api directly to avoid routing back through bulk data
-            response: Dict[str, Any] = self._download_api(starting_url, params)
+            response: dict[str, Any] = self._download_api(starting_url, params)
             if response["object"] == "error":
                 if response["code"] != "not_found":
                     LOGGER.warning(f"Unable to download {starting_url}: {response}")
                 break
 
-            data_response: List[Dict[str, Any]] = response.get("data", [])
+            data_response: list[dict[str, Any]] = response.get("data", [])
             all_cards.extend(data_response)
 
             # Go to the next page, if it exists
@@ -122,7 +121,7 @@ class ScryfallProvider(AbstractProvider):
     def download(
         self,
         url: str,
-        params: Optional[Dict[str, Union[str, int]]] = None,
+        params: dict[str, str | int] | None = None,
         retry_ttl: int = 3,
     ) -> Any:
         """
@@ -160,7 +159,7 @@ class ScryfallProvider(AbstractProvider):
     def _download_api(
         self,
         url: str,
-        params: Optional[Dict[str, Union[str, int]]] = None,
+        params: dict[str, str | int] | None = None,
         retry_ttl: int = 3,
     ) -> Any:
         """
@@ -195,7 +194,7 @@ class ScryfallProvider(AbstractProvider):
             time.sleep(5)
             return self._download_api(url, params)
 
-    def download_cards(self, set_code: str) -> List[Dict[str, Any]]:
+    def download_cards(self, set_code: str) -> list[dict[str, Any]]:
         """
         Get all cards from Scryfall API for a particular set code.
 
@@ -215,7 +214,7 @@ class ScryfallProvider(AbstractProvider):
             scryfall_cards, key=lambda card: (card["name"], card["collector_number"])
         )
 
-    def generate_cards_without_limits(self) -> List[str]:
+    def generate_cards_without_limits(self) -> list[str]:
         """
         Grab all cards that can have as many copies
         in a deck as the player wants
@@ -224,14 +223,14 @@ class ScryfallProvider(AbstractProvider):
 
         return self.__get_card_names(self.CARDS_WITHOUT_LIMITS_URL)
 
-    def get_alchemy_cards_with_spellbooks(self) -> List[str]:
+    def get_alchemy_cards_with_spellbooks(self) -> list[str]:
         """
         Grab all cards that have alchemy spellbooks associated
         :return Set of valid cards
         """
         return self.__get_card_names(self.CARDS_WITH_ALCHEMY_SPELLBOOK_URL)
 
-    def get_card_names_in_spellbook(self, card_name: str) -> List[str]:
+    def get_card_names_in_spellbook(self, card_name: str) -> list[str]:
         """
         Grab all cards that are within a specific card_name's alchemy spellbook
         :param card_name Card to find spellbook entries for
@@ -239,7 +238,7 @@ class ScryfallProvider(AbstractProvider):
         """
         return self.__get_card_names(self.SPELLBOOK_SEARCH_URL.format(card_name))
 
-    def get_catalog_entry(self, catalog_key: str) -> List[str]:
+    def get_catalog_entry(self, catalog_key: str) -> list[str]:
         """
         Grab the Scryfall catalog of appropriate types
         :param catalog_key: Type to find
@@ -252,7 +251,7 @@ class ScryfallProvider(AbstractProvider):
 
         return list(catalog_data["data"])
 
-    def get_all_scryfall_sets(self) -> List[str]:
+    def get_all_scryfall_sets(self) -> list[str]:
         """
         Grab all sets that Scryfall currently supports
         :return: Scryfall sets
@@ -278,12 +277,12 @@ class ScryfallProvider(AbstractProvider):
         return sorted(scryfall_set_codes)
 
     @staticmethod
-    def get_sets_already_built() -> List[str]:
+    def get_sets_already_built() -> list[str]:
         """
         Grab sets that have already been compiled by the system
         :return: List of all set codes found
         """
-        json_output_files: List[pathlib.Path] = list(
+        json_output_files: list[pathlib.Path] = list(
             MtgjsonConfig().output_path.glob("**/*.json")
         )
 
@@ -301,7 +300,7 @@ class ScryfallProvider(AbstractProvider):
 
         return set_codes_found
 
-    def get_sets_to_build(self, args: argparse.Namespace) -> List[str]:
+    def get_sets_to_build(self, args: argparse.Namespace) -> list[str]:
         """
         Grab what sets to build given build params
         :param args: CLI args
@@ -329,7 +328,7 @@ class ScryfallProvider(AbstractProvider):
 
         return sorted(return_list)
 
-    def __get_card_names(self, url: str) -> List[str]:
+    def __get_card_names(self, url: str) -> list[str]:
         """
         Get the card names from a URL search
         :param url: URL on Scryfall to query

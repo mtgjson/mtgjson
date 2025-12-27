@@ -2,13 +2,14 @@ import copy
 import logging
 import pathlib
 from collections import defaultdict
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from singleton_decorator import singleton
 
 from mtgjson5.classes import MtgjsonPricesObject
 from mtgjson5.providers.abstract import AbstractProvider
 from mtgjson5.utils import generate_entity_mapping
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -20,28 +21,28 @@ class ManapoolPricesProvider(AbstractProvider):
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         return {}
 
     def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+        self, url: str, params: dict[str, str | int] | None = None
     ) -> Any:
         response = self.session.get(url)
         self.log_download(response)
 
         return response.json()
 
-    def _inner_translate_today_price_dict_pt1(self) -> Dict[str, Dict[str, float]]:
+    def _inner_translate_today_price_dict_pt1(self) -> dict[str, dict[str, float]]:
         """
         Convert the single-day price data to a dictionary of Scryfall UUIDs
         """
-        mapping: Dict[str, Dict[str, float]] = defaultdict(dict)
+        mapping: dict[str, dict[str, float]] = defaultdict(dict)
 
         api_response = self.download(self.singles_api_uri).get("data")
         for card in api_response:
             for card_key, finish in zip(
                 ("price_cents", "price_cents_foil", "price_cents_etched"),
-                ("normal", "foil", "etched"),
+                ("normal", "foil", "etched"), strict=False,
             ):
                 if card[card_key]:
                     mapping[card["scryfall_id"]][finish] = card[card_key] / 100.0
@@ -50,7 +51,7 @@ class ManapoolPricesProvider(AbstractProvider):
 
     def generate_today_price_dict(
         self, all_printings_path: pathlib.Path
-    ) -> Dict[str, MtgjsonPricesObject]:
+    ) -> dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure for MTGO from Manapool
         :return MTGJSON prices single day structure

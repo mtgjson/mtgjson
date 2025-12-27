@@ -29,12 +29,12 @@ Usage:
 
 import re
 from enum import Enum
-from typing import Any, Type
+from typing import Any, ClassVar, Optional
 
 import polars as pl
 from pydantic import BaseModel, TypeAdapter
 
-from mtgjson5.models.schema.utils import (
+from mtgjson5.mtgjson_models import (
     pydantic_model_to_schema,
     pydantic_model_to_struct,
     pydantic_type_to_polars,
@@ -59,6 +59,7 @@ from mtgjson5.providers.v2.objectmodels import (
     MtgjsonSourceProductsObject,
     MtgjsonTranslationsObject,
 )
+
 
 _CAMEL_TO_SNAKE_1 = re.compile(r"(.)([A-Z][a-z]+)")
 _CAMEL_TO_SNAKE_2 = re.compile(r"([a-z0-9])([A-Z])")
@@ -145,7 +146,7 @@ class CardSchemaRegistry:
     Each schema includes column names, types, and whether fields are required.
     """
 
-    _MODELS: dict[CardType, Type[BaseModel]] = {
+    _MODELS: ClassVar[dict[CardType, type[BaseModel]]] = {
         CardType.SET_CARD: MtgjsonCardSetObject,
         CardType.TOKEN: MtgjsonCardTokenObject,
         CardType.ATOMIC: MtgjsonCardAtomicObject,
@@ -153,7 +154,7 @@ class CardSchemaRegistry:
         CardType.SET_DECK_CARD: MtgjsonCardSetDeckObject,
     }
 
-    _cache: dict[CardType, dict[str, pl.DataType]] = {}
+    _cache: ClassVar[dict[CardType, dict[str, pl.DataType]]] = {}
 
     @classmethod
     def get_schema(cls, card_type: CardType) -> dict[str, pl.DataType]:
@@ -164,7 +165,7 @@ class CardSchemaRegistry:
         return cls._cache[card_type]
 
     @classmethod
-    def get_model(cls, card_type: CardType) -> Type[BaseModel]:
+    def get_model(cls, card_type: CardType) -> type[BaseModel]:
         """Get Pydantic model for a card type."""
         return cls._MODELS[card_type]
 
@@ -192,14 +193,14 @@ class SetSchemaRegistry:
     """
 
     # Fields that contain nested card/token arrays (handled specially)
-    _NESTED_ARRAY_FIELDS = {"cards", "tokens", "decks", "sealed_product"}
+    _NESTED_ARRAY_FIELDS: ClassVar[set[str]] = {"cards", "tokens", "decks", "sealed_product"}
 
     # Fields with highly variable schemas (stored as JSON strings in parquet)
-    _JSON_STRING_FIELDS = {"booster"}
+    _JSON_STRING_FIELDS: ClassVar[set[str]] = {"booster"}
 
     # Schema caches
-    _metadata_cache: dict[str, pl.DataType] | None = None
-    _full_cache: dict[str, pl.DataType] | None = None
+    _metadata_cache: ClassVar[dict[str, pl.DataType] | None] = None
+    _full_cache: ClassVar[dict[str, pl.DataType] | None] = None
 
     @classmethod
     def get_schema(cls) -> dict[str, pl.DataType]:
@@ -207,14 +208,14 @@ class SetSchemaRegistry:
         return pydantic_model_to_schema(MtgjsonSetObject)
 
     @classmethod
-    def get_model(cls) -> Type[BaseModel]:
+    def get_model(cls) -> type[BaseModel]:
         """Get the Pydantic model for sets."""
         return MtgjsonSetObject
 
     @classmethod
     def get_columns(cls) -> list[str]:
         """Get ordered column names from MtgjsonSetObject model."""
-        return list(MtgjsonSetObject.model_fields.keys())
+        return list(MtgjsonSetObject._model_fields.keys())
 
     @classmethod
     def get_struct(cls) -> pl.Struct:
@@ -279,7 +280,7 @@ class SetSchemaRegistry:
         return pydantic_model_to_schema(MtgjsonBoosterConfigObject)
 
 
-def get_field_polars_type(model: Type[BaseModel], field_name: str) -> pl.DataType:
+def get_field_polars_type(model: type[BaseModel], field_name: str) -> pl.DataType:
     """
     Get the Polars type for a specific field from a Pydantic model.
 
@@ -529,13 +530,13 @@ def _types_broadly_compatible(actual: pl.DataType, expected: pl.DataType) -> boo
     # List types - check inner compatibility
     # Handle both DataTypeClass (pl.List) and instances of List type
     actual_is_list = (
-        isinstance(actual, type)
-        and issubclass(actual, pl.List)
+        (isinstance(actual, type)
+        and issubclass(actual, pl.List))
         or isinstance(actual, pl.List)
     )
     expected_is_list = (
-        isinstance(expected, type)
-        and issubclass(expected, pl.List)
+        (isinstance(expected, type)
+        and issubclass(expected, pl.List))
         or isinstance(expected, pl.List)
     )
 

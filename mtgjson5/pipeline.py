@@ -12,36 +12,71 @@ import re
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
-from typing import Any, Union
+from typing import Any
+from uuid import UUID, uuid5
 
 import orjson
 import polars as pl
+import polars_hash as plh
 
 from mtgjson5 import constants
 from mtgjson5.classes import MtgjsonMetaObject
 from mtgjson5.context import PipelineContext
-from mtgjson5.models.schema.mtgjson import (
+from mtgjson5.models.schema.scryfall import CardFace
+from mtgjson5.mtgjson_config import MtgjsonConfig
+from mtgjson5.mtgjson_models import (
     ALL_CARD_FIELDS,
     ATOMIC_EXCLUDE,
     CARD_DECK_EXCLUDE,
-    CARD_SET_EXCLUDE,
     TOKEN_EXCLUDE,
+    clean_nested,
+    dataframe_to_cards_list,
 )
-from mtgjson5.models.schema.scryfall import CardFace
-from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.providers.v2.card_schemas import (
     NestedStructs,
     to_camel_case,
     to_snake_case,
 )
+from mtgjson5.providers.cardmarket.monolith import CardMarketProvider
 from mtgjson5.referral_builder import fixup_referral_map, write_referral_map
-from mtgjson5.serialize import clean_nested, dataframe_to_cards_list
 from mtgjson5.utils import LOGGER, deep_sort_keys
-from mtgjson5.uuid_generator import (
-    compute_v4_uuid_from_struct,
-    url_hash_batch,
-    uuid5_batch,
-)
+
+
+# Check if polars_hash has uuidhash namespace
+_HAS_UUIDHASH = hasattr(plh.col("_test"), "uuidhash")
+_DNS_NAMESPACE = UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+
+
+def _uuid5_from_expr(expr: pl.Expr) -> pl.Expr:
+    """Generate UUID5 from any string expression using DNS namespace."""
+    if _HAS_UUIDHASH:
+        # Cast to use polars_hash's HExpr which has uuidhash
+        return expr.pipe(lambda e: plh.col(e.meta.output_name())).uuidhash.uuid5()
+    return expr.map_elements(
+        lambda x: str(uuid5(_DNS_NAMESPACE, x)) if x else None,
+        return_dtype=pl.String,
+    )
+
+
+def _uuid5_expr(col_name: str) -> pl.Expr:
+    """Generate UUID5 from a column name using DNS namespace."""
+    if _HAS_UUIDHASH:
+        return plh.col(col_name).uuidhash.uuid5()
+    return pl.col(col_name).map_elements(
+        lambda x: str(uuid5(_DNS_NAMESPACE, x)) if x else None,
+        return_dtype=pl.String,
+    )
+
+
+def _uuid5_concat_expr(col1: pl.Expr, col2: pl.Expr, default: str = "a") -> pl.Expr:
+    """Generate UUID5 from concatenation of two columns."""
+    if _HAS_UUIDHASH:
+        return plh.col(col1.meta.output_name()).uuidhash.uuid5_concat(col2, default=default)
+    # Fallback: concat columns then generate uuid5
+    return pl.concat_str([col1, col2.fill_null(default)], separator="").map_elements(
+        lambda x: str(uuid5(_DNS_NAMESPACE, x)) if x else None,
+        return_dtype=pl.String,
+    )
 
 
 def _ascii_name_expr(expr: pl.Expr) -> pl.Expr:
@@ -265,6 +300,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                             "split",
                             "adventure",
                             "battle",
+                            "double_faced_token",
                         ]
                     )
                 )
@@ -284,6 +320,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                             "split",
                             "adventure",
                             "battle",
+                            "double_faced_token",
                         ]
                     )
                 )
@@ -499,37 +536,46 @@ def filter_keywords_for_face(lf: pl.LazyFrame) -> pl.LazyFrame:
     ).drop("_all_keywords")
 
 
-# 1.7: Add booster types
+# 1.7: Add booster types and isStarter
 def add_booster_types(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
-    Compute boosterTypes based on Scryfall booster field and promoTypes.
+    Compute boosterTypes and isStarter based on Scryfall booster field and promoTypes.
 
     - If card is in boosters (booster=True), add "default"
     - If promoTypes contains "starterdeck" or "planeswalkerdeck", add "deck"
+    - isStarter is True when card is NOT in boosters (starter deck exclusive cards)
     """
     return lf.with_columns(
-        pl.when(pl.col("_in_booster").fill_null(False))
-        .then(
-            pl.when(
-                pl.col("promoTypes")
-                .list.set_intersection(pl.lit(["starterdeck", "planeswalkerdeck"]))
-                .list.len()
-                > 0
+        [
+            # boosterTypes computation
+            pl.when(pl.col("_in_booster").fill_null(False))
+            .then(
+                pl.when(
+                    pl.col("promoTypes")
+                    .list.set_intersection(pl.lit(["starterdeck", "planeswalkerdeck"]))
+                    .list.len()
+                    > 0
+                )
+                .then(pl.lit(["default", "deck"]))
+                .otherwise(pl.lit(["default"]))
             )
-            .then(pl.lit(["default", "deck"]))
-            .otherwise(pl.lit(["default"]))
-        )
-        .otherwise(
-            pl.when(
-                pl.col("promoTypes")
-                .list.set_intersection(pl.lit(["starterdeck", "planeswalkerdeck"]))
-                .list.len()
-                > 0
+            .otherwise(
+                pl.when(
+                    pl.col("promoTypes")
+                    .list.set_intersection(pl.lit(["starterdeck", "planeswalkerdeck"]))
+                    .list.len()
+                    > 0
+                )
+                .then(pl.lit(["deck"]))
+                .otherwise(pl.lit([]).cast(pl.List(pl.String)))
             )
-            .then(pl.lit(["deck"]))
-            .otherwise(pl.lit([]).cast(pl.List(pl.String)))
-        )
-        .alias("boosterTypes")
+            .alias("boosterTypes"),
+            # isStarter: True for cards NOT found in boosters (starter deck exclusive)
+            pl.when(~pl.col("_in_booster").fill_null(True))
+            .then(pl.lit(True))
+            .otherwise(pl.lit(None))
+            .alias("isStarter"),
+        ]
     ).drop("_in_booster")
 
 
@@ -779,23 +825,30 @@ def add_identifiers_v4_uuid(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     Uses struct-based batch computation for v4 UUID formula.
     """
+    # V4 UUID: Token uses different formula than normal cards
+    card_name = pl.coalesce(pl.col("faceName"), pl.col("name")).fill_null("")
+    scryfall_id = pl.col("scryfallId").fill_null("")
+    is_token = pl.col("types").list.set_intersection(pl.lit(["Token", "Card"])).list.len() > 0
+
+    token_source = pl.concat_str([
+        card_name,
+        pl.col("colors").list.join("").fill_null(""),
+        pl.col("power").fill_null(""),
+        pl.col("toughness").fill_null(""),
+        pl.col("side").fill_null(""),
+        pl.col("setCode").fill_null("").str.slice(1).str.to_uppercase(),
+        scryfall_id,
+    ])
+    normal_source = pl.concat_str([pl.lit("sf"), scryfall_id, card_name])
+
+    # Combine sources and generate UUID5
+    combined_source = pl.when(is_token).then(token_source).otherwise(normal_source)
     lf = lf.with_columns(
-        pl.struct(
-            [
-                pl.col("scryfallId").alias("id"),
-                pl.col("name"),
-                pl.col("faceName").alias("face_name"),
-                pl.col("types"),
-                pl.col("colors"),
-                pl.col("power"),
-                pl.col("toughness"),
-                pl.col("side"),
-                pl.col("setCode").alias("set"),
-            ]
-        )
-        .map_batches(compute_v4_uuid_from_struct, return_dtype=pl.String)
-        .alias("_mtgjsonV4Id")
+        combined_source.alias("_v4_source")
     )
+    lf = lf.with_columns(
+        _uuid5_expr("_v4_source").alias("_mtgjsonV4Id")
+    ).drop("_v4_source")
     return lf.with_columns(
         pl.col("identifiers").struct.with_fields(
             [pl.col("_mtgjsonV4Id").alias("mtgjsonV4Id")]
@@ -821,8 +874,6 @@ def add_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     return (
         lf.join(face_links, on="scryfallId", how="left")
         .with_columns(
-            # Filter out own UUID from the list
-            # Cast scalar uuid to List(String) for set_difference
             pl.col("_all_uuids")
             .list.set_difference(pl.col("uuid").cast(pl.List(pl.String)))
             .alias("otherFaceIds")
@@ -1024,17 +1075,47 @@ def add_alternative_deck_limit(
     """
     Mark cards that don't have the standard 4-copy deck limit.
 
-    Uses Scryfall's cards_without_limits list (12 cards total like Seven Dwarves, Rat Colony, etc).
-    """
-    unlimited_cards = ctx.unlimited_cards
+    Combines two detection methods:
+    1. Pre-computed list from Scryfall's cards_without_limits
+    2. Oracle text pattern matching for cards not in the list
 
-    if not unlimited_cards:
-        return lf.with_columns(
-            pl.lit(None).cast(pl.Boolean).alias("hasAlternativeDeckLimit")
-        )
+    Pattern matching catches newer cards like Templar Knight that may not
+    be in the pre-computed list yet.
+    """
+    unlimited_cards = ctx.unlimited_cards or set()
+
+    # Oracle text pattern matching
+    # Note: oracleText is renamed to "text" in add_basic_fields(), so we use that column name
+    oracle_text = pl.coalesce(
+        pl.col("_face_data").struct.field("oracle_text"),
+        pl.col("text"),
+    ).fill_null("").str.to_lowercase()
+
+    # Pattern 1: "a deck can have any number of cards named"
+    pattern1 = (
+        oracle_text.str.contains("deck")
+        & oracle_text.str.contains("any")
+        & oracle_text.str.contains("number")
+        & oracle_text.str.contains("cards")
+        & oracle_text.str.contains("named")
+    )
+
+    # Pattern 2: "have up to ... cards named ... in your deck"
+    pattern2 = (
+        oracle_text.str.contains("deck")
+        & oracle_text.str.contains("have")
+        & oracle_text.str.contains("up")
+        & oracle_text.str.contains("to")
+        & oracle_text.str.contains("cards")
+        & oracle_text.str.contains("named")
+    )
+
+    # Combine pre-computed list with pattern matching
+    in_list = pl.col("name").is_in(list(unlimited_cards)) if unlimited_cards else pl.lit(False)
+    matches_pattern = pattern1 | pattern2
 
     return lf.with_columns(
-        pl.when(pl.col("name").is_in(list(unlimited_cards)))
+        pl.when(in_list | matches_pattern)
         .then(pl.lit(True))
         .otherwise(pl.lit(None).cast(pl.Boolean))
         .alias("hasAlternativeDeckLimit")
@@ -1109,24 +1190,24 @@ def add_purchase_urls_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
         lf.with_columns(
             [
                 # Card Kingdom: hash(base + path + uuid)
-                pl.concat_str([pl.lit(ck_base), ck_url, pl.col("uuid")])
-                .map_batches(url_hash_batch, return_dtype=pl.String)
+                plh.concat_str([pl.lit(ck_base), ck_url, pl.col("uuid")])
+                .chash.sha2_256().str.slice(0, 16)
                 .alias("_ck_hash"),
-                pl.concat_str([pl.lit(ck_base), ckf_url, pl.col("uuid")])
-                .map_batches(url_hash_batch, return_dtype=pl.String)
+                plh.concat_str([pl.lit(ck_base), ckf_url, pl.col("uuid")])
+                .chash.sha2_256().str.slice(0, 16)
                 .alias("_ckf_hash"),
-                pl.concat_str([pl.lit(ck_base), cke_url, pl.col("uuid")])
-                .map_batches(url_hash_batch, return_dtype=pl.String)
+                plh.concat_str([pl.lit(ck_base), cke_url, pl.col("uuid")])
+                .chash.sha2_256().str.slice(0, 16)
                 .alias("_cke_hash"),
                 # TCGPlayer: hash(tcgplayer_product_id + uuid)
-                pl.concat_str([tcg_id.cast(pl.String), pl.col("uuid")])
-                .map_batches(url_hash_batch, return_dtype=pl.String)
+                plh.concat_str([tcg_id.cast(pl.String), pl.col("uuid")])
+                .chash.sha2_256().str.slice(0, 16)
                 .alias("_tcg_hash"),
-                pl.concat_str([tcge_id.cast(pl.String), pl.col("uuid")])
-                .map_batches(url_hash_batch, return_dtype=pl.String)
+                plh.concat_str([tcge_id.cast(pl.String), pl.col("uuid")])
+                .chash.sha2_256().str.slice(0, 16)
                 .alias("_tcge_hash"),
                 # Cardmarket: hash(mcm_id + uuid + BUFFER + mcm_meta_id)
-                pl.concat_str(
+                plh.concat_str(
                     [
                         mcm_id.cast(pl.String),
                         pl.col("uuid"),
@@ -1137,7 +1218,7 @@ def add_purchase_urls_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
                         .fill_null(""),
                     ]
                 )
-                .map_batches(url_hash_batch, return_dtype=pl.String)
+                .chash.sha2_256().str.slice(0, 16)
                 .alias("_cm_hash"),
             ]
         )
@@ -1228,7 +1309,7 @@ def apply_manual_overrides(
 
         # Determine return dtype from first value
         sample_value = next(iter(uuid_map.values()))
-        return_dtype: Union[pl.List, type[pl.String]]
+        return_dtype: pl.List | type[pl.String]
         if isinstance(sample_value, list):
             return_dtype = pl.List(pl.String)
         elif isinstance(sample_value, str):
@@ -1588,12 +1669,17 @@ def rename_all_the_things(
         ]
     )
 
-    # Get the allowed fields for this specific output type (e.g. 'card_set' vs 'card_token')
+    # Get the allowed fields for this specific output type
+    # CARD_SET_EXCLUDE contains fields ONLY on CardSet (printing-specific fields)
+    # ATOMIC_EXCLUDE contains fields to remove when building atomic cards from set cards
+    # TOKEN_EXCLUDE contains fields to remove when building token cards
     if output_type == "card_set":
-        allowed_fields = ALL_CARD_FIELDS - CARD_SET_EXCLUDE
+        # CardSet keeps all fields - no exclusions for set-specific data
+        allowed_fields = ALL_CARD_FIELDS
     elif output_type == "card_token":
         allowed_fields = ALL_CARD_FIELDS - TOKEN_EXCLUDE
     elif output_type == "card_atomic":
+        # Atomic cards exclude printing-specific fields (setCode, uuid, etc.)
         allowed_fields = ALL_CARD_FIELDS - ATOMIC_EXCLUDE
     elif output_type == "card_deck":
         allowed_fields = ALL_CARD_FIELDS - CARD_DECK_EXCLUDE
@@ -1789,6 +1875,64 @@ def join_oracle_data(
     )
 
 
+def propagate_salt_to_tokens(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Propagate edhrecSaltiness from parent cards to tokens.
+
+    Tokens have their own oracleId which isn't in EDHREC's data.
+    We inherit saltiness from the parent card via reverseRelated.
+
+    For example:
+    - "Aven Initiate" token has reverseRelated=["Aven Initiate"]
+    - We look up "Aven Initiate" card's salt and assign it to the token
+    """
+    # Identify tokens
+    is_token = (
+        pl.col("layout").is_in(constants.TOKEN_LAYOUTS)
+        | (pl.col("type") == "Dungeon")
+        | pl.col("type").str.contains("Token")
+    )
+
+    # Build parent salt lookup: name -> edhrecSaltiness (first non-null)
+    # Only include non-tokens with salt values
+    parent_salt = (
+        lf.filter(~is_token & pl.col("edhrecSaltiness").is_not_null())
+        .select(["name", "edhrecSaltiness"])
+        .group_by("name")
+        .agg(pl.col("edhrecSaltiness").first())
+    )
+
+    # Explode reverseRelated to join with parent salt
+    # For tokens with NULL salt and non-empty reverseRelated
+    tokens_needing_salt = lf.filter(
+        is_token
+        & pl.col("edhrecSaltiness").is_null()
+        & pl.col("reverseRelated").is_not_null()
+        & (pl.col("reverseRelated").list.len() > 0)
+    ).with_columns(
+        pl.col("reverseRelated").list.first().alias("_parent_name")
+    )
+
+    # Join to get parent salt
+    tokens_with_salt = tokens_needing_salt.join(
+        parent_salt.rename({"edhrecSaltiness": "_parent_salt"}),
+        left_on="_parent_name",
+        right_on="name",
+        how="left",
+    ).select(["uuid", "_parent_salt"])
+
+    # Update original DataFrame with inherited salt
+    lf = lf.join(
+        tokens_with_salt,
+        on="uuid",
+        how="left",
+    ).with_columns(
+        pl.coalesce(pl.col("edhrecSaltiness"), pl.col("_parent_salt")).alias("edhrecSaltiness")
+    ).drop("_parent_salt", strict=False)
+
+    return lf
+
+
 def join_set_number_data(
     lf: pl.LazyFrame,
     ctx: PipelineContext,
@@ -1801,7 +1945,7 @@ def join_set_number_data(
     - add_duel_deck_side()
 
     Gets from set_number_lf:
-    - foreignData: List[Struct{language, scryfallId, multiverseId, name, faceName, text, type}]
+    - foreignData: List[Struct{faceName, flavorText, identifiers{multiverseId, scryfallId}, language, multiverseId, name, text, type, uuid}]
     - duelDeck: String
     """
     if ctx.set_number_lf is None:
@@ -1977,12 +2121,7 @@ def add_uuid_from_cache(lf: pl.LazyFrame) -> pl.LazyFrame:
     return lf.with_columns(
         pl.coalesce(
             pl.col("cachedUuid"),
-            pl.concat_str(
-                [
-                    pl.col("scryfallId"),
-                    pl.col("side").fill_null("a"),
-                ]
-            ).map_batches(uuid5_batch, return_dtype=pl.String),
+            _uuid5_concat_expr(pl.col("scryfallId"), pl.col("side"), default="a"),
         ).alias("uuid")
     ).drop("cachedUuid", strict=False)
 
@@ -2061,9 +2200,19 @@ def add_related_cards_from_context(
     Requires _spellbook_list column from join_name_data().
     Requires reverseRelated column from add_reverse_related().
 
+    IMPORTANT: relatedCards only appears on TOKENS, not regular cards.
+    Regular cards may have reverseRelated as a top-level field, but not wrapped in relatedCards.
+
     Replaces: add_related_cards_struct()
     """
-    # Build relatedCards struct - include if either spellbook or reverseRelated has data
+    # Only tokens get relatedCards struct
+    is_token = (
+        pl.col("layout").is_in(constants.TOKEN_LAYOUTS)
+        | (pl.col("type") == "Dungeon")
+        | pl.col("type").str.contains("Token")
+    )
+
+    # Build relatedCards struct - include if token AND has spellbook or reverseRelated data
     has_spellbook = (
         pl.col("setType").str.to_lowercase().str.contains("alchemy")
         & pl.col("_spellbook_list").is_not_null()
@@ -2074,7 +2223,7 @@ def add_related_cards_from_context(
     )
 
     return lf.with_columns(
-        pl.when(has_spellbook | has_reverse)
+        pl.when(is_token & (has_spellbook | has_reverse))
         .then(
             pl.struct(
                 spellbook=pl.col("_spellbook_list"),
@@ -2142,37 +2291,35 @@ def build_cards(
         .pipe(partial(add_legalities_struct, ctx=ctx))
         .pipe(partial(add_availability_struct, ctx=ctx))
     )
-
-    # Consolidated joins (6 joins -> 3)
+    
     lf = (
         lf.pipe(
             partial(join_identifiers, ctx=ctx)
-        )  # scryfallId+side: CK + orientation + cachedUuid
+        )
         .pipe(
             partial(join_oracle_data, ctx=ctx)
-        )  # oracleId: rulings + salt + printings
+        )
         .pipe(
             partial(join_set_number_data, ctx=ctx)
-        )  # setCode+number: foreignData + duelDeck
+        )
         .pipe(partial(join_name_data, ctx=ctx))  # name: spellbook + cardParts
-        .pipe(partial(join_cardmarket_ids, ctx=ctx))  # Keep separate (complex key)
+        .pipe(partial(join_cardmarket_ids, ctx=ctx))
     )
 
-    # Build identifiers struct + UUID
     lf = (
         lf.pipe(add_identifiers_struct)
-        .pipe(add_uuid_from_cache)  # Uses pre-joined cachedUuid
+        .pipe(add_uuid_from_cache)
         .pipe(add_identifiers_v4_uuid)
     )
 
     lf = lf.pipe(partial(join_gatherer_data, ctx=ctx))
 
-    # Post-UUID operations
     lf = (
         lf.pipe(add_other_face_ids)  # FULL SCAN: groups by scryfallId
         .pipe(add_variations)  # FULL SCAN: groups by set+name
         .pipe(partial(add_leadership_skills_expr, ctx=ctx))
         .pipe(add_reverse_related)
+        .pipe(propagate_salt_to_tokens)  # Inherit salt from parent cards to tokens
         .pipe(
             partial(add_related_cards_from_context, _ctx=ctx)
         )  # Uses pre-joined spellbook
@@ -2391,7 +2538,7 @@ def build_decks_expanded(
     )
 
     # Join expanded card lists
-    for col in card_list_cols + ["tokens"]:
+    for col in [*card_list_cols, "tokens"]:
         result = result.join(expanded_lists[col], on="_deck_id", how="left")
 
     result = result.drop("_deck_id")
@@ -2557,11 +2704,20 @@ def build_sealed_products_df(
         )
     )
 
+    # Extract product-level cardCount (same value per product, take first)
+    product_card_count = (
+        contents_lf
+        .filter(pl.col("cardCount").is_not_null())
+        .group_by(["setCode", "productName"])
+        .agg(pl.col("cardCount").first().alias("cardCount"))
+    )
+
     # Join contents to products
     result = (
         products_lf.join(card_contents, on=["setCode", "productName"], how="left")
         .join(sealed_contents, on=["setCode", "productName"], how="left")
         .join(other_contents, on=["setCode", "productName"], how="left")
+        .join(product_card_count, on=["setCode", "productName"], how="left")
     )
 
     # Build contents struct
@@ -2575,9 +2731,7 @@ def build_sealed_products_df(
 
     # Generate UUID for each product (uuid5 from product name)
     result = result.with_columns(
-        pl.col("productName")
-        .map_batches(uuid5_batch, return_dtype=pl.String)
-        .alias("uuid")
+        _uuid5_expr("productName").alias("uuid")
     )
 
     # Build purchaseUrls from identifiers if present
@@ -2598,8 +2752,8 @@ def build_sealed_products_df(
             # Card Kingdom
             if "cardKingdomId" in id_fields:
                 result = result.with_columns(
-                    pl.concat_str([pl.col("uuid"), pl.lit("cardKingdom")])
-                    .map_batches(url_hash_batch, return_dtype=pl.String)
+                    plh.concat_str([pl.col("uuid"), pl.lit("cardKingdom")])
+                    .chash.sha2_256().str.slice(0, 16)
                     .alias("_ck_hash")
                 )
                 purchase_url_fields.append(
@@ -2616,8 +2770,8 @@ def build_sealed_products_df(
             # TCGPlayer
             if "tcgplayerProductId" in id_fields:
                 result = result.with_columns(
-                    pl.concat_str([pl.col("uuid"), pl.lit("tcgplayer")])
-                    .map_batches(url_hash_batch, return_dtype=pl.String)
+                    plh.concat_str([pl.col("uuid"), pl.lit("tcgplayer")])
+                    .chash.sha2_256().str.slice(0, 16)
                     .alias("_tcg_hash")
                 )
                 purchase_url_fields.append(
@@ -2658,10 +2812,18 @@ def build_sealed_products_df(
         "uuid",
     ]
 
-    # Add releaseDate if available
+    # Add optional columns if available
     final_cols = result.collect_schema().names()
+
+    # releaseDate (might be release_date from model)
     if "releaseDate" in final_cols:
         select_cols.insert(4, "releaseDate")
+    elif "release_date" in final_cols:
+        select_cols.insert(4, pl.col("release_date").alias("releaseDate"))
+
+    # cardCount from contents aggregation
+    if "cardCount" in final_cols:
+        select_cols.append("cardCount")
 
     result = result.select(select_cols)
 
@@ -2730,8 +2892,12 @@ def build_set_metadata_df(
                 }
 
     # Get MCM set data from CardMarket provider
-    # Note: cardmarket set_map not currently exposed via PipelineContext
     mcm_set_map: dict[str, dict[str, Any]] = {}
+    try:
+        cardmarket_provider = CardMarketProvider()
+        mcm_set_map = cardmarket_provider.set_map or {}
+    except Exception as e:
+        LOGGER.warning(f"Could not load CardMarket set data: {e}")
 
     # Get Cardsphere set IDs from MultiverseBridge
     cardsphere_sets: dict[str, int] = (
@@ -2962,7 +3128,7 @@ def assemble_json_outputs(
                 .drop("setCode")
                 .to_dicts()
             )
-            # Clean nulls from decks (but keep required empty lists)
+            # Clean nulls from decks
             decks_by_set[set_code] = [
                 clean_nested(d, omit_empty=False) for d in raw_decks
             ]

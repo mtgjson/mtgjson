@@ -5,7 +5,6 @@ S3 Uploader to store MTGJSON files in a Bucket
 import logging
 import pathlib
 import urllib.parse
-from typing import Dict, Optional
 
 import boto3
 import botocore.exceptions
@@ -49,7 +48,7 @@ class MtgjsonS3Handler:
         local_file_path: str,
         bucket_name: str,
         bucket_object_path: str,
-        tags: Optional[Dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
         cache_ttl_sec: int = 86400,
     ) -> bool:
         """
@@ -83,7 +82,7 @@ class MtgjsonS3Handler:
         self,
         directory_path: pathlib.Path,
         bucket_name: str,
-        tags: Optional[Dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ) -> None:
         """
         Upload a directory to S3

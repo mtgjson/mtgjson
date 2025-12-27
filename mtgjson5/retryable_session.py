@@ -5,7 +5,6 @@ Retryable Session to download content
 import datetime
 import functools
 import inspect
-from typing import Union
 
 import requests
 import requests.adapters
@@ -18,13 +17,13 @@ from .mtgjson_config import MtgjsonConfig
 
 def retryable_session(
     retries: int = 8,
-) -> Union[requests.Session, requests_cache.CachedSession]:
+) -> requests.Session | requests_cache.CachedSession:
     """
     Session with requests to allow for re-attempts at downloading missing data
     :param retries: How many retries to attempt
     :return: Session that does the downloading
     """
-    session: Union[requests.Session, requests_cache.CachedSession]
+    session: requests.Session | requests_cache.CachedSession
 
     if MtgjsonConfig().use_cache:
         stack = inspect.stack()

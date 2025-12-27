@@ -6,24 +6,25 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Literal
 
+
 if TYPE_CHECKING:
     from mtgjson5.context import PipelineContext
 
 ExportFormatType = Literal["json", "sql", "sqlite", "psql", "csv", "parquet"]
 OutputTypeStr = Literal["atomic", "deck", "set"]
 
-EXPORT_FORMAT_REGISTRY: dict[str, type["ExportFormat"]] = {}
-OUTPUT_TYPE_REGISTRY: dict[str, type["OutputType"]] = {}
+EXPORT_FORMAT_REGISTRY: dict[str, type[ExportFormat]] = {}
+OUTPUT_TYPE_REGISTRY: dict[str, type[OutputType]] = {}
 
 
-def register_export_format(cls: type["ExportFormat"]) -> type["ExportFormat"]:
+def register_export_format(cls: type[ExportFormat]) -> type[ExportFormat]:
     """Decorator to register an export format class."""
     if hasattr(cls, "NAME"):
         EXPORT_FORMAT_REGISTRY[cls.NAME.lower()] = cls
     return cls
 
 
-def register_output_type(cls: type["OutputType"]) -> type["OutputType"]:
+def register_output_type(cls: type[OutputType]) -> type[OutputType]:
     """Decorator to register an output type class."""
     if hasattr(cls, "NAME"):
         OUTPUT_TYPE_REGISTRY[cls.NAME.lower()] = cls
@@ -41,7 +42,7 @@ class ExportFormat(ABC):
     FILE_NAME: ClassVar[str] = ""
 
     @abstractmethod
-    def write(self, ctx: "PipelineContext", output_path: Path) -> Path | None:
+    def write(self, ctx: PipelineContext, output_path: Path) -> Path | None:
         """
         Write this export format.
 
@@ -65,7 +66,7 @@ class OutputType(ABC):
     NAME: ClassVar[str] = ""
 
     @abstractmethod
-    def build(self, ctx: "PipelineContext") -> Path | None:
+    def build(self, ctx: PipelineContext) -> Path | None:
         """
         Build this output type.
 

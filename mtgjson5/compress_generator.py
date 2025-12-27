@@ -16,15 +16,15 @@ import shutil
 import subprocess
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Union
 
 from .compiled_classes import MtgjsonStructuresObject
+
 
 LOGGER = logging.getLogger(__name__)
 
 
 def _compress_mtgjson_directory(
-    files: List[pathlib.Path], directory: pathlib.Path, output_file: str
+    files: list[pathlib.Path], directory: pathlib.Path, output_file: str
 ) -> None:
     """
     Create a temporary directory of files to be compressed
@@ -41,7 +41,7 @@ def _compress_mtgjson_directory(
 
     LOGGER.info(f"Compressing {output_file}")
 
-    compression_commands: List[List[Union[str, pathlib.Path]]] = [
+    compression_commands: list[list[str | pathlib.Path]] = [
         ["tar", "-jcf", f"{temp_dir}.tar.bz2", "-C", temp_dir.parent, temp_dir.name],
         ["tar", "-Jcf", f"{temp_dir}.tar.xz", "-C", temp_dir.parent, temp_dir.name],
         ["tar", "-zcf", f"{temp_dir}.tar.gz", "-C", temp_dir.parent, temp_dir.name],
@@ -60,7 +60,7 @@ def _compress_mtgjson_file(file: pathlib.Path) -> None:
     """
     LOGGER.info(f"Compressing {file.name}")
 
-    compression_commands: List[List[Union[str, pathlib.Path]]] = [
+    compression_commands: list[list[str | pathlib.Path]] = [
         ["bzip2", "--keep", "--force", file],
         ["gzip", "--keep", "--force", file],
         ["xz", "--keep", "--force", file],
@@ -69,7 +69,7 @@ def _compress_mtgjson_file(file: pathlib.Path) -> None:
     _compressor(compression_commands)
 
 
-def _compressor(compression_commands: List[List[Union[str, pathlib.Path]]]) -> None:
+def _compressor(compression_commands: list[list[str | pathlib.Path]]) -> None:
     """
     Execute a series of compression commands in true parallel
     :param compression_commands: Function to compress with
@@ -79,10 +79,10 @@ def _compressor(compression_commands: List[List[Union[str, pathlib.Path]]]) -> N
     for command in compression_commands:
         with subprocess.Popen(command, stdout=subprocess.DEVNULL) as proc:
             if proc.wait() != 0:
-                LOGGER.error(f"Failed to compress {str(proc.args)}")
+                LOGGER.error(f"Failed to compress {proc.args!s}")
 
 
-def _compress_file_python(file: pathlib.Path) -> List[tuple[bool, str]]:
+def _compress_file_python(file: pathlib.Path) -> list[tuple[bool, str]]:
     """
     Compress a single file using Python's built-in compression modules.
     Cross-platform, no external dependencies.
@@ -136,9 +136,9 @@ def _compress_file_python(file: pathlib.Path) -> List[tuple[bool, str]]:
 
 
 def _compress_directory_python(
-    files: List[pathlib.Path],
+    files: list[pathlib.Path],
     output_base: pathlib.Path,
-) -> List[tuple[bool, str]]:
+) -> list[tuple[bool, str]]:
     """
     Create archives of files in multiple formats using Python.
 
@@ -294,7 +294,7 @@ def compress_mtgjson_contents(directory: pathlib.Path, use_python: bool = True) 
 
 
 def compress_files_parallel(
-    files: List[pathlib.Path],
+    files: list[pathlib.Path],
     max_workers: int | None = None,
 ) -> dict[str, int]:
     """

@@ -1016,7 +1016,7 @@ class GlobalCache:
         return dict(
             zip(
                 self.tcg_to_uuid_df["tcgplayerProductId"].to_list(),
-                self.tcg_to_uuid_df["uuid"].to_list(),
+                self.tcg_to_uuid_df["uuid"].to_list(), strict=False,
             )
         )
 
@@ -1031,7 +1031,7 @@ class GlobalCache:
         return dict(
             zip(
                 self.tcg_etched_to_uuid_df["tcgplayerEtchedProductId"].to_list(),
-                self.tcg_etched_to_uuid_df["uuid"].to_list(),
+                self.tcg_etched_to_uuid_df["uuid"].to_list(), strict=False,
             )
         )
 
@@ -1046,7 +1046,7 @@ class GlobalCache:
         return dict(
             zip(
                 self.mtgo_to_uuid_df["mtgoId"].to_list(),
-                self.mtgo_to_uuid_df["uuid"].to_list(),
+                self.mtgo_to_uuid_df["uuid"].to_list(), strict=False,
             )
         )
 
@@ -1061,7 +1061,7 @@ class GlobalCache:
         return dict(
             zip(
                 self.cardmarket_to_uuid_df["mcmId"].to_list(),
-                self.cardmarket_to_uuid_df["uuid"].to_list(),
+                self.cardmarket_to_uuid_df["uuid"].to_list(), strict=False,
             )
         )
 
@@ -1070,7 +1070,6 @@ class GlobalCache:
         """Get the singleton GlobalCache instance."""
         if cls._instance is None:
             cls()
-        assert cls._instance is not None
         return cls._instance
 
 

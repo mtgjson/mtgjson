@@ -9,13 +9,15 @@ import logging
 import os
 import pathlib
 import time
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
+from collections.abc import Iterator
+from typing import Any
 
 import polars as pl
 import requests
 
 from . import constants
 from .mtgjson_config import MtgjsonConfig
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -45,7 +47,7 @@ def init_logger() -> None:
     logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 
-def url_keygen(unique_seed: Union[int, str], with_leading: bool = True) -> str:
+def url_keygen(unique_seed: int | str, with_leading: bool = True) -> str:
     """
     Generates a key that MTGJSON will use for redirection
     :param unique_seed: Link seed
@@ -136,7 +138,7 @@ def get_file_hash(file_to_hash: pathlib.Path, block_size: int = 65536) -> str:
     return hash_operation.hexdigest()
 
 
-def get_str_or_none(value: Any) -> Optional[str]:
+def get_str_or_none(value: Any) -> str | None:
     """
     Given a value, get its string representation
     or None object
@@ -190,8 +192,8 @@ def send_push_notification(message: str) -> bool:
 
 
 def get_all_entities_from_content(
-    all_printings_content: Dict[str, Any], include_sealed_product: bool = False
-) -> List[Dict[str, Any]]:
+    all_printings_content: dict[str, Any], include_sealed_product: bool = False
+) -> list[dict[str, Any]]:
     """
     Convert the content of AllPrintings into a list of entity objects (mostly cards, can include sealedProduct)
     :param all_printings_content: Content of AllPrintings
@@ -211,7 +213,7 @@ def get_all_entities_from_content(
 
 def get_all_entities(
     all_printings_path: pathlib.Path, include_sealed_product: bool = False
-) -> Iterator[Dict[str, Any]]:
+) -> Iterator[dict[str, Any]]:
     """
     Grab every card, token, and possible sealedProduct object from an AllPrintings file for future iteration
     :param all_printings_path: AllPrintings.json to refer when building
@@ -231,10 +233,10 @@ def get_all_entities(
 
 def generate_entity_mapping(
     all_printings_path: pathlib.Path,
-    left_side_components: Tuple[str, ...],
-    right_side_components: Tuple[str, ...],
+    left_side_components: tuple[str, ...],
+    right_side_components: tuple[str, ...],
     include_sealed_product: bool = False,
-) -> Dict[str, Set[Any]]:
+) -> dict[str, set[Any]]:
     """
     Construct a mapping from one component of the card to another.
     The components are nested ops to get to the final value.
@@ -244,7 +246,7 @@ def generate_entity_mapping(
     :param include_sealed_product: Should sealedProduct be included in entities
     :return Dict mapping from left components => right components
     """
-    dump_map: Dict[str, Set[Any]] = collections.defaultdict(set)
+    dump_map: dict[str, set[Any]] = collections.defaultdict(set)
 
     for entity in get_all_entities(all_printings_path, include_sealed_product):
         try:
@@ -267,23 +269,23 @@ def generate_entity_mapping(
     return dump_map
 
 
-def load_local_set_data() -> Dict[str, Dict[str, Any]]:
+def load_local_set_data() -> dict[str, dict[str, Any]]:
     """
     Loads the local set data
     """
     with constants.RESOURCE_PATH.joinpath("additional_sets.json").open(
         encoding="utf-8"
     ) as f:
-        data: Dict[str, Dict[str, Any]] = json.load(f)
+        data: dict[str, dict[str, Any]] = json.load(f)
     return data
 
 
-def recursive_sort(unsorted_dict: Dict[str, Any]) -> Dict[str, Any]:
+def recursive_sort(unsorted_dict: dict[str, Any]) -> dict[str, Any]:
     """
     Recursively sort a dictionary's inner keys and values, as necessary
     """
     return {
-        key: recursive_sort(value) if isinstance(value, Dict) else value
+        key: recursive_sort(value) if isinstance(value, dict) else value
         for key, value in sorted(unsorted_dict.items())
     }
 

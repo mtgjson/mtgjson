@@ -11,10 +11,11 @@ from .salt import EdhrecSaltProvider
 from .sealed import SealedDataProvider
 from .tcgplayer import TCGProvider
 
+
 __all__ = [
-    "CKProvider",
-    "SealedDataProvider",
-    "EdhrecSaltProvider",
     "BulkDataProvider",
+    "CKProvider",
+    "EdhrecSaltProvider",
+    "SealedDataProvider",
     "TCGProvider",
 ]

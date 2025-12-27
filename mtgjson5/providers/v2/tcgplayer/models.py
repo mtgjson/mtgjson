@@ -1,6 +1,7 @@
 """TCGPlayer API data models."""
 
-from typing import Callable, Optional
+from collections.abc import Callable
+from typing import Optional
 
 import polars as pl
 from pydantic import BaseModel, Field
@@ -23,7 +24,7 @@ class Product(BaseModel):
     productId: int
     name: str = ""
     cleanName: str = ""
-    groupId: Optional[int] = None
+    groupId: int | None = None
     url: str = ""
     skus: list[Sku] = Field(default_factory=list)
 
@@ -96,7 +97,7 @@ class FetchResult(BaseModel):
     total_items: int = 0
     offset: int = 0
     success: bool = True
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
     @property
     def error(self) -> bool:

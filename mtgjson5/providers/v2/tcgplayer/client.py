@@ -3,11 +3,12 @@
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 import aiohttp
 
 from .models import TcgPlayerConfig
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class ProductsPage:
     total_items: int
     offset: int
     success: bool
-    error: Optional[Exception] = None
+    error: Exception | None = None
 
 
 class TcgPlayerClient:
@@ -49,8 +50,8 @@ class TcgPlayerClient:
         self.config = config
         self.concurrent_limit = concurrent_limit
         self.timeout = timeout
-        self.access_token: Optional[str] = None
-        self._session: Optional[aiohttp.ClientSession] = None
+        self.access_token: str | None = None
+        self._session: aiohttp.ClientSession | None = None
 
     async def __aenter__(self) -> "TcgPlayerClient":
         connector = aiohttp.TCPConnector(limit=self.concurrent_limit)
@@ -119,7 +120,7 @@ class TcgPlayerClient:
             "Authorization": f"bearer {self.access_token}",
         }
 
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
 
         for attempt in range(MAX_RETRIES):
             try:
@@ -142,7 +143,7 @@ class TcgPlayerClient:
                     result: dict[str, object] = await resp.json()
                     return result
 
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            except (TimeoutError, aiohttp.ClientError) as e:
                 last_error = e
                 if attempt < MAX_RETRIES - 1:
                     delay = RETRY_DELAY * (attempt + 1)

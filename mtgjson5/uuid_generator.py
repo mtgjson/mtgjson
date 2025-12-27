@@ -7,10 +7,10 @@ while still using the standard library's uuid5 for RFC 4122 compliance.
 
 import hashlib
 import uuid
-from typing import Optional
 
 import numpy as np
 import polars as pl
+
 
 NAMESPACE_DNS_BYTES = uuid.NAMESPACE_DNS.bytes
 
@@ -28,7 +28,7 @@ def _uuid5_from_string(name: str) -> str:
 def compute_v5_uuids_numpy(
     scryfall_ids: np.ndarray,
     sides: np.ndarray,
-    cached_uuids: Optional[np.ndarray] = None,
+    cached_uuids: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Compute MTGJSON v5 UUIDs from scryfall_id + side.

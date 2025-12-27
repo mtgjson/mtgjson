@@ -13,11 +13,12 @@ import polars as pl
 from mtgjson5 import constants
 from mtgjson5.classes import MtgjsonMetaObject
 from mtgjson5.mtgjson_config import MtgjsonConfig
-from mtgjson5.serialize import clean_nested, dataframe_to_cards_list
+from mtgjson5.mtgjson_models import clean_nested, dataframe_to_cards_list
 from mtgjson5.utils import LOGGER, deep_sort_keys
 
 from .base import EXPORT_SCHEMAS, ExportSchema
 from .utils import escape_postgres, escape_sqlite, serialize_complex_types
+
 
 if TYPE_CHECKING:
     from mtgjson5.context import PipelineContext
@@ -49,7 +50,7 @@ class OutputWriter:
         self._formats: list[str] = []
 
     @classmethod
-    def from_args(cls, ctx: PipelineContext) -> "OutputWriter":
+    def from_args(cls, ctx: PipelineContext) -> OutputWriter:
         """Create writer with formats from ctx.args.export."""
         writer = cls(ctx)
         if ctx.args:

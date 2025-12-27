@@ -1,7 +1,8 @@
 """Pytest configuration and fixtures for MTGJSON tests."""
 
 import os
-from typing import Any, Dict, Generator
+from collections.abc import Generator
+from typing import Any
 
 import pytest
 import requests_cache
@@ -34,7 +35,7 @@ def disable_cache() -> Generator[None, None, None]:
 
 # VCR configuration
 @pytest.fixture(scope="module")
-def vcr_config() -> Dict[str, Any]:
+def vcr_config() -> dict[str, Any]:
     """
     Configure VCR for deterministic HTTP testing.
 

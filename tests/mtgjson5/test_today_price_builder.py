@@ -1,15 +1,15 @@
 import json
 import pathlib
-from typing import List, TextIO
+from typing import TextIO
 from unittest.mock import patch
 
 from mtgjson5.classes import MtgjsonPricesObject
 from mtgjson5.price_builder import PriceBuilder
 from mtgjson5.providers import (
-    CardKingdomProvider,
     CardHoarderProvider,
-    TCGPlayerProvider,
+    CardKingdomProvider,
     MultiverseBridgeProvider,
+    TCGPlayerProvider,
 )
 from mtgjson5.providers.abstract import AbstractProvider
 from mtgjson5.providers.cardmarket.monolith import CardMarketProvider
@@ -37,14 +37,14 @@ def get_resource_file_buffer(file_name: str) -> TextIO:
 
 
 def assert_build_today_prices(
-    provider: AbstractProvider, expected_results: List[MtgjsonPricesObject]
+    provider: AbstractProvider, expected_results: list[MtgjsonPricesObject]
 ) -> None:
     builder = PriceBuilder(provider, all_printings_path=get_slim_all_printings_path())
     today_prices = builder.build_today_prices()
 
     actual_results = today_prices.values()
     assert len(expected_results) == len(actual_results)
-    for expected, actual in zip(expected_results, actual_results):
+    for expected, actual in zip(expected_results, actual_results, strict=False):
         assert expected.to_json() == actual
 
 

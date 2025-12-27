@@ -2,7 +2,6 @@
 MTGJSON Related Cards Container
 """
 
-from typing import List
 
 from ..classes.json_object import JsonObject
 
@@ -12,8 +11,8 @@ class MtgjsonRelatedCardsObject(JsonObject):
     MTGJSON Related Cards Container
     """
 
-    reverse_related: List[str]
-    spellbook: List[str]
+    reverse_related: list[str]
+    spellbook: list[str]
 
     def __init__(self) -> None:
         self.reverse_related = []
@@ -26,7 +25,7 @@ class MtgjsonRelatedCardsObject(JsonObject):
         """
         return bool(self.reverse_related or self.spellbook)
 
-    def build_keys_to_skip(self) -> List[str]:
+    def build_keys_to_skip(self) -> list[str]:
         keys_to_skip = []
         if not self.reverse_related:
             keys_to_skip.append("reverse_related")

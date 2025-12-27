@@ -5,7 +5,6 @@ MTGJSON Configuration Service
 import configparser
 import logging
 import pathlib
-from typing import Optional
 
 import boto3
 import botocore.exceptions
@@ -31,7 +30,7 @@ class MtgjsonConfig:
 
     def __init__(
         self,
-        aws_ssm_config_name: Optional[str] = None,
+        aws_ssm_config_name: str | None = None,
     ):
         self.logger = logging.getLogger(__name__)
         self.config_parser = configparser.ConfigParser()

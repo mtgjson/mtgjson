@@ -5,7 +5,6 @@ Wizards Site 3rd party provider
 import logging
 import re
 import time
-from typing import Dict, Optional, Union
 
 import requests
 from singleton_decorator import singleton
@@ -28,7 +27,7 @@ class WizardsProvider(AbstractProvider):
         self.logger = logging.getLogger(__name__)
         super().__init__(self._build_http_header())
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Construct the Authorization header -- unused
         :return: Authorization header
@@ -36,7 +35,7 @@ class WizardsProvider(AbstractProvider):
         return {}
 
     def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+        self, url: str, params: dict[str, str | int] | None = None
     ) -> requests.Response:
         """
         Download from Wizard's website

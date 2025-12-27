@@ -11,10 +11,11 @@ from .github_decks import GitHubDecksProvider
 from .github_mtgsqlite import GitHubMTGSqliteProvider
 from .github_sealed import GitHubSealedProvider
 
+
 __all__ = [
-    "GitHubCardSealedProductsProvider",
     "GitHubBoostersProvider",
+    "GitHubCardSealedProductsProvider",
     "GitHubDecksProvider",
-    "GitHubSealedProvider",
     "GitHubMTGSqliteProvider",
+    "GitHubSealedProvider",
 ]

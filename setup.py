@@ -7,6 +7,7 @@ import pathlib
 
 import setuptools
 
+
 # Establish project directory
 project_root: pathlib.Path = pathlib.Path(__file__).resolve().parent
 

@@ -9,6 +9,7 @@ import requests
 
 from mtgjson5 import constants
 
+
 LOGGER = logging.getLogger(__name__)
 
 EDHREC_CARDRANKS_URL = "https://edhrec.com/data/cardranks.json"

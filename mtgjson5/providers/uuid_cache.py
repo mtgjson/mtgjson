@@ -4,12 +4,13 @@ UUID Cache Provider for MTGJSONv5 Legacy UUIDs
 
 import json
 import logging
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from singleton_decorator import singleton
 
 from .. import constants
 from .abstract import AbstractProvider
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ class UuidCacheProvider(AbstractProvider):
     UUID Cache Provider for MTGJSONv5 Legacy UUIDs
     """
 
-    sf_to_mtgjson_cache: Dict[str, Dict[str, str]]
+    sf_to_mtgjson_cache: dict[str, dict[str, str]]
 
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
@@ -29,7 +30,7 @@ class UuidCacheProvider(AbstractProvider):
         ).open(encoding="utf-8") as f:
             self.sf_to_mtgjson_cache = json.load(f)
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Construct the Authorization header
         :return: Authorization header
@@ -37,7 +38,7 @@ class UuidCacheProvider(AbstractProvider):
         return {}
 
     def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+        self, url: str, params: dict[str, str | int] | None = None
     ) -> Any:
         """
         Download content from GitHub
@@ -46,7 +47,7 @@ class UuidCacheProvider(AbstractProvider):
         """
         return {}
 
-    def get_uuid(self, scryfall_uuid: str, side: str) -> Optional[str]:
+    def get_uuid(self, scryfall_uuid: str, side: str) -> str | None:
         """
         Try to get the cached version of the UUID
         """

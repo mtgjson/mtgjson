@@ -1,6 +1,5 @@
 """Scryfall provider for detecting card orientation in Art Series sets."""
 
-from typing import Dict, List, Optional, Union
 
 import bs4
 from singleton_decorator import singleton
@@ -18,10 +17,10 @@ class ScryfallProviderOrientationDetector(AbstractProvider):
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         return sf_utils.build_http_header()
 
-    def get_uuid_to_orientation_map(self, set_code: str) -> Dict[str, str]:
+    def get_uuid_to_orientation_map(self, set_code: str) -> dict[str, str]:
         """Build a mapping of Scryfall card IDs to their orientation for a set."""
         response = self.download(self.MAIN_PAGE_URL.format(set_code))
 
@@ -33,7 +32,7 @@ class ScryfallProviderOrientationDetector(AbstractProvider):
 
         return_map = {}
         for orientation_header, scryfall_card_entries in zip(
-            orientation_headers, scryfall_card_entries_by_orientation
+            orientation_headers, scryfall_card_entries_by_orientation, strict=False
         ):
             orientation = self._parse_orientation(orientation_header)
             card_uuids = self._parse_card_entries(scryfall_card_entries)
@@ -43,7 +42,7 @@ class ScryfallProviderOrientationDetector(AbstractProvider):
         return return_map
 
     def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+        self, url: str, params: dict[str, str | int] | None = None
     ) -> str:
         response = self.session.get(url)
         self.log_download(response)
@@ -58,7 +57,7 @@ class ScryfallProviderOrientationDetector(AbstractProvider):
         return str(a_tags.get("id"))
 
     @staticmethod
-    def _parse_card_entries(scryfall_card_ids: bs4.Tag) -> List[str]:
+    def _parse_card_entries(scryfall_card_ids: bs4.Tag) -> list[str]:
         """
         Parse out all card UUIDs from bs4 Tag
         """

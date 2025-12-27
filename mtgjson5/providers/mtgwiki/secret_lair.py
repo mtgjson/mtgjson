@@ -1,5 +1,4 @@
 import logging
-from typing import Dict, List, Optional, Union
 
 import bs4
 from singleton_decorator import singleton
@@ -12,16 +11,16 @@ class MtgWikiProviderSecretLair(AbstractProvider):
     PAGE_URL = "https://mtg.wiki/page/Secret_Lair/Drop_Series"
     logger: logging.Logger
 
-    def __init__(self, headers: Optional[Dict[str, str]] = None):
+    def __init__(self, headers: dict[str, str] | None = None):
         super().__init__(headers or {})
         self.logger = logging.getLogger(__name__)
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         return {}
 
     def download(
-        self, url: str = "", params: Optional[Dict[str, Union[str, int]]] = None
-    ) -> Dict[str, str]:
+        self, url: str = "", params: dict[str, str | int] | None = None
+    ) -> dict[str, str]:
         """
         Download MTG.Wiki Secret Lair page and parse it out
         for user consumption
@@ -32,8 +31,8 @@ class MtgWikiProviderSecretLair(AbstractProvider):
 
         return self.__parse_secret_lair_table(response.text)
 
-    def __parse_secret_lair_table(self, page_text: str) -> Dict[str, str]:
-        results: Dict[str, str] = {}
+    def __parse_secret_lair_table(self, page_text: str) -> dict[str, str]:
+        results: dict[str, str] = {}
 
         soup = bs4.BeautifulSoup(page_text, "html.parser")
         table = soup.find("table", {"class": "wikitable sortable"})
@@ -71,7 +70,7 @@ class MtgWikiProviderSecretLair(AbstractProvider):
         return results
 
     @staticmethod
-    def __convert_range_to_page_style(range_string: str) -> List[int]:
+    def __convert_range_to_page_style(range_string: str) -> list[int]:
         range_string = "".join(filter("0123456789-,".__contains__, range_string))
         if not range_string:
             return []

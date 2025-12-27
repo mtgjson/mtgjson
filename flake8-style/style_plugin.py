@@ -11,7 +11,8 @@
 # from .foo import bar                  # OK (relative)
 """
 import ast
-from typing import Iterator, Tuple, Type
+from collections.abc import Iterator
+
 
 # Modules allowed to use "from ... import ..."
 ALLOWED_FROM_IMPORTS = {
@@ -60,7 +61,7 @@ class ImportStyleChecker:
     def __init__(self, tree: ast.AST) -> None:
         self.tree = tree
 
-    def run(self) -> Iterator[Tuple[int, int, str, Type]]:
+    def run(self) -> Iterator[tuple[int, int, str, type]]:
         for node in ast.walk(self.tree):
             if isinstance(node, ast.ImportFrom):
                 # Relative imports are allowed

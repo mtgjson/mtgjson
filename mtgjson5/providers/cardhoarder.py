@@ -5,7 +5,7 @@ CardHoarder 3rd party provider
 import logging
 import pathlib
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any
 
 from singleton_decorator import singleton
 
@@ -13,6 +13,7 @@ from ..classes import MtgjsonPricesObject
 from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 from ..utils import get_all_entities
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -31,12 +32,12 @@ class CardHoarderProvider(AbstractProvider):
         """
         super().__init__(self._build_http_header())
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Construct the Authorization header for CardHoarder
         :return: Authorization header
         """
-        headers: Dict[str, str] = {}
+        headers: dict[str, str] = {}
 
         if not MtgjsonConfig().has_section("CardHoarder"):
             LOGGER.warning(
@@ -56,7 +57,7 @@ class CardHoarderProvider(AbstractProvider):
         return headers
 
     def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+        self, url: str, params: dict[str, str | int] | None = None
     ) -> Any:
         """
         Download content from Scryfall
@@ -73,8 +74,8 @@ class CardHoarderProvider(AbstractProvider):
         return response.content.decode()
 
     def convert_cardhoarder_to_mtgjson(
-        self, url_to_parse: str, mtgo_to_mtgjson_map: Dict[str, Set[str]]
-    ) -> Dict[str, float]:
+        self, url_to_parse: str, mtgo_to_mtgjson_map: dict[str, set[str]]
+    ) -> dict[str, float]:
         """
         Download CardHoarder cards and convert them into a more
         consumable format for further processing.
@@ -89,7 +90,7 @@ class CardHoarderProvider(AbstractProvider):
             return {}
 
         # All Entries from CH, cutting off headers
-        file_rows: List[str] = request_api_response.splitlines()[2:]
+        file_rows: list[str] = request_api_response.splitlines()[2:]
         invalid_entries = 0
         for file_row in file_rows:
             card_row = file_row.split("\t")
@@ -115,7 +116,7 @@ class CardHoarderProvider(AbstractProvider):
 
     def generate_today_price_dict(
         self, all_printings_path: Any
-    ) -> Dict[str, MtgjsonPricesObject]:
+    ) -> dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure for MTGO from CardHoarder
         :param all_printings_path: Path to AllPrintings.json for pre-processing
@@ -126,14 +127,14 @@ class CardHoarderProvider(AbstractProvider):
         # pylint: disable=cyclic-import
         from ..cache import GLOBAL_CACHE
 
-        mtgo_to_mtgjson_map: Union[Dict[str, str], Dict[str, Set[str]]] = (
+        mtgo_to_mtgjson_map: dict[str, str] | dict[str, set[str]] = (
             GLOBAL_CACHE.get_mtgo_to_uuid_map()
         )
         if not mtgo_to_mtgjson_map:
             mtgo_to_mtgjson_map = self.get_mtgo_to_mtgjson_map(all_printings_path)
 
         # Cast to expected type - either source returns Set[str] values
-        mtgo_map: Dict[str, Set[str]] = {
+        mtgo_map: dict[str, set[str]] = {
             k: (v if isinstance(v, set) else {v})
             for k, v in mtgo_to_mtgjson_map.items()
         }
@@ -142,7 +143,7 @@ class CardHoarderProvider(AbstractProvider):
             self.ch_api_url + "/foil", mtgo_map
         )
 
-        db_contents: Dict[str, MtgjsonPricesObject] = {}
+        db_contents: dict[str, MtgjsonPricesObject] = {}
 
         LOGGER.info("Building CardHoarder retail data")
         self._construct_for_cards(db_contents, normal_cards, True)
@@ -151,8 +152,8 @@ class CardHoarderProvider(AbstractProvider):
 
     def _construct_for_cards(
         self,
-        semi_completed_data: Dict[str, MtgjsonPricesObject],
-        cards: Dict[str, float],
+        semi_completed_data: dict[str, MtgjsonPricesObject],
+        cards: dict[str, float],
         is_mtgo_normal: bool = False,
     ) -> None:
         """
@@ -161,7 +162,7 @@ class CardHoarderProvider(AbstractProvider):
         :param cards: Cards to iterate
         """
         for key, value in cards.items():
-            if key not in semi_completed_data.keys():
+            if key not in semi_completed_data:
                 semi_completed_data[key] = MtgjsonPricesObject(
                     "mtgo", "cardhoarder", self.today_date, "USD"
                 )
@@ -174,13 +175,13 @@ class CardHoarderProvider(AbstractProvider):
     @staticmethod
     def get_mtgo_to_mtgjson_map(
         all_printings_path: pathlib.Path,
-    ) -> Dict[str, Set[str]]:
+    ) -> dict[str, set[str]]:
         """
         Construct a mapping from MTGO IDs (Regular & Foil) to MTGJSON UUIDs
         :param all_printings_path: AllPrintings to generate mapping from
         :return MTGO to MTGJSON mapping
         """
-        mtgo_to_mtgjson: Dict[str, Set[str]] = defaultdict(set)
+        mtgo_to_mtgjson: dict[str, set[str]] = defaultdict(set)
         for card in get_all_entities(all_printings_path):
             identifiers = card["identifiers"]
             if "mtgoId" in identifiers:

@@ -6,7 +6,7 @@ import datetime
 import hashlib
 import os
 import pathlib
-from typing import Dict, Set
+
 
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson5").joinpath("resources")
@@ -31,7 +31,7 @@ CARD_KINGDOM_REFERRAL: str = (
     "?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson"
 )
 
-FOREIGN_SETS: Set[str] = {
+FOREIGN_SETS: set[str] = {
     "PMPS11",
     "PS11",
     "PSAL",
@@ -51,9 +51,9 @@ FOREIGN_SETS: Set[str] = {
     "FBB",
 }
 TOKEN_LAYOUTS = {"token", "double_faced_token", "emblem", "art_series"}
-SUPER_TYPES: Set[str] = {"Basic", "Host", "Legendary", "Ongoing", "Snow", "World"}
-BASIC_LAND_NAMES: Set[str] = {"Plains", "Island", "Swamp", "Mountain", "Forest"}
-LANGUAGE_MAP: Dict[str, str] = {
+SUPER_TYPES: set[str] = {"Basic", "Host", "Legendary", "Ongoing", "Snow", "World"}
+BASIC_LAND_NAMES: set[str] = {"Plains", "Island", "Swamp", "Mountain", "Forest"}
+LANGUAGE_MAP: dict[str, str] = {
     "grc": "Ancient Greek",
     "ar": "Arabic",
     "zhs": "Chinese Simplified",
@@ -74,7 +74,7 @@ LANGUAGE_MAP: Dict[str, str] = {
     "sa": "Sanskrit",
     "es": "Spanish",
 }
-SYMBOL_MAP: Dict[str, str] = {
+SYMBOL_MAP: dict[str, str] = {
     "White": "W",
     "Blue": "U",
     "Black": "B",
@@ -113,7 +113,7 @@ SYMBOL_MAP: Dict[str, str] = {
     "Untap": "Q",
     "Infinite": "∞",
 }
-BAD_FILE_NAMES: Set[str] = {
+BAD_FILE_NAMES: set[str] = {
     # File names that can't exist on Windows
     "AUX",
     "COM0",
@@ -140,7 +140,7 @@ BAD_FILE_NAMES: Set[str] = {
     "NUL",
     "PRN",
 }
-SUPPORTED_FORMAT_OUTPUTS: Set[str] = {
+SUPPORTED_FORMAT_OUTPUTS: set[str] = {
     "standard",
     "pioneer",
     "modern",
@@ -148,11 +148,11 @@ SUPPORTED_FORMAT_OUTPUTS: Set[str] = {
     "vintage",
     "pauper",
 }
-SUPPORTED_SET_TYPES: Set[str] = {
+SUPPORTED_SET_TYPES: set[str] = {
     "expansion",
     "core",
     "draft_innovation",
     "commander",
     "masters",
 }
-MULTI_WORD_SUB_TYPES: Set[str] = {"Time Lord"}
+MULTI_WORD_SUB_TYPES: set[str] = {"Time Lord"}

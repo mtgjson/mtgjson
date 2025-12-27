@@ -1,7 +1,7 @@
 import pytest
 
-import mtgjson5.set_builder
 import mtgjson5.providers
+import mtgjson5.set_builder
 
 
 @pytest.mark.parametrize(

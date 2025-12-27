@@ -2,7 +2,7 @@
 
 import logging
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import requests
 from singleton_decorator import singleton
@@ -10,6 +10,7 @@ from singleton_decorator import singleton
 from ...constants import LANGUAGE_MAP
 from ...providers.abstract import AbstractProvider
 from ...providers.scryfall import sf_utils
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -24,13 +25,13 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         return sf_utils.build_http_header()
 
     def download(
         self,
         url: str,
-        params: Optional[Dict[str, Union[str, int]]] = None,
+        params: dict[str, str | int] | None = None,
         retry_ttl: int = 3,
     ) -> Any:
         try:
@@ -53,7 +54,7 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
             )
             return None
 
-    def get_set_printing_languages(self, set_code: str) -> List[str]:
+    def get_set_printing_languages(self, set_code: str) -> list[str]:
         """Get the list of languages a set was printed in."""
         first_card_response = self.download(self.FIRST_CARD_URL.format(set_code))
 
@@ -91,4 +92,4 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
             LANGUAGE_MAP.get(card.get("lang")) for card in lang_response.get("data", [])
         }
 
-        return list(sorted(filter(None, set_languages)))
+        return sorted(filter(None, set_languages))

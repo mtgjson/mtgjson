@@ -1,16 +1,16 @@
 """Card Kingdom data transformation and normalization."""
 
 import logging
-from typing import Optional
 
 import polars as pl
 
 from .models import CKRecord, ConditionValues
 
+
 LOGGER = logging.getLogger(__name__)
 
 
-def parse_price(price_str: Optional[str]) -> Optional[float]:
+def parse_price(price_str: str | None) -> float | None:
     """Parse price string to float, returning None for empty/invalid."""
     if not price_str:
         return None

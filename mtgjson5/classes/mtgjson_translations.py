@@ -2,7 +2,7 @@
 MTGJSON Set.Translations Object
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from mtgjson5.classes.json_object import JsonObject
 
@@ -12,18 +12,18 @@ class MtgjsonTranslationsObject(JsonObject):
     MTGJSON Set.Translations Object
     """
 
-    chinese_simplified: Optional[str]
-    chinese_traditional: Optional[str]
-    french: Optional[str]
-    german: Optional[str]
-    italian: Optional[str]
-    japanese: Optional[str]
-    korean: Optional[str]
-    portuguese_ob_brazil_cb: Optional[str]
-    russian: Optional[str]
-    spanish: Optional[str]
+    chinese_simplified: str | None
+    chinese_traditional: str | None
+    french: str | None
+    german: str | None
+    italian: str | None
+    japanese: str | None
+    korean: str | None
+    portuguese_ob_brazil_cb: str | None
+    russian: str | None
+    spanish: str | None
 
-    def __init__(self, active_dict: Optional[Dict[str, str]] = None) -> None:
+    def __init__(self, active_dict: dict[str, str] | None = None) -> None:
         """
         Initializer, for each language, given the contents
         """
@@ -52,7 +52,7 @@ class MtgjsonTranslationsObject(JsonObject):
         components = key.split("_")
         return " ".join(x.title() for x in components)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             self.parse_key(key): value
             for key, value in self.__dict__.items()

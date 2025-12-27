@@ -3,7 +3,7 @@ MTGJSON SetList Object
 """
 
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from ..classes.json_object import JsonObject
 from ..mtgjson_config import MtgjsonConfig
@@ -15,7 +15,7 @@ class MtgjsonSetListObject(JsonObject):
     MTGJSON SetList Object
     """
 
-    set_list: List[Dict[str, str]]
+    set_list: list[dict[str, str]]
 
     def __init__(self) -> None:
         """
@@ -26,7 +26,7 @@ class MtgjsonSetListObject(JsonObject):
         )
 
     @staticmethod
-    def get_all_set_list(files_to_ignore: List[str]) -> List[Dict[str, str]]:
+    def get_all_set_list(files_to_ignore: list[str]) -> list[dict[str, str]]:
         """
         This will create the SetList.json file
         by getting the info from all the files in
@@ -35,7 +35,7 @@ class MtgjsonSetListObject(JsonObject):
         :param files_to_ignore: Files to ignore in set_outputs folder
         :return: List of all set dicts
         """
-        all_sets_data: List[Dict[str, str]] = []
+        all_sets_data: list[dict[str, str]] = []
 
         for set_file in MtgjsonConfig().output_path.glob("*.json"):
             if set_file.stem in files_to_ignore:
@@ -55,7 +55,7 @@ class MtgjsonSetListObject(JsonObject):
 
         return sorted(all_sets_data, key=lambda set_info: set_info["name"])
 
-    def to_json(self) -> List[Any]:
+    def to_json(self) -> list[Any]:
         """
         Support json.dump()
         :return: JSON serialized object

@@ -12,6 +12,7 @@ from .models import CKRecord
 from .prices import CardKingdomPriceProcessor, generate_purchase_url
 from .transformer import CardKingdomTransformer
 
+
 LOGGER = logging.getLogger(__name__)
 
 

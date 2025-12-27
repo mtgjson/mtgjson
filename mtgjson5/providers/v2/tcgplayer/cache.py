@@ -6,6 +6,7 @@ from typing import Literal
 
 import polars as pl
 
+
 LOGGER = logging.getLogger(__name__)
 
 

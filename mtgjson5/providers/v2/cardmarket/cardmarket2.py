@@ -9,9 +9,10 @@ import asyncio
 import json
 import logging
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 import mkmsdk.exceptions
 import polars as pl
@@ -20,6 +21,7 @@ from mkmsdk.mkm import Mkm
 
 from .... import constants
 from ....mtgjson_config import MtgjsonConfig
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -74,7 +76,7 @@ class CardMarketClient:
 
     def __init__(self, config: CardMarketConfig):
         self.config = config
-        self._connection: Optional[Mkm] = None
+        self._connection: Mkm | None = None
         self._set_map: dict[str, MkmExpansion] = {}
 
     def connect(self) -> None:
@@ -216,7 +218,7 @@ class CardMarketFetcher:
         self,
         output_path: Path,
         config: CardMarketConfig | None = None,
-        on_progress: Optional[ProgressCallback] = None,
+        on_progress: ProgressCallback | None = None,
     ):
         self.output_path = output_path
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -273,7 +275,7 @@ class CardMarketFetcher:
 
 async def build_mkm_cards_df(
     output_path: Path | None = None,
-    on_progress: Optional[ProgressCallback] = None,
+    on_progress: ProgressCallback | None = None,
 ) -> pl.LazyFrame:
     """
     Build CardMarket cards DataFrame.
@@ -293,7 +295,7 @@ async def build_mkm_cards_df(
 
 def build_mkm_cards_df_sync(
     output_path: Path | None = None,
-    on_progress: Optional[ProgressCallback] = None,
+    on_progress: ProgressCallback | None = None,
 ) -> pl.LazyFrame:
     """Sync wrapper for build_mkm_cards_df."""
     return asyncio.run(build_mkm_cards_df(output_path, on_progress))
@@ -301,7 +303,7 @@ def build_mkm_cards_df_sync(
 
 async def start_mkm_fetch(
     output_path: Path | None = None,
-    on_progress: Optional[ProgressCallback] = None,
+    on_progress: ProgressCallback | None = None,
 ) -> asyncio.Task[pl.LazyFrame]:
     """
     Start MKM fetch as background task.

@@ -5,7 +5,7 @@ MTGJSON EnumValues Object
 import json
 import logging
 import pathlib
-from typing import Any, Dict, List, Union
+from typing import Any
 
 from ..classes.json_object import JsonObject
 from ..compiled_classes.mtgjson_all_printings import MtgjsonAllPrintingsObject
@@ -13,6 +13,7 @@ from ..mtgjson_config import MtgjsonConfig
 from ..providers import tcgplayer
 from ..utils import sort_internal_lists
 from .mtgjson_structures import MtgjsonStructuresObject
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,9 +23,9 @@ class MtgjsonEnumValuesObject(JsonObject):
     MTGJSON EnumValues Object
     """
 
-    attr_value_dict: Dict[str, Union[Dict[str, List[str]], List[str]]]
+    attr_value_dict: dict[str, dict[str, list[str]] | list[str]]
 
-    set_key_struct: Dict[str, Union[List[str], Dict[str, List[str]]]] = {
+    set_key_struct: dict[str, list[str] | dict[str, list[str]]] = {
         "card": [
             "availability",
             "boosterTypes",
@@ -93,13 +94,13 @@ class MtgjsonEnumValuesObject(JsonObject):
             }
         )
 
-    def construct_deck_enums(self, decks_directory: pathlib.Path) -> Dict[str, Any]:
+    def construct_deck_enums(self, decks_directory: pathlib.Path) -> dict[str, Any]:
         """
         Given Decks Path, compile enums based on the types found in the files
         :param decks_directory: Path to the decks/ output directory
         :return Sorted list of enum options for each key
         """
-        type_map: Dict[str, Any] = {}
+        type_map: dict[str, Any] = {}
         for object_name, object_values in self.deck_key_struct.items():
             type_map[object_name] = {}
             for object_field_name in object_values:
@@ -116,14 +117,14 @@ class MtgjsonEnumValuesObject(JsonObject):
         return dict(sort_internal_lists(type_map))
 
     def construct_set_and_card_enums(
-        self, all_printing_content: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, all_printing_content: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Given AllPrintings, compile enums based on the types found in the file
         :param all_printing_content: AllPrintings internally
         :return Sorted list of enum options for each key
         """
-        type_map: Dict[str, Any] = {}
+        type_map: dict[str, Any] = {}
         for object_name, object_values in self.set_key_struct.items():
             type_map[object_name] = {}
             for object_field_name in object_values:
@@ -186,7 +187,7 @@ class MtgjsonEnumValuesObject(JsonObject):
 
         return dict(sort_internal_lists(type_map))
 
-    def to_json(self) -> Dict[str, Union[Dict[str, List[str]], List[str]]]:
+    def to_json(self) -> dict[str, dict[str, list[str]] | list[str]]:
         """
         Support json.dump()
         :return: JSON serialized object

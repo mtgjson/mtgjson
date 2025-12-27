@@ -1,9 +1,10 @@
 """Categorical column definitions for processing Scryfall data in Polars."""
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 import polars as pl
+
 
 if TYPE_CHECKING:
     from logging import Logger
@@ -197,7 +198,7 @@ SCALAR_CATEGORICAL_COLS = [
 ]
 
 # This enables O(1) integer comparisons instead of string comparisons
-STATIC_CATEGORICALS: Dict[str, List[str]] = {
+STATIC_CATEGORICALS: dict[str, list[str]] = {
     "colors": ["W", "U", "B", "R", "G"],
     "color_identity": ["W", "U", "B", "R", "G"],
     "color_indicator": ["W", "U", "B", "R", "G"],

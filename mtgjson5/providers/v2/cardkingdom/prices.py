@@ -7,6 +7,7 @@ from typing import Any
 
 import polars as pl
 
+
 LOGGER = logging.getLogger(__name__)
 
 CK_URL_PREFIX = "https://www.cardkingdom.com"

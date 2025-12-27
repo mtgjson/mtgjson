@@ -13,11 +13,12 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Optional, Protocol, runtime_checkable
 
 import polars as pl
 
 from mtgjson5 import constants
+
 
 if TYPE_CHECKING:
     from .monolith import ScryfallProvider
@@ -29,21 +30,21 @@ LOGGER = logging.getLogger(__name__)
 class ParsedQuery:
     """Parsed Scryfall search query components."""
 
-    set_code: Optional[str] = None
-    oracle_id: Optional[str] = None  # oracleid:{uuid} search
+    set_code: str | None = None
+    oracle_id: str | None = None  # oracleid:{uuid} search
     is_booster: bool = False
     is_alchemy: bool = False
     lang_any: bool = False  # lang:any - include all languages
-    oracle_regex: Optional[str] = None
-    oracle_contains: List[str] = field(default_factory=list)
-    oracle_or_groups: List[List[str]] = field(
+    oracle_regex: str | None = None
+    oracle_contains: list[str] = field(default_factory=list)
+    oracle_or_groups: list[list[str]] = field(
         default_factory=list
     )  # For complex OR logic
-    spellbook_name: Optional[str] = None
+    spellbook_name: str | None = None
     include_extras: bool = False
     include_variations: bool = False
-    unique: Optional[str] = None  # "prints", "art", "cards"
-    order: Optional[str] = None  # "set", "name", etc.
+    unique: str | None = None  # "prints", "art", "cards"
+    order: str | None = None  # "set", "name", etc.
 
 
 def parse_scryfall_query(url: str) -> ParsedQuery:
@@ -238,7 +239,7 @@ INT_FIELDS = {
 }
 
 
-def _coerce_types(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _coerce_types(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Coerce bulk data to match API response format.
 
@@ -280,7 +281,7 @@ def _coerce_types(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 class ScryfallDataSource(Protocol):
     """Protocol for Scryfall data access."""
 
-    def search(self, url: str) -> List[Dict[str, Any]]:
+    def search(self, url: str) -> list[dict[str, Any]]:
         """
         Execute a Scryfall search query.
 
@@ -291,7 +292,7 @@ class ScryfallDataSource(Protocol):
             List of card objects as dicts (same format as API response)
         """
 
-    def get_card_by_id(self, scryfall_id: str) -> Optional[Dict[str, Any]]:
+    def get_card_by_id(self, scryfall_id: str) -> dict[str, Any] | None:
         """Get a single card by its Scryfall ID."""
 
 
@@ -310,7 +311,7 @@ class BulkDataSource:
 
     def __init__(
         self,
-        cache_path: Optional[Path] = None,
+        cache_path: Path | None = None,
         api_fallback: bool = True,
         api_provider: Optional["ScryfallProvider"] = None,
     ):
@@ -324,14 +325,14 @@ class BulkDataSource:
         """
         self.cache_path = cache_path or constants.CACHE_PATH
         self.api_fallback = api_fallback
-        self._api_provider: Optional["ScryfallProvider"] = api_provider
-        self._cards_df: Optional[pl.LazyFrame] = None
-        self._rulings_df: Optional[pl.LazyFrame] = None
-        self._sql_context: Optional[pl.SQLContext] = None
+        self._api_provider: ScryfallProvider | None = api_provider
+        self._cards_df: pl.LazyFrame | None = None
+        self._rulings_df: pl.LazyFrame | None = None
+        self._sql_context: pl.SQLContext | None = None
         self._loaded = False
         self._bulk_available = False
         # Caches for frequently accessed lookups
-        self._oracle_id_cache: Optional[Dict[str, List[Dict[str, Any]]]] = None
+        self._oracle_id_cache: dict[str, list[dict[str, Any]]] | None = None
         self._oracle_id_cache_built = False
 
     @property
@@ -437,7 +438,7 @@ class BulkDataSource:
 
     def _get_by_oracle_id(
         self, oracle_id: str, lang_any: bool = False
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get all printings for a given oracle_id using the cache.
 
@@ -460,7 +461,7 @@ class BulkDataSource:
 
         return cards
 
-    def search(self, url: str) -> List[Dict[str, Any]]:
+    def search(self, url: str) -> list[dict[str, Any]]:
         """
         Execute a Scryfall-style search query against bulk data using SQL.
 
@@ -533,7 +534,7 @@ class BulkDataSource:
                 return list(self.api_provider.download_all_pages_api(url))
             return []
 
-    def search_sql(self, sql: str) -> List[Dict[str, Any]]:
+    def search_sql(self, sql: str) -> list[dict[str, Any]]:
         """
         Execute a raw SQL query directly.
 
@@ -552,7 +553,7 @@ class BulkDataSource:
             LOGGER.error(f"SQL query failed: {e}\nQuery: {sql}")
             return []
 
-    def get_card_by_id(self, scryfall_id: str) -> Optional[Dict[str, Any]]:
+    def get_card_by_id(self, scryfall_id: str) -> dict[str, Any] | None:
         """Get a single card by its Scryfall ID using SQL."""
         self._ensure_loaded()
 
@@ -594,7 +595,7 @@ class BulkDataSource:
                 return api_result if api_result else None
             return None
 
-    def get_cards_by_set(self, set_code: str) -> List[Dict[str, Any]]:
+    def get_cards_by_set(self, set_code: str) -> list[dict[str, Any]]:
         """
         Convenience method: Get all cards for a set.
 
@@ -603,7 +604,7 @@ class BulkDataSource:
         url = f"https://api.scryfall.com/cards/search?include_extras=true&include_variations=true&order=set&q=e%3A{set_code}&unique=prints"
         return self.search(url)
 
-    def get_booster_cards(self, set_code: str) -> List[Dict[str, Any]]:
+    def get_booster_cards(self, set_code: str) -> list[dict[str, Any]]:
         """
         Get cards that appear in boosters for a set.
 
@@ -612,7 +613,7 @@ class BulkDataSource:
         url = f"https://api.scryfall.com/cards/search?order=set&q=set:{set_code}%20is:booster%20unique:prints"
         return self.search(url)
 
-    def get_cards_without_limits(self) -> List[Dict[str, Any]]:
+    def get_cards_without_limits(self) -> list[dict[str, Any]]:
         """
         Get cards that can have unlimited copies in a deck.
 
@@ -637,7 +638,7 @@ class BulkDataSource:
         """
         return self.search_sql(sql)
 
-    def get_alchemy_spellbook_cards(self) -> List[Dict[str, Any]]:
+    def get_alchemy_spellbook_cards(self) -> list[dict[str, Any]]:
         """
         Get alchemy cards with spellbooks.
 
@@ -655,7 +656,7 @@ class BulkDataSource:
         """
         return self.search_sql(sql)
 
-    def get_rulings(self, oracle_id: str) -> List[Dict[str, Any]]:
+    def get_rulings(self, oracle_id: str) -> list[dict[str, Any]]:
         """Get rulings for a card by oracle ID."""
         self._ensure_loaded()
 
@@ -671,7 +672,7 @@ class BulkDataSource:
 
     def get_foreign_cards(
         self, set_code: str, collector_number: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Get non-English printings of a card.
 
@@ -701,7 +702,7 @@ class BulkDataSource:
 class _SingletonHolder:
     """Container class to avoid global statement for singleton management."""
 
-    instance: Optional[BulkDataSource] = None
+    instance: BulkDataSource | None = None
 
 
 def get_bulk_data_source() -> BulkDataSource:

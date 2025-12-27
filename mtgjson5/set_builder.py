@@ -8,7 +8,7 @@ import pathlib
 import re
 import unicodedata
 import uuid
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any
 
 from . import constants
 from .classes import (
@@ -46,12 +46,13 @@ from .providers import (
 )
 from .utils import get_str_or_none, load_local_set_data, url_keygen
 
+
 LOGGER = logging.getLogger(__name__)
 
 
 def parse_foreign(
     sf_prints_url: str, card_name: str, card_number: str, set_name: str
-) -> List[MtgjsonForeignDataObject]:
+) -> list[MtgjsonForeignDataObject]:
     """
     Get the foreign printings information for a specific card
     :param card_number: Card's number
@@ -60,7 +61,7 @@ def parse_foreign(
     :param set_name: Set name
     :return: Foreign entries object
     """
-    card_foreign_entries: List[MtgjsonForeignDataObject] = []
+    card_foreign_entries: list[MtgjsonForeignDataObject] = []
 
     # Add information to get all languages
     sf_prints_url = sf_prints_url.replace("&unique=prints", "+lang%3Aany&unique=prints")
@@ -135,21 +136,21 @@ def parse_foreign(
     return card_foreign_entries
 
 
-def parse_card_types(card_type: str) -> Tuple[List[str], List[str], List[str]]:
+def parse_card_types(card_type: str) -> tuple[list[str], list[str], list[str]]:
     """
     Given a card type string, split it up into its raw components: super, sub, and type
     :param card_type: Card type string to parse
     :return: Tuple (super, type, sub) of the card's attributes
     """
-    sub_types: List[str] = []
-    super_types: List[str] = []
-    types: List[str] = []
+    sub_types: list[str] = []
+    super_types: list[str] = []
+    types: list[str] = []
 
     supertypes_and_types: str
     if "—" not in card_type:
         supertypes_and_types = card_type
     else:
-        split_type: List[str] = card_type.split("—")
+        split_type: list[str] = card_type.split("—")
         supertypes_and_types = split_type[0]
         subtypes: str = split_type[1]
 
@@ -180,13 +181,13 @@ def parse_card_types(card_type: str) -> Tuple[List[str], List[str], List[str]]:
     return super_types, types, sub_types
 
 
-def get_card_colors(mana_cost: str) -> List[str]:
+def get_card_colors(mana_cost: str) -> list[str]:
     """
     For some cards, we may have to manually determine the card's color.
     :param mana_cost: Mana cost string
     :return: Colors based on mana cost
     """
-    color_options: List[str] = ["W", "U", "B", "R", "G"]
+    color_options: list[str] = ["W", "U", "B", "R", "G"]
 
     ret_val = []
     for color in color_options:
@@ -196,13 +197,13 @@ def get_card_colors(mana_cost: str) -> List[str]:
     return ret_val
 
 
-def get_scryfall_set_data(set_code: str) -> Optional[Dict[str, Any]]:
+def get_scryfall_set_data(set_code: str) -> dict[str, Any] | None:
     """
     Get a Scryfall set header for a specific set
     :param set_code: Set to grab header for
     :return: Set header, if it exists
     """
-    set_data: Dict[str, Any] = ScryfallProvider().download(
+    set_data: dict[str, Any] = ScryfallProvider().download(
         ScryfallProvider().ALL_SETS_URL + set_code
     )
 
@@ -240,7 +241,7 @@ def get_card_cmc(mana_cost: str) -> float:
     """
     total: float = 0.0
 
-    symbol: List[str] = re.findall(r"{([^{]*)}", mana_cost.strip())
+    symbol: list[str] = re.findall(r"{([^{]*)}", mana_cost.strip())
     for element in symbol:
         # Address 2/W, G/W, etc as "higher" cost always first
         if "/" in element:
@@ -258,16 +259,16 @@ def get_card_cmc(mana_cost: str) -> float:
     return total
 
 
-def parse_printings(sf_prints_url: Optional[str]) -> List[str]:
+def parse_printings(sf_prints_url: str | None) -> list[str]:
     """
     Given a Scryfall printings URL, extract all sets a card was printed in
     :param sf_prints_url: URL to extract data from
     :return: List of all sets a specific card was printed in
     """
-    card_sets: Set[str] = set()
+    card_sets: set[str] = set()
 
     while sf_prints_url:
-        prints_api_json: Dict[str, Any] = ScryfallProvider().download(sf_prints_url)
+        prints_api_json: dict[str, Any] = ScryfallProvider().download(sf_prints_url)
 
         if prints_api_json["object"] == "error":
             LOGGER.error(f"Bad download: {sf_prints_url}")
@@ -284,7 +285,7 @@ def parse_printings(sf_prints_url: Optional[str]) -> List[str]:
     return sorted(list(card_sets))
 
 
-def parse_legalities(sf_card_legalities: Dict[str, str]) -> MtgjsonLegalitiesObject:
+def parse_legalities(sf_card_legalities: dict[str, str]) -> MtgjsonLegalitiesObject:
     """
     Given a Scryfall legalities dictionary, convert it to MTGJSON format
     :param sf_card_legalities: Scryfall legalities
@@ -298,18 +299,18 @@ def parse_legalities(sf_card_legalities: Dict[str, str]) -> MtgjsonLegalitiesObj
     return card_legalities
 
 
-def parse_rulings(rulings_url: str) -> List[MtgjsonRulingObject]:
+def parse_rulings(rulings_url: str) -> list[MtgjsonRulingObject]:
     """
     Get the JSON data from Scryfall and convert it to MTGJSON format for rulings
     :param rulings_url: URL to get Scryfall JSON data from
     :return: MTGJSON rulings list
     """
-    rules_api_json: Dict[str, Any] = ScryfallProvider().download(rulings_url)
+    rules_api_json: dict[str, Any] = ScryfallProvider().download(rulings_url)
     if rules_api_json["object"] == "error":
         LOGGER.error(f"Error downloading URL {rulings_url}: {rules_api_json}")
         return []
 
-    mtgjson_rules: List[MtgjsonRulingObject] = []
+    mtgjson_rules: list[MtgjsonRulingObject] = []
 
     for sf_rule in rules_api_json["data"]:
         mtgjson_rule = MtgjsonRulingObject(sf_rule["published_at"], sf_rule["comment"])
@@ -385,7 +386,7 @@ def relocate_miscellaneous_tokens(mtgjson_set: MtgjsonSetObject) -> None:
     LOGGER.info(f"Finished relocating tokens for {mtgjson_set.code}")
 
 
-def mark_duel_decks(set_code: str, mtgjson_cards: List[MtgjsonCardObject]) -> None:
+def mark_duel_decks(set_code: str, mtgjson_cards: list[MtgjsonCardObject]) -> None:
     """
     For Duel Decks, we need to determine which "deck" the card
     can be found in. This is a convoluted, but correct, approach
@@ -422,12 +423,12 @@ def parse_keyrune_code(url: str) -> str:
     with constants.RESOURCE_PATH.joinpath("keyrune_code_overrides.json").open(
         encoding="utf-8"
     ) as file:
-        upstream_to_keyrune_map: Dict[str, str] = json.load(file)
+        upstream_to_keyrune_map: dict[str, str] = json.load(file)
 
     return upstream_to_keyrune_map.get(file_stem, file_stem)
 
 
-def get_translation_data(mtgjson_set_name: str) -> Optional[Dict[str, str]]:
+def get_translation_data(mtgjson_set_name: str) -> dict[str, str] | None:
     """
     Get translation data given a particular set name
     :param mtgjson_set_name: Set name to try and find in translation data
@@ -436,12 +437,12 @@ def get_translation_data(mtgjson_set_name: str) -> Optional[Dict[str, str]]:
     with constants.RESOURCE_PATH.joinpath("mkm_set_name_translations.json").open(
         encoding="utf-8"
     ) as file:
-        translation_data: Dict[str, Dict[str, str]] = json.load(file)
+        translation_data: dict[str, dict[str, str]] = json.load(file)
 
     return translation_data.get(mtgjson_set_name)
 
 
-def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
+def build_mtgjson_set(set_code: str) -> MtgjsonSetObject | None:
     """
     Construct a MTGJSON Magic Set
     :param set_code: Set to construct
@@ -523,7 +524,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
     with RESOURCE_PATH.joinpath("tcgplayer_set_id_overrides.json").open(
         encoding="utf-8"
     ) as fp:
-        tcgplayer_set_id_overrides: Dict[str, int] = json.load(fp)
+        tcgplayer_set_id_overrides: dict[str, int] = json.load(fp)
     if tcgplayer_set_id_overrides.get(mtgjson_set.code):
         mtgjson_set.tcgplayer_group_id = tcgplayer_set_id_overrides[mtgjson_set.code]
     else:
@@ -565,8 +566,8 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
 
 
 def build_base_mtgjson_tokens(
-    set_code: str, added_tokens: List[Dict[str, Any]]
-) -> List[MtgjsonCardObject]:
+    set_code: str, added_tokens: list[dict[str, Any]]
+) -> list[MtgjsonCardObject]:
     """
     Construct all tokens in MTGJSON format from a single set
     :param set_code: Set to build
@@ -576,7 +577,7 @@ def build_base_mtgjson_tokens(
     return build_base_mtgjson_cards(set_code, added_tokens, True)
 
 
-def add_sealed_uuid(sealed_products: List[MtgjsonSealedProductObject]) -> None:
+def add_sealed_uuid(sealed_products: list[MtgjsonSealedProductObject]) -> None:
     """
     Adds all uuids to each sealed product object within a set
     :param sealed_products: Sealed products within the set
@@ -585,7 +586,7 @@ def add_sealed_uuid(sealed_products: List[MtgjsonSealedProductObject]) -> None:
         add_uuid(sealed_product)
 
 
-def add_sealed_purchase_url(sealed_products: List[MtgjsonSealedProductObject]) -> None:
+def add_sealed_purchase_url(sealed_products: list[MtgjsonSealedProductObject]) -> None:
     """
     Adds all purchase urls to each sealed product object within a set
     :param sealed_products: Sealed products within the set
@@ -609,10 +610,10 @@ def add_sealed_purchase_url(sealed_products: List[MtgjsonSealedProductObject]) -
 
 def build_base_mtgjson_cards(
     set_code: str,
-    additional_cards: Optional[List[Dict[str, Any]]] = None,
+    additional_cards: list[dict[str, Any]] | None = None,
     is_token: bool = False,
     set_release_date: str = "",
-) -> List[MtgjsonCardObject]:
+) -> list[MtgjsonCardObject]:
     """
     Construct all cards in MTGJSON format from a single set
     :param set_code: Set to build
@@ -625,7 +626,7 @@ def build_base_mtgjson_cards(
     cards = ScryfallProvider().download_cards(set_code)
     cards.extend(additional_cards or [])
 
-    mtgjson_cards: List[MtgjsonCardObject] = parallel_call(
+    mtgjson_cards: list[MtgjsonCardObject] = parallel_call(
         build_mtgjson_card,
         cards,
         fold_list=True,
@@ -640,7 +641,7 @@ def build_base_mtgjson_cards(
 
 
 def add_is_starter_option(
-    set_code: str, search_url: str, mtgjson_cards: List[MtgjsonCardObject]
+    set_code: str, search_url: str, mtgjson_cards: list[MtgjsonCardObject]
 ) -> None:
     """
     There are cards that may not exist in standard boosters. As such, we mark
@@ -727,7 +728,7 @@ def get_mtgjson_v4_uuid(mtgjson_object: MtgjsonCardObject) -> str:
                 if mtgjson_object.face_name
                 else mtgjson_object.name
             )
-            + "".join((mtgjson_object.colors or ""))
+            + "".join(mtgjson_object.colors or "")
             + (mtgjson_object.power or "")
             + (mtgjson_object.toughness or "")
             + (mtgjson_object.side or "")
@@ -750,7 +751,7 @@ def get_mtgjson_v4_uuid(mtgjson_object: MtgjsonCardObject) -> str:
 
 
 def add_uuid(
-    mtgjson_object: Union[MtgjsonCardObject, MtgjsonSealedProductObject],
+    mtgjson_object: MtgjsonCardObject | MtgjsonSealedProductObject,
 ) -> None:
     """
     Construct a UUIDv5 for each MTGJSON card object
@@ -798,11 +799,11 @@ def add_extra_language_uuids(
 
 
 def build_mtgjson_card(
-    scryfall_object: Dict[str, Any],
+    scryfall_object: dict[str, Any],
     face_id: int = 0,
     is_token: bool = False,
     set_release_date: str = "",
-) -> List[MtgjsonCardObject]:
+) -> list[MtgjsonCardObject]:
     """
     Construct a MTGJSON Card object from 3rd party
     entities
@@ -1074,7 +1075,7 @@ def build_mtgjson_card(
 
     if "color_indicator" in face_data.keys():
         mtgjson_card.color_indicator = face_data["color_indicator"]
-    elif "color_indicator" in scryfall_object.keys():
+    elif "color_indicator" in scryfall_object:
         mtgjson_card.color_indicator = scryfall_object["color_indicator"]
 
     if scryfall_object["multiverse_ids"]:
@@ -1166,7 +1167,7 @@ def build_mtgjson_card(
     ]
 
     # Handle Meld components, as well as tokens
-    if "all_parts" in scryfall_object.keys():
+    if "all_parts" in scryfall_object:
         mtgjson_card.set_names(None)
         for a_part in sorted(
             scryfall_object["all_parts"], key=lambda part: part["component"]
@@ -1287,7 +1288,7 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
 
     LOGGER.info(f"Adding variations for {mtgjson_set.code}")
 
-    distinct_card_printings_found: Set[str] = set()
+    distinct_card_printings_found: set[str] = set()
     for this_card in mtgjson_set.cards:
         # Adds variations
         variations = [
@@ -1324,7 +1325,7 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
     LOGGER.info(f"Finished adding variations for {mtgjson_set.code}")
 
 
-def add_other_face_ids(cards_to_act_on: List[MtgjsonCardObject]) -> None:
+def add_other_face_ids(cards_to_act_on: list[MtgjsonCardObject]) -> None:
     """
     Add other face IDs to all cards within a group based on
     that group. If a duplicate is found, the cards will link
@@ -1502,11 +1503,7 @@ def add_multiverse_bridge_ids(mtgjson_set: MtgjsonSetObject) -> None:
             )
             setattr(mtgjson_card.identifiers, attr, str(rosetta_card_print["cs_id"]))
             if rosetta_card_print["deckbox_id"]:
-                setattr(
-                    mtgjson_card.identifiers,
-                    "deckbox_id",
-                    str(rosetta_card_print["deckbox_id"]),
-                )
+                mtgjson_card.identifiers.deckbox_id = str(rosetta_card_print["deckbox_id"])
 
     mtgjson_set.cardsphere_set_id = (
         MultiverseBridgeProvider()
@@ -1523,7 +1520,7 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
     LOGGER.info(f"Adding MCM details for {mtgjson_set.code}")
     mkm_cards = CardMarketProvider().get_mkm_cards(mtgjson_set.mcm_id)
 
-    extras_cards: Dict[str, List[Dict[str, Any]]] = {}
+    extras_cards: dict[str, list[dict[str, Any]]] = {}
     if mtgjson_set.mcm_id_extras:
         extras_cards = CardMarketProvider().get_mkm_cards(mtgjson_set.mcm_id_extras)
 
@@ -1594,7 +1591,7 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
     LOGGER.info(f"Finished adding MCM details for {mtgjson_set.code}")
 
 
-def get_base_and_total_set_sizes(mtgjson_set: MtgjsonSetObject) -> Tuple[int, int]:
+def get_base_and_total_set_sizes(mtgjson_set: MtgjsonSetObject) -> tuple[int, int]:
     """
     Get the size of a set from scryfall or corrections file
     :param mtgjson_set: Mtgjson Set Object
@@ -1643,7 +1640,7 @@ def get_base_and_total_set_sizes(mtgjson_set: MtgjsonSetObject) -> Tuple[int, in
     return base_set_size, total_set_size
 
 
-def get_signature_from_number(mtgjson_card: MtgjsonCardObject) -> Optional[str]:
+def get_signature_from_number(mtgjson_card: MtgjsonCardObject) -> str | None:
     """
     Find the name of the person who signed a World Championship card
     :param mtgjson_card: Card object to get required data from
@@ -1652,7 +1649,7 @@ def get_signature_from_number(mtgjson_card: MtgjsonCardObject) -> Optional[str]:
     with constants.RESOURCE_PATH.joinpath("world_championship_signatures.json").open(
         encoding="utf-8"
     ) as f:
-        signatures_by_set: Dict[str, Dict[str, str]] = json.load(f)
+        signatures_by_set: dict[str, dict[str, str]] = json.load(f)
 
     if mtgjson_card.set_code not in signatures_by_set:
         return None
@@ -1680,7 +1677,7 @@ def add_meld_face_parts(mtgjson_set: MtgjsonSetObject) -> None:
         if first_card.layout != "meld":
             continue
 
-        card_face_parts: List[Optional[str]] = [None, None, None]
+        card_face_parts: list[str | None] = [None, None, None]
 
         if f"{first_card.number}b" in collector_numbers_in_set:
             card_face_parts[1] = first_card.face_name
@@ -1749,7 +1746,7 @@ def add_secret_lair_names(mtgjson_set: MtgjsonSetObject) -> None:
 
 
 def add_related_cards(
-    scryfall_object: Dict[str, Any], mtgjson_card: MtgjsonCardObject, is_token: bool
+    scryfall_object: dict[str, Any], mtgjson_card: MtgjsonCardObject, is_token: bool
 ) -> None:
     """
     Add related card entities to the MTGJSON Card
@@ -1760,7 +1757,7 @@ def add_related_cards(
     related_cards = MtgjsonRelatedCardsObject()
 
     if is_token:
-        reverse_related: List[str] = []
+        reverse_related: list[str] = []
         if "all_parts" in scryfall_object:
             for a_part in scryfall_object["all_parts"]:
                 if a_part.get("name") != mtgjson_card.name:
@@ -1798,7 +1795,7 @@ def add_card_products_to_cards(mtgjson_set: MtgjsonSetObject) -> None:
         )
 
 
-def apply_manual_overrides(mtgjson_cards: List[MtgjsonCardObject]) -> None:
+def apply_manual_overrides(mtgjson_cards: list[MtgjsonCardObject]) -> None:
     """
     Sometimes, coding and automation just isn't good enough. In those cases,
     we can apply manual overrides to certain card UUIDs from the manual_overrides list.

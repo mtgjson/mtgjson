@@ -4,7 +4,6 @@ MTGJSON AllPrintings Object
 
 import json
 import pathlib
-from typing import Dict, List, Optional
 
 from ..classes import MtgjsonSetObject
 from ..classes.json_object import JsonObject
@@ -17,7 +16,7 @@ class MtgjsonAllPrintingsObject(JsonObject):
     MTGJSON AllPrintings Object
     """
 
-    all_sets_dict: Dict[str, MtgjsonSetObject]
+    all_sets_dict: dict[str, MtgjsonSetObject]
 
     def __init__(self) -> None:
         """
@@ -30,8 +29,8 @@ class MtgjsonAllPrintingsObject(JsonObject):
         self.iterate_all_sets(files_to_build)
 
     def get_set_contents(
-        self, sets: Optional[List[str]] = None
-    ) -> Dict[str, MtgjsonSetObject]:
+        self, sets: list[str] | None = None
+    ) -> dict[str, MtgjsonSetObject]:
         """
         Give the contents of certain sets. Empty for all sets.
         :param sets: Sets to get. Empty for all sets.
@@ -47,7 +46,7 @@ class MtgjsonAllPrintingsObject(JsonObject):
         return self.all_sets_dict
 
     @staticmethod
-    def get_files_to_build(files_to_ignore: List[str]) -> List[pathlib.Path]:
+    def get_files_to_build(files_to_ignore: list[str]) -> list[pathlib.Path]:
         """
         Determine what file(s) to include in the build
         :param files_to_ignore: Files to exclude
@@ -59,7 +58,7 @@ class MtgjsonAllPrintingsObject(JsonObject):
             if file_path.stem not in files_to_ignore
         ]
 
-    def iterate_all_sets(self, files_to_build: List[pathlib.Path]) -> None:
+    def iterate_all_sets(self, files_to_build: list[pathlib.Path]) -> None:
         """
         Iterate and all all MTGJSON sets to the dictionary
         indexed by file name
@@ -76,7 +75,7 @@ class MtgjsonAllPrintingsObject(JsonObject):
 
             self.all_sets_dict[set_code] = file_content.get("data", {})
 
-    def to_json(self) -> Dict[str, MtgjsonSetObject]:
+    def to_json(self) -> dict[str, MtgjsonSetObject]:
         """
         Support json.dump()
         :return: JSON serialized object

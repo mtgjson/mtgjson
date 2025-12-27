@@ -11,21 +11,26 @@ from argparse import Namespace
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
+from uuid import UUID, uuid5
 
 import polars as pl
+
 
 if TYPE_CHECKING:
     from mtgjson5.categoricals import DynamicCategoricals
 
 from mtgjson5.constants import LANGUAGE_MAP
-from mtgjson5.models.schema.mtgjson import (
-    CardAtomicSchema,
-    CardDeckSchema,
-    CardSetSchema,
-    CardTokenSchema,
+from mtgjson5.mtgjson_models import (
+    CardAtomic,
+    CardDeck,
+    CardSet,
+    CardToken,
 )
 from mtgjson5.utils import LOGGER, get_expanded_set_codes
 
+
+# UUID namespace for MTGJSON
+_DNS_NAMESPACE = UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 
 @dataclass
 class PipelineContext:
@@ -96,13 +101,14 @@ class PipelineContext:
     # Resource path for JSON lookups
     resource_path: Path | None = None
 
-    card_set_schema: CardSetSchema = field(default_factory=CardSetSchema)
-    card_token_schema: CardTokenSchema = field(default_factory=CardTokenSchema)
-    card_deck_schema: CardDeckSchema = field(default_factory=CardDeckSchema)
-    card_atomic_schema: CardAtomicSchema = field(default_factory=CardAtomicSchema)
+    # Model types for schema generation (use Model.polars_schema() when needed)
+    card_set_model: type = field(default=CardSet)
+    card_token_model: type = field(default=CardToken)
+    card_deck_model: type = field(default=CardDeck)
+    card_atomic_model: type = field(default=CardAtomic)
 
     # Categoricals
-    categoricals: "DynamicCategoricals | None" = None
+    categoricals: DynamicCategoricals | None = None
 
     # Property aliases for _lf -> _df naming (functions expect _df suffix)
     @property
@@ -154,7 +160,7 @@ class PipelineContext:
         if not self.args:
             return None
         formats_raw = getattr(self.args, "export", None)
-        if formats_raw and isinstance(formats_raw, (list, tuple, set)):
+        if formats_raw and isinstance(formats_raw, list | tuple | set):
             # pylint: disable-next=not-an-iterable
             return {f.lower() for f in formats_raw}
         return None
@@ -169,7 +175,7 @@ class PipelineContext:
         return {s.upper() for s in sets} if sets else None
 
     @classmethod
-    def from_global_cache(cls, args: Namespace | None = None) -> "PipelineContext":
+    def from_global_cache(cls, args: Namespace | None = None) -> PipelineContext:
         """
         Create a PipelineContext from the global cache.
 
@@ -239,7 +245,7 @@ class PipelineContext:
 
         return ctx
 
-    def consolidate_lookups(self) -> "PipelineContext":
+    def consolidate_lookups(self) -> PipelineContext:
         """
         Consolidate separate lookup tables into combined tables by join key.
         """
@@ -452,10 +458,33 @@ class PipelineContext:
             else:
                 cards = cards_raw
 
+            # Build English card lookup for UUID generation
+            # foreignData UUID uses ENGLISH card's scryfallId, not the foreign card's
+            # Note: Scryfall doesn't have a 'side' field - we use "a" as default
+            # since the UUID formula uses side = "a" for single-faced cards
+            english_lookup = (
+                cards.filter(pl.col("lang") == "en")
+                .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
+                .select([
+                    "setCode",
+                    pl.col("collectorNumber").alias("number"),
+                    pl.col("id").alias("_english_scryfall_id"),
+                    # Default to "a" since Scryfall doesn't expose side directly
+                    pl.lit("a").alias("_english_side"),
+                ])
+            )
+
             # Filter to non-English and aggregate
             foreign_df = (
                 cards.filter(pl.col("lang") != "en")
                 .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
+                # Join with English cards to get English scryfallId for UUID
+                .join(
+                    english_lookup,
+                    left_on=["setCode", "collectorNumber"],
+                    right_on=["setCode", "number"],
+                    how="left",
+                )
                 .with_columns(
                     [
                         # Map language code to full name
@@ -491,7 +520,39 @@ class PipelineContext:
                         )
                         .otherwise(None)
                         .alias("_face_name"),
+                        # flavorText for foreign cards (from card or first face)
+                        pl.when(pl.col("cardFaces").list.len() > 1)
+                        .then(
+                            pl.col("cardFaces")
+                            .list.first()
+                            .struct.field("flavor_text")
+                        )
+                        .otherwise(pl.col("flavorText"))
+                        .alias("_flavor_text"),
+                        # Generate UUID for foreign data: uuid5(english_scryfallId + side + "_" + language)
+                        # Formula: english_scryfall_id + side + "_" + full_language_name
+                        pl.concat_str(
+                            [
+                                pl.col("_english_scryfall_id"),
+                                pl.col("_english_side"),
+                                pl.lit("_"),
+                                pl.col("lang")
+                                .replace_strict(
+                                    LANGUAGE_MAP,
+                                    default=pl.col("lang"),
+                                ),
+                            ]
+                        ).alias("_uuid_source"),
                     ]
+                )
+                # Generate UUID5 from the source string
+                .with_columns(
+                    pl.col("_uuid_source")
+                    .map_elements(
+                        lambda x: str(uuid5(_DNS_NAMESPACE, x)) if x else None,
+                        return_dtype=pl.String,
+                    )
+                    .alias("_foreign_uuid")
                 )
                 .sort("setCode", "collectorNumber", "language", nulls_last=True)
                 .group_by(["setCode", pl.col("collectorNumber").alias("number")])
@@ -499,15 +560,25 @@ class PipelineContext:
                     pl.struct(
                         [
                             pl.col("_face_name").alias("faceName"),
+                            pl.col("_flavor_text").alias("flavorText"),
+                            pl.struct(
+                                [
+                                    pl.col("multiverseIds")
+                                    .list.first()
+                                    .cast(pl.String)
+                                    .alias("multiverseId"),
+                                    pl.col("id").alias("scryfallId"),
+                                ]
+                            ).alias("identifiers"),
                             pl.col("language"),
+                            # multiverseId at top level (deprecated but still present)
                             pl.col("multiverseIds")
                             .list.first()
-                            .cast(pl.String)
                             .alias("multiverseId"),
                             pl.col("_foreign_name").alias("name"),
-                            pl.col("id").alias("scryfallId"),
                             pl.col("printedText").alias("text"),
                             pl.col("printedTypeLine").alias("type"),
+                            pl.col("_foreign_uuid").alias("uuid"),
                         ]
                     ).alias("foreignData")
                 )

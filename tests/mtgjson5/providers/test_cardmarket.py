@@ -4,6 +4,7 @@ import pytest
 
 from mtgjson5.providers.cardmarket.monolith import CardMarketProvider
 
+
 testdata = [
     pytest.param(
         True,

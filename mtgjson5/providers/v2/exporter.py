@@ -4,12 +4,13 @@ import json
 import logging
 import sqlite3
 import time
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Callable, Iterator, Literal
+from typing import Any, Literal
 
 import orjson
 import polars as pl
@@ -18,7 +19,8 @@ from mtgjson5 import constants
 from mtgjson5.cache import GLOBAL_CACHE
 from mtgjson5.classes import MtgjsonMetaObject
 from mtgjson5.constants import TOKEN_LAYOUTS
-from mtgjson5.serialize import clean_nested, dataframe_to_cards_list
+from mtgjson5.mtgjson_models import clean_nested, dataframe_to_cards_list
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -992,7 +994,7 @@ def build_all_printings_json(
                 and len(sealed_df) > 0
                 and "setCode" in sealed_df.columns
             ):
-                for set_code in set_meta.keys():
+                for set_code in set_meta:
                     set_sealed_df = sealed_df.filter(pl.col("setCode") == set_code)
                     if len(set_sealed_df) > 0:
                         sealed_list = []
@@ -1024,7 +1026,7 @@ def build_all_printings_json(
                 and len(decks_df) > 0
                 and "setCode" in decks_df.columns
             ):
-                for set_code in set_meta.keys():
+                for set_code in set_meta:
                     set_decks_df = decks_df.filter(pl.col("setCode") == set_code)
                     if len(set_decks_df) > 0:
                         deck_list = []

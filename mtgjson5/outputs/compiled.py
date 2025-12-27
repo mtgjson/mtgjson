@@ -5,14 +5,14 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, FrozenSet, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 import orjson
 import polars as pl
 
 from mtgjson5 import constants
 from mtgjson5.classes import MtgjsonMetaObject
-from mtgjson5.serialize import clean_nested, dataframe_to_cards_list
+from mtgjson5.mtgjson_models import clean_nested, dataframe_to_cards_list
 from mtgjson5.utils import LOGGER, deep_sort_keys
 
 from .base import (
@@ -20,6 +20,7 @@ from .base import (
     register_export_format,
 )
 from .utils import escape_postgres, serialize_complex_types
+
 
 if TYPE_CHECKING:
     from mtgjson5.context import PipelineContext
@@ -30,7 +31,7 @@ class JsonOutput(ExportFormat):
     """AllPrintings.json - Complete set data with all cards."""
 
     NAME: ClassVar[str] = "json"
-    ALIASES: ClassVar[FrozenSet[str]] = frozenset()
+    ALIASES: ClassVar[frozenset[str]] = frozenset()
     FILE_NAME: ClassVar[str] = "AllPrintings.json"
 
     def write(self, ctx: PipelineContext, output_path: Path) -> Path | None:
@@ -170,7 +171,7 @@ class SqliteOutput(ExportFormat):
     """SQLite database export."""
 
     NAME: ClassVar[str] = "sql"
-    ALIASES: ClassVar[FrozenSet[str]] = frozenset()
+    ALIASES: ClassVar[frozenset[str]] = frozenset()
     FILE_NAME: ClassVar[str] = "AllPrintings.sqlite"
 
     def write(self, ctx: PipelineContext, output_path: Path) -> Path | None:
@@ -241,7 +242,7 @@ class PostgresOutput(ExportFormat):
     """
 
     NAME: ClassVar[str] = "psql"
-    ALIASES: ClassVar[FrozenSet[str]] = frozenset()
+    ALIASES: ClassVar[frozenset[str]] = frozenset()
     FILE_NAME: ClassVar[str] = "AllPrintings.psql"
 
     def write(self, ctx: PipelineContext, output_path: Path) -> Path | None:
@@ -347,7 +348,7 @@ class CsvOutput(ExportFormat):
     """CSV files export."""
 
     NAME: ClassVar[str] = "csv"
-    ALIASES: ClassVar[FrozenSet[str]] = frozenset()
+    ALIASES: ClassVar[frozenset[str]] = frozenset()
     FILE_NAME: ClassVar[str] = "csv"
 
     def write(self, ctx: PipelineContext, output_path: Path) -> Path | None:
@@ -374,7 +375,7 @@ class ParquetOutput(ExportFormat):
     """Parquet files export."""
 
     NAME: ClassVar[str] = "parquet"
-    ALIASES: ClassVar[FrozenSet[str]] = frozenset()
+    ALIASES: ClassVar[frozenset[str]] = frozenset()
     FILE_NAME: ClassVar[str] = "parquet"
 
     def write(self, ctx: PipelineContext, output_path: Path) -> Path | None:

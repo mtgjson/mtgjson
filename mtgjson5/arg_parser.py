@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -118,6 +119,17 @@ def parse_args() -> argparse.Namespace:
         metavar="LIST",
         default=None,
         help="Export formats: json, sql, sqlite, psql, csv, parquet, or 'all' for everything.",
+    )
+    pipeline_group.add_argument(
+        "--use-models",
+        "-M",
+        action="store_true",
+        help="Use Pydantic model-based assembly for JSON outputs (requires --polars).",
+    )
+    pipeline_group.add_argument(
+        "--from-cache",
+        action="store_true",
+        help="Fast path: assemble from cached parquet/metadata (skips pipeline). Requires prior --use-models run.",
     )
 
     # MTGJSON maintainer arguments

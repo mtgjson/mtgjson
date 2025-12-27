@@ -5,8 +5,9 @@ GitHub data provider for MTGJSON supplemental data.
 import asyncio
 import json
 import logging
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Optional
+from typing import Any
 
 import aiohttp
 import polars as pl
@@ -19,6 +20,7 @@ from mtgjson5.providers.v2.sealed.models import (
     SealedContentModel,
     SealedProductModel,
 )
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -178,10 +180,10 @@ class SealedDataProvider:
         self.decks_df: pl.LazyFrame | None = None
         self._executor: ThreadPoolExecutor | None = None
         self._load_future: Any = None
-        self._on_complete_callback: Optional[Callable[[Any], None]] = None
+        self._on_complete_callback: Callable[[Any], None] | None = None
 
     def load_async_background(
-        self, on_complete: Optional[Callable[[Any], None]] = None
+        self, on_complete: Callable[[Any], None] | None = None
     ) -> None:
         """
         Start loading data in a background thread (non-blocking).

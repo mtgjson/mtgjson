@@ -2,7 +2,7 @@
 MTGJSON Singular Card.PurchaseURLs Object
 """
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from .json_object import JsonObject
 

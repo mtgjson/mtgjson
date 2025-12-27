@@ -2,7 +2,6 @@
 MTGJSON Keywords Object
 """
 
-from typing import List
 
 from ..classes.json_object import JsonObject
 from ..providers.scryfall.monolith import ScryfallProvider
@@ -13,9 +12,9 @@ class MtgjsonKeywordsObject(JsonObject):
     MTGJSON Keywords Object
     """
 
-    ability_words: List[str]
-    keyword_actions: List[str]
-    keyword_abilities: List[str]
+    ability_words: list[str]
+    keyword_actions: list[str]
+    keyword_abilities: list[str]
 
     def __init__(self) -> None:
         """

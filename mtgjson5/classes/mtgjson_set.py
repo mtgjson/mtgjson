@@ -2,7 +2,7 @@
 MTGJSON Singular Set Object
 """
 
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from .. import constants
 from ..classes.mtgjson_card import MtgjsonCardObject
@@ -19,35 +19,35 @@ class MtgjsonSetObject(JsonObject):
 
     base_set_size: int
     block: str
-    booster: Optional[Dict[str, Any]]
-    cards: List[MtgjsonCardObject]
-    cardsphere_set_id: Optional[int]
+    booster: dict[str, Any] | None
+    cards: list[MtgjsonCardObject]
+    cardsphere_set_id: int | None
     code: str
     code_v3: str
-    decks: List[MtgjsonDeckObject]
+    decks: list[MtgjsonDeckObject]
     is_foreign_only: bool
     is_foil_only: bool
     is_non_foil_only: bool
     is_online_only: bool
     is_partial_preview: bool
     keyrune_code: str
-    languages: List[str]
-    mcm_id: Optional[int]
-    mcm_id_extras: Optional[int]
-    mcm_name: Optional[str]
+    languages: list[str]
+    mcm_id: int | None
+    mcm_id_extras: int | None
+    mcm_name: str | None
     mtgo_code: str
     name: str
     parent_code: str
     release_date: str
-    tcgplayer_group_id: Optional[int]
-    sealed_product: List[MtgjsonSealedProductObject]
-    tokens: List[MtgjsonCardObject]
-    token_set_code: Optional[str]
+    tcgplayer_group_id: int | None
+    sealed_product: list[MtgjsonSealedProductObject]
+    tokens: list[MtgjsonCardObject]
+    token_set_code: str | None
     total_set_size: int
     translations: MtgjsonTranslationsObject
     type: str
 
-    extra_tokens: List[Dict[str, Any]]
+    extra_tokens: list[dict[str, Any]]
     search_uri: str
 
     __allow_if_falsey = {
@@ -74,12 +74,12 @@ class MtgjsonSetObject(JsonObject):
         """
         return str(vars(self))
 
-    def build_keys_to_skip(self) -> Set[str]:
+    def build_keys_to_skip(self) -> set[str]:
         """
         Build this object's instance of what keys to skip under certain circumstances
         :return What keys to skip over
         """
-        excluded_keys: Set[str] = {
+        excluded_keys: set[str] = {
             "added_scryfall_tokens",
             "search_uri",
             "extra_tokens",

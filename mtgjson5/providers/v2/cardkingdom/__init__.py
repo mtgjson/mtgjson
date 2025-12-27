@@ -19,6 +19,7 @@ from .prices import (
 from .provider import CKProvider
 from .transformer import CardKingdomTransformer
 
+
 __all__ = [
     # Main provider
     "CKProvider",

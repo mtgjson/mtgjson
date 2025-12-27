@@ -1,7 +1,8 @@
 """Shared utilities for output formats."""
 
 import json
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 import orjson
 import polars as pl

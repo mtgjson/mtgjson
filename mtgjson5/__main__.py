@@ -5,13 +5,13 @@ MTGJSON Main Executor
 import argparse
 import logging
 import traceback
-from typing import List, Set, Union
 
 import urllib3.exceptions
 
 from mtgjson5 import constants
 from mtgjson5.cache import GlobalCache
 from mtgjson5.utils import init_logger, load_local_set_data
+
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -20,7 +20,7 @@ LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
 def build_mtgjson_sets(
-    sets_to_build: Union[Set[str], List[str]],
+    sets_to_build: set[str] | list[str],
     output_pretty: bool,
     include_referrals: bool,
 ) -> None:
@@ -96,6 +96,7 @@ def dispatcher(args: argparse.Namespace) -> None:
         generate_compiled_prices_output,
         generate_output_file_hashes,
     )
+    from mtgjson5.model_pipeline import assemble_from_cache, assemble_with_models
     from mtgjson5.pipeline import assemble_json_outputs, build_cards
     from mtgjson5.price_builder import PriceBuilder
     from mtgjson5.providers import GitHubMTGSqliteProvider, ScryfallProvider
@@ -143,6 +144,15 @@ def dispatcher(args: argparse.Namespace) -> None:
 
     decks_only = outputs_requested == {"decks"}
 
+    # Fast path: assemble directly from cached parquet (skip pipeline)
+    if args.from_cache:
+        LOGGER.info("Fast path: assembling from cached parquet/metadata...")
+        set_codes_filter = list(sets_to_build) if sets_to_build else None
+        results = assemble_from_cache(set_codes=set_codes_filter, streaming=True)
+        LOGGER.info(f"Fast path assembly results: {results}")
+        # Skip the rest of the build flow
+        return
+
     # Create context for Polars pipeline (needed for builds and/or exports)
     ctx = None
     if args.polars:
@@ -165,6 +175,10 @@ def dispatcher(args: argparse.Namespace) -> None:
 
                 decks_df = build_decks_expanded(ctx)
                 write_deck_json_files(decks_df, pretty_print=args.pretty)
+            elif args.use_models:
+                # Model-based assembly with Pydantic types
+                results = assemble_with_models(ctx, streaming=True)
+                LOGGER.info(f"Model assembly results: {results}")
             else:
                 assemble_json_outputs(
                     ctx, include_referrals=args.referrals, parallel=True, max_workers=30

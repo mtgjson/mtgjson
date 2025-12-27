@@ -6,7 +6,7 @@ import logging
 import pathlib
 import re
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from singleton_decorator import singleton
 
@@ -14,6 +14,7 @@ from .. import constants
 from ..classes import MtgjsonPricesObject, MtgjsonSealedProductObject
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_entity_mapping
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class CardKingdomProvider(AbstractProvider):
         """
         super().__init__(self._build_http_header())
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Construct the Authorization header for CardHoarder
         :return: Authorization header
@@ -42,7 +43,7 @@ class CardKingdomProvider(AbstractProvider):
         return {}
 
     def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
+        self, url: str, params: dict[str, str | int] | None = None
     ) -> Any:
         """
         Download content
@@ -55,7 +56,7 @@ class CardKingdomProvider(AbstractProvider):
 
         return response.json()
 
-    def get_scryfall_translation_table(self) -> Dict[str, List[Dict[str, Any]]]:
+    def get_scryfall_translation_table(self) -> dict[str, list[dict[str, Any]]]:
         """
         Group entries from the CardKingdom API by Scryfall ID
         for further processing down the line
@@ -80,12 +81,12 @@ class CardKingdomProvider(AbstractProvider):
 
     def generate_today_price_dict(
         self, all_printings_path: pathlib.Path
-    ) -> Dict[str, MtgjsonPricesObject]:
+    ) -> dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure for MTGO from CardHoarder
         :return MTGJSON prices single day structure
         """
-        request_api_response: Dict[str, Any] = self.download(self.api_url)
+        request_api_response: dict[str, Any] = self.download(self.api_url)
         price_data_rows = request_api_response.get("data", [])
 
         # Start with non-foil IDs
@@ -127,7 +128,7 @@ class CardKingdomProvider(AbstractProvider):
         )
 
     def update_sealed_urls(
-        self, sealed_products: List[MtgjsonSealedProductObject]
+        self, sealed_products: list[MtgjsonSealedProductObject]
     ) -> None:
         """
         Queries the CK sealed product API to add URLs to any sealed product with a

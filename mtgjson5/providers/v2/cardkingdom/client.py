@@ -4,11 +4,11 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass
-from typing import Optional
 
 import aiohttp
 
 from .models import ApiResponse, CKRecord
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class FetchResult:
 
     endpoint: str
     records: list[CKRecord]
-    error: Optional[Exception] = None
+    error: Exception | None = None
 
     @property
     def success(self) -> bool:
@@ -107,7 +107,7 @@ class CardKingdomClient:
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
         results = []
-        for url, response in zip(endpoints, responses):
+        for url, response in zip(endpoints, responses, strict=False):
             if isinstance(response, BaseException):
                 if isinstance(response, Exception):
                     LOGGER.warning(f"CK API error for {url}: {response}")

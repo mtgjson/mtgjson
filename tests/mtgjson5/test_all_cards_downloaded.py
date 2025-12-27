@@ -1,5 +1,6 @@
-import mtgjson5.providers
 import pytest
+
+import mtgjson5.providers
 import mtgjson5.set_builder
 
 
@@ -23,5 +24,5 @@ def test(card_name_to_find, card_number_to_find, set_code):
         card["collector_number"]: card for card in scryfall_data
     }
 
-    assert card_name_to_find in scryfall_data_map_name.keys()
-    assert card_number_to_find in scryfall_data_map_number.keys()
+    assert card_name_to_find in scryfall_data_map_name
+    assert card_number_to_find in scryfall_data_map_number

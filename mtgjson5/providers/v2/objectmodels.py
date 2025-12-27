@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import datetime
 import re
-from typing import Any, Callable, ClassVar, Dict, List, Set
+from collections.abc import Callable
+from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import (
@@ -17,6 +18,7 @@ from pydantic import (
 )
 from pydantic.alias_generators import to_camel
 from pydantic_core import core_schema
+
 
 _CAMEL_TO_SNAKE_1 = re.compile(r"(.)([A-Z][a-z]+)")
 _CAMEL_TO_SNAKE_2 = re.compile(r"([a-z0-9])([A-Z])")
@@ -47,16 +49,16 @@ class MTGJsonModel(BaseModel):
             return list(value)
         return value
 
-    def build_keys_to_skip(self) -> Set[str]:
+    def build_keys_to_skip(self) -> set[str]:
         """Override to define fields to exclude dynamically."""
         return set()
 
     @model_serializer(mode="wrap")
     def serialize_model(
         self,
-        serializer: Callable[[Any], Dict[str, Any]],
+        serializer: Callable[[Any], dict[str, Any]],
         _info: core_schema.SerializationInfo,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Custom serialization respecting build_keys_to_skip()."""
         data = serializer(self)
         skip_keys = self.build_keys_to_skip()
@@ -79,7 +81,7 @@ class MTGJsonModel(BaseModel):
         s1 = _CAMEL_TO_SNAKE_1.sub(r"\1_\2", camel_str)
         return _CAMEL_TO_SNAKE_2.sub(r"\1_\2", s1).lower()
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """
         Backward compatibility with existing to_json() calls.
         Uses by_alias=True so alias_generator=to_camel converts all fields to camelCase.
@@ -104,7 +106,7 @@ class MTGJsonCardModel(MTGJsonModel):
     Extended Base for all MTGJSON Card models with dynamic field exclusion.
     """
 
-    _allow_if_falsey: ClassVar[Set[str]] = {
+    _allow_if_falsey: ClassVar[set[str]] = {
         # Required fields that must always be present
         "uuid",
         "set_code",
@@ -136,7 +138,7 @@ class MTGJsonCardModel(MTGJsonModel):
         "reverse_related",
     }
 
-    _exclude_for_tokens: ClassVar[Set[str]] = {
+    _exclude_for_tokens: ClassVar[set[str]] = {
         "rulings",
         "rarity",
         "prices",
@@ -149,7 +151,7 @@ class MTGJsonCardModel(MTGJsonModel):
         "leadership_skills",
     }
 
-    _exclude_for_cards: ClassVar[Set[str]] = {
+    _exclude_for_cards: ClassVar[set[str]] = {
         "reverse_related",
         "ascii_name",  # Only in atomic cards
         "count",  # Only in deck lists
@@ -202,7 +204,7 @@ class MTGJsonCardModel(MTGJsonModel):
     uuid: str = Field(default="", exclude=False)
     is_token: bool = Field(default=False, exclude=True)
 
-    def build_keys_to_skip(self) -> Set[str]:
+    def build_keys_to_skip(self) -> set[str]:
         """Dynamic field exclusion for cards."""
         if self.is_token:
             excluded_keys = self._exclude_for_tokens.copy()
@@ -216,7 +218,7 @@ class MTGJsonCardModel(MTGJsonModel):
 
         return excluded_keys
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """
         Custom JSON serialization that filters out empty values
         :return: JSON object
@@ -232,7 +234,7 @@ class MTGJsonSetModel(MTGJsonModel):
     Extended Base for all MTGJSON Set models with custom Windows-safe set code.
     """
 
-    _BAD_FILE_NAMES: ClassVar[Set[str]] = {"CON", "PRN", "AUX", "NUL", "COM1", "LPT1"}
+    _BAD_FILE_NAMES: ClassVar[set[str]] = {"CON", "PRN", "AUX", "NUL", "COM1", "LPT1"}
 
     name: str = Field(default="")
     code: str = Field(default="")
@@ -318,8 +320,8 @@ class MtgjsonPurchaseUrlsObject(MtgjsonBaseModel):
 class MtgjsonRelatedCardsObject(MtgjsonBaseModel):
     """Data model for related cards and card relationships."""
 
-    reverse_related: List[str] = Field(default_factory=list)
-    spellbook: List[str] = Field(default_factory=list)
+    reverse_related: list[str] = Field(default_factory=list)
+    spellbook: list[str] = Field(default_factory=list)
 
 
 class MtgjsonRulingsObject(MtgjsonBaseModel):
@@ -412,17 +414,17 @@ class MtgjsonTranslationsObject(MtgjsonBaseModel):
 class MtgjsonKeywordsObject(MtgjsonBaseModel):
     """Data model for Magic keywords and abilities."""
 
-    ability_words: List[str] = Field(default_factory=list)
-    keyword_abilities: List[str] = Field(default_factory=list)
-    keyword_actions: List[str] = Field(default_factory=list)
+    ability_words: list[str] = Field(default_factory=list)
+    keyword_abilities: list[str] = Field(default_factory=list)
+    keyword_actions: list[str] = Field(default_factory=list)
 
 
 class MtgjsonSourceProductsObject(MtgjsonBaseModel):
     """Data model for source products by finish type."""
 
-    etched: List[str] = Field(default_factory=list)
-    foil: List[str] = Field(default_factory=list)
-    nonfoil: List[str] = Field(default_factory=list)
+    etched: list[str] = Field(default_factory=list)
+    foil: list[str] = Field(default_factory=list)
+    nonfoil: list[str] = Field(default_factory=list)
 
 
 class MtgjsonTcgplayerSkusObject(MtgjsonBaseModel):
@@ -446,9 +448,9 @@ class MtgjsonMetaObject(MtgjsonBaseModel):
 class MtgjsonPricePointsObject(MtgjsonBaseModel):
     """Data model for price points by finish type."""
 
-    etched: Dict[str, float] = Field(default_factory=dict)
-    foil: Dict[str, float] = Field(default_factory=dict)
-    normal: Dict[str, float] = Field(default_factory=dict)
+    etched: dict[str, float] = Field(default_factory=dict)
+    foil: dict[str, float] = Field(default_factory=dict)
+    normal: dict[str, float] = Field(default_factory=dict)
 
 
 class MtgjsonPriceListObject(MtgjsonBaseModel):
@@ -462,14 +464,14 @@ class MtgjsonPriceListObject(MtgjsonBaseModel):
 class MtgjsonPriceFormatsObject(MtgjsonBaseModel):
     """Data model for prices across different formats (MTGO, paper)."""
 
-    mtgo: Dict[str, MtgjsonPriceListObject] = Field(default_factory=dict)
-    paper: Dict[str, MtgjsonPriceListObject] = Field(default_factory=dict)
+    mtgo: dict[str, MtgjsonPriceListObject] = Field(default_factory=dict)
+    paper: dict[str, MtgjsonPriceListObject] = Field(default_factory=dict)
 
 
 class MtgjsonBoosterPackObject(MtgjsonBaseModel):
     """Data model for booster pack contents and weight."""
 
-    contents: Dict[str, int] = Field(default_factory=dict)
+    contents: dict[str, int] = Field(default_factory=dict)
     weight: float
 
 
@@ -478,7 +480,7 @@ class MtgjsonBoosterSheetObject(MtgjsonBaseModel):
 
     allow_duplicates: bool | None = None
     balance_colors: bool | None = None
-    cards: Dict[str, int] = Field(default_factory=dict)
+    cards: dict[str, int] = Field(default_factory=dict)
     foil: bool
     fixed: bool | None = None
     total_weight: float
@@ -487,11 +489,11 @@ class MtgjsonBoosterSheetObject(MtgjsonBaseModel):
 class MtgjsonBoosterConfigObject(MtgjsonBaseModel):
     """Data model for booster configuration."""
 
-    boosters: List[MtgjsonBoosterPackObject] = Field(default_factory=list)
+    boosters: list[MtgjsonBoosterPackObject] = Field(default_factory=list)
     boosters_total_weight: float
     name: str | None = None
-    sheets: Dict[str, MtgjsonBoosterSheetObject] = Field(default_factory=dict)
-    source_set_codes: List[str] = Field(default_factory=list)
+    sheets: dict[str, MtgjsonBoosterSheetObject] = Field(default_factory=dict)
+    source_set_codes: list[str] = Field(default_factory=list)
 
 
 # --- Sealed Products ---
@@ -539,12 +541,12 @@ class MtgjsonSealedProductSealedObject(MtgjsonBaseModel):
 class MtgjsonSealedProductContentsObject(MtgjsonBaseModel):
     """Data model for sealed product contents."""
 
-    card: List[MtgjsonSealedProductCardObject] = Field(default_factory=list)
-    deck: List[MtgjsonSealedProductDeckObject] = Field(default_factory=list)
-    other: List[MtgjsonSealedProductOtherObject] = Field(default_factory=list)
-    pack: List[MtgjsonSealedProductPackObject] = Field(default_factory=list)
-    sealed: List[MtgjsonSealedProductSealedObject] = Field(default_factory=list)
-    variable: List[Dict[str, List[MtgjsonSealedProductContentsObject]]] = Field(
+    card: list[MtgjsonSealedProductCardObject] = Field(default_factory=list)
+    deck: list[MtgjsonSealedProductDeckObject] = Field(default_factory=list)
+    other: list[MtgjsonSealedProductOtherObject] = Field(default_factory=list)
+    pack: list[MtgjsonSealedProductPackObject] = Field(default_factory=list)
+    sealed: list[MtgjsonSealedProductSealedObject] = Field(default_factory=list)
+    variable: list[dict[str, list[MtgjsonSealedProductContentsObject]]] = Field(
         default_factory=list
     )
 
@@ -571,8 +573,8 @@ class MtgjsonSealedProductObject(MtgjsonBaseModel):
 class MtgjsonCardTypeObject(MtgjsonBaseModel):
     """Data model for card type with supertypes and subtypes."""
 
-    sub_types: List[str] = Field(default_factory=list)
-    super_types: List[str] = Field(default_factory=list)
+    sub_types: list[str] = Field(default_factory=list)
+    super_types: list[str] = Field(default_factory=list)
 
 
 class MtgjsonCardTypesObject(MtgjsonBaseModel):
@@ -601,10 +603,10 @@ class MtgjsonCardAtomicObject(MtgjsonBaseModel):
     """Data model for atomic card objects."""
 
     ascii_name: str | None = None
-    attraction_lights: List[int] | None = None
-    color_identity: List[str] = Field(default_factory=list)
-    color_indicator: List[str] | None = None
-    colors: List[str] = Field(default_factory=list)
+    attraction_lights: list[int] | None = None
+    color_identity: list[str] = Field(default_factory=list)
+    color_indicator: list[str] | None = None
+    colors: list[str] = Field(default_factory=list)
     converted_mana_cost: float
     defense: str | None = None
     edhrec_rank: int | None = None
@@ -613,7 +615,7 @@ class MtgjsonCardAtomicObject(MtgjsonBaseModel):
     face_mana_value: float | None = None
     face_name: str | None = None
     first_printing: str | None = None
-    foreign_data: List[MtgjsonForeignDataObject] = Field(default_factory=list)
+    foreign_data: list[MtgjsonForeignDataObject] = Field(default_factory=list)
     hand: str | None = None
     has_alternative_deck_limit: bool | None = None
     identifiers: MtgjsonIdentifiersObject = Field(
@@ -622,7 +624,7 @@ class MtgjsonCardAtomicObject(MtgjsonBaseModel):
     is_funny: bool | None = None
     is_game_changer: bool | None = None
     is_reserved: bool | None = None
-    keywords: List[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
     layout: str
     leadership_skills: MtgjsonLeadershipSkillsObject | None = None
     legalities: MtgjsonLegalitiesObject = Field(default_factory=MtgjsonLegalitiesObject)
@@ -632,38 +634,38 @@ class MtgjsonCardAtomicObject(MtgjsonBaseModel):
     mana_value: float
     name: str
     power: str | None = None
-    printings: List[str] = Field(default_factory=list)
+    printings: list[str] = Field(default_factory=list)
     purchase_urls: MtgjsonPurchaseUrlsObject = Field(
         default_factory=MtgjsonPurchaseUrlsObject
     )
     related_cards: MtgjsonRelatedCardsObject = Field(
         default_factory=MtgjsonRelatedCardsObject
     )
-    rulings: List[MtgjsonRulingsObject] = Field(default_factory=list)
+    rulings: list[MtgjsonRulingsObject] = Field(default_factory=list)
     side: str | None = None
-    subsets: List[str] = Field(default_factory=list)
-    subtypes: List[str] = Field(default_factory=list)
-    supertypes: List[str] = Field(default_factory=list)
+    subsets: list[str] = Field(default_factory=list)
+    subtypes: list[str] = Field(default_factory=list)
+    supertypes: list[str] = Field(default_factory=list)
     text: str | None = None
     toughness: str | None = None
     type: str
-    types: List[str] = Field(default_factory=list)
+    types: list[str] = Field(default_factory=list)
 
 
 class MtgjsonCardDeckObject(MtgjsonBaseModel):
     """Data model for card objects in decks."""
 
     artist: str | None = None
-    artist_ids: List[str] = Field(default_factory=list)
+    artist_ids: list[str] = Field(default_factory=list)
     ascii_name: str | None = None
-    attraction_lights: List[int] | None = None
-    availability: List[str] = Field(default_factory=list)
-    booster_types: List[str] = Field(default_factory=list)
+    attraction_lights: list[int] | None = None
+    availability: list[str] = Field(default_factory=list)
+    booster_types: list[str] = Field(default_factory=list)
     border_color: str
-    card_parts: List[str] = Field(default_factory=list)
-    color_identity: List[str] = Field(default_factory=list)
-    color_indicator: List[str] | None = None
-    colors: List[str] = Field(default_factory=list)
+    card_parts: list[str] = Field(default_factory=list)
+    color_identity: list[str] = Field(default_factory=list)
+    color_indicator: list[str] | None = None
+    colors: list[str] = Field(default_factory=list)
     converted_mana_cost: float
     count: int
     defense: str | None = None
@@ -674,11 +676,11 @@ class MtgjsonCardDeckObject(MtgjsonBaseModel):
     face_flavor_name: str | None = None
     face_mana_value: float | None = None
     face_name: str | None = None
-    finishes: List[str] = Field(default_factory=list)
+    finishes: list[str] = Field(default_factory=list)
     flavor_name: str | None = None
     flavor_text: str | None = None
-    foreign_data: List[MtgjsonForeignDataObject] = Field(default_factory=list)
-    frame_effects: List[str] = Field(default_factory=list)
+    foreign_data: list[MtgjsonForeignDataObject] = Field(default_factory=list)
+    frame_effects: list[str] = Field(default_factory=list)
     frame_version: str
     hand: str | None = None
     has_alternative_deck_limit: bool | None = None
@@ -703,7 +705,7 @@ class MtgjsonCardDeckObject(MtgjsonBaseModel):
     is_story_spotlight: bool | None = None
     is_textless: bool | None = None
     is_timeshifted: bool | None = None
-    keywords: List[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
     language: str
     layout: str
     leadership_skills: MtgjsonLeadershipSkillsObject | None = None
@@ -714,35 +716,35 @@ class MtgjsonCardDeckObject(MtgjsonBaseModel):
     mana_value: float
     name: str
     number: str
-    original_printings: List[str] = Field(default_factory=list)
+    original_printings: list[str] = Field(default_factory=list)
     original_release_date: str | None = None
     original_text: str | None = None
     original_type: str | None = None
-    other_face_ids: List[str] = Field(default_factory=list)
+    other_face_ids: list[str] = Field(default_factory=list)
     power: str | None = None
-    printings: List[str] = Field(default_factory=list)
-    promo_types: List[str] = Field(default_factory=list)
+    printings: list[str] = Field(default_factory=list)
+    promo_types: list[str] = Field(default_factory=list)
     purchase_urls: MtgjsonPurchaseUrlsObject = Field(
         default_factory=MtgjsonPurchaseUrlsObject
     )
     rarity: str
     related_cards: MtgjsonRelatedCardsObject | None = None
-    rebalanced_printings: List[str] = Field(default_factory=list)
-    rulings: List[MtgjsonRulingsObject] = Field(default_factory=list)
+    rebalanced_printings: list[str] = Field(default_factory=list)
+    rulings: list[MtgjsonRulingsObject] = Field(default_factory=list)
     security_stamp: str | None = None
     set_code: str
     side: str | None = None
     signature: str | None = None
-    source_products: List[str] = Field(default_factory=list)
-    subsets: List[str] = Field(default_factory=list)
-    subtypes: List[str] = Field(default_factory=list)
-    supertypes: List[str] = Field(default_factory=list)
+    source_products: list[str] = Field(default_factory=list)
+    subsets: list[str] = Field(default_factory=list)
+    subtypes: list[str] = Field(default_factory=list)
+    supertypes: list[str] = Field(default_factory=list)
     text: str | None = None
     toughness: str | None = None
     type: str
-    types: List[str] = Field(default_factory=list)
+    types: list[str] = Field(default_factory=list)
     uuid: str
-    variations: List[str] = Field(default_factory=list)
+    variations: list[str] = Field(default_factory=list)
     watermark: str | None = None
 
 
@@ -758,16 +760,16 @@ class MtgjsonCardSetObject(MtgjsonBaseModel):
     """Data model for card objects in sets."""
 
     artist: str | None = None
-    artist_ids: List[str] = Field(default_factory=list)
+    artist_ids: list[str] = Field(default_factory=list)
     ascii_name: str | None = None
-    attraction_lights: List[int] | None = None
-    availability: List[str] = Field(default_factory=list)
-    booster_types: List[str] = Field(default_factory=list)
+    attraction_lights: list[int] | None = None
+    availability: list[str] = Field(default_factory=list)
+    booster_types: list[str] = Field(default_factory=list)
     border_color: str
-    card_parts: List[str] = Field(default_factory=list)
-    color_identity: List[str] = Field(default_factory=list)
-    color_indicator: List[str] | None = None
-    colors: List[str] = Field(default_factory=list)
+    card_parts: list[str] = Field(default_factory=list)
+    color_identity: list[str] = Field(default_factory=list)
+    color_indicator: list[str] | None = None
+    colors: list[str] = Field(default_factory=list)
     converted_mana_cost: float
     defense: str | None = None
     duel_deck: str | None = None
@@ -777,11 +779,11 @@ class MtgjsonCardSetObject(MtgjsonBaseModel):
     face_flavor_name: str | None = None
     face_mana_value: float | None = None
     face_name: str | None = None
-    finishes: List[str] = Field(default_factory=list)
+    finishes: list[str] = Field(default_factory=list)
     flavor_name: str | None = None
     flavor_text: str | None = None
-    foreign_data: List[MtgjsonForeignDataObject] = Field(default_factory=list)
-    frame_effects: List[str] = Field(default_factory=list)
+    foreign_data: list[MtgjsonForeignDataObject] = Field(default_factory=list)
+    frame_effects: list[str] = Field(default_factory=list)
     frame_version: str
     hand: str | None = None
     has_alternative_deck_limit: bool | None = None
@@ -805,7 +807,7 @@ class MtgjsonCardSetObject(MtgjsonBaseModel):
     is_story_spotlight: bool | None = None
     is_textless: bool | None = None
     is_timeshifted: bool | None = None
-    keywords: List[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
     language: str
     layout: str
     leadership_skills: MtgjsonLeadershipSkillsObject | None = None
@@ -816,35 +818,35 @@ class MtgjsonCardSetObject(MtgjsonBaseModel):
     mana_value: float
     name: str
     number: str
-    original_printings: List[str] = Field(default_factory=list)
+    original_printings: list[str] = Field(default_factory=list)
     original_release_date: str | None = None
     original_text: str | None = None
     original_type: str | None = None
-    other_face_ids: List[str] = Field(default_factory=list)
+    other_face_ids: list[str] = Field(default_factory=list)
     power: str | None = None
-    printings: List[str] = Field(default_factory=list)
-    promo_types: List[str] = Field(default_factory=list)
+    printings: list[str] = Field(default_factory=list)
+    promo_types: list[str] = Field(default_factory=list)
     purchase_urls: MtgjsonPurchaseUrlsObject = Field(
         default_factory=MtgjsonPurchaseUrlsObject
     )
     rarity: str
     related_cards: MtgjsonRelatedCardsObject | None = None
-    rebalanced_printings: List[str] = Field(default_factory=list)
-    rulings: List[MtgjsonRulingsObject] = Field(default_factory=list)
+    rebalanced_printings: list[str] = Field(default_factory=list)
+    rulings: list[MtgjsonRulingsObject] = Field(default_factory=list)
     security_stamp: str | None = None
     set_code: str
     side: str | None = None
     signature: str | None = None
     source_products: MtgjsonSourceProductsObject | None = None
-    subsets: List[str] = Field(default_factory=list)
-    subtypes: List[str] = Field(default_factory=list)
-    supertypes: List[str] = Field(default_factory=list)
+    subsets: list[str] = Field(default_factory=list)
+    subtypes: list[str] = Field(default_factory=list)
+    supertypes: list[str] = Field(default_factory=list)
     text: str | None = None
     toughness: str | None = None
     type: str
-    types: List[str] = Field(default_factory=list)
+    types: list[str] = Field(default_factory=list)
     uuid: str
-    variations: List[str] = Field(default_factory=list)
+    variations: list[str] = Field(default_factory=list)
     watermark: str | None = None
 
 
@@ -852,22 +854,22 @@ class MtgjsonCardTokenObject(MtgjsonBaseModel):
     """Data model for token card objects."""
 
     artist: str | None = None
-    artist_ids: List[str] = Field(default_factory=list)
+    artist_ids: list[str] = Field(default_factory=list)
     ascii_name: str | None = None
-    availability: List[str] = Field(default_factory=list)
-    booster_types: List[str] = Field(default_factory=list)
+    availability: list[str] = Field(default_factory=list)
+    booster_types: list[str] = Field(default_factory=list)
     border_color: str
-    card_parts: List[str] = Field(default_factory=list)
-    color_identity: List[str] = Field(default_factory=list)
-    color_indicator: List[str] | None = None
-    colors: List[str] = Field(default_factory=list)
+    card_parts: list[str] = Field(default_factory=list)
+    color_identity: list[str] = Field(default_factory=list)
+    color_indicator: list[str] | None = None
+    colors: list[str] = Field(default_factory=list)
     edhrec_saltiness: float | None = None
     face_name: str | None = None
     face_flavor_name: str | None = None
-    finishes: List[str] = Field(default_factory=list)
+    finishes: list[str] = Field(default_factory=list)
     flavor_name: str | None = None
     flavor_text: str | None = None
-    frame_effects: List[str] = Field(default_factory=list)
+    frame_effects: list[str] = Field(default_factory=list)
     frame_version: str
     has_foil: bool
     has_non_foil: bool
@@ -881,7 +883,7 @@ class MtgjsonCardTokenObject(MtgjsonBaseModel):
     is_promo: bool | None = None
     is_reprint: bool | None = None
     is_textless: bool | None = None
-    keywords: List[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
     language: str
     layout: str
     loyalty: str | None = None
@@ -891,22 +893,22 @@ class MtgjsonCardTokenObject(MtgjsonBaseModel):
     orientation: str | None = None
     original_text: str | None = None
     original_type: str | None = None
-    other_face_ids: List[str] = Field(default_factory=list)
+    other_face_ids: list[str] = Field(default_factory=list)
     power: str | None = None
-    promo_types: List[str] = Field(default_factory=list)
+    promo_types: list[str] = Field(default_factory=list)
     related_cards: MtgjsonRelatedCardsObject | None = None
-    reverse_related: List[str] = Field(default_factory=list)
+    reverse_related: list[str] = Field(default_factory=list)
     security_stamp: str | None = None
     set_code: str
     side: str | None = None
     signature: str | None = None
-    subsets: List[str] = Field(default_factory=list)
-    subtypes: List[str] = Field(default_factory=list)
-    supertypes: List[str] = Field(default_factory=list)
+    subsets: list[str] = Field(default_factory=list)
+    subtypes: list[str] = Field(default_factory=list)
+    supertypes: list[str] = Field(default_factory=list)
     text: str | None = None
     toughness: str | None = None
     type: str
-    types: List[str] = Field(default_factory=list)
+    types: list[str] = Field(default_factory=list)
     uuid: str
     watermark: str | None = None
 
@@ -918,16 +920,16 @@ class MtgjsonDeckObject(MtgjsonBaseModel):
     """Data model for deck objects with all required fields."""
 
     code: str
-    commander: List[MtgjsonCardDeckObject] = Field(default_factory=list)
-    display_commander: List[str] = Field(default_factory=list)
-    main_board: List[MtgjsonCardDeckObject] = Field(default_factory=list)
+    commander: list[MtgjsonCardDeckObject] = Field(default_factory=list)
+    display_commander: list[str] = Field(default_factory=list)
+    main_board: list[MtgjsonCardDeckObject] = Field(default_factory=list)
     name: str
-    planes: List[str] = Field(default_factory=list)
+    planes: list[str] = Field(default_factory=list)
     release_date: str | None = None
-    schemes: List[str] = Field(default_factory=list)
-    sealed_product_uuids: List[str] = Field(default_factory=list)
-    side_board: List[MtgjsonCardDeckObject] = Field(default_factory=list)
-    tokens: List[MtgjsonCardDeckObject] = Field(default_factory=list)
+    schemes: list[str] = Field(default_factory=list)
+    sealed_product_uuids: list[str] = Field(default_factory=list)
+    side_board: list[MtgjsonCardDeckObject] = Field(default_factory=list)
+    tokens: list[MtgjsonCardDeckObject] = Field(default_factory=list)
     type: str
 
 
@@ -945,15 +947,15 @@ class MtgjsonDeckSetObject(MtgjsonBaseModel):
     """Data model for deck objects in sets with all 11 required fields."""
 
     code: str
-    commander: List[MtgjsonCardSetDeckObject] = Field(default_factory=list)
-    display_commander: List[str] = Field(default_factory=list)
-    main_board: List[MtgjsonCardSetDeckObject] = Field(default_factory=list)
+    commander: list[MtgjsonCardSetDeckObject] = Field(default_factory=list)
+    display_commander: list[str] = Field(default_factory=list)
+    main_board: list[MtgjsonCardSetDeckObject] = Field(default_factory=list)
     name: str
-    planes: List[str] = Field(default_factory=list)
+    planes: list[str] = Field(default_factory=list)
     release_date: str | None = None
-    schemes: List[str] = Field(default_factory=list)
-    sealed_product_uuids: List[str] = Field(default_factory=list)
-    side_board: List[MtgjsonCardSetDeckObject] = Field(default_factory=list)
+    schemes: list[str] = Field(default_factory=list)
+    sealed_product_uuids: list[str] = Field(default_factory=list)
+    side_board: list[MtgjsonCardSetDeckObject] = Field(default_factory=list)
     type: str
 
 
@@ -965,12 +967,12 @@ class MtgjsonSetObject(MtgjsonBaseModel):
 
     base_set_size: int
     block: str | None = None
-    booster: Dict[str, MtgjsonBoosterConfigObject] = Field(default_factory=dict)
-    cards: List[MtgjsonCardSetObject] = Field(default_factory=list)
+    booster: dict[str, MtgjsonBoosterConfigObject] = Field(default_factory=dict)
+    cards: list[MtgjsonCardSetObject] = Field(default_factory=list)
     cardsphere_set_id: int | None = None
     code: str
     code_v3: str | None = None
-    decks: List[MtgjsonDeckSetObject] = Field(default_factory=list)
+    decks: list[MtgjsonDeckSetObject] = Field(default_factory=list)
     is_foreign_only: bool | None = None
     is_foil_only: bool
     is_non_foil_only: bool | None = None
@@ -978,7 +980,7 @@ class MtgjsonSetObject(MtgjsonBaseModel):
     is_paper_only: bool | None = None
     is_partial_preview: bool | None = None
     keyrune_code: str
-    languages: List[str] = Field(default_factory=list)
+    languages: list[str] = Field(default_factory=list)
     mcm_id: int | None = None
     mcm_id_extras: int | None = None
     mcm_name: str | None = None
@@ -986,9 +988,9 @@ class MtgjsonSetObject(MtgjsonBaseModel):
     name: str
     parent_code: str | None = None
     release_date: str
-    sealed_product: List[MtgjsonSealedProductObject] = Field(default_factory=list)
+    sealed_product: list[MtgjsonSealedProductObject] = Field(default_factory=list)
     tcgplayer_group_id: int | None = None
-    tokens: List[MtgjsonCardTokenObject] = Field(default_factory=list)
+    tokens: list[MtgjsonCardTokenObject] = Field(default_factory=list)
     token_set_code: str | None = None
     total_set_size: int
     translations: MtgjsonTranslationsObject = Field(
@@ -1005,7 +1007,7 @@ class MtgjsonSetListObject(MtgjsonBaseModel):
     cardsphere_set_id: int | None = None
     code: str
     code_v3: str | None = None
-    decks: List[MtgjsonDeckSetObject] = Field(default_factory=list)
+    decks: list[MtgjsonDeckSetObject] = Field(default_factory=list)
     is_foreign_only: bool | None = None
     is_foil_only: bool
     is_non_foil_only: bool | None = None
@@ -1013,7 +1015,7 @@ class MtgjsonSetListObject(MtgjsonBaseModel):
     is_paper_only: bool | None = None
     is_partial_preview: bool | None = None
     keyrune_code: str
-    languages: List[str] = Field(default_factory=list)
+    languages: list[str] = Field(default_factory=list)
     mcm_id: int | None = None
     mcm_id_extras: int | None = None
     mcm_name: str | None = None
@@ -1021,7 +1023,7 @@ class MtgjsonSetListObject(MtgjsonBaseModel):
     name: str
     parent_code: str | None = None
     release_date: str
-    sealed_product: List[MtgjsonSealedProductObject] = Field(default_factory=list)
+    sealed_product: list[MtgjsonSealedProductObject] = Field(default_factory=list)
     tcgplayer_group_id: int | None = None
     total_set_size: int
     token_set_code: str | None = None

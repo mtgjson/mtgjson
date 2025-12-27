@@ -7,15 +7,17 @@ Supports multiple API keys for increased throughput.
 
 import asyncio
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 import aiohttp
 import polars as pl
 
 from mtgjson5 import constants
 from mtgjson5.mtgjson_config import MtgjsonConfig
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -72,8 +74,8 @@ class TcgPlayerClient:
 
     def __init__(self, config: TcgPlayerConfig):
         self.config = config
-        self.access_token: Optional[str] = None
-        self._session: Optional[aiohttp.ClientSession] = None
+        self.access_token: str | None = None
+        self._session: aiohttp.ClientSession | None = None
 
     async def __aenter__(self) -> "TcgPlayerClient":
         connector = aiohttp.TCPConnector(limit=CONCURRENT_REQUESTS)
@@ -133,7 +135,7 @@ class TcgPlayerClient:
                     resp.raise_for_status()
                     result: dict[str, object] = await resp.json()
                     return result
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            except (TimeoutError, aiohttp.ClientError) as e:
                 last_error = e
                 if attempt < MAX_RETRIES - 1:
                     await asyncio.sleep(RETRY_DELAY * (attempt + 1))
@@ -179,7 +181,7 @@ class TCGProvider:
         self,
         output_path: Path | None = None,
         configs: list[TcgPlayerConfig] | None = None,
-        on_progress: Optional[ProgressCallback] = None,
+        on_progress: ProgressCallback | None = None,
         flush_threshold: int = 50_000,
     ):
         self.output_path = output_path or (constants.CACHE_PATH / "tcg_skus.parquet")
@@ -344,7 +346,7 @@ class TCGProvider:
             await asyncio.gather(
                 *[
                     fetch_client_pages(config, client_offsets)
-                    for config, client_offsets in zip(self.configs, offsets_per_client)
+                    for config, client_offsets in zip(self.configs, offsets_per_client, strict=False)
                 ]
             )
 
@@ -417,7 +419,7 @@ class TCGProvider:
     def create_background_task(
         cls,
         output_path: Path | None = None,
-        on_progress: Optional[ProgressCallback] = None,
+        on_progress: ProgressCallback | None = None,
     ) -> asyncio.Task[pl.LazyFrame]:
         """
         Start TCGPlayer fetch as background task.
