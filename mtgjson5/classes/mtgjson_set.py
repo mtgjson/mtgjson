@@ -13,93 +13,92 @@ from .json_object import JsonObject
 
 
 class MtgjsonSetObject(JsonObject):
-    """
-    MTGJSON Singular Set Object
-    """
+	"""
+	MTGJSON Singular Set Object
+	"""
 
-    base_set_size: int
-    block: str
-    booster: dict[str, Any] | None
-    cards: list[MtgjsonCardObject]
-    cardsphere_set_id: int | None
-    code: str
-    code_v3: str
-    decks: list[MtgjsonDeckObject]
-    is_foreign_only: bool
-    is_foil_only: bool
-    is_non_foil_only: bool
-    is_online_only: bool
-    is_partial_preview: bool
-    keyrune_code: str
-    languages: list[str]
-    mcm_id: int | None
-    mcm_id_extras: int | None
-    mcm_name: str | None
-    mtgo_code: str
-    name: str
-    parent_code: str
-    release_date: str
-    tcgplayer_group_id: int | None
-    sealed_product: list[MtgjsonSealedProductObject]
-    tokens: list[MtgjsonCardObject]
-    token_set_code: str | None
-    total_set_size: int
-    translations: MtgjsonTranslationsObject
-    type: str
+	base_set_size: int
+	block: str
+	booster: dict[str, Any] | None
+	cards: list[MtgjsonCardObject]
+	cardsphere_set_id: int | None
+	code: str
+	code_v3: str
+	decks: list[MtgjsonDeckObject]
+	is_foreign_only: bool
+	is_foil_only: bool
+	is_non_foil_only: bool
+	is_online_only: bool
+	is_partial_preview: bool
+	keyrune_code: str
+	languages: list[str]
+	mcm_id: int | None
+	mcm_id_extras: int | None
+	mcm_name: str | None
+	mtgo_code: str
+	name: str
+	parent_code: str
+	release_date: str
+	tcgplayer_group_id: int | None
+	sealed_product: list[MtgjsonSealedProductObject]
+	tokens: list[MtgjsonCardObject]
+	token_set_code: str | None
+	total_set_size: int
+	translations: MtgjsonTranslationsObject
+	type: str
 
-    extra_tokens: list[dict[str, Any]]
-    search_uri: str
+	extra_tokens: list[dict[str, Any]]
+	search_uri: str
 
-    __allow_if_falsey = {
-        "cards",
-        "tokens",
-        "is_foil_only",
-        "is_online_only",
-        "base_set_size",
-        "total_set_size",
-    }
+	__allow_if_falsey = {
+		"cards",
+		"tokens",
+		"is_foil_only",
+		"is_online_only",
+		"base_set_size",
+		"total_set_size",
+	}
 
-    def __init__(self) -> None:
-        """
-        Initializer to ensure arrays are pre-loaded
-        """
-        self.extra_tokens = []
-        self.cards = []
-        self.tokens = []
+	def __init__(self) -> None:
+		"""
+		Initializer to ensure arrays are pre-loaded
+		"""
+		self.extra_tokens = []
+		self.cards = []
+		self.tokens = []
 
-    def __str__(self) -> str:
-        """
-        MTGJSON Set as a string for debugging purposes
-        :return MTGJSON Set as a string
-        """
-        return str(vars(self))
+	def __str__(self) -> str:
+		"""
+		MTGJSON Set as a string for debugging purposes
+		:return MTGJSON Set as a string
+		"""
+		return str(vars(self))
 
-    def build_keys_to_skip(self) -> set[str]:
-        """
-        Build this object's instance of what keys to skip under certain circumstances
-        :return What keys to skip over
-        """
-        excluded_keys: set[str] = {
-            "added_scryfall_tokens",
-            "search_uri",
-            "extra_tokens",
-        }
+	def build_keys_to_skip(self) -> set[str]:
+		"""
+		Build this object's instance of what keys to skip under certain circumstances
+		:return What keys to skip over
+		"""
+		excluded_keys: set[str] = {
+			"added_scryfall_tokens",
+			"search_uri",
+			"extra_tokens",
+		}
 
-        for key, value in self.__dict__.items():
-            if not value:
-                if key not in self.__allow_if_falsey:
-                    excluded_keys.add(key)
+		for key, value in self.__dict__.items():
+			if not value and key not in self.__allow_if_falsey:
+				excluded_keys.add(key)
 
-        return excluded_keys
+		return excluded_keys
 
-    def get_windows_safe_set_code(self) -> str:
-        """
-        In the Windows OS, there are certain file names that are not allowed.
-        In case we have a set with such a name, we will add a _ to the end to allow its existence
-        on Windows.
-        :return: Set name an appended underscore, if necessary
-        """
-        if self.code in constants.BAD_FILE_NAMES:
-            return self.code + "_"
+	def get_windows_safe_set_code(self) -> str:
+		"""
+		In the Windows OS, there are certain file names that are not allowed.
+		In case we have a set with such a name, we will add a _ to the end to allow its existence
+		on Windows.
+		:return: Set name an appended underscore, if necessary
+		"""
+		if self.code in constants.BAD_FILE_NAMES:
+			return self.code + "_"
 
-        return self.code
+		return self.code

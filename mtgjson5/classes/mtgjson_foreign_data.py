@@ -10,32 +10,32 @@ from .mtgjson_identifiers import MtgjsonIdentifiersObject
 
 
 class MtgjsonForeignDataObject(JsonObject):
-    """
-    MTGJSON Singular Card.ForeignData Object
-    """
+	"""
+	MTGJSON Singular Card.ForeignData Object
+	"""
 
-    language: str
-    multiverse_id: int | None  # Deprecated - Remove in 5.4.0
-    identifiers: MtgjsonIdentifiersObject
-    face_name: str | None
-    flavor_text: str | None
-    name: str | None
-    text: str | None
-    type: str | None
-    uuid: str
+	language: str
+	multiverse_id: int | None  # Deprecated - Remove in 5.4.0
+	identifiers: MtgjsonIdentifiersObject
+	face_name: str | None
+	flavor_text: str | None
+	name: str | None
+	text: str | None
+	type: str | None
+	uuid: str
 
-    def __init__(self) -> None:
-        self.multiverse_id = None
-        self.identifiers = MtgjsonIdentifiersObject()
-        self.face_name = None
-        self.flavor_text = None
-        self.name = None
-        self.text = None
-        self.type = None
+	def __init__(self) -> None:
+		self.multiverse_id = None
+		self.identifiers = MtgjsonIdentifiersObject()
+		self.face_name = None
+		self.flavor_text = None
+		self.name = None
+		self.text = None
+		self.type = None
 
-    def build_keys_to_skip(self) -> Iterable[str]:
-        return {"url", "number", "set_code"}
+	def build_keys_to_skip(self) -> Iterable[str]:
+		return {"url", "number", "set_code"}
 
-    def to_json(self) -> dict[str, Any]:
-        parent = super().to_json()
-        return {key: value for key, value in parent.items() if value is not None}
+	def to_json(self) -> dict[str, Any]:
+		parent = super().to_json()
+		return {key: value for key, value in parent.items() if value is not None}

@@ -13,9 +13,9 @@ from .tcgplayer import TCGProvider
 
 
 __all__ = [
-    "BulkDataProvider",
-    "CKProvider",
-    "EdhrecSaltProvider",
-    "SealedDataProvider",
-    "TCGProvider",
+	"BulkDataProvider",
+	"CKProvider",
+	"EdhrecSaltProvider",
+	"SealedDataProvider",
+	"TCGProvider",
 ]

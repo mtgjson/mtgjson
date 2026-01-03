@@ -13,9 +13,9 @@ from .github_sealed import GitHubSealedProvider
 
 
 __all__ = [
-    "GitHubBoostersProvider",
-    "GitHubCardSealedProductsProvider",
-    "GitHubDecksProvider",
-    "GitHubMTGSqliteProvider",
-    "GitHubSealedProvider",
+	"GitHubBoostersProvider",
+	"GitHubCardSealedProductsProvider",
+	"GitHubDecksProvider",
+	"GitHubMTGSqliteProvider",
+	"GitHubSealedProvider",
 ]
