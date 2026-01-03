@@ -1,4 +1,11 @@
-"""Shared utilities for output formats."""
+"""
+MTGJSON serialization utilities.
+
+Provides DataFrame-level cleaning and conversion to JSON-compatible formats.
+Consolidates serialization logic from across the codebase.
+"""
+
+from __future__ import annotations
 
 import json
 from collections.abc import Iterator
@@ -7,6 +14,10 @@ from typing import Any
 import orjson
 import polars as pl
 
+
+# =============================================================================
+# SQL Serialization
+# =============================================================================
 
 def serialize_complex_types(df: pl.DataFrame) -> pl.DataFrame:
     """Convert List and Struct columns to JSON strings for SQL export."""
@@ -48,27 +59,15 @@ def _to_json_batch(series: pl.Series) -> pl.Series:
     )
 
 
-def batched(iterable: Any, n: int) -> Iterator[list[Any]]:
-    """Yield batches of n items."""
-    batch: list[Any] = []
-    for item in iterable:
-        batch.append(item)
-        if len(batch) >= n:
-            yield batch
-            batch = []
-    if batch:
-        yield batch
-
-
 def escape_postgres(value: Any) -> str:
     """Escape value for PostgreSQL COPY format."""
     if value is None:
         return "\\N"
     if isinstance(value, bool):
         return "t" if value else "f"
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return str(value)
-    s = json.dumps(value) if isinstance(value, (list, dict)) else str(value)
+    s = json.dumps(value) if isinstance(value, list | dict) else str(value)
     return (
         s.replace("\\", "\\\\")
         .replace("\t", "\\t")
@@ -83,7 +82,20 @@ def escape_sqlite(value: Any) -> str:
         return "NULL"
     if isinstance(value, bool):
         return "1" if value else "0"
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return str(value)
-    s = json.dumps(value) if isinstance(value, (list, dict)) else str(value)
+    s = json.dumps(value) if isinstance(value, list | dict) else str(value)
     return "'" + s.replace("'", "''") + "'"
+
+
+def batched(iterable: Any, n: int) -> Iterator[list[Any]]:
+    """Yield batches of n items."""
+    batch: list[Any] = []
+    for item in iterable:
+        batch.append(item)
+        if len(batch) >= n:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+    return []
