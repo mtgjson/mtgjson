@@ -9,8 +9,14 @@ from typing import TYPE_CHECKING, Any, ClassVar, get_args, get_origin
 
 from pydantic import BaseModel
 
-from ._typing import TypedDictUtils, is_union_type
-from .constants import ALLOW_IF_FALSEY, EXCLUDE_FROM_OUTPUT, SORTED_LIST_FIELDS, TYPEDDICT_FIELD_ALIASES
+from mtgjson5.conventions import (
+    ALLOW_IF_FALSEY,
+    EXCLUDE_FROM_OUTPUT,
+    OMIT_EMPTY_LIST_FIELDS,
+    SORTED_LIST_FIELDS,
+    TYPEDDICT_FIELD_ALIASES,
+)
+from mtgjson5.mtgjson_models._typing import TypedDictUtils, is_union_type
 
 
 if TYPE_CHECKING:
@@ -59,6 +65,56 @@ class PolarsMixin:
             output_name = info.alias or name
             schema[output_name] = PolarsConverter.python_to_polars(info.annotation)
         return pl.Schema(schema)
+
+    @classmethod
+    def json_schema(
+        cls,
+        by_alias: bool = True,
+        ref_template: str = "#/$defs/{model}",
+        mode: str = "serialization",
+    ) -> dict[str, Any]:
+        """Generate JSON Schema for this model.
+        
+        Args:
+            by_alias: Use field aliases in schema (default True for MTGJSON output names)
+            ref_template: Template for $ref URIs
+            mode: 'serialization' (output) or 'validation' (input)
+        
+        Returns:
+            JSON Schema as dict
+        """
+        return cls.model_json_schema(
+            by_alias=by_alias,
+            ref_template=ref_template,
+            mode=mode,
+        )
+
+    @classmethod
+    def write_json_schema(
+        cls,
+        path: pathlib.Path,
+        by_alias: bool = True,
+        pretty: bool = True,
+    ) -> None:
+        """Write JSON Schema to file.
+        
+        Args:
+            path: Output path
+            by_alias: Use field aliases in schema
+            pretty: Pretty-print with indentation
+        """
+        schema = cls.json_schema(by_alias=by_alias)
+        
+        if orjson is not None:
+            opts = orjson.OPT_SORT_KEYS
+            if pretty:
+                opts |= orjson.OPT_INDENT_2
+            with path.open("wb") as f:
+                f.write(orjson.dumps(schema, option=opts))
+        else:
+            import json
+            with path.open("w", encoding="utf-8") as f:
+                json.dump(schema, f, indent=2 if pretty else None, sort_keys=True)
 
     # -------------------------------------------------------------------------
     # Instance -> Dict/DataFrame
@@ -119,6 +175,9 @@ class PolarsMixin:
                 elif value or field_name in cls._allow_if_falsey or not exclude_none:
                     result[key] = dict(sorted(value.items())) if sort_keys else value
             elif isinstance(value, list):
+                # Omit empty lists for fields in OMIT_EMPTY_LIST_FIELDS when exclude_none=True
+                if not value and exclude_none and key in OMIT_EMPTY_LIST_FIELDS:
+                    continue
                 if value and isinstance(value[0], BaseModel):
                     result[key] = [
                         cls._to_dict_recursive(v, use_alias, sort_keys, sort_lists, exclude_none)
@@ -131,16 +190,25 @@ class PolarsMixin:
                         sorted_list = sorted(sorted_list, key=lambda r: (r.get("date", ""), r.get("text", "")))
                     result[key] = sorted_list
                 else:
-                    result[key] = cls._sort_list(field_name, value) if sort_lists else list(value)
+                    result[key] = cls._sort_list(key, value) if sort_lists else list(value)
             else:
+                # Exclude False booleans when exclude_none is True
+                # MTGJSON convention: optional boolean flags only appear when True
+                # BUT required booleans (hasFoil, hasNonFoil, isFoil) must always be present
+                # Use `key` (the output alias) since ALLOW_IF_FALSEY uses aliases
+                if exclude_none and value is False and key not in cls._allow_if_falsey:
+                    continue
+                # Exclude empty strings when exclude_none is True (unless required)
+                if exclude_none and value == "" and key not in cls._allow_if_falsey:
+                    continue
                 result[key] = value
 
         return result
 
     @staticmethod
-    def _sort_list(field_name: str, value: list[Any]) -> list[Any]:
-        """Sort list if field is in SORTED_LIST_FIELDS."""
-        if field_name in SORTED_LIST_FIELDS and value:
+    def _sort_list(key: str, value: list[Any]) -> list[Any]:
+        """Sort list alphabetically for sortable fields."""
+        if key in SORTED_LIST_FIELDS and value:
             try:
                 return sorted(value)
             except TypeError:
@@ -287,6 +355,49 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
             raise ImportError("orjson required")
         with path.open("rb") as f:
             return cls.model_validate(orjson.loads(f.read()))
+
+    @classmethod
+    def write_all_schemas(cls, output_dir: pathlib.Path, pretty: bool = True) -> list[pathlib.Path]:
+        """Write JSON schemas for this file type and all nested models.
+        
+        Args:
+            output_dir: Directory to write schema files
+            pretty: Pretty-print with indentation
+            
+        Returns:
+            List of written schema file paths
+        """
+        output_dir.mkdir(parents=True, exist_ok=True)
+        written = []
+        
+        # Write main schema
+        schema = cls.json_schema(by_alias=True)
+        main_path = output_dir / f"{cls.__name__}.schema.json"
+        cls.write_json_schema(main_path, pretty=pretty)
+        written.append(main_path)
+        
+        # Extract and write $defs as separate files
+        defs = schema.get("$defs", {})
+        for name, definition in defs.items():
+            def_path = output_dir / f"{name}.schema.json"
+            standalone = {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "$id": f"https://mtgjson.com/schemas/{name}.schema.json",
+                **definition,
+            }
+            if orjson is not None:
+                opts = orjson.OPT_SORT_KEYS
+                if pretty:
+                    opts |= orjson.OPT_INDENT_2
+                with def_path.open("wb") as f:
+                    f.write(orjson.dumps(standalone, option=opts))
+            else:
+                import json
+                with def_path.open("w", encoding="utf-8") as f:
+                    json.dump(standalone, f, indent=2 if pretty else None, sort_keys=True)
+            written.append(def_path)
+        
+        return written
 
 
 class RecordFileBase(MtgjsonFileBase):
