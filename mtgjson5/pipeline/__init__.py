@@ -1,11 +1,27 @@
 """
 MTGJSON Pipeline Utilities.
 
-Schema validation and safe operations for the card transformation pipeline.
+Schema validation, safe operations, and vectorized expressions
+for the card transformation pipeline.
 """
 
 from __future__ import annotations
 
+from mtgjson5.pipeline.expressions import (
+	ascii_name_expr,
+	calculate_cmc_expr,
+	extract_colors_from_mana_expr,
+	extract_mana_symbols_expr,
+	filter_keywords_expr,
+	filter_keywords_join,
+	order_finishes_expr,
+)
+from mtgjson5.pipeline.safe_ops import (
+	require_columns,
+	safe_drop,
+	safe_rename,
+	safe_struct_field,
+)
 from mtgjson5.pipeline.validation import (
 	STAGE_POST_BASIC_FIELDS,
 	STAGE_POST_EXPLODE,
@@ -15,12 +31,6 @@ from mtgjson5.pipeline.validation import (
 	PipelineValidationError,
 	StageSchema,
 	validate_stage,
-)
-from mtgjson5.pipeline.safe_ops import (
-	require_columns,
-	safe_drop,
-	safe_rename,
-	safe_struct_field,
 )
 
 __all__ = [
@@ -38,4 +48,12 @@ __all__ = [
 	"safe_rename",
 	"safe_struct_field",
 	"require_columns",
+	# Vectorized expressions
+	"order_finishes_expr",
+	"extract_mana_symbols_expr",
+	"calculate_cmc_expr",
+	"extract_colors_from_mana_expr",
+	"filter_keywords_expr",
+	"filter_keywords_join",
+	"ascii_name_expr",
 ]
