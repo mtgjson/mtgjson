@@ -40,6 +40,14 @@ from mtgjson5.providers.v2.card_schemas import (
 from mtgjson5.providers.cardmarket.monolith import CardMarketProvider
 from mtgjson5.referral_builder import fixup_referral_map, write_referral_map
 from mtgjson5.utils import LOGGER, deep_sort_keys
+from mtgjson5.pipeline.safe_ops import safe_drop, safe_rename
+from mtgjson5.pipeline.validation import (
+    validate_stage,
+    STAGE_POST_EXPLODE,
+    STAGE_POST_BASIC_FIELDS,
+    STAGE_POST_IDENTIFIERS,
+    STAGE_PRE_SINK,
+)
 
 
 # Check if polars_hash has uuidhash namespace
@@ -245,7 +253,7 @@ def drop_raw_scryfall_columns(lf: pl.LazyFrame) -> pl.LazyFrame:
     rename_all_the_things. This is the centralized cleanup function that
     replaces scattered .drop() calls throughout the pipeline.
     """
-    return lf.drop(SCRYFALL_COLUMNS_TO_DROP, strict=False)
+    return safe_drop(lf, SCRYFALL_COLUMNS_TO_DROP)
 
 
 # 1.2: Add basic fields
@@ -619,8 +627,9 @@ def add_legalities_struct(
         struct_fields.append(expr)
 
     # Repack into struct and drop the unpacked columns
-    return lf.with_columns(pl.struct(struct_fields).alias("legalities")).drop(
-        formats, strict=False
+    return safe_drop(
+        lf.with_columns(pl.struct(struct_fields).alias("legalities")),
+        formats,
     )
 
 
@@ -1551,12 +1560,15 @@ def add_secret_lair_subsets(
         how="left",
     )
 
-    return lf.with_columns(
-        pl.when(pl.col("setCode") == "SLD")
-        .then(pl.col("_sld_subsets"))
-        .otherwise(pl.lit(None))
-        .alias("subsets")
-    ).drop("_sld_subsets", strict=False)
+    return safe_drop(
+        lf.with_columns(
+            pl.when(pl.col("setCode") == "SLD")
+            .then(pl.col("_sld_subsets"))
+            .otherwise(pl.lit(None))
+            .alias("subsets")
+        ),
+        ["_sld_subsets"],
+    )
 
 
 # 5.6:
@@ -1641,9 +1653,9 @@ def rename_all_the_things(
             rename_map[col] = to_camel_case(col)
         # Otherwise, keep as-is (already camelCase or single word)
 
-    # We use strict=False because some source cols might be missing in specific batches
+    # Some source cols might be missing in specific batches
     if rename_map:
-        lf = lf.rename(rename_map, strict=False)
+        lf = safe_rename(lf, rename_map)
 
     # For non-multiface cards, these should be null (omitted from output)
     multiface_layouts = [
@@ -1826,7 +1838,7 @@ def join_identifiers(
         pl.lit(None).cast(pl.String).alias("cardKingdomEtchedUrl"),
     )
 
-    return lf.drop("_side_for_join", strict=False)
+    return safe_drop(lf, ["_side_for_join"])
 
 
 def join_oracle_data(
@@ -1928,9 +1940,8 @@ def propagate_salt_to_tokens(lf: pl.LazyFrame) -> pl.LazyFrame:
         how="left",
     ).with_columns(
         pl.coalesce(pl.col("edhrecSaltiness"), pl.col("_parent_salt")).alias("edhrecSaltiness")
-    ).drop("_parent_salt", strict=False)
-
-    return lf
+    )
+    return safe_drop(lf, ["_parent_salt"])
 
 
 def join_set_number_data(
@@ -2021,12 +2032,15 @@ def join_name_data(
     )
 
     # Coalesce: prefer name lookup, fall back to faceName lookup
-    lf = lf.with_columns(
-        pl.coalesce(
-            pl.col("cardParts"),
-            pl.col("_face_cardParts"),
-        ).alias("cardParts")
-    ).drop("_face_cardParts", strict=False)
+    lf = safe_drop(
+        lf.with_columns(
+            pl.coalesce(
+                pl.col("cardParts"),
+                pl.col("_face_cardParts"),
+            ).alias("cardParts")
+        ),
+        ["_face_cardParts"],
+    )
 
     # Rename spellbook for compatibility with add_related_cards_struct
     if "spellbook" in lf.collect_schema().names():
@@ -2065,15 +2079,18 @@ def join_multiverse_bridge(
     )
 
     # Merge into identifiers struct
-    return lf.with_columns(
-        pl.col("identifiers")
-        .struct.with_fields(
-            pl.col("cardsphereId"),
-            pl.col("cardsphereFoilId"),
-            pl.col("deckboxId"),
-        )
-        .alias("identifiers")
-    ).drop(["cardsphereId", "cardsphereFoilId", "deckboxId"], strict=False)
+    return safe_drop(
+        lf.with_columns(
+            pl.col("identifiers")
+            .struct.with_fields(
+                pl.col("cardsphereId"),
+                pl.col("cardsphereFoilId"),
+                pl.col("deckboxId"),
+            )
+            .alias("identifiers")
+        ),
+        ["cardsphereId", "cardsphereFoilId", "deckboxId"],
+    )
 
 
 def join_signatures(
@@ -2106,7 +2123,7 @@ def join_signatures(
     )
 
     # Rename to avoid conflict with final signature column
-    return lf.rename({"signature": "_wc_signature"}).drop("_num_prefix", strict=False)
+    return safe_drop(lf.rename({"signature": "_wc_signature"}), ["_num_prefix"])
 
 
 def add_uuid_from_cache(lf: pl.LazyFrame) -> pl.LazyFrame:
@@ -2118,12 +2135,15 @@ def add_uuid_from_cache(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     This replaces the complex add_uuid_expr() function.
     """
-    return lf.with_columns(
-        pl.coalesce(
-            pl.col("cachedUuid"),
-            _uuid5_concat_expr(pl.col("scryfallId"), pl.col("side"), default="a"),
-        ).alias("uuid")
-    ).drop("cachedUuid", strict=False)
+    return safe_drop(
+        lf.with_columns(
+            pl.coalesce(
+                pl.col("cachedUuid"),
+                _uuid5_concat_expr(pl.col("scryfallId"), pl.col("side"), default="a"),
+            ).alias("uuid")
+        ),
+        ["cachedUuid"],
+    )
 
 
 def add_signatures_combined(
@@ -2187,7 +2207,7 @@ def add_signatures_combined(
     )
 
     # Cleanup temp columns
-    return lf.drop(["_num_digits", "_num_suffix", "_wc_signature"], strict=False)
+    return safe_drop(lf, ["_num_digits", "_num_suffix", "_wc_signature"])
 
 
 def add_related_cards_from_context(
@@ -2222,17 +2242,20 @@ def add_related_cards_from_context(
         pl.col("reverseRelated").list.len() > 0
     )
 
-    return lf.with_columns(
-        pl.when(is_token & (has_spellbook | has_reverse))
-        .then(
-            pl.struct(
-                spellbook=pl.col("_spellbook_list"),
-                reverseRelated=pl.col("reverseRelated"),
+    return safe_drop(
+        lf.with_columns(
+            pl.when(is_token & (has_spellbook | has_reverse))
+            .then(
+                pl.struct(
+                    spellbook=pl.col("_spellbook_list"),
+                    reverseRelated=pl.col("reverseRelated"),
+                )
             )
-        )
-        .otherwise(pl.lit(None))
-        .alias("relatedCards")
-    ).drop("_spellbook_list", strict=False)
+            .otherwise(pl.lit(None))
+            .alias("relatedCards")
+        ),
+        ["_spellbook_list"],
+    )
 
 
 # 6.8:
@@ -2282,7 +2305,9 @@ def build_cards(
     # Per-card transforms (streaming OK)
     lf = (
         lf.pipe(explode_card_faces)
+        .pipe(partial(validate_stage, stage=STAGE_POST_EXPLODE, strict=False))
         .pipe(add_basic_fields)
+        .pipe(partial(validate_stage, stage=STAGE_POST_BASIC_FIELDS, strict=False))
         .pipe(parse_type_line_expr)
         .pipe(add_mana_info)
         .pipe(add_card_attributes)
@@ -2309,6 +2334,7 @@ def build_cards(
     lf = (
         lf.pipe(add_identifiers_struct)
         .pipe(add_uuid_from_cache)
+        .pipe(partial(validate_stage, stage=STAGE_POST_IDENTIFIERS, strict=False))
         .pipe(add_identifiers_v4_uuid)
     )
 
@@ -2344,6 +2370,7 @@ def build_cards(
         lf.pipe(partial(join_signatures, ctx=ctx))  # Pre-computed DF
         .pipe(partial(add_signatures_combined, _ctx=ctx))  # Combines art series + WC
         .pipe(drop_raw_scryfall_columns)
+        .pipe(partial(validate_stage, stage=STAGE_PRE_SINK, strict=False))
     )
 
     ctx.final_cards_lf = lf
@@ -2795,7 +2822,7 @@ def build_sealed_products_df(
         hash_cols = [
             c for c in current_cols if c.startswith("_") and c.endswith("_hash")
         ]
-        result = result.drop(hash_cols, strict=False)
+        result = safe_drop(result, hash_cols)
     else:
         # Add empty purchaseUrls struct
         result = result.with_columns(pl.struct([]).alias("purchaseUrls"))
@@ -2990,7 +3017,7 @@ def build_set_metadata_df(
         if c in scryfall_only_fields or c.lower() in scryfall_only_fields
     ]
     if cols_to_drop:
-        set_meta = set_meta.drop(cols_to_drop, strict=False)
+        set_meta = safe_drop(set_meta, cols_to_drop)
 
     # Join with booster configs
     set_meta = set_meta.join(
