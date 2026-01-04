@@ -51,7 +51,7 @@ class AssemblyContext:
     @classmethod
     def from_pipeline(cls, ctx: PipelineContext) -> AssemblyContext:
         """Build AssemblyContext from PipelineContext."""
-        from mtgjson5.pipeline import build_sealed_products_df, build_set_metadata_df
+        from mtgjson5.pipeline import build_sealed_products_lf, build_set_metadata_df
 
         parquet_dir = constants.CACHE_PATH / "_parquet"
         tokens_dir = constants.CACHE_PATH / "_parquet_tokens"
@@ -71,7 +71,7 @@ class AssemblyContext:
 
         # Build sealed products
         LOGGER.info("Loading sealed products...")
-        sealed_df = build_sealed_products_df(ctx)
+        sealed_df = build_sealed_products_lf(ctx)
         if isinstance(sealed_df, pl.LazyFrame):
             sealed_df = sealed_df.collect()
 

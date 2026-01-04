@@ -16,8 +16,7 @@ import polars as pl
 import polars_hash as plh
 
 from mtgjson5 import constants
-from mtgjson5.context import PipelineContext
-from mtgjson5.conventions import (
+from mtgjson5.consts import (
     EXCLUDE_FROM_OUTPUT,
     OMIT_EMPTY_LIST_FIELDS,
     OPTIONAL_BOOL_FIELDS,
@@ -26,8 +25,15 @@ from mtgjson5.conventions import (
     REQUIRED_SET_BOOL_FIELDS,
     SORTED_LIST_FIELDS,
 )
+from mtgjson5.context import PipelineContext
 from mtgjson5.models.schema.scryfall import CardFace
 from mtgjson5.mtgjson_config import MtgjsonConfig
+from mtgjson5.mtgjson_models.schemas import (
+    ALL_CARD_FIELDS,
+    ATOMIC_EXCLUDE,
+    CARD_DECK_EXCLUDE,
+    TOKEN_EXCLUDE,
+)
 from mtgjson5.pipeline.expressions import (
     calculate_cmc_expr,
     extract_colors_from_mana_expr,
@@ -2951,7 +2957,7 @@ def _expand_card_list_v2(
     return result
 
 
-def build_decks_expanded(
+def build_expanded_decks_df(
     ctx: PipelineContext,
     set_codes: list[str] | str | None = None,
 ) -> pl.DataFrame:
@@ -3086,11 +3092,11 @@ def build_decks_expanded(
     return result
 
 
-def build_sealed_products_df(
+def build_sealed_products_lf(
     ctx: PipelineContext, _set_code: str | None = None
-) -> pl.DataFrame:
+) -> pl.LazyFrame:
     """
-    Build sealed products DataFrame with contents struct.
+    Build sealed products LazyFrame with contents struct.
 
     Joins github_sealed_products with github_sealed_contents
     and aggregates contents by type (card, sealed, other).
@@ -3100,7 +3106,7 @@ def build_sealed_products_df(
         set_code: Optional set code filter. If None, returns all sets.
 
     Returns:
-        DataFrame with columns: setCode, name, category, subtype, releaseDate,
+        LazyFrame with columns: setCode, name, category, subtype, releaseDate,
         identifiers (struct), contents (struct), purchaseUrls (struct), uuid
     """
     products_lf = ctx.sealed_products_df
@@ -3109,9 +3115,10 @@ def build_sealed_products_df(
         LOGGER.warning("GitHub sealed products data not loaded in cache")
         return pl.DataFrame()
 
-    # Convert to LazyFrames for processing (if DataFrame)
+    # Convert to LazyFrames for processing if needed
     if not isinstance(products_lf, pl.LazyFrame):
         products_lf = products_lf.lazy()
+
     if not isinstance(contents_lf, pl.LazyFrame):
         contents_lf = contents_lf.lazy()
 
@@ -3185,7 +3192,7 @@ def build_sealed_products_df(
     )
 
     # Build purchaseUrls from identifiers if present
-    # Similar to card purchaseUrls, create MTGJSON redirect URLs
+    # create MTGJSON redirect URLs
     base_url = "https://mtgjson.com/links/"
 
     # Build URL hash columns for each provider
@@ -3278,10 +3285,9 @@ def build_sealed_products_df(
     if has_card_count:
         select_cols.append("cardCount")
 
-    result = result.select(select_cols)
+    sealed_products_lf = result.select(select_cols)
 
-    # Collect result to return DataFrame (result is always a LazyFrame at this point)
-    return result.collect()
+    return sealed_products_lf
 
 
 def build_set_metadata_df(

@@ -169,11 +169,11 @@ def dispatcher(args: argparse.Namespace) -> None:
             if decks_only:
                 # Only build deck files, skip set JSON assembly
                 from mtgjson5.pipeline import (
-                    build_decks_expanded,
+                    build_expanded_decks_df,
                     write_deck_json_files,
                 )
 
-                decks_df = build_decks_expanded(ctx)
+                decks_df = build_expanded_decks_df(ctx)
                 write_deck_json_files(decks_df, pretty_print=args.pretty)
             elif args.use_models:
                 # Model-based assembly with Pydantic types

@@ -29,7 +29,7 @@ Usage:
 
 import re
 from enum import Enum
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 import polars as pl
 from pydantic import BaseModel, TypeAdapter
