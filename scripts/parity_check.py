@@ -1,183 +1,123 @@
-"""
-Parity check: compare generated MTGJSON files against CDN source.
-Reports differences in a digestible format.
-
-Compares:
-- AllPrintings.json
-- AtomicCards.json
-- SetList.json
-- Sample deck files
-"""
-
-import gzip
 import json
-import time
-import urllib.request
-from pathlib import Path
+import pathlib
+import random
+import subprocess
+import sys
 
 
-# Local paths
-GENERATED_DIR = Path(
-	r"C:\Users\rprat\projects\mtgjson-projects\mtgjson-v5.worktrees\master\mtgjson_build_5.2.1+WindowsDev"
-)
-REPORT_PATH = Path(r"C:\Users\rprat\projects\mtgjson-projects\mtgjson-v5.worktrees\master\scripts\comparison_report.md")
-CACHE_DIR = Path(r"C:\Users\rprat\projects\mtgjson-projects\mtgjson-v5.worktrees\master\scripts\.cdn_cache")
-
-# MTGJSON CDN base URL
-MTGJSON_CDN = "https://mtgjson.com/api/v5"
-
-# Cache freshness threshold (hours)
-CACHE_MAX_AGE_HOURS = 48
-
-# Sample decks to compare
-SAMPLE_DECKS = [
-	"CounterBlitzFinalFantasyX_FIC",
-	"LifeBoost_8ED",
-	"CoreSet2021Redemption_M21",
-	"LilLegends_SLD",
-	"Lightning1_JMP",
-]
+CACHE_DIR = pathlib.Path(__file__).parent / "mtgjson5" / "resources" / ".cache"
+BUILD_DIR = pathlib.Path(__file__).parent / "mtgjson_build_5.2.1+WindowsDev"
 
 
-def load_json(path: Path) -> dict:
-	with path.open("r", encoding="utf-8") as f:
+def load_official(set_code: str) -> dict:
+	path = CACHE_DIR / f"official_{set_code.upper()}.json"
+	if not path.exists():
+		CACHE_DIR.mkdir(parents=True, exist_ok=True)
+		cmd = ["curl", "-o", str(path), f"https://mtgjson.com/api/v5/{set_code.upper()}.json"]
+		subprocess.run(cmd, check=True)
+	with open(path, encoding="utf-8") as f:
 		return json.load(f)
 
 
-def is_cache_fresh(cache_path: Path) -> bool:
-	if not cache_path.exists():
-		return False
-	age_hours = (time.time() - cache_path.stat().st_mtime) / 3600
-	return age_hours < CACHE_MAX_AGE_HOURS
+def load_pipeline(set_code: str) -> dict:
+	path = BUILD_DIR / f"{set_code.upper()}.json"
+	if not path.exists():
+		cmd = f"python -m mtgjson5 --sets {set_code.upper()}"
+		subprocess.run(cmd, check=True)
+	with open(path, encoding="utf-8") as f:
+		return json.load(f)
 
 
-def fetch_json(url: str, cache_name: str) -> dict | None:
-	"""Fetch JSON from CDN with caching."""
-	CACHE_DIR.mkdir(parents=True, exist_ok=True)
-	cache_path = CACHE_DIR / f"{cache_name}.json"
+def select_card_object(set_code: str, num_cards: int = 1) -> dict:
+	official = load_official(set_code)
+	pipeline = load_pipeline(set_code)
 
-	if is_cache_fresh(cache_path):
-		print(f"  [cache] {cache_name}")
-		return load_json(cache_path)
+	uuids = random.sample([c["uuid"] for c in official["data"]["cards"]], num_cards)
+	sample_uuids = set(uuids)
 
-	try:
-		fetch_url = url if url.endswith(".gz") else url + ".gz"
-		print(f"  [fetch] {fetch_url}")
-		req = urllib.request.Request(fetch_url, headers={"User-Agent": "MTGJSON-Compare/1.0"})
-
-		with urllib.request.urlopen(req, timeout=120) as response:
-			data = response.read()
-			if fetch_url.endswith(".gz"):
-				data = gzip.decompress(data)
-			result = json.loads(data.decode("utf-8"))
-			cache_path.write_text(json.dumps(result), encoding="utf-8")
-			return result
-	except Exception as e:
-		print(f"  [error] {e}")
-		return None
+	for uuid in sample_uuids:
+		off_card = next((c for c in official["data"]["cards"] if c["uuid"] == uuid), None)
+		pip_card = next((c for c in pipeline["data"]["cards"] if c["uuid"] == uuid), None)
+		if off_card and pip_card:
+			json.dumps(off_card, indent=2)
+			json.dumps(pip_card, indent=2)
 
 
-def diff_values(source, generated, path="") -> list[str]:
-	"""Recursively diff two values, return list of differences."""
-	diffs = []
+def compare_json(set_code: str) -> None:
+	official = load_official(set_code)
+	pipeline = load_pipeline(set_code)
 
-	if type(source) is not type(generated):
-		diffs.append(f"{path}: type mismatch (source={type(source).__name__}, gen={type(generated).__name__})")
-		return diffs
+	# Match by name+number+side since UUIDs may differ
+	def card_key(c):
+		return (c["name"], c.get("number", ""), c.get("side", ""))
 
-	if isinstance(source, dict):
-		src_keys = set(source.keys())
-		gen_keys = set(generated.keys())
+	official_cards = {card_key(c): c for c in official["data"]["cards"]}
+	pipeline_cards = {card_key(c): c for c in pipeline["data"]["cards"]}
 
-		for key in src_keys - gen_keys:
-			diffs.append(f"{path}.{key}: missing from generated")
-		for key in gen_keys - src_keys:
-			diffs.append(f"{path}.{key}: extra in generated")
+	print(f"Official cards: {len(official_cards)}")
+	print(f"Pipeline cards: {len(pipeline_cards)}")
 
-		for key in src_keys & gen_keys:
-			diffs.extend(diff_values(source[key], generated[key], f"{path}.{key}"))
+	# Check for missing/extra cards
+	missing = set(official_cards.keys()) - set(pipeline_cards.keys())
+	extra = set(pipeline_cards.keys()) - set(official_cards.keys())
+	print(f"Missing from pipeline: {len(missing)}")
+	print(f"Extra in pipeline: {len(extra)}")
 
-	elif isinstance(source, list):
-		if len(source) != len(generated):
-			diffs.append(f"{path}: length mismatch (source={len(source)}, gen={len(generated)})")
-		else:
-			for i, (s, g) in enumerate(zip(source, generated, strict=False)):
-				diffs.extend(diff_values(s, g, f"{path}[{i}]"))
+	if missing:
+		print("\nMissing cards:")
+		for uuid in list(missing)[:5]:
+			print(f"  - {official_cards[uuid]['name']}")
 
-	elif source != generated:
-		src_str = str(source)[:50]
-		gen_str = str(generated)[:50]
-		diffs.append(f"{path}: value mismatch (source={src_str!r}, gen={gen_str!r})")
+	# Compare fields on matching cards
+	common_uuids = set(official_cards.keys()) & set(pipeline_cards.keys())
+	field_diffs = {}
+	sample_diffs = {}
 
-	return diffs
+	for uuid in common_uuids:
+		off = official_cards[uuid]
+		pip = pipeline_cards[uuid]
+
+		all_keys = set(off.keys()) | set(pip.keys())
+		for key in all_keys:
+			off_val = off.get(key)
+			pip_val = pip.get(key)
+
+			# Normalize for comparison
+			if off_val == [] and pip_val is None:
+				continue
+			if off_val is None and pip_val == []:
+				continue
+			if off_val == "" and pip_val is None:
+				continue
+			if pip_val == "" and off_val is None:
+				continue
+
+			if off_val != pip_val:
+				if key not in field_diffs:
+					field_diffs[key] = 0
+					sample_diffs[key] = (off["name"], off_val, pip_val)
+				field_diffs[key] += 1
+
+	print(f"\n=== Field differences across {len(common_uuids)} cards ===")
+	for key, count in sorted(field_diffs.items(), key=lambda x: -x[1])[:25]:
+		name, off_val, pip_val = sample_diffs[key]
+		off_str = str(off_val)[:60] if off_val else "None"
+		pip_str = str(pip_val)[:60] if pip_val else "None"
+		print(f"\n{key}: {count} diffs")
+		print(f"  Example ({name}):")
+		print(f"    Official: {off_str}")
+		print(f"    Pipeline: {pip_str}")
 
 
-def compare_file(name: str, source: dict | None, generated: dict | None) -> list[str]:
-	"""Compare source vs generated, return report lines."""
-	lines = [f"## {name}\n"]
-
-	if source is None:
-		lines.append("**ERROR:** Could not fetch from CDN\n")
-		return lines
-
-	if generated is None:
-		lines.append("**ERROR:** Local file not found\n")
-		return lines
-
-	diffs = diff_values(source, generated)
-
-	if not diffs:
-		lines.append("**PASS:** Identical\n")
-	else:
-		lines.append(f"**FAIL:** {len(diffs)} differences\n")
-		for diff in diffs[:100]:
-			lines.append(f"- `{diff}`")
-		if len(diffs) > 100:
-			lines.append(f"- ... and {len(diffs) - 100} more")
-		lines.append("")
-
-	return lines
-
-
-def main():
-	report = ["# MTGJSON Parity Report\n"]
-	report.append(f"**Source:** MTGJSON CDN (cache: {CACHE_MAX_AGE_HOURS}h)")
-	report.append(f"**Generated:** {GENERATED_DIR.name}\n")
-
-	# AllPrintings
-	print("AllPrintings.json")
-	source = fetch_json(f"{MTGJSON_CDN}/AllPrintings.json", "AllPrintings")
-	gen_path = GENERATED_DIR / "AllPrintings.json"
-	generated = load_json(gen_path) if gen_path.exists() else None
-	report.extend(compare_file("AllPrintings.json", source, generated))
-
-	# AtomicCards
-	print("AtomicCards.json")
-	source = fetch_json(f"{MTGJSON_CDN}/AtomicCards.json", "AtomicCards")
-	gen_path = GENERATED_DIR / "AtomicCards.json"
-	generated = load_json(gen_path) if gen_path.exists() else None
-	report.extend(compare_file("AtomicCards.json", source, generated))
-
-	# SetList
-	print("SetList.json")
-	source = fetch_json(f"{MTGJSON_CDN}/SetList.json", "SetList")
-	gen_path = GENERATED_DIR / "SetList.json"
-	generated = load_json(gen_path) if gen_path.exists() else None
-	report.extend(compare_file("SetList.json", source, generated))
-
-	# Decks
-	for deck_name in SAMPLE_DECKS:
-		print(f"Deck: {deck_name}")
-		source = fetch_json(f"{MTGJSON_CDN}/decks/{deck_name}.json", f"deck_{deck_name}")
-		gen_path = GENERATED_DIR / "decks" / f"{deck_name}.json"
-		generated = load_json(gen_path) if gen_path.exists() else None
-		report.extend(compare_file(f"decks/{deck_name}.json", source, generated))
-
-	# Write report
-	report_text = "\n".join(report)
-	REPORT_PATH.write_text(report_text, encoding="utf-8")
-	print(f"\nReport: {REPORT_PATH}")
+def fast_compare(set_code: str, num: int = 1):
+	set_code = set_code.upper()
+	for _ in range(num):
+		select_card_object(set_code, 1)
 
 
 if __name__ == "__main__":
-	main()
+	if len(sys.argv) != 2:
+		print("Usage: python parity_check.py <SET_CODE>")
+		sys.exit(1)
+	set_code = sys.argv[1]
+	fast_compare(set_code, 1)
