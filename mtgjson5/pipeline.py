@@ -1240,7 +1240,7 @@ def add_identifiers_v4_uuid(lf: pl.LazyFrame) -> pl.LazyFrame:
 
 
 # 4.0: add otherFaceIds
-def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext | None = None) -> pl.LazyFrame:
+def add_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Link multi-face cards via Scryfall ID.
 
@@ -1248,7 +1248,7 @@ def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext | None = None) -> 
     grouping by scryfallId gathers all sibling UUIDs.
 
     Meld cards are special: they have different scryfallIds for each component,
-    so we use meld_triplets to link them by name instead.
+    so we use cardParts (from name_lf) to link them by name instead.
     """
     # Group by Scryfall ID to get list of MTGJSON UUIDs for this object
     face_links = (
@@ -1268,62 +1268,10 @@ def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext | None = None) -> 
     )
 
     # Handle meld cards separately - they have different scryfallIds per component
-    if ctx and ctx.meld_triplets:
-        # Build a lookup from card name to all other names in the triplet
-        meld_name_to_others: dict[str, list[str]] = {}
-        for triplet in ctx.meld_triplets.values():
-            if len(triplet) == 3:
-                for name in triplet:
-                    meld_name_to_others[name] = [n for n in triplet if n != name]
+    # Use lazy self-join via cardParts (already joined from name_lf) - no collect needed
+    from mtgjson5.pipeline.lookups import add_meld_other_face_ids
 
-        # Create a mapping from name to list of UUIDs in the same triplet
-        meld_names = list(meld_name_to_others.keys())
-        if meld_names:
-            # Collect name->uuid mapping for meld cards
-            meld_uuid_df = (
-                lf.filter(pl.col("name").is_in(meld_names))
-                .select(["name", "uuid", "setCode"])
-                .collect()
-            )
-
-            # Build setCode+name -> uuid lookup
-            set_name_to_uuid: dict[tuple[str, str], str] = {}
-            for row in meld_uuid_df.iter_rows(named=True):
-                set_name_to_uuid[(row["setCode"], row["name"])] = row["uuid"]
-
-            # Build name -> other UUIDs in same set
-            meld_other_uuids: list[dict] = []
-            for row in meld_uuid_df.iter_rows(named=True):
-                set_code = row["setCode"]
-                card_name = row["name"]
-                other_names = meld_name_to_others.get(card_name, [])
-                other_uuids = []
-                for other_name in other_names:
-                    other_uuid = set_name_to_uuid.get((set_code, other_name))
-                    if other_uuid:
-                        other_uuids.append(other_uuid)
-                meld_other_uuids.append({
-                    "setCode": set_code,
-                    "name": card_name,
-                    "_meld_other_uuids": other_uuids,
-                })
-
-            if meld_other_uuids:
-                meld_df = pl.DataFrame(meld_other_uuids)
-                lf = (
-                    lf.join(
-                        meld_df.lazy(),
-                        on=["setCode", "name"],
-                        how="left",
-                    )
-                    .with_columns(
-                        pl.when(pl.col("_meld_other_uuids").is_not_null())
-                        .then(pl.col("_meld_other_uuids"))
-                        .otherwise(pl.col("otherFaceIds"))
-                        .alias("otherFaceIds")
-                    )
-                    .drop("_meld_other_uuids")
-                )
+    lf = add_meld_other_face_ids(lf)
 
     return lf
 
@@ -2907,7 +2855,7 @@ def build_cards(
     lf = lf.pipe(partial(join_gatherer_data, ctx=ctx))
 
     lf = (
-        lf.pipe(partial(add_other_face_ids, ctx=ctx))  # FULL SCAN: groups by scryfallId + meld handling
+        lf.pipe(add_other_face_ids)  # groups by scryfallId + meld via cardParts
         .pipe(add_variations)  # FULL SCAN: groups by set+name
         .pipe(partial(add_leadership_skills_expr, ctx=ctx))
         .pipe(add_reverse_related)

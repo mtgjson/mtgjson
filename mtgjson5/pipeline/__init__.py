@@ -16,6 +16,9 @@ from mtgjson5.pipeline.expressions import (
 	filter_keywords_join,
 	order_finishes_expr,
 )
+from mtgjson5.pipeline.lookups import (
+	add_meld_other_face_ids,
+)
 from mtgjson5.pipeline.safe_ops import (
 	require_columns,
 	safe_drop,
@@ -56,4 +59,6 @@ __all__ = [
 	"filter_keywords_expr",
 	"filter_keywords_join",
 	"ascii_name_expr",
+	# Lookups
+	"add_meld_other_face_ids",
 ]
