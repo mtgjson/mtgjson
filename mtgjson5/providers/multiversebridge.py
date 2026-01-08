@@ -72,9 +72,10 @@ class MultiverseBridgeProvider(AbstractProvider):
         Cache a copy of the Rosetta Stone from MB and give it back when needed
         :return Rosetta Stone of Card IDs
         """
-        if not self.rosetta_stone_cards:
-            self.parse_rosetta_stone_cards(self.download(self.ROSETTA_STONE_CARDS_URL))
-        return self.rosetta_stone_cards
+        return {}
+        # if not self.rosetta_stone_cards:
+        #     self.parse_rosetta_stone_cards(self.download(self.ROSETTA_STONE_CARDS_URL))
+        # return self.rosetta_stone_cards
 
     def get_rosetta_stone_sets(self) -> Dict[str, int]:
         """
