@@ -2163,6 +2163,10 @@ def sink_cards(ctx: PipelineContext) -> None:
         LOGGER.warning("default_card_languages not available, filtering to English only")
         lf = lf.filter(pl.col("language") == "English")
 
+    # Compute variations AFTER language filtering so variation UUIDs only reference
+    # cards that exist in the final output (not filtered-out language versions)
+    lf = add_variations(lf)
+
     # Split into cards and tokens, apply final renames
     cards_lf, tokens_lf = filter_out_tokens(lf)
     clf = rename_all_the_things(cards_lf, output_type="card_set")
@@ -2870,7 +2874,8 @@ def build_cards(
 
     lf = (
         lf.pipe(add_other_face_ids)
-        .pipe(add_variations)
+        # NOTE: add_variations moved to sink_cards() AFTER language filtering
+        # to avoid including UUIDs of non-English cards that get filtered out
         .pipe(partial(add_leadership_skills_expr, ctx=ctx))
         .pipe(add_reverse_related)
         .pipe(propagate_salt_to_tokens)
