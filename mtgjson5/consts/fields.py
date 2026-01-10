@@ -192,6 +192,7 @@ ALLOW_IF_FALSEY: Final[frozenset[str]] = frozenset({
 	"hasFoil",
 	"hasNonFoil",
 	"isFoil",
+	"isEtched",
 })
 """Fields always included even when falsey."""
 
