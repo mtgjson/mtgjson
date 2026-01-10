@@ -96,8 +96,11 @@ def dispatcher(args: argparse.Namespace) -> None:
         generate_compiled_prices_output,
         generate_output_file_hashes,
     )
-    from mtgjson5.model_pipeline import assemble_from_cache, assemble_with_models
-    from mtgjson5.pipeline import assemble_json_outputs, build_cards
+    from mtgjson5.pipeline.bridge import (
+        assemble_json_outputs,
+        assemble_with_models,
+    )
+    from mtgjson5.pipeline.core import build_cards
     from mtgjson5.price_builder import PriceBuilder
     from mtgjson5.providers import GitHubMTGSqliteProvider, ScryfallProvider
 
@@ -114,11 +117,6 @@ def dispatcher(args: argparse.Namespace) -> None:
     # Check if only specific outputs or formats requested
     outputs_requested = {o.lower() for o in (args.outputs or [])}
     export_formats = {f.lower() for f in (args.export or [])} if args.export else None
-
-    # Enable bulk data for Scryfall searches when --bulk-files is set
-    # This allows legacy mode to use bulk NDJSON files instead of API calls
-    if args.bulk_files:
-        MtgjsonConfig().use_bulk_for_searches = True
 
     # Load global cache only when using Polars pipeline
     # Pass set_codes to filter aggregation computations to only requested sets
@@ -143,15 +141,6 @@ def dispatcher(args: argparse.Namespace) -> None:
         args.sets = sorted(sets_to_build)
 
     decks_only = outputs_requested == {"decks"}
-
-    # Fast path: assemble directly from cached parquet (skip pipeline)
-    if args.from_cache:
-        LOGGER.info("Fast path: assembling from cached parquet/metadata...")
-        set_codes_filter = list(sets_to_build) if sets_to_build else None
-        results = assemble_from_cache(set_codes=set_codes_filter, streaming=True)
-        LOGGER.info(f"Fast path assembly results: {results}")
-        # Skip the rest of the build flow
-        return
 
     # Create context for Polars pipeline (needed for builds and/or exports)
     ctx = None
@@ -195,7 +184,7 @@ def dispatcher(args: argparse.Namespace) -> None:
             if ctx is None:
                 raise ValueError("PipelineContext not initialized")
 
-            from mtgjson5.outputs import OutputWriter
+            from mtgjson5.build.writer import OutputWriter
 
             OutputWriter.from_args(ctx).write_all()
         else:

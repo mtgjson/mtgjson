@@ -70,8 +70,8 @@ class PipelineContext:
     oracle_data_lf: pl.LazyFrame | None = None
     set_number_lf: pl.LazyFrame | None = None
     name_lf: pl.LazyFrame | None = None
-    multiverse_bridge_lf: pl.LazyFrame | None = None
     signatures_lf: pl.LazyFrame | None = None
+    face_flavor_names_df: pl.DataFrame | None = None
 
     sealed_cards_lf: pl.LazyFrame | None = None
     sealed_products_lf: pl.LazyFrame | None = None
@@ -89,10 +89,12 @@ class PipelineContext:
     cardmarket_to_uuid_df: pl.DataFrame | None = None
     uuid_to_oracle_df: pl.DataFrame | None = None
 
+    # Default card languages mapping (from default_cards bulk file)
+    # Maps scryfallId + language to determine which language version is "primary"
+    default_card_languages: pl.LazyFrame | None = None
+
     meld_triplets: dict = field(default_factory=dict)
     manual_overrides: dict = field(default_factory=dict)
-    multiverse_bridge_cards: dict = field(default_factory=dict)
-    multiverse_bridge_sets: dict = field(default_factory=dict)
     gatherer_map: dict = field(default_factory=dict)
 
     standard_legal_sets: set[str] = field(default_factory=set)
@@ -227,11 +229,11 @@ class PipelineContext:
             mtgo_to_uuid_df=GLOBAL_CACHE.mtgo_to_uuid_df,
             cardmarket_to_uuid_df=GLOBAL_CACHE.cardmarket_to_uuid_df,
             uuid_to_oracle_df=GLOBAL_CACHE.uuid_to_oracle_df,
+            # Default card languages (for foreign-only set filtering)
+            default_card_languages=GLOBAL_CACHE.default_card_languages,
             # Dict lookups
             meld_triplets=GLOBAL_CACHE.meld_triplets or {},
             manual_overrides=GLOBAL_CACHE.manual_overrides or {},
-            multiverse_bridge_cards=GLOBAL_CACHE.multiverse_bridge_cards or {},
-            multiverse_bridge_sets=GLOBAL_CACHE.multiverse_bridge_sets or {},
             gatherer_map=GLOBAL_CACHE.gatherer_map or {},
             # Sets
             standard_legal_sets=GLOBAL_CACHE.standard_legal_sets or set(),
@@ -255,8 +257,8 @@ class PipelineContext:
         self._build_oracle_data_lookup()
         self._build_set_number_lookup()
         self._build_name_lookup()
-        self._build_multiverse_bridge_lookup()
         self._build_signatures_lookup()
+        self._load_face_flavor_names()
 
         return self
 
@@ -674,46 +676,6 @@ class PipelineContext:
         self.name_lf = result.lazy()
         LOGGER.info(f"  name_lf: {result.height:,} rows x {len(result.columns)} cols")
 
-    def _build_multiverse_bridge_lookup(self) -> None:
-        """
-        Build MultiverseBridge lookup (by scryfallId).
-        """
-        if not self.multiverse_bridge_cards:
-            LOGGER.info("  multiverse_bridge: No data to consolidate")
-            return
-
-        records = []
-        for scryfall_id, entries in self.multiverse_bridge_cards.items():
-            cs_id = None
-            cs_foil_id = None
-            deckbox_id = None
-
-            for entry in entries:
-                if entry.get("is_foil"):
-                    cs_foil_id = (
-                        str(entry.get("cs_id", "")) if entry.get("cs_id") else None
-                    )
-                else:
-                    cs_id = str(entry.get("cs_id", "")) if entry.get("cs_id") else None
-                # deckbox_id is the same for foil/non-foil
-                if entry.get("deckbox_id") and not deckbox_id:
-                    deckbox_id = str(entry["deckbox_id"])
-
-            records.append(
-                {
-                    "scryfallId": scryfall_id,
-                    "cardsphereId": cs_id,
-                    "cardsphereFoilId": cs_foil_id,
-                    "deckboxId": deckbox_id,
-                }
-            )
-
-        result = pl.DataFrame(records)
-        self.multiverse_bridge_lf = result.lazy()
-        LOGGER.info(
-            f"  multiverse_bridge_lf: {result.height:,} rows x {len(result.columns)} cols"
-        )
-
     def _build_signatures_lookup(self) -> None:
         """
         Build signatures lookup (by setCode + numberPrefix).
@@ -749,4 +711,45 @@ class PipelineContext:
         self.signatures_lf = result.lazy()
         LOGGER.info(
             f"  signatures_lf: {result.height:,} rows x {len(result.columns)} cols"
+        )
+
+    def _load_face_flavor_names(self) -> None:
+        """
+        Load face flavor names from resource JSON.
+
+        Converts the JSON format (scryfallId_side keys) to a DataFrame
+        with columns: scryfallId, side, _faceFlavorName, _flavorNameOverride
+        """
+        if self.resource_path is None:
+            LOGGER.info("  face_flavor_names: No resource_path set")
+            return
+
+        flavor_path = self.resource_path / "face_flavor_names.json"
+        if not flavor_path.exists():
+            LOGGER.info("  face_flavor_names: No file found")
+            return
+
+        with flavor_path.open(encoding="utf-8") as f:
+            flavor_data = json.load(f)
+
+        records = []
+        for key, data in flavor_data.items():
+            # Key format: "scryfallId_side" (e.g., "64b5818e-..._a")
+            if "_" not in key:
+                continue
+            scryfall_id, side = key.rsplit("_", 1)
+            records.append({
+                "scryfallId": scryfall_id,
+                "side": side,
+                "_faceFlavorName": data.get("faceFlavorName"),
+                "_flavorNameOverride": data.get("flavorName"),
+            })
+
+        if not records:
+            LOGGER.info("  face_flavor_names: No data found")
+            return
+
+        self.face_flavor_names_df = pl.DataFrame(records)
+        LOGGER.info(
+            f"  face_flavor_names_df: {self.face_flavor_names_df.height:,} rows"
         )
