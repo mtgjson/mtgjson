@@ -419,29 +419,60 @@ class PipelineContext:
             else:
                 cards = cards_raw
 
-            # Build English card lookup for UUID generation
-            # foreignData UUID uses ENGLISH card's scryfallId, not the foreign card's
+            # Build default language card lookup for UUID generation
+            # foreignData UUID uses the DEFAULT language card's scryfallId
+            # For most sets this is English, for foreign-only sets (4BB, BCHR)
+            # it's the primary printed language (Spanish, Japanese, etc.)
             # Note: Scryfall doesn't have a 'side' field - we use "a" as default
-            # since the UUID formula uses side = "a" for single-faced cards
-            english_lookup = (
-                cards.filter(pl.col("lang") == "en")
-                .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
-                .select([
-                    "setCode",
-                    pl.col("collectorNumber").alias("number"),
-                    pl.col("id").alias("_english_scryfall_id"),
-                    # Default to "a" since Scryfall doesn't expose side directly
-                    pl.lit("a").alias("_english_side"),
-                ])
-            )
+            if self.default_card_languages is not None:
+                default_lang_df = self.default_card_languages
+                if isinstance(default_lang_df, pl.LazyFrame):
+                    default_lang_df = default_lang_df.collect()
 
-            # Filter to non-English and aggregate
+                # Join cards to default_card_languages to get only default versions
+                default_lang_lookup = (
+                    cards.with_columns([
+                        pl.col("set").str.to_uppercase().alias("setCode"),
+                        # Map lang to MTGJSON language format for joining
+                        pl.col("lang")
+                        .replace_strict(LANGUAGE_MAP, default=pl.col("lang"))
+                        .alias("_lang_full"),
+                    ])
+                    .join(
+                        default_lang_df,
+                        left_on=["id", "_lang_full"],
+                        right_on=["scryfallId", "language"],
+                        how="semi",  # Keep only default language versions
+                    )
+                    .select([
+                        "setCode",
+                        pl.col("collectorNumber").alias("number"),
+                        pl.col("id").alias("_default_scryfall_id"),
+                        pl.lit("a").alias("_default_side"),
+                    ])
+                )
+            else:
+                # Fallback: use English lookup if default_card_languages not available
+                default_lang_lookup = (
+                    cards.filter(pl.col("lang") == "en")
+                    .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
+                    .select([
+                        "setCode",
+                        pl.col("collectorNumber").alias("number"),
+                        pl.col("id").alias("_default_scryfall_id"),
+                        pl.lit("a").alias("_default_side"),
+                    ])
+                )
+
+            # Filter to non-English cards and aggregate
+            # foreignData contains all non-English language versions
+            # For foreign-only sets (4BB, BCHR), this includes the primary language
             foreign_df = (
                 cards.filter(pl.col("lang") != "en")
                 .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
-                # Join with English cards to get English scryfallId for UUID
+                # Join with default language lookup to get scryfallId for UUID
                 .join(
-                    english_lookup,
+                    default_lang_lookup,
                     left_on=["setCode", "collectorNumber"],
                     right_on=["setCode", "number"],
                     how="left",
@@ -490,12 +521,12 @@ class PipelineContext:
                         )
                         .otherwise(pl.col("flavorText"))
                         .alias("_flavor_text"),
-                        # Generate UUID for foreign data: uuid5(english_scryfallId + side + "_" + language)
-                        # Formula: english_scryfall_id + side + "_" + full_language_name
+                        # Generate UUID for foreign data: uuid5(default_lang_scryfallId + side + "_" + language)
+                        # Formula: default_scryfall_id + side + "_" + full_language_name
                         pl.concat_str(
                             [
-                                pl.col("_english_scryfall_id"),
-                                pl.col("_english_side"),
+                                pl.col("_default_scryfall_id"),
+                                pl.col("_default_side"),
                                 pl.lit("_"),
                                 pl.col("lang")
                                 .replace_strict(

@@ -2552,14 +2552,137 @@ def join_set_number_data(
         how="left",
     )
 
-    # Fill nulls and handle language-specific logic
-    return lf.with_columns(
-        # foreignData only applies to English cards - non-English cards don't have foreign data
-        pl.when(pl.col("language") == "English")
-        .then(pl.col("foreignData").fill_null([]))
-        .otherwise(pl.lit([]))
-        .alias("foreignData"),
+    # foreignData only applies to the "default" language for each card
+    # For most cards this is English, but for foreign-only sets (BCHR, 4BB, etc.)
+    # it's the primary printed language (Japanese, Chinese, etc.)
+    if ctx.default_card_languages is not None:
+        # Join to get the default language for each card
+        lf = lf.join(
+            ctx.default_card_languages.select([
+                pl.col("scryfallId"),
+                pl.col("language").alias("_default_language"),
+            ]),
+            on="scryfallId",
+            how="left",
+        )
+        # foreignData applies when card language matches default language
+        lf = lf.with_columns(
+            pl.when(pl.col("language") == pl.col("_default_language"))
+            .then(pl.col("foreignData").fill_null([]))
+            .otherwise(pl.lit([]))
+            .alias("foreignData"),
+        ).drop("_default_language")
+    else:
+        # Fallback to English-only if default_card_languages not available
+        lf = lf.with_columns(
+            pl.when(pl.col("language") == "English")
+            .then(pl.col("foreignData").fill_null([]))
+            .otherwise(pl.lit([]))
+            .alias("foreignData"),
+        )
+
+    return lf
+
+
+def deduplicate_foreigndata_for_faces(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Deduplicate foreignData for multi-face cards (flip, split, transform).
+
+    After explode_card_faces, flip/split cards share the same scryfallId across
+    faces but each face gets the same foreignData array from the set_number join.
+    Without deduplication, the explode-reaggregate cycle would combine entries
+    from all faces into one array, creating duplicates.
+
+    This function uses 'side' as part of the key to keep each face's foreignData
+    separate during the explode-reaggregate process.
+    """
+    # Explode, re-aggregate with side as key to prevent face merging
+    # Use fill_null to handle None sides (normal cards) in join
+    fd_deduped = (
+        lf.select(["scryfallId", "setCode", "number", "side", "foreignData"])
+        .with_columns(pl.col("side").fill_null("").alias("_side_key"))
+        .explode("foreignData")
+        .group_by(["scryfallId", "setCode", "number", "_side_key"])
+        .agg(
+            pl.col("foreignData")
+            .filter(pl.col("foreignData").is_not_null())
+            .alias("_foreignData_deduped")
+        )
     )
+
+    lf = lf.with_columns(pl.col("side").fill_null("").alias("_side_key"))
+    lf = lf.join(fd_deduped, on=["scryfallId", "setCode", "number", "_side_key"], how="left")
+    return lf.with_columns(
+        pl.coalesce(pl.col("_foreignData_deduped"), pl.lit([])).alias("foreignData")
+    ).drop(["_foreignData_deduped", "_side_key"])
+
+
+def fix_foreigndata_uuids_for_side(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Regenerate foreignData UUIDs to include the card's side.
+
+    The foreignData UUID formula is: uuid5(scryfallId + side + "_" + language)
+
+    Initially, foreignData is generated in context.py before face explosion,
+    so all entries use side="a". After explode_card_faces, multi-face cards
+    have different sides (a, b, c, etc.) and need their foreignData UUIDs
+    regenerated to match the legacy behavior.
+
+    This function should be called AFTER deduplicate_foreigndata_for_faces.
+    """
+    # Explode foreignData to update each entry's UUID
+    fd_exploded = (
+        lf.select(["scryfallId", "setCode", "number", "side", "foreignData"])
+        .with_columns(pl.col("side").fill_null("a").alias("_side_for_uuid"))
+        .explode("foreignData")
+        .filter(pl.col("foreignData").is_not_null())
+        # Extract language from the foreignData struct
+        .with_columns(
+            pl.col("foreignData").struct.field("language").alias("_fd_language")
+        )
+        # Build uuid source: scryfallId + side + "_" + language
+        .with_columns(
+            pl.concat_str([
+                pl.col("scryfallId"),
+                pl.col("_side_for_uuid"),
+                pl.lit("_"),
+                pl.col("_fd_language"),
+            ]).alias("_uuid_source")
+        )
+        # Generate new UUID using existing helper function
+        .with_columns(
+            _uuid5_expr("_uuid_source").alias("_new_uuid")
+        )
+        # Rebuild the foreignData struct with the new UUID
+        .with_columns(
+            pl.struct([
+                pl.col("foreignData").struct.field("faceName"),
+                pl.col("foreignData").struct.field("flavorText"),
+                pl.col("foreignData").struct.field("identifiers"),
+                pl.col("foreignData").struct.field("language"),
+                pl.col("foreignData").struct.field("multiverseId"),
+                pl.col("foreignData").struct.field("name"),
+                pl.col("foreignData").struct.field("text"),
+                pl.col("foreignData").struct.field("type"),
+                pl.col("_new_uuid").alias("uuid"),
+            ]).alias("foreignData")
+        )
+        .drop(["_fd_language", "_uuid_source", "_new_uuid", "_side_for_uuid"])
+    )
+
+    # Re-aggregate by card
+    fd_fixed = (
+        fd_exploded
+        .with_columns(pl.col("side").fill_null("").alias("_side_key"))
+        .group_by(["scryfallId", "setCode", "number", "_side_key"])
+        .agg(pl.col("foreignData").alias("_foreignData_fixed"))
+    )
+
+    lf = lf.with_columns(pl.col("side").fill_null("").alias("_side_key"))
+    lf = lf.join(fd_fixed, on=["scryfallId", "setCode", "number", "_side_key"], how="left")
+    return lf.with_columns(
+        pl.coalesce(pl.col("_foreignData_fixed"), pl.lit([])).alias("foreignData")
+    ).drop(["_foreignData_fixed", "_side_key"])
 
 
 def join_name_data(
@@ -2934,7 +3057,7 @@ def build_cards(
         .pipe(add_card_attributes)
         .pipe(filter_keywords_for_face)
         .pipe(add_booster_types)
-        .drop(["contentWarning", "handModifier", "lifeModifier", "gameChanger", "_in_booster", "_meld_face_name"], strict=False)
+        .drop(["contentWarning", "handModifier", "lifeModifier", "gameChanger", "_in_booster", "_meld_face_name", "isStarter"], strict=False)
         .pipe(partial(add_legalities_struct, ctx=ctx))
         .pipe(partial(add_availability_struct, ctx=ctx))
     )
@@ -2943,6 +3066,8 @@ def build_cards(
         lf.pipe(partial(join_identifiers, ctx=ctx))
         .pipe(partial(join_oracle_data, ctx=ctx))
         .pipe(partial(join_set_number_data, ctx=ctx))
+        .pipe(deduplicate_foreigndata_for_faces)  # Prevent duplicates for flip/split cards
+        .pipe(fix_foreigndata_uuids_for_side)  # Regenerate UUIDs with correct side
         .pipe(partial(join_name_data, ctx=ctx))
         .pipe(partial(join_cardmarket_ids, ctx=ctx))
     )
@@ -2970,8 +3095,6 @@ def build_cards(
 
     lf = (
         lf.pipe(add_other_face_ids)
-        # NOTE: add_variations moved to sink_cards() AFTER language filtering
-        # to avoid including UUIDs of non-English cards that get filtered out
         .pipe(partial(add_leadership_skills_expr, ctx=ctx))
         .pipe(add_reverse_related)
         .pipe(propagate_salt_to_tokens)
@@ -3571,11 +3694,6 @@ def build_set_metadata_df(
     set_records = set_meta_df.to_dicts()
     for record in set_records:
         set_name = record.get("name", "")
-        set_code = record.get("code", "")
-
-        # Keep booster as JSON string - will be parsed in build/assemble.py
-        # Parsing here causes Polars to create a union struct schema with all
-        # possible keys from all sets when we create pl.DataFrame(set_records)
 
         # MCM data (lookup by lowercased set name)
         mcm_data = mcm_set_map.get(set_name.lower(), {})
