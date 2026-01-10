@@ -602,6 +602,27 @@ def drop_raw_scryfall_columns(lf: pl.LazyFrame) -> pl.LazyFrame:
     return lf.drop(_SCRYFALL_COLUMNS_TO_DROP, strict=False)
 
 
+# 1.1.1: Format planeswalker ability text
+def format_planeswalker_text(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Wrap planeswalker loyalty ability costs in square brackets.
+
+    Transforms: "+1: Draw a card" -> "[+1]: Draw a card"
+    Transforms: "−3: Target creature..." -> "[−3]: Target creature..."
+
+    This matches MTGJSON's historical format for planeswalker cards.
+    The regex matches ability costs at the start of lines.
+    """
+    # Pattern matches: +N, −N (unicode minus), or 0 followed by : at line start
+    # Note: \u2212 is the Unicode minus sign used by Scryfall
+    # Captures the full cost (e.g., +1, −3, +X, 0) and wraps in brackets
+    return lf.with_columns(
+        pl.col("text")
+        .str.replace_all(r"(?m)^([+\u2212−]?[\dX]+):", r"[$1]:")
+        .alias("text")
+    )
+
+
 # 1.2: Add basic fields
 def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFrame:
     """
@@ -2827,6 +2848,7 @@ def build_cards(
         .pipe(partial(update_meld_names, ctx=ctx))
         .pipe(detect_aftermath_layout)
         .pipe(add_basic_fields)
+        .pipe(format_planeswalker_text)  # Wrap loyalty costs in brackets: +1: -> [+1]:
         .drop([
             "lang", "frame", "fullArt", "textless", "oversized", "promo", "reprint",
             "storySpotlight", "reserved", "digital", "cmc", "typeLine", "oracleText",
