@@ -623,6 +623,30 @@ def format_planeswalker_text(lf: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+# 1.1.2: Add originalReleaseDate for promo cards
+def add_original_release_date(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Set originalReleaseDate for cards with release dates different from their set.
+
+    Per MTGJSON spec, this field is for promotional cards printed outside
+    of a cycle window (e.g., Secret Lair drops, FNM promos). It captures
+    when THIS specific card printing was released, not when the card was
+    first printed.
+
+    Only set when card's releasedAt differs from set's setReleasedAt.
+    """
+    return lf.with_columns(
+        pl.when(
+            pl.col("releasedAt").is_not_null()
+            & pl.col("setReleasedAt").is_not_null()
+            & (pl.col("releasedAt") != pl.col("setReleasedAt"))
+        )
+        .then(pl.col("releasedAt"))
+        .otherwise(pl.lit(None).cast(pl.String))
+        .alias("originalReleaseDate")
+    )
+
+
 # 1.2: Add basic fields
 def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFrame:
     """
@@ -2287,8 +2311,9 @@ def join_oracle_data(
     - edhrecSaltiness: Float64
     - edhrecRank: Int64
     - printings: List[String]
-    - originalReleaseDate: String
-    - firstPrinting: String (set code of first printing)
+
+    Note: originalReleaseDate is computed separately in add_original_release_date()
+    based on card-specific vs set release dates (for promos).
     """
     if ctx.oracle_data_lf is None:
         return lf.with_columns(
@@ -2296,8 +2321,6 @@ def join_oracle_data(
             pl.lit(None).cast(pl.Float64).alias("edhrecSaltiness"),
             pl.lit(None).cast(pl.Int64).alias("edhrecRank"),
             pl.lit([]).cast(pl.List(pl.String)).alias("printings"),
-            pl.lit(None).cast(pl.String).alias("originalReleaseDate"),
-            pl.lit(None).cast(pl.String).alias("firstPrinting"),
         )
 
     lf = lf.join(
@@ -2310,11 +2333,6 @@ def join_oracle_data(
     return lf.with_columns(
         pl.col("rulings").fill_null([]),
         pl.col("printings").fill_null([]).list.sort(),
-        # Only set originalReleaseDate for reprints
-        pl.when(pl.col("isReprint"))
-        .then(pl.col("originalReleaseDate"))
-        .otherwise(pl.lit(None).cast(pl.String))
-        .alias("originalReleaseDate"),
     )
 
 
@@ -2832,7 +2850,7 @@ def build_cards(
         LOGGER.info(f"Applied scryfall_id filter: {len(ctx.scryfall_id_filter):,} IDs")
 
     # explicitly select needed set columns for join to reduce memory usage
-    set_columns_needed = ["set", "setType", "releasedAt", "block", "foilOnly", "nonfoilOnly"]
+    set_columns_needed = ["set", "setType", "setReleasedAt", "block", "foilOnly", "nonfoilOnly"]
 
     # Select only those columns before joining
     lf = base_lf.with_columns(pl.col("set").str.to_uppercase()).join(
@@ -2849,10 +2867,11 @@ def build_cards(
         .pipe(detect_aftermath_layout)
         .pipe(add_basic_fields)
         .pipe(format_planeswalker_text)  # Wrap loyalty costs in brackets: +1: -> [+1]:
+        .pipe(add_original_release_date)  # Set for promos with card-specific release dates
         .drop([
             "lang", "frame", "fullArt", "textless", "oversized", "promo", "reprint",
             "storySpotlight", "reserved", "digital", "cmc", "typeLine", "oracleText",
-            "printedTypeLine"
+            "printedTypeLine", "setReleasedAt"  # setReleasedAt only needed for originalReleaseDate computation
         ], strict=False)
         .pipe(partial(join_face_flavor_names, ctx=ctx))
         .pipe(parse_type_line_expr)
@@ -3414,7 +3433,7 @@ def build_set_metadata_df(
     base_exprs = [
         pl.col("code").str.to_uppercase().alias("code"),
         pl.col("name"),
-        pl.col("releasedAt").alias("releaseDate"),
+        pl.col("setReleasedAt").alias("releaseDate"),
         pl.col("setType").alias("type"),
         pl.col("digital").alias("isOnlineOnly"),
         pl.col("foilOnly").alias("isFoilOnly"),

@@ -630,6 +630,10 @@ class GlobalCache:
             how="left",
         )
 
+        # Rename released_at to set_released_at to avoid collision with card's released_at during join
+        # (normalizes to setReleasedAt)
+        sets_df = sets_df.rename({"released_at": "set_released_at"})
+
         sets_df.write_parquet(cache_path)
         self.sets_df = sets_df.lazy()
 

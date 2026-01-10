@@ -384,53 +384,12 @@ class PipelineContext:
             )
 
             if printings.height > 0:
-                # Get set release dates
-                sets_df_raw = self.sets_df
-                if sets_df_raw is None:
-                    sets_df = pl.DataFrame()
-                elif isinstance(sets_df_raw, pl.LazyFrame):
-                    sets_df = sets_df_raw.collect()
-                else:
-                    sets_df = sets_df_raw
-
-                if sets_df.height > 0:
-                    # Build set_code -> release_date lookup
-                    set_dates = sets_df.select(
-                        [
-                            pl.col("code").str.to_uppercase().alias("setCode"),
-                            pl.col("releasedAt").alias("releaseDate"),
-                        ]
-                    )
-
-                    # Explode printings, join with dates, find min, re-aggregate
-                    printings_with_dates = (
-                        printings.explode("printings")
-                        .join(
-                            set_dates,
-                            left_on="printings",
-                            right_on="setCode",
-                            how="left",
-                        )
-                        .group_by("oracleId")
-                        .agg(
-                            [
-                                pl.col("printings").sort().alias("printings"),
-                                pl.col("releaseDate")
-                                .min()
-                                .alias("originalReleaseDate"),
-                            ]
-                        )
-                    )
-                    frames.append(("printings", printings_with_dates))
-                    LOGGER.info(
-                        f"  oracle_data: +printings ({printings_with_dates.height:,} rows)"
-                    )
-                else:
-                    # No set dates available, just use printings
-                    frames.append(("printings", printings))
-                    LOGGER.info(
-                        f"  oracle_data: +printings ({printings.height:,} rows, no dates)"
-                    )
+                # Note: originalReleaseDate is NOT computed here - it's set in the pipeline
+                # based on card-specific release dates for promos (Scryfall released_at != set released_at)
+                frames.append(("printings", printings))
+                LOGGER.info(
+                    f"  oracle_data: +printings ({printings.height:,} rows)"
+                )
 
         if not frames:
             LOGGER.info("  oracle_data: No data to consolidate")

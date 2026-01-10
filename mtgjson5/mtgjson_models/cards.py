@@ -305,7 +305,7 @@ class CardDeck(CardPrintingFull):
 	variations: list[str] | None = Field(default=None, exclude=True)
 	is_starter: bool | None = Field(default=None, alias="isStarter", exclude=True)
 	keywords: list[str] | None = Field(default=None, exclude=True)
-	original_release_date: str | None = Field(default=None, alias="originalReleaseDate", exclude=True)
+	original_release_date: str | None = Field(default=None, alias="originalReleaseDate")
 
 
 class CardToken(CardPrintingBase):
