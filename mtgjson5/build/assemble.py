@@ -67,11 +67,27 @@ class Assembler:
         return self.ctx.set_meta.get(code, {})
 
     def iter_set_codes(self) -> list[str]:
-        """Get list of all set codes with parquet data."""
-        return sorted(
+        """Get list of all set codes with parquet data (cards or tokens).
+
+        Excludes sets with type='token' (e.g., TONE, TC15) as these are
+        token-only sets that shouldn't appear in AllPrintings.
+        """
+        card_sets = {
             p.name.replace("setCode=", "")
             for p in self.ctx.parquet_dir.iterdir()
             if p.is_dir() and p.name.startswith("setCode=")
+        }
+        token_sets = {
+            p.name.replace("setCode=", "")
+            for p in self.ctx.tokens_dir.iterdir()
+            if p.is_dir() and p.name.startswith("setCode=")
+        }
+        all_sets = card_sets | token_sets
+
+        # Filter out sets with type='token' (these are token-only sets like TONE, TC15)
+        return sorted(
+            code for code in all_sets
+            if self.ctx.set_meta.get(code, {}).get("type") != "token"
         )
 
 

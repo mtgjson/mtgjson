@@ -22,7 +22,6 @@ from mtgjson5.providers import (
     GathererProvider,
     ManapoolPricesProvider,
     MtgWikiProviderSecretLair,
-    MultiverseBridgeProvider,
     ScryfallProvider,
     ScryfallProviderOrientationDetector,
     SealedDataProvider,
@@ -158,6 +157,11 @@ class GlobalCache:
         # UUID -> oracle_id mapping for joining rulings to cards
         self.uuid_to_oracle_df: pl.DataFrame | None = None
 
+        # Default card languages mapping (from default_cards bulk file)
+        # Used to determine which language version is "primary" for each card
+        # For most cards this is English, for foreign-only sets it's the printed language
+        self.default_card_languages: pl.LazyFrame | None = None
+
         # Final pipeline LazyFrame (pre-rename, all joins applied)
         # Set by build_cards() after all transforms, before rename_all_the_things
         self.final_cards_lf: pl.LazyFrame | None = None
@@ -169,8 +173,6 @@ class GlobalCache:
         self.world_championship_signatures: dict = {}
         self.manual_overrides: dict = {}
         self.gatherer_map: dict = {}
-        self.multiverse_bridge_cards: dict = {}
-        self.multiverse_bridge_sets: dict = {}
         self.standard_legal_sets: set[str] = set()
         self.unlimited_cards: set[str] = set()  # Cards that can have unlimited copies
         self._categoricals: DynamicCategoricals | None = None
@@ -179,7 +181,6 @@ class GlobalCache:
         self._cardkingdom: CKProvider | None = None
         self._cardmarket: CardMarketProvider | None = None
         self._gatherer: GathererProvider | None = None
-        self._multiverse: MultiverseBridgeProvider | None = None
         self._github: SealedDataProvider | None = None
         self._edhrec: EdhrecSaltProvider | None = None
         self._standard: WhatsInStandardProvider | None = None
@@ -238,6 +239,7 @@ class GlobalCache:
             "mtgo_to_uuid_df",
             "cardmarket_to_uuid_df",
             "uuid_to_oracle_df",
+            "default_card_languages",
             "final_cards_lf",
         )
         self._loaded = False
@@ -268,13 +270,13 @@ class GlobalCache:
         self._load_bulk_data()
         self._load_resources()
         self._load_sets_metadata()
+        self._fetch_missing_set_cards()
 
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = {
                 executor.submit(self._load_orientations): "orientations",
                 executor.submit(self._load_card_kingdom): "card_kingdom",
                 executor.submit(self._load_edhrec_salt): "edhrec",
-                executor.submit(self._load_multiverse_bridge): "multiverse_bridge",
                 executor.submit(self._load_gatherer): "gatherer",
                 executor.submit(self._load_whats_in_standard): "standard",
                 executor.submit(self._load_github_data): "github",
@@ -348,6 +350,7 @@ class GlobalCache:
             "mtgo_to_uuid_df": "mtgo_to_uuid.parquet",
             "cardmarket_to_uuid_df": "cardmarket_to_uuid.parquet",
             "uuid_to_oracle_df": "uuid_to_oracle.parquet",
+            "default_card_languages": "default_card_languages.parquet",
         }
 
         for attr, filename in dataframes_to_dump.items():
@@ -446,15 +449,18 @@ class GlobalCache:
     def _download_bulk_data(self, force_refresh: bool = False) -> None:
         """Download Scryfall bulk data if missing or stale."""
         cards_path = self.cache_path / "all_cards.ndjson"
+        default_cards_path = self.cache_path / "default_cards.ndjson"
         rulings_path = self.cache_path / "rulings.ndjson"
 
         needs_download = force_refresh
         if not cards_path.exists() or cards_path.stat().st_size == 0:
             needs_download = True
+        if not default_cards_path.exists() or default_cards_path.stat().st_size == 0:
+            needs_download = True
         if not rulings_path.exists() or rulings_path.stat().st_size == 0:
             needs_download = True
 
-        # Check age (24h max)
+        # Check age (72h max)
         if not needs_download and cards_path.exists():
             age_hours = (time.time() - cards_path.stat().st_mtime) / 3600
             if age_hours > 72:
@@ -464,7 +470,7 @@ class GlobalCache:
         if needs_download:
             LOGGER.info("Downloading bulk scryfall data...")
             self.bulkdata.download_bulk_files_sync(
-                self.cache_path, ["all_cards", "rulings"], force_refresh
+                self.cache_path, ["all_cards", "default_cards", "rulings"], force_refresh
             )
         else:
             LOGGER.info("Using cached bulk data")
@@ -519,6 +525,44 @@ class GlobalCache:
             self.cards_df = self.cards_df.with_columns(missing_cols)
 
         self.raw_rulings_df = pl.scan_ndjson(rulings_path, infer_schema_length=1000)
+
+        # Build default_card_languages from default_cards
+        # This file contains "English or the printed language if the card is only
+        # available in one language" - exactly what we need for filtering
+        self._build_default_card_languages()
+
+    def _build_default_card_languages(self) -> None:
+        """Build default card languages mapping from default_cards bulk file.
+
+        The default_cards file contains cards in English, or in their printed
+        language if the card is only available in one language (e.g., foreign-only sets).
+        This mapping is used during sink_cards to filter to the "primary" language
+        version of each card.
+        """
+        default_cards_path = self.cache_path / "default_cards.ndjson"
+        if not default_cards_path.exists():
+            LOGGER.warning("default_cards.ndjson not found, skipping language mapping")
+            return
+
+        LOGGER.info("Building default_card_languages mapping...")
+
+        # Scan and extract only the columns we need: id (scryfallId) and lang
+        default_lf = pl.scan_ndjson(default_cards_path, infer_schema_length=1000)
+
+        # Map Scryfall lang codes to MTGJSON language names
+        from mtgjson5.constants import LANGUAGE_MAP
+
+        self.default_card_languages = (
+            default_lf.select([
+                pl.col("id").alias("scryfallId"),
+                pl.col("lang")
+                .replace_strict(LANGUAGE_MAP, default=pl.col("lang"))
+                .alias("language"),
+            ])
+            .unique(["scryfallId", "language"])
+        )
+
+        LOGGER.info("Built default_card_languages mapping")
 
     def _load_resources(self) -> None:
         """Load local JSON resource files."""
@@ -589,6 +633,95 @@ class GlobalCache:
         sets_df.write_parquet(cache_path)
         self.sets_df = sets_df.lazy()
 
+    def _fetch_missing_set_cards(self) -> None:
+        """Fetch cards for sets in API but not in bulk data.
+
+        This handles preview sets like ECC and PW26 that have entries in the
+        Scryfall /sets API but aren't yet in the bulk download files.
+        """
+        if self.sets_df is None or self.cards_df is None:
+            return
+
+        import time
+
+        # Get sets from API
+        sets_collected = (
+            self.sets_df.collect()
+            if isinstance(self.sets_df, pl.LazyFrame)
+            else self.sets_df
+        )
+
+        # Get sets with cards in bulk
+        cards_collected = (
+            self.cards_df.collect()
+            if isinstance(self.cards_df, pl.LazyFrame)
+            else self.cards_df
+        )
+        bulk_sets = set(
+            cards_collected.select("set")
+            .unique()["set"]
+            .str.to_uppercase()
+            .to_list()
+        )
+
+        # Find sets missing from bulk (have card_count > 0 but not in bulk)
+        missing_sets = sets_collected.filter(
+            (pl.col("card_count") > 0) & (~pl.col("code").is_in(bulk_sets))
+        )
+
+        if missing_sets.height == 0:
+            LOGGER.info("No missing set cards to fetch")
+            return
+
+        LOGGER.info(f"Fetching cards for {missing_sets.height} sets not in bulk data...")
+
+        all_new_cards = []
+        for row in missing_sets.iter_rows(named=True):
+            set_code = row["code"].lower()
+            card_count = row.get("card_count", 0)
+            set_name = row.get("name", set_code)
+
+            LOGGER.info(f"  Fetching {set_code} ({set_name}): {card_count} cards...")
+
+            try:
+                # Use Scryfall search API
+                search_url = f"https://api.scryfall.com/cards/search?q=set:{set_code}&unique=prints"
+                cards = self.scryfall.download_all_pages_api(search_url)
+
+                if cards:
+                    all_new_cards.extend(cards)
+                    LOGGER.info(f"    Fetched {len(cards)} cards for {set_code}")
+
+                # Rate limiting - Scryfall asks for 50-100ms between requests
+                time.sleep(0.1)
+
+            except Exception as e:
+                LOGGER.warning(f"    Failed to fetch {set_code}: {e}")
+
+        if all_new_cards:
+            # Convert to DataFrame and append to cards_df
+            new_cards_df = pl.DataFrame(all_new_cards)
+            LOGGER.info(f"Adding {len(all_new_cards)} cards from {missing_sets.height} preview sets")
+
+            # Ensure cards_df is a DataFrame for concatenation
+            if isinstance(self.cards_df, pl.LazyFrame):
+                self.cards_df = self.cards_df.collect()
+
+            # Align schemas before concatenation
+            existing_cols = set(self.cards_df.columns)
+            new_cols = set(new_cards_df.columns)
+
+            # Add missing columns to new_cards_df
+            for col in existing_cols - new_cols:
+                new_cards_df = new_cards_df.with_columns(pl.lit(None).alias(col))
+
+            # Select only columns that exist in original
+            new_cards_df = new_cards_df.select(
+                [c for c in self.cards_df.columns if c in new_cards_df.columns]
+            )
+
+            self.cards_df = pl.concat([self.cards_df, new_cards_df], how="diagonal")
+
     def _load_card_kingdom(self) -> None:
         """Load Card Kingdom data with caching.
 
@@ -658,26 +791,6 @@ class GlobalCache:
         self.salt_df = self.edhrec.get_data_frame()
         if self.salt_df is not None and len(self.salt_df) > 0:
             self.salt_df.write_parquet(cache_path)
-
-    def _load_multiverse_bridge(self) -> None:
-        """Load MultiverseBridge Rosetta Stone data."""
-        cards_cache = self.cache_path / "multiverse_bridge_cards.json"
-        sets_cache = self.cache_path / "multiverse_bridge_sets.json"
-
-        if _cache_fresh(cards_cache) and _cache_fresh(sets_cache):
-            with cards_cache.open("rb") as f:
-                self.multiverse_bridge_cards = json.loads(f.read())
-            with sets_cache.open("rb") as f:
-                self.multiverse_bridge_sets = json.loads(f.read())
-            return
-
-        self.multiverse_bridge_cards = self.multiverse.get_rosetta_stone_cards()
-        self.multiverse_bridge_sets = self.multiverse.get_rosetta_stone_sets()
-
-        with cards_cache.open("w", encoding="utf-8") as f:
-            json.dump(self.multiverse_bridge_cards, f)
-        with sets_cache.open("w", encoding="utf-8") as f:
-            json.dump(self.multiverse_bridge_sets, f)
 
     def _load_gatherer(self) -> None:
         """Load Gatherer original text data."""
@@ -929,13 +1042,6 @@ class GlobalCache:
         if self._cardmarket is None:
             self._cardmarket = CardMarketProvider()
         return self._cardmarket
-
-    @property
-    def multiverse(self) -> MultiverseBridgeProvider:
-        """Get or create the MultiverseBridge provider instance."""
-        if self._multiverse is None:
-            self._multiverse = MultiverseBridgeProvider()
-        return self._multiverse
 
     @property
     def gatherer(self) -> GathererProvider:
