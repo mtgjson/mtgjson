@@ -1346,16 +1346,70 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     # Variations = group UUIDs minus self UUID
     # Use concat_list to wrap uuid in a list for set_difference (not implode which aggregates all rows)
+    # Note: No .list.sort() here - we sort by collector number at the end
     lf = lf.with_columns(
         pl.when(pl.col("_group_uuids").list.len() > 1)
         .then(
             pl.col("_group_uuids")
             .list.set_difference(pl.concat_list(pl.col("uuid")))
-            .list.sort()
         )
         .otherwise(pl.lit([]).cast(pl.List(pl.String)))
         .alias("variations")
     )
+
+    # Remove otherFaceIds from variations - double-faced cards share the same name but
+    # back faces should not be listed as variations (they're already in otherFaceIds)
+    lf = lf.with_columns(
+        pl.when(pl.col("otherFaceIds").is_not_null() & (pl.col("otherFaceIds").list.len() > 0))
+        .then(
+            pl.col("variations").list.set_difference(pl.col("otherFaceIds"))
+        )
+        .otherwise(pl.col("variations"))
+        .alias("variations")
+    )
+
+    # Sort variations by collector number (CDN order) instead of UUID
+    # Build a lookup of uuid -> (number_int, number_str) for sorting
+    uuid_to_number = (
+        lf.select([
+            "uuid",
+            # Extract collector number digits for sorting:
+            # - PLST-style (M3C-168): extract after dash -> 168
+            # - Regular prefixed (bk329): extract first digits -> 329
+            pl.coalesce(
+                pl.col("number").str.extract(r"-(\d+)", 1),  # After dash (PLST)
+                pl.col("number").str.extract(r"(\d+)", 1)    # First digits (regular)
+            )
+            .cast(pl.Int64)
+            .fill_null(999999)
+            .alias("_num_int"),
+            pl.col("number").alias("_num_str"),
+        ])
+    )
+
+    # Explode variations to individual rows, join with number, sort within groups, re-aggregate
+    variations_sorted = (
+        lf.select(["uuid", "variations"])
+        .explode("variations")
+        .filter(pl.col("variations").is_not_null())
+        .join(
+            uuid_to_number.rename({"uuid": "variations", "_num_int": "_var_num_int", "_num_str": "_var_num_str"}),
+            on="variations",
+            how="left",
+        )
+        .group_by("uuid")
+        .agg(
+            pl.col("variations")
+            .sort_by(["_var_num_int", "_var_num_str"])
+            .alias("_variations_sorted")
+        )
+    )
+
+    # Join back and replace variations with sorted version
+    lf = lf.join(variations_sorted, on="uuid", how="left")
+    lf = lf.with_columns(
+        pl.coalesce(pl.col("_variations_sorted"), pl.col("variations")).alias("variations")
+    ).drop("_variations_sorted")
 
     # Build the "printing key" that defines uniqueness within a set
     frame_effects_str = pl.col("frameEffects").list.sort().list.join(",").fill_null("")
@@ -2210,6 +2264,7 @@ def sink_cards(ctx: PipelineContext) -> None:
 
     # Compute variations AFTER language filtering so variation UUIDs only reference
     # cards that exist in the final output (not filtered-out language versions)
+    # Note: add_variations now handles otherFaceIds exclusion and collector number sorting
     lf = add_variations(lf)
 
     # Split into cards and tokens, apply final renames
