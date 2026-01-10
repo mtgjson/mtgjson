@@ -67,27 +67,49 @@ class Assembler:
         return self.ctx.set_meta.get(code, {})
 
     def iter_set_codes(self) -> list[str]:
-        """Get list of all set codes with parquet data (cards or tokens).
+        """Get list of all set codes to include in output.
 
-        Excludes sets with type='token' (e.g., TONE, TC15) as these are
-        token-only sets that shouldn't appear in AllPrintings.
+        Includes:
+        - Sets with card parquet data
+        - Sets with token parquet data (e.g., MSTX, L14, PR2, F18)
+        - Sets with only metadata (e.g., Q01, DD3, FWB, MB1 from additional_sets.json)
+
+        Excludes traditional token sets (type='token' AND code starts with 'T')
+        like TONE, TC15, T10E. These are product token inserts.
+
+        Keeps special token sets like L14 (League Tokens), SBRO (Substitute Cards),
+        WMOM (Japanese Promo Tokens), etc. that don't start with 'T'.
         """
+        # Sets with card parquet data
         card_sets = {
             p.name.replace("setCode=", "")
             for p in self.ctx.parquet_dir.iterdir()
             if p.is_dir() and p.name.startswith("setCode=")
         }
-        token_sets = {
-            p.name.replace("setCode=", "")
-            for p in self.ctx.tokens_dir.iterdir()
-            if p.is_dir() and p.name.startswith("setCode=")
-        }
-        all_sets = card_sets | token_sets
 
-        # Filter out sets with type='token' (these are token-only sets like TONE, TC15)
+        # Sets with token parquet data
+        token_sets: set[str] = set()
+        if self.ctx.tokens_dir.exists():
+            token_sets = {
+                p.name.replace("setCode=", "")
+                for p in self.ctx.tokens_dir.iterdir()
+                if p.is_dir() and p.name.startswith("setCode=")
+            }
+
+        # Sets with only metadata (from additional_sets.json or sealed products)
+        metadata_only_sets = set(self.ctx.set_meta.keys())
+
+        # Combine all sources
+        all_sets = card_sets | token_sets | metadata_only_sets
+
+        # Filter out traditional token sets (type='token' AND code starts with 'T')
+        # Keep special token sets like L14, SBRO, WMOM that don't start with 'T'
         return sorted(
             code for code in all_sets
-            if self.ctx.set_meta.get(code, {}).get("type") != "token"
+            if not (
+                self.ctx.set_meta.get(code, {}).get("type") == "token"
+                and code.startswith("T")
+            )
         )
 
 
