@@ -5,10 +5,10 @@ This module exports the second generation of data providers including
 CardKingdom, GitHub, EDHREC Salt, and BulkData providers.
 """
 
-from .bulk import BulkDataProvider
 from .cardkingdom import CKProvider
+from .github import SealedDataProvider
 from .salt import EdhrecSaltProvider
-from .sealed import SealedDataProvider
+from .scryfall import BulkDataProvider
 from .tcgplayer import TCGProvider
 
 

@@ -13,7 +13,7 @@ import aiohttp
 import polars as pl
 
 from mtgjson5.mtgjson_config import MtgjsonConfig
-from mtgjson5.providers.v2.sealed.models import (
+from mtgjson5.providers.v2.github.models import (
     BoosterModel,
     CardToProductsModel,
     PreconModel,
