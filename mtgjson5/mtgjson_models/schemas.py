@@ -102,66 +102,6 @@ ATOMIC_EXCLUDE: frozenset[str] = frozenset(_get_model_fields(CardSet) - _get_mod
 # Fields to EXCLUDE when creating deck cards from set cards
 CARD_DECK_EXCLUDE: frozenset[str] = frozenset(_get_model_fields(CardSet) - _get_model_fields(CardDeck))
 
-# Fields that are only on CardSet (not on base)
-CARD_SET_EXCLUDE: frozenset[str] = frozenset(
-	{
-		"artist",
-		"artistIds",
-		"availability",
-		"boosterTypes",
-		"borderColor",
-		"cardParts",
-		"duelDeck",
-		"finishes",
-		"flavorName",
-		"flavorText",
-		"foreignData",
-		"frameEffects",
-		"frameVersion",
-		"fullArt",
-		"hasAlternativeDeckLimit",
-		"hasFoil",
-		"hasNonFoil",
-		"isAlternative",
-		"isFullArt",
-		"isOnlineOnly",
-		"isOversized",
-		"isPromo",
-		"isRebalanced",
-		"isReprint",
-		"isStarter",
-		"isStorySpotlight",
-		"isTextless",
-		"isTimeshifted",
-		"language",
-		"mcmId",
-		"mcmMetaId",
-		"mtgArenaId",
-		"mtgoFoilId",
-		"mtgoId",
-		"multiverseId",
-		"number",
-		"originalPrintings",
-		"originalReleaseDate",
-		"originalText",
-		"originalType",
-		"otherFaceIds",
-		"promoTypes",
-		"purchaseUrls",
-		"rarity",
-		"rebalancedPrintings",
-		"securityStamp",
-		"setCode",
-		"signature",
-		"sourceProducts",
-		"tcgplayerEtchedProductId",
-		"tcgplayerProductId",
-		"uuid",
-		"variations",
-		"watermark",
-	}
-)
-
 # Fields to EXCLUDE when creating tokens from set cards
 TOKEN_EXCLUDE: frozenset[str] = frozenset(_get_model_fields(CardSet) - _get_model_fields(CardToken))
 
