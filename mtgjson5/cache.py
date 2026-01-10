@@ -45,13 +45,6 @@ def _format_size(
     return f"{rows:,} rows x {cols} cols"
 
 
-def _format_dict_size(d: dict | None) -> str:
-    """Format dict size for logging."""
-    if d is None:
-        return "None"
-    return f"{len(d):,} entries"
-
-
 def load_resource_json(filename: str) -> dict | list:
     """Load a JSON resource file and return raw data."""
     file_path = constants.RESOURCE_PATH / filename
@@ -629,10 +622,6 @@ class GlobalCache:
             right_on="parent_set_code",
             how="left",
         )
-
-        # Rename released_at to set_released_at to avoid collision with card's released_at during join
-        # (normalizes to setReleasedAt)
-        sets_df = sets_df.rename({"released_at": "set_released_at"})
 
         sets_df.write_parquet(cache_path)
         self.sets_df = sets_df.lazy()
