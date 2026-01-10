@@ -166,7 +166,9 @@ def dispatcher(args: argparse.Namespace) -> None:
                 write_deck_json_files(decks_df, pretty_print=args.pretty)
             elif args.use_models:
                 # Model-based assembly with Pydantic types
-                results = assemble_with_models(ctx, streaming=True)
+                # Pass outputs if specified (use original case from args.outputs)
+                outputs_set = set(args.outputs) if args.outputs else None
+                results = assemble_with_models(ctx, streaming=True, outputs=outputs_set)
                 LOGGER.info(f"Model assembly results: {results}")
             else:
                 assemble_json_outputs(

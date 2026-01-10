@@ -25,6 +25,7 @@ def assemble_with_models(
     ctx: PipelineContext,
     streaming: bool = True,
     set_codes: list[str] | None = None,
+    outputs: set[str] | None = None,
 ) -> dict[str, int]:
     """
     Assemble MTGJSON outputs using the model-based approach.
@@ -36,6 +37,8 @@ def assemble_with_models(
         ctx: PipelineContext with processed card data
         streaming: Use streaming writes for large files
         set_codes: Optional filter for specific set codes
+        outputs: Optional set of output types to build (e.g., {"AllPrintings"}).
+                If None or empty, builds all outputs.
 
     Returns:
         Dict mapping output file names to record counts
@@ -55,6 +58,7 @@ def assemble_with_models(
         set_codes=set_codes,
         streaming=streaming,
         include_decks=True,
+        outputs=outputs,
     )
 
     LOGGER.info(f"Model assembly complete: {sum(results.values())} total records")

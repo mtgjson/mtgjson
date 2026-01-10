@@ -183,6 +183,7 @@ class JsonOutputBuilder:
         set_codes: list[str] | None = None,
         streaming: bool = True,
         include_decks: bool = True,
+        outputs: set[str] | None = None,
     ) -> dict[str, int]:
         """Build all MTGJSON JSON output files.
 
@@ -191,6 +192,8 @@ class JsonOutputBuilder:
             set_codes: Optional filter for specific set codes
             streaming: Use streaming for large files like AllPrintings
             include_decks: Include individual deck files and DeckList.json
+            outputs: Optional set of output types to build (e.g., {"AllPrintings"}).
+                    If None or empty, builds all outputs.
 
         Returns:
             Dict mapping file names to record counts.
@@ -208,57 +211,75 @@ class JsonOutputBuilder:
 
         results: dict[str, int] = {}
 
+        # Helper to check if an output should be built
+        def should_build(name: str) -> bool:
+            return not outputs or name in outputs
+
         # Build AllPrintings
-        LOGGER.info("Building AllPrintings.json...")
-        all_printings = self.write_all_printings(
-            output_dir / "AllPrintings.json",
-            set_codes=valid_codes,
-            streaming=streaming,
-        )
-        results["AllPrintings"] = (
-            all_printings if isinstance(all_printings, int) else len(all_printings.data)
-        )
+        all_printings = None
+        if should_build("AllPrintings"):
+            LOGGER.info("Building AllPrintings.json...")
+            all_printings = self.write_all_printings(
+                output_dir / "AllPrintings.json",
+                set_codes=valid_codes,
+                streaming=streaming,
+            )
+            results["AllPrintings"] = (
+                all_printings if isinstance(all_printings, int) else len(all_printings.data)
+            )
 
         # Build AtomicCards
-        LOGGER.info("Building AtomicCards.json...")
-        atomic_cards = self.write_atomic_cards(output_dir / "AtomicCards.json")
-        results["AtomicCards"] = len(atomic_cards.data)
+        atomic_cards = None
+        if should_build("AtomicCards"):
+            LOGGER.info("Building AtomicCards.json...")
+            atomic_cards = self.write_atomic_cards(output_dir / "AtomicCards.json")
+            results["AtomicCards"] = len(atomic_cards.data)
 
         # Build SetList
-        LOGGER.info("Building SetList.json...")
-        set_list = self.write_set_list(output_dir / "SetList.json")
-        results["SetList"] = len(set_list.data)
+        if should_build("SetList"):
+            LOGGER.info("Building SetList.json...")
+            set_list = self.write_set_list(output_dir / "SetList.json")
+            results["SetList"] = len(set_list.data)
 
-        # Build format-specific files
-        LOGGER.info("Building format-specific files...")
-        if streaming:
-            all_printings = AllPrintingsFile.read(output_dir / "AllPrintings.json")
+        # Build format-specific files (require AllPrintings)
+        format_outputs = {"Legacy", "Modern", "Pioneer", "Standard", "Vintage"}
+        if outputs is None or (format_outputs & outputs):
+            LOGGER.info("Building format-specific files...")
+            if all_printings is None or (streaming and isinstance(all_printings, int)):
+                all_printings = AllPrintingsFile.read(output_dir / "AllPrintings.json")
 
-        if isinstance(all_printings, AllPrintingsFile):
-            for fmt in ["legacy", "modern", "pioneer", "standard", "vintage"]:
-                fmt_file = self.write_format_file(
-                    all_printings, fmt, output_dir / f"{fmt.title()}.json"
-                )
-                results[fmt.title()] = len(fmt_file.data)
+            if isinstance(all_printings, AllPrintingsFile):
+                for fmt in ["legacy", "modern", "pioneer", "standard", "vintage"]:
+                    if should_build(fmt.title()):
+                        fmt_file = self.write_format_file(
+                            all_printings, fmt, output_dir / f"{fmt.title()}.json"
+                        )
+                        results[fmt.title()] = len(fmt_file.data)
 
-        # Format atomic files
-        for fmt in ["legacy", "modern", "pauper", "pioneer", "standard", "vintage"]:
-            atomic_file = self.write_format_atomic(
-                atomic_cards, fmt, output_dir / f"{fmt.title()}Atomic.json"
-            )
-            results[f"{fmt.title()}Atomic"] = len(atomic_file.data)
+        # Format atomic files (require AtomicCards)
+        atomic_outputs = {"LegacyAtomic", "ModernAtomic", "PauperAtomic", "PioneerAtomic", "StandardAtomic", "VintageAtomic"}
+        if outputs is None or (atomic_outputs & outputs):
+            if atomic_cards is None:
+                atomic_cards = self.write_atomic_cards(output_dir / "AtomicCards.json")
+            for fmt in ["legacy", "modern", "pauper", "pioneer", "standard", "vintage"]:
+                if should_build(f"{fmt.title()}Atomic"):
+                    atomic_file = self.write_format_atomic(
+                        atomic_cards, fmt, output_dir / f"{fmt.title()}Atomic.json"
+                    )
+                    results[f"{fmt.title()}Atomic"] = len(atomic_file.data)
 
         # Build individual set files
-        LOGGER.info("Building individual set files...")
-        set_count = 0
-        for code, set_data in self.ctx.sets.iter_sets(set_codes=valid_codes):
-            single = IndividualSetFile.from_set_data(set_data, self.ctx.meta)
-            single.write(output_dir / f"{code}.json")
-            set_count += 1
-        results["sets"] = set_count
+        if outputs is None or not outputs:
+            LOGGER.info("Building individual set files...")
+            set_count = 0
+            for code, set_data in self.ctx.sets.iter_sets(set_codes=valid_codes):
+                single = IndividualSetFile.from_set_data(set_data, self.ctx.meta)
+                single.write(output_dir / f"{code}.json")
+                set_count += 1
+            results["sets"] = set_count
 
         # Build deck files
-        if include_decks:
+        if include_decks and (outputs is None or "Decks" in outputs or "DeckList" in outputs):
             LOGGER.info("Building deck files...")
             deck_count = self.write_decks(output_dir / "decks", set_codes=valid_codes)
             results["decks"] = deck_count
