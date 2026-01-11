@@ -237,8 +237,8 @@ class DeckAssembler:
             "releaseDate": deck_data.get("releaseDate"),
         }
 
-        if deck_data.get("sealedProductUuids"):
-            result["sealedProductUuids"] = deck_data["sealedProductUuids"]
+        # Always include sealedProductUuids (CDN has key with null when not set)
+        result["sealedProductUuids"] = deck_data.get("sealedProductUuids")
 
         for board in ["mainBoard", "sideBoard", "commander", "tokens"]:
             refs = deck_data.get(board, [])
@@ -437,8 +437,8 @@ class SetAssembler(Assembler):
                     }
                     if deck.get("releaseDate"):
                         minimal_deck["releaseDate"] = deck["releaseDate"]
-                    if deck.get("sealedProductUuids"):
-                        minimal_deck["sealedProductUuids"] = deck["sealedProductUuids"]
+                    # Always include sealedProductUuids (CDN has key with null when not set)
+                    minimal_deck["sealedProductUuids"] = deck.get("sealedProductUuids")
                     # sourceSetCodes
                     if deck.get("sourceSetCodes"):
                         minimal_deck["sourceSetCodes"] = deck["sourceSetCodes"]

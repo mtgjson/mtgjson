@@ -1615,6 +1615,7 @@ def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
     Compute reverseRelated for tokens from all_parts.
 
     For tokens, this lists the names of cards that create/reference this token.
+    Tokens without all_parts get an empty array (CDN behavior).
     """
     # Extract names from all_parts where name differs from card name
     # all_parts is List[Struct{name, ...}]
@@ -1623,6 +1624,7 @@ def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
         .list.eval(pl.element().struct.field("name"))
         .list.set_difference(pl.col("name").cast(pl.List(pl.String)))
         .list.sort()
+        .fill_null([])  # Tokens without all_parts get empty array
         .alias("reverseRelated")
     ).drop("_all_parts")
 
@@ -2726,6 +2728,8 @@ def fix_foreigndata_for_faces(
 
     # Join face lookup for non-primary faces if available
     if face_lookup is not None:
+        # Add a marker column to face_lookup to track successful joins
+        face_lookup = face_lookup.with_columns(pl.lit(True).alias("_has_face_data"))
         fd_processed = fd_processed.join(
             face_lookup,
             left_on=["setCode", "number", "_fd_lang", "_face_index"],
@@ -2733,13 +2737,18 @@ def fix_foreigndata_for_faces(
             how="left",
         )
         # Rebuild struct with corrected values for non-side-a, original for side-a
+        # Use face_lookup values (even NULL) when join matched, original otherwise
         fd_processed = fd_processed.with_columns(
             pl.struct([
-                pl.when(pl.col("_side") != "a")
+                pl.when((pl.col("_side") != "a") & pl.col("_has_face_data").fill_null(False))
+                .then(pl.col("_faceName"))
+                .when(pl.col("_side") != "a")
                 .then(pl.coalesce(pl.col("_faceName"), pl.col("foreignData").struct.field("faceName")))
                 .otherwise(pl.col("foreignData").struct.field("faceName"))
                 .alias("faceName"),
-                pl.when(pl.col("_side") != "a")
+                pl.when((pl.col("_side") != "a") & pl.col("_has_face_data").fill_null(False))
+                .then(pl.col("_flavorText"))
+                .when(pl.col("_side") != "a")
                 .then(pl.coalesce(pl.col("_flavorText"), pl.col("foreignData").struct.field("flavorText")))
                 .otherwise(pl.col("foreignData").struct.field("flavorText"))
                 .alias("flavorText"),
@@ -2747,11 +2756,15 @@ def fix_foreigndata_for_faces(
                 pl.col("foreignData").struct.field("language"),
                 pl.col("foreignData").struct.field("multiverseId"),
                 pl.col("foreignData").struct.field("name"),
-                pl.when(pl.col("_side") != "a")
+                pl.when((pl.col("_side") != "a") & pl.col("_has_face_data").fill_null(False))
+                .then(pl.col("_text"))
+                .when(pl.col("_side") != "a")
                 .then(pl.coalesce(pl.col("_text"), pl.col("foreignData").struct.field("text")))
                 .otherwise(pl.col("foreignData").struct.field("text"))
                 .alias("text"),
-                pl.when(pl.col("_side") != "a")
+                pl.when((pl.col("_side") != "a") & pl.col("_has_face_data").fill_null(False))
+                .then(pl.col("_type"))
+                .when(pl.col("_side") != "a")
                 .then(pl.coalesce(pl.col("_type"), pl.col("foreignData").struct.field("type")))
                 .otherwise(pl.col("foreignData").struct.field("type"))
                 .alias("type"),

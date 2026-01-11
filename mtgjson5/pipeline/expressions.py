@@ -43,24 +43,28 @@ def order_finishes_expr(col: str = "finishes") -> pl.Expr:
 def calculate_cmc_expr(col: str | pl.Expr = "manaCost") -> pl.Expr:
     """
     Pure Polars CMC calculation. str.replace uses rust regex under the hood.
+
+    Handles: numbers, colors (WUBRGCEP), hybrid (2/W, W/P), half (H), variable (XYZ).
     """
     expr = pl.col(col) if isinstance(col, str) else col
-    
+
     # 1. Extract everything between {}
-    # 2. Handle half-mana (H), hybrid (2/W), and digits
-    # 3. Sum the results
+    # 2. Strip braces (extract_all returns full matches like "{2}", not capture groups)
+    # 3. Handle half-mana (H), hybrid (2/W), variable (X), and colors
+    # 4. Sum the results
     return (
         expr.fill_null("")
         .str.extract_all(r"\{([^}]+)\}")
         .list.eval(
-            # keep everything as string for replacements
-            pl.element().replace_strict({"X": "0", "Y": "0", "Z": "0"}, default=pl.element())
-            .str.replace(r"^H.*", "0.5") # Half mana
-            .str.replace(r"(\d+)/.*", r"\1") # Hybrid 2/W -> 2
-            .str.replace(r"[WUBRGCEP]/.*", "1") # Hybrid W/P -> 1
-            .str.replace(r"[WUBRGCEP]", "1") # Colors -> 1
+            pl.element()
+            .str.strip_chars("{}")  # Remove braces from full match
+            .str.replace_all(r"^[XYZ]$", "0")  # Variable mana -> 0
+            .str.replace_all(r"^H.*", "0.5")  # Half mana -> 0.5
+            .str.replace_all(r"^(\d+)/.*$", "$1")  # Hybrid 2/W -> 2
+            .str.replace_all(r"^[WUBRGCEP]/.*$", "1")  # Hybrid W/P -> 1
+            .str.replace_all(r"^[WUBRGCEP]$", "1")  # Single color -> 1
             .cast(pl.Float64, strict=False)
-            .fill_null(1.0) # Fallback for unknown symbols
+            .fill_null(1.0)  # Fallback for unknown symbols
         )
         .list.sum()
         .fill_null(0.0)

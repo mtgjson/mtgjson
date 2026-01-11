@@ -76,7 +76,7 @@ OMIT_EMPTY_LIST_FIELDS: Final[frozenset[str]] = frozenset({
 	"otherFaceIds",
 	"promoTypes",
 	"rebalancedPrintings",
-	"reverseRelated",
+	# "reverseRelated" - kept as [] for tokens (CDN behavior)
 	"rulings",
 	"sealedProductUuids",
 	"subsets",
