@@ -1080,6 +1080,61 @@ def add_availability_struct(
     return lf.with_columns(pl.col("games").list.sort().alias("availability"))
 
 
+# 1.9b: Fix availability based on ID presence (like legacy set_builder.py)
+def fix_availability_from_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Add platforms to availability if their respective ID fields are present.
+
+    Legacy set_builder.py logic:
+      availability.mtgo = "mtgo" in games OR mtgo_id is not None
+      availability.arena = "arena" in games OR arena_id is not None
+
+    This function adds "mtgo" or "arena" to availability if the card has
+    mtgoId or arenaId even when not in the games array.
+    """
+    schema = lf.collect_schema()
+
+    if "availability" not in schema.names():
+        return lf
+
+    # Build conditions for adding each platform
+    exprs = []
+
+    # Add mtgo if mtgoId exists and mtgo not already in availability
+    if "mtgoId" in schema.names():
+        exprs.append(
+            pl.when(
+                pl.col("mtgoId").is_not_null()
+                & ~pl.col("availability").list.contains("mtgo")
+            )
+            .then(pl.col("availability").list.concat(pl.lit(["mtgo"])))
+            .otherwise(pl.col("availability"))
+            .alias("availability")
+        )
+
+    # Add arena if arenaId exists and arena not already in availability
+    if "arenaId" in schema.names():
+        exprs.append(
+            pl.when(
+                pl.col("arenaId").is_not_null()
+                & ~pl.col("availability").list.contains("arena")
+            )
+            .then(pl.col("availability").list.concat(pl.lit(["arena"])))
+            .otherwise(pl.col("availability"))
+            .alias("availability")
+        )
+
+    # Apply each expression sequentially (since they both update availability)
+    for expr in exprs:
+        lf = lf.with_columns(expr)
+
+    # Re-sort after additions
+    if exprs:
+        lf = lf.with_columns(pl.col("availability").list.sort())
+
+    return lf
+
+
 def join_cardmarket_ids(
     lf: pl.LazyFrame,
     ctx: PipelineContext,
@@ -3093,6 +3148,7 @@ def build_cards(
         .pipe(fix_foreigndata_for_faces, ctx=ctx)
         .pipe(partial(join_name_data, ctx=ctx))
         .pipe(partial(join_cardmarket_ids, ctx=ctx))
+        .pipe(fix_availability_from_ids)  # Add mtgo/arena based on ID presence
     )
 
     # CHECKPOINT: Materialize after joins to reset lazy plan
