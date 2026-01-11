@@ -4,7 +4,6 @@ Provider Dispatcher
 
 from .cardhoarder import CardHoarderProvider
 from .cardkingdom import CardKingdomProvider
-from .cardmarket.monolith import CardMarketProvider
 from .edhrec.card_ranks import EdhrecProviderCardRanks
 from .gatherer import GathererProvider
 from .github.github_boosters import GitHubBoostersProvider
@@ -22,6 +21,7 @@ from .tcgplayer import TCGPlayerProvider
 from .uuid_cache import UuidCacheProvider
 from .v2 import (
 	BulkDataProvider,
+    CardMarketProvider,
 	CKProvider,
 	EdhrecSaltProvider,
 	SealedDataProvider,
@@ -29,4 +29,3 @@ from .v2 import (
 )
 from .whats_in_standard import WhatsInStandardProvider
 from .wizards import WizardsProvider
-

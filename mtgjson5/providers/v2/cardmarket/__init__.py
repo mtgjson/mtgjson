@@ -1,3 +1,6 @@
 """CardMarket provider module."""
 
-from .cardmarket2 import CardMarketFetcher
+from .provider import CardMarketProvider
+
+
+__all__ = ["CardMarketProvider"]
