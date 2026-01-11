@@ -3107,11 +3107,23 @@ def build_cards(
         LOGGER.info(f"Applied scryfall_id filter: {len(ctx.scryfall_id_filter):,} IDs")
 
     # explicitly select needed set columns for join to reduce memory usage
-    set_columns_needed = ["set", "setType", "setReleasedAt", "block", "foilOnly", "nonfoilOnly"]
+    # Note: releasedAt is renamed to setReleasedAt to distinguish from card's releasedAt
+    sets_schema = sets_lf.collect_schema().names()
+    set_select_exprs = [pl.col("set")]
+    if "setType" in sets_schema:
+        set_select_exprs.append(pl.col("setType"))
+    if "releasedAt" in sets_schema:
+        set_select_exprs.append(pl.col("releasedAt").alias("setReleasedAt"))
+    if "block" in sets_schema:
+        set_select_exprs.append(pl.col("block"))
+    if "foilOnly" in sets_schema:
+        set_select_exprs.append(pl.col("foilOnly"))
+    if "nonfoilOnly" in sets_schema:
+        set_select_exprs.append(pl.col("nonfoilOnly"))
 
     # Select only those columns before joining
     lf = base_lf.with_columns(pl.col("set").str.to_uppercase()).join(
-        sets_lf.select([c for c in set_columns_needed if c in sets_lf.collect_schema().names()]),
+        sets_lf.select(set_select_exprs),
         on="set",
         how="left"
     )
@@ -3687,10 +3699,13 @@ def build_set_metadata_df(
     }
 
     # Build set metadata DataFrame with all MTGJSON fields
+    # Note: sets_lf has "releasedAt" (from Scryfall). It's only renamed to "setReleasedAt"
+    # when joined to cards to avoid collision with card's releasedAt.
+    release_col = "releasedAt" if "releasedAt" in available_cols else "setReleasedAt"
     base_exprs = [
         pl.col("code").str.to_uppercase().alias("code"),
         pl.col("name"),
-        pl.col("setReleasedAt").alias("releaseDate"),
+        pl.col(release_col).alias("releaseDate"),
         pl.col("setType").alias("type"),
         pl.col("digital").alias("isOnlineOnly"),
         pl.col("foilOnly").alias("isFoilOnly"),

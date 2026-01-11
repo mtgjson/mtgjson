@@ -439,7 +439,42 @@ class SetAssembler(Assembler):
                         minimal_deck["releaseDate"] = deck["releaseDate"]
                     if deck.get("sealedProductUuids"):
                         minimal_deck["sealedProductUuids"] = deck["sealedProductUuids"]
+                    # sourceSetCodes
+                    if deck.get("sourceSetCodes"):
+                        minimal_deck["sourceSetCodes"] = deck["sourceSetCodes"]
+                    # Card boards (required) - only include isEtched when true
                     for board in ["mainBoard", "sideBoard", "commander"]:
+                        cards_list = deck.get(board)
+                        if cards_list:
+                            minimal_deck[board] = [
+                                {
+                                    k: v
+                                    for k, v in c.items()
+                                    if k in ("count", "uuid", "isFoil", "isEtched")
+                                    and v not in (None, False)
+                                }
+                                for c in cards_list
+                                if isinstance(c, dict)
+                            ]
+                        else:
+                            minimal_deck[board] = []
+                    # displayCommander includes isEtched when true
+                    cards_list = deck.get("displayCommander")
+                    if cards_list:
+                        minimal_deck["displayCommander"] = [
+                            {
+                                k: v
+                                for k, v in c.items()
+                                if k in ("count", "uuid", "isFoil", "isEtched")
+                                and v not in (None, False)
+                            }
+                            for c in cards_list
+                            if isinstance(c, dict)
+                        ]
+                    else:
+                        minimal_deck["displayCommander"] = []
+                    # Other optional lists (tokens, planes, schemes) - no isEtched
+                    for board in ["tokens", "planes", "schemes"]:
                         cards_list = deck.get(board)
                         if cards_list:
                             minimal_deck[board] = [
