@@ -158,8 +158,8 @@ class PolarsMixin:
 			value = getattr(instance, field_name)
 
 			if value is None:
-				# Keep legalities as {} instead of None
-				if key == "legalities":
+				# Keep legalities and purchaseUrls as {} instead of None
+				if key in ("legalities", "purchaseUrls"):
 					result[key] = {}
 				elif field_name in cls._allow_if_falsey or not exclude_none:
 					result[key] = None
@@ -170,8 +170,8 @@ class PolarsMixin:
 				if nested or field_name in cls._allow_if_falsey or not exclude_none:
 					result[key] = nested
 			elif isinstance(value, dict):
-				# Keep empty legalities as {}
-				if key == "legalities" and not value:
+				# Keep empty legalities and purchaseUrls as {}
+				if key in ("legalities", "purchaseUrls") and not value:
 					result[key] = {}
 				elif value or field_name in cls._allow_if_falsey or not exclude_none:
 					result[key] = dict(sorted(value.items())) if sort_keys else value
