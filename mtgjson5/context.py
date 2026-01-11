@@ -73,6 +73,10 @@ class PipelineContext:
     signatures_lf: pl.LazyFrame | None = None
     face_flavor_names_df: pl.DataFrame | None = None
 
+    # Per-face foreign data lookup for multi-face cards
+    # Maps (setCode, number, language, face_index) -> (faceName, text, type)
+    face_foreign_lf: pl.LazyFrame | None = None
+
     sealed_cards_lf: pl.LazyFrame | None = None
     sealed_products_lf: pl.LazyFrame | None = None
     sealed_contents_lf: pl.LazyFrame | None = None
@@ -521,6 +525,24 @@ class PipelineContext:
                         )
                         .otherwise(pl.col("flavorText"))
                         .alias("_flavor_text"),
+                        # text for foreign cards (from card or first face)
+                        pl.when(pl.col("cardFaces").list.len() > 1)
+                        .then(
+                            pl.col("cardFaces")
+                            .list.first()
+                            .struct.field("printed_text")
+                        )
+                        .otherwise(pl.col("printedText"))
+                        .alias("_foreign_text"),
+                        # type for foreign cards (from card or first face)
+                        pl.when(pl.col("cardFaces").list.len() > 1)
+                        .then(
+                            pl.col("cardFaces")
+                            .list.first()
+                            .struct.field("printed_type_line")
+                        )
+                        .otherwise(pl.col("printedTypeLine"))
+                        .alias("_foreign_type"),
                         # Generate UUID for foreign data: uuid5(default_lang_scryfallId + side + "_" + language)
                         # Formula: default_scryfall_id + side + "_" + full_language_name
                         pl.concat_str(
@@ -568,8 +590,8 @@ class PipelineContext:
                             .list.first()
                             .alias("multiverseId"),
                             pl.col("_foreign_name").alias("name"),
-                            pl.col("printedText").alias("text"),
-                            pl.col("printedTypeLine").alias("type"),
+                            pl.col("_foreign_text").alias("text"),
+                            pl.col("_foreign_type").alias("type"),
                             pl.col("_foreign_uuid").alias("uuid"),
                         ]
                     ).alias("foreignData")
@@ -592,7 +614,7 @@ class PipelineContext:
 
         # Join all frames on setCode + number
         result: pl.DataFrame = frames[0][1]
-        for _name, df in frames[1:]:
+        for _, df in frames[1:]:
             result = result.join(
                 df, on=["setCode", "number"], how="full", coalesce=True
             )

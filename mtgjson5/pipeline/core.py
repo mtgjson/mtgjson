@@ -10,7 +10,6 @@ import json
 from collections.abc import Callable
 from functools import partial
 from typing import Any
-from uuid import UUID, uuid5
 
 import polars as pl
 import polars_hash as plh
@@ -43,9 +42,6 @@ from mtgjson5.providers.cardmarket.monolith import CardMarketProvider
 from mtgjson5.utils import LOGGER, to_camel_case, to_snake_case
 
 
-# Check if polars_hash has uuidhash namespace
-_HAS_UUIDHASH = hasattr(plh.col("_test"), "uuidhash")
-_DNS_NAMESPACE = UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 # List of raw Scryfall columns to drop after transformation to MTGJSON format
 _SCRYFALL_COLUMNS_TO_DROP = [
     # Dropped in add_basic_fields (renamed to MTGJSON names)
@@ -107,23 +103,13 @@ _ASCII_REPLACEMENTS: dict[str, str] = {
 
 def _uuid5_expr(col_name: str) -> pl.Expr:
     """Generate UUID5 from a column name using DNS namespace."""
-    if _HAS_UUIDHASH:
-        return plh.col(col_name).uuidhash.uuid5()
-    return pl.col(col_name).map_elements(
-        lambda x: str(uuid5(_DNS_NAMESPACE, x)) if x else None,
-        return_dtype=pl.String,
-    )
+    return plh.col(col_name).uuidhash.uuid5()
 
 
 def _uuid5_concat_expr(col1: pl.Expr, col2: pl.Expr, default: str = "a") -> pl.Expr:
     """Generate UUID5 from concatenation of two columns."""
-    if _HAS_UUIDHASH:
-        return plh.col(col1.meta.output_name()).uuidhash.uuid5_concat(col2, default=default)
-    # Fallback: concat columns then generate uuid5
-    return pl.concat_str([col1, col2.fill_null(default)], separator="").map_elements(
-        lambda x: str(uuid5(_DNS_NAMESPACE, x)) if x else None,
-        return_dtype=pl.String,
-    )
+    return plh.col(col1.meta.output_name()).uuidhash.uuid5_concat(col2, default=default)
+
 
 def _ascii_name_expr(col: str | pl.Expr) -> pl.Expr:
     """
@@ -2532,18 +2518,13 @@ def join_set_number_data(
     ctx: PipelineContext,
 ) -> pl.LazyFrame:
     """
-    Single join for all setCode+number-based lookups.
-
-    Replaces:
-    - join_foreign_data()
-
-    Gets from set_number_lf:
-    - foreignData: List[Struct{faceName, flavorText, identifiers{multiverseId, scryfallId}, language, multiverseId, name, text, type, uuid}]
+    Join foreignData from set_number lookup.
+    
+    foreignData only applies to the "default" language for each card
+    (English for most sets, primary printed language for foreign-only sets).
     """
     if ctx.set_number_lf is None:
-        return lf.with_columns(
-            pl.lit([]).alias("foreignData"),
-        )
+        return lf.with_columns(pl.lit([]).alias("foreignData"))
 
     lf = lf.join(
         ctx.set_number_lf,
@@ -2552,11 +2533,8 @@ def join_set_number_data(
         how="left",
     )
 
-    # foreignData only applies to the "default" language for each card
-    # For most cards this is English, but for foreign-only sets (BCHR, 4BB, etc.)
-    # it's the primary printed language (Japanese, Chinese, etc.)
+    # Determine which cards should have foreignData
     if ctx.default_card_languages is not None:
-        # Join to get the default language for each card
         lf = lf.join(
             ctx.default_card_languages.select([
                 pl.col("scryfallId"),
@@ -2565,7 +2543,6 @@ def join_set_number_data(
             on="scryfallId",
             how="left",
         )
-        # foreignData applies when card language matches default language
         lf = lf.with_columns(
             pl.when(pl.col("language") == pl.col("_default_language"))
             .then(pl.col("foreignData").fill_null([]))
@@ -2573,7 +2550,6 @@ def join_set_number_data(
             .alias("foreignData"),
         ).drop("_default_language")
     else:
-        # Fallback to English-only if default_card_languages not available
         lf = lf.with_columns(
             pl.when(pl.col("language") == "English")
             .then(pl.col("foreignData").fill_null([]))
@@ -2584,77 +2560,125 @@ def join_set_number_data(
     return lf
 
 
-def deduplicate_foreigndata_for_faces(lf: pl.LazyFrame) -> pl.LazyFrame:
+def fix_foreigndata_for_faces(
+    lf: pl.LazyFrame,
+    ctx: PipelineContext,
+) -> pl.LazyFrame:
     """
-    Deduplicate foreignData for multi-face cards (flip, split, transform).
-
-    After explode_card_faces, flip/split cards share the same scryfallId across
-    faces but each face gets the same foreignData array from the set_number join.
-    Without deduplication, the explode-reaggregate cycle would combine entries
-    from all faces into one array, creating duplicates.
-
-    This function uses 'side' as part of the key to keep each face's foreignData
-    separate during the explode-reaggregate process.
+    Fix foreignData after face explosion: deduplicate, fix UUIDs, fix face fields.
+    
+    foreignData is built in context.py BEFORE face explosion using first-face data
+    and side="a". After explosion, multi-face cards need:
+    1. Deduplication (each face had identical foreignData arrays)
+    2. UUID regeneration (include actual side, not always "a")
+    3. Face field correction (faceName/text/type for side != "a")
+    
+    Call this AFTER explode_card_faces.
     """
-    # Explode, re-aggregate with side as key to prevent face merging
-    # Use fill_null to handle None sides (normal cards) in join
-    fd_deduped = (
-        lf.select(["scryfallId", "setCode", "number", "side", "foreignData"])
-        .with_columns(pl.col("side").fill_null("").alias("_side_key"))
-        .explode("foreignData")
-        .group_by(["scryfallId", "setCode", "number", "_side_key"])
-        .agg(
-            pl.col("foreignData")
-            .filter(pl.col("foreignData").is_not_null())
-            .alias("_foreignData_deduped")
+    SIDE_TO_INDEX = {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4}
+    
+    # Build per-face lookup for non-primary faces
+    face_lookup = None
+    if ctx.cards_lf is not None:
+        cards_df = ctx.cards_lf.collect() if isinstance(ctx.cards_lf, pl.LazyFrame) else ctx.cards_lf
+        
+        face_lookup = (
+            cards_df.filter(
+                (pl.col("lang") != "en") & (pl.col("cardFaces").list.len() > 1)
+            )
+            .with_columns([
+                pl.col("set").str.to_uppercase().alias("setCode"),
+                pl.col("lang")
+                .replace_strict(constants.LANGUAGE_MAP, default=pl.col("lang"))
+                .alias("language"),
+                pl.int_ranges(pl.col("cardFaces").list.len()).alias("_face_idx"),
+            ])
+            .explode(["cardFaces", "_face_idx"])
+            .with_columns([
+                pl.col("_face_idx").alias("face_index"),
+                pl.coalesce(
+                    pl.col("cardFaces").struct.field("printed_name"),
+                    pl.col("cardFaces").struct.field("name"),
+                ).alias("_faceName"),
+                pl.col("cardFaces").struct.field("printed_text").alias("_text"),
+                pl.col("cardFaces").struct.field("printed_type_line").alias("_type"),
+                pl.col("cardFaces").struct.field("flavor_text").alias("_flavorText"),
+            ])
+            .select([
+                "setCode",
+                pl.col("collectorNumber").alias("number"),
+                "language",
+                "face_index",
+                "_faceName", "_text", "_type", "_flavorText",
+            ])
+            .lazy()
         )
-    )
 
-    lf = lf.with_columns(pl.col("side").fill_null("").alias("_side_key"))
-    lf = lf.join(fd_deduped, on=["scryfallId", "setCode", "number", "_side_key"], how="left")
-    return lf.with_columns(
-        pl.coalesce(pl.col("_foreignData_deduped"), pl.lit([])).alias("foreignData")
-    ).drop(["_foreignData_deduped", "_side_key"])
-
-
-def fix_foreigndata_uuids_for_side(lf: pl.LazyFrame) -> pl.LazyFrame:
-    """
-    Regenerate foreignData UUIDs to include the card's side.
-
-    The foreignData UUID formula is: uuid5(scryfallId + side + "_" + language)
-
-    Initially, foreignData is generated in context.py before face explosion,
-    so all entries use side="a". After explode_card_faces, multi-face cards
-    have different sides (a, b, c, etc.) and need their foreignData UUIDs
-    regenerated to match the legacy behavior.
-
-    This function should be called AFTER deduplicate_foreigndata_for_faces.
-    """
-    # Explode foreignData to update each entry's UUID
-    fd_exploded = (
+    # Process all foreignData in one pass
+    fd_processed = (
         lf.select(["scryfallId", "setCode", "number", "side", "foreignData"])
-        .with_columns(pl.col("side").fill_null("a").alias("_side_for_uuid"))
+        .with_columns([
+            pl.col("side").fill_null("a").alias("_side"),
+            pl.col("side").fill_null("").alias("_side_key"),
+        ])
         .explode("foreignData")
         .filter(pl.col("foreignData").is_not_null())
-        # Extract language from the foreignData struct
-        .with_columns(
-            pl.col("foreignData").struct.field("language").alias("_fd_language")
-        )
-        # Build uuid source: scryfallId + side + "_" + language
+        .with_columns([
+            pl.col("foreignData").struct.field("language").alias("_fd_lang"),
+            pl.col("_side")
+            .replace_strict(SIDE_TO_INDEX, default=0)
+            .cast(pl.Int64)
+            .alias("_face_index"),
+        ])
+        # Regenerate UUID: scryfallId + side + "_" + language
         .with_columns(
             pl.concat_str([
                 pl.col("scryfallId"),
-                pl.col("_side_for_uuid"),
+                pl.col("_side"),
                 pl.lit("_"),
-                pl.col("_fd_language"),
+                pl.col("_fd_lang"),
             ]).alias("_uuid_source")
         )
-        # Generate new UUID using existing helper function
-        .with_columns(
-            _uuid5_expr("_uuid_source").alias("_new_uuid")
+        .with_columns(_uuid5_expr("_uuid_source").alias("_new_uuid"))
+    )
+
+    # Join face lookup for non-primary faces if available
+    if face_lookup is not None:
+        fd_processed = fd_processed.join(
+            face_lookup,
+            left_on=["setCode", "number", "_fd_lang", "_face_index"],
+            right_on=["setCode", "number", "language", "face_index"],
+            how="left",
         )
-        # Rebuild the foreignData struct with the new UUID
-        .with_columns(
+        # Rebuild struct with corrected values for non-side-a, original for side-a
+        fd_processed = fd_processed.with_columns(
+            pl.struct([
+                pl.when(pl.col("_side") != "a")
+                .then(pl.coalesce(pl.col("_faceName"), pl.col("foreignData").struct.field("faceName")))
+                .otherwise(pl.col("foreignData").struct.field("faceName"))
+                .alias("faceName"),
+                pl.when(pl.col("_side") != "a")
+                .then(pl.coalesce(pl.col("_flavorText"), pl.col("foreignData").struct.field("flavorText")))
+                .otherwise(pl.col("foreignData").struct.field("flavorText"))
+                .alias("flavorText"),
+                pl.col("foreignData").struct.field("identifiers"),
+                pl.col("foreignData").struct.field("language"),
+                pl.col("foreignData").struct.field("multiverseId"),
+                pl.col("foreignData").struct.field("name"),
+                pl.when(pl.col("_side") != "a")
+                .then(pl.coalesce(pl.col("_text"), pl.col("foreignData").struct.field("text")))
+                .otherwise(pl.col("foreignData").struct.field("text"))
+                .alias("text"),
+                pl.when(pl.col("_side") != "a")
+                .then(pl.coalesce(pl.col("_type"), pl.col("foreignData").struct.field("type")))
+                .otherwise(pl.col("foreignData").struct.field("type"))
+                .alias("type"),
+                pl.col("_new_uuid").alias("uuid"),
+            ]).alias("foreignData")
+        )
+    else:
+        # Just fix UUID
+        fd_processed = fd_processed.with_columns(
             pl.struct([
                 pl.col("foreignData").struct.field("faceName"),
                 pl.col("foreignData").struct.field("flavorText"),
@@ -2667,19 +2691,17 @@ def fix_foreigndata_uuids_for_side(lf: pl.LazyFrame) -> pl.LazyFrame:
                 pl.col("_new_uuid").alias("uuid"),
             ]).alias("foreignData")
         )
-        .drop(["_fd_language", "_uuid_source", "_new_uuid", "_side_for_uuid"])
-    )
 
-    # Re-aggregate by card
-    fd_fixed = (
-        fd_exploded
-        .with_columns(pl.col("side").fill_null("").alias("_side_key"))
+    # Re-aggregate by card+side (deduplication happens naturally here)
+    fd_final = (
+        fd_processed
         .group_by(["scryfallId", "setCode", "number", "_side_key"])
         .agg(pl.col("foreignData").alias("_foreignData_fixed"))
     )
 
+    # Join back
     lf = lf.with_columns(pl.col("side").fill_null("").alias("_side_key"))
-    lf = lf.join(fd_fixed, on=["scryfallId", "setCode", "number", "_side_key"], how="left")
+    lf = lf.join(fd_final, on=["scryfallId", "setCode", "number", "_side_key"], how="left")
     return lf.with_columns(
         pl.coalesce(pl.col("_foreignData_fixed"), pl.lit([])).alias("foreignData")
     ).drop(["_foreignData_fixed", "_side_key"])
@@ -3066,8 +3088,7 @@ def build_cards(
         lf.pipe(partial(join_identifiers, ctx=ctx))
         .pipe(partial(join_oracle_data, ctx=ctx))
         .pipe(partial(join_set_number_data, ctx=ctx))
-        .pipe(deduplicate_foreigndata_for_faces)  # Prevent duplicates for flip/split cards
-        .pipe(fix_foreigndata_uuids_for_side)  # Regenerate UUIDs with correct side
+        .pipe(fix_foreigndata_for_faces, ctx=ctx)
         .pipe(partial(join_name_data, ctx=ctx))
         .pipe(partial(join_cardmarket_ids, ctx=ctx))
     )
