@@ -6,6 +6,7 @@ into MTGJSON format, including card processing, set building, and output generat
 """
 
 import contextlib
+from datetime import date
 import json
 from collections.abc import Callable
 from functools import partial
@@ -580,28 +581,14 @@ def dataframe_to_cards_list(
 def drop_raw_scryfall_columns(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Drop all raw Scryfall columns after they've been transformed to MTGJSON format.
-
-    Call this AFTER all transformation functions have completed but BEFORE
-    rename_all_the_things. This is the centralized cleanup function that
-    replaces scattered .drop() calls throughout the pipeline.
     """
     return lf.drop(_SCRYFALL_COLUMNS_TO_DROP, strict=False)
 
 
-# 1.1.1: Format planeswalker ability text
 def format_planeswalker_text(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Wrap planeswalker loyalty ability costs in square brackets.
-
-    Transforms: "+1: Draw a card" -> "[+1]: Draw a card"
-    Transforms: "−3: Target creature..." -> "[−3]: Target creature..."
-
-    This matches MTGJSON's historical format for planeswalker cards.
-    The regex matches ability costs at the start of lines.
     """
-    # Pattern matches: +N, −N (unicode minus), or 0 followed by : at line start
-    # Note: \u2212 is the Unicode minus sign used by Scryfall
-    # Captures the full cost (e.g., +1, −3, +X, 0) and wraps in brackets
     return lf.with_columns(
         pl.col("text")
         .str.replace_all(r"(?m)^([+\u2212−]?[\dX]+):", r"[$1]:")
@@ -609,17 +596,9 @@ def format_planeswalker_text(lf: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-# 1.1.2: Add originalReleaseDate for promo cards
 def add_original_release_date(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Set originalReleaseDate for cards with release dates different from their set.
-
-    Per MTGJSON spec, this field is for promotional cards printed outside
-    of a cycle window (e.g., Secret Lair drops, FNM promos). It captures
-    when THIS specific card printing was released, not when the card was
-    first printed.
-
-    Only set when card's releasedAt differs from set's setReleasedAt.
     """
     return lf.with_columns(
         pl.when(
@@ -828,35 +807,22 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 # 1.3: Parse type_line into supertypes, types, subtypes
 def parse_type_line_expr(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
-    Parse type_line into supertypes, types, subtypes using Polars expressions.
-
-    Converts "Legendary Creature - Human Wizard" into:
-    - supertypes: ["Legendary"]
-    - types: ["Creature"]
-    - subtypes: ["Human", "Wizard"]
-
-    Handles multi-word subtypes like "Time Lord" and Plane subtypes like "Blind Eternities".
+    Parse type_line into supertypes, types, and subtypes
     """
     super_types_list = list(constants.SUPER_TYPES)
     multi_word_subtypes = list(constants.MULTI_WORD_SUB_TYPES)
 
-    # already renamed type_line -> type
     type_line = pl.col("type").fill_null("Card")
-
-    # Split on em-dash
     split_type = type_line.str.split(" — ")
 
     subtypes_part = pl.col("_subtypes_part").str.strip_chars()
 
-    # For multi-word subtypes, replace spaces with placeholder before splitting
     subtypes_processed = subtypes_part
     for mw_subtype in multi_word_subtypes:
         subtypes_processed = subtypes_processed.str.replace_all(
             mw_subtype, mw_subtype.replace(" ", "\x00")
         )
 
-    # Plane types: don't split by space, keep as single entry (e.g. "Blind Eternities")
-    # Others: split by space, then restore multi-word placeholders
     subtypes_expr = (
         pl.when(pl.col("_subtypes_part").is_null())
         .then(pl.lit([]).cast(pl.List(pl.String)))
@@ -894,21 +860,14 @@ def parse_type_line_expr(lf: pl.LazyFrame) -> pl.LazyFrame:
 def add_mana_info(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Add mana cost, mana value, and colors.
-
-    For multi-face cards (split, aftermath, adventure, etc.), faceManaValue is
-    calculated from the face's mana_cost string using the same logic as legacy code.
     """
-    # Get face's mana_cost for multi-face cards
     face_mana_cost = pl.col("_face_data").struct.field("mana_cost")
 
     return lf.with_columns(
-        # manaCost already exists from add_basic_fields rename
         pl.col("colors").fill_null([]).alias("colors"),
         pl.col("colorIdentity").fill_null([]),
-        # manaValue/convertedManaCost are floats (e.g., 2.5 for split cards)
         pl.col("manaValue").cast(pl.Float64).fill_null(0.0).alias("manaValue"),
         pl.col("manaValue").cast(pl.Float64).fill_null(0.0).alias("convertedManaCost"),
-        # faceManaValue: calculate from face's mana_cost for multi-face cards
         pl.when(pl.col("_face_data").is_not_null())
         .then(calculate_cmc_expr(face_mana_cost))
         .otherwise(pl.col("manaValue").cast(pl.Float64).fill_null(0.0))
@@ -1007,6 +966,33 @@ def fix_promo_types(lf: pl.LazyFrame) -> pl.LazyFrame:
             .otherwise(pl.col("promoTypes"))
             .alias("promoTypes")
         )
+    )
+
+
+# 1.5.2: Fix power/toughness for multi-face cards
+def fix_power_toughness_for_multiface(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Fix power/toughness for multi-face cards.
+
+    The issue: face_field() uses coalesce which falls back to card-level values
+    when face data is null. But for non-creature faces (e.g., Adventure spells),
+    the face power/toughness being null is CORRECT - it shouldn't fall back.
+
+    Fix: For multi-face cards, use face value even when null (don't fall back).
+    """
+    has_face_data = pl.col("_face_data").is_not_null()
+    face_power = pl.col("_face_data").struct.field("power")
+    face_toughness = pl.col("_face_data").struct.field("toughness")
+
+    return lf.with_columns(
+        pl.when(has_face_data)
+        .then(face_power)
+        .otherwise(pl.col("power"))
+        .alias("power"),
+        pl.when(has_face_data)
+        .then(face_toughness)
+        .otherwise(pl.col("toughness"))
+        .alias("toughness"),
     )
 
 
@@ -3186,6 +3172,7 @@ def build_cards(
         .pipe(detect_aftermath_layout)
         .pipe(add_basic_fields)
         .pipe(fix_promo_types)
+        .pipe(fix_power_toughness_for_multiface)
         .pipe(format_planeswalker_text)  # Wrap loyalty costs in brackets: +1: -> [+1]:
         .pipe(add_original_release_date)  # Set for promos with card-specific release dates
         .drop([
@@ -3646,14 +3633,13 @@ def build_sealed_products_lf(
         result = result.with_columns(
             pl.struct(purchase_url_fields).alias("purchaseUrls")
         )
-        # Drop temporary hash columns (use tracked list, avoid schema call)
+        # Drop temporary hash columns
         if hash_cols_added:
             result = result.drop(hash_cols_added, strict=False)
     else:
         # Add empty purchaseUrls struct
         result = result.with_columns(pl.struct([]).alias("purchaseUrls"))
 
-    # Select final columns (all already camelCase from cache normalization)
     select_cols = [
         "setCode",
         pl.col("productName").alias("name"),
@@ -3665,8 +3651,6 @@ def build_sealed_products_lf(
         "uuid",
     ]
 
-    # Add optional columns if available (use cached checks, avoid schema call)
-    # releaseDate (might be release_date from model)
     if has_release_date:
         select_cols.insert(4, "releaseDate")
     elif has_release_date_snake:
@@ -3689,18 +3673,7 @@ def build_set_metadata_df(
     ctx: PipelineContext,
 ) -> pl.DataFrame:
     """
-    Build a DataFrame containing all set-level metadata.
-
-    Includes MTGJSON set-level fields:
-    - Core: code, name, releaseDate, type, block
-    - Sizes: baseSetSize, totalSetSize
-    - Identifiers: mcmId, mcmName, tcgplayerGroupId, mtgoCode, keyruneCode, tokenSetCode
-    - Flags: isFoilOnly, isOnlineOnly, isNonFoilOnly
-    - Nested: booster, translations
-    - Languages: languages (derived from foreign data)
-
-    Excludes Scryfall-only fields:
-    - object, uri, scryfallUri, searchUri, iconSvgUri (except for keyruneCode extraction)
+    Build a DataFrame containing set-level metadata.
     """
     if ctx is None:
         ctx = PipelineContext.from_global_cache()
@@ -3708,7 +3681,6 @@ def build_set_metadata_df(
     sets_lf = ctx.sets_df
     if sets_lf is None:
         raise ValueError("sets_df is not available in context")
-    # Keep as LazyFrame for initial operations, will collect later when needed
     if not isinstance(sets_lf, pl.LazyFrame):
         sets_lf = sets_lf.lazy()
 
@@ -3724,7 +3696,6 @@ def build_set_metadata_df(
             .lazy()
         )
 
-    # Load translations (keyed by SET NAME, not code)
     translations_by_name: dict[str, dict[str, str | None]] = {}
     translations_path = constants.RESOURCE_PATH / "mkm_set_name_translations.json"
     if translations_path.exists():
@@ -3744,7 +3715,6 @@ def build_set_metadata_df(
                     "Spanish": langs.get("es"),
                 }
 
-    # Get MCM set data from CardMarket provider
     mcm_set_map: dict[str, dict[str, Any]] = {}
     try:
         cardmarket_provider = CardMarketProvider()
@@ -3755,7 +3725,6 @@ def build_set_metadata_df(
     # Get available columns from sets_lf schema
     available_cols = sets_lf.collect_schema().names()
 
-    # Scryfall-only fields to exclude from output
     scryfall_only_fields = {
         "object",
         "uri",
@@ -3768,9 +3737,6 @@ def build_set_metadata_df(
         "scryfall_set_uri",
     }
 
-    # Build set metadata DataFrame with all MTGJSON fields
-    # Note: sets_lf has "releasedAt" (from Scryfall). It's only renamed to "setReleasedAt"
-    # when joined to cards to avoid collision with card's releasedAt.
     release_col = "releasedAt" if "releasedAt" in available_cols else "setReleasedAt"
     base_exprs = [
         pl.col("code").str.to_uppercase().alias("code"),
@@ -3781,7 +3747,6 @@ def build_set_metadata_df(
         pl.col("foilOnly").alias("isFoilOnly"),
     ]
 
-    # Add optional columns if they exist
     if "mtgoCode" in available_cols:
         base_exprs.append(pl.col("mtgoCode").str.to_uppercase().alias("mtgoCode"))
     if "tcgplayerId" in available_cols:
@@ -3795,16 +3760,13 @@ def build_set_metadata_df(
     if "block" in available_cols:
         base_exprs.append(pl.col("block"))
 
-    # Add set sizes from Scryfall data
     if "cardCount" in available_cols:
         base_exprs.append(pl.col("cardCount").alias("totalSetSize"))
     if "printedSize" in available_cols:
         base_exprs.append(pl.col("printedSize").alias("baseSetSize"))
     elif "cardCount" in available_cols:
-        # Fall back to cardCount if printedSize not available
         base_exprs.append(pl.col("cardCount").alias("baseSetSize"))
 
-    # Keyrune code from icon URL (use Scryfall field but don't include raw URL)
     if "iconSvgUri" in available_cols:
         base_exprs.append(
             pl.col("iconSvgUri")
@@ -3813,7 +3775,6 @@ def build_set_metadata_df(
             .alias("keyruneCode")
         )
 
-    # Token set code (from join or computed)
     if "tokenSetCode" in available_cols:
         base_exprs.append(
             pl.coalesce(
@@ -3833,7 +3794,6 @@ def build_set_metadata_df(
 
     set_meta = sets_lf.with_columns(base_exprs)
 
-    # Drop Scryfall-only columns that may have been carried through
     set_meta_cols = set_meta.collect_schema().names()
     cols_to_drop = [
         c
@@ -3843,14 +3803,12 @@ def build_set_metadata_df(
     if cols_to_drop:
         set_meta = set_meta.drop(cols_to_drop, strict=False)
 
-    # Join with booster configs
     set_meta = set_meta.join(
         booster_lf.with_columns(pl.col("setCode").str.to_uppercase().alias("code")),
         on="code",
         how="left",
     ).rename({"config": "booster"})
 
-    # Add MCM, Cardsphere, translations, and languages data via map lookups
     if isinstance(set_meta, pl.LazyFrame):
         set_meta_df = set_meta.collect()
     else:
@@ -3859,15 +3817,11 @@ def build_set_metadata_df(
     for record in set_records:
         set_name = record.get("name", "")
 
-        # MCM data (lookup by lowercased set name)
         mcm_data = mcm_set_map.get(set_name.lower(), {})
         record["mcmId"] = mcm_data.get("mcmId")
         record["mcmName"] = mcm_data.get("mcmName")
-        # MCM Extras set ID (e.g., "Throne of Eldraine: Extras")
         record["mcmIdExtras"] = cardmarket_provider.get_extras_set_id(set_name)
 
-        # isPartialPreview: True if build date is before release date
-        from datetime import date
         release_date = record.get("releaseDate")
         if release_date:
             build_date = date.today().isoformat()
@@ -3875,7 +3829,6 @@ def build_set_metadata_df(
         else:
             record["isPartialPreview"] = None
 
-        # Translations (lookup by set name)
         record["translations"] = translations_by_name.get(
             set_name,
             {
@@ -3892,18 +3845,14 @@ def build_set_metadata_df(
             },
         )
 
-        # Ensure baseSetSize and totalSetSize have defaults
         if record.get("baseSetSize") is None:
             record["baseSetSize"] = record.get("totalSetSize", 0)
         if record.get("totalSetSize") is None:
             record["totalSetSize"] = record.get("baseSetSize", 0)
 
-        # Remove any Scryfall-only fields that slipped through
         for scry_field in scryfall_only_fields:
             record.pop(scry_field, None)
 
-    # Add sets from additional_sets.json resource (MTGJSON-specific sets like Q01, DD3, FWB, MB1)
-    # These are sets not in Scryfall but defined in MTGJSON's resource files
     existing_codes = {r["code"] for r in set_records}
 
     additional_sets_path = constants.RESOURCE_PATH / "additional_sets.json"
