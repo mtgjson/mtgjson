@@ -846,9 +846,6 @@ def parse_type_line_expr(lf: pl.LazyFrame) -> pl.LazyFrame:
     # Split on em-dash
     split_type = type_line.str.split(" — ")
 
-    # Build subtypes expression that handles:
-    # 1. Plane types: keep entire subtypes part as single entry
-    # 2. Multi-word subtypes: replace space with placeholder, split, restore
     subtypes_part = pl.col("_subtypes_part").str.strip_chars()
 
     # For multi-word subtypes, replace spaces with placeholder before splitting
@@ -916,6 +913,31 @@ def add_mana_info(lf: pl.LazyFrame) -> pl.LazyFrame:
         .then(calculate_cmc_expr(face_mana_cost))
         .otherwise(pl.col("manaValue").cast(pl.Float64).fill_null(0.0))
         .alias("faceManaValue"),
+    )
+
+
+def fix_manavalue_for_multiface(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Fix manaValue for multi-face cards.
+    """
+    face_mana_cost = pl.col("_face_data").struct.field("mana_cost")
+    face_cmc = calculate_cmc_expr(face_mana_cost)
+
+    # Layouts where each face has its own CMC
+    face_specific_layouts = ["modal_dfc", "reversible_card"]
+    use_face_cmc = pl.col("layout").is_in(face_specific_layouts)
+
+    fixed_mana_value = (
+        pl.when(pl.col("_face_data").is_not_null() & use_face_cmc)
+        .then(face_cmc)
+        .otherwise(pl.col("manaValue"))
+    )
+
+    return lf.with_columns(
+        fixed_mana_value.alias("manaValue"),
+        fixed_mana_value.alias("convertedManaCost"),
+        fixed_mana_value.alias("faceManaValue"),
+        fixed_mana_value.alias("faceConvertedManaCost"),
     )
 
 
@@ -3183,6 +3205,7 @@ def build_cards(
         .pipe(partial(join_face_flavor_names, ctx=ctx))
         .pipe(parse_type_line_expr)
         .pipe(add_mana_info)
+        .pipe(fix_manavalue_for_multiface)
         .pipe(add_card_attributes)
         .pipe(filter_keywords_for_face)
         .pipe(add_booster_types)
