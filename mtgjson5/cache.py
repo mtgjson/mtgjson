@@ -159,6 +159,7 @@ class GlobalCache:
         self.meld_triplets: dict[str, list[str]] = {}
         self.world_championship_signatures: dict = {}
         self.manual_overrides: dict = {}
+        self.foreigndata_exceptions: dict = {}
         self.gatherer_map: dict = {}
         self.standard_legal_sets: set[str] = set()
         self.unlimited_cards: set[str] = set()  # Cards that can have unlimited copies
@@ -562,6 +563,9 @@ class GlobalCache:
             dict, load_resource_json("world_championship_signatures.json")
         )
         self.manual_overrides = cast(dict, load_resource_json("manual_overrides.json"))
+        self.foreigndata_exceptions = cast(
+            dict, load_resource_json("foreigndata_exceptions.json")
+        )
         uuid_raw = cast(dict, load_resource_json("legacy_mtgjson_v5_uuid_mapping.json"))
         if uuid_raw:
             rows = [

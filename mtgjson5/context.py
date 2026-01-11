@@ -99,6 +99,7 @@ class PipelineContext:
 
     meld_triplets: dict = field(default_factory=dict)
     manual_overrides: dict = field(default_factory=dict)
+    foreigndata_exceptions: dict = field(default_factory=dict)
     gatherer_map: dict = field(default_factory=dict)
 
     standard_legal_sets: set[str] = field(default_factory=set)
@@ -238,6 +239,7 @@ class PipelineContext:
             # Dict lookups
             meld_triplets=GLOBAL_CACHE.meld_triplets or {},
             manual_overrides=GLOBAL_CACHE.manual_overrides or {},
+            foreigndata_exceptions=GLOBAL_CACHE.foreigndata_exceptions or {},
             gatherer_map=GLOBAL_CACHE.gatherer_map or {},
             # Sets
             standard_legal_sets=GLOBAL_CACHE.standard_legal_sets or set(),
@@ -470,12 +472,44 @@ class PipelineContext:
                     ])
                 )
 
+            # Parse foreignData exceptions
+            fd_include: set[tuple[str, str]] = set()
+            fd_exclude: set[tuple[str, str]] = set()
+            if self.foreigndata_exceptions:
+                for set_code, numbers in self.foreigndata_exceptions.get("include", {}).items():
+                    if not set_code.startswith("_"):
+                        for number in numbers:
+                            if not number.startswith("_"):
+                                fd_include.add((set_code, number))
+                for set_code, numbers in self.foreigndata_exceptions.get("exclude", {}).items():
+                    if not set_code.startswith("_"):
+                        for number in numbers:
+                            if not number.startswith("_"):
+                                fd_exclude.add((set_code, number))
+
             # Filter to non-English cards and aggregate
             # foreignData contains all non-English language versions
             # For foreign-only sets (4BB, BCHR), this includes the primary language
+            # Exclude variant cards (s, d, † suffixes) unless in include exceptions
+            # Note: ★ (star) variants DO have foreignData, so don't exclude them
             foreign_df = (
                 cards.filter(pl.col("lang") != "en")
                 .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
+                # Exclude variant collector numbers ending in s, d, or † (unless in exceptions)
+                .filter(
+                    ~pl.col("collectorNumber").str.contains(r"[sd†]$")
+                    | pl.struct(["setCode", "collectorNumber"]).is_in(
+                        [{"setCode": s, "collectorNumber": n} for s, n in fd_include]
+                    )
+                )
+                # Exclude specific cards from exceptions
+                .filter(
+                    ~pl.struct(["setCode", "collectorNumber"]).is_in(
+                        [{"setCode": s, "collectorNumber": n} for s, n in fd_exclude]
+                    )
+                    if fd_exclude
+                    else pl.lit(True)
+                )
                 # Join with default language lookup to get scryfallId for UUID
                 .join(
                     default_lang_lookup,
@@ -504,7 +538,7 @@ class PipelineContext:
                             )
                             .list.join(" // ")
                         )
-                        .otherwise(pl.coalesce("printedName", "name"))
+                        .otherwise(pl.col("printedName"))  # Don't fallback to English name
                         .alias("_foreign_name"),
                         # faceName for multi-face cards
                         pl.when(pl.col("cardFaces").list.len() > 1)
@@ -570,6 +604,7 @@ class PipelineContext:
                     )
                     .alias("_foreign_uuid")
                 )
+                .filter(pl.col("_foreign_name").is_not_null())
                 .sort("setCode", "collectorNumber", "language", nulls_last=True)
                 .group_by(["setCode", pl.col("collectorNumber").alias("number")])
                 .agg(
