@@ -780,7 +780,8 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                 pl.col("reserved").alias("isReserved"),
                 pl.col("digital").alias("isOnlineOnly"),
                 # hasFoil/hasNonFoil are computed from finishes in add_card_attributes()
-                pl.col("flavorName"),
+                # flavorName: use Scryfall's flavor_name, fall back to printed_name for non-English cards
+                pl.coalesce(pl.col("flavorName"), pl.col("printedName")).alias("flavorName"),
                 pl.col("allParts"),
                 # Language mapping
                 pl.col("lang")
