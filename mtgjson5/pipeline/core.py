@@ -3531,6 +3531,7 @@ def build_sealed_products_lf(
     has_release_date = "releaseDate" in result_cols
     has_release_date_snake = "release_date" in result_cols
     has_card_count = "cardCount" in result_cols
+    has_language = "language" in result_cols
 
     if "identifiers" in result_cols:
         id_schema = result_schema.get("identifiers")
@@ -3609,6 +3610,10 @@ def build_sealed_products_lf(
     # cardCount from contents aggregation
     if has_card_count:
         select_cols.append("cardCount")
+
+    # language (only for non-English products)
+    if has_language:
+        select_cols.append("language")
 
     sealed_products_lf = result.select(select_cols)
 

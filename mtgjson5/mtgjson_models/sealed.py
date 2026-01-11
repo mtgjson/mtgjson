@@ -4,9 +4,11 @@ MTGJSON sealed product and booster models.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from pydantic import BaseModel, Field
+
+from mtgjson5.consts import ALLOW_IF_FALSEY
 
 from .base import PolarsMixin
 from .submodels import (
@@ -37,6 +39,10 @@ class SealedProduct(PolarsMixin, BaseModel):
 	"""Sealed product (booster box, bundle, etc.)."""
 
 	model_config = {"populate_by_name": True}
+
+	# Override to exclude 'language' from required fields
+	# SealedProduct only includes language for non-English products
+	_allow_if_falsey: ClassVar[frozenset[str]] = ALLOW_IF_FALSEY - {"language"}
 
 	uuid: str
 	name: str
