@@ -722,7 +722,11 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                 # Face-aware fields (must have explicit aliases to avoid duplicates)
                 face_field("manaCost").alias("manaCost"),
                 face_field("typeLine").alias("type"),
-                face_field("oracleText").alias("text"),
+                # art_series tokens have no text (CDN omits empty text for these)
+                pl.when(pl.col("layout") == "art_series")
+                .then(pl.lit(None).cast(pl.String))
+                .otherwise(face_field("oracleText"))
+                .alias("text"),
                 face_field("flavorText").alias("flavorText"),
                 face_field("power").alias("power"),
                 face_field("toughness").alias("toughness"),

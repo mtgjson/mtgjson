@@ -171,7 +171,6 @@ ALLOW_IF_FALSEY: Final[frozenset[str]] = frozenset({
 	# Required string fields
 	"uuid",
 	"setCode",
-	"text",
 	"type",
 	"layout",
 	"frameVersion",
