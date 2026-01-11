@@ -147,16 +147,10 @@ class GlobalCache:
         self.mtgo_to_uuid_df: pl.DataFrame | None = None
         self.cardmarket_to_uuid_df: pl.DataFrame | None = None
 
-        # UUID -> oracle_id mapping for joining rulings to cards
         self.uuid_to_oracle_df: pl.DataFrame | None = None
 
-        # Default card languages mapping (from default_cards bulk file)
-        # Used to determine which language version is "primary" for each card
-        # For most cards this is English, for foreign-only sets it's the printed language
         self.default_card_languages: pl.LazyFrame | None = None
-
-        # Final pipeline LazyFrame (pre-rename, all joins applied)
-        # Set by build_cards() after all transforms, before rename_all_the_things
+        
         self.final_cards_lf: pl.LazyFrame | None = None
 
         # Raw resource data
@@ -169,6 +163,7 @@ class GlobalCache:
         self.standard_legal_sets: set[str] = set()
         self.unlimited_cards: set[str] = set()  # Cards that can have unlimited copies
         self._categoricals: DynamicCategoricals | None = None
+        
         # Provider instances (lazy)
         self._scryfall: ScryfallProvider | None = None
         self._cardkingdom: CKProvider | None = None
@@ -943,12 +938,40 @@ class GlobalCache:
         Build MCM lookup table from CardMarket provider.
 
         Must be called after sets_df is loaded since it iterates through all sets.
-        This is a slow operation (~2-5 min) as it fetches data for each set.
+        This is a slow operation (~10-30 min) as it fetches data for each expansion.
+
+        NOTE: MCM fetching is implemented in providers/v2/cardmarket/provider.py.
+        On full builds (build box), run the provider first to populate mkm_cards.parquet,
+        then this will load it and build the lookup table. For local dev builds without
+        MCM data, this returns an empty DataFrame with the correct schema.
         """
         cache_path = self.cache_path / "mcm_lookup.parquet"
 
         if _cache_fresh(cache_path):
             self.mcm_lookup_df = pl.read_parquet(cache_path)
+            return
+
+        # Try to load raw MKM data from cache
+        raw_cache = self.cache_path / "mkm_cards.parquet"
+        if not raw_cache.exists():
+            # No MCM data available - return empty with correct schema
+            # Full builds should run: python -m mtgjson5.providers.v2.cardmarket.provider
+            LOGGER.info("No MCM cache (mcmMetaId will be null). Run provider separately for full data.")
+            self.mcm_lookup_df = pl.DataFrame(
+                schema={
+                    "mcmId": pl.String,
+                    "mcmMetaId": pl.String,
+                    "setCode": pl.String,
+                    "nameLower": pl.String,
+                    "number": pl.String,
+                }
+            )
+            return
+
+        raw_df = pl.read_parquet(raw_cache)
+        if raw_df.is_empty():
+            LOGGER.warning("MCM cache is empty")
+            self.mcm_lookup_df = pl.DataFrame()
             return
 
         sets_df_raw = self.sets_df
@@ -960,31 +983,38 @@ class GlobalCache:
             if isinstance(sets_df_raw, pl.LazyFrame)
             else sets_df_raw
         )
-        if sets_df.height == 0:
-            LOGGER.warning("Sets not loaded, skipping MCM lookup table")
-            return
 
-        try:
-            self.mcm_lookup_df = pl.DataFrame(
-                {
-                    "mcmId": [],
-                    "mcmMetaId": [],
-                    "setCode": [],
-                    "nameLower": [],
-                    "number": [],
-                }
-            ).cast(
-                {
-                    "mcmId": pl.String,
-                    "mcmMetaId": pl.String,
-                    "setCode": pl.String,
-                    "nameLower": pl.String,
-                    "number": pl.String,
-                }
+        # Build setCode mapping: mcmId (expansion ID) -> setCode
+        set_mapping = (
+            sets_df.select([
+                pl.col("code").alias("setCode"),
+                pl.col("mcmId").cast(pl.Int64).alias("_mcm_expansion_id"),
+            ])
+            .filter(pl.col("_mcm_expansion_id").is_not_null())
+            .unique(subset=["_mcm_expansion_id"])
+        )
+
+        # Transform to lookup schema
+        self.mcm_lookup_df = (
+            raw_df
+            .join(
+                set_mapping,
+                left_on="expansionId",
+                right_on="_mcm_expansion_id",
+                how="inner",
             )
-        except Exception as e:
-            LOGGER.error(f"Failed to build MCM lookup: {e}")
-            self.mcm_lookup_df = pl.DataFrame()
+            .select([
+                pl.col("mcmId").cast(pl.String),
+                pl.col("mcmMetaId").cast(pl.String),
+                pl.col("setCode"),
+                pl.col("name").str.to_lowercase().alias("nameLower"),
+                pl.col("number").cast(pl.String),
+            ])
+        )
+
+        # Cache the lookup
+        self.mcm_lookup_df.write_parquet(cache_path)
+        LOGGER.info(f"Built MCM lookup: {len(self.mcm_lookup_df):,} cards")
 
     def _normalize_all_columns(self) -> None:
         """Normalize ALL DataFrame columns to camelCase"""
