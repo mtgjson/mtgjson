@@ -131,6 +131,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Fast path: assemble from cached parquet/metadata (skips pipeline). Requires prior --use-models run.",
     )
+    pipeline_group.add_argument(
+        "--v2",
+        action="store_true",
+        help="Shorthand for --use-models --polars --all-sets --full-build (new pipeline).",
+    )
 
     # MTGJSON maintainer arguments
     mtgjson_arg_group = parser.add_argument_group("mtgjson maintainer arguments")
@@ -171,6 +176,13 @@ def parse_args() -> argparse.Namespace:
         parser.exit()
 
     parsed_args = parser.parse_args()
+
+    # Expand --v2 shorthand
+    if parsed_args.v2:
+        parsed_args.use_models = True
+        parsed_args.polars = True
+        parsed_args.all_sets = True
+        parsed_args.full_build = True
 
     if parsed_args.sets:
         flattened_sets = []
