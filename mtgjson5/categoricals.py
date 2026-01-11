@@ -153,12 +153,12 @@ def discover_categoricals(
             if isinstance(sets_lf, pl.LazyFrame)
             else sets_lf.schema
         )
-        if "set_type" in schema.names():
+        if "setType" in schema.names():
             sets_df = (
                 sets_lf.collect() if isinstance(sets_lf, pl.LazyFrame) else sets_lf
             )
             set_types = (
-                sets_df.select(pl.col("set_type").drop_nulls().unique())
+                sets_df.select(pl.col("setType").drop_nulls().unique())
                 .to_series()
                 .to_list()
             )
