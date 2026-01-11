@@ -54,6 +54,7 @@ _SCRYFALL_COLUMNS_TO_DROP = [
     "reprint",  # -> isReprint
     "storySpotlight",  # -> isStorySpotlight
     "reserved",  # -> isReserved
+    "digital",  # -> isOnlineOnly
     "foil",  # dropped (finishes provides hasFoil)
     "nonfoil",  # dropped (finishes provides hasNonFoil)
     "cmc",  # -> manaValue
@@ -66,7 +67,6 @@ _SCRYFALL_COLUMNS_TO_DROP = [
     "handModifier",  # -> hand
     "lifeModifier",  # -> life
     "gameChanger",  # -> isGameChanger
-    "digital",  # -> isOnlineOnly
     # Dropped in add_identifiers_struct (consumed into identifiers struct)
     "mcmId",  # intermediate column from CardMarket join
     "mcmMetaId",  # intermediate column from CardMarket join
@@ -778,6 +778,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                 pl.col("reprint").alias("isReprint"),
                 pl.col("storySpotlight").alias("isStorySpotlight"),
                 pl.col("reserved").alias("isReserved"),
+                pl.col("digital").alias("isOnlineOnly"),
                 # hasFoil/hasNonFoil are computed from finishes in add_card_attributes()
                 pl.col("flavorName"),
                 pl.col("allParts"),
@@ -3070,7 +3071,7 @@ def build_cards(
         .pipe(add_original_release_date)  # Set for promos with card-specific release dates
         .drop([
             "lang", "frame", "fullArt", "textless", "oversized", "promo", "reprint",
-            "storySpotlight", "reserved", "digital", "cmc", "typeLine", "oracleText",
+            "storySpotlight", "reserved", "cmc", "typeLine", "oracleText",
             "printedTypeLine", "setReleasedAt"  # setReleasedAt only needed for originalReleaseDate computation
         ], strict=False)
         .pipe(partial(join_face_flavor_names, ctx=ctx))
