@@ -1,0 +1,14 @@
+{
+  "_comment": "Override rules for foreignData variant filtering",
+  
+  "include": {
+    "_comment": "Cards that should HAVE foreignData despite matching exclusion pattern",
+    "PGRN": ["221s", "222s", "224s", "225s", "229s"],
+    "MIR": ["120†"]
+  },
+  
+  "exclude": {
+    "_comment": "Cards that should NOT have foreignData",
+    "PTOR": ["67†a"]
+  }
+}
