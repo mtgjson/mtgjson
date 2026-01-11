@@ -977,6 +977,39 @@ def add_card_attributes(lf: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+# 1.5.1: Fix promoTypes
+def fix_promo_types(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Fix promoTypes:
+    1. Add 'planeswalkerstamped' when collector number ends with 'p'
+    2. Remove 'planeswalkerdeck' (covered by boosterTypes.deck)
+    3. Convert empty lists to null
+    """
+    return (
+        lf
+        # Add planeswalkerstamped for 'p' suffix cards
+        .with_columns(
+            pl.when(pl.col("number").str.ends_with("p"))
+            .then(pl.col("promoTypes").list.concat(pl.lit(["planeswalkerstamped"])))
+            .otherwise(pl.col("promoTypes"))
+            .alias("promoTypes")
+        )
+        # Remove planeswalkerdeck
+        .with_columns(
+            pl.col("promoTypes")
+            .list.eval(pl.element().filter(pl.element() != "planeswalkerdeck"))
+            .alias("promoTypes")
+        )
+        # Empty list -> null
+        .with_columns(
+            pl.when(pl.col("promoTypes").list.len() == 0)
+            .then(pl.lit(None).cast(pl.List(pl.String)))
+            .otherwise(pl.col("promoTypes"))
+            .alias("promoTypes")
+        )
+    )
+
+
 # 1.6: Filter keywords for face
 def filter_keywords_for_face(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
@@ -999,7 +1032,7 @@ def filter_keywords_for_face(lf: pl.LazyFrame) -> pl.LazyFrame:
         .alias("keywords")
     ).drop("_all_keywords")
 
-# 1.7: Add booster types and isStarter
+
 def add_booster_types(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Compute boosterTypes and isStarter based on Scryfall booster field and promoTypes.
@@ -1008,7 +1041,6 @@ def add_booster_types(lf: pl.LazyFrame) -> pl.LazyFrame:
     - If promoTypes contains "starterdeck" or "planeswalkerdeck", add "deck"
     - isStarter is True when card is NOT in boosters (starter deck exclusive cards)
     """
-    # Extract common subexpression to avoid duplicate computation
     has_starter_promo = (
         pl.col("promoTypes")
         .list.set_intersection(pl.lit(["starterdeck", "planeswalkerdeck"]))
@@ -1032,7 +1064,6 @@ def add_booster_types(lf: pl.LazyFrame) -> pl.LazyFrame:
                 .otherwise(pl.lit([]).cast(pl.List(pl.String)))
             )
             .alias("boosterTypes"),
-            # isStarter: True for cards NOT found in boosters (starter deck exclusive)
             pl.when(~pl.col("_in_booster").fill_null(True))
             .then(pl.lit(True))
             .otherwise(pl.lit(None))
@@ -1040,18 +1071,13 @@ def add_booster_types(lf: pl.LazyFrame) -> pl.LazyFrame:
         ]
     ).drop("_in_booster")
 
-
-# 1.8: Build legalities struct
 def add_legalities_struct(
     lf: pl.LazyFrame,
     ctx: PipelineContext,
 ) -> pl.LazyFrame:
     """
     Builds legalities struct from Scryfall's legalities column.
-
-    Uses dynamically discovered format names instead of hardcoded list.
     """
-    # Unnest the source struct to get individual format columns
     lf = lf.unnest("legalities")
 
     # Use discovered formats from source data
@@ -1062,7 +1088,6 @@ def add_legalities_struct(
     )
 
     if not formats:
-        # Fallback: return empty struct if no formats discovered
         return lf.with_columns(pl.lit(None).alias("legalities"))
 
     # Build expressions for each format
@@ -1086,15 +1111,12 @@ def add_legalities_struct(
     )
 
 
-# 1.9: Build availability list from games column
 def add_availability_struct(
     lf: pl.LazyFrame,
     ctx: PipelineContext,
 ) -> pl.LazyFrame:
     """
     Build availability list from games column.
-
-    Uses dynamically discovered game platforms.
     """
     schema = lf.collect_schema()
 
@@ -1103,19 +1125,15 @@ def add_availability_struct(
             pl.lit([]).cast(pl.List(pl.String)).alias("availability")
         )
 
-    # Use discovered platforms
     categoricals = ctx.categoricals
     platforms = categoricals.games if categoricals else []
 
     if not platforms:
-        # Fallback: just pass through games as availability
         return lf.with_columns(pl.col("games").alias("availability"))
 
     games_dtype = schema["games"]
 
-    # Handle struct format (from parquet) vs list format (from JSON)
     if isinstance(games_dtype, pl.Struct):
-        # Struct format: {paper: true, arena: false, mtgo: true}
         return lf.with_columns(
             pl.concat_list(
                 [
@@ -1129,31 +1147,20 @@ def add_availability_struct(
             .list.sort()
             .alias("availability")
         )
-    # List format: ["paper", "mtgo"]
     return lf.with_columns(pl.col("games").list.sort().alias("availability"))
 
 
-# 1.9b: Fix availability based on ID presence (like legacy set_builder.py)
 def fix_availability_from_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Add platforms to availability if their respective ID fields are present.
-
-    Legacy set_builder.py logic:
-      availability.mtgo = "mtgo" in games OR mtgo_id is not None
-      availability.arena = "arena" in games OR arena_id is not None
-
-    This function adds "mtgo" or "arena" to availability if the card has
-    mtgoId or arenaId even when not in the games array.
     """
     schema = lf.collect_schema()
 
     if "availability" not in schema.names():
         return lf
 
-    # Build conditions for adding each platform
     exprs = []
 
-    # Add mtgo if mtgoId exists and mtgo not already in availability
     if "mtgoId" in schema.names():
         exprs.append(
             pl.when(
@@ -1165,7 +1172,6 @@ def fix_availability_from_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
             .alias("availability")
         )
 
-    # Add arena if arenaId exists and arena not already in availability
     if "arenaId" in schema.names():
         exprs.append(
             pl.when(
@@ -1177,11 +1183,9 @@ def fix_availability_from_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
             .alias("availability")
         )
 
-    # Apply each expression sequentially (since they both update availability)
     for expr in exprs:
         lf = lf.with_columns(expr)
 
-    # Re-sort after additions
     if exprs:
         lf = lf.with_columns(pl.col("availability").list.sort())
 
@@ -1193,11 +1197,7 @@ def join_cardmarket_ids(
     ctx: PipelineContext,
 ) -> pl.LazyFrame:
     """
-    Add CardMarket (MCM) identifiers to cards.
-
-    Uses Scryfall's cardmarket_id (renamed to cardmarketId after normalization)
-    as mcmId. The mcmMetaId requires API lookups and is only available from
-    the mcm_lookup table if populated.
+    Add CardMarket identifiers to cards.
     """
     mcm_df = ctx.mcm_lookup_df
 
@@ -1209,7 +1209,6 @@ def join_cardmarket_ids(
             ]
         )
 
-    # Handle LazyFrame from cache
     if isinstance(mcm_df, pl.LazyFrame):
         mcm_df = mcm_df.collect()
 
@@ -1221,35 +1220,27 @@ def join_cardmarket_ids(
             ]
         )
 
-    # Lookup table available - join to get mcmMetaId
     mcm_lookup = mcm_df.lazy()
 
     lf = lf.with_columns(
         [
-            # Lowercase name for matching
             pl.col("name").str.to_lowercase().alias("_join_name"),
             # Scryfall numbers often have leading zeros (e.g., "001"),
             # while MCM strips them. We strip them here to match.
             pl.col("number").str.strip_chars_start("0").alias("_join_number"),
         ]
     )
-
-    # Left join on Set + Name + Number
     lf = lf.join(
         mcm_lookup,
         left_on=["setCode", "_join_name", "_join_number"],
         right_on=["setCode", "nameLower", "number"],
         how="left",
     )
-
-    # Use Scryfall's cardmarketId as fallback for mcmId if lookup missed
     lf = lf.with_columns(
         pl.coalesce(pl.col("mcmId"), pl.col("cardmarketId").cast(pl.String)).alias(
             "mcmId"
         )
     )
-
-    # Keep mcmId and mcmMetaId columns - they'll be added to identifiers struct later
     lf = lf.drop(["_join_name", "_join_number"])
 
     return lf
@@ -1258,7 +1249,7 @@ def join_cardmarket_ids(
 # 2.2: add identifiers struct
 def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
-    Build the identifiers struct lazily.
+    Build the identifiers struct
     """
     return lf.with_columns(
         pl.struct(
@@ -1272,7 +1263,6 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
                 pl.col("illustrationId"),
             ),
             scryfallCardBackId=pl.col("cardBackId"),
-            # MCM IDs from CardMarket lookup (mcmId, mcmMetaId columns from join_cardmarket_ids)
             mcmId=pl.col("mcmId"),
             mcmMetaId=pl.col("mcmMetaId"),
             mtgArenaId=pl.col("arenaId").cast(pl.String),
@@ -3195,6 +3185,7 @@ def build_cards(
         .pipe(partial(update_meld_names, ctx=ctx))
         .pipe(detect_aftermath_layout)
         .pipe(add_basic_fields)
+        .pipe(fix_promo_types)
         .pipe(format_planeswalker_text)  # Wrap loyalty costs in brackets: +1: -> [+1]:
         .pipe(add_original_release_date)  # Set for promos with card-specific release dates
         .drop([
@@ -3397,9 +3388,7 @@ def build_expanded_decks_df(
     if not all_uuids:
         LOGGER.warning("No card UUIDs found in deck references")
         return pl.DataFrame()
-
-    # Read cards from parquet, filtered by UUIDs
-    # Both cards and tokens are in the same parquet dir (tokens have T prefix set codes)
+    
     parquet_dir = constants.CACHE_PATH / "_parquet"
 
     uuid_list = list(all_uuids)
@@ -3418,18 +3407,14 @@ def build_expanded_decks_df(
     # Add unique deck identifier for re-aggregation
     decks_df = decks_df.with_row_index("_deck_id")
 
-    # Card list columns to expand (using cards_df)
     card_list_cols = ["mainBoard", "sideBoard", "commander"]
 
-    # Expand each card list column (cards_df includes both cards and tokens)
     expanded_lists = {}
     for col in card_list_cols:
         expanded_lists[col] = _expand_card_list(decks_df, cards_df, col)
 
-    # Expand tokens (also from cards_df - tokens have T-prefix set codes)
     expanded_lists["tokens"] = _expand_card_list(decks_df, cards_df, "tokens")
 
-    # Start with deck metadata
     result = decks_df.select(
         "_deck_id",
         "setCode",
@@ -3441,7 +3426,7 @@ def build_expanded_decks_df(
             if "releaseDate" in available_cols
             else pl.lit(None).cast(pl.String).alias("releaseDate")
         ),
-        # sealedProductUuids should stay null when not present (don't fill with [])
+        # sealedProductUuids should stay null when not present
         (
             pl.col("sealedProductUuids")
             if "sealedProductUuids" in available_cols
@@ -3501,7 +3486,6 @@ def build_sealed_products_lf(
         LOGGER.warning("GitHub sealed products data not loaded in cache")
         return pl.DataFrame()
 
-    # Convert to LazyFrames for processing if needed
     if not isinstance(products_lf, pl.LazyFrame):
         products_lf = products_lf.lazy()
 
@@ -3569,7 +3553,6 @@ def build_sealed_products_lf(
         )
     )
 
-    # Extract product-level cardCount (same value per product, take first)
     product_card_count = (
         contents_lf
         .filter(pl.col("cardCount").is_not_null())
@@ -3577,7 +3560,6 @@ def build_sealed_products_lf(
         .agg(pl.col("cardCount").first().alias("cardCount"))
     )
 
-    # Join contents to products
     result = (
         products_lf.join(card_contents, on=["setCode", "productName"], how="left")
         .join(sealed_contents, on=["setCode", "productName"], how="left")
@@ -3587,7 +3569,6 @@ def build_sealed_products_lf(
         .join(product_card_count, on=["setCode", "productName"], how="left")
     )
 
-    # Build contents struct
     result = result.with_columns(
         pl.struct(
             card=pl.col("_card_list"),
@@ -3598,13 +3579,10 @@ def build_sealed_products_lf(
         ).alias("contents")
     ).drop(["_card_list", "_sealed_list", "_other_list", "_deck_list", "_pack_list"])
 
-    # Generate UUID for each product (uuid5 from product name)
     result = result.with_columns(
         _uuid5_expr("productName").alias("uuid")
     )
 
-    # Build purchaseUrls from identifiers if present
-    # create MTGJSON redirect URLs
     base_url = "https://mtgjson.com/links/"
 
     # Build URL hash columns for each provider
