@@ -302,8 +302,10 @@ class PipelineContext:
                         "scryfallId",
                         "cardKingdomId",
                         "cardKingdomFoilId",
+                        "cardKingdomEtchedId",
                         "cardKingdomUrl",
                         "cardKingdomFoilUrl",
+                        "cardKingdomEtchedUrl",
                     ]
                 )
                 result = result.join(ck, on="scryfallId", how="left")

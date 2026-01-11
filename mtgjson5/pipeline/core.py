@@ -2414,12 +2414,6 @@ def join_identifiers(
         how="left",
     )
 
-    # Add etched placeholders (Card Kingdom doesn't have etched data)
-    lf = lf.with_columns(
-        pl.lit(None).cast(pl.String).alias("cardKingdomEtchedId"),
-        pl.lit(None).cast(pl.String).alias("cardKingdomEtchedUrl"),
-    )
-
     return lf.drop("_side_for_join", strict=False)
 
 
@@ -3517,6 +3511,28 @@ def build_sealed_products_lf(
         )
     )
 
+    deck_contents = (
+        contents_lf.filter(pl.col("contentType") == "deck")
+        .group_by(["setCode", "productName"])
+        .agg(
+            pl.struct(
+                name=pl.col("name"),
+                set=pl.col("set"),
+            ).alias("_deck_list")
+        )
+    )
+
+    pack_contents = (
+        contents_lf.filter(pl.col("contentType") == "pack")
+        .group_by(["setCode", "productName"])
+        .agg(
+            pl.struct(
+                code=pl.col("code"),
+                set=pl.col("set"),
+            ).alias("_pack_list")
+        )
+    )
+
     # Extract product-level cardCount (same value per product, take first)
     product_card_count = (
         contents_lf
@@ -3530,6 +3546,8 @@ def build_sealed_products_lf(
         products_lf.join(card_contents, on=["setCode", "productName"], how="left")
         .join(sealed_contents, on=["setCode", "productName"], how="left")
         .join(other_contents, on=["setCode", "productName"], how="left")
+        .join(deck_contents, on=["setCode", "productName"], how="left")
+        .join(pack_contents, on=["setCode", "productName"], how="left")
         .join(product_card_count, on=["setCode", "productName"], how="left")
     )
 
@@ -3537,10 +3555,12 @@ def build_sealed_products_lf(
     result = result.with_columns(
         pl.struct(
             card=pl.col("_card_list"),
-            sealed=pl.col("_sealed_list"),
+            deck=pl.col("_deck_list"),
             other=pl.col("_other_list"),
+            pack=pl.col("_pack_list"),
+            sealed=pl.col("_sealed_list"),
         ).alias("contents")
-    ).drop(["_card_list", "_sealed_list", "_other_list"])
+    ).drop(["_card_list", "_sealed_list", "_other_list", "_deck_list", "_pack_list"])
 
     # Generate UUID for each product (uuid5 from product name)
     result = result.with_columns(

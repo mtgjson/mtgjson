@@ -96,7 +96,7 @@ class CardKingdomTransformer:
     @staticmethod
     def pivot_by_scryfall_id(df: pl.DataFrame) -> pl.DataFrame:
         """
-        Pivot to one row per scryfall_id with foil/non-foil columns.
+        Pivot to one row per scryfall_id with foil/non-foil/etched columns.
 
         Output columns:
         - id (scryfall_id renamed for joins)
@@ -104,37 +104,49 @@ class CardKingdomTransformer:
         - cardKingdomUrl (non-foil URL path)
         - cardKingdomFoilId (foil CK product ID)
         - cardKingdomFoilUrl (foil URL path)
+        - cardKingdomEtchedId (etched CK product ID)
+        - cardKingdomEtchedUrl (etched URL path)
 
         Cards without scryfall_id are excluded.
         """
+        # Add derived columns for foil/etched detection
+        df_with_flags = CardKingdomTransformer.add_derived_columns(df)
+
         return (
-            df.filter(pl.col("scryfall_id").is_not_null())
-            .with_columns(
-                (pl.col("is_foil").str.to_lowercase() == "true").alias("_is_foil")
-            )
+            df_with_flags.filter(pl.col("scryfall_id").is_not_null())
             .group_by("scryfall_id")
             .agg(
                 [
-                    # Non-foil
+                    # Non-foil (not foil AND not etched)
                     pl.col("id")
-                    .filter(~pl.col("_is_foil"))
+                    .filter(~pl.col("is_foil_bool") & ~pl.col("is_etched"))
                     .first()
                     .cast(pl.String)
                     .alias("cardKingdomId"),
                     pl.col("url")
-                    .filter(~pl.col("_is_foil"))
+                    .filter(~pl.col("is_foil_bool") & ~pl.col("is_etched"))
                     .first()
                     .alias("cardKingdomUrl"),
-                    # Foil
+                    # Foil (foil but not etched)
                     pl.col("id")
-                    .filter(pl.col("_is_foil"))
+                    .filter(pl.col("is_foil_bool") & ~pl.col("is_etched"))
                     .first()
                     .cast(pl.String)
                     .alias("cardKingdomFoilId"),
                     pl.col("url")
-                    .filter(pl.col("_is_foil"))
+                    .filter(pl.col("is_foil_bool") & ~pl.col("is_etched"))
                     .first()
                     .alias("cardKingdomFoilUrl"),
+                    # Etched
+                    pl.col("id")
+                    .filter(pl.col("is_etched"))
+                    .first()
+                    .cast(pl.String)
+                    .alias("cardKingdomEtchedId"),
+                    pl.col("url")
+                    .filter(pl.col("is_etched"))
+                    .first()
+                    .alias("cardKingdomEtchedUrl"),
                 ]
             )
             .rename({"scryfall_id": "id"})
