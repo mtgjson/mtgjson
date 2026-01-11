@@ -329,6 +329,74 @@ class PipelineContext:
             f"  identifiers_lf: {result.height:,} rows x {len(result.columns)} cols"
         )
 
+        # Apply fix for CK data not in uuid_cache
+        self._fix_identifiers_missing_ck()
+
+    def _fix_identifiers_missing_ck(self) -> None:
+        """
+        Fix: Add CK data for scryfallIds not in uuid_cache.
+
+        The original logic only joins CK to scryfallIds already in uuid_cache.
+        This misses new cards (like TLE) that have CK data but no legacy UUID.
+
+        For DFCs, we need entries for BOTH sides since the pipeline joins on
+        (scryfallId, side). Adding both ensures back faces get CK data too.
+        """
+        if self.card_kingdom_df is None or self.identifiers_lf is None:
+            return
+
+        ck_raw = self.card_kingdom_df
+        if isinstance(ck_raw, pl.LazyFrame):
+            ck: pl.DataFrame = ck_raw.collect()
+        else:
+            ck = ck_raw
+
+        if ck.height == 0:
+            return
+
+        # Get current identifiers
+        current = self.identifiers_lf.collect()
+        current_ids = set(current["scryfallId"].to_list())
+
+        # Find CK scryfallIds not in current identifiers
+        ck_ids = set(ck["id"].to_list())
+        missing_ids = ck_ids - current_ids
+
+        if not missing_ids:
+            return
+
+        LOGGER.info(f"  identifiers: +{len(missing_ids)} CK entries not in uuid_cache")
+
+        # Build rows for missing CK data
+        ck_renamed = ck.rename({"id": "scryfallId"})
+        missing_ck = ck_renamed.filter(pl.col("scryfallId").is_in(list(missing_ids)))
+
+        # Add required columns (side, cachedUuid, orientation)
+        # Create entries for BOTH sides to support DFCs (back faces need CK data too)
+        side_a_rows = missing_ck.with_columns(
+            pl.lit("a").alias("side"),
+            pl.lit(None).cast(pl.String).alias("cachedUuid"),
+            pl.lit(None).cast(pl.String).alias("orientation"),
+        )
+        side_b_rows = missing_ck.with_columns(
+            pl.lit("b").alias("side"),
+            pl.lit(None).cast(pl.String).alias("cachedUuid"),
+            pl.lit(None).cast(pl.String).alias("orientation"),
+        )
+
+        # Combine both sides
+        missing_rows = pl.concat([side_a_rows, side_b_rows])
+
+        # Ensure column order matches
+        missing_rows = missing_rows.select(current.columns)
+
+        # Append to current
+        result = pl.concat([current, missing_rows], how="diagonal")
+        self.identifiers_lf = result.lazy()
+        LOGGER.info(
+            f"  identifiers_lf: {result.height:,} rows (after CK fix)"
+        )
+
     def _build_oracle_data_lookup(self) -> None:
         """
         Build consolidated oracle data lookup (by oracleId).

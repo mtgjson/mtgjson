@@ -77,15 +77,12 @@ class CardKingdomTransformer:
         """
         Add derived columns for foil/etched detection.
 
-        - is_foil_bool: True if SKU starts with 'F' or is_foil == 'true'
+        - is_foil_bool: True if is_foil == 'true' (don't use SKU - set codes like FDN start with F)
         - is_etched: True if variation contains 'Foil Etched'
         """
         return df.with_columns(
             [
-                (
-                    pl.col("sku").str.starts_with("F")
-                    | (pl.col("is_foil").str.to_lowercase() == "true")
-                ).alias("is_foil_bool"),
+                (pl.col("is_foil").str.to_lowercase() == "true").alias("is_foil_bool"),
                 pl.col("variation")
                 .fill_null("")
                 .str.contains("Foil Etched")
