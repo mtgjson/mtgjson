@@ -834,14 +834,43 @@ def parse_type_line_expr(lf: pl.LazyFrame) -> pl.LazyFrame:
     - supertypes: ["Legendary"]
     - types: ["Creature"]
     - subtypes: ["Human", "Wizard"]
+
+    Handles multi-word subtypes like "Time Lord" and Plane subtypes like "Blind Eternities".
     """
     super_types_list = list(constants.SUPER_TYPES)
+    multi_word_subtypes = list(constants.MULTI_WORD_SUB_TYPES)
 
     # already renamed type_line -> type
     type_line = pl.col("type").fill_null("Card")
 
     # Split on em-dash
     split_type = type_line.str.split(" — ")
+
+    # Build subtypes expression that handles:
+    # 1. Plane types: keep entire subtypes part as single entry
+    # 2. Multi-word subtypes: replace space with placeholder, split, restore
+    subtypes_part = pl.col("_subtypes_part").str.strip_chars()
+
+    # For multi-word subtypes, replace spaces with placeholder before splitting
+    subtypes_processed = subtypes_part
+    for mw_subtype in multi_word_subtypes:
+        subtypes_processed = subtypes_processed.str.replace_all(
+            mw_subtype, mw_subtype.replace(" ", "\x00")
+        )
+
+    # Plane types: don't split by space, keep as single entry (e.g. "Blind Eternities")
+    # Others: split by space, then restore multi-word placeholders
+    subtypes_expr = (
+        pl.when(pl.col("_subtypes_part").is_null())
+        .then(pl.lit([]).cast(pl.List(pl.String)))
+        .when(pl.col("_types_part").str.starts_with("Plane"))
+        .then(pl.concat_list([pl.col("_subtypes_part").str.strip_chars()]))
+        .otherwise(
+            subtypes_processed.str.split(" ").list.eval(
+                pl.element().str.replace_all("\x00", " ")
+            )
+        )
+    )
 
     return (
         lf.with_columns(
@@ -858,10 +887,7 @@ def parse_type_line_expr(lf: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("_type_words")
             .list.eval(pl.element().filter(~pl.element().is_in(super_types_list)))
             .alias("types"),
-            pl.when(pl.col("_subtypes_part").is_not_null())
-            .then(pl.col("_subtypes_part").str.strip_chars().str.split(" "))
-            .otherwise(pl.lit([]).cast(pl.List(pl.String)))
-            .alias("subtypes"),
+            subtypes_expr.alias("subtypes"),
         )
         .drop(["_types_part", "_subtypes_part", "_type_words"])
     )
