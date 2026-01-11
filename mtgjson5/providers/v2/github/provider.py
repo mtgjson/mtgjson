@@ -146,6 +146,10 @@ def _build_decks_records(decks_raw: list, deck_map: dict) -> list[dict]:
             "mainBoard": _extract_card_list(deck.get("cards", [])),
             "sideBoard": _extract_card_list(deck.get("sideboard", [])),
             "commander": _extract_card_list(deck.get("commander", [])),
+            "displayCommander": _extract_card_list(deck.get("displayCommander", [])),
+            "tokens": _extract_card_list(deck.get("tokens", [])),
+            "planes": _extract_card_list(deck.get("planarDeck", [])),
+            "schemes": _extract_card_list(deck.get("schemeDeck", [])),
         }
         for deck in decks_raw
     ]

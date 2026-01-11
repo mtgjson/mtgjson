@@ -33,6 +33,12 @@ class DeckSet(PolarsMixin, BaseModel):
 	main_board: list[CardSetDeck] = Field(default_factory=list, alias="mainBoard")
 	side_board: list[CardSetDeck] = Field(default_factory=list, alias="sideBoard")
 	commander: list[CardSetDeck] | None = None
+	# Additional deck fields
+	display_commander: list[CardSetDeck] | None = Field(default=None, alias="displayCommander")
+	tokens: list[CardSetDeck] | None = None
+	planes: list[CardSetDeck] | None = None
+	schemes: list[CardSetDeck] | None = None
+	source_set_codes: list[str] | None = Field(default=None, alias="sourceSetCodes")
 
 
 # =============================================================================
