@@ -66,6 +66,7 @@ FACE_NAME_LAYOUTS: Final[frozenset[str]] = frozenset(
 		LayoutVariant.ADVENTURE.value,
 		LayoutVariant.BATTLE.value,
 		LayoutVariant.DOUBLE_FACED_TOKEN.value,
+		LayoutVariant.ART_SERIES.value,
 	}
 )
 

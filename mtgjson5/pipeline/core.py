@@ -690,6 +690,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                             "adventure",
                             "battle",
                             "double_faced_token",
+                            "art_series",
                         ]
                     )
                 )
