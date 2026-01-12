@@ -1169,8 +1169,17 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
 			mtgArenaId=pl.col("arenaId").cast(pl.String),
 			mtgoId=pl.col("mtgoId").cast(pl.String),
 			mtgoFoilId=pl.col("mtgoFoilId").cast(pl.String),
+			# Multi-face cards: use faceId to index, but clamp to available range
+			# Transform/modal_dfc may have separate multiverseIds per face
+			# Adventure/split/flip share one multiverseId for all faces
 			multiverseId=pl.col("multiverseIds")
-			.list.get(pl.col("faceId").fill_null(0), null_on_oob=True)
+			.list.get(
+				pl.min_horizontal(
+					pl.col("faceId").fill_null(0),
+					(pl.col("multiverseIds").list.len() - 1).clip(lower_bound=0),
+				),
+				null_on_oob=True,
+			)
 			.cast(pl.String),
 			tcgplayerProductId=pl.col("tcgplayerId").cast(pl.String),
 			tcgplayerEtchedProductId=pl.col("tcgplayerEtchedId").cast(pl.String),
@@ -1734,9 +1743,11 @@ def apply_manual_overrides(
 
 
 # 5.2:
-def add_rebalanced_linkage(lf: pl.LazyFrame) -> pl.LazyFrame:
+def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyFrame:
 	"""
-	Link rebalanced cards (A-Name) to their original printings and vice versa
+	Link rebalanced cards (A-Name) to their original printings and vice versa.
+
+	Important: Linkage is scoped to the same set AND default language only (legacy behavior).
 	"""
 	is_rebalanced = pl.col("name").str.starts_with("A-") | pl.col("promoTypes").list.contains("rebalanced")
 
@@ -1746,54 +1757,75 @@ def add_rebalanced_linkage(lf: pl.LazyFrame) -> pl.LazyFrame:
 	)
 
 	is_rebalanced = pl.col("name").str.starts_with("A-")
-	original_name_expr = pl.col("name").str.replace("^A-", "")
+	# Handle multi-face rebalanced cards: "A-Front // A-Back" -> "Front // Back"
+	original_name_expr = pl.col("name").str.replace_all("A-", "")
 
-	# Build rebalanced -> original name mapping with UUIDs
+	# Filter to default language only for UUID aggregation
+	# This ensures we only link UUIDs that will exist in final output
+	default_langs = ctx.default_card_languages
+	if default_langs is not None:
+		default_lang_lf = lf.join(default_langs, on=["scryfallId", "language"], how="semi")
+	else:
+		# Fallback to English
+		default_lang_lf = lf.filter(pl.col("language") == "English")
+
+	# Build rebalanced -> original name mapping with UUIDs (per set, default language only)
+	# NOTE: UUID order may differ from CDN for multi-face cards (CDN orders by side, we sort alphabetically)
 	rebalanced_map = (
-		lf.filter(is_rebalanced)
+		default_lang_lf.filter(is_rebalanced)
 		.select(
 			[
+				pl.col("setCode"),
 				original_name_expr.alias("_original_name"),
 				pl.col("uuid"),
 			]
 		)
-		.group_by("_original_name")
-		.agg(pl.col("uuid").alias("_rebalanced_uuids"))
+		.group_by(["setCode", "_original_name"])
+		.agg(pl.col("uuid").sort().alias("_rebalanced_uuids"))
 	)
 
-	# Build original name -> original UUIDs mapping
+	# Build original name -> original UUIDs mapping (per set, default language only)
 	original_map = (
-		lf.filter(~is_rebalanced)
+		default_lang_lf.filter(~is_rebalanced)
 		.select(
 			[
+				pl.col("setCode"),
 				pl.col("name").alias("_original_name"),
 				pl.col("uuid"),
 			]
 		)
 		.join(
-			rebalanced_map.select("_original_name").unique(),
-			on="_original_name",
-			how="semi",  # Only keep names that have a rebalanced version
+			rebalanced_map.select(["setCode", "_original_name"]).unique(),
+			on=["setCode", "_original_name"],
+			how="semi",  # Only keep names that have a rebalanced version in same set
 		)
-		.group_by("_original_name")
-		.agg(pl.col("uuid").alias("_original_uuids"))
+		.group_by(["setCode", "_original_name"])
+		.agg(pl.col("uuid").sort().alias("_original_uuids"))
 	)
 
-	# Join rebalancedPrintings onto original cards (by name)
+	# Join rebalancedPrintings onto original cards (by set + name)
 	lf = lf.join(
 		rebalanced_map,
-		left_on="name",
-		right_on="_original_name",
+		left_on=["setCode", "name"],
+		right_on=["setCode", "_original_name"],
 		how="left",
 	).rename({"_rebalanced_uuids": "rebalancedPrintings"})
 
-	# Join originalPrintings onto rebalanced cards (by stripped name)
+	# Join originalPrintings onto rebalanced cards (by set + stripped name)
 	lf = lf.join(
 		original_map,
-		left_on=original_name_expr,
-		right_on="_original_name",
+		left_on=["setCode", original_name_expr],
+		right_on=["setCode", "_original_name"],
 		how="left",
 	).rename({"_original_uuids": "originalPrintings"})
+
+	# originalPrintings should only be set for rebalanced cards, not originals
+	lf = lf.with_columns(
+		pl.when(is_rebalanced)
+		.then(pl.col("originalPrintings"))
+		.otherwise(pl.lit(None).cast(pl.List(pl.String)))
+		.alias("originalPrintings")
+	)
 
 	return lf
 
@@ -2985,7 +3017,7 @@ def build_cards(
 	# Final enrichment (includes self-join patterns)
 	lf = (
 		lf.pipe(partial(apply_manual_overrides, ctx=ctx))
-		.pipe(add_rebalanced_linkage)
+		.pipe(partial(add_rebalanced_linkage, ctx=ctx))
 		.pipe(link_foil_nonfoil_versions)
 		.pipe(partial(add_secret_lair_subsets, ctx=ctx))
 		.pipe(partial(add_source_products, ctx=ctx))
