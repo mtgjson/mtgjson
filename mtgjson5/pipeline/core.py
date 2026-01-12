@@ -39,7 +39,7 @@ from mtgjson5.pipeline.expressions import (
 	extract_colors_from_mana_expr,
 	order_finishes_expr,
 )
-from mtgjson5.pipeline.lookups import add_meld_other_face_ids
+from mtgjson5.pipeline.lookups import add_meld_other_face_ids, apply_meld_overrides
 from mtgjson5.providers.cardmarket.monolith import CardMarketProvider
 from mtgjson5.utils import LOGGER, to_camel_case, to_snake_case
 
@@ -247,16 +247,6 @@ def assign_meld_sides(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
 def update_meld_names(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
 	"""
 	Update name for meld cards and store original name as _meld_face_name.
-
-	For meld front sides (side="a"):
-	- _meld_face_name = original name (e.g., "Mishra, Claimed by Gix")
-	- name = "{original name} // {melded result name}" (e.g., "Mishra, Claimed by Gix // Mishra, Lost to Phyrexia")
-
-	For meld back sides (side="b"):
-	- _meld_face_name = original name
-	- name = original name (no change)
-
-	Note: _meld_face_name is used later by add_basic_fields to set faceName correctly.
 	"""
 	if not ctx.meld_triplets:
 		# Add empty column for consistency
@@ -613,15 +603,9 @@ def add_original_release_date(lf: pl.LazyFrame) -> pl.LazyFrame:
 def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFrame:
 	"""
 	Add basic card fields: name, setCode, language, etc.
-
-	Maps Scryfall column names to MTGJSON names.
-	For multi-face cards, the name is the face-specific name.
 	"""
 
 	def face_field(field_name: str) -> pl.Expr:
-		# For multi-face cards, prefer face-specific data; for single-face, use root field
-		# _face_data is now properly typed as a struct (even when null), so coalesce works
-		# Note: struct fields are snake_case (from Scryfall JSON), root columns are camelCase
 		struct_field = to_snake_case(field_name) if "_" not in field_name else field_name
 		return pl.coalesce(
 			pl.col("_face_data").struct.field(struct_field),
@@ -643,13 +627,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 		)
 		.with_columns(
 			[
-				# Card-level name (full name with // for multi-face)
-				# Scryfall's root "name" has the full name like "Invasion of Ravnica // Guildpact Paragon"
 				pl.col("name").alias("name"),
-				# Face-specific name (only for multi-face cards)
-				# faceName is the individual face's name
-				# For meld cards: use _meld_face_name (original name before " // MeldResult" was added)
-				# For other multi-face: use face_field("name")
 				pl.when(pl.col("layout") == "meld")
 				.then(pl.col("_meld_face_name"))
 				.when(
@@ -671,10 +649,6 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 				.then(face_field("name"))
 				.otherwise(pl.lit(None).cast(pl.String))
 				.alias("faceName"),
-				# Face-specific flavor name (only for multi-face cards)
-				# NOTE: flavor_name is NOT in Scryfall bulk data card_faces - only in API
-				# Production MTGJSON likely fetches this from a separate source
-				# For now, use top-level flavorName (which is None for multi-face cards)
 				pl.when(
 					pl.col("layout").is_in(
 						[
@@ -696,7 +670,6 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 				# Face-aware fields (must have explicit aliases to avoid duplicates)
 				face_field("manaCost").alias("manaCost"),
 				face_field("typeLine").alias("type"),
-				# art_series tokens have no text (CDN omits empty text for these)
 				pl.when(pl.col("layout") == "art_series")
 				.then(pl.lit(None).cast(pl.String))
 				.otherwise(face_field("oracleText"))
@@ -710,8 +683,6 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 				face_field("watermark").alias("watermark"),
 				face_field("illustrationId").alias("illustrationId"),
 				face_field("colorIndicator").alias("colorIndicator"),
-				# Colors: For split/aftermath, calculate from face mana_cost
-				# since Scryfall bulk data has null face colors for these layouts
 				pl.when(pl.col("layout").is_in(["split", "aftermath"]))
 				.then(extract_colors_from_mana_expr(pl.col("_face_data").struct.field("mana_cost")))
 				.otherwise(face_field("colors"))
@@ -719,7 +690,6 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 				face_field("printedText").alias("printedText"),
 				face_field("printedTypeLine").alias("printedType"),
 				face_field("printedName").alias("printedName"),
-				# Face-specific printed name (only for multi-face cards with localized content)
 				pl.when(
 					pl.col("layout").is_in(
 						[
@@ -738,7 +708,6 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 				.then(face_field("printedName"))
 				.otherwise(pl.lit(None).cast(pl.String))
 				.alias("facePrintedName"),
-				# Card-level fields (not face-specific)
 				pl.col("setCode").str.to_uppercase(),
 				pl.col("cmc").alias("manaValue"),
 				pl.col("colorIdentity"),
@@ -754,11 +723,8 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 				pl.col("storySpotlight").alias("isStorySpotlight"),
 				pl.col("reserved").alias("isReserved"),
 				pl.col("digital").alias("isOnlineOnly"),
-				# hasFoil/hasNonFoil are computed from finishes in add_card_attributes()
-				# flavorName: use Scryfall's flavor_name, fall back to printed_name for non-English cards
 				pl.coalesce(pl.col("flavorName"), pl.col("printedName")).alias("flavorName"),
 				pl.col("allParts"),
-				# Language mapping
 				pl.col("lang")
 				.replace_strict(
 					{
@@ -788,7 +754,6 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 		)
 		.with_columns(
 			pl.when(ascii_name != face_name).then(ascii_name).otherwise(None).alias("asciiName"),
-			# Prepare fields needed by add_booster_types (runs before add_card_attributes)
 			pl.col("booster").alias("_in_booster"),
 			pl.col("promoTypes").fill_null([]).alias("promoTypes"),
 		)
@@ -903,8 +868,6 @@ def add_card_attributes(lf: pl.LazyFrame) -> pl.LazyFrame:
 		pl.col("handModifier").alias("hand"),
 		pl.col("lifeModifier").alias("life"),
 		pl.col("edhrecRank").alias("edhrecRank"),
-		# Note: promoTypes and _in_booster are created in add_basic_fields
-		# and processed by add_booster_types/fix_promo_types before this function runs
 		pl.col("gameChanger").fill_null(False).alias("isGameChanger"),
 		pl.col("layout"),
 		pl.col("keywords").fill_null([]).alias("_all_keywords"),
@@ -1340,7 +1303,7 @@ def add_identifiers_v4_uuid(lf: pl.LazyFrame) -> pl.LazyFrame:
 	).drop("_mtgjsonV4Id")
 
 
-def add_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
+def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
 	"""
 	Link multi-face cards via Scryfall ID or name (for meld cards).
 	"""
@@ -1355,6 +1318,9 @@ def add_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
 	)
 
 	lf = add_meld_other_face_ids(lf)
+
+	if ctx.meld_overrides:
+		lf = apply_meld_overrides(lf, ctx.meld_overrides)
 
 	return lf
 
@@ -1578,18 +1544,9 @@ def add_alternative_deck_limit(
 ) -> pl.LazyFrame:
 	"""
 	Mark cards that don't have the standard 4-copy deck limit.
-
-	Combines two detection methods:
-	1. Pre-computed list from Scryfall's cards_without_limits
-	2. Oracle text pattern matching for cards not in the list
-
-	Pattern matching catches newer cards like Templar Knight that may not
-	be in the pre-computed list yet.
 	"""
 	unlimited_cards = ctx.unlimited_cards or set()
 
-	# Oracle text pattern matching
-	# Note: oracleText is renamed to "text" in add_basic_fields(), so we use that column name
 	oracle_text = (
 		pl.coalesce(
 			pl.col("_face_data").struct.field("oracle_text"),
@@ -1598,15 +1555,9 @@ def add_alternative_deck_limit(
 		.fill_null("")
 		.str.to_lowercase()
 	)
-
-	# Pattern 1: "a deck can have any number of cards named"
-	# Use single regex instead of multiple str.contains() calls for performance
 	pattern1 = oracle_text.str.contains(r"deck.*any.*number.*cards.*named")
-
-	# Pattern 2: "have up to ... cards named ... in your deck"
 	pattern2 = oracle_text.str.contains(r"have.*up.*to.*cards.*named.*deck")
-
-	# Combine pre-computed list with pattern matching
+	
 	in_list = pl.col("name").is_in(list(unlimited_cards)) if unlimited_cards else pl.lit(False)
 	matches_pattern = pattern1 | pattern2
 
@@ -1624,16 +1575,10 @@ def add_is_funny(
 	ctx: PipelineContext,
 ) -> pl.LazyFrame:
 	"""
-	Vectorized 'isFunny' logic.
-
-	Note: This still uses hardcoded "funny" check since it's a semantic
-	value not just a categorical enumeration. But we could validate that
-	"funny" exists in categoricals.set_types if desired.
+	Add isFunny flag based on setType and special cases.
 	"""
 	categoricals = ctx.categoricals
-	# Validate "funny" is a known set_type (optional sanity check)
 	if categoricals is None or "funny" not in categoricals.set_types:
-		# No funny sets exist - return all null
 		return lf.with_columns(pl.lit(None).cast(pl.Boolean).alias("isFunny"))
 
 	return lf.with_columns(
@@ -1649,7 +1594,7 @@ def add_is_funny(
 # 4.7:
 def add_is_timeshifted(lf: pl.LazyFrame) -> pl.LazyFrame:
 	"""
-	Vectorized 'isTimeshifted' logic.
+	Add isTimeshifted flag based on frameVersion and setCode.
 	"""
 	return lf.with_columns(
 		pl.when((pl.col("frameVersion") == "future") | (pl.col("setCode") == "TSB"))
@@ -1662,18 +1607,14 @@ def add_is_timeshifted(lf: pl.LazyFrame) -> pl.LazyFrame:
 # 4.8: add purchaseUrls struct
 def add_purchase_urls_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
 	"""Build purchaseUrls struct with SHA256 redirect hashes.
-
-	Hash is computed from (base + path + uuid), matching legacy url_keygen() behavior.
 	"""
 	redirect_base = "https://mtgjson.com/links/"
 	ck_base = "https://www.cardkingdom.com/"
 
-	# CK URLs from join (path like "mtg/set/card")
 	ck_url = pl.col("cardKingdomUrl")
 	ckf_url = pl.col("cardKingdomFoilUrl")
 	cke_url = pl.col("cardKingdomEtchedUrl")
 
-	# Access identifier fields from inside the identifiers struct
 	mcm_id = pl.col("identifiers").struct.field("mcmId")
 	tcg_id = pl.col("identifiers").struct.field("tcgplayerProductId")
 	tcge_id = pl.col("identifiers").struct.field("tcgplayerEtchedProductId")
@@ -1832,8 +1773,6 @@ def apply_manual_overrides(
 def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyFrame:
 	"""
 	Link rebalanced cards (A-Name) to their original printings and vice versa.
-
-	Important: Linkage is scoped to the same set AND default language only (legacy behavior).
 	"""
 	is_rebalanced = pl.col("name").str.starts_with("A-") | pl.col("promoTypes").list.contains("rebalanced")
 
@@ -1855,8 +1794,6 @@ def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyF
 		# Fallback to English
 		default_lang_lf = lf.filter(pl.col("language") == "English")
 
-	# Build rebalanced -> original name mapping with UUIDs (per set, default language only)
-	# NOTE: UUID order may differ from CDN for multi-face cards (CDN orders by side, we sort alphabetically)
 	rebalanced_map = (
 		default_lang_lf.filter(is_rebalanced)
 		.select(
@@ -1939,11 +1876,8 @@ def link_foil_nonfoil_versions(lf: pl.LazyFrame) -> pl.LazyFrame:
 	if len(target_df) == 0:
 		return lf
 
-	# Build version ID mappings using legacy algorithm
-	# Key: uuid -> (foilVersionId, nonfoilVersionId)
 	version_links: dict[str, tuple[str | None, str | None]] = {}
 
-	# Group by (setCode, illustrationId) - legacy uses illustration_id as key
 	cards_seen: dict[tuple[str, str], str] = {}  # (setCode, ill_id) -> first_uuid
 
 	for row in target_df.iter_rows(named=True):
@@ -2055,11 +1989,6 @@ def add_source_products(
 ) -> pl.LazyFrame:
 	"""
 	Add sourceProducts field linking cards to sealed products.
-
-	Uses SealedDataProvider.card_to_products_df for lazy join.
-
-	Note: At this stage, Scryfall's boolean `foil`/`nonfoil` columns still exist.
-	We rename the product columns with _sp_ prefix to avoid collision, then drop them.
 	"""
 	card_to_products_df = ctx.card_to_products_lf
 
@@ -2208,13 +2137,6 @@ def filter_out_tokens(df: pl.LazyFrame) -> tuple[pl.LazyFrame, pl.LazyFrame]:
 
 def sink_cards(ctx: PipelineContext) -> None:
 	"""Sink cards and tokens to partitioned parquet files.
-
-	Uses default_card_languages mapping from cache to determine which language
-	each card should use. For most cards this is English, but for foreign-only
-	sets (like 4BB, FBB) it's the primary printed language.
-
-	Foreign language data for normal sets is aggregated into the 'foreignData'
-	field for English cards via join_set_number().
 	"""
 	cards_dir = constants.CACHE_PATH / "_parquet"
 	tokens_dir = constants.CACHE_PATH / "_parquet_tokens"
@@ -2226,8 +2148,6 @@ def sink_cards(ctx: PipelineContext) -> None:
 		LOGGER.warning("sink_cards: final_cards_lf is None, returning early")
 		return
 
-	# Use pre-computed default_card_languages from cache
-	# This mapping was derived from Scryfall's default_cards bulk file during cache loading
 	default_langs = ctx.default_card_languages_lf
 
 	if default_langs is not None:
@@ -2239,13 +2159,8 @@ def sink_cards(ctx: PipelineContext) -> None:
 		LOGGER.warning("default_card_languages not available, filtering to English only")
 		lf = lf.filter(pl.col("language") == "English")
 
-	# Link foil/nonfoil versions AFTER language filtering
-	# (must run after filtering because groups need exactly 2 cards per illustration ID)
 	lf = link_foil_nonfoil_versions(lf)
 
-	# Compute variations AFTER language filtering so variation UUIDs only reference
-	# cards that exist in the final output (not filtered-out language versions)
-	# Note: add_variations now handles otherFaceIds exclusion and collector number sorting
 	lf = add_variations(lf)
 
 	# Split into cards and tokens, apply final renames
@@ -2732,11 +2647,18 @@ def join_name_data(
 		)
 
 		# Coalesce: prefer name lookup, fall back to faceName lookup
+		# Only keep cardParts for original meld sets (BRO, EMN) - not reprints
+		meld_original_sets = ["BRO", "EMN", "FIN"]
 		lf = lf.with_columns(
-			pl.coalesce(
-				pl.col("cardParts"),
-				pl.col("_face_cardParts"),
-			).alias("cardParts")
+			pl.when(pl.col("setCode").is_in(meld_original_sets))
+			.then(
+				pl.coalesce(
+					pl.col("cardParts"),
+					pl.col("_face_cardParts"),
+				)
+			)
+			.otherwise(pl.lit(None))
+			.alias("cardParts")
 		).drop("_face_cardParts", strict=False)
 	else:
 		# No cardParts data available
@@ -3078,7 +3000,7 @@ def build_cards(
 	LOGGER.info("  Checkpoint complete")
 
 	lf = (
-		lf.pipe(add_other_face_ids)
+		lf.pipe(partial(add_other_face_ids, ctx=ctx))
 		.pipe(partial(add_leadership_skills_expr, ctx=ctx))
 		.pipe(add_reverse_related)
 		.pipe(propagate_salt_to_tokens)
@@ -3095,9 +3017,6 @@ def build_cards(
 	lf = lf.collect().lazy()
 	LOGGER.info("  Checkpoint complete")
 
-	# Final enrichment (includes self-join patterns)
-	# NOTE: link_foil_nonfoil_versions moved to sink_cards to run AFTER language filtering
-	# (otherwise groups have multiple language cards with same illustration ID)
 	lf = (
 		lf.pipe(partial(apply_manual_overrides, ctx=ctx))
 		.pipe(partial(add_rebalanced_linkage, ctx=ctx))

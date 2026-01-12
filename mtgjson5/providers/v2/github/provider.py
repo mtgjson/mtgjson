@@ -65,17 +65,46 @@ def _build_card_to_products_records(data: dict) -> list[dict]:
     ]
 
 
+# Mappings to match CDN output for sealed product category/subtype values
+_SUBTYPE_REMAP = {
+    "prerelease": "prerelease_kit",
+    "starter": "starter_deck",
+    "tournament": "tournament_deck",
+    "six": "six-card",
+    "battle": "battle_pack",
+    "convention": "convention_exclusive",
+}
+
+_CATEGORY_REMAP = {
+    "limited": "limited_aid_tool",
+    "multi_deck": "multiple_decks",
+    "limited_case": "limited_aid_case",
+}
+
+
 def _build_sealed_products_records(data: dict) -> list[dict]:
     """Build sealed products records."""
     if not data:
         return []
-    return [
-        {"setCode": set_code.upper(), "productName": name, **info}
-        for set_code, products in data.items()
-        if isinstance(products, dict)
-        for name, info in products.items()
-        if isinstance(info, dict)
-    ]
+    records = []
+    for set_code, products in data.items():
+        if not isinstance(products, dict):
+            continue
+        for name, info in products.items():
+            if not isinstance(info, dict):
+                continue
+            record = {"setCode": set_code.upper(), "productName": name, **info}
+            # Remap subtype/category to match CDN output (check lowercase for mapping)
+            if "subtype" in record and record["subtype"]:
+                subtype_lower = record["subtype"].lower()
+                if subtype_lower in _SUBTYPE_REMAP:
+                    record["subtype"] = _SUBTYPE_REMAP[subtype_lower]
+            if "category" in record and record["category"]:
+                category_lower = record["category"].lower()
+                if category_lower in _CATEGORY_REMAP:
+                    record["category"] = _CATEGORY_REMAP[category_lower]
+            records.append(record)
+    return records
 
 
 def _build_sealed_contents_records(data: dict) -> list[dict]:

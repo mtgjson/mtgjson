@@ -93,6 +93,66 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+def apply_meld_overrides(lf: pl.LazyFrame, meld_overrides: dict) -> pl.LazyFrame:
+    """
+    Apply meld card overrides from resource file.
+
+    Uses pre-computed UUID -> {otherFaceIds, cardParts} mappings to fix meld cards.
+
+    Args:
+        lf: LazyFrame with uuid, otherFaceIds, cardParts columns
+        meld_overrides: Dict of uuid -> {otherFaceIds: [...], cardParts?: [...]}
+
+    Returns:
+        LazyFrame with meld otherFaceIds and cardParts fixed
+    """
+    if not meld_overrides:
+        return lf
+
+    # Build lookup DataFrames
+    other_face_rows = [
+        {"uuid": uuid, "_meld_otherFaceIds": data["otherFaceIds"]}
+        for uuid, data in meld_overrides.items()
+        if data.get("otherFaceIds")
+    ]
+    card_parts_rows = [
+        {"uuid": uuid, "_meld_cardParts": data["cardParts"]}
+        for uuid, data in meld_overrides.items()
+        if data.get("cardParts")
+    ]
+
+    # Apply otherFaceIds overrides
+    if other_face_rows:
+        other_face_lf = pl.LazyFrame(other_face_rows)
+        lf = (
+            lf.join(other_face_lf, on="uuid", how="left")
+            .with_columns(
+                pl.when(pl.col("_meld_otherFaceIds").is_not_null())
+                .then(pl.col("_meld_otherFaceIds"))
+                .otherwise(pl.col("otherFaceIds"))
+                .alias("otherFaceIds")
+            )
+            .drop("_meld_otherFaceIds")
+        )
+
+    # Apply cardParts overrides
+    if card_parts_rows:
+        card_parts_lf = pl.LazyFrame(card_parts_rows)
+        lf = (
+            lf.join(card_parts_lf, on="uuid", how="left")
+            .with_columns(
+                pl.when(pl.col("_meld_cardParts").is_not_null())
+                .then(pl.col("_meld_cardParts"))
+                .otherwise(pl.col("cardParts"))
+                .alias("cardParts")
+            )
+            .drop("_meld_cardParts")
+        )
+
+    return lf
+
+
 __all__ = [
     "add_meld_other_face_ids",
+    "apply_meld_overrides",
 ]

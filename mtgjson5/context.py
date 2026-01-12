@@ -273,6 +273,13 @@ class PipelineContext:
         return self._cache.meld_triplets if self._cache else {}
 
     @property
+    def meld_overrides(self) -> dict:
+        """Meld overrides (uuid -> otherFaceIds, cardParts) from cache."""
+        if "_meld_overrides" in self._test_data:
+            return self._test_data["_meld_overrides"]
+        return self._cache.meld_overrides if self._cache else {}
+
+    @property
     def manual_overrides(self) -> dict:
         """Manual overrides from cache."""
         if "_manual_overrides" in self._test_data:

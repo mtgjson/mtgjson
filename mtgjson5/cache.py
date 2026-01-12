@@ -8,6 +8,7 @@ This module is our main Data Layer and is responsible for:
 
 """
 
+import asyncio
 import json
 import pathlib
 import time
@@ -170,6 +171,7 @@ class GlobalCache:
         self.duel_deck_sides: dict = {}
         self.meld_data: dict | list = {}
         self.meld_triplets: dict[str, list[str]] = {}
+        self.meld_overrides: dict = {}
         self.world_championship_signatures: dict = {}
         self.manual_overrides: dict = {}
         self.foreigndata_exceptions: dict = {}
@@ -285,6 +287,7 @@ class GlobalCache:
                 executor.submit(self._load_orientations): "orientations",
                 executor.submit(self._load_card_kingdom): "card_kingdom",
                 executor.submit(self._load_edhrec_salt): "edhrec",
+                executor.submit(self._load_spellbook): "spellbook",
                 executor.submit(self._load_gatherer): "gatherer",
                 executor.submit(self._load_whats_in_standard): "standard",
                 executor.submit(self._load_github_data): "github",
@@ -568,6 +571,7 @@ class GlobalCache:
 
         self.duel_deck_sides = cast(dict, load_resource_json("duel_deck_sides.json"))
         self.meld_data = load_resource_json("meld_triplets.json")
+        self.meld_overrides = cast(dict, load_resource_json("meld_overrides.json"))
         self.world_championship_signatures = cast(
             dict, load_resource_json("world_championship_signatures.json")
         )
@@ -771,6 +775,27 @@ class GlobalCache:
         if salt_df is not None and len(salt_df) > 0:
             salt_df.write_parquet(cache_path)
             self.salt_lf = salt_df.lazy()
+
+    def _load_spellbook(self) -> None:
+        """Load alchemy spellbook data from Scryfall."""
+        cache_path = self.cache_path / "spellbook.parquet"
+
+        if _cache_fresh(cache_path):
+            self.spellbook_lf = pl.read_parquet(cache_path).lazy()
+            LOGGER.info("Loaded spellbook from cache")
+            return
+
+        LOGGER.info("Fetching spellbook data from Scryfall...")
+        spellbook_data = asyncio.run(BulkDataProvider.fetch_all_spellbooks())
+        if spellbook_data:
+            records = [
+                {"name": parent, "spellbook": cards}
+                for parent, cards in spellbook_data.items()
+            ]
+            spellbook_df = pl.DataFrame(records)
+            spellbook_df.write_parquet(cache_path)
+            self.spellbook_lf = spellbook_df.lazy()
+            LOGGER.info(f"Loaded {len(records)} spellbook entries")
 
     def _load_gatherer(self) -> None:
         """Load Gatherer original text data."""
