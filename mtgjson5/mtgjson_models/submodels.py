@@ -290,6 +290,30 @@ class SealedProductSealed(TypedDict, total=False):
 	uuid: str
 
 
+class SealedProductVariableConfig(TypedDict, total=False):
+	"""Variable configuration weights."""
+
+	chance: int
+	weight: int
+
+
+class SealedProductVariableItem(TypedDict, total=False):
+	"""Single variable configuration option."""
+
+	card: list[SealedProductCard]
+	deck: list[SealedProductDeck]
+	other: list[SealedProductOther]
+	pack: list[SealedProductPack]
+	sealed: list[SealedProductSealed]
+	variable_config: list[SealedProductVariableConfig]
+
+
+class SealedProductVariableEntry(TypedDict, total=False):
+	"""Variable contents entry with configs."""
+
+	configs: list[SealedProductVariableItem]
+
+
 class SealedProductContents(TypedDict, total=False):
 	"""All possible contents of a sealed product."""
 
@@ -298,7 +322,7 @@ class SealedProductContents(TypedDict, total=False):
 	other: list[SealedProductOther]
 	pack: list[SealedProductPack]
 	sealed: list[SealedProductSealed]
-	variable: list[dict[str, list[SealedProductContents]]]
+	variable: list[SealedProductVariableEntry]
 
 
 # =============================================================================

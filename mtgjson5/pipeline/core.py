@@ -1972,8 +1972,11 @@ def add_secret_lair_subsets(
 		how="left",
 	)
 
+	# Only apply subsets to SLD cards, NOT tokens (tokens have "Token" in types)
 	return lf.with_columns(
-		pl.when(pl.col("setCode") == "SLD").then(pl.col("_sld_subsets")).otherwise(pl.lit(None)).alias("subsets")
+		pl.when(
+			(pl.col("setCode") == "SLD") & ~pl.col("types").list.contains("Token")
+		).then(pl.col("_sld_subsets")).otherwise(pl.lit(None)).alias("subsets")
 	).drop("_sld_subsets", strict=False)
 
 
@@ -2221,8 +2224,10 @@ def join_identifiers(
 		return lf.with_columns(
 			pl.lit(None).cast(pl.String).alias("cardKingdomId"),
 			pl.lit(None).cast(pl.String).alias("cardKingdomFoilId"),
+			pl.lit(None).cast(pl.String).alias("cardKingdomEtchedId"),
 			pl.lit(None).cast(pl.String).alias("cardKingdomUrl"),
 			pl.lit(None).cast(pl.String).alias("cardKingdomFoilUrl"),
+			pl.lit(None).cast(pl.String).alias("cardKingdomEtchedUrl"),
 			pl.lit(None).cast(pl.String).alias("orientation"),
 			pl.lit(None).cast(pl.String).alias("cachedUuid"),
 		)
@@ -3311,6 +3316,16 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 		)
 	)
 
+	variable_contents = (
+		contents_lf.filter(pl.col("contentType") == "variable")
+		.group_by(["setCode", "productName"])
+		.agg(
+			pl.struct(
+				configs=pl.col("configs"),
+			).alias("_variable_list")
+		)
+	)
+
 	product_card_count = (
 		contents_lf.filter(pl.col("cardCount").is_not_null())
 		.group_by(["setCode", "productName"])
@@ -3323,6 +3338,7 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 		.join(other_contents, on=["setCode", "productName"], how="left")
 		.join(deck_contents, on=["setCode", "productName"], how="left")
 		.join(pack_contents, on=["setCode", "productName"], how="left")
+		.join(variable_contents, on=["setCode", "productName"], how="left")
 		.join(product_card_count, on=["setCode", "productName"], how="left")
 	)
 
@@ -3333,8 +3349,9 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 			other=pl.col("_other_list"),
 			pack=pl.col("_pack_list"),
 			sealed=pl.col("_sealed_list"),
+			variable=pl.col("_variable_list"),
 		).alias("contents")
-	).drop(["_card_list", "_sealed_list", "_other_list", "_deck_list", "_pack_list"])
+	).drop(["_card_list", "_sealed_list", "_other_list", "_deck_list", "_pack_list", "_variable_list"])
 
 	result = result.with_columns(_uuid5_expr("productName").alias("uuid"))
 

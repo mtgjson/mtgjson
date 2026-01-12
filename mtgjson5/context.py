@@ -475,6 +475,9 @@ class PipelineContext:
     def _build_identifiers_lookup(self) -> None:
         """
         Build consolidated identifiers lookup (by scryfallId + side).
+
+        Uses uuid_cache as primary base, then FULL joins CK data to build
+        a superset that includes cards from both sources.
         """
         uuid_cache_raw = self.uuid_cache_lf
         if uuid_cache_raw is None:
@@ -493,7 +496,7 @@ class PipelineContext:
         result: pl.DataFrame = uuid_cache.select(["scryfallId", "side", "cachedUuid"])
         LOGGER.info(f"identifiers: +uuid_cache ({result.height:,} rows)")
 
-        # Add Card Kingdom data (by scryfallId only, duplicated for all sides)
+        # Add Card Kingdom data - use FULL join to include CK-only cards (new sets)
         ck_raw = self.card_kingdom_lf
         if ck_raw is not None:
             if isinstance(ck_raw, pl.LazyFrame):
@@ -512,8 +515,12 @@ class PipelineContext:
                         "cardKingdomEtchedUrl",
                     ]
                 )
-                result = result.join(ck, on="scryfallId", how="left")
+                # Full join: keep all uuid_cache cards AND all CK-only cards
+                result = result.join(ck, on="scryfallId", how="full", coalesce=True)
                 LOGGER.info(f"identifiers: +card_kingdom ({ck.height:,} rows)")
+
+        # Fill null side values for CK-only rows (cards not in uuid_cache)
+        result = result.with_columns(pl.col("side").fill_null("a"))
 
         # Add orientation data (by scryfallId only)
         orient_raw = self.orientation_lf
