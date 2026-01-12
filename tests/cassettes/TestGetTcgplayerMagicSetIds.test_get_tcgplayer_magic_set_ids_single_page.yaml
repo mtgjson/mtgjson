@@ -1,0 +1,2979 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=a/yz9cCUUXGJ77iu9uaxW7UeGZpUFvtxvtCiCbCnPJIi0TlLu4QsnQkh138EOG+Y3y7tdAq35FOF+0hhXlOIm2soyTHQVGh4yhGZiR0cQnwNT7NgCT/8GdEvu4hO;
+        AWSALBCORS=a/yz9cCUUXGJ77iu9uaxW7UeGZpUFvtxvtCiCbCnPJIi0TlLu4QsnQkh138EOG+Y3y7tdAq35FOF+0hhXlOIm2soyTHQVGh4yhGZiR0cQnwNT7NgCT/8GdEvu4hO
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=0
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        24496, "name": "Commander: Teenage Mutant Ninja Turtles", "abbreviation":
+        "TMC", "isSupplemental": false, "publishedOn": "2026-03-06T00:00:00", "modifiedOn":
+        "2025-10-13T17:00:52.9", "categoryId": 1}, {"groupId": 24495, "name": "Teenage
+        Mutant Ninja Turtles", "abbreviation": "TMT", "isSupplemental": false, "publishedOn":
+        "2026-03-06T00:00:00", "modifiedOn": "2025-10-23T18:15:41.523", "categoryId":
+        1}, {"groupId": 24497, "name": "Teenage Mutant Ninja Turtles Eternal-Legal",
+        "abbreviation": "PZA", "isSupplemental": false, "publishedOn": "2026-03-06T00:00:00",
+        "modifiedOn": "2025-10-10T17:45:03.217", "categoryId": 1}, {"groupId": 24462,
+        "name": "Art Series: Lorwyn Eclipsed", "abbreviation": "ASECL", "isSupplemental":
+        false, "publishedOn": "2026-01-23T00:00:00", "modifiedOn": "2025-10-07T15:30:56.35",
+        "categoryId": 1}, {"groupId": 24464, "name": "Commander: Lorwyn Eclipsed",
+        "abbreviation": "ECC", "isSupplemental": false, "publishedOn": "2026-01-23T00:00:00",
+        "modifiedOn": "2025-10-07T15:30:20.68", "categoryId": 1}, {"groupId": 24463,
+        "name": "Lorwyn Eclipsed", "abbreviation": "ECL", "isSupplemental": false,
+        "publishedOn": "2026-01-23T00:00:00", "modifiedOn": "2025-11-07T19:28:58.49",
+        "categoryId": 1}, {"groupId": 24465, "name": "Promo Pack: Lorwyn Eclipsed",
+        "abbreviation": "PPECL", "isSupplemental": false, "publishedOn": "2026-01-23T00:00:00",
+        "modifiedOn": "2025-10-07T15:31:17.103", "categoryId": 1}, {"groupId": 24527,
+        "name": "Art Series: Avatar: The Last Airbender", "abbreviation": "ASTLA",
+        "isSupplemental": false, "publishedOn": "2025-11-21T00:00:00", "modifiedOn":
+        "2025-11-19T15:01:40.057", "categoryId": 1}, {"groupId": 24421, "name": "Avatar:
+        The Last Airbender", "abbreviation": "TLA", "isSupplemental": false, "publishedOn":
+        "2025-11-21T00:00:00", "modifiedOn": "2025-11-25T21:06:12.167", "categoryId":
+        1}, {"groupId": 24422, "name": "Avatar: The Last Airbender: Eternal-Legal",
+        "abbreviation": "TLE", "isSupplemental": false, "publishedOn": "2025-11-21T00:00:00",
+        "modifiedOn": "2025-11-25T12:31:31.423", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1987'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:10 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=SJBPjExG8rEanq09/UkmMtRXrSO2pa2ExaPxxJM3+DvQTzaIdytrpYz3N+6mrsGZvUPLhzTGNz5lRDR5xyRSQBExXUBvgDEhCKVih9pQl5h4U5gU9M7+L1Rw4lDL;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/
+      - AWSALBCORS=SJBPjExG8rEanq09/UkmMtRXrSO2pa2ExaPxxJM3+DvQTzaIdytrpYz3N+6mrsGZvUPLhzTGNz5lRDR5xyRSQBExXUBvgDEhCKVih9pQl5h4U5gU9M7+L1Rw4lDL;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=SJBPjExG8rEanq09/UkmMtRXrSO2pa2ExaPxxJM3+DvQTzaIdytrpYz3N+6mrsGZvUPLhzTGNz5lRDR5xyRSQBExXUBvgDEhCKVih9pQl5h4U5gU9M7+L1Rw4lDL;
+        AWSALBCORS=SJBPjExG8rEanq09/UkmMtRXrSO2pa2ExaPxxJM3+DvQTzaIdytrpYz3N+6mrsGZvUPLhzTGNz5lRDR5xyRSQBExXUBvgDEhCKVih9pQl5h4U5gU9M7+L1Rw4lDL
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=10
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        24424, "name": "Art Series: Marvel''s Spider-Man", "abbreviation": "ASSPM",
+        "isSupplemental": false, "publishedOn": "2025-09-26T00:00:00", "modifiedOn":
+        "2025-09-29T13:05:47.11", "categoryId": 1}, {"groupId": 24432, "name": "Marvel
+        Universe Eternal-Legal", "abbreviation": "MAR", "isSupplemental": false, "publishedOn":
+        "2025-09-26T00:00:00", "modifiedOn": "2025-11-26T15:59:15.453", "categoryId":
+        1}, {"groupId": 24245, "name": "Marvel''s Spider-Man", "abbreviation": "SPM",
+        "isSupplemental": false, "publishedOn": "2025-09-26T00:00:00", "modifiedOn":
+        "2025-11-26T22:02:08.9", "categoryId": 1}, {"groupId": 24246, "name": "Marvel''s
+        Spider-Man: Eternal-Legal", "abbreviation": "SPE", "isSupplemental": false,
+        "publishedOn": "2025-09-26T00:00:00", "modifiedOn": "2025-11-25T21:15:28.037",
+        "categoryId": 1}, {"groupId": 24377, "name": "Art Series: Edge of Eternities",
+        "abbreviation": "ASEOE", "isSupplemental": false, "publishedOn": "2025-08-01T00:00:00",
+        "modifiedOn": "2025-09-29T13:05:10.677", "categoryId": 1}, {"groupId": 24236,
+        "name": "Commander: Edge of Eternities", "abbreviation": "EOC", "isSupplemental":
+        false, "publishedOn": "2025-08-01T00:00:00", "modifiedOn": "2025-11-26T22:18:51.343",
+        "categoryId": 1}, {"groupId": 24233, "name": "Edge of Eternities", "abbreviation":
+        "EOE", "isSupplemental": false, "publishedOn": "2025-08-01T00:00:00", "modifiedOn":
+        "2025-11-26T19:03:57.63", "categoryId": 1}, {"groupId": 24361, "name": "Edge
+        of Eternities: Stellar Sights", "abbreviation": "EOS", "isSupplemental": false,
+        "publishedOn": "2025-08-01T00:00:00", "modifiedOn": "2025-11-26T04:53:28.113",
+        "categoryId": 1}, {"groupId": 24376, "name": "Promo Pack: Edge of Eternities",
+        "abbreviation": "PPEOE", "isSupplemental": false, "publishedOn": "2025-08-01T00:00:00",
+        "modifiedOn": "2025-11-20T19:00:42.583", "categoryId": 1}, {"groupId": 24341,
+        "name": "Art Series: FINAL FANTASY", "abbreviation": "ASFIN", "isSupplemental":
+        false, "publishedOn": "2025-06-13T00:00:00", "modifiedOn": "2025-10-02T20:38:41.49",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1959'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:10 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=RMvvuEKyMnRHHUjK2IsCzRA8P56sMV1E/qYdDNp+b9ZstGjgZD7zCbDQcZGAQ6p+NMzvNHElSGW2iOV/yhosA/4UYAR9w4S+vV3+YHQaWa43/iOOt/nE8eMk0/XV;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/
+      - AWSALBCORS=RMvvuEKyMnRHHUjK2IsCzRA8P56sMV1E/qYdDNp+b9ZstGjgZD7zCbDQcZGAQ6p+NMzvNHElSGW2iOV/yhosA/4UYAR9w4S+vV3+YHQaWa43/iOOt/nE8eMk0/XV;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=RMvvuEKyMnRHHUjK2IsCzRA8P56sMV1E/qYdDNp+b9ZstGjgZD7zCbDQcZGAQ6p+NMzvNHElSGW2iOV/yhosA/4UYAR9w4S+vV3+YHQaWa43/iOOt/nE8eMk0/XV;
+        AWSALBCORS=RMvvuEKyMnRHHUjK2IsCzRA8P56sMV1E/qYdDNp+b9ZstGjgZD7zCbDQcZGAQ6p+NMzvNHElSGW2iOV/yhosA/4UYAR9w4S+vV3+YHQaWa43/iOOt/nE8eMk0/XV
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=20
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        24220, "name": "Commander: FINAL FANTASY", "abbreviation": "FIC", "isSupplemental":
+        false, "publishedOn": "2025-06-13T00:00:00", "modifiedOn": "2025-11-26T22:11:35.837",
+        "categoryId": 1}, {"groupId": 24219, "name": "FINAL FANTASY", "abbreviation":
+        "FIN", "isSupplemental": false, "publishedOn": "2025-06-13T00:00:00", "modifiedOn":
+        "2025-11-26T18:35:27.617", "categoryId": 1}, {"groupId": 24226, "name": "FINAL
+        FANTASY: Through the Ages", "abbreviation": "FCA", "isSupplemental": false,
+        "publishedOn": "2025-06-13T00:00:00", "modifiedOn": "2025-11-26T16:22:26.34",
+        "categoryId": 1}, {"groupId": 24274, "name": "Art Series: Tarkir: Dragonstorm",
+        "abbreviation": "AATDM", "isSupplemental": false, "publishedOn": "2025-04-11T00:00:00",
+        "modifiedOn": "2025-04-02T15:15:37.887", "categoryId": 1}, {"groupId": 24234,
+        "name": "Commander: Tarkir: Dragonstorm", "abbreviation": "TDC", "isSupplemental":
+        false, "publishedOn": "2025-04-11T00:00:00", "modifiedOn": "2025-11-26T22:31:45.23",
+        "categoryId": 1}, {"groupId": 24267, "name": "Promo Pack: Tarkir: Dragonstorm",
+        "abbreviation": "PPTDM", "isSupplemental": false, "publishedOn": "2025-04-11T00:00:00",
+        "modifiedOn": "2025-10-31T18:50:05.603", "categoryId": 1}, {"groupId": 24232,
+        "name": "Tarkir: Dragonstorm", "abbreviation": "TDM", "isSupplemental": false,
+        "publishedOn": "2025-04-11T00:00:00", "modifiedOn": "2025-11-26T04:55:36.413",
+        "categoryId": 1}, {"groupId": 23874, "name": "Aetherdrift", "abbreviation":
+        "DFT", "isSupplemental": false, "publishedOn": "2025-02-14T00:00:00", "modifiedOn":
+        "2025-11-26T12:55:45.023", "categoryId": 1}, {"groupId": 24097, "name": "Art
+        Series: Aetherdrift", "abbreviation": "ASDFT", "isSupplemental": false, "publishedOn":
+        "2025-02-14T00:00:00", "modifiedOn": "2025-09-29T13:04:58.303", "categoryId":
+        1}, {"groupId": 23929, "name": "Commander: Aetherdrift", "abbreviation": "DRC",
+        "isSupplemental": false, "publishedOn": "2025-02-14T00:00:00", "modifiedOn":
+        "2025-11-26T22:47:38.437", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1916'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:10 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=gBa2C1B40M5JZo7JlxIEvBr4yrpgA6jakOgWW9eOXY6i04ezvVdoEaGZvn2ylUj3tyoaScCh+vLIWiZWKhZwwji/LmcBXDxDoWji3rJ6moLz9H/sylzUzXMHS57p;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/
+      - AWSALBCORS=gBa2C1B40M5JZo7JlxIEvBr4yrpgA6jakOgWW9eOXY6i04ezvVdoEaGZvn2ylUj3tyoaScCh+vLIWiZWKhZwwji/LmcBXDxDoWji3rJ6moLz9H/sylzUzXMHS57p;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=gBa2C1B40M5JZo7JlxIEvBr4yrpgA6jakOgWW9eOXY6i04ezvVdoEaGZvn2ylUj3tyoaScCh+vLIWiZWKhZwwji/LmcBXDxDoWji3rJ6moLz9H/sylzUzXMHS57p;
+        AWSALBCORS=gBa2C1B40M5JZo7JlxIEvBr4yrpgA6jakOgWW9eOXY6i04ezvVdoEaGZvn2ylUj3tyoaScCh+vLIWiZWKhZwwji/LmcBXDxDoWji3rJ6moLz9H/sylzUzXMHS57p
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=30
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        23930, "name": "Promo Pack: Aetherdrift", "abbreviation": "PPDFT", "isSupplemental":
+        false, "publishedOn": "2025-02-14T00:00:00", "modifiedOn": "2025-08-28T15:12:40.38",
+        "categoryId": 1}, {"groupId": 24067, "name": "Art Series: Innistrad Remastered",
+        "abbreviation": "ASINR", "isSupplemental": false, "publishedOn": "2025-01-24T00:00:00",
+        "modifiedOn": "2025-09-29T13:05:32.497", "categoryId": 1}, {"groupId": 23848,
+        "name": "Innistrad Remastered", "abbreviation": "INR", "isSupplemental": false,
+        "publishedOn": "2025-01-24T00:00:00", "modifiedOn": "2025-11-26T20:25:44.853",
+        "categoryId": 1}, {"groupId": 23816, "name": "Art Series: Foundations", "abbreviation":
+        "ASFDN", "isSupplemental": false, "publishedOn": "2024-11-15T00:00:00", "modifiedOn":
+        "2025-05-21T17:04:29.27", "categoryId": 1}, {"groupId": 23814, "name": "Commander:
+        Foundations", "abbreviation": "FDC", "isSupplemental": false, "publishedOn":
+        "2024-11-15T00:00:00", "modifiedOn": "2024-11-06T21:42:47.517", "categoryId":
+        1}, {"groupId": 23556, "name": "Foundations", "abbreviation": "FDN", "isSupplemental":
+        false, "publishedOn": "2024-11-15T00:00:00", "modifiedOn": "2025-11-26T21:55:56.717",
+        "categoryId": 1}, {"groupId": 23792, "name": "Foundations Jumpstart", "abbreviation":
+        "J25", "isSupplemental": false, "publishedOn": "2024-11-15T00:00:00", "modifiedOn":
+        "2025-11-26T15:18:34.25", "categoryId": 1}, {"groupId": 23580, "name": "Mystery
+        Booster 2", "abbreviation": "MB2", "isSupplemental": false, "publishedOn":
+        "2024-10-25T00:00:00", "modifiedOn": "2025-11-19T21:21:10.913", "categoryId":
+        1}, {"groupId": 23591, "name": "Mystery Booster 2 Playtest Cards", "abbreviation":
+        "MB2PC", "isSupplemental": false, "publishedOn": "2024-10-25T00:00:00", "modifiedOn":
+        "2025-08-15T19:52:18.663", "categoryId": 1}, {"groupId": 23752, "name": "Archenemy:
+        Duskmourn", "abbreviation": "A:DSC", "isSupplemental": false, "publishedOn":
+        "2024-09-27T00:00:00", "modifiedOn": "2024-09-26T13:54:28.337", "categoryId":
+        1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1905'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:10 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=cOGXvjYs4aP2Ix/hd3XJjXS/QbjvwYnR3SvU89pixqyWavHXSnkPTTIu+PkDlrRkAIGTMR36yy05TjjEbpZlR3XScb0FbCu8xbPHKRXQZ5wtWvx0hcjudBupklzX;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/
+      - AWSALBCORS=cOGXvjYs4aP2Ix/hd3XJjXS/QbjvwYnR3SvU89pixqyWavHXSnkPTTIu+PkDlrRkAIGTMR36yy05TjjEbpZlR3XScb0FbCu8xbPHKRXQZ5wtWvx0hcjudBupklzX;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=cOGXvjYs4aP2Ix/hd3XJjXS/QbjvwYnR3SvU89pixqyWavHXSnkPTTIu+PkDlrRkAIGTMR36yy05TjjEbpZlR3XScb0FbCu8xbPHKRXQZ5wtWvx0hcjudBupklzX;
+        AWSALBCORS=cOGXvjYs4aP2Ix/hd3XJjXS/QbjvwYnR3SvU89pixqyWavHXSnkPTTIu+PkDlrRkAIGTMR36yy05TjjEbpZlR3XScb0FbCu8xbPHKRXQZ5wtWvx0hcjudBupklzX
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=40
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        23749, "name": "Art Series: Duskmourn: House of Horror", "abbreviation": "ASDSK",
+        "isSupplemental": false, "publishedOn": "2024-09-27T00:00:00", "modifiedOn":
+        "2024-09-18T13:14:25.077", "categoryId": 1}, {"groupId": 23551, "name": "Commander:
+        Duskmourn: House of Horror", "abbreviation": "DSC", "isSupplemental": false,
+        "publishedOn": "2024-09-27T00:00:00", "modifiedOn": "2025-11-26T21:10:25.28",
+        "categoryId": 1}, {"groupId": 23550, "name": "Duskmourn: House of Horror",
+        "abbreviation": "DSK", "isSupplemental": false, "publishedOn": "2024-09-27T00:00:00",
+        "modifiedOn": "2025-11-26T21:08:48.407", "categoryId": 1}, {"groupId": 23735,
+        "name": "Promo Pack: Duskmourn: House of Horror", "abbreviation": "PPDSK",
+        "isSupplemental": false, "publishedOn": "2024-09-27T00:00:00", "modifiedOn":
+        "2025-11-26T22:54:26.257", "categoryId": 1}, {"groupId": 23569, "name": "Art
+        Series: Bloomburrow", "abbreviation": "ASBLB", "isSupplemental": false, "publishedOn":
+        "2024-08-02T00:00:00", "modifiedOn": "2024-07-30T14:49:28.147", "categoryId":
+        1}, {"groupId": 23447, "name": "Bloomburrow", "abbreviation": "BLB", "isSupplemental":
+        false, "publishedOn": "2024-08-02T00:00:00", "modifiedOn": "2025-11-26T17:26:54.71",
+        "categoryId": 1}, {"groupId": 23448, "name": "Commander: Bloomburrow", "abbreviation":
+        "BLC", "isSupplemental": false, "publishedOn": "2024-08-02T00:00:00", "modifiedOn":
+        "2025-11-26T21:30:52.853", "categoryId": 1}, {"groupId": 23560, "name": "Promo
+        Pack: Bloomburrow", "abbreviation": "PPBLB", "isSupplemental": false, "publishedOn":
+        "2024-08-02T00:00:00", "modifiedOn": "2025-05-16T13:19:49.173", "categoryId":
+        1}, {"groupId": 23542, "name": "Art Series: Universes Beyond: Assassin''s
+        Creed", "abbreviation": "ASACR", "isSupplemental": false, "publishedOn": "2024-07-05T00:00:00",
+        "modifiedOn": "2025-07-21T16:06:48.72", "categoryId": 1}, {"groupId": 23446,
+        "name": "Universes Beyond: Assassin''s Creed", "abbreviation": "ACR", "isSupplemental":
+        false, "publishedOn": "2024-07-05T00:00:00", "modifiedOn": "2025-11-26T16:09:03.147",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1982'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:10 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=5Xbucu95+WLg3ai52CPaWK6QmyfIfE/L7jKMcEt5agsiNZd0BtQ/wuwPu7Gh7ISKMElLFHqOyI/Shz4+HMf/Uo08rvgY/Y+ij3ElapJyRbZ+gMajJKQAB7rAzBiD;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/
+      - AWSALBCORS=5Xbucu95+WLg3ai52CPaWK6QmyfIfE/L7jKMcEt5agsiNZd0BtQ/wuwPu7Gh7ISKMElLFHqOyI/Shz4+HMf/Uo08rvgY/Y+ij3ElapJyRbZ+gMajJKQAB7rAzBiD;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=5Xbucu95+WLg3ai52CPaWK6QmyfIfE/L7jKMcEt5agsiNZd0BtQ/wuwPu7Gh7ISKMElLFHqOyI/Shz4+HMf/Uo08rvgY/Y+ij3ElapJyRbZ+gMajJKQAB7rAzBiD;
+        AWSALBCORS=5Xbucu95+WLg3ai52CPaWK6QmyfIfE/L7jKMcEt5agsiNZd0BtQ/wuwPu7Gh7ISKMElLFHqOyI/Shz4+HMf/Uo08rvgY/Y+ij3ElapJyRbZ+gMajJKQAB7rAzBiD
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=50
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        23533, "name": "Art Series: Modern Horizons 3", "abbreviation": "ASMH3", "isSupplemental":
+        false, "publishedOn": "2024-06-14T00:00:00", "modifiedOn": "2024-06-03T19:02:59.393",
+        "categoryId": 1}, {"groupId": 23445, "name": "Commander: Modern Horizons 3",
+        "abbreviation": "M3C", "isSupplemental": false, "publishedOn": "2024-06-14T00:00:00",
+        "modifiedOn": "2025-11-26T19:00:49.233", "categoryId": 1}, {"groupId": 23444,
+        "name": "Modern Horizons 3", "abbreviation": "MH3", "isSupplemental": false,
+        "publishedOn": "2024-06-14T00:00:00", "modifiedOn": "2025-11-26T20:16:30.763",
+        "categoryId": 1}, {"groupId": 23497, "name": "Art Series: Outlaws of Thunder
+        Junction", "abbreviation": "ASOTJ", "isSupplemental": false, "publishedOn":
+        "2024-04-19T00:00:00", "modifiedOn": "2024-10-17T00:21:02.93", "categoryId":
+        1}, {"groupId": 23440, "name": "Commander: Outlaws of Thunder Junction", "abbreviation":
+        "OTC", "isSupplemental": false, "publishedOn": "2024-04-19T00:00:00", "modifiedOn":
+        "2025-11-26T16:04:06.44", "categoryId": 1}, {"groupId": 23439, "name": "Outlaws
+        of Thunder Junction", "abbreviation": "OTJ", "isSupplemental": false, "publishedOn":
+        "2024-04-19T00:00:00", "modifiedOn": "2025-11-26T18:44:59.507", "categoryId":
+        1}, {"groupId": 23498, "name": "Promo Pack: Outlaws of Thunder Junction",
+        "abbreviation": "PPOTJ", "isSupplemental": false, "publishedOn": "2024-04-19T00:00:00",
+        "modifiedOn": "2025-11-21T14:15:11.003", "categoryId": 1}, {"groupId": 23442,
+        "name": "Outlaws of Thunder Junction: Breaking News", "abbreviation": "OTP",
+        "isSupplemental": true, "publishedOn": "2024-04-19T00:00:00", "modifiedOn":
+        "2025-11-26T02:55:57.153", "categoryId": 1}, {"groupId": 23443, "name": "Outlaws
+        of Thunder Junction: The Big Score", "abbreviation": "BIG", "isSupplemental":
+        true, "publishedOn": "2024-04-19T00:00:00", "modifiedOn": "2025-11-26T05:20:40.503",
+        "categoryId": 1}, {"groupId": 23337, "name": "Universes Beyond: Fallout",
+        "abbreviation": "PIP", "isSupplemental": false, "publishedOn": "2024-03-08T00:00:00",
+        "modifiedOn": "2025-11-26T21:19:46.9", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '2003'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:10 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=UbCSjDTihDf4BJpaqdv1nob7QbIc9yvSiTILtJZNKykj0NptgqzJzL9sWxqftGl7Ei19CVJ4yAWN/cW/WExjbDYHmURfle/qYlharcZKgeToj2anLYb43MEFZ/5W;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/
+      - AWSALBCORS=UbCSjDTihDf4BJpaqdv1nob7QbIc9yvSiTILtJZNKykj0NptgqzJzL9sWxqftGl7Ei19CVJ4yAWN/cW/WExjbDYHmURfle/qYlharcZKgeToj2anLYb43MEFZ/5W;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=UbCSjDTihDf4BJpaqdv1nob7QbIc9yvSiTILtJZNKykj0NptgqzJzL9sWxqftGl7Ei19CVJ4yAWN/cW/WExjbDYHmURfle/qYlharcZKgeToj2anLYb43MEFZ/5W;
+        AWSALBCORS=UbCSjDTihDf4BJpaqdv1nob7QbIc9yvSiTILtJZNKykj0NptgqzJzL9sWxqftGl7Ei19CVJ4yAWN/cW/WExjbDYHmURfle/qYlharcZKgeToj2anLYb43MEFZ/5W
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=60
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        23362, "name": "Ravnica: Clue Edition", "abbreviation": "CLU", "isSupplemental":
+        false, "publishedOn": "2024-02-23T00:00:00", "modifiedOn": "2025-11-25T13:57:48.19",
+        "categoryId": 1}, {"groupId": 23421, "name": "Art Series: Murders at Karlov
+        Manor", "abbreviation": "ASMKM", "isSupplemental": false, "publishedOn": "2024-02-09T00:00:00",
+        "modifiedOn": "2024-02-02T15:13:31.953", "categoryId": 1}, {"groupId": 23363,
+        "name": "Commander: Murders at Karlov Manor", "abbreviation": "MKC", "isSupplemental":
+        false, "publishedOn": "2024-02-09T00:00:00", "modifiedOn": "2025-11-26T21:49:25.067",
+        "categoryId": 1}, {"groupId": 23361, "name": "Murders at Karlov Manor", "abbreviation":
+        "MKM", "isSupplemental": false, "publishedOn": "2024-02-09T00:00:00", "modifiedOn":
+        "2025-11-26T22:43:30.197", "categoryId": 1}, {"groupId": 23420, "name": "Promo
+        Pack: Murders at Karlov Manor", "abbreviation": "PPMKM", "isSupplemental":
+        false, "publishedOn": "2024-02-09T00:00:00", "modifiedOn": "2025-11-12T01:43:56.533",
+        "categoryId": 1}, {"groupId": 23319, "name": "Ravnica Remastered", "abbreviation":
+        "RVR", "isSupplemental": false, "publishedOn": "2024-01-12T00:00:00", "modifiedOn":
+        "2025-11-26T21:39:24.71", "categoryId": 1}, {"groupId": 23345, "name": "Art
+        Series: The Lost Caverns of Ixalan", "abbreviation": "ASLCI", "isSupplemental":
+        false, "publishedOn": "2023-11-17T00:00:00", "modifiedOn": "2025-11-11T15:43:52.883",
+        "categoryId": 1}, {"groupId": 23316, "name": "Commander: The Lost Caverns
+        of Ixalan", "abbreviation": "LCC", "isSupplemental": false, "publishedOn":
+        "2023-11-17T00:00:00", "modifiedOn": "2025-11-26T22:23:21.623", "categoryId":
+        1}, {"groupId": 23342, "name": "Promo Pack: The Lost Caverns of Ixalan", "abbreviation":
+        "PPLCI", "isSupplemental": false, "publishedOn": "2023-11-17T00:00:00", "modifiedOn":
+        "2025-11-26T19:22:22.66", "categoryId": 1}, {"groupId": 23312, "name": "The
+        Lost Caverns of Ixalan", "abbreviation": "LCI", "isSupplemental": false, "publishedOn":
+        "2023-11-17T00:00:00", "modifiedOn": "2025-11-26T23:05:30.913", "categoryId":
+        1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1987'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:10 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=fVS841pSHQUpVc2B356UMxHX3+DYQHOZaKzot6V3OU5169VHR7GIVVJvLBM2thn9UlIk/xcMOh3aHEHFwiYjFYauE03a8x4kfDh+EDpmhNjAOrxycwiJjDMGSv0m;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/
+      - AWSALBCORS=fVS841pSHQUpVc2B356UMxHX3+DYQHOZaKzot6V3OU5169VHR7GIVVJvLBM2thn9UlIk/xcMOh3aHEHFwiYjFYauE03a8x4kfDh+EDpmhNjAOrxycwiJjDMGSv0m;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=fVS841pSHQUpVc2B356UMxHX3+DYQHOZaKzot6V3OU5169VHR7GIVVJvLBM2thn9UlIk/xcMOh3aHEHFwiYjFYauE03a8x4kfDh+EDpmhNjAOrxycwiJjDMGSv0m;
+        AWSALBCORS=fVS841pSHQUpVc2B356UMxHX3+DYQHOZaKzot6V3OU5169VHR7GIVVJvLBM2thn9UlIk/xcMOh3aHEHFwiYjFYauE03a8x4kfDh+EDpmhNjAOrxycwiJjDMGSv0m
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=70
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        23318, "name": "Special Guests", "abbreviation": "SPG", "isSupplemental":
+        true, "publishedOn": "2023-11-17T00:00:00", "modifiedOn": "2025-11-26T18:38:12.95",
+        "categoryId": 1}, {"groupId": 23317, "name": "Universes Beyond: Jurassic World
+        Collection", "abbreviation": "REX", "isSupplemental": true, "publishedOn":
+        "2023-11-17T00:00:00", "modifiedOn": "2025-11-21T18:39:01.283", "categoryId":
+        1}, {"groupId": 23166, "name": "Planechase: Universes Beyond: Doctor Who",
+        "abbreviation": "WHO", "isSupplemental": false, "publishedOn": "2023-10-13T00:00:00",
+        "modifiedOn": "2024-09-20T14:20:39.27", "categoryId": 1}, {"groupId": 23165,
+        "name": "Universes Beyond: Doctor Who", "abbreviation": "WHO", "isSupplemental":
+        false, "publishedOn": "2023-10-13T00:00:00", "modifiedOn": "2025-11-26T22:40:13.423",
+        "categoryId": 1}, {"groupId": 23288, "name": "Art Series: Wilds of Eldraine",
+        "abbreviation": "ASWOE", "isSupplemental": false, "publishedOn": "2023-09-08T00:00:00",
+        "modifiedOn": "2025-04-10T10:20:46.017", "categoryId": 1}, {"groupId": 23164,
+        "name": "Commander: Wilds of Eldraine", "abbreviation": "WOC", "isSupplemental":
+        false, "publishedOn": "2023-09-08T00:00:00", "modifiedOn": "2025-11-26T21:18:35.027",
+        "categoryId": 1}, {"groupId": 23224, "name": "Promo Pack: Wilds of Eldraine",
+        "abbreviation": "PPWOE", "isSupplemental": false, "publishedOn": "2023-09-08T00:00:00",
+        "modifiedOn": "2025-11-26T21:35:49.953", "categoryId": 1}, {"groupId": 23163,
+        "name": "Wilds of Eldraine", "abbreviation": "WOE", "isSupplemental": false,
+        "publishedOn": "2023-09-08T00:00:00", "modifiedOn": "2025-11-26T20:52:58.05",
+        "categoryId": 1}, {"groupId": 23273, "name": "Wilds of Eldraine: Enchanting
+        Tales", "abbreviation": "WOT", "isSupplemental": false, "publishedOn": "2023-09-08T00:00:00",
+        "modifiedOn": "2025-11-26T22:15:23.897", "categoryId": 1}, {"groupId": 23020,
+        "name": "Commander Masters", "abbreviation": "CMM", "isSupplemental": false,
+        "publishedOn": "2023-08-04T00:00:00", "modifiedOn": "2025-11-26T21:34:01.14",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1955'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:10 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=6HLAIWjTzaTbUwvn5PfXOx6DxdNd3g4vA2kndpzwUY+JbLMAECOFQ2MWYlvgR2i7mOxAz4GxZurf+U2Mc/uiffzPQazs86zmJ535pbhJqtB3q1GCtNO789/WpRCt;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/
+      - AWSALBCORS=6HLAIWjTzaTbUwvn5PfXOx6DxdNd3g4vA2kndpzwUY+JbLMAECOFQ2MWYlvgR2i7mOxAz4GxZurf+U2Mc/uiffzPQazs86zmJ535pbhJqtB3q1GCtNO789/WpRCt;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=6HLAIWjTzaTbUwvn5PfXOx6DxdNd3g4vA2kndpzwUY+JbLMAECOFQ2MWYlvgR2i7mOxAz4GxZurf+U2Mc/uiffzPQazs86zmJ535pbhJqtB3q1GCtNO789/WpRCt;
+        AWSALBCORS=6HLAIWjTzaTbUwvn5PfXOx6DxdNd3g4vA2kndpzwUY+JbLMAECOFQ2MWYlvgR2i7mOxAz4GxZurf+U2Mc/uiffzPQazs86zmJ535pbhJqtB3q1GCtNO789/WpRCt
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=80
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        23270, "name": "Art Series: Commander Masters", "abbreviation": "ASCMM", "isSupplemental":
+        true, "publishedOn": "2023-08-04T00:00:00", "modifiedOn": "2025-05-18T10:59:55.327",
+        "categoryId": 1}, {"groupId": 23223, "name": "Art Series: Universes Beyond:
+        The Lord of the Rings: Tales of Middle-earth", "abbreviation": "ASLTR", "isSupplemental":
+        false, "publishedOn": "2023-06-23T00:00:00", "modifiedOn": "2025-10-23T20:27:26.387",
+        "categoryId": 1}, {"groupId": 23071, "name": "Commander: The Lord of the Rings:
+        Tales of Middle-earth", "abbreviation": "LTC", "isSupplemental": false, "publishedOn":
+        "2023-06-23T00:00:00", "modifiedOn": "2025-11-26T21:27:23.743", "categoryId":
+        1}, {"groupId": 23019, "name": "Universes Beyond: The Lord of the Rings: Tales
+        of Middle-earth", "abbreviation": "LTR", "isSupplemental": false, "publishedOn":
+        "2023-06-23T00:00:00", "modifiedOn": "2025-11-26T22:58:40.043", "categoryId":
+        1}, {"groupId": 22876, "name": "March of the Machine: The Aftermath", "abbreviation":
+        "MAT", "isSupplemental": false, "publishedOn": "2023-05-12T00:00:00", "modifiedOn":
+        "2025-11-26T23:06:04.833", "categoryId": 1}, {"groupId": 23167, "name": "Secret
+        Lair Commander: From Cute to Brute", "abbreviation": "SLDC2", "isSupplemental":
+        false, "publishedOn": "2023-05-08T00:00:00", "modifiedOn": "2023-09-25T05:25:14.817",
+        "categoryId": 1}, {"groupId": 23102, "name": "Art Series: March of the Machine",
+        "abbreviation": "ASMOM", "isSupplemental": false, "publishedOn": "2023-04-21T00:00:00",
+        "modifiedOn": "2025-02-03T09:15:47.74", "categoryId": 1}, {"groupId": 22979,
+        "name": "Commander: March of the Machine", "abbreviation": "MOC", "isSupplemental":
+        false, "publishedOn": "2023-04-21T00:00:00", "modifiedOn": "2025-11-26T22:48:36.483",
+        "categoryId": 1}, {"groupId": 22989, "name": "March of the Machine: Multiverse
+        Legends", "abbreviation": "MUL", "isSupplemental": false, "publishedOn": "2023-04-21T00:00:00",
+        "modifiedOn": "2025-11-26T03:25:59.663", "categoryId": 1}, {"groupId": 23109,
+        "name": "Planechase: March of the Machine", "abbreviation": "MOC", "isSupplemental":
+        false, "publishedOn": "2023-04-21T00:00:00", "modifiedOn": "2023-10-12T16:45:04.95",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '2113'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:10 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=r26uahQjh3R7pME0bRoSR/TIngn/EvZ4/N0s/M4nX7E7FMl8T7+6aMLs8r97VyDOtF7vRteyKy13Pz+VcSquaraLqFee3OqP0OjZ/Rs4QoTlsW0BFQGdV0TIsmro;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/
+      - AWSALBCORS=r26uahQjh3R7pME0bRoSR/TIngn/EvZ4/N0s/M4nX7E7FMl8T7+6aMLs8r97VyDOtF7vRteyKy13Pz+VcSquaraLqFee3OqP0OjZ/Rs4QoTlsW0BFQGdV0TIsmro;
+        Expires=Thu, 04 Dec 2025 03:40:10 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=r26uahQjh3R7pME0bRoSR/TIngn/EvZ4/N0s/M4nX7E7FMl8T7+6aMLs8r97VyDOtF7vRteyKy13Pz+VcSquaraLqFee3OqP0OjZ/Rs4QoTlsW0BFQGdV0TIsmro;
+        AWSALBCORS=r26uahQjh3R7pME0bRoSR/TIngn/EvZ4/N0s/M4nX7E7FMl8T7+6aMLs8r97VyDOtF7vRteyKy13Pz+VcSquaraLqFee3OqP0OjZ/Rs4QoTlsW0BFQGdV0TIsmro
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=90
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        23099, "name": "Promo Pack: March of the Machine", "abbreviation": "PPMOM",
+        "isSupplemental": false, "publishedOn": "2023-04-21T00:00:00", "modifiedOn":
+        "2025-11-26T20:58:14.807", "categoryId": 1}, {"groupId": 22875, "name": "March
+        of the Machine", "abbreviation": "MOM", "isSupplemental": false, "publishedOn":
+        "2023-04-14T00:00:00", "modifiedOn": "2025-11-26T22:41:38.553", "categoryId":
+        1}, {"groupId": 23025, "name": "Un-Known Event Playtest Cards", "abbreviation":
+        "", "isSupplemental": false, "publishedOn": "2023-02-23T00:00:00", "modifiedOn":
+        "2025-11-26T15:26:32.297", "categoryId": 1}, {"groupId": 22970, "name": "Secret
+        Lair Showdown", "abbreviation": "SLP", "isSupplemental": false, "publishedOn":
+        "2023-02-17T00:00:00", "modifiedOn": "2025-11-21T23:46:03.667", "categoryId":
+        1}, {"groupId": 22933, "name": "Art Series: Phyrexia: All Will Be One", "abbreviation":
+        "ASONE", "isSupplemental": false, "publishedOn": "2023-02-10T00:00:00", "modifiedOn":
+        "2025-05-08T18:10:36.99", "categoryId": 1}, {"groupId": 22922, "name": "Promo
+        Pack: Phyrexia: All Will Be One", "abbreviation": "PPONE", "isSupplemental":
+        false, "publishedOn": "2023-02-10T00:00:00", "modifiedOn": "2025-11-26T19:19:29.503",
+        "categoryId": 1}, {"groupId": 17685, "name": "Commander: Phyrexia: All Will
+        Be One", "abbreviation": "ONC", "isSupplemental": false, "publishedOn": "2023-02-03T00:00:00",
+        "modifiedOn": "2025-11-25T18:32:22.747", "categoryId": 1}, {"groupId": 17684,
+        "name": "Phyrexia: All Will Be One", "abbreviation": "ONE", "isSupplemental":
+        false, "publishedOn": "2023-02-03T00:00:00", "modifiedOn": "2025-11-26T23:04:21.347",
+        "categoryId": 1}, {"groupId": 17670, "name": "Dominaria Remastered", "abbreviation":
+        "DMR", "isSupplemental": false, "publishedOn": "2023-01-13T00:00:00", "modifiedOn":
+        "2025-11-27T02:32:55.963", "categoryId": 1}, {"groupId": 3185, "name": "Jumpstart
+        2022", "abbreviation": "J22", "isSupplemental": false, "publishedOn": "2022-12-02T00:00:00",
+        "modifiedOn": "2025-11-26T15:02:18.02", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1947'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=E/fxkSfFjr3/kT9fj9PoplqlO6qxDpkGXeiFYJTrPHBHIyur3xoptCr45tZ2jG8JK+fcdnl0g3AHqWMl3TKQSisolV1O0TilOBv2fk1rq16Imrf4JQ+15D6/vvrr;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=E/fxkSfFjr3/kT9fj9PoplqlO6qxDpkGXeiFYJTrPHBHIyur3xoptCr45tZ2jG8JK+fcdnl0g3AHqWMl3TKQSisolV1O0TilOBv2fk1rq16Imrf4JQ+15D6/vvrr;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=E/fxkSfFjr3/kT9fj9PoplqlO6qxDpkGXeiFYJTrPHBHIyur3xoptCr45tZ2jG8JK+fcdnl0g3AHqWMl3TKQSisolV1O0TilOBv2fk1rq16Imrf4JQ+15D6/vvrr;
+        AWSALBCORS=E/fxkSfFjr3/kT9fj9PoplqlO6qxDpkGXeiFYJTrPHBHIyur3xoptCr45tZ2jG8JK+fcdnl0g3AHqWMl3TKQSisolV1O0TilOBv2fk1rq16Imrf4JQ+15D6/vvrr
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=100
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        17662, "name": "Starter Commander Decks", "abbreviation": "SCD", "isSupplemental":
+        false, "publishedOn": "2022-12-02T00:00:00", "modifiedOn": "2025-11-26T13:14:54.443",
+        "categoryId": 1}, {"groupId": 17667, "name": "Secret Lair Countdown Kit",
+        "abbreviation": "SLC", "isSupplemental": true, "publishedOn": "2022-12-01T00:00:00",
+        "modifiedOn": "2025-11-22T03:34:52.843", "categoryId": 1}, {"groupId": 17666,
+        "name": "30th Anniversary Edition", "abbreviation": "30A", "isSupplemental":
+        false, "publishedOn": "2022-11-28T00:00:00", "modifiedOn": "2025-04-28T05:41:01.91",
+        "categoryId": 1}, {"groupId": 3158, "name": "Art Series: The Brothers'' War",
+        "abbreviation": "ASBRO", "isSupplemental": false, "publishedOn": "2022-11-18T00:00:00",
+        "modifiedOn": "2025-03-30T02:50:43.883", "categoryId": 1}, {"groupId": 3159,
+        "name": "Commander: The Brothers'' War", "abbreviation": "BRC", "isSupplemental":
+        false, "publishedOn": "2022-11-18T00:00:00", "modifiedOn": "2025-11-26T21:23:01.323",
+        "categoryId": 1}, {"groupId": 3160, "name": "Promo Pack: The Brothers'' War",
+        "abbreviation": "PPBRO", "isSupplemental": false, "publishedOn": "2022-11-18T00:00:00",
+        "modifiedOn": "2025-11-26T21:41:34.147", "categoryId": 1}, {"groupId": 3157,
+        "name": "The Brothers'' War", "abbreviation": "BRO", "isSupplemental": false,
+        "publishedOn": "2022-11-18T00:00:00", "modifiedOn": "2025-11-26T17:15:55.433",
+        "categoryId": 1}, {"groupId": 17665, "name": "The Brothers'' War: Retro Frame
+        Artifacts", "abbreviation": "BRR", "isSupplemental": false, "publishedOn":
+        "2022-11-18T00:00:00", "modifiedOn": "2025-11-26T21:24:46.743", "categoryId":
+        1}, {"groupId": 17664, "name": "Universes Beyond: Transformers", "abbreviation":
+        "BOT", "isSupplemental": false, "publishedOn": "2022-11-18T00:00:00", "modifiedOn":
+        "2025-11-25T18:26:08.493", "categoryId": 1}, {"groupId": 3129, "name": "Magic
+        Game Night: Free-For-All", "abbreviation": "GN3", "isSupplemental": true,
+        "publishedOn": "2022-10-14T00:00:00", "modifiedOn": "2025-11-11T04:48:48.09",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1947'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=z/qshaBEJWWW1uF5DYkeNv+e+JJq/Xdz3s0cecAlx6vWYADYPFaRulcgTPjrWnxx9B5B9Ua3JAC8mb+OWJDTdH1X1qb7DMyvAA4bUJNouMcv5qNg+dSoE8GTbM1k;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=z/qshaBEJWWW1uF5DYkeNv+e+JJq/Xdz3s0cecAlx6vWYADYPFaRulcgTPjrWnxx9B5B9Ua3JAC8mb+OWJDTdH1X1qb7DMyvAA4bUJNouMcv5qNg+dSoE8GTbM1k;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=z/qshaBEJWWW1uF5DYkeNv+e+JJq/Xdz3s0cecAlx6vWYADYPFaRulcgTPjrWnxx9B5B9Ua3JAC8mb+OWJDTdH1X1qb7DMyvAA4bUJNouMcv5qNg+dSoE8GTbM1k;
+        AWSALBCORS=z/qshaBEJWWW1uF5DYkeNv+e+JJq/Xdz3s0cecAlx6vWYADYPFaRulcgTPjrWnxx9B5B9Ua3JAC8mb+OWJDTdH1X1qb7DMyvAA4bUJNouMcv5qNg+dSoE8GTbM1k
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=110
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        3079, "name": "Universes Beyond: Warhammer 40,000", "abbreviation": "40K",
+        "isSupplemental": false, "publishedOn": "2022-10-07T00:00:00", "modifiedOn":
+        "2025-11-26T18:35:32.3", "categoryId": 1}, {"groupId": 3100, "name": "Secret
+        Lair Commander: Heads I Win, Tails You Lose", "abbreviation": "SLDC", "isSupplemental":
+        true, "publishedOn": "2022-09-30T00:00:00", "modifiedOn": "2023-09-26T15:30:29.873",
+        "categoryId": 1}, {"groupId": 3175, "name": "Art Series: Dominaria United",
+        "abbreviation": "ASDMU", "isSupplemental": false, "publishedOn": "2022-09-09T00:00:00",
+        "modifiedOn": "2025-03-29T13:54:35.5", "categoryId": 1}, {"groupId": 3140,
+        "name": "Commander: Dominaria United", "abbreviation": "DMC", "isSupplemental":
+        false, "publishedOn": "2022-09-09T00:00:00", "modifiedOn": "2025-11-20T22:27:35.553",
+        "categoryId": 1}, {"groupId": 3102, "name": "Dominaria United", "abbreviation":
+        "DMU", "isSupplemental": false, "publishedOn": "2022-09-09T00:00:00", "modifiedOn":
+        "2025-11-25T14:26:42.757", "categoryId": 1}, {"groupId": 3169, "name": "Promo
+        Pack: Dominaria United", "abbreviation": "PPDMU", "isSupplemental": false,
+        "publishedOn": "2022-09-09T00:00:00", "modifiedOn": "2025-11-26T21:26:13.577",
+        "categoryId": 1}, {"groupId": 3178, "name": "30th Anniversary Promos", "abbreviation":
+        "30A-P", "isSupplemental": true, "publishedOn": "2022-09-09T00:00:00", "modifiedOn":
+        "2025-11-26T21:30:29.827", "categoryId": 1}, {"groupId": 2958, "name": "Unfinity",
+        "abbreviation": "UNF", "isSupplemental": false, "publishedOn": "2022-07-29T00:00:00",
+        "modifiedOn": "2025-11-22T02:58:17.29", "categoryId": 1}, {"groupId": 3070,
+        "name": "Double Masters 2022", "abbreviation": "2X2", "isSupplemental": false,
+        "publishedOn": "2022-07-08T00:00:00", "modifiedOn": "2025-11-26T18:16:12.127",
+        "categoryId": 1}, {"groupId": 3048, "name": "Art Series: Commander Legends:
+        Battle for Baldur''s Gate", "abbreviation": "ASCLB", "isSupplemental": false,
+        "publishedOn": "2022-06-10T00:00:00", "modifiedOn": "2025-10-30T06:48:47.95",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1956'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=v2YVbBWL4C2iuzV00jMKuNPKd4swIsARUryrZvibN9XUWpUWvXtoiNrj/wITfOTb1+5sgi/FXbaS+5UZxRwC75hkHQlGAEzTQKxVmjr1OmBKrtif9LkRoKKOIryv;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=v2YVbBWL4C2iuzV00jMKuNPKd4swIsARUryrZvibN9XUWpUWvXtoiNrj/wITfOTb1+5sgi/FXbaS+5UZxRwC75hkHQlGAEzTQKxVmjr1OmBKrtif9LkRoKKOIryv;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=v2YVbBWL4C2iuzV00jMKuNPKd4swIsARUryrZvibN9XUWpUWvXtoiNrj/wITfOTb1+5sgi/FXbaS+5UZxRwC75hkHQlGAEzTQKxVmjr1OmBKrtif9LkRoKKOIryv;
+        AWSALBCORS=v2YVbBWL4C2iuzV00jMKuNPKd4swIsARUryrZvibN9XUWpUWvXtoiNrj/wITfOTb1+5sgi/FXbaS+5UZxRwC75hkHQlGAEzTQKxVmjr1OmBKrtif9LkRoKKOIryv
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=120
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        3047, "name": "Commander Legends: Battle for Baldur''s Gate", "abbreviation":
+        "CLB", "isSupplemental": false, "publishedOn": "2022-06-10T00:00:00", "modifiedOn":
+        "2025-11-26T21:47:35.52", "categoryId": 1}, {"groupId": 3032, "name": "Art
+        Series: Streets of New Capenna", "abbreviation": "ASSNC", "isSupplemental":
+        false, "publishedOn": "2022-04-29T00:00:00", "modifiedOn": "2025-11-01T00:29:08.06",
+        "categoryId": 1}, {"groupId": 3031, "name": "Commander: Streets of New Capenna",
+        "abbreviation": "NCC", "isSupplemental": false, "publishedOn": "2022-04-29T00:00:00",
+        "modifiedOn": "2025-11-26T18:30:55.433", "categoryId": 1}, {"groupId": 3026,
+        "name": "Streets of New Capenna", "abbreviation": "SNC", "isSupplemental":
+        false, "publishedOn": "2022-04-29T00:00:00", "modifiedOn": "2025-11-26T21:20:52.04",
+        "categoryId": 1}, {"groupId": 3033, "name": "Promo Pack: Streets of New Capenna",
+        "abbreviation": "PPSNC", "isSupplemental": true, "publishedOn": "2022-04-29T00:00:00",
+        "modifiedOn": "2025-11-21T15:53:27.29", "categoryId": 1}, {"groupId": 3054,
+        "name": "SLX Cards", "abbreviation": "SLX", "isSupplemental": true, "publishedOn":
+        "2022-04-29T00:00:00", "modifiedOn": "2025-10-29T04:10:15.73", "categoryId":
+        1}, {"groupId": 2966, "name": "Art Series: Kamigawa: Neon Dynasty", "abbreviation":
+        "ASNEO", "isSupplemental": false, "publishedOn": "2022-02-18T00:00:00", "modifiedOn":
+        "2024-09-28T04:17:04.347", "categoryId": 1}, {"groupId": 2967, "name": "Commander:
+        Kamigawa: Neon Dynasty", "abbreviation": "NEC", "isSupplemental": false, "publishedOn":
+        "2022-02-18T00:00:00", "modifiedOn": "2025-11-13T16:05:10.66", "categoryId":
+        1}, {"groupId": 2965, "name": "Kamigawa: Neon Dynasty", "abbreviation": "NEO",
+        "isSupplemental": false, "publishedOn": "2022-02-18T00:00:00", "modifiedOn":
+        "2025-11-26T14:15:45.01", "categoryId": 1}, {"groupId": 2968, "name": "Promo
+        Pack: Kamigawa: Neon Dynasty", "abbreviation": "PPNEO", "isSupplemental":
+        false, "publishedOn": "2022-02-18T00:00:00", "modifiedOn": "2025-11-22T06:28:28.373",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1964'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=cCJVAmxLo+yjZIgQnY8sc+iKnPEMjfj2HOLKDsuQpLbinJYRytluBCimUtIW9w6f3IjaJorFXh4+qQXnWDrI9d/v3g0JJFRDJPpTb3JbgISsY84qOZJY5Z/NqyiM;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=cCJVAmxLo+yjZIgQnY8sc+iKnPEMjfj2HOLKDsuQpLbinJYRytluBCimUtIW9w6f3IjaJorFXh4+qQXnWDrI9d/v3g0JJFRDJPpTb3JbgISsY84qOZJY5Z/NqyiM;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=cCJVAmxLo+yjZIgQnY8sc+iKnPEMjfj2HOLKDsuQpLbinJYRytluBCimUtIW9w6f3IjaJorFXh4+qQXnWDrI9d/v3g0JJFRDJPpTb3JbgISsY84qOZJY5Z/NqyiM;
+        AWSALBCORS=cCJVAmxLo+yjZIgQnY8sc+iKnPEMjfj2HOLKDsuQpLbinJYRytluBCimUtIW9w6f3IjaJorFXh4+qQXnWDrI9d/v3g0JJFRDJPpTb3JbgISsY84qOZJY5Z/NqyiM
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=130
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        2942, "name": "Innistrad: Double Feature", "abbreviation": "DBL", "isSupplemental":
+        false, "publishedOn": "2022-01-28T00:00:00", "modifiedOn": "2025-11-26T16:07:07",
+        "categoryId": 1}, {"groupId": 2905, "name": "Commander Collection: Black",
+        "abbreviation": "CC2", "isSupplemental": false, "publishedOn": "2021-12-31T00:00:00",
+        "modifiedOn": "2025-11-12T22:14:26.05", "categoryId": 1}, {"groupId": 2898,
+        "name": "Art Series: Innistrad: Crimson Vow", "abbreviation": "ASVOW", "isSupplemental":
+        false, "publishedOn": "2021-11-19T00:00:00", "modifiedOn": "2023-11-17T10:34:08.667",
+        "categoryId": 1}, {"groupId": 2900, "name": "Commander: Innistrad: Crimson
+        Vow", "abbreviation": "VOC", "isSupplemental": false, "publishedOn": "2021-11-19T00:00:00",
+        "modifiedOn": "2025-11-17T22:34:36.967", "categoryId": 1}, {"groupId": 2862,
+        "name": "Innistrad: Crimson Vow", "abbreviation": "VOW", "isSupplemental":
+        false, "publishedOn": "2021-11-19T00:00:00", "modifiedOn": "2025-11-26T22:34:30.673",
+        "categoryId": 1}, {"groupId": 2899, "name": "Play Promos", "abbreviation":
+        "PLAY", "isSupplemental": false, "publishedOn": "2021-11-19T00:00:00", "modifiedOn":
+        "2025-10-15T18:09:45.193", "categoryId": 1}, {"groupId": 2891, "name": "Art
+        Series: Innistrad: Midnight Hunt", "abbreviation": "ASMID", "isSupplemental":
+        false, "publishedOn": "2021-09-24T00:00:00", "modifiedOn": "2025-05-09T17:45:08.77",
+        "categoryId": 1}, {"groupId": 2893, "name": "Commander: Innistrad: Midnight
+        Hunt", "abbreviation": "MIC", "isSupplemental": false, "publishedOn": "2021-09-24T00:00:00",
+        "modifiedOn": "2025-11-25T04:14:56.737", "categoryId": 1}, {"groupId": 2864,
+        "name": "Innistrad: Midnight Hunt", "abbreviation": "MID", "isSupplemental":
+        false, "publishedOn": "2021-09-24T00:00:00", "modifiedOn": "2025-11-26T20:41:35.283",
+        "categoryId": 1}, {"groupId": 2892, "name": "Promo Pack: Innistrad: Midnight
+        Hunt", "abbreviation": "PPMID", "isSupplemental": false, "publishedOn": "2021-09-24T00:00:00",
+        "modifiedOn": "2025-11-26T19:21:05.473", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1951'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=7kJTtZbGrk8tGigPBKCscbCGzv4HI/YR2gBSxMas8p2Y5mf0F5GLe3FfDIH77PO+Wa0W8aemQJEOsy/mf1owmGU95atLOFHQgLd3Wn0cSw7xFN5sKjVGzgxKuwRu;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=7kJTtZbGrk8tGigPBKCscbCGzv4HI/YR2gBSxMas8p2Y5mf0F5GLe3FfDIH77PO+Wa0W8aemQJEOsy/mf1owmGU95atLOFHQgLd3Wn0cSw7xFN5sKjVGzgxKuwRu;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=7kJTtZbGrk8tGigPBKCscbCGzv4HI/YR2gBSxMas8p2Y5mf0F5GLe3FfDIH77PO+Wa0W8aemQJEOsy/mf1owmGU95atLOFHQgLd3Wn0cSw7xFN5sKjVGzgxKuwRu;
+        AWSALBCORS=7kJTtZbGrk8tGigPBKCscbCGzv4HI/YR2gBSxMas8p2Y5mf0F5GLe3FfDIH77PO+Wa0W8aemQJEOsy/mf1owmGU95atLOFHQgLd3Wn0cSw7xFN5sKjVGzgxKuwRu
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=140
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        2902, "name": "AFR Ampersand Promos", "abbreviation": "AFR&", "isSupplemental":
+        false, "publishedOn": "2021-08-20T00:00:00", "modifiedOn": "2025-10-13T22:49:00.873",
+        "categoryId": 1}, {"groupId": 2823, "name": "Adventures in the Forgotten Realms",
+        "abbreviation": "AFR", "isSupplemental": false, "publishedOn": "2021-07-23T00:00:00",
+        "modifiedOn": "2025-11-26T21:47:09.71", "categoryId": 1}, {"groupId": 2869,
+        "name": "Art Series: Adventures in the Forgotten Realms", "abbreviation":
+        "ASAFR", "isSupplemental": false, "publishedOn": "2021-07-23T00:00:00", "modifiedOn":
+        "2025-10-30T03:53:50.49", "categoryId": 1}, {"groupId": 2870, "name": "Commander:
+        Adventures in the Forgotten Realms", "abbreviation": "AFC", "isSupplemental":
+        false, "publishedOn": "2021-07-23T00:00:00", "modifiedOn": "2025-11-26T13:18:39.18",
+        "categoryId": 1}, {"groupId": 2868, "name": "Promo Pack: Adventures in the
+        Forgotten Realms", "abbreviation": "PPAFR", "isSupplemental": false, "publishedOn":
+        "2021-07-23T00:00:00", "modifiedOn": "2025-11-24T20:58:13.557", "categoryId":
+        1}, {"groupId": 2822, "name": "Art Series: Modern Horizons 2", "abbreviation":
+        "ASMH2", "isSupplemental": false, "publishedOn": "2021-06-19T00:00:00", "modifiedOn":
+        "2025-10-23T20:24:38.74", "categoryId": 1}, {"groupId": 2809, "name": "Modern
+        Horizons 2", "abbreviation": "MH2", "isSupplemental": false, "publishedOn":
+        "2021-06-19T00:00:00", "modifiedOn": "2025-11-26T22:56:17.07", "categoryId":
+        1}, {"groupId": 2806, "name": "Art Series: Strixhaven", "abbreviation": "ASSTX",
+        "isSupplemental": false, "publishedOn": "2021-04-23T00:00:00", "modifiedOn":
+        "2024-10-11T07:19:51.257", "categoryId": 1}, {"groupId": 2801, "name": "Commander
+        2021", "abbreviation": "C21", "isSupplemental": false, "publishedOn": "2021-04-23T00:00:00",
+        "modifiedOn": "2025-11-26T21:18:16.18", "categoryId": 1}, {"groupId": 2802,
+        "name": "Promo Pack: Strixhaven", "abbreviation": "PPSTX", "isSupplemental":
+        false, "publishedOn": "2021-04-23T00:00:00", "modifiedOn": "2025-11-21T14:38:54.28",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1966'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=oH4dTGQheHYsjamBdxK7Twn89zIcdfVAW7DnMtjvnIo8WBghpposFfc/bn08ckzjW5V+boXf2tBm3JAdwq2Yc2g8J444PXaWFBlUExDrsO1OfS7pkxfHbkfcQU1E;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=oH4dTGQheHYsjamBdxK7Twn89zIcdfVAW7DnMtjvnIo8WBghpposFfc/bn08ckzjW5V+boXf2tBm3JAdwq2Yc2g8J444PXaWFBlUExDrsO1OfS7pkxfHbkfcQU1E;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=oH4dTGQheHYsjamBdxK7Twn89zIcdfVAW7DnMtjvnIo8WBghpposFfc/bn08ckzjW5V+boXf2tBm3JAdwq2Yc2g8J444PXaWFBlUExDrsO1OfS7pkxfHbkfcQU1E;
+        AWSALBCORS=oH4dTGQheHYsjamBdxK7Twn89zIcdfVAW7DnMtjvnIo8WBghpposFfc/bn08ckzjW5V+boXf2tBm3JAdwq2Yc2g8J444PXaWFBlUExDrsO1OfS7pkxfHbkfcQU1E
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=150
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        2773, "name": "Strixhaven: School of Mages", "abbreviation": "STX", "isSupplemental":
+        false, "publishedOn": "2021-04-23T00:00:00", "modifiedOn": "2025-11-21T00:46:08.673",
+        "categoryId": 1}, {"groupId": 2791, "name": "Strixhaven: Mystical Archives",
+        "abbreviation": "STA", "isSupplemental": true, "publishedOn": "2021-04-23T00:00:00",
+        "modifiedOn": "2025-11-26T21:43:21.757", "categoryId": 1}, {"groupId": 2772,
+        "name": "Time Spiral: Remastered", "abbreviation": "TSR", "isSupplemental":
+        false, "publishedOn": "2021-03-21T00:00:00", "modifiedOn": "2025-11-26T15:15:27.26",
+        "categoryId": 1}, {"groupId": 2766, "name": "Commander: Kaldheim", "abbreviation":
+        "KHC", "isSupplemental": false, "publishedOn": "2021-02-05T00:00:00", "modifiedOn":
+        "2025-11-17T22:44:09.713", "categoryId": 1}, {"groupId": 2750, "name": "Kaldheim",
+        "abbreviation": "KHM", "isSupplemental": false, "publishedOn": "2021-02-05T00:00:00",
+        "modifiedOn": "2025-11-26T20:28:40.557", "categoryId": 1}, {"groupId": 2771,
+        "name": "Art Series: Kaldheim", "abbreviation": "ASKHM", "isSupplemental":
+        true, "publishedOn": "2021-02-05T00:00:00", "modifiedOn": "2025-11-26T12:28:05.553",
+        "categoryId": 1}, {"groupId": 2770, "name": "Promo Pack: Kaldheim", "abbreviation":
+        "PPKHM", "isSupplemental": true, "publishedOn": "2021-02-05T00:00:00", "modifiedOn":
+        "2025-05-10T14:28:48", "categoryId": 1}, {"groupId": 2699, "name": "Commander
+        Collection: Green", "abbreviation": "CC1", "isSupplemental": false, "publishedOn":
+        "2020-12-04T00:00:00", "modifiedOn": "2025-11-13T05:57:45.113", "categoryId":
+        1}, {"groupId": 2708, "name": "Commander Legends", "abbreviation": "CMR",
+        "isSupplemental": false, "publishedOn": "2020-11-20T00:00:00", "modifiedOn":
+        "2025-11-26T21:09:11.68", "categoryId": 1}, {"groupId": 2714, "name": "Art
+        Series: Zendikar Rising", "abbreviation": "ASZNR", "isSupplemental": false,
+        "publishedOn": "2020-09-25T00:00:00", "modifiedOn": "2025-11-07T03:53:33.61",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1880'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=RAc22dC6hGGCWIlaSM8r2T9V8ZZr0WtUUCuSQXmHSsUMKYbRCgHW4o3veTPaP8Se1BRoBmBKklw2GPu5dT5svUBTpVW9ALbYsr+wciZGXBVkYF1GzVpxpIf+3LiH;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=RAc22dC6hGGCWIlaSM8r2T9V8ZZr0WtUUCuSQXmHSsUMKYbRCgHW4o3veTPaP8Se1BRoBmBKklw2GPu5dT5svUBTpVW9ALbYsr+wciZGXBVkYF1GzVpxpIf+3LiH;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=RAc22dC6hGGCWIlaSM8r2T9V8ZZr0WtUUCuSQXmHSsUMKYbRCgHW4o3veTPaP8Se1BRoBmBKklw2GPu5dT5svUBTpVW9ALbYsr+wciZGXBVkYF1GzVpxpIf+3LiH;
+        AWSALBCORS=RAc22dC6hGGCWIlaSM8r2T9V8ZZr0WtUUCuSQXmHSsUMKYbRCgHW4o3veTPaP8Se1BRoBmBKklw2GPu5dT5svUBTpVW9ALbYsr+wciZGXBVkYF1GzVpxpIf+3LiH
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=160
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        2716, "name": "Commander: Zendikar Rising", "abbreviation": "ZNC", "isSupplemental":
+        false, "publishedOn": "2020-09-25T00:00:00", "modifiedOn": "2025-11-14T22:21:10.973",
+        "categoryId": 1}, {"groupId": 2717, "name": "Promo Pack: Zendikar Rising",
+        "abbreviation": "PPZNR", "isSupplemental": false, "publishedOn": "2020-09-25T00:00:00",
+        "modifiedOn": "2025-11-26T21:55:41.703", "categoryId": 1}, {"groupId": 2648,
+        "name": "Zendikar Rising", "abbreviation": "ZNR", "isSupplemental": false,
+        "publishedOn": "2020-09-25T00:00:00", "modifiedOn": "2025-11-26T21:54:11.11",
+        "categoryId": 1}, {"groupId": 2713, "name": "Zendikar Rising Expeditions",
+        "abbreviation": "ZNE", "isSupplemental": false, "publishedOn": "2020-09-25T00:00:00",
+        "modifiedOn": "2025-10-24T21:00:56.213", "categoryId": 1}, {"groupId": 2715,
+        "name": "The List Reprints", "abbreviation": "LIST", "isSupplemental": true,
+        "publishedOn": "2020-09-25T00:00:00", "modifiedOn": "2025-11-26T23:08:49.833",
+        "categoryId": 1}, {"groupId": 2712, "name": "Magic: The Gathering Apparel",
+        "abbreviation": "MTGA", "isSupplemental": false, "publishedOn": "2020-09-01T00:00:00",
+        "modifiedOn": "2020-10-09T13:00:12.65", "categoryId": 1}, {"groupId": 2655,
+        "name": "Double Masters", "abbreviation": "2XM", "isSupplemental": false,
+        "publishedOn": "2020-08-07T00:00:00", "modifiedOn": "2025-11-26T21:20:53.583",
+        "categoryId": 1}, {"groupId": 2654, "name": "Jumpstart", "abbreviation": "JMP",
+        "isSupplemental": false, "publishedOn": "2020-07-17T00:00:00", "modifiedOn":
+        "2025-11-26T14:32:56.18", "categoryId": 1}, {"groupId": 3176, "name": "Arena
+        Starter Kit", "abbreviation": "ASK", "isSupplemental": false, "publishedOn":
+        "2020-07-03T00:00:00", "modifiedOn": "2023-08-09T20:34:58.667", "categoryId":
+        1}, {"groupId": 2653, "name": "Core Set 2021", "abbreviation": "M21", "isSupplemental":
+        false, "publishedOn": "2020-07-03T00:00:00", "modifiedOn": "2025-11-26T14:47:00.32",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1859'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=SD1bEW6+QJ1luSRofVQ48jo1wofqhcnKJew0ydAK+R+ZVSYAYFgzVduWOjkgGY3GvyI680P7ef1j4UT4+SM80aC4Xo58G6UPIo/0XtiTtOCe36RvEOMVCJRf65jH;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=SD1bEW6+QJ1luSRofVQ48jo1wofqhcnKJew0ydAK+R+ZVSYAYFgzVduWOjkgGY3GvyI680P7ef1j4UT4+SM80aC4Xo58G6UPIo/0XtiTtOCe36RvEOMVCJRf65jH;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=SD1bEW6+QJ1luSRofVQ48jo1wofqhcnKJew0ydAK+R+ZVSYAYFgzVduWOjkgGY3GvyI680P7ef1j4UT4+SM80aC4Xo58G6UPIo/0XtiTtOCe36RvEOMVCJRf65jH;
+        AWSALBCORS=SD1bEW6+QJ1luSRofVQ48jo1wofqhcnKJew0ydAK+R+ZVSYAYFgzVduWOjkgGY3GvyI680P7ef1j4UT4+SM80aC4Xo58G6UPIo/0XtiTtOCe36RvEOMVCJRf65jH
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=170
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        2665, "name": "Promo Pack: Core Set 2021", "abbreviation": "PPM21", "isSupplemental":
+        false, "publishedOn": "2020-07-03T00:00:00", "modifiedOn": "2025-11-21T14:14:00.73",
+        "categoryId": 1}, {"groupId": 2633, "name": "Signature Spellbook: Chandra",
+        "abbreviation": "SS3", "isSupplemental": true, "publishedOn": "2020-06-26T00:00:00",
+        "modifiedOn": "2025-11-15T02:25:32.79", "categoryId": 1}, {"groupId": 2632,
+        "name": "Secret Lair Series", "abbreviation": "SLU", "isSupplemental": true,
+        "publishedOn": "2020-05-29T00:00:00", "modifiedOn": "2025-11-24T23:55:39.727",
+        "categoryId": 1}, {"groupId": 2603, "name": "Ikoria: Lair of Behemoths", "abbreviation":
+        "IKO", "isSupplemental": false, "publishedOn": "2020-05-15T00:00:00", "modifiedOn":
+        "2025-11-25T07:53:32.173", "categoryId": 1}, {"groupId": 2643, "name": "Promo
+        Pack: Ikoria", "abbreviation": "PPIKO", "isSupplemental": false, "publishedOn":
+        "2020-05-15T00:00:00", "modifiedOn": "2025-10-30T22:14:55.33", "categoryId":
+        1}, {"groupId": 2634, "name": "Commander 2020", "abbreviation": "C20", "isSupplemental":
+        false, "publishedOn": "2020-04-24T00:00:00", "modifiedOn": "2025-11-26T13:10:40.643",
+        "categoryId": 1}, {"groupId": 2571, "name": "Mystery Booster: Retail Exclusives",
+        "abbreviation": "RMB1", "isSupplemental": true, "publishedOn": "2020-03-13T00:00:00",
+        "modifiedOn": "2023-09-01T20:16:23.19", "categoryId": 1}, {"groupId": 2598,
+        "name": "Unsanctioned", "abbreviation": "UND", "isSupplemental": true, "publishedOn":
+        "2020-02-29T00:00:00", "modifiedOn": "2025-11-22T03:01:17.253", "categoryId":
+        1}, {"groupId": 2568, "name": "Theros Beyond Death", "abbreviation": "THB",
+        "isSupplemental": false, "publishedOn": "2020-01-24T00:00:00", "modifiedOn":
+        "2025-11-26T13:13:30.943", "categoryId": 1}, {"groupId": 2599, "name": "Promo
+        Pack: Theros Beyond Death", "abbreviation": "PPTHB", "isSupplemental": false,
+        "publishedOn": "2020-01-17T00:00:00", "modifiedOn": "2025-11-21T16:16:00.097",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1890'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=nzNXkd4ANGW3GQhWf0TF6wUmxZ+ZWVwgwZFvUOCB/bsvJxh0Hm2VlH4Ov/OuTZ8JZYXfLtLN/RlMYBDqsnt7GgodNUVIc5/i+bltnnKuDxHFSaCuIXtgUKKBEPwZ;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=nzNXkd4ANGW3GQhWf0TF6wUmxZ+ZWVwgwZFvUOCB/bsvJxh0Hm2VlH4Ov/OuTZ8JZYXfLtLN/RlMYBDqsnt7GgodNUVIc5/i+bltnnKuDxHFSaCuIXtgUKKBEPwZ;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=nzNXkd4ANGW3GQhWf0TF6wUmxZ+ZWVwgwZFvUOCB/bsvJxh0Hm2VlH4Ov/OuTZ8JZYXfLtLN/RlMYBDqsnt7GgodNUVIc5/i+bltnnKuDxHFSaCuIXtgUKKBEPwZ;
+        AWSALBCORS=nzNXkd4ANGW3GQhWf0TF6wUmxZ+ZWVwgwZFvUOCB/bsvJxh0Hm2VlH4Ov/OuTZ8JZYXfLtLN/RlMYBDqsnt7GgodNUVIc5/i+bltnnKuDxHFSaCuIXtgUKKBEPwZ
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=180
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        2576, "name": "Secret Lair Drop Series", "abbreviation": "SLD", "isSupplemental":
+        true, "publishedOn": "2019-12-02T00:00:00", "modifiedOn": "2025-11-27T01:48:34.483",
+        "categoryId": 1}, {"groupId": 2562, "name": "Magic Game Night 2019", "abbreviation":
+        "GN2", "isSupplemental": true, "publishedOn": "2019-11-15T00:00:00", "modifiedOn":
+        "2025-03-25T18:13:08.133", "categoryId": 1}, {"groupId": 2572, "name": "Mystery
+        Booster Cards", "abbreviation": "MB1", "isSupplemental": true, "publishedOn":
+        "2019-11-07T00:00:00", "modifiedOn": "2023-09-29T15:22:55.813", "categoryId":
+        1}, {"groupId": 2570, "name": "Mystery Booster: Convention Edition Exclusives",
+        "abbreviation": "CMB1", "isSupplemental": true, "publishedOn": "2019-11-07T00:00:00",
+        "modifiedOn": "2025-10-28T05:08:53.707", "categoryId": 1}, {"groupId": 2552,
+        "name": "Ponies: The Galloping", "abbreviation": "PTG", "isSupplemental":
+        false, "publishedOn": "2019-10-22T00:00:00", "modifiedOn": "2023-08-07T20:33:14.73",
+        "categoryId": 1}, {"groupId": 2494, "name": "Throne of Eldraine", "abbreviation":
+        "ELD", "isSupplemental": false, "publishedOn": "2019-10-04T00:00:00", "modifiedOn":
+        "2025-11-26T18:39:23.983", "categoryId": 1}, {"groupId": 2543, "name": "Promo
+        Pack: Throne of Eldraine", "abbreviation": "PPELD", "isSupplemental": true,
+        "publishedOn": "2019-10-04T00:00:00", "modifiedOn": "2025-11-26T19:13:38.9",
+        "categoryId": 1}, {"groupId": 2481, "name": "Commander 2019", "abbreviation":
+        "C19", "isSupplemental": false, "publishedOn": "2019-08-23T00:00:00", "modifiedOn":
+        "2025-11-26T22:50:40.183", "categoryId": 1}, {"groupId": 2441, "name": "Core
+        Set 2020", "abbreviation": "M20", "isSupplemental": false, "publishedOn":
+        "2019-07-12T00:00:00", "modifiedOn": "2025-11-26T21:37:41.423", "categoryId":
+        1}, {"groupId": 2477, "name": "Promo Pack: Core Set 2020", "abbreviation":
+        "PPM20", "isSupplemental": true, "publishedOn": "2019-06-29T00:00:00", "modifiedOn":
+        "2025-11-26T22:26:14.19", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1894'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=NlgepzM35p4MHihhUqm2mGLtbmU6EREggJnZksgwNL7mQjUYnwDTQ8OLKVbaVFgvG90nTC6jdbMil8wRyvaNB/13RnOigRpDT4BqYQu2HKJP+unaeQmaWPtmAgCP;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=NlgepzM35p4MHihhUqm2mGLtbmU6EREggJnZksgwNL7mQjUYnwDTQ8OLKVbaVFgvG90nTC6jdbMil8wRyvaNB/13RnOigRpDT4BqYQu2HKJP+unaeQmaWPtmAgCP;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=NlgepzM35p4MHihhUqm2mGLtbmU6EREggJnZksgwNL7mQjUYnwDTQ8OLKVbaVFgvG90nTC6jdbMil8wRyvaNB/13RnOigRpDT4BqYQu2HKJP+unaeQmaWPtmAgCP;
+        AWSALBCORS=NlgepzM35p4MHihhUqm2mGLtbmU6EREggJnZksgwNL7mQjUYnwDTQ8OLKVbaVFgvG90nTC6jdbMil8wRyvaNB/13RnOigRpDT4BqYQu2HKJP+unaeQmaWPtmAgCP
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=190
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        2447, "name": "Signature Spellbook: Gideon", "abbreviation": "SS2", "isSupplemental":
+        true, "publishedOn": "2019-06-28T00:00:00", "modifiedOn": "2025-10-22T06:01:33.52",
+        "categoryId": 1}, {"groupId": 2463, "name": "Art Series: Modern Horizons",
+        "abbreviation": "ASMH1", "isSupplemental": true, "publishedOn": "2019-06-14T00:00:00",
+        "modifiedOn": "2025-10-31T17:15:15.283", "categoryId": 1}, {"groupId": 2422,
+        "name": "Modern Horizons", "abbreviation": "MH1", "isSupplemental": true,
+        "publishedOn": "2019-06-14T00:00:00", "modifiedOn": "2025-11-26T15:56:19.773",
+        "categoryId": 1}, {"groupId": 2546, "name": "Planeswalker Event Promos", "abbreviation":
+        "PEP", "isSupplemental": false, "publishedOn": "2019-05-25T00:00:00", "modifiedOn":
+        "2025-11-26T22:32:40.22", "categoryId": 1}, {"groupId": 2418, "name": "War
+        of the Spark", "abbreviation": "WAR", "isSupplemental": false, "publishedOn":
+        "2019-05-03T00:00:00", "modifiedOn": "2025-11-26T21:13:45.507", "categoryId":
+        1}, {"groupId": 2444, "name": "Mythic Edition: War of the Spark", "abbreviation":
+        "MED3", "isSupplemental": true, "publishedOn": "2019-05-01T00:00:00", "modifiedOn":
+        "2023-09-27T14:18:12.787", "categoryId": 1}, {"groupId": 2388, "name": "Ravnica
+        Allegiance: Guild Kits", "abbreviation": "GK2", "isSupplemental": true, "publishedOn":
+        "2019-02-15T00:00:00", "modifiedOn": "2025-11-13T06:13:02.723", "categoryId":
+        1}, {"groupId": 2366, "name": "Ravnica Allegiance", "abbreviation": "RNA",
+        "isSupplemental": false, "publishedOn": "2019-01-25T00:00:00", "modifiedOn":
+        "2025-11-17T22:48:09.457", "categoryId": 1}, {"groupId": 2386, "name": "Mythic
+        Edition: Ravnica Allegiance", "abbreviation": "MED2", "isSupplemental": true,
+        "publishedOn": "2019-01-24T00:00:00", "modifiedOn": "2023-09-25T05:08:54.34",
+        "categoryId": 1}, {"groupId": 2360, "name": "Ultimate Masters", "abbreviation":
+        "UMA", "isSupplemental": true, "publishedOn": "2018-12-07T00:00:00", "modifiedOn":
+        "2025-11-25T04:00:45.28", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1900'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=MNFgMiIcgBxvcXfyLxCnwbPwGQZZG7fmor7cK13oRTS0qWrF+TIgzE5YS/DtSl/9n1znEgjno6GdLuf32s9i4KOx/N0qbafhzGU1O/gNNSBlDiRqanpZPQl1rMHM;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=MNFgMiIcgBxvcXfyLxCnwbPwGQZZG7fmor7cK13oRTS0qWrF+TIgzE5YS/DtSl/9n1znEgjno6GdLuf32s9i4KOx/N0qbafhzGU1O/gNNSBlDiRqanpZPQl1rMHM;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=MNFgMiIcgBxvcXfyLxCnwbPwGQZZG7fmor7cK13oRTS0qWrF+TIgzE5YS/DtSl/9n1znEgjno6GdLuf32s9i4KOx/N0qbafhzGU1O/gNNSBlDiRqanpZPQl1rMHM;
+        AWSALBCORS=MNFgMiIcgBxvcXfyLxCnwbPwGQZZG7fmor7cK13oRTS0qWrF+TIgzE5YS/DtSl/9n1znEgjno6GdLuf32s9i4KOx/N0qbafhzGU1O/gNNSBlDiRqanpZPQl1rMHM
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=200
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        2361, "name": "Ultimate Masters: Box Toppers", "abbreviation": "UMA:BT", "isSupplemental":
+        true, "publishedOn": "2018-12-07T00:00:00", "modifiedOn": "2025-02-27T14:37:19.83",
+        "categoryId": 1}, {"groupId": 2376, "name": "MagicFest Cards", "abbreviation":
+        "MFP", "isSupplemental": true, "publishedOn": "2018-12-01T00:00:00", "modifiedOn":
+        "2025-11-26T18:33:24.507", "categoryId": 1}, {"groupId": 2359, "name": "Magic
+        Game Night", "abbreviation": "GNT", "isSupplemental": true, "publishedOn":
+        "2018-11-16T00:00:00", "modifiedOn": "2025-11-10T23:23:10.897", "categoryId":
+        1}, {"groupId": 2334, "name": "Guilds of Ravnica: Guild Kits", "abbreviation":
+        "GR1", "isSupplemental": true, "publishedOn": "2018-11-02T00:00:00", "modifiedOn":
+        "2025-10-30T02:01:18.887", "categoryId": 1}, {"groupId": 2290, "name": "Guilds
+        of Ravnica", "abbreviation": "GRN", "isSupplemental": false, "publishedOn":
+        "2018-10-05T00:00:00", "modifiedOn": "2025-11-25T18:15:52.56", "categoryId":
+        1}, {"groupId": 2307, "name": "Spellslinger Starter Kit", "abbreviation":
+        "SSK", "isSupplemental": false, "publishedOn": "2018-10-05T00:00:00", "modifiedOn":
+        "2023-08-17T16:06:17.923", "categoryId": 1}, {"groupId": 2326, "name": "Mythic
+        Edition: Guilds of Ravnica", "abbreviation": "MED", "isSupplemental": true,
+        "publishedOn": "2018-10-03T00:00:00", "modifiedOn": "2024-08-17T09:00:13.81",
+        "categoryId": 1}, {"groupId": 2251, "name": "Commander 2018", "abbreviation":
+        "C18", "isSupplemental": true, "publishedOn": "2018-08-10T00:00:00", "modifiedOn":
+        "2025-11-14T18:08:55.94", "categoryId": 1}, {"groupId": 2250, "name": "Core
+        Set 2019", "abbreviation": "M19", "isSupplemental": false, "publishedOn":
+        "2018-07-13T00:00:00", "modifiedOn": "2025-11-25T18:48:21.47", "categoryId":
+        1}, {"groupId": 2247, "name": "Global Series Jiang Yanggu & Mu Yanling", "abbreviation":
+        "GS1", "isSupplemental": false, "publishedOn": "2018-06-22T00:00:00", "modifiedOn":
+        "2025-11-12T23:10:21.96", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1887'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=eBPGPnneXNq1YNMT1aAYxUS/zAdVxOkR7fmwGLPe28kXaK15vkiufJkt69yw1v61GFgMmSZ5wlvEkqlbtZ3bDq2fAWoaMpqbaRaNkG/r2qpug/J8rdfGrmU9DygB;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=eBPGPnneXNq1YNMT1aAYxUS/zAdVxOkR7fmwGLPe28kXaK15vkiufJkt69yw1v61GFgMmSZ5wlvEkqlbtZ3bDq2fAWoaMpqbaRaNkG/r2qpug/J8rdfGrmU9DygB;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=eBPGPnneXNq1YNMT1aAYxUS/zAdVxOkR7fmwGLPe28kXaK15vkiufJkt69yw1v61GFgMmSZ5wlvEkqlbtZ3bDq2fAWoaMpqbaRaNkG/r2qpug/J8rdfGrmU9DygB;
+        AWSALBCORS=eBPGPnneXNq1YNMT1aAYxUS/zAdVxOkR7fmwGLPe28kXaK15vkiufJkt69yw1v61GFgMmSZ5wlvEkqlbtZ3bDq2fAWoaMpqbaRaNkG/r2qpug/J8rdfGrmU9DygB
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=210
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        2220, "name": "Signature Spellbook: Jace", "abbreviation": "SS1", "isSupplemental":
+        true, "publishedOn": "2018-06-15T00:00:00", "modifiedOn": "2025-11-12T22:17:49.857",
+        "categoryId": 1}, {"groupId": 2245, "name": "Battlebond", "abbreviation":
+        "BBD", "isSupplemental": false, "publishedOn": "2018-06-08T00:00:00", "modifiedOn":
+        "2025-11-26T03:54:02.277", "categoryId": 1}, {"groupId": 2246, "name": "Commander
+        Anthology Volume II", "abbreviation": "CM2", "isSupplemental": true, "publishedOn":
+        "2018-06-08T00:00:00", "modifiedOn": "2025-11-10T23:45:21.487", "categoryId":
+        1}, {"groupId": 2199, "name": "Dominaria", "abbreviation": "DOM", "isSupplemental":
+        false, "publishedOn": "2018-04-27T00:00:00", "modifiedOn": "2025-11-26T22:34:30.087",
+        "categoryId": 1}, {"groupId": 2203, "name": "Challenger Decks", "abbreviation":
+        "Q01", "isSupplemental": true, "publishedOn": "2018-04-06T00:00:00", "modifiedOn":
+        "2023-08-09T20:38:32.4", "categoryId": 1}, {"groupId": 2207, "name": "Duel
+        Decks: Elves vs. Inventors", "abbreviation": "DDU", "isSupplemental": true,
+        "publishedOn": "2018-04-06T00:00:00", "modifiedOn": "2025-11-21T14:06:24.763",
+        "categoryId": 1}, {"groupId": 2189, "name": "Masters 25", "abbreviation":
+        "A25", "isSupplemental": true, "publishedOn": "2018-03-16T00:00:00", "modifiedOn":
+        "2025-11-22T02:43:44.867", "categoryId": 1}, {"groupId": 2098, "name": "Rivals
+        of Ixalan", "abbreviation": "RIX", "isSupplemental": false, "publishedOn":
+        "2018-01-19T00:00:00", "modifiedOn": "2025-11-26T18:56:19.59", "categoryId":
+        1}, {"groupId": 2092, "name": "Unstable", "abbreviation": "UST", "isSupplemental":
+        true, "publishedOn": "2017-12-08T00:00:00", "modifiedOn": "2025-11-13T19:11:43.263",
+        "categoryId": 1}, {"groupId": 2077, "name": "Explorers of Ixalan", "abbreviation":
+        "E02", "isSupplemental": true, "publishedOn": "2017-11-24T00:00:00", "modifiedOn":
+        "2025-11-14T01:11:34.303", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1830'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=xQZooBypLYb68kGg+WsldJ7t0NRcOPfJwybOROdYr+90rWa9gK10839/NhWy9qpMpLe+VmJw2daQOqP/uwbI75gjWJmbQofhwadWnRO9vzPyhX9x4aWT6u6OKv7W;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=xQZooBypLYb68kGg+WsldJ7t0NRcOPfJwybOROdYr+90rWa9gK10839/NhWy9qpMpLe+VmJw2daQOqP/uwbI75gjWJmbQofhwadWnRO9vzPyhX9x4aWT6u6OKv7W;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=xQZooBypLYb68kGg+WsldJ7t0NRcOPfJwybOROdYr+90rWa9gK10839/NhWy9qpMpLe+VmJw2daQOqP/uwbI75gjWJmbQofhwadWnRO9vzPyhX9x4aWT6u6OKv7W;
+        AWSALBCORS=xQZooBypLYb68kGg+WsldJ7t0NRcOPfJwybOROdYr+90rWa9gK10839/NhWy9qpMpLe+VmJw2daQOqP/uwbI75gjWJmbQofhwadWnRO9vzPyhX9x4aWT6u6OKv7W
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=220
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        2078, "name": "From the Vault: Transform", "abbreviation": "V17", "isSupplemental":
+        true, "publishedOn": "2017-11-24T00:00:00", "modifiedOn": "2025-11-26T22:37:28.617",
+        "categoryId": 1}, {"groupId": 2050, "name": "Iconic Masters", "abbreviation":
+        "IMA", "isSupplemental": true, "publishedOn": "2017-11-17T00:00:00", "modifiedOn":
+        "2025-11-25T04:07:06.767", "categoryId": 1}, {"groupId": 2076, "name": "Duel
+        Decks: Merfolk vs. Goblins", "abbreviation": "DDT", "isSupplemental": true,
+        "publishedOn": "2017-11-10T00:00:00", "modifiedOn": "2025-11-12T00:54:23.42",
+        "categoryId": 1}, {"groupId": 2084, "name": "Gift Boxes and Promos", "abbreviation":
+        "GBP", "isSupplemental": true, "publishedOn": "2017-10-20T00:00:00", "modifiedOn":
+        "2025-06-09T08:51:14.03", "categoryId": 1}, {"groupId": 2087, "name": "League
+        Promos", "abbreviation": "LEP", "isSupplemental": true, "publishedOn": "2017-10-02T00:00:00",
+        "modifiedOn": "2025-10-15T00:12:31.99", "categoryId": 1}, {"groupId": 2043,
+        "name": "Ixalan", "abbreviation": "XLN", "isSupplemental": false, "publishedOn":
+        "2017-09-29T00:00:00", "modifiedOn": "2025-11-26T18:48:37.4", "categoryId":
+        1}, {"groupId": 2067, "name": "Standard Showdown Promos", "abbreviation":
+        "SSP", "isSupplemental": true, "publishedOn": "2017-09-29T00:00:00", "modifiedOn":
+        "2025-11-26T18:16:21.303", "categoryId": 1}, {"groupId": 2009, "name": "Commander
+        2017", "abbreviation": "C17", "isSupplemental": true, "publishedOn": "2017-08-25T00:00:00",
+        "modifiedOn": "2025-11-21T00:54:52.757", "categoryId": 1}, {"groupId": 1934,
+        "name": "Hour of Devastation", "abbreviation": "HOU", "isSupplemental": false,
+        "publishedOn": "2017-07-14T00:00:00", "modifiedOn": "2025-11-21T01:27:23.173",
+        "categoryId": 1}, {"groupId": 1904, "name": "Archenemy: Nicol Bolas", "abbreviation":
+        "AC2", "isSupplemental": true, "publishedOn": "2017-06-16T00:00:00", "modifiedOn":
+        "2025-11-11T00:57:59.803", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1843'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:11 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=vccUGycAycXgCFGAW0xXFxcVGnRabZXDtEuBL/kTaAHIorwIm1ArSVFlo3SN+CBPzH+1pmjYjuisdcx9hVTNApvrCyKZ0cg908ivLPODMNudjxYU6lQkoZ7P0GGZ;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=vccUGycAycXgCFGAW0xXFxcVGnRabZXDtEuBL/kTaAHIorwIm1ArSVFlo3SN+CBPzH+1pmjYjuisdcx9hVTNApvrCyKZ0cg908ivLPODMNudjxYU6lQkoZ7P0GGZ;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=vccUGycAycXgCFGAW0xXFxcVGnRabZXDtEuBL/kTaAHIorwIm1ArSVFlo3SN+CBPzH+1pmjYjuisdcx9hVTNApvrCyKZ0cg908ivLPODMNudjxYU6lQkoZ7P0GGZ;
+        AWSALBCORS=vccUGycAycXgCFGAW0xXFxcVGnRabZXDtEuBL/kTaAHIorwIm1ArSVFlo3SN+CBPzH+1pmjYjuisdcx9hVTNApvrCyKZ0cg908ivLPODMNudjxYU6lQkoZ7P0GGZ
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=230
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        1933, "name": "Commander Anthology", "abbreviation": "CMA", "isSupplemental":
+        true, "publishedOn": "2017-06-09T00:00:00", "modifiedOn": "2025-11-10T23:58:28.36",
+        "categoryId": 1}, {"groupId": 1882, "name": "Amonkhet", "abbreviation": "AKH",
+        "isSupplemental": false, "publishedOn": "2017-04-28T00:00:00", "modifiedOn":
+        "2025-11-26T20:22:06.33", "categoryId": 1}, {"groupId": 1909, "name": "Masterpiece
+        Series: Amonkhet Invocations", "abbreviation": "MPS2", "isSupplemental": true,
+        "publishedOn": "2017-04-28T00:00:00", "modifiedOn": "2025-11-13T19:18:12.21",
+        "categoryId": 1}, {"groupId": 2045, "name": "Open House Promos", "abbreviation":
+        "OHP", "isSupplemental": true, "publishedOn": "2017-04-28T00:00:00", "modifiedOn":
+        "2025-10-31T18:26:44.747", "categoryId": 1}, {"groupId": 1930, "name": "Welcome
+        Deck 2017", "abbreviation": "W17", "isSupplemental": true, "publishedOn":
+        "2017-04-28T00:00:00", "modifiedOn": "2025-11-13T20:14:32.307", "categoryId":
+        1}, {"groupId": 1905, "name": "Duel Decks: Mind vs. Might", "abbreviation":
+        "DDS", "isSupplemental": true, "publishedOn": "2017-03-31T00:00:00", "modifiedOn":
+        "2025-11-12T22:39:08.56", "categoryId": 1}, {"groupId": 1879, "name": "Modern
+        Masters 2017", "abbreviation": "MM3", "isSupplemental": true, "publishedOn":
+        "2017-03-17T00:00:00", "modifiedOn": "2025-11-21T13:18:50.597", "categoryId":
+        1}, {"groupId": 1857, "name": "Aether Revolt", "abbreviation": "AER", "isSupplemental":
+        false, "publishedOn": "2017-01-20T00:00:00", "modifiedOn": "2025-11-21T01:32:55.27",
+        "categoryId": 1}, {"groupId": 1793, "name": "Planechase Anthology", "abbreviation":
+        "PCA", "isSupplemental": true, "publishedOn": "2016-11-25T00:00:00", "modifiedOn":
+        "2025-11-25T04:12:06.77", "categoryId": 1}, {"groupId": 1792, "name": "Commander
+        2016", "abbreviation": "C16", "isSupplemental": true, "publishedOn": "2016-11-11T00:00:00",
+        "modifiedOn": "2025-11-21T21:52:49.187", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1847'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=MO7Sg881fgqf+QIVYkVapRLcQAHX805VC8HB0k4RyDMFNOJdLNhQxOKSRyzRaXLoJk9cMwz7RCQp6QRT4FrWJO+aQE9liWHcVh07q64hzsZS5A0ChY8o6LQhDmqs;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/
+      - AWSALBCORS=MO7Sg881fgqf+QIVYkVapRLcQAHX805VC8HB0k4RyDMFNOJdLNhQxOKSRyzRaXLoJk9cMwz7RCQp6QRT4FrWJO+aQE9liWHcVh07q64hzsZS5A0ChY8o6LQhDmqs;
+        Expires=Thu, 04 Dec 2025 03:40:11 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=MO7Sg881fgqf+QIVYkVapRLcQAHX805VC8HB0k4RyDMFNOJdLNhQxOKSRyzRaXLoJk9cMwz7RCQp6QRT4FrWJO+aQE9liWHcVh07q64hzsZS5A0ChY8o6LQhDmqs;
+        AWSALBCORS=MO7Sg881fgqf+QIVYkVapRLcQAHX805VC8HB0k4RyDMFNOJdLNhQxOKSRyzRaXLoJk9cMwz7RCQp6QRT4FrWJO+aQE9liWHcVh07q64hzsZS5A0ChY8o6LQhDmqs
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=240
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        1791, "name": "Kaladesh", "abbreviation": "KLD", "isSupplemental": false,
+        "publishedOn": "2016-09-30T00:00:00", "modifiedOn": "2025-11-26T20:58:59.597",
+        "categoryId": 1}, {"groupId": 1837, "name": "Masterpiece Series: Kaladesh
+        Inventions", "abbreviation": "MPS", "isSupplemental": true, "publishedOn":
+        "2016-09-30T00:00:00", "modifiedOn": "2025-04-23T15:18:07.397", "categoryId":
+        1}, {"groupId": 1835, "name": "Duel Decks: Nissa vs. Ob Nixilis", "abbreviation":
+        "DDR", "isSupplemental": true, "publishedOn": "2016-09-02T00:00:00", "modifiedOn":
+        "2025-11-21T03:09:49.37", "categoryId": 1}, {"groupId": 1794, "name": "Conspiracy:
+        Take the Crown", "abbreviation": "CN2", "isSupplemental": true, "publishedOn":
+        "2016-08-26T00:00:00", "modifiedOn": "2025-11-20T16:51:00.357", "categoryId":
+        1}, {"groupId": 1821, "name": "From the Vault: Lore", "abbreviation": "V16",
+        "isSupplemental": true, "publishedOn": "2016-08-19T00:00:00", "modifiedOn":
+        "2025-11-21T20:18:28.8", "categoryId": 1}, {"groupId": 1832, "name": "WMCQ
+        Promo Cards", "abbreviation": "WMCQ", "isSupplemental": true, "publishedOn":
+        "2016-08-01T00:00:00", "modifiedOn": "2025-06-08T11:47:44.367", "categoryId":
+        1}, {"groupId": 1790, "name": "Eldritch Moon", "abbreviation": "EMN", "isSupplemental":
+        false, "publishedOn": "2016-07-22T00:00:00", "modifiedOn": "2025-11-26T14:37:37.19",
+        "categoryId": 1}, {"groupId": 1740, "name": "Eternal Masters", "abbreviation":
+        "EMA", "isSupplemental": true, "publishedOn": "2016-06-10T00:00:00", "modifiedOn":
+        "2025-11-10T22:27:25.837", "categoryId": 1}, {"groupId": 1708, "name": "Shadows
+        over Innistrad", "abbreviation": "SOI", "isSupplemental": false, "publishedOn":
+        "2016-04-08T00:00:00", "modifiedOn": "2025-11-26T21:29:18.513", "categoryId":
+        1}, {"groupId": 1765, "name": "Welcome Deck 2016", "abbreviation": "W16",
+        "isSupplemental": true, "publishedOn": "2016-04-08T00:00:00", "modifiedOn":
+        "2024-10-20T15:29:22.14", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1864'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=kR518WfZruV4636g++fht27iDFRcfAfQhBhqVHkpLZXBn/lFO1ag28zGrat77zFqWpyX1ixDI5y/RnDclgTGHopSEqDTdF/0vb1q/1ZJ0dLljXhs/6ywEpeWYY9m;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=kR518WfZruV4636g++fht27iDFRcfAfQhBhqVHkpLZXBn/lFO1ag28zGrat77zFqWpyX1ixDI5y/RnDclgTGHopSEqDTdF/0vb1q/1ZJ0dLljXhs/6ywEpeWYY9m;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=kR518WfZruV4636g++fht27iDFRcfAfQhBhqVHkpLZXBn/lFO1ag28zGrat77zFqWpyX1ixDI5y/RnDclgTGHopSEqDTdF/0vb1q/1ZJ0dLljXhs/6ywEpeWYY9m;
+        AWSALBCORS=kR518WfZruV4636g++fht27iDFRcfAfQhBhqVHkpLZXBn/lFO1ag28zGrat77zFqWpyX1ixDI5y/RnDclgTGHopSEqDTdF/0vb1q/1ZJ0dLljXhs/6ywEpeWYY9m
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=250
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        1726, "name": "Duel Decks: Blessed vs. Cursed", "abbreviation": "DDQ", "isSupplemental":
+        true, "publishedOn": "2016-02-26T00:00:00", "modifiedOn": "2025-11-12T01:42:57.953",
+        "categoryId": 1}, {"groupId": 1693, "name": "Oath of the Gatewatch", "abbreviation":
+        "OGW", "isSupplemental": false, "publishedOn": "2016-01-22T00:00:00", "modifiedOn":
+        "2025-11-26T22:00:15.967", "categoryId": 1}, {"groupId": 1673, "name": "Commander
+        2015", "abbreviation": "C15", "isSupplemental": true, "publishedOn": "2015-11-13T00:00:00",
+        "modifiedOn": "2025-11-21T23:20:29.983", "categoryId": 1}, {"groupId": 1645,
+        "name": "Battle for Zendikar", "abbreviation": "BFZ", "isSupplemental": false,
+        "publishedOn": "2015-10-02T00:00:00", "modifiedOn": "2025-11-25T14:48:02.157",
+        "categoryId": 1}, {"groupId": 1649, "name": "Zendikar Expeditions", "abbreviation":
+        "EXP", "isSupplemental": true, "publishedOn": "2015-10-02T00:00:00", "modifiedOn":
+        "2025-10-15T17:53:24.063", "categoryId": 1}, {"groupId": 1641, "name": "Duel
+        Decks: Zendikar vs. Eldrazi", "abbreviation": "DDP", "isSupplemental": true,
+        "publishedOn": "2015-08-28T00:00:00", "modifiedOn": "2025-11-13T20:57:03.013",
+        "categoryId": 1}, {"groupId": 1577, "name": "From the Vault: Angels", "abbreviation":
+        "V15", "isSupplemental": true, "publishedOn": "2015-08-21T00:00:00", "modifiedOn":
+        "2025-11-22T00:57:11.23", "categoryId": 1}, {"groupId": 1512, "name": "Magic
+        Origins", "abbreviation": "ORI", "isSupplemental": false, "publishedOn": "2015-07-17T00:00:00",
+        "modifiedOn": "2025-11-22T05:59:32.51", "categoryId": 1}, {"groupId": 1503,
+        "name": "Modern Masters 2015", "abbreviation": "MM2", "isSupplemental": true,
+        "publishedOn": "2015-05-22T00:00:00", "modifiedOn": "2025-11-26T20:15:00.623",
+        "categoryId": 1}, {"groupId": 1515, "name": "Dragons of Tarkir", "abbreviation":
+        "DTK", "isSupplemental": false, "publishedOn": "2015-03-27T00:00:00", "modifiedOn":
+        "2025-11-26T18:57:46.517", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1866'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=6PfWgCvz92NNpQJyrpc0MLZcCF2Klfz+gYeain0SZEweneEfXerzCvxVIPqeT5Kg09nmvMn4O1zWuWeAuzF7BxrCXRFaRuwB54rMa9FXHsIXm9bJ4GNv3GxUtvpc;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=6PfWgCvz92NNpQJyrpc0MLZcCF2Klfz+gYeain0SZEweneEfXerzCvxVIPqeT5Kg09nmvMn4O1zWuWeAuzF7BxrCXRFaRuwB54rMa9FXHsIXm9bJ4GNv3GxUtvpc;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=6PfWgCvz92NNpQJyrpc0MLZcCF2Klfz+gYeain0SZEweneEfXerzCvxVIPqeT5Kg09nmvMn4O1zWuWeAuzF7BxrCXRFaRuwB54rMa9FXHsIXm9bJ4GNv3GxUtvpc;
+        AWSALBCORS=6PfWgCvz92NNpQJyrpc0MLZcCF2Klfz+gYeain0SZEweneEfXerzCvxVIPqeT5Kg09nmvMn4O1zWuWeAuzF7BxrCXRFaRuwB54rMa9FXHsIXm9bJ4GNv3GxUtvpc
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=260
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        1520, "name": "Tarkir Dragonfury Promos", "abbreviation": "TDP", "isSupplemental":
+        true, "publishedOn": "2015-03-21T00:00:00", "modifiedOn": "2025-05-15T20:32:18.857",
+        "categoryId": 1}, {"groupId": 1511, "name": "Duel Decks: Elspeth vs. Kiora",
+        "abbreviation": "DDO", "isSupplemental": true, "publishedOn": "2015-02-27T00:00:00",
+        "modifiedOn": "2025-11-10T22:30:33.263", "categoryId": 1}, {"groupId": 1497,
+        "name": "Fate Reforged", "abbreviation": "FRF", "isSupplemental": false, "publishedOn":
+        "2015-01-23T00:00:00", "modifiedOn": "2025-11-26T20:06:46.073", "categoryId":
+        1}, {"groupId": 1507, "name": "Ugin''s Fate Promos", "abbreviation": "FRF_UGIN",
+        "isSupplemental": true, "publishedOn": "2015-01-17T00:00:00", "modifiedOn":
+        "2025-10-29T02:57:02.117", "categoryId": 1}, {"groupId": 1490, "name": "Duel
+        Decks: Anthology", "abbreviation": "DD3", "isSupplemental": true, "publishedOn":
+        "2014-12-05T00:00:00", "modifiedOn": "2025-11-25T13:35:12.88", "categoryId":
+        1}, {"groupId": 1476, "name": "Commander 2014", "abbreviation": "C14", "isSupplemental":
+        true, "publishedOn": "2014-11-07T00:00:00", "modifiedOn": "2025-11-22T03:23:22.89",
+        "categoryId": 1}, {"groupId": 1356, "name": "Khans of Tarkir", "abbreviation":
+        "KTK", "isSupplemental": false, "publishedOn": "2014-09-26T00:00:00", "modifiedOn":
+        "2025-11-26T03:54:11.21", "categoryId": 1}, {"groupId": 1477, "name": "Duel
+        Decks: Speed vs. Cunning", "abbreviation": "DDN", "isSupplemental": true,
+        "publishedOn": "2014-09-05T00:00:00", "modifiedOn": "2025-11-10T22:39:56.123",
+        "categoryId": 1}, {"groupId": 1475, "name": "From the Vault: Annihilation",
+        "abbreviation": "V14", "isSupplemental": true, "publishedOn": "2014-08-22T00:00:00",
+        "modifiedOn": "2025-05-01T14:23:46.803", "categoryId": 1}, {"groupId": 1293,
+        "name": "Magic 2015 (M15)", "abbreviation": "M15", "isSupplemental": false,
+        "publishedOn": "2014-07-18T00:00:00", "modifiedOn": "2025-11-20T21:15:48.31",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1868'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=PrxWDrO5VhRyrL0qikVQWZzwr47aDXyWJmCwmGckiJuY6jm6xQGcJEX4XTfJqffN//oJwC8HxjgVTXIAFyV2nRNsDdNty593YKxPvdIgxZrsOcDkzK0ppxS+Tn8E;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=PrxWDrO5VhRyrL0qikVQWZzwr47aDXyWJmCwmGckiJuY6jm6xQGcJEX4XTfJqffN//oJwC8HxjgVTXIAFyV2nRNsDdNty593YKxPvdIgxZrsOcDkzK0ppxS+Tn8E;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=PrxWDrO5VhRyrL0qikVQWZzwr47aDXyWJmCwmGckiJuY6jm6xQGcJEX4XTfJqffN//oJwC8HxjgVTXIAFyV2nRNsDdNty593YKxPvdIgxZrsOcDkzK0ppxS+Tn8E;
+        AWSALBCORS=PrxWDrO5VhRyrL0qikVQWZzwr47aDXyWJmCwmGckiJuY6jm6xQGcJEX4XTfJqffN//oJwC8HxjgVTXIAFyV2nRNsDdNty593YKxPvdIgxZrsOcDkzK0ppxS+Tn8E
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=270
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        1312, "name": "Conspiracy", "abbreviation": "CNS", "isSupplemental": true,
+        "publishedOn": "2014-06-06T00:00:00", "modifiedOn": "2025-11-20T18:38:38.477",
+        "categoryId": 1}, {"groupId": 1346, "name": "Magic Modern Event Deck", "abbreviation":
+        "MD1", "isSupplemental": true, "publishedOn": "2014-05-30T00:00:00", "modifiedOn":
+        "2025-11-12T18:38:33.843", "categoryId": 1}, {"groupId": 1277, "name": "Journey
+        Into Nyx", "abbreviation": "JOU", "isSupplemental": false, "publishedOn":
+        "2014-05-02T00:00:00", "modifiedOn": "2025-11-26T23:41:40.063", "categoryId":
+        1}, {"groupId": 1166, "name": "Duel Decks: Jace vs. Vraska", "abbreviation":
+        "DDM", "isSupplemental": true, "publishedOn": "2014-03-14T00:00:00", "modifiedOn":
+        "2025-11-21T03:13:27.027", "categoryId": 1}, {"groupId": 1276, "name": "Born
+        of the Gods", "abbreviation": "BNG", "isSupplemental": false, "publishedOn":
+        "2014-02-07T00:00:00", "modifiedOn": "2025-11-26T14:31:10.437", "categoryId":
+        1}, {"groupId": 1164, "name": "Commander 2013", "abbreviation": "C13", "isSupplemental":
+        true, "publishedOn": "2013-11-01T00:00:00", "modifiedOn": "2025-11-26T15:10:00.933",
+        "categoryId": 1}, {"groupId": 1144, "name": "Theros", "abbreviation": "THS",
+        "isSupplemental": false, "publishedOn": "2013-09-27T00:00:00", "modifiedOn":
+        "2025-11-26T12:33:41.747", "categoryId": 1}, {"groupId": 1524, "name": "Hero''s
+        Path Promos", "abbreviation": "HERO", "isSupplemental": true, "publishedOn":
+        "2013-09-21T00:00:00", "modifiedOn": "2025-03-11T13:54:22.937", "categoryId":
+        1}, {"groupId": 1145, "name": "Duel Decks: Heroes vs. Monsters", "abbreviation":
+        "DDL", "isSupplemental": true, "publishedOn": "2013-09-06T00:00:00", "modifiedOn":
+        "2025-11-10T23:02:42.707", "categoryId": 1}, {"groupId": 1141, "name": "From
+        the Vault: Twenty", "abbreviation": "V13", "isSupplemental": true, "publishedOn":
+        "2013-08-23T00:00:00", "modifiedOn": "2025-11-21T18:56:08.473", "categoryId":
+        1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1844'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=jetFDn3LuzYQMrJGAK5KjnQnWqzjGn6RTjOyr53eAXhJ49UCKk4hFkn3tiwoc+vQYaTFEaCPRg/PXczb2mqKzaPBUXOkXRZUfrDGTbPDILLYttL8PS7Vc4J+mOPr;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=jetFDn3LuzYQMrJGAK5KjnQnWqzjGn6RTjOyr53eAXhJ49UCKk4hFkn3tiwoc+vQYaTFEaCPRg/PXczb2mqKzaPBUXOkXRZUfrDGTbPDILLYttL8PS7Vc4J+mOPr;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=jetFDn3LuzYQMrJGAK5KjnQnWqzjGn6RTjOyr53eAXhJ49UCKk4hFkn3tiwoc+vQYaTFEaCPRg/PXczb2mqKzaPBUXOkXRZUfrDGTbPDILLYttL8PS7Vc4J+mOPr;
+        AWSALBCORS=jetFDn3LuzYQMrJGAK5KjnQnWqzjGn6RTjOyr53eAXhJ49UCKk4hFkn3tiwoc+vQYaTFEaCPRg/PXczb2mqKzaPBUXOkXRZUfrDGTbPDILLYttL8PS7Vc4J+mOPr
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=280
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        1113, "name": "Magic 2014 (M14)", "abbreviation": "M14", "isSupplemental":
+        false, "publishedOn": "2013-07-19T00:00:00", "modifiedOn": "2025-11-22T04:53:57.84",
+        "categoryId": 1}, {"groupId": 1111, "name": "Modern Masters", "abbreviation":
+        "MMA", "isSupplemental": true, "publishedOn": "2013-06-07T00:00:00", "modifiedOn":
+        "2025-11-25T13:55:51.827", "categoryId": 1}, {"groupId": 570, "name": "Dragon''s
+        Maze", "abbreviation": "DGM", "isSupplemental": false, "publishedOn": "2013-05-03T00:00:00",
+        "modifiedOn": "2025-11-21T00:24:32.423", "categoryId": 1}, {"groupId": 601,
+        "name": "Duel Decks: Sorin vs. Tibalt", "abbreviation": "DDK", "isSupplemental":
+        true, "publishedOn": "2013-03-15T00:00:00", "modifiedOn": "2025-11-10T23:43:19.04",
+        "categoryId": 1}, {"groupId": 569, "name": "Gatecrash", "abbreviation": "GTC",
+        "isSupplemental": false, "publishedOn": "2013-02-01T00:00:00", "modifiedOn":
+        "2025-11-26T21:04:46.13", "categoryId": 1}, {"groupId": 568, "name": "Commander''s
+        Arsenal", "abbreviation": "CM1", "isSupplemental": true, "publishedOn": "2012-11-02T00:00:00",
+        "modifiedOn": "2025-05-08T18:52:58.267", "categoryId": 1}, {"groupId": 370,
+        "name": "Return to Ravnica", "abbreviation": "RTR", "isSupplemental": false,
+        "publishedOn": "2012-10-05T00:00:00", "modifiedOn": "2025-11-21T21:47:51.55",
+        "categoryId": 1}, {"groupId": 365, "name": "Duel Decks: Izzet vs. Golgari",
+        "abbreviation": "DDJ", "isSupplemental": true, "publishedOn": "2012-09-07T00:00:00",
+        "modifiedOn": "2025-11-26T16:24:22.577", "categoryId": 1}, {"groupId": 368,
+        "name": "From the Vault: Realms", "abbreviation": "V12", "isSupplemental":
+        true, "publishedOn": "2012-08-31T00:00:00", "modifiedOn": "2025-05-01T19:14:15.597",
+        "categoryId": 1}, {"groupId": 364, "name": "Magic 2013 (M13)", "abbreviation":
+        "M13", "isSupplemental": false, "publishedOn": "2012-07-13T00:00:00", "modifiedOn":
+        "2025-11-26T18:07:59.1", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1831'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=WDYUYmTsCZNhqskw2PFV8mJ+sIwx+ER/CD4sspMu2hPUeqgJItiScL0iNti2zMGrkMV3+PAtxS/EUeATpy+1SAb+RCrDltyTNQImYMq/Dt3W57Vv/U65pll8QLTY;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=WDYUYmTsCZNhqskw2PFV8mJ+sIwx+ER/CD4sspMu2hPUeqgJItiScL0iNti2zMGrkMV3+PAtxS/EUeATpy+1SAb+RCrDltyTNQImYMq/Dt3W57Vv/U65pll8QLTY;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=WDYUYmTsCZNhqskw2PFV8mJ+sIwx+ER/CD4sspMu2hPUeqgJItiScL0iNti2zMGrkMV3+PAtxS/EUeATpy+1SAb+RCrDltyTNQImYMq/Dt3W57Vv/U65pll8QLTY;
+        AWSALBCORS=WDYUYmTsCZNhqskw2PFV8mJ+sIwx+ER/CD4sspMu2hPUeqgJItiScL0iNti2zMGrkMV3+PAtxS/EUeATpy+1SAb+RCrDltyTNQImYMq/Dt3W57Vv/U65pll8QLTY
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=290
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        363, "name": "Planechase 2012", "abbreviation": "PC2", "isSupplemental": true,
+        "publishedOn": "2012-06-01T00:00:00", "modifiedOn": "2025-11-25T04:10:06.163",
+        "categoryId": 1}, {"groupId": 362, "name": "Avacyn Restored", "abbreviation":
+        "AVR", "isSupplemental": false, "publishedOn": "2012-05-04T00:00:00", "modifiedOn":
+        "2025-11-21T23:47:24.5", "categoryId": 1}, {"groupId": 367, "name": "Duel
+        Decks: Venser vs. Koth", "abbreviation": "DDI", "isSupplemental": true, "publishedOn":
+        "2012-03-30T00:00:00", "modifiedOn": "2025-11-13T06:33:39.733", "categoryId":
+        1}, {"groupId": 125, "name": "Dark Ascension", "abbreviation": "DKA", "isSupplemental":
+        false, "publishedOn": "2012-02-03T00:00:00", "modifiedOn": "2025-11-21T22:00:06.243",
+        "categoryId": 1}, {"groupId": 90, "name": "Premium Deck Series: Graveborn",
+        "abbreviation": "GRV", "isSupplemental": true, "publishedOn": "2011-11-18T00:00:00",
+        "modifiedOn": "2025-05-15T19:46:03.75", "categoryId": 1}, {"groupId": 59,
+        "name": "Innistrad", "abbreviation": "ISD", "isSupplemental": false, "publishedOn":
+        "2011-09-30T00:00:00", "modifiedOn": "2025-11-18T03:11:16.757", "categoryId":
+        1}, {"groupId": 30, "name": "Duel Decks: Ajani vs. Nicol Bolas", "abbreviation":
+        "DDH", "isSupplemental": true, "publishedOn": "2011-09-02T00:00:00", "modifiedOn":
+        "2025-11-11T19:27:19.157", "categoryId": 1}, {"groupId": 49, "name": "From
+        the Vault: Legends", "abbreviation": "V11", "isSupplemental": true, "publishedOn":
+        "2011-08-26T00:00:00", "modifiedOn": "2025-05-01T17:52:02.867", "categoryId":
+        1}, {"groupId": 70, "name": "Magic 2012 (M12)", "abbreviation": "M12", "isSupplemental":
+        false, "publishedOn": "2011-07-15T00:00:00", "modifiedOn": "2025-11-18T02:57:54.197",
+        "categoryId": 1}, {"groupId": 25, "name": "Commander", "abbreviation": "CMD",
+        "isSupplemental": true, "publishedOn": "2011-06-17T00:00:00", "modifiedOn":
+        "2025-11-14T22:23:22.123", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1833'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=vla5wyQOBXojy5wtvN0KY7dwILPIkdPyQME4ke7YTlsWp1VYO1lqugNZbRIDmA1y6XXWUw6jw8Q+KdK+ISRg0itgRgY5V03l3L5O6ouzl3cHwe5wRBpsI59vvQLv;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=vla5wyQOBXojy5wtvN0KY7dwILPIkdPyQME4ke7YTlsWp1VYO1lqugNZbRIDmA1y6XXWUw6jw8Q+KdK+ISRg0itgRgY5V03l3L5O6ouzl3cHwe5wRBpsI59vvQLv;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=vla5wyQOBXojy5wtvN0KY7dwILPIkdPyQME4ke7YTlsWp1VYO1lqugNZbRIDmA1y6XXWUw6jw8Q+KdK+ISRg0itgRgY5V03l3L5O6ouzl3cHwe5wRBpsI59vvQLv;
+        AWSALBCORS=vla5wyQOBXojy5wtvN0KY7dwILPIkdPyQME4ke7YTlsWp1VYO1lqugNZbRIDmA1y6XXWUw6jw8Q+KdK+ISRg0itgRgY5V03l3L5O6ouzl3cHwe5wRBpsI59vvQLv
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=300
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        79, "name": "New Phyrexia", "abbreviation": "NPH", "isSupplemental": false,
+        "publishedOn": "2011-05-13T00:00:00", "modifiedOn": "2025-11-15T00:08:28.05",
+        "categoryId": 1}, {"groupId": 36, "name": "Duel Decks: Knights vs. Dragons",
+        "abbreviation": "DDG", "isSupplemental": true, "publishedOn": "2011-04-01T00:00:00",
+        "modifiedOn": "2025-11-11T00:50:55.393", "categoryId": 1}, {"groupId": 76,
+        "name": "Mirrodin Besieged", "abbreviation": "MBS", "isSupplemental": false,
+        "publishedOn": "2011-02-04T00:00:00", "modifiedOn": "2025-11-26T13:49:29.547",
+        "categoryId": 1}, {"groupId": 2988, "name": "Magic Encyclopedia 2011 (Salvat)",
+        "abbreviation": "PS11", "isSupplemental": true, "publishedOn": "2011-01-01T00:00:00",
+        "modifiedOn": "2024-08-19T14:40:59.537", "categoryId": 1}, {"groupId": 89,
+        "name": "Premium Deck Series: Fire and Lightning", "abbreviation": "PD2",
+        "isSupplemental": true, "publishedOn": "2010-11-19T00:00:00", "modifiedOn":
+        "2025-10-23T22:39:09.707", "categoryId": 1}, {"groupId": 100, "name": "Scars
+        of Mirrodin", "abbreviation": "SOM", "isSupplemental": false, "publishedOn":
+        "2010-10-01T00:00:00", "modifiedOn": "2025-11-22T03:37:58.283", "categoryId":
+        1}, {"groupId": 32, "name": "Duel Decks: Elspeth vs. Tezzeret", "abbreviation":
+        "DDF", "isSupplemental": true, "publishedOn": "2010-09-03T00:00:00", "modifiedOn":
+        "2025-11-11T02:38:15.89", "categoryId": 1}, {"groupId": 50, "name": "From
+        the Vault: Relics", "abbreviation": "V10", "isSupplemental": true, "publishedOn":
+        "2010-08-27T00:00:00", "modifiedOn": "2025-11-26T17:22:44.767", "categoryId":
+        1}, {"groupId": 69, "name": "Magic 2011 (M11)", "abbreviation": "M11", "isSupplemental":
+        false, "publishedOn": "2010-07-16T00:00:00", "modifiedOn": "2025-11-14T23:57:58.05",
+        "categoryId": 1}, {"groupId": 12, "name": "Archenemy", "abbreviation": "ARC",
+        "isSupplemental": true, "publishedOn": "2010-06-18T00:00:00", "modifiedOn":
+        "2025-11-11T00:56:22.637", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1869'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=P73mPgZWnWE2htWjK/QnpWFbo53cakZfSx3QA6k9AmZiLRviJdB7vF2FMoYB6ZowZ6KD/kwaFb2r1LXHRJTV8BE98vnoe8YzHjayPepQt6gSBPt8SEgcN2FwUR/Q;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=P73mPgZWnWE2htWjK/QnpWFbo53cakZfSx3QA6k9AmZiLRviJdB7vF2FMoYB6ZowZ6KD/kwaFb2r1LXHRJTV8BE98vnoe8YzHjayPepQt6gSBPt8SEgcN2FwUR/Q;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=P73mPgZWnWE2htWjK/QnpWFbo53cakZfSx3QA6k9AmZiLRviJdB7vF2FMoYB6ZowZ6KD/kwaFb2r1LXHRJTV8BE98vnoe8YzHjayPepQt6gSBPt8SEgcN2FwUR/Q;
+        AWSALBCORS=P73mPgZWnWE2htWjK/QnpWFbo53cakZfSx3QA6k9AmZiLRviJdB7vF2FMoYB6ZowZ6KD/kwaFb2r1LXHRJTV8BE98vnoe8YzHjayPepQt6gSBPt8SEgcN2FwUR/Q
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=310
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        98, "name": "Rise of the Eldrazi", "abbreviation": "ROE", "isSupplemental":
+        false, "publishedOn": "2010-04-23T00:00:00", "modifiedOn": "2025-11-21T04:19:44.77",
+        "categoryId": 1}, {"groupId": 37, "name": "Duel Decks: Phyrexia vs. the Coalition",
+        "abbreviation": "DDE", "isSupplemental": true, "publishedOn": "2010-03-19T00:00:00",
+        "modifiedOn": "2025-11-12T08:01:11.183", "categoryId": 1}, {"groupId": 122,
+        "name": "Worldwake", "abbreviation": "WWK", "isSupplemental": false, "publishedOn":
+        "2010-02-05T00:00:00", "modifiedOn": "2025-11-21T22:03:18.953", "categoryId":
+        1}, {"groupId": 91, "name": "Premium Deck Series: Slivers", "abbreviation":
+        "PDS", "isSupplemental": true, "publishedOn": "2009-11-20T00:00:00", "modifiedOn":
+        "2024-10-22T07:38:57.033", "categoryId": 1}, {"groupId": 34, "name": "Duel
+        Decks: Garruk vs. Liliana", "abbreviation": "DDD", "isSupplemental": true,
+        "publishedOn": "2009-10-30T00:00:00", "modifiedOn": "2025-11-12T08:16:56.417",
+        "categoryId": 1}, {"groupId": 124, "name": "Zendikar", "abbreviation": "ZEN",
+        "isSupplemental": false, "publishedOn": "2009-10-02T00:00:00", "modifiedOn":
+        "2025-11-26T15:28:42.573", "categoryId": 1}, {"groupId": 84, "name": "Planechase",
+        "abbreviation": "HOP", "isSupplemental": true, "publishedOn": "2009-09-04T00:00:00",
+        "modifiedOn": "2025-11-11T01:05:40.41", "categoryId": 1}, {"groupId": 48,
+        "name": "From the Vault: Exiled", "abbreviation": "V09", "isSupplemental":
+        true, "publishedOn": "2009-08-28T00:00:00", "modifiedOn": "2025-05-01T15:20:45.527",
+        "categoryId": 1}, {"groupId": 2156, "name": "Buy-A-Box Promos", "abbreviation":
+        "BABP", "isSupplemental": true, "publishedOn": "2009-07-19T00:00:00", "modifiedOn":
+        "2025-11-22T03:30:55.02", "categoryId": 1}, {"groupId": 68, "name": "Magic
+        2010 (M10)", "abbreviation": "M10", "isSupplemental": false, "publishedOn":
+        "2009-07-17T00:00:00", "modifiedOn": "2025-11-14T13:08:24.797", "categoryId":
+        1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1839'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=9Y6RWqVP0zhYz4qHKRKqgybc6iHWszyc7YqeuuE/ZL7y8uEdY4ToqznkkXzoTCmXR9Csfxlj/4K6fWhPHuwleRXgONAbTS8EvHpiiTFAEse4JMSc/8qZLKi+tN4R;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=9Y6RWqVP0zhYz4qHKRKqgybc6iHWszyc7YqeuuE/ZL7y8uEdY4ToqznkkXzoTCmXR9Csfxlj/4K6fWhPHuwleRXgONAbTS8EvHpiiTFAEse4JMSc/8qZLKi+tN4R;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=9Y6RWqVP0zhYz4qHKRKqgybc6iHWszyc7YqeuuE/ZL7y8uEdY4ToqznkkXzoTCmXR9Csfxlj/4K6fWhPHuwleRXgONAbTS8EvHpiiTFAEse4JMSc/8qZLKi+tN4R;
+        AWSALBCORS=9Y6RWqVP0zhYz4qHKRKqgybc6iHWszyc7YqeuuE/ZL7y8uEdY4ToqznkkXzoTCmXR9Csfxlj/4K6fWhPHuwleRXgONAbTS8EvHpiiTFAEse4JMSc/8qZLKi+tN4R
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=320
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        1274, "name": "Duels of the Planeswalkers", "abbreviation": "DPA", "isSupplemental":
+        true, "publishedOn": "2009-06-17T00:00:00", "modifiedOn": "2025-11-26T14:47:45.533",
+        "categoryId": 1}, {"groupId": 5, "name": "Alara Reborn", "abbreviation": "ARB",
+        "isSupplemental": false, "publishedOn": "2009-04-30T00:00:00", "modifiedOn":
+        "2025-10-30T06:30:00.25", "categoryId": 1}, {"groupId": 31, "name": "Duel
+        Decks: Divine vs. Demonic", "abbreviation": "DDC", "isSupplemental": true,
+        "publishedOn": "2009-04-10T00:00:00", "modifiedOn": "2025-11-12T22:51:38.813",
+        "categoryId": 1}, {"groupId": 26, "name": "Conflux", "abbreviation": "CON",
+        "isSupplemental": false, "publishedOn": "2009-02-06T00:00:00", "modifiedOn":
+        "2025-10-29T05:08:14.737", "categoryId": 1}, {"groupId": 35, "name": "Duel
+        Decks: Jace vs. Chandra", "abbreviation": "DD2", "isSupplemental": true, "publishedOn":
+        "2008-11-07T00:00:00", "modifiedOn": "2025-11-13T21:08:06.593", "categoryId":
+        1}, {"groupId": 103, "name": "Shards of Alara", "abbreviation": "ALA", "isSupplemental":
+        false, "publishedOn": "2008-10-03T00:00:00", "modifiedOn": "2025-11-03T21:02:08.697",
+        "categoryId": 1}, {"groupId": 47, "name": "From the Vault: Dragons", "abbreviation":
+        "DRB", "isSupplemental": true, "publishedOn": "2008-08-29T00:00:00", "modifiedOn":
+        "2025-05-01T14:35:40.873", "categoryId": 1}, {"groupId": 39, "name": "Eventide",
+        "abbreviation": "EVE", "isSupplemental": false, "publishedOn": "2008-07-25T00:00:00",
+        "modifiedOn": "2025-11-21T22:21:43.543", "categoryId": 1}, {"groupId": 102,
+        "name": "Shadowmoor", "abbreviation": "SHM", "isSupplemental": false, "publishedOn":
+        "2008-05-02T00:00:00", "modifiedOn": "2025-11-21T00:44:18.397", "categoryId":
+        1}, {"groupId": 77, "name": "Morningtide", "abbreviation": "MOR", "isSupplemental":
+        false, "publishedOn": "2008-02-01T00:00:00", "modifiedOn": "2025-11-21T03:50:30.79",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1814'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=IaSCsMR+oJ7RNyAorVFuGHwIVnJDihAdKsZQdpNz86VG6yUmk1rv2g6g9e0wXPEOCkZBr1xiJkHnhDE0lZbmeqmWcZXKogX28gwZAaMd8pH3nPZgeTjkRTTf8T7k;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=IaSCsMR+oJ7RNyAorVFuGHwIVnJDihAdKsZQdpNz86VG6yUmk1rv2g6g9e0wXPEOCkZBr1xiJkHnhDE0lZbmeqmWcZXKogX28gwZAaMd8pH3nPZgeTjkRTTf8T7k;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=IaSCsMR+oJ7RNyAorVFuGHwIVnJDihAdKsZQdpNz86VG6yUmk1rv2g6g9e0wXPEOCkZBr1xiJkHnhDE0lZbmeqmWcZXKogX28gwZAaMd8pH3nPZgeTjkRTTf8T7k;
+        AWSALBCORS=IaSCsMR+oJ7RNyAorVFuGHwIVnJDihAdKsZQdpNz86VG6yUmk1rv2g6g9e0wXPEOCkZBr1xiJkHnhDE0lZbmeqmWcZXKogX28gwZAaMd8pH3nPZgeTjkRTTf8T7k
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=330
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        53, "name": "WPN & Gateway Promos", "abbreviation": "WPN", "isSupplemental":
+        true, "publishedOn": "2008-01-05T00:00:00", "modifiedOn": "2025-11-26T16:43:48.097",
+        "categoryId": 1}, {"groupId": 33, "name": "Duel Decks: Elves vs. Goblins",
+        "abbreviation": "EVG", "isSupplemental": true, "publishedOn": "2007-11-16T00:00:00",
+        "modifiedOn": "2025-11-12T22:46:13.84", "categoryId": 1}, {"groupId": 67,
+        "name": "Lorwyn", "abbreviation": "LRW", "isSupplemental": false, "publishedOn":
+        "2007-10-12T00:00:00", "modifiedOn": "2025-11-25T19:15:54.217", "categoryId":
+        1}, {"groupId": 52, "name": "Game Day & Store Championship Promos", "abbreviation":
+        "GAME", "isSupplemental": true, "publishedOn": "2007-07-14T00:00:00", "modifiedOn":
+        "2025-11-26T16:53:14.723", "categoryId": 1}, {"groupId": 1, "name": "10th
+        Edition", "abbreviation": "10E", "isSupplemental": false, "publishedOn": "2007-07-13T00:00:00",
+        "modifiedOn": "2025-11-21T17:40:01.713", "categoryId": 1}, {"groupId": 51,
+        "name": "Future Sight", "abbreviation": "FUT", "isSupplemental": false, "publishedOn":
+        "2007-05-04T00:00:00", "modifiedOn": "2025-11-11T23:25:54.663", "categoryId":
+        1}, {"groupId": 54, "name": "Grand Prix Promos", "abbreviation": "GPP", "isSupplemental":
+        true, "publishedOn": "2007-02-24T00:00:00", "modifiedOn": "2025-11-22T00:08:58.677",
+        "categoryId": 1}, {"groupId": 83, "name": "Planar Chaos", "abbreviation":
+        "PLC", "isSupplemental": false, "publishedOn": "2007-02-02T00:00:00", "modifiedOn":
+        "2025-11-21T00:09:17.82", "categoryId": 1}, {"groupId": 104, "name": "Special
+        Occasion", "abbreviation": "SPECIAL", "isSupplemental": true, "publishedOn":
+        "2006-12-02T00:00:00", "modifiedOn": "2025-11-21T14:01:26.813", "categoryId":
+        1}, {"groupId": 93, "name": "Pro Tour Promos", "abbreviation": "PTP", "isSupplemental":
+        true, "publishedOn": "2006-10-20T00:00:00", "modifiedOn": "2025-11-20T21:17:55.81",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1818'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=YVjZ84I2zMGqIjEL9jdfbD54/zQlvZ4yiu/hJmv8y9Z0lYGqrkjxPKYhFWr4wZYv3of/dYUDK84OmudG4e5nUA3uZkSBoCbj+K9p82Cjc114OH0cGAkDGPE0lRO3;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=YVjZ84I2zMGqIjEL9jdfbD54/zQlvZ4yiu/hJmv8y9Z0lYGqrkjxPKYhFWr4wZYv3of/dYUDK84OmudG4e5nUA3uZkSBoCbj+K9p82Cjc114OH0cGAkDGPE0lRO3;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=YVjZ84I2zMGqIjEL9jdfbD54/zQlvZ4yiu/hJmv8y9Z0lYGqrkjxPKYhFWr4wZYv3of/dYUDK84OmudG4e5nUA3uZkSBoCbj+K9p82Cjc114OH0cGAkDGPE0lRO3;
+        AWSALBCORS=YVjZ84I2zMGqIjEL9jdfbD54/zQlvZ4yiu/hJmv8y9Z0lYGqrkjxPKYhFWr4wZYv3of/dYUDK84OmudG4e5nUA3uZkSBoCbj+K9p82Cjc114OH0cGAkDGPE0lRO3
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=340
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        110, "name": "Time Spiral", "abbreviation": "TSP", "isSupplemental": false,
+        "publishedOn": "2006-10-06T00:00:00", "modifiedOn": "2025-11-21T01:25:34.273",
+        "categoryId": 1}, {"groupId": 111, "name": "Timeshifted", "abbreviation":
+        "TSB", "isSupplemental": true, "publishedOn": "2006-10-06T00:00:00", "modifiedOn":
+        "2025-11-10T22:47:41.737", "categoryId": 1}, {"groupId": 24, "name": "Coldsnap",
+        "abbreviation": "CSP", "isSupplemental": false, "publishedOn": "2006-07-21T00:00:00",
+        "modifiedOn": "2025-11-13T06:00:44.177", "categoryId": 1}, {"groupId": 1348,
+        "name": "Coldsnap Theme Deck Reprints", "abbreviation": "CTD", "isSupplemental":
+        true, "publishedOn": "2006-07-21T00:00:00", "modifiedOn": "2025-10-22T23:07:32.477",
+        "categoryId": 1}, {"groupId": 28, "name": "Dissension", "abbreviation": "DIS",
+        "isSupplemental": false, "publishedOn": "2006-05-06T00:00:00", "modifiedOn":
+        "2025-11-21T22:18:17.797", "categoryId": 1}, {"groupId": 21, "name": "Champs
+        Promos", "abbreviation": "CHAMPS", "isSupplemental": true, "publishedOn":
+        "2006-03-18T00:00:00", "modifiedOn": "2023-08-21T05:11:44.437", "categoryId":
+        1}, {"groupId": 55, "name": "Guildpact", "abbreviation": "GPT", "isSupplemental":
+        false, "publishedOn": "2006-02-03T00:00:00", "modifiedOn": "2025-11-26T15:55:15.497",
+        "categoryId": 1}, {"groupId": 369, "name": "Magic Premiere Shop", "abbreviation":
+        "PREM", "isSupplemental": true, "publishedOn": "2006-01-07T00:00:00", "modifiedOn":
+        "2025-11-12T02:51:40", "categoryId": 1}, {"groupId": 95, "name": "Ravnica:
+        City of Guilds", "abbreviation": "RAV", "isSupplemental": false, "publishedOn":
+        "2005-10-07T00:00:00", "modifiedOn": "2025-10-30T05:24:32.813", "categoryId":
+        1}, {"groupId": 2989, "name": "Magic Encyclopedia 2005 (Salvat/Hachette)",
+        "abbreviation": "PSAL", "isSupplemental": true, "publishedOn": "2005-08-05T00:00:00",
+        "modifiedOn": "2025-11-05T19:30:34.517", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1823'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=W8d4WI+Fb4neYSZMYduxIkFfXKvas3yDFAch8adpll4cUZ5WVKTAV4Yj2px+z/KhWpLsM375UTAfIDc0qlyd1sUqYg5J5rqnDQf1vcW7ElnUGvTOHNfM3pDH8ebi;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=W8d4WI+Fb4neYSZMYduxIkFfXKvas3yDFAch8adpll4cUZ5WVKTAV4Yj2px+z/KhWpLsM375UTAfIDc0qlyd1sUqYg5J5rqnDQf1vcW7ElnUGvTOHNfM3pDH8ebi;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=W8d4WI+Fb4neYSZMYduxIkFfXKvas3yDFAch8adpll4cUZ5WVKTAV4Yj2px+z/KhWpLsM375UTAfIDc0qlyd1sUqYg5J5rqnDQf1vcW7ElnUGvTOHNfM3pDH8ebi;
+        AWSALBCORS=W8d4WI+Fb4neYSZMYduxIkFfXKvas3yDFAch8adpll4cUZ5WVKTAV4Yj2px+z/KhWpLsM375UTAfIDc0qlyd1sUqYg5J5rqnDQf1vcW7ElnUGvTOHNfM3pDH8ebi
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=350
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        4, "name": "9th Edition", "abbreviation": "9ED", "isSupplemental": false,
+        "publishedOn": "2005-04-29T00:00:00", "modifiedOn": "2025-10-29T18:41:22.39",
+        "categoryId": 1}, {"groupId": 99, "name": "Saviors of Kamigawa", "abbreviation":
+        "SOK", "isSupplemental": false, "publishedOn": "2005-03-03T00:00:00", "modifiedOn":
+        "2025-11-14T12:56:52.977", "categoryId": 1}, {"groupId": 18, "name": "Betrayers
+        of Kamigawa", "abbreviation": "BOK", "isSupplemental": false, "publishedOn":
+        "2005-02-04T00:00:00", "modifiedOn": "2025-11-07T04:05:18.75", "categoryId":
+        1}, {"groupId": 114, "name": "Unhinged", "abbreviation": "UNH", "isSupplemental":
+        true, "publishedOn": "2004-11-19T00:00:00", "modifiedOn": "2025-11-20T05:32:42.087",
+        "categoryId": 1}, {"groupId": 20, "name": "Champions of Kamigawa", "abbreviation":
+        "CHK", "isSupplemental": false, "publishedOn": "2004-10-01T00:00:00", "modifiedOn":
+        "2025-11-25T02:45:21.447", "categoryId": 1}, {"groupId": 43, "name": "Fifth
+        Dawn", "abbreviation": "5DN", "isSupplemental": false, "publishedOn": "2004-06-04T00:00:00",
+        "modifiedOn": "2025-11-14T00:53:53.56", "categoryId": 1}, {"groupId": 27,
+        "name": "Darksteel", "abbreviation": "DST", "isSupplemental": false, "publishedOn":
+        "2004-02-06T00:00:00", "modifiedOn": "2025-11-22T04:00:35.193", "categoryId":
+        1}, {"groupId": 75, "name": "Mirrodin", "abbreviation": "MRD", "isSupplemental":
+        false, "publishedOn": "2003-10-03T00:00:00", "modifiedOn": "2025-11-26T22:25:28",
+        "categoryId": 1}, {"groupId": 1874, "name": "Launch Party & Release Event
+        Promos", "abbreviation": "LARP", "isSupplemental": true, "publishedOn": "2003-07-26T00:00:00",
+        "modifiedOn": "2025-11-26T18:55:01.633", "categoryId": 1}, {"groupId": 101,
+        "name": "Scourge", "abbreviation": "SCG", "isSupplemental": false, "publishedOn":
+        "2003-05-26T00:00:00", "modifiedOn": "2025-11-22T03:55:08.47", "categoryId":
+        1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1790'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:12 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=OcXLlMTrugFyHA07hhBgyUFwkMcN6VfjSz0kEO85NTWdZbrBDl2MgcqwvlptiHVMZrbJznq+YWbMNYNIc9aK4SPjJB85aupnR+tJD0iLWFXlMmhqBVk8VysHDqIk;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=OcXLlMTrugFyHA07hhBgyUFwkMcN6VfjSz0kEO85NTWdZbrBDl2MgcqwvlptiHVMZrbJznq+YWbMNYNIc9aK4SPjJB85aupnR+tJD0iLWFXlMmhqBVk8VysHDqIk;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=OcXLlMTrugFyHA07hhBgyUFwkMcN6VfjSz0kEO85NTWdZbrBDl2MgcqwvlptiHVMZrbJznq+YWbMNYNIc9aK4SPjJB85aupnR+tJD0iLWFXlMmhqBVk8VysHDqIk;
+        AWSALBCORS=OcXLlMTrugFyHA07hhBgyUFwkMcN6VfjSz0kEO85NTWdZbrBDl2MgcqwvlptiHVMZrbJznq+YWbMNYNIc9aK4SPjJB85aupnR+tJD0iLWFXlMmhqBVk8VysHDqIk
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=360
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        3, "name": "8th Edition", "abbreviation": "8ED", "isSupplemental": false,
+        "publishedOn": "2003-04-28T00:00:00", "modifiedOn": "2025-10-28T15:12:08.2",
+        "categoryId": 1}, {"groupId": 66, "name": "Legions", "abbreviation": "LGN",
+        "isSupplemental": false, "publishedOn": "2003-02-03T00:00:00", "modifiedOn":
+        "2025-11-18T03:12:31.693", "categoryId": 1}, {"groupId": 81, "name": "Onslaught",
+        "abbreviation": "ONS", "isSupplemental": false, "publishedOn": "2002-10-07T00:00:00",
+        "modifiedOn": "2025-11-20T22:43:25.193", "categoryId": 1}, {"groupId": 63,
+        "name": "Judgment", "abbreviation": "JUD", "isSupplemental": false, "publishedOn":
+        "2002-05-27T00:00:00", "modifiedOn": "2025-11-13T05:48:49.257", "categoryId":
+        1}, {"groupId": 112, "name": "Torment", "abbreviation": "TOR", "isSupplemental":
+        false, "publishedOn": "2002-02-04T00:00:00", "modifiedOn": "2025-11-24T22:17:42.29",
+        "categoryId": 1}, {"groupId": 82, "name": "Oversize Cards", "abbreviation":
+        "OVER", "isSupplemental": true, "publishedOn": "2002-02-01T00:00:00", "modifiedOn":
+        "2025-10-21T21:49:42.403", "categoryId": 1}, {"groupId": 2351, "name": "JingHe
+        Age Token Cards", "abbreviation": "JATC", "isSupplemental": false, "publishedOn":
+        "2002-01-01T00:00:00", "modifiedOn": "2023-08-14T20:37:35.803", "categoryId":
+        1}, {"groupId": 1311, "name": "Deckmasters Garfield vs Finkel", "abbreviation":
+        "DKM", "isSupplemental": true, "publishedOn": "2001-12-01T00:00:00", "modifiedOn":
+        "2025-11-11T04:55:51.7", "categoryId": 1}, {"groupId": 80, "name": "Odyssey",
+        "abbreviation": "ODY", "isSupplemental": false, "publishedOn": "2001-10-01T00:00:00",
+        "modifiedOn": "2025-11-14T04:04:58.72", "categoryId": 1}, {"groupId": 10,
+        "name": "Apocalypse", "abbreviation": "APC", "isSupplemental": false, "publishedOn":
+        "2001-06-04T00:00:00", "modifiedOn": "2025-11-11T19:29:23.067", "categoryId":
+        1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1770'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:13 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=MSyVQp0VKBmRjSQnlAcwF68PJNgQ7OfeOLoYiELLvjLHge6VN3l2UxfMo9fYoDeC7NMGiUvY3H3tZK7Rw7xlUFn/JYzAvD+4LKWHKFOZIrlSzvwG7H1Hm7xcgXGL;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/
+      - AWSALBCORS=MSyVQp0VKBmRjSQnlAcwF68PJNgQ7OfeOLoYiELLvjLHge6VN3l2UxfMo9fYoDeC7NMGiUvY3H3tZK7Rw7xlUFn/JYzAvD+4LKWHKFOZIrlSzvwG7H1Hm7xcgXGL;
+        Expires=Thu, 04 Dec 2025 03:40:12 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=MSyVQp0VKBmRjSQnlAcwF68PJNgQ7OfeOLoYiELLvjLHge6VN3l2UxfMo9fYoDeC7NMGiUvY3H3tZK7Rw7xlUFn/JYzAvD+4LKWHKFOZIrlSzvwG7H1Hm7xcgXGL;
+        AWSALBCORS=MSyVQp0VKBmRjSQnlAcwF68PJNgQ7OfeOLoYiELLvjLHge6VN3l2UxfMo9fYoDeC7NMGiUvY3H3tZK7Rw7xlUFn/JYzAvD+4LKWHKFOZIrlSzvwG7H1Hm7xcgXGL
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=370
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        71, "name": "Magic Player Rewards", "abbreviation": "MPRP", "isSupplemental":
+        true, "publishedOn": "2001-05-21T00:00:00", "modifiedOn": "2025-11-12T23:53:10.69",
+        "categoryId": 1}, {"groupId": 2, "name": "7th Edition", "abbreviation": "7ED",
+        "isSupplemental": false, "publishedOn": "2001-04-11T00:00:00", "modifiedOn":
+        "2025-11-21T07:13:49.857", "categoryId": 1}, {"groupId": 85, "name": "Planeshift",
+        "abbreviation": "PLS", "isSupplemental": false, "publishedOn": "2001-02-05T00:00:00",
+        "modifiedOn": "2025-11-26T19:10:46.203", "categoryId": 1}, {"groupId": 60,
+        "name": "Invasion", "abbreviation": "INV", "isSupplemental": false, "publishedOn":
+        "2000-10-02T00:00:00", "modifiedOn": "2025-11-26T20:56:15.797", "categoryId":
+        1}, {"groupId": 16, "name": "Beatdown Box Set", "abbreviation": "BTD", "isSupplemental":
+        true, "publishedOn": "2000-10-01T00:00:00", "modifiedOn": "2025-11-11T05:07:02.247",
+        "categoryId": 1}, {"groupId": 94, "name": "Prophecy", "abbreviation": "PCY",
+        "isSupplemental": false, "publishedOn": "2000-06-05T00:00:00", "modifiedOn":
+        "2025-11-21T21:12:20.143", "categoryId": 1}, {"groupId": 106, "name": "Starter
+        2000", "abbreviation": "S00", "isSupplemental": true, "publishedOn": "2000-04-03T00:00:00",
+        "modifiedOn": "2025-11-11T05:24:15.663", "categoryId": 1}, {"groupId": 78,
+        "name": "Nemesis", "abbreviation": "NMS", "isSupplemental": false, "publishedOn":
+        "2000-02-14T00:00:00", "modifiedOn": "2025-11-21T23:15:59.6", "categoryId":
+        1}, {"groupId": 38, "name": "European Lands", "abbreviation": "EURO", "isSupplemental":
+        true, "publishedOn": "2000-02-05T00:00:00", "modifiedOn": "2025-11-13T06:30:25.937",
+        "categoryId": 1}, {"groupId": 45, "name": "FNM Promos", "abbreviation": "FNM",
+        "isSupplemental": true, "publishedOn": "2000-02-01T00:00:00", "modifiedOn":
+        "2025-11-20T05:34:46.4", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1755'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:13 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=xkRGmH8BwF+xuvp8qZ7PAgIGcbb0SgJ5S9kkvWgDV+G8Kkw13a6JtWL9gxebb6OD91OYJaP8U4fYyHUpQHElnQfPWEAdYTmmFrtW//nHiZInARsG8yM65jQIcgci;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/
+      - AWSALBCORS=xkRGmH8BwF+xuvp8qZ7PAgIGcbb0SgJ5S9kkvWgDV+G8Kkw13a6JtWL9gxebb6OD91OYJaP8U4fYyHUpQHElnQfPWEAdYTmmFrtW//nHiZInARsG8yM65jQIcgci;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=xkRGmH8BwF+xuvp8qZ7PAgIGcbb0SgJ5S9kkvWgDV+G8Kkw13a6JtWL9gxebb6OD91OYJaP8U4fYyHUpQHElnQfPWEAdYTmmFrtW//nHiZInARsG8yM65jQIcgci;
+        AWSALBCORS=xkRGmH8BwF+xuvp8qZ7PAgIGcbb0SgJ5S9kkvWgDV+G8Kkw13a6JtWL9gxebb6OD91OYJaP8U4fYyHUpQHElnQfPWEAdYTmmFrtW//nHiZInARsG8yM65jQIcgci
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=380
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        15, "name": "Battle Royale Box Set", "abbreviation": "BRB", "isSupplemental":
+        true, "publishedOn": "1999-11-12T00:00:00", "modifiedOn": "2025-11-13T01:09:48.24",
+        "categoryId": 1}, {"groupId": 73, "name": "Mercadian Masques", "abbreviation":
+        "MMQ", "isSupplemental": false, "publishedOn": "1999-10-04T00:00:00", "modifiedOn":
+        "2025-11-25T03:26:15.137", "categoryId": 1}, {"groupId": 56, "name": "Guru
+        Lands", "abbreviation": "GUR", "isSupplemental": true, "publishedOn": "1999-07-12T00:00:00",
+        "modifiedOn": "2023-08-07T20:14:43.263", "categoryId": 1}, {"groupId": 1163,
+        "name": "Unique and Miscellaneous Promos", "abbreviation": "UMP", "isSupplemental":
+        true, "publishedOn": "1999-07-10T00:00:00", "modifiedOn": "2025-11-26T19:09:16.587",
+        "categoryId": 1}, {"groupId": 116, "name": "Urza''s Destiny", "abbreviation":
+        "UDS", "isSupplemental": false, "publishedOn": "1999-06-07T00:00:00", "modifiedOn":
+        "2025-11-26T16:38:52.587", "categoryId": 1}, {"groupId": 62, "name": "Judge
+        Promos", "abbreviation": "JDG", "isSupplemental": true, "publishedOn": "1999-06-07T00:00:00",
+        "modifiedOn": "2025-11-26T18:24:39.837", "categoryId": 1}, {"groupId": 61,
+        "name": "Junior Series Promos", "abbreviation": "JSS", "isSupplemental": true,
+        "publishedOn": "1999-06-07T00:00:00", "modifiedOn": "2025-11-05T22:57:24.103",
+        "categoryId": 1}, {"groupId": 88, "name": "Portal Three Kingdoms", "abbreviation":
+        "PTK", "isSupplemental": true, "publishedOn": "1999-05-03T00:00:00", "modifiedOn":
+        "2025-11-13T00:46:39.213", "categoryId": 1}, {"groupId": 23, "name": "Classic
+        Sixth Edition", "abbreviation": "6ED", "isSupplemental": false, "publishedOn":
+        "1999-04-28T00:00:00", "modifiedOn": "2025-11-21T01:46:19.07", "categoryId":
+        1}, {"groupId": 105, "name": "Starter 1999", "abbreviation": "S99", "isSupplemental":
+        true, "publishedOn": "1999-04-05T00:00:00", "modifiedOn": "2025-11-13T19:34:23.95",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1820'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:13 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=KdMTMCTak1Ac3SugaI5pR33lLAnf3GhsGI2CDF20rn9ld7OAHr3Gp5xrQNGKxwnG0gPwyDhRikFJ5tWZ9xcbFdyp+1nEdeaF7HaSf+Yczm2UPcSI7ggIaZePm5z3;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/
+      - AWSALBCORS=KdMTMCTak1Ac3SugaI5pR33lLAnf3GhsGI2CDF20rn9ld7OAHr3Gp5xrQNGKxwnG0gPwyDhRikFJ5tWZ9xcbFdyp+1nEdeaF7HaSf+Yczm2UPcSI7ggIaZePm5z3;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=KdMTMCTak1Ac3SugaI5pR33lLAnf3GhsGI2CDF20rn9ld7OAHr3Gp5xrQNGKxwnG0gPwyDhRikFJ5tWZ9xcbFdyp+1nEdeaF7HaSf+Yczm2UPcSI7ggIaZePm5z3;
+        AWSALBCORS=KdMTMCTak1Ac3SugaI5pR33lLAnf3GhsGI2CDF20rn9ld7OAHr3Gp5xrQNGKxwnG0gPwyDhRikFJ5tWZ9xcbFdyp+1nEdeaF7HaSf+Yczm2UPcSI7ggIaZePm5z3
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=390
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        117, "name": "Urza''s Legacy", "abbreviation": "ULG", "isSupplemental": false,
+        "publishedOn": "1999-02-15T00:00:00", "modifiedOn": "2025-11-21T23:44:20.14",
+        "categoryId": 1}, {"groupId": 72, "name": "Media Promos", "abbreviation":
+        "MEDIA", "isSupplemental": true, "publishedOn": "1999-01-02T00:00:00", "modifiedOn":
+        "2025-11-26T23:03:07.79", "categoryId": 1}, {"groupId": 1275, "name": "Anthologies",
+        "abbreviation": "ATH", "isSupplemental": true, "publishedOn": "1998-11-02T00:00:00",
+        "modifiedOn": "2025-11-21T04:15:40.21", "categoryId": 1}, {"groupId": 118,
+        "name": "Urza''s Saga", "abbreviation": "USG", "isSupplemental": false, "publishedOn":
+        "1998-10-12T00:00:00", "modifiedOn": "2025-11-26T15:57:11.807", "categoryId":
+        1}, {"groupId": 9, "name": "APAC Lands", "abbreviation": "APAC", "isSupplemental":
+        true, "publishedOn": "1998-09-04T00:00:00", "modifiedOn": "2025-11-27T00:01:00.157",
+        "categoryId": 1}, {"groupId": 113, "name": "Unglued", "abbreviation": "UGL",
+        "isSupplemental": true, "publishedOn": "1998-08-17T00:00:00", "modifiedOn":
+        "2025-11-21T04:00:54.08", "categoryId": 1}, {"groupId": 40, "name": "Exodus",
+        "abbreviation": "EXO", "isSupplemental": false, "publishedOn": "1998-06-15T00:00:00",
+        "modifiedOn": "2025-11-25T08:42:48.577", "categoryId": 1}, {"groupId": 87,
+        "name": "Portal Second Age", "abbreviation": "P02", "isSupplemental": true,
+        "publishedOn": "1998-06-08T00:00:00", "modifiedOn": "2025-11-12T21:43:45.493",
+        "categoryId": 1}, {"groupId": 107, "name": "Stronghold", "abbreviation": "STH",
+        "isSupplemental": false, "publishedOn": "1998-03-02T00:00:00", "modifiedOn":
+        "2025-11-26T21:21:07.457", "categoryId": 1}, {"groupId": 108, "name": "Tempest",
+        "abbreviation": "TMP", "isSupplemental": false, "publishedOn": "1997-10-13T00:00:00",
+        "modifiedOn": "2025-11-26T20:54:57.713", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1751'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:13 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=W1IfpYjkbfxf1o23xHodh6BA+QnpuQaq3WDbNPQP0J4n7Bo6EmP63ezj+9mXsdPT1+JDh6aPD2isEAe6Y/1OEI2eMpQlk08QfWDSgbg+RRIT/ucxdNI8CVWzJ6MC;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/
+      - AWSALBCORS=W1IfpYjkbfxf1o23xHodh6BA+QnpuQaq3WDbNPQP0J4n7Bo6EmP63ezj+9mXsdPT1+JDh6aPD2isEAe6Y/1OEI2eMpQlk08QfWDSgbg+RRIT/ucxdNI8CVWzJ6MC;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=W1IfpYjkbfxf1o23xHodh6BA+QnpuQaq3WDbNPQP0J4n7Bo6EmP63ezj+9mXsdPT1+JDh6aPD2isEAe6Y/1OEI2eMpQlk08QfWDSgbg+RRIT/ucxdNI8CVWzJ6MC;
+        AWSALBCORS=W1IfpYjkbfxf1o23xHodh6BA+QnpuQaq3WDbNPQP0J4n7Bo6EmP63ezj+9mXsdPT1+JDh6aPD2isEAe6Y/1OEI2eMpQlk08QfWDSgbg+RRIT/ucxdNI8CVWzJ6MC
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=400
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        2198, "name": "World Championship Decks", "abbreviation": "WCD", "isSupplemental":
+        true, "publishedOn": "1997-08-13T00:00:00", "modifiedOn": "2025-11-27T03:25:33.13",
+        "categoryId": 1}, {"groupId": 121, "name": "Weatherlight", "abbreviation":
+        "WTH", "isSupplemental": false, "publishedOn": "1997-06-09T00:00:00", "modifiedOn":
+        "2025-11-25T08:30:49.973", "categoryId": 1}, {"groupId": 86, "name": "Portal",
+        "abbreviation": "POR", "isSupplemental": true, "publishedOn": "1997-06-02T00:00:00",
+        "modifiedOn": "2025-11-21T00:55:19.763", "categoryId": 1}, {"groupId": 119,
+        "name": "Vanguard", "abbreviation": "VNG", "isSupplemental": true, "publishedOn":
+        "1997-05-21T00:00:00", "modifiedOn": "2023-08-08T12:56:02.753", "categoryId":
+        1}, {"groupId": 14, "name": "Astral", "abbreviation": "", "isSupplemental":
+        true, "publishedOn": "1997-04-01T00:00:00", "modifiedOn": "2021-06-15T19:10:23.74",
+        "categoryId": 1}, {"groupId": 44, "name": "Fifth Edition", "abbreviation":
+        "5ED", "isSupplemental": false, "publishedOn": "1997-03-24T00:00:00", "modifiedOn":
+        "2025-11-26T16:36:46.49", "categoryId": 1}, {"groupId": 120, "name": "Visions",
+        "abbreviation": "VIS", "isSupplemental": false, "publishedOn": "1997-02-03T00:00:00",
+        "modifiedOn": "2025-11-25T08:45:10.55", "categoryId": 1}, {"groupId": 2742,
+        "name": "Introductory Two-Player Set", "abbreviation": "2PS", "isSupplemental":
+        false, "publishedOn": "1996-12-01T00:00:00", "modifiedOn": "2024-03-26T14:10:07.34",
+        "categoryId": 1}, {"groupId": 19, "name": "Box Sets", "abbreviation": "",
+        "isSupplemental": true, "publishedOn": "1996-11-01T00:00:00", "modifiedOn":
+        "2022-11-17T19:47:07.623", "categoryId": 1}, {"groupId": 74, "name": "Mirage",
+        "abbreviation": "MIR", "isSupplemental": false, "publishedOn": "1996-10-07T00:00:00",
+        "modifiedOn": "2025-11-26T12:36:43.613", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1755'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:13 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=LrfnpOcELweDV6cPlyF68Hn5d5PcLJaHy//g3An5B1RiFXurrJkJ1gLi0s2uwwUaVZ2o/xAlCKSlB983v+5nqUNLycskY3pJkyDt0qb4LKz78M85ak3rAWB348/h;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/
+      - AWSALBCORS=LrfnpOcELweDV6cPlyF68Hn5d5PcLJaHy//g3An5B1RiFXurrJkJ1gLi0s2uwwUaVZ2o/xAlCKSlB983v+5nqUNLycskY3pJkyDt0qb4LKz78M85ak3rAWB348/h;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=LrfnpOcELweDV6cPlyF68Hn5d5PcLJaHy//g3An5B1RiFXurrJkJ1gLi0s2uwwUaVZ2o/xAlCKSlB983v+5nqUNLycskY3pJkyDt0qb4LKz78M85ak3rAWB348/h;
+        AWSALBCORS=LrfnpOcELweDV6cPlyF68Hn5d5PcLJaHy//g3An5B1RiFXurrJkJ1gLi0s2uwwUaVZ2o/xAlCKSlB983v+5nqUNLycskY3pJkyDt0qb4LKz78M85ak3rAWB348/h
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=410
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        13, "name": "Arena Promos", "abbreviation": "ARENA", "isSupplemental": true,
+        "publishedOn": "1996-07-04T00:00:00", "modifiedOn": "2025-11-21T16:12:08.833",
+        "categoryId": 1}, {"groupId": 6, "name": "Alliances", "abbreviation": "ALL",
+        "isSupplemental": false, "publishedOn": "1996-06-10T00:00:00", "modifiedOn":
+        "2025-11-26T19:07:16.327", "categoryId": 1}, {"groupId": 2778, "name": "Rivals
+        Quick Start Set", "abbreviation": "RQS", "isSupplemental": false, "publishedOn":
+        "1996-06-01T00:00:00", "modifiedOn": "2023-08-14T20:58:31.093", "categoryId":
+        1}, {"groupId": 57, "name": "Homelands", "abbreviation": "HML", "isSupplemental":
+        false, "publishedOn": "1995-10-02T00:00:00", "modifiedOn": "2025-10-31T22:52:33.39",
+        "categoryId": 1}, {"groupId": 2379, "name": "Renaissance", "abbreviation":
+        "REN", "isSupplemental": true, "publishedOn": "1995-08-04T00:00:00", "modifiedOn":
+        "2023-08-17T16:02:28.95", "categoryId": 1}, {"groupId": 58, "name": "Ice Age",
+        "abbreviation": "ICE", "isSupplemental": false, "publishedOn": "1995-06-12T00:00:00",
+        "modifiedOn": "2025-11-26T16:31:09.193", "categoryId": 1}, {"groupId": 46,
+        "name": "Fourth Edition", "abbreviation": "4ED", "isSupplemental": false,
+        "publishedOn": "1995-04-03T00:00:00", "modifiedOn": "2025-11-26T20:24:29.4",
+        "categoryId": 1}, {"groupId": 22, "name": "Chronicles", "abbreviation": "CHR",
+        "isSupplemental": true, "publishedOn": "1995-04-03T00:00:00", "modifiedOn":
+        "2025-11-25T03:58:20.2", "categoryId": 1}, {"groupId": 1688, "name": "Fourth
+        Edition (Foreign Black Border)", "abbreviation": "", "isSupplemental": true,
+        "publishedOn": "1995-04-03T00:00:00", "modifiedOn": "2023-06-23T12:34:24.803",
+        "categoryId": 1}, {"groupId": 1687, "name": "Fourth Edition (Foreign White
+        Border)", "abbreviation": "", "isSupplemental": true, "publishedOn": "1995-04-03T00:00:00",
+        "modifiedOn": "2022-11-17T19:57:07.057", "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1807'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:13 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=UbDnsn9M9rW6JFVQd2QvccK9KU+qgU/QFja9jW30i5IVY8Mu5CIUpCF1DRTBG+D7wyPSK/Z5yPQBiwvZI4r9REIJiRcW/vf537vg4zTfS8otuyxz/acg6jQXFinq;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/
+      - AWSALBCORS=UbDnsn9M9rW6JFVQd2QvccK9KU+qgU/QFja9jW30i5IVY8Mu5CIUpCF1DRTBG+D7wyPSK/Z5yPQBiwvZI4r9REIJiRcW/vf537vg4zTfS8otuyxz/acg6jQXFinq;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=UbDnsn9M9rW6JFVQd2QvccK9KU+qgU/QFja9jW30i5IVY8Mu5CIUpCF1DRTBG+D7wyPSK/Z5yPQBiwvZI4r9REIJiRcW/vf537vg4zTfS8otuyxz/acg6jQXFinq;
+        AWSALBCORS=UbDnsn9M9rW6JFVQd2QvccK9KU+qgU/QFja9jW30i5IVY8Mu5CIUpCF1DRTBG+D7wyPSK/Z5yPQBiwvZI4r9REIJiRcW/vf537vg4zTfS8otuyxz/acg6jQXFinq
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=420
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        41, "name": "Fallen Empires", "abbreviation": "FEM", "isSupplemental": false,
+        "publishedOn": "1994-11-07T00:00:00", "modifiedOn": "2025-10-22T22:44:15.913",
+        "categoryId": 1}, {"groupId": 109, "name": "The Dark", "abbreviation": "DRK",
+        "isSupplemental": false, "publishedOn": "1994-08-08T00:00:00", "modifiedOn":
+        "2025-11-21T00:46:36.243", "categoryId": 1}, {"groupId": 65, "name": "Legends",
+        "abbreviation": "LEG", "isSupplemental": false, "publishedOn": "1994-06-13T00:00:00",
+        "modifiedOn": "2025-10-06T13:37:59.83", "categoryId": 1}, {"groupId": 2642,
+        "name": "Summer Magic", "abbreviation": "SUM", "isSupplemental": true, "publishedOn":
+        "1994-06-03T00:00:00", "modifiedOn": "2023-08-17T16:09:45.78", "categoryId":
+        1}, {"groupId": 97, "name": "Revised Edition", "abbreviation": "3ED", "isSupplemental":
+        false, "publishedOn": "1994-04-04T00:00:00", "modifiedOn": "2025-11-26T20:20:47.9",
+        "categoryId": 1}, {"groupId": 1689, "name": "Revised Edition (Foreign Black
+        Border)", "abbreviation": "", "isSupplemental": true, "publishedOn": "1994-04-04T00:00:00",
+        "modifiedOn": "2022-11-17T19:58:11.617", "categoryId": 1}, {"groupId": 1690,
+        "name": "Revised Edition (Foreign White Border)", "abbreviation": "", "isSupplemental":
+        true, "publishedOn": "1994-04-04T00:00:00", "modifiedOn": "2022-11-17T19:58:19.023",
+        "categoryId": 1}, {"groupId": 8, "name": "Antiquities", "abbreviation": "ATQ",
+        "isSupplemental": false, "publishedOn": "1994-03-07T00:00:00", "modifiedOn":
+        "2025-11-11T19:40:37.8", "categoryId": 1}, {"groupId": 11, "name": "Arabian
+        Nights", "abbreviation": "ARN", "isSupplemental": false, "publishedOn": "1993-12-17T00:00:00",
+        "modifiedOn": "2025-11-25T17:18:14.073", "categoryId": 1}, {"groupId": 115,
+        "name": "Unlimited Edition", "abbreviation": "2ED", "isSupplemental": false,
+        "publishedOn": "1993-12-06T00:00:00", "modifiedOn": "2025-11-21T02:51:32.077",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1813'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:13 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=OLbtIUqgjc5nUKqMg0DvrAFYl8jeh3OFrDbh8CZk8GT1QnHeuh96gVV0Umb+vkDN3FCN1YrCkgFBhEWcaRMXAdOoILmThCpTw7tK0N3e9zUY83ZSwkHrbIkL0fuQ;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/
+      - AWSALBCORS=OLbtIUqgjc5nUKqMg0DvrAFYl8jeh3OFrDbh8CZk8GT1QnHeuh96gVV0Umb+vkDN3FCN1YrCkgFBhEWcaRMXAdOoILmThCpTw7tK0N3e9zUY83ZSwkHrbIkL0fuQ;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=OLbtIUqgjc5nUKqMg0DvrAFYl8jeh3OFrDbh8CZk8GT1QnHeuh96gVV0Umb+vkDN3FCN1YrCkgFBhEWcaRMXAdOoILmThCpTw7tK0N3e9zUY83ZSwkHrbIkL0fuQ;
+        AWSALBCORS=OLbtIUqgjc5nUKqMg0DvrAFYl8jeh3OFrDbh8CZk8GT1QnHeuh96gVV0Umb+vkDN3FCN1YrCkgFBhEWcaRMXAdOoILmThCpTw7tK0N3e9zUY83ZSwkHrbIkL0fuQ
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=430
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        1526, "name": "Collector''s Edition", "abbreviation": "CED", "isSupplemental":
+        true, "publishedOn": "1993-12-03T00:00:00", "modifiedOn": "2025-05-08T13:51:45.613",
+        "categoryId": 1}, {"groupId": 1527, "name": "International Edition", "abbreviation":
+        "IED", "isSupplemental": true, "publishedOn": "1993-12-03T00:00:00", "modifiedOn":
+        "2024-12-20T10:19:26.803", "categoryId": 1}, {"groupId": 17, "name": "Beta
+        Edition", "abbreviation": "LEB", "isSupplemental": false, "publishedOn": "1993-10-04T00:00:00",
+        "modifiedOn": "2025-11-12T18:41:26.69", "categoryId": 1}, {"groupId": 7, "name":
+        "Alpha Edition", "abbreviation": "LEA", "isSupplemental": false, "publishedOn":
+        "1993-09-05T00:00:00", "modifiedOn": "2025-11-26T16:33:29.58", "categoryId":
+        1}, {"groupId": 29, "name": "Duel Decks", "abbreviation": "", "isSupplemental":
+        false, "publishedOn": "2025-11-27T03:40:13.526902Z", "modifiedOn": "2021-06-15T19:12:41.157",
+        "categoryId": 1}, {"groupId": 64, "name": "Launch Party Cards", "abbreviation":
+        "", "isSupplemental": true, "publishedOn": "2025-11-27T03:40:13.526902Z",
+        "modifiedOn": "2024-07-10T18:10:45.547", "categoryId": 1}, {"groupId": 92,
+        "name": "Prerelease Cards", "abbreviation": "PRE", "isSupplemental": true,
+        "publishedOn": "2025-11-27T03:40:13.526902Z", "modifiedOn": "2025-11-26T23:00:40.94",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '1293'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:13 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=icxgMbIco1lP9XhtyNTD3Juz/F1p5R6b5MNGxz2ReiBl/lZPqpXWHPxY/8/hVdIhAnUBnMDi3kVmpzQyjfxd2YdoLwVeodX8YFZe7AqnCJu9/sHtPYt8Q55SVeZG;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/
+      - AWSALBCORS=icxgMbIco1lP9XhtyNTD3Juz/F1p5R6b5MNGxz2ReiBl/lZPqpXWHPxY/8/hVdIhAnUBnMDi3kVmpzQyjfxd2YdoLwVeodX8YFZe7AqnCJu9/sHtPYt8Q55SVeZG;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Cookie:
+      - AWSALB=icxgMbIco1lP9XhtyNTD3Juz/F1p5R6b5MNGxz2ReiBl/lZPqpXWHPxY/8/hVdIhAnUBnMDi3kVmpzQyjfxd2YdoLwVeodX8YFZe7AqnCJu9/sHtPYt8Q55SVeZG;
+        AWSALBCORS=icxgMbIco1lP9XhtyNTD3Juz/F1p5R6b5MNGxz2ReiBl/lZPqpXWHPxY/8/hVdIhAnUBnMDi3kVmpzQyjfxd2YdoLwVeodX8YFZe7AqnCJu9/sHtPYt8Q55SVeZG
+      User-Agent:
+      - Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0
+    method: GET
+    uri: https://api.tcgplayer.com/v1.39.0/catalog/categories/1/groups?offset=436
+  response:
+    body:
+      string: '{"totalItems": 437, "success": true, "errors": [], "results": [{"groupId":
+        92, "name": "Prerelease Cards", "abbreviation": "PRE", "isSupplemental": true,
+        "publishedOn": "2025-11-27T03:40:13.5894045Z", "modifiedOn": "2025-11-26T23:00:40.94",
+        "categoryId": 1}]}'
+    headers:
+      Cache-Control:
+      - no-cache
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '239'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Thu, 27 Nov 2025 03:40:13 GMT
+      Expires:
+      - '-1'
+      Pragma:
+      - no-cache
+      Set-Cookie:
+      - AWSALB=ryittKg/uIFs+PyoCOim0EkXExZg8CWzN4DjQy1W9zxQ0XJscqkO6X8bz08J5zlXbbnj/E9t7K/ObYncWkIFPIOAwGshWh6YcdIPSows6X0ptF9cRLF+eEbcsmVb;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/
+      - AWSALBCORS=ryittKg/uIFs+PyoCOim0EkXExZg8CWzN4DjQy1W9zxQ0XJscqkO6X8bz08J5zlXbbnj/E9t7K/ObYncWkIFPIOAwGshWh6YcdIPSows6X0ptF9cRLF+eEbcsmVb;
+        Expires=Thu, 04 Dec 2025 03:40:13 GMT; Path=/; SameSite=None; Secure
+    status:
+      code: 200
+      message: OK
+version: 1
