@@ -1856,19 +1856,17 @@ def link_foil_nonfoil_versions(lf: pl.LazyFrame) -> pl.LazyFrame:
 	Only applies to specific sets: CN2, FRF, ONS, 10E, UNH.
 	Adds mtgjsonFoilVersionId and mtgjsonNonFoilVersionId to identifiers.
 
-	Matches legacy set_builder.py behavior exactly:
+	Matches set_builder behavior exactly:
 	- Groups cards by (setCode, illustrationId)
 	- First card seen in group becomes the "anchor"
 	- All subsequent cards link back to anchor
 	- If subsequent has "nonfoil" in finishes: anchor gets nonfoilVersionId (last wins)
-	- Uses Python iteration to match exact legacy overwrite semantics
+	- Uses Python iteration to match exact overwrite semantics (even if slower and seems buggy?)
 	"""
-	LOGGER.info("[DEBUG] link_foil_nonfoil_versions called")
 	foil_link_sets = {"CN2", "FRF", "ONS", "10E", "UNH"}
 
 	# Collect only target sets for iteration (small number of cards)
 	target_df = lf.filter(pl.col("setCode").is_in(foil_link_sets)).collect()
-	LOGGER.info(f"[DEBUG] Cards in target sets: {len(target_df)}")
 
 	if len(target_df) == 0:
 		return lf
@@ -1919,10 +1917,6 @@ def link_foil_nonfoil_versions(lf: pl.LazyFrame) -> pl.LazyFrame:
 			version_links[first_uuid] = (first_foil, first_nonfoil)
 			version_links[uuid] = (None, first_uuid)  # nonfoilVersionId = first
 
-	# Count links for debugging
-	foil_count = sum(1 for f, _ in version_links.values() if f is not None)
-	nonfoil_count = sum(1 for _, n in version_links.values() if n is not None)
-	LOGGER.info(f"[DEBUG] link_foil_nonfoil_versions: {foil_count} foil links, {nonfoil_count} nonfoil links")
 
 	# Create lookup DataFrame
 	links_df = pl.DataFrame({
