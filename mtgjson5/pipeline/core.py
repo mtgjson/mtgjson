@@ -788,6 +788,9 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 		)
 		.with_columns(
 			pl.when(ascii_name != face_name).then(ascii_name).otherwise(None).alias("asciiName"),
+			# Prepare fields needed by add_booster_types (runs before add_card_attributes)
+			pl.col("booster").alias("_in_booster"),
+			pl.col("promoTypes").fill_null([]).alias("promoTypes"),
 		)
 	)
 
@@ -900,8 +903,8 @@ def add_card_attributes(lf: pl.LazyFrame) -> pl.LazyFrame:
 		pl.col("handModifier").alias("hand"),
 		pl.col("lifeModifier").alias("life"),
 		pl.col("edhrecRank").alias("edhrecRank"),
-		pl.col("promoTypes").fill_null([]).alias("promoTypes"),
-		pl.col("booster").alias("_in_booster"),
+		# Note: promoTypes and _in_booster are created in add_basic_fields
+		# and processed by add_booster_types/fix_promo_types before this function runs
 		pl.col("gameChanger").fill_null(False).alias("isGameChanger"),
 		pl.col("layout"),
 		pl.col("keywords").fill_null([]).alias("_all_keywords"),
@@ -2919,6 +2922,7 @@ def build_cards(
 		.pipe(partial(update_meld_names, ctx=ctx))
 		.pipe(detect_aftermath_layout)
 		.pipe(add_basic_fields)
+		.pipe(add_booster_types)  # Must run BEFORE fix_promo_types (checks for planeswalkerdeck)
 		.pipe(fix_promo_types)
 		.pipe(fix_power_toughness_for_multiface)
 		.pipe(format_planeswalker_text)
@@ -2948,7 +2952,6 @@ def build_cards(
 		.pipe(fix_manavalue_for_multiface)
 		.pipe(add_card_attributes)
 		.pipe(filter_keywords_for_face)
-		.pipe(add_booster_types)
 		.drop(
 			[
 				"contentWarning",

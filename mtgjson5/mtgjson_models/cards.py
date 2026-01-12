@@ -178,9 +178,12 @@ class CardPrintingBase(CardBase):
 			return self_number_clean_int < other_number_clean_int
 
 		if self_number_clean == other_number_clean:
-			# Same numeric part - compare by side first, then by full number
+			# Same numeric part - compare by side first
 			if self_side != other_side:
 				return self_side < other_side
+			# Tiebreaker: multi-face cards sort by name, single-face by collector number
+			if self_side:  # Both have side (multi-face cards)
+				return self.name < other.name
 			return bool(self.number < other.number)
 
 		if self_number_clean_int == other_number_clean_int:
@@ -188,6 +191,9 @@ class CardPrintingBase(CardBase):
 				return len(self_number_clean) < len(other_number_clean)
 			if self_side != other_side:
 				return self_side < other_side
+			# Tiebreaker: multi-face cards sort by name, single-face by collector number
+			if self_side:  # Both have side (multi-face cards)
+				return self.name < other.name
 			return bool(self.number < other.number)
 
 		return self_number_clean_int < other_number_clean_int
