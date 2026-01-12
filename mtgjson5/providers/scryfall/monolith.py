@@ -11,6 +11,7 @@ import time
 from typing import Any, Dict, List, Optional, Set, Union
 
 import ratelimit
+import requests
 import requests.exceptions
 from singleton_decorator import singleton
 
@@ -20,6 +21,7 @@ from ...providers.abstract import AbstractProvider
 from . import sf_utils
 
 LOGGER = logging.getLogger(__name__)
+
 
 
 @singleton
@@ -273,3 +275,4 @@ class ScryfallProvider(AbstractProvider):
         :return All unique card names found
         """
         return list({card["name"] for card in self.download(url).get("data", {})})
+    

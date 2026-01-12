@@ -138,3 +138,6 @@ WARP.md
 
 # asdf languange/version manager
 .tool-versions
+
+# parquet cache files
+*.parquet
