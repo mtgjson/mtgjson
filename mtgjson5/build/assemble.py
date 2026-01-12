@@ -238,7 +238,9 @@ class DeckAssembler:
         }
 
         # Always include sealedProductUuids (CDN has key with null when not set)
-        result["sealedProductUuids"] = deck_data.get("sealedProductUuids")
+        # Convert empty list to None to match CDN format
+        sealed_uuids = deck_data.get("sealedProductUuids")
+        result["sealedProductUuids"] = sealed_uuids if sealed_uuids else None
 
         for board in ["mainBoard", "sideBoard", "commander", "tokens"]:
             refs = deck_data.get(board, [])
@@ -438,7 +440,9 @@ class SetAssembler(Assembler):
                     if deck.get("releaseDate"):
                         minimal_deck["releaseDate"] = deck["releaseDate"]
                     # Always include sealedProductUuids (CDN has key with null when not set)
-                    minimal_deck["sealedProductUuids"] = deck.get("sealedProductUuids")
+                    # Convert empty list to None to match CDN format
+                    sealed_uuids = deck.get("sealedProductUuids")
+                    minimal_deck["sealedProductUuids"] = sealed_uuids if sealed_uuids else None
                     # sourceSetCodes
                     if deck.get("sourceSetCodes"):
                         minimal_deck["sourceSetCodes"] = deck["sourceSetCodes"]

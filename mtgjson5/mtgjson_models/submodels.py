@@ -38,8 +38,17 @@ class ForeignData(TypedDict, total=False):
 
 
 class Identifiers(TypedDict, total=False):
-	"""External identifiers for a card."""
+	"""External identifiers for a card or sealed product."""
 
+	# Sealed product identifiers
+	abuId: str
+	cardtraderId: str
+	csiId: str
+	miniaturemarketId: str
+	mvpId: str
+	scgId: str
+	tntId: str
+	# Card identifiers
 	cardKingdomEtchedId: str
 	cardKingdomFoilId: str
 	cardKingdomId: str
