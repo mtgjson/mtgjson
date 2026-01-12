@@ -1107,7 +1107,7 @@ def join_cardmarket_ids(
 	"""
 	Add CardMarket identifiers to cards.
 	"""
-	mcm_df = ctx.mcm_lookup_df
+	mcm_df = ctx.mcm_lookup_lf
 
 	if mcm_df is None:
 		return lf.with_columns(
@@ -1189,6 +1189,8 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
 			cardKingdomId=pl.col("cardKingdomId"),
 			cardKingdomFoilId=pl.col("cardKingdomFoilId"),
 			cardKingdomEtchedId=pl.col("cardKingdomEtchedId"),
+			mtgjsonFoilVersionId=pl.lit(None).cast(pl.String),
+			mtgjsonNonFoilVersionId=pl.lit(None).cast(pl.String),
 		).alias("identifiers")
 	)
 
@@ -1202,7 +1204,7 @@ def join_gatherer_data(
 	Join Gatherer original text and type by multiverse ID.
 	gatherer_df has multiverseId, originalText, originalType columns.
 	"""
-	gatherer_df = ctx.gatherer_df
+	gatherer_df = ctx.gatherer_lf
 
 	if gatherer_df is None:
 		return lf.with_columns(
@@ -1778,7 +1780,7 @@ def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyF
 
 	# Filter to default language only for UUID aggregation
 	# This ensures we only link UUIDs that will exist in final output
-	default_langs = ctx.default_card_languages
+	default_langs = ctx.default_card_languages_lf
 	if default_langs is not None:
 		default_lang_lf = lf.join(default_langs, on=["scryfallId", "language"], how="semi")
 	else:
@@ -1854,92 +1856,85 @@ def link_foil_nonfoil_versions(lf: pl.LazyFrame) -> pl.LazyFrame:
 	Only applies to specific sets: CN2, FRF, ONS, 10E, UNH.
 	Adds mtgjsonFoilVersionId and mtgjsonNonFoilVersionId to identifiers.
 
-	Uses window functions instead of self-joins to avoid query plan complexity.
+	Matches legacy set_builder.py behavior exactly:
+	- Groups cards by (setCode, illustrationId)
+	- First card seen in group becomes the "anchor"
+	- All subsequent cards link back to anchor
+	- If subsequent has "nonfoil" in finishes: anchor gets nonfoilVersionId (last wins)
+	- Uses Python iteration to match exact legacy overwrite semantics
 	"""
+	LOGGER.info("[DEBUG] link_foil_nonfoil_versions called")
 	foil_link_sets = {"CN2", "FRF", "ONS", "10E", "UNH"}
 
-	in_target_sets = pl.col("setCode").is_in(foil_link_sets)
-	ill_id_expr = pl.col("identifiers").struct.field("scryfallIllustrationId")
+	# Collect only target sets for iteration (small number of cards)
+	target_df = lf.filter(pl.col("setCode").is_in(foil_link_sets)).collect()
+	LOGGER.info(f"[DEBUG] Cards in target sets: {len(target_df)}")
 
-	# Add illustration_id column for windowing
-	lf = lf.with_columns(ill_id_expr.alias("_ill_id"))
+	if len(target_df) == 0:
+		return lf
 
-	# Window partition key
-	partition = ["setCode", "_ill_id"]
+	# Build version ID mappings using legacy algorithm
+	# Key: uuid -> (foilVersionId, nonfoilVersionId)
+	version_links: dict[str, tuple[str | None, str | None]] = {}
 
-	# Condition for cards we care about
-	is_candidate = in_target_sets & pl.col("_ill_id").is_not_null()
+	# Group by (setCode, illustrationId) - legacy uses illustration_id as key
+	cards_seen: dict[tuple[str, str], str] = {}  # (setCode, ill_id) -> first_uuid
 
-	# Add window computations - count and first/last in each partition
-	lf = lf.with_columns(
-		[
-			# Count cards in group
-			pl.when(is_candidate).then(pl.len().over(partition)).otherwise(pl.lit(0)).alias("_pair_count"),
-			# First UUID in group
-			pl.when(is_candidate)
-			.then(pl.col("uuid").first().over(partition))
-			.otherwise(pl.lit(None).cast(pl.String))
-			.alias("_first_uuid"),
-			# Last UUID in group
-			pl.when(is_candidate)
-			.then(pl.col("uuid").last().over(partition))
-			.otherwise(pl.lit(None).cast(pl.String))
-			.alias("_last_uuid"),
-			# First finishes in group
-			pl.when(is_candidate)
-			.then(pl.col("finishes").first().over(partition))
-			.otherwise(pl.lit(None).cast(pl.List(pl.String)))
-			.alias("_first_finishes"),
-			# Last finishes in group
-			pl.when(is_candidate)
-			.then(pl.col("finishes").last().over(partition))
-			.otherwise(pl.lit(None).cast(pl.List(pl.String)))
-			.alias("_last_finishes"),
-		]
-	)
+	for row in target_df.iter_rows(named=True):
+		uuid = row["uuid"]
+		set_code = row["setCode"]
+		ill_id = row["identifiers"].get("scryfallIllustrationId") if row["identifiers"] else None
+		finishes = row["finishes"] or []
 
-	# Compute other card's uuid and finishes (for pairs only)
-	is_pair = pl.col("_pair_count") == 2
-	is_first = pl.col("uuid") == pl.col("_first_uuid")
+		if ill_id is None:
+			version_links[uuid] = (None, None)
+			continue
 
-	lf = lf.with_columns(
-		[
-			# Other UUID: if I'm first, other is last; if I'm last, other is first
-			pl.when(is_pair)
-			.then(pl.when(is_first).then(pl.col("_last_uuid")).otherwise(pl.col("_first_uuid")))
-			.otherwise(pl.lit(None).cast(pl.String))
-			.alias("_other_uuid"),
-			# Other finishes
-			pl.when(is_pair)
-			.then(pl.when(is_first).then(pl.col("_last_finishes")).otherwise(pl.col("_first_finishes")))
-			.otherwise(pl.lit(None).cast(pl.List(pl.String)))
-			.alias("_other_finishes"),
-		]
-	)
+		key = (set_code, ill_id)
 
-	# Determine foil status - card is foil-only if "nonfoil" NOT in finishes
-	is_foil_only = ~pl.col("finishes").list.contains("nonfoil")
-	other_is_foil_only = pl.col("_other_finishes").is_not_null() & ~pl.col("_other_finishes").list.contains("nonfoil")
+		if key not in cards_seen:
+			# First card with this illustration - store it
+			cards_seen[key] = uuid
+			version_links[uuid] = (None, None)
+			continue
 
-	# Only link if one is foil and one is not (XOR condition)
-	valid_pair = is_pair & pl.col("_other_finishes").is_not_null() & (is_foil_only != other_is_foil_only)
+		# Subsequent card with same illustration - link to first
+		first_uuid = cards_seen[key]
 
-	lf = lf.with_columns(
-		[
-			# If this card is foil-only, link to nonfoil version
-			pl.when(valid_pair & is_foil_only)
-			.then(pl.col("_other_uuid"))
-			.otherwise(pl.lit(None).cast(pl.String))
-			.alias("_nonfoil_version"),
-			# If this card is NOT foil-only, link to foil version
-			pl.when(valid_pair & ~is_foil_only)
-			.then(pl.col("_other_uuid"))
-			.otherwise(pl.lit(None).cast(pl.String))
-			.alias("_foil_version"),
-		]
-	)
+		# Get current links for first card (may have been set by previous cards)
+		first_foil, first_nonfoil = version_links.get(first_uuid, (None, None))
 
-	# Inject into identifiers struct
+		if "nonfoil" in finishes:
+			# Current card has nonfoil -> current is the nonfoil version
+			# First card points to current as its nonfoil version (overwrites previous)
+			# Current card points to first as its foil version
+			first_nonfoil = uuid
+			version_links[first_uuid] = (first_foil, first_nonfoil)
+			version_links[uuid] = (first_uuid, None)  # foilVersionId = first
+		else:
+			# Current card is foil-only
+			# First card points to current as its foil version (overwrites previous)
+			# Current card points to first as its nonfoil version
+			first_foil = uuid
+			version_links[first_uuid] = (first_foil, first_nonfoil)
+			version_links[uuid] = (None, first_uuid)  # nonfoilVersionId = first
+
+	# Count links for debugging
+	foil_count = sum(1 for f, _ in version_links.values() if f is not None)
+	nonfoil_count = sum(1 for _, n in version_links.values() if n is not None)
+	LOGGER.info(f"[DEBUG] link_foil_nonfoil_versions: {foil_count} foil links, {nonfoil_count} nonfoil links")
+
+	# Create lookup DataFrame
+	links_df = pl.DataFrame({
+		"uuid": list(version_links.keys()),
+		"_foil_version": [v[0] for v in version_links.values()],
+		"_nonfoil_version": [v[1] for v in version_links.values()],
+	}).lazy()
+
+	# Join back to main LazyFrame
+	lf = lf.join(links_df, on="uuid", how="left")
+
+	# Update identifiers struct with version IDs
 	lf = lf.with_columns(
 		pl.col("identifiers").struct.with_fields(
 			[
@@ -1950,21 +1945,7 @@ def link_foil_nonfoil_versions(lf: pl.LazyFrame) -> pl.LazyFrame:
 	)
 
 	# Cleanup temp columns
-	return lf.drop(
-		[
-			"_ill_id",
-			"_pair_count",
-			"_first_uuid",
-			"_last_uuid",
-			"_first_finishes",
-			"_last_finishes",
-			"_other_uuid",
-			"_other_finishes",
-			"_foil_version",
-			"_nonfoil_version",
-		],
-		strict=False,
-	)
+	return lf.drop(["_foil_version", "_nonfoil_version"], strict=False)
 
 
 # 5.5:
@@ -1977,7 +1958,7 @@ def add_secret_lair_subsets(
 
 	Links collector numbers to drop names.
 	"""
-	sld_df = ctx.sld_subsets_df
+	sld_df = ctx.sld_subsets_lf
 
 	if sld_df is None:
 		return lf.with_columns(pl.lit(None).cast(pl.List(pl.String)).alias("subsets"))
@@ -2015,7 +1996,7 @@ def add_source_products(
 	Note: At this stage, Scryfall's boolean `foil`/`nonfoil` columns still exist.
 	We rename the product columns with _sp_ prefix to avoid collision, then drop them.
 	"""
-	card_to_products_df = ctx.card_to_products_df
+	card_to_products_df = ctx.card_to_products_lf
 
 	SOURCE_PRODUCTS_STRUCT = pl.Struct(
 		[
@@ -2182,7 +2163,8 @@ def sink_cards(ctx: PipelineContext) -> None:
 
 	# Use pre-computed default_card_languages from cache
 	# This mapping was derived from Scryfall's default_cards bulk file during cache loading
-	default_langs = ctx.default_card_languages
+	default_langs = ctx.default_card_languages_lf
+
 	if default_langs is not None:
 		# Join with default language mapping to filter to primary language per card
 		lf = lf.join(default_langs, on=["scryfallId", "language"], how="semi")
@@ -2191,6 +2173,10 @@ def sink_cards(ctx: PipelineContext) -> None:
 		# Fallback: English only (if default_cards not loaded)
 		LOGGER.warning("default_card_languages not available, filtering to English only")
 		lf = lf.filter(pl.col("language") == "English")
+
+	# Link foil/nonfoil versions AFTER language filtering
+	# (must run after filtering because groups need exactly 2 cards per illustration ID)
+	lf = link_foil_nonfoil_versions(lf)
 
 	# Compute variations AFTER language filtering so variation UUIDs only reference
 	# cards that exist in the final output (not filtered-out language versions)
@@ -2434,9 +2420,9 @@ def join_set_number_data(
 	)
 
 	# Determine which cards should have foreignData
-	if ctx.default_card_languages is not None:
+	if ctx.default_card_languages_lf is not None:
 		lf = lf.join(
-			ctx.default_card_languages.select(
+			ctx.default_card_languages_lf.select(
 				[
 					pl.col("scryfallId"),
 					pl.col("language").alias("_default_language"),
@@ -2861,9 +2847,9 @@ def build_cards(
 	output_dir.mkdir(parents=True, exist_ok=True)
 
 	LOGGER.info("Executing card pipeline...")
-	if ctx.sets_df is None:
+	if ctx.sets_lf is None:
 		raise ValueError("sets_df is not available in context")
-	sets_raw = ctx.sets_df.rename({"code": "set"})
+	sets_raw = ctx.sets_lf.rename({"code": "set"})
 	sets_lf = sets_raw.lazy() if isinstance(sets_raw, pl.DataFrame) else sets_raw
 
 	if ctx.cards_lf is None:
@@ -3031,10 +3017,11 @@ def build_cards(
 	LOGGER.info("  Checkpoint complete")
 
 	# Final enrichment (includes self-join patterns)
+	# NOTE: link_foil_nonfoil_versions moved to sink_cards to run AFTER language filtering
+	# (otherwise groups have multiple language cards with same illustration ID)
 	lf = (
 		lf.pipe(partial(apply_manual_overrides, ctx=ctx))
 		.pipe(partial(add_rebalanced_linkage, ctx=ctx))
-		.pipe(link_foil_nonfoil_versions)
 		.pipe(partial(add_secret_lair_subsets, ctx=ctx))
 		.pipe(partial(add_source_products, ctx=ctx))
 	)
@@ -3124,14 +3111,14 @@ def build_expanded_decks_df(
 	Returns:
 	    DataFrame with deck structure containing fully expanded card objects.
 	"""
-	if ctx.decks_df is None:
+	if ctx.decks_lf is None:
 		LOGGER.warning("GitHub decks data not loaded in cache")
 		return pl.DataFrame()
 
 	# Filter decks by set codes first (before collecting UUIDs)
 	# Use set_codes param if provided, otherwise fall back to ctx.sets_to_build
 	filter_codes = set_codes or ctx.sets_to_build
-	decks_lf = ctx.decks_df
+	decks_lf = ctx.decks_lf
 	if filter_codes:
 		if isinstance(filter_codes, str):
 			decks_lf = decks_lf.filter(pl.col("setCode") == filter_codes.upper())
@@ -3248,8 +3235,8 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 	    LazyFrame with columns: setCode, name, category, subtype, releaseDate,
 	    identifiers (struct), contents (struct), purchaseUrls (struct), uuid
 	"""
-	products_lf = ctx.sealed_products_df
-	contents_lf = ctx.sealed_contents_df
+	products_lf = ctx.sealed_products_lf
+	contents_lf = ctx.sealed_contents_lf
 	if products_lf is None or contents_lf is None:
 		LOGGER.warning("GitHub sealed products data not loaded in cache")
 		return pl.DataFrame()
@@ -3448,14 +3435,14 @@ def build_set_metadata_df(
 	if ctx is None:
 		ctx = PipelineContext.from_global_cache()
 
-	sets_lf = ctx.sets_df
+	sets_lf = ctx.sets_lf
 	if sets_lf is None:
 		raise ValueError("sets_df is not available in context")
 	if not isinstance(sets_lf, pl.LazyFrame):
 		sets_lf = sets_lf.lazy()
 
 	# Get booster configs from cache
-	booster_lf = ctx.boosters_df
+	booster_lf = ctx.boosters_lf
 	if booster_lf is not None:
 		if not isinstance(booster_lf, pl.LazyFrame):
 			booster_lf = booster_lf.lazy()

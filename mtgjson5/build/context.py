@@ -65,7 +65,7 @@ class AssemblyContext:
 
         # Load raw deck data
         LOGGER.info("Loading deck data...")
-        decks_df = ctx.decks_df
+        decks_df = ctx.decks_lf
         if decks_df is not None and isinstance(decks_df, pl.LazyFrame):
             decks_df = decks_df.collect()
 

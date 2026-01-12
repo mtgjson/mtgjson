@@ -85,89 +85,84 @@ class PipelineContext:
         return self._cache.raw_rulings_lf if self._cache else None
 
     @property
-    def sets_df(self) -> pl.LazyFrame | None:
-        """Set metadata from cache (backward compat name)."""
+    def sets_lf(self) -> pl.LazyFrame | None:
+        """Set metadata from cache."""
         if "_sets_lf" in self._test_data:
             return self._test_data["_sets_lf"]
         return self._cache.sets_lf if self._cache else None
 
     @property
-    def sets_lf(self) -> pl.LazyFrame | None:
-        """Set metadata from cache."""
-        return self.sets_df
-
-    @property
-    def card_kingdom_df(self) -> pl.LazyFrame | None:
+    def card_kingdom_lf(self) -> pl.LazyFrame | None:
         """Card Kingdom lookup from cache."""
         if "_card_kingdom_lf" in self._test_data:
             return self._test_data["_card_kingdom_lf"]
         return self._cache.card_kingdom_lf if self._cache else None
 
     @property
-    def card_kingdom_raw_df(self) -> pl.LazyFrame | None:
+    def card_kingdom_raw_lf(self) -> pl.LazyFrame | None:
         """Card Kingdom raw data from cache."""
         if "_card_kingdom_raw_lf" in self._test_data:
             return self._test_data["_card_kingdom_raw_lf"]
         return self._cache.card_kingdom_raw_lf if self._cache else None
 
     @property
-    def mcm_lookup_df(self) -> pl.LazyFrame | None:
+    def mcm_lookup_lf(self) -> pl.LazyFrame | None:
         """MCM lookup from cache."""
         if "_mcm_lookup_lf" in self._test_data:
             return self._test_data["_mcm_lookup_lf"]
         return self._cache.mcm_lookup_lf if self._cache else None
 
     @property
-    def salt_df(self) -> pl.LazyFrame | None:
+    def salt_lf(self) -> pl.LazyFrame | None:
         """EDHREC salt data from cache."""
         if "_salt_lf" in self._test_data:
             return self._test_data["_salt_lf"]
         return self._cache.salt_lf if self._cache else None
 
     @property
-    def spellbook_df(self) -> pl.LazyFrame | None:
+    def spellbook_lf(self) -> pl.LazyFrame | None:
         """Spellbook data from cache."""
         if "_spellbook_lf" in self._test_data:
             return self._test_data["_spellbook_lf"]
         return self._cache.spellbook_lf if self._cache else None
 
     @property
-    def sld_subsets_df(self) -> pl.LazyFrame | None:
+    def sld_subsets_lf(self) -> pl.LazyFrame | None:
         """Secret Lair subsets from cache."""
         if "_sld_subsets_lf" in self._test_data:
             return self._test_data["_sld_subsets_lf"]
         return self._cache.sld_subsets_lf if self._cache else None
 
     @property
-    def uuid_cache_df(self) -> pl.LazyFrame | None:
+    def uuid_cache_lf(self) -> pl.LazyFrame | None:
         """UUID cache from cache."""
         if "_uuid_cache_lf" in self._test_data:
             return self._test_data["_uuid_cache_lf"]
         return self._cache.uuid_cache_lf if self._cache else None
 
     @property
-    def orientation_df(self) -> pl.LazyFrame | None:
+    def orientation_lf(self) -> pl.LazyFrame | None:
         """Orientation data from cache."""
         if "_orientation_lf" in self._test_data:
             return self._test_data["_orientation_lf"]
         return self._cache.orientation_lf if self._cache else None
 
     @property
-    def gatherer_df(self) -> pl.LazyFrame | None:
+    def gatherer_lf(self) -> pl.LazyFrame | None:
         """Gatherer data from cache."""
         if "_gatherer_lf" in self._test_data:
             return self._test_data["_gatherer_lf"]
         return self._cache.gatherer_lf if self._cache else None
 
     @property
-    def rulings_df(self) -> pl.LazyFrame | None:
+    def rulings_lf(self) -> pl.LazyFrame | None:
         """Rulings from cache."""
         if "_rulings_lf" in self._test_data:
             return self._test_data["_rulings_lf"]
         return self._cache.rulings_lf if self._cache else None
 
     @property
-    def foreign_data_df(self) -> pl.LazyFrame | None:
+    def foreign_data_lf(self) -> pl.LazyFrame | None:
         """Foreign data from cache."""
         if "_foreign_data_lf" in self._test_data:
             return self._test_data["_foreign_data_lf"]
@@ -209,7 +204,7 @@ class PipelineContext:
         return self._cache.boosters_lf if self._cache else None
 
     @property
-    def card_to_products_df(self) -> pl.LazyFrame | None:
+    def card_to_products_lf(self) -> pl.LazyFrame | None:
         """Card to products mapping (alias for sealed_cards_lf)."""
         return self.sealed_cards_lf
 
@@ -221,49 +216,49 @@ class PipelineContext:
         return self._cache.tcg_skus_lf if self._cache else None
 
     @property
-    def tcg_sku_map_df(self) -> pl.LazyFrame | None:
+    def tcg_sku_map_lf(self) -> pl.LazyFrame | None:
         """TCG SKU map from cache."""
         if "_tcg_sku_map_lf" in self._test_data:
             return self._test_data["_tcg_sku_map_lf"]
         return self._cache.tcg_sku_map_lf if self._cache else None
 
     @property
-    def tcg_to_uuid_df(self) -> pl.LazyFrame | None:
+    def tcg_to_uuid_lf(self) -> pl.LazyFrame | None:
         """TCG to UUID mapping from cache."""
         if "_tcg_to_uuid_lf" in self._test_data:
             return self._test_data["_tcg_to_uuid_lf"]
         return self._cache.tcg_to_uuid_lf if self._cache else None
 
     @property
-    def tcg_etched_to_uuid_df(self) -> pl.LazyFrame | None:
+    def tcg_etched_to_uuid_lf(self) -> pl.LazyFrame | None:
         """TCG etched to UUID mapping from cache."""
         if "_tcg_etched_to_uuid_lf" in self._test_data:
             return self._test_data["_tcg_etched_to_uuid_lf"]
         return self._cache.tcg_etched_to_uuid_lf if self._cache else None
 
     @property
-    def mtgo_to_uuid_df(self) -> pl.LazyFrame | None:
+    def mtgo_to_uuid_lf(self) -> pl.LazyFrame | None:
         """MTGO to UUID mapping from cache."""
         if "_mtgo_to_uuid_lf" in self._test_data:
             return self._test_data["_mtgo_to_uuid_lf"]
         return self._cache.mtgo_to_uuid_lf if self._cache else None
 
     @property
-    def cardmarket_to_uuid_df(self) -> pl.LazyFrame | None:
+    def cardmarket_to_uuid_lf(self) -> pl.LazyFrame | None:
         """Cardmarket to UUID mapping from cache."""
         if "_cardmarket_to_uuid_lf" in self._test_data:
             return self._test_data["_cardmarket_to_uuid_lf"]
         return self._cache.cardmarket_to_uuid_lf if self._cache else None
 
     @property
-    def uuid_to_oracle_df(self) -> pl.LazyFrame | None:
+    def uuid_to_oracle_lf(self) -> pl.LazyFrame | None:
         """UUID to oracle mapping from cache."""
         if "_uuid_to_oracle_lf" in self._test_data:
             return self._test_data["_uuid_to_oracle_lf"]
         return self._cache.uuid_to_oracle_lf if self._cache else None
 
     @property
-    def default_card_languages(self) -> pl.LazyFrame | None:
+    def default_card_languages_lf(self) -> pl.LazyFrame | None:
         """Default card languages from cache."""
         if "_default_card_languages_lf" in self._test_data:
             return self._test_data["_default_card_languages_lf"]
@@ -481,9 +476,9 @@ class PipelineContext:
         """
         Build consolidated identifiers lookup (by scryfallId + side).
         """
-        uuid_cache_raw = self.uuid_cache_df
+        uuid_cache_raw = self.uuid_cache_lf
         if uuid_cache_raw is None:
-            LOGGER.info("identifiers: No uuid_cache_df, skipping")
+            LOGGER.info("identifiers: No uuid_cache_lf, skipping")
             return
 
         if isinstance(uuid_cache_raw, pl.LazyFrame):
@@ -492,14 +487,14 @@ class PipelineContext:
             uuid_cache = uuid_cache_raw
 
         if uuid_cache.height == 0:
-            LOGGER.info("identifiers: uuid_cache_df is empty, skipping")
+            LOGGER.info("identifiers: uuid_cache_lf is empty, skipping")
             return
 
         result: pl.DataFrame = uuid_cache.select(["scryfallId", "side", "cachedUuid"])
         LOGGER.info(f"identifiers: +uuid_cache ({result.height:,} rows)")
 
         # Add Card Kingdom data (by scryfallId only, duplicated for all sides)
-        ck_raw = self.card_kingdom_df
+        ck_raw = self.card_kingdom_lf
         if ck_raw is not None:
             if isinstance(ck_raw, pl.LazyFrame):
                 ck: pl.DataFrame = ck_raw.collect()
@@ -521,7 +516,7 @@ class PipelineContext:
                 LOGGER.info(f"identifiers: +card_kingdom ({ck.height:,} rows)")
 
         # Add orientation data (by scryfallId only)
-        orient_raw = self.orientation_df
+        orient_raw = self.orientation_lf
         if orient_raw is not None:
             if isinstance(orient_raw, pl.LazyFrame):
                 orient: pl.DataFrame = orient_raw.collect()
@@ -543,7 +538,7 @@ class PipelineContext:
         frames: list[tuple[str, pl.DataFrame]] = []
 
         # Salt data
-        salt_raw = self.salt_df
+        salt_raw = self.salt_lf
         if salt_raw is not None:
             if isinstance(salt_raw, pl.LazyFrame):
                 salt: pl.DataFrame = salt_raw.collect()
@@ -636,7 +631,7 @@ class PipelineContext:
                 cards = cards_raw
 
             # Build default language card lookup for UUID generation
-            default_card_languages_raw = self.default_card_languages
+            default_card_languages_raw = self.default_card_languages_lf
             if default_card_languages_raw is not None:
                 default_lang_df = default_card_languages_raw
                 if isinstance(default_lang_df, pl.LazyFrame):
@@ -874,7 +869,7 @@ class PipelineContext:
         frames: list[tuple[str, pl.DataFrame]] = []
 
         # Spellbook data
-        spellbook_raw = self.spellbook_df
+        spellbook_raw = self.spellbook_lf
         if spellbook_raw is not None:
             if isinstance(spellbook_raw, pl.LazyFrame):
                 spellbook: pl.DataFrame = spellbook_raw.collect()

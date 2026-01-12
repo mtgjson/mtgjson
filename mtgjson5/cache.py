@@ -203,137 +203,6 @@ class GlobalCache:
         self._output_types: set[str] = set()
         self._export_formats: set[str] | None = None
 
-    # Backward Compatibility Properties (deprecated _df naming)
-    @property
-    def cards_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use cards_lf instead."""
-        return self.cards_lf
-
-    @property
-    def raw_rulings_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use raw_rulings_lf instead."""
-        return self.raw_rulings_lf
-
-    @property
-    def sets_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use sets_lf instead."""
-        return self.sets_lf
-
-    @property
-    def rulings_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use rulings_lf instead."""
-        return self.rulings_lf
-
-    @property
-    def foreign_data_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use foreign_data_lf instead."""
-        return self.foreign_data_lf
-
-    @property
-    def uuid_cache_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use uuid_cache_lf instead."""
-        return self.uuid_cache_lf
-
-    @property
-    def card_kingdom_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use card_kingdom_lf instead."""
-        return self.card_kingdom_lf
-
-    @property
-    def card_kingdom_raw_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use card_kingdom_raw_lf instead."""
-        return self.card_kingdom_raw_lf
-
-    @property
-    def mcm_lookup_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use mcm_lookup_lf instead."""
-        return self.mcm_lookup_lf
-
-    @property
-    def salt_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use salt_lf instead."""
-        return self.salt_lf
-
-    @property
-    def spellbook_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use spellbook_lf instead."""
-        return self.spellbook_lf
-
-    @property
-    def sld_subsets_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use sld_subsets_lf instead."""
-        return self.sld_subsets_lf
-
-    @property
-    def orientation_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use orientation_lf instead."""
-        return self.orientation_lf
-
-    @property
-    def gatherer_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use gatherer_lf instead."""
-        return self.gatherer_lf
-
-    @property
-    def sealed_cards_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use sealed_cards_lf instead."""
-        return self.sealed_cards_lf
-
-    @property
-    def sealed_products_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use sealed_products_lf instead."""
-        return self.sealed_products_lf
-
-    @property
-    def sealed_contents_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use sealed_contents_lf instead."""
-        return self.sealed_contents_lf
-
-    @property
-    def decks_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use decks_lf instead."""
-        return self.decks_lf
-
-    @property
-    def boosters_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use boosters_lf instead."""
-        return self.boosters_lf
-
-    @property
-    def tcg_sku_map_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use tcg_sku_map_lf instead."""
-        return self.tcg_sku_map_lf
-
-    @property
-    def tcg_to_uuid_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use tcg_to_uuid_lf instead."""
-        return self.tcg_to_uuid_lf
-
-    @property
-    def tcg_etched_to_uuid_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use tcg_etched_to_uuid_lf instead."""
-        return self.tcg_etched_to_uuid_lf
-
-    @property
-    def mtgo_to_uuid_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use mtgo_to_uuid_lf instead."""
-        return self.mtgo_to_uuid_lf
-
-    @property
-    def cardmarket_to_uuid_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use cardmarket_to_uuid_lf instead."""
-        return self.cardmarket_to_uuid_lf
-
-    @property
-    def uuid_to_oracle_df(self) -> pl.LazyFrame | None:
-        """Deprecated: Use uuid_to_oracle_lf instead."""
-        return self.uuid_to_oracle_lf
-
-    @property
-    def default_card_languages(self) -> pl.LazyFrame | None:
-        """Deprecated: Use default_card_languages_lf instead."""
-        return self.default_card_languages_lf
-
     def release(self, *attrs: str) -> None:
         """Release specific cached data to free memory.
 
@@ -385,6 +254,7 @@ class GlobalCache:
         set_codes: list[str] | None = None,
         output_types: set[str] | None = None,
         export_formats: set[str] | None = None,
+        skip_mcm: bool = False,
     ) -> "GlobalCache":
         """
         Load all data sources and pre-compute aggregations.
@@ -397,6 +267,7 @@ class GlobalCache:
             export_formats: Optional set of export formats (e.g., {"parquet", "csv"}).
                 When specified, can be used to skip loading data not needed
                 for the requested formats.
+            skip_mcm: Skip CardMarket data fetching (speeds up builds).
         """
         self._output_types = output_types or set()
         self._export_formats = export_formats
@@ -417,8 +288,11 @@ class GlobalCache:
                 executor.submit(self._load_whats_in_standard): "standard",
                 executor.submit(self._load_github_data): "github",
                 executor.submit(self._load_secretlair_subsets): "secretlair",
-                executor.submit(self._load_mcm_lookup): "mcm",
             }
+            if not skip_mcm:
+                futures[executor.submit(self._load_mcm_lookup)] = "mcm"
+            else:
+                LOGGER.info("Skipping MCM data (--skip-mcm flag)")
 
             for future in as_completed(futures):
                 name = futures[future]
