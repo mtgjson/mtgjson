@@ -64,8 +64,8 @@ class CardMarketProvider:
     """Async CardMarket provider for card data and prices."""
 
     config: CardMarketConfig | None = None
-    concurrency: int = 2  # MKM rate limits aggressively
-    request_delay: float = 0.5  # seconds between requests
+    concurrency: int = 1  # MKM rate limits aggressively - must be sequential
+    request_delay: float = 1.5  # seconds between requests (MCM needs ~1-2s)
     today_date: str = field(default_factory=lambda: datetime.datetime.today().strftime("%Y-%m-%d"))
 
     # Internal state
@@ -241,10 +241,14 @@ class CardMarketProvider:
 
     async def get_all_cards(
         self,
+        output_path: Path | None = None,
         on_progress: Callable[[int, int, str], None] | None = None,
     ) -> pl.DataFrame:
         """
-        Fetch cards from all expansions concurrently.
+        Fetch cards from all expansions sequentially (MCM rate limits aggressively).
+
+        Supports incremental writing and resumption - if output_path exists,
+        skips already-fetched expansions.
 
         Returns DataFrame with: mcmId, mcmMetaId, name, number, expansionId, expansionName
         """
@@ -257,39 +261,80 @@ class CardMarketProvider:
             for name, data in self._set_map.items()
         ]
         total = len(expansions)
-        completed = 0
-        lock = asyncio.Lock()
-        semaphore = asyncio.Semaphore(self.concurrency)
 
-        async def fetch_one(mcm_id: int, mcm_name: str) -> list[dict]:
-            nonlocal completed
-            async with semaphore:
-                # Rate limit delay
+        # Load existing data for resumption
+        existing_df: pl.DataFrame | None = None
+        fetched_expansion_ids: set[int] = set()
+        if output_path and output_path.exists():
+            try:
+                existing_df = pl.read_parquet(output_path)
+                fetched_expansion_ids = set(existing_df["expansionId"].unique().to_list())
+                LOGGER.info(f"Resuming: {len(fetched_expansion_ids)} expansions already fetched")
+            except Exception as e:
+                LOGGER.warning(f"Could not read existing cache for resumption: {e}")
+
+        all_cards: list[dict] = []
+        new_fetched = 0
+
+        for idx, (_, mcm_id, mcm_name) in enumerate(expansions, 1):
+            # Skip already fetched
+            if mcm_id in fetched_expansion_ids:
+                if on_progress:
+                    on_progress(idx, total, f"{mcm_name} (cached)")
+                continue
+
+            # Rate limit delay BEFORE each request
+            if new_fetched > 0:
                 await asyncio.sleep(self.request_delay)
-                
-                raw = await asyncio.to_thread(self._fetch_expansion_cards_sync, mcm_id)
-                cards = [
-                    {
-                        "mcmId": c.get("idProduct"),
-                        "mcmMetaId": c.get("idMetaproduct"),
-                        "name": c.get("enName", ""),
-                        "number": (c.get("number") or "").lstrip("0"),
-                        "expansionId": mcm_id,
-                        "expansionName": mcm_name,
-                    }
-                    for c in raw
-                ]
-                async with lock:
-                    completed += 1
-                    if on_progress:
-                        on_progress(completed, total, mcm_name)
-                    LOGGER.info(f"[{completed}/{total}] {mcm_name}: {len(cards)} cards")
-                return cards
 
-        results = await asyncio.gather(*[fetch_one(mcm_id, mcm_name) for _, mcm_id, mcm_name in expansions])
-        all_cards = [c for batch in results for c in batch]
+            raw = await asyncio.to_thread(self._fetch_expansion_cards_sync, mcm_id)
+            cards = [
+                {
+                    "mcmId": c.get("idProduct"),
+                    "mcmMetaId": c.get("idMetaproduct"),
+                    "name": c.get("enName", ""),
+                    "number": (c.get("number") or "").lstrip("0"),
+                    "expansionId": mcm_id,
+                    "expansionName": mcm_name,
+                }
+                for c in raw
+            ]
+            all_cards.extend(cards)
+            new_fetched += 1
 
-        return pl.DataFrame(all_cards) if all_cards else pl.DataFrame()
+            if on_progress:
+                on_progress(idx, total, mcm_name)
+            LOGGER.info(f"[{idx}/{total}] {mcm_name}: {len(cards)} cards")
+
+            # Write incrementally every 10 expansions
+            if output_path and new_fetched % 10 == 0:
+                self._write_incremental(output_path, existing_df, all_cards)
+
+        # Final write
+        if output_path and all_cards:
+            self._write_incremental(output_path, existing_df, all_cards)
+
+        # Return combined data
+        new_df = pl.DataFrame(all_cards) if all_cards else pl.DataFrame()
+        if existing_df is not None and not existing_df.is_empty():
+            return pl.concat([existing_df, new_df]) if not new_df.is_empty() else existing_df
+        return new_df
+
+    def _write_incremental(
+        self,
+        output_path: Path,
+        existing_df: pl.DataFrame | None,
+        new_cards: list[dict],
+    ) -> None:
+        """Write incremental progress to disk."""
+        new_df = pl.DataFrame(new_cards)
+        if existing_df is not None and not existing_df.is_empty():
+            combined = pl.concat([existing_df, new_df])
+        else:
+            combined = new_df
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        combined.write_parquet(output_path)
+        LOGGER.info(f"  Saved checkpoint: {len(combined):,} cards")
 
     # Price fetching
 
@@ -412,33 +457,89 @@ async def get_cardmarket_set_cards(set_name: str) -> dict[str, list[dict[str, An
 async def get_all_cardmarket_cards(
     output_path: Path | None = None,
     on_progress: Callable[[int, int, str], None] | None = None,
-    concurrency: int = 2,
-    request_delay: float = 0.5,
+    request_delay: float = 1.5,
 ) -> pl.DataFrame:
-    """Fetch all cards from all expansions."""
-    provider = CardMarketProvider(concurrency=concurrency, request_delay=request_delay)
+    """Fetch all cards from all expansions sequentially with incremental saves."""
+    provider = CardMarketProvider(request_delay=request_delay)
     try:
-        df = await provider.get_all_cards(on_progress=on_progress)
-        if output_path and not df.is_empty():
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            df.write_parquet(output_path)
-        return df
+        # Pass output_path directly - get_all_cards handles incremental writing
+        return await provider.get_all_cards(output_path=output_path, on_progress=on_progress)
     finally:
         await provider.close()
 
 
+def load_cardmarket_data(
+    cache_path: Path,
+    cache_max_age_hours: int = 48,
+) -> pl.DataFrame | None:
+    """
+    Load CardMarket data, fetching from API if needed.
+
+    This is the main entry point for pipeline integration. It:
+    1. Checks if CardMarket config is available
+    2. Returns cached data if fresh
+    3. Fetches new data from API if cache is stale/missing
+    4. Returns None if no config available (skip MCM data)
+
+    Args:
+        cache_path: Path to store/load mkm_cards.parquet
+        cache_max_age_hours: Max cache age before refetching (default 48h)
+
+    Returns:
+        DataFrame with MCM card data, or None if no config
+    """
+    import datetime
+
+    # Check if config is available
+    config = CardMarketConfig.from_mtgjson_config()
+    if config is None:
+        LOGGER.info("No CardMarket config available (mcmMetaId will be null)")
+        return None
+
+    # Check cache freshness
+    if cache_path.exists():
+        mtime = datetime.datetime.fromtimestamp(cache_path.stat().st_mtime)
+        age = datetime.datetime.now() - mtime
+        if age.total_seconds() < cache_max_age_hours * 3600:
+            LOGGER.info(f"Using cached MCM data ({age.total_seconds() / 3600:.1f}h old)")
+            return pl.read_parquet(cache_path)
+        LOGGER.info(f"MCM cache stale ({age.total_seconds() / 3600:.1f}h old), refetching...")
+
+    # Fetch from API
+    LOGGER.info("Fetching CardMarket data (this takes ~10-30 min)...")
+
+    def progress(done: int, total: int, name: str) -> None:
+        if done % 50 == 0 or done == total:
+            LOGGER.info(f"  [MCM] {done}/{total} expansions ({name})")
+
+    try:
+        df = asyncio.run(
+            get_all_cardmarket_cards(
+                output_path=cache_path,
+                on_progress=progress,
+            )
+        )
+        LOGGER.info(f"Fetched {len(df):,} cards from CardMarket")
+        return df
+    except Exception as e:
+        LOGGER.error(f"Failed to fetch CardMarket data: {e}")
+        # Return cached data if available, even if stale
+        if cache_path.exists():
+            LOGGER.warning("Using stale MCM cache due to fetch failure")
+            return pl.read_parquet(cache_path)
+        return None
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    
+
     async def main():
         def progress(done: int, total: int, name: str):
             print(f"[{done}/{total}] {name}")
-        
+
         df = await get_all_cardmarket_cards(
             output_path=Path("mkm_cards.parquet"),
             on_progress=progress,
-            concurrency=2,
-            request_delay=0.5,
         )
         print(f"\nDone! {len(df)} cards")
         print(df.head(10))

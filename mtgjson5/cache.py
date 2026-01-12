@@ -944,23 +944,22 @@ class GlobalCache:
         Must be called after sets_df is loaded since it iterates through all sets.
         This is a slow operation (~10-30 min) as it fetches data for each expansion.
 
-        NOTE: MCM fetching is implemented in providers/v2/cardmarket/provider.py.
-        On full builds (build box), run the provider first to populate mkm_cards.parquet,
-        then this will load it and build the lookup table. For local dev builds without
-        MCM data, this returns an empty DataFrame with the correct schema.
+        If CardMarket config is available, automatically fetches data from API.
         """
+        from mtgjson5.providers.v2.cardmarket.provider import load_cardmarket_data
+
         cache_path = self.cache_path / "mcm_lookup.parquet"
 
         if _cache_fresh(cache_path):
             self.mcm_lookup_df = pl.read_parquet(cache_path)
             return
 
-        # Try to load raw MKM data from cache
+        # Load raw MKM data (fetches from API if config available and cache stale)
         raw_cache = self.cache_path / "mkm_cards.parquet"
-        if not raw_cache.exists():
-            # No MCM data available - return empty with correct schema
-            # Full builds should run: python -m mtgjson5.providers.v2.cardmarket.provider
-            LOGGER.info("No MCM cache (mcmMetaId will be null). Run provider separately for full data.")
+        raw_df = load_cardmarket_data(raw_cache)
+
+        if raw_df is None or raw_df.is_empty():
+            # No config or fetch failed - return empty with correct schema
             self.mcm_lookup_df = pl.DataFrame(
                 schema={
                     "mcmId": pl.String,
@@ -970,12 +969,6 @@ class GlobalCache:
                     "number": pl.String,
                 }
             )
-            return
-
-        raw_df = pl.read_parquet(raw_cache)
-        if raw_df.is_empty():
-            LOGGER.warning("MCM cache is empty")
-            self.mcm_lookup_df = pl.DataFrame()
             return
 
         sets_df_raw = self.sets_df
