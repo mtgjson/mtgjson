@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any
 
 from mtgjson5.build import AssemblyContext, UnifiedOutputWriter
 from mtgjson5.build.formats import JsonOutputBuilder
-from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.utils import LOGGER
 
 

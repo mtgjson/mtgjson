@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 import polars as pl
 
+
 if TYPE_CHECKING:
 	from polars import LazyFrame
 
@@ -141,8 +142,8 @@ def require_columns(
 
 
 __all__ = [
+	"require_columns",
 	"safe_drop",
 	"safe_rename",
 	"safe_struct_field",
-	"require_columns",
 ]

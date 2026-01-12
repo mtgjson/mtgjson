@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 import polars as pl
 
+
 if TYPE_CHECKING:
 	from polars import LazyFrame
 
@@ -69,10 +70,8 @@ class StageSchema:
 				missing.add(spec.name)
 			elif spec.dtype is not None:
 				actual = schema[spec.name]
-				if actual != spec.dtype:
-					# Allow compatible types
-					if not self._types_compatible(actual, spec.dtype):
-						type_mismatches[spec.name] = (spec.dtype, actual)
+				if actual != spec.dtype and not self._types_compatible(actual, spec.dtype):
+					type_mismatches[spec.name] = (spec.dtype, actual)
 
 		if missing:
 			raise PipelineValidationError(
@@ -106,9 +105,7 @@ class StageSchema:
 		if actual.is_numeric() and expected.is_numeric():
 			return True
 		# String compatibility
-		if actual in (pl.String, pl.Utf8) and expected in (pl.String, pl.Utf8):
-			return True
-		return False
+		return bool(actual in (pl.String, pl.Utf8) and expected in (pl.String, pl.Utf8))
 
 
 # =============================================================================
@@ -202,12 +199,12 @@ def validate_stage(
 
 
 __all__ = [
-	"PipelineValidationError",
-	"ColumnSpec",
-	"StageSchema",
-	"validate_stage",
-	"STAGE_POST_EXPLODE",
 	"STAGE_POST_BASIC_FIELDS",
+	"STAGE_POST_EXPLODE",
 	"STAGE_POST_IDENTIFIERS",
 	"STAGE_PRE_SINK",
+	"ColumnSpec",
+	"PipelineValidationError",
+	"StageSchema",
+	"validate_stage",
 ]
