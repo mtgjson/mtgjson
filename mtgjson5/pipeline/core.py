@@ -1375,7 +1375,6 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
 		]
 	)
 
-	# For UNH/10E, also include finishes in the key
 	printing_key = (
 		pl.when(pl.col("setCode").is_in(["UNH", "10E"]))
 		.then(pl.concat_str([base_key, pl.lit("|"), finishes_str]))
@@ -1386,16 +1385,31 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
 	lf = lf.with_columns(printing_key)
 
 	# Within each printing key, the card with the lowest collector number is "canonical"
-	# All others with the same key are alternatives
-	# Zero-pad number for proper string sorting (e.g., "8" -> "000008" < "000227")
-	first_number_expr = pl.col("number").str.zfill(10).min().over(["setCode", "_printing_key"])
-	canonical_expr = pl.col("number").str.zfill(10) == first_number_expr
+	number_digits_expr = (
+		pl.col("number")
+		.str.extract_all(r"\d")
+		.list.join("")
+		.str.replace(r"^$", "100000")
+		.cast(pl.Int64)
+	)
+
+	lf = lf.with_columns(number_digits_expr.alias("_number_digits"))
+
+	# Use rank to find the canonical entry (lowest numeric value, then alphabetical tiebreaker)
+	# The card with rank 1 within each group is canonical
+	# Struct comparison is lexicographic: first by _number_digits, then by number string
+	rank_expr = (
+		pl.struct("_number_digits", "number")
+		.rank("ordinal")
+		.over(["setCode", "_printing_key"])
+	)
+	canonical_expr = rank_expr == 1
 
 	lf = lf.with_columns(
 		pl.when(
-			(pl.col("variations").list.len() > 0)  # Has variations
-			& (~pl.col("name").is_in(list(constants.BASIC_LAND_NAMES)))  # Not a basic land
-			& (~canonical_expr)  # Not the canonical (lowest collector number) in group
+			(pl.col("variations").list.len() > 0)
+			& (~pl.col("name").is_in(list(constants.BASIC_LAND_NAMES)))
+			& (~canonical_expr)
 		)
 		.then(pl.lit(True))
 		.otherwise(pl.lit(None))
@@ -1403,7 +1417,6 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
 	)
 
 	# Also set isAlternative=True for Alchemy rebalanced cards (A- prefix)
-	# Legacy: if mtgjson_card.name.startswith("A-"): is_alternative = True
 	lf = lf.with_columns(
 		pl.when(pl.col("name").str.starts_with("A-"))
 		.then(pl.lit(True))
@@ -1412,7 +1425,7 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
 	)
 
 	# Cleanup temp columns
-	return lf.drop(["_base_name", "_faceName_for_group", "_group_uuids", "_printing_key"])
+	return lf.drop(["_base_name", "_faceName_for_group", "_group_uuids", "_printing_key", "_number_digits"])
 
 
 # 4.2: add leadership skills
