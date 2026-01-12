@@ -958,6 +958,54 @@ def fix_power_toughness_for_multiface(lf: pl.LazyFrame) -> pl.LazyFrame:
 	)
 
 
+def propagate_watermark_to_faces(lf: pl.LazyFrame) -> pl.LazyFrame:
+	"""
+	For multi-face cards, propagate face a's watermark to other faces.
+
+	MDFCs, split cards etc. should have the same watermark on all faces.
+	Face a typically has the watermark from Scryfall, but face b may be null.
+	"""
+	return lf.with_columns(
+		pl.col("watermark").fill_null(
+			pl.col("watermark").first().over("scryfallId")
+		).alias("watermark")
+	)
+
+
+def apply_watermark_overrides(
+	lf: pl.LazyFrame,
+	ctx: PipelineContext,
+) -> pl.LazyFrame:
+	"""
+	Apply watermark overrides for cards with watermark 'set'.
+
+	Some reprints have a 'set' watermark in Scryfall but MTGJSON enhances this
+	to include the original set code, e.g., 'set (LEA)' for Alpha reprints.
+	"""
+	overrides_lf = ctx.watermark_overrides_lf
+	if overrides_lf is None:
+		return lf
+
+	schema = lf.collect_schema()
+	if "watermark" not in schema.names():
+		return lf
+
+	lf = lf.join(
+		overrides_lf,
+		on=["setCode", "name"],
+		how="left",
+	)
+
+	lf = lf.with_columns(
+		pl.when((pl.col("watermark") == "set") & pl.col("_watermarkOverride").is_not_null())
+		.then(pl.col("_watermarkOverride"))
+		.otherwise(pl.col("watermark"))
+		.alias("watermark")
+	).drop("_watermarkOverride")
+
+	return lf
+
+
 def filter_keywords_for_face(lf: pl.LazyFrame) -> pl.LazyFrame:
 	"""
 	Filter keywords to only those present in the face's text.
@@ -1062,6 +1110,26 @@ def add_availability_struct(
 			.alias("availability")
 		)
 	return lf.with_columns(pl.col("games").list.sort().alias("availability"))
+
+
+def remap_availability_values(lf: pl.LazyFrame) -> pl.LazyFrame:
+	"""
+	Remap Scryfall game names to MTGJSON availability names.
+	- astral -> shandalar (Microprose Shandalar game)
+	- sega -> dreamcast (Sega Dreamcast game)
+	"""
+	schema = lf.collect_schema()
+
+	if "availability" not in schema.names():
+		return lf
+
+	return lf.with_columns(
+		pl.col("availability")
+		.list.eval(
+			pl.element().replace({"astral": "shandalar", "sega": "dreamcast"})
+		)
+		.list.sort()
+	)
 
 
 def fix_availability_from_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
@@ -2919,6 +2987,8 @@ def build_cards(
 		.pipe(add_booster_types)  # Must run BEFORE fix_promo_types (checks for planeswalkerdeck)
 		.pipe(fix_promo_types)
 		.pipe(fix_power_toughness_for_multiface)
+		.pipe(propagate_watermark_to_faces)
+		.pipe(partial(apply_watermark_overrides, ctx=ctx))
 		.pipe(format_planeswalker_text)
 		.pipe(add_original_release_date)
 		.drop(
@@ -2960,6 +3030,7 @@ def build_cards(
 		)
 		.pipe(partial(add_legalities_struct, ctx=ctx))
 		.pipe(partial(add_availability_struct, ctx=ctx))
+		.pipe(remap_availability_values)
 	)
 
 	lf = (

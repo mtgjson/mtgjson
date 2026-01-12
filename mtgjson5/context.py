@@ -54,6 +54,7 @@ class PipelineContext:
     set_number_lf: pl.LazyFrame | None = None
     name_lf: pl.LazyFrame | None = None
     signatures_lf: pl.LazyFrame | None = None
+    watermark_overrides_lf: pl.LazyFrame | None = None
     face_flavor_names_df: pl.DataFrame | None = None
     face_foreign_lf: pl.LazyFrame | None = None
     uuid_lookup_df: pl.DataFrame | None = None
@@ -293,6 +294,13 @@ class PipelineContext:
         return self._cache.gatherer_map if self._cache else {}
 
     @property
+    def set_code_watermarks(self) -> dict:
+        """Set code watermarks from cache."""
+        if "_set_code_watermarks" in self._test_data:
+            return self._test_data["_set_code_watermarks"]
+        return self._cache.set_code_watermarks if self._cache else {}
+
+    @property
     def standard_legal_sets(self) -> set[str]:
         """Standard legal sets from cache."""
         if "_standard_legal_sets" in self._test_data:
@@ -468,6 +476,7 @@ class PipelineContext:
         self._build_set_number_lookup()
         self._build_name_lookup()
         self._build_signatures_lookup()
+        self._build_watermark_overrides_lookup()
         self._load_face_flavor_names()
 
         return self
@@ -952,6 +961,38 @@ class PipelineContext:
         self.signatures_lf = result.lazy()
         LOGGER.info(
             f"signatures_lf: {result.height:,} rows x {len(result.columns)} cols"
+        )
+
+    def _build_watermark_overrides_lookup(self) -> None:
+        """
+        Build watermark overrides lookup (by setCode + name).
+
+        For cards with watermark 'set', this provides the enhanced watermark
+        like 'set (LEA)' or 'set (THS)' from the resource file.
+        """
+        watermarks_raw = self.set_code_watermarks
+        if not watermarks_raw:
+            LOGGER.info("watermark_overrides: No data found")
+            return
+
+        records = []
+        for set_code, cards in watermarks_raw.items():
+            for card in cards:
+                for name_part in card["name"].split(" // "):
+                    records.append({
+                        "setCode": set_code.upper(),
+                        "name": name_part,
+                        "_watermarkOverride": card["watermark"],
+                    })
+
+        if not records:
+            LOGGER.info("watermark_overrides: No overrides found")
+            return
+
+        result = pl.DataFrame(records)
+        self.watermark_overrides_lf = result.lazy()
+        LOGGER.info(
+            f"watermark_overrides_lf: {result.height:,} rows x {len(result.columns)} cols"
         )
 
     def _load_face_flavor_names(self) -> None:
