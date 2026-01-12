@@ -133,6 +133,7 @@ def dispatcher(args: argparse.Namespace) -> None:
             set_codes=set_filter,
             output_types=outputs_requested,
             export_formats=export_formats,
+            skip_mcm=args.skip_mcm,
         )
     if args.all_sets:
         additional_set_keys = set(load_local_set_data().keys())

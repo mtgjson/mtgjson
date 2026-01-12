@@ -136,6 +136,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Shorthand for --use-models --polars --all-sets --full-build (new pipeline).",
     )
+    pipeline_group.add_argument(
+        "--skip-mcm",
+        action="store_true",
+        help="Skip CardMarket data fetching (speeds up builds when MCM data not needed).",
+    )
 
     # MTGJSON maintainer arguments
     mtgjson_arg_group = parser.add_argument_group("mtgjson maintainer arguments")
