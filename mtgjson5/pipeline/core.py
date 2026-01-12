@@ -590,7 +590,7 @@ def format_planeswalker_text(lf: pl.LazyFrame) -> pl.LazyFrame:
 	"""
 	Wrap planeswalker loyalty ability costs in square brackets.
 	"""
-	return lf.with_columns(pl.col("text").str.replace_all(r"(?m)^([+\u2212−]?[\dX]+):", r"[$1]:").alias("text"))
+	return lf.with_columns(pl.col("text").str.replace_all(r"(?m)^([+\u2212−]?[\dX]+):", r"[$1]:").alias("text"))  # noqa: RUF001
 
 
 def add_original_release_date(lf: pl.LazyFrame) -> pl.LazyFrame:
@@ -2255,6 +2255,15 @@ def join_oracle_data(
 			pl.lit(None).cast(pl.Int64).alias("edhrecRank"),
 			pl.lit([]).cast(pl.List(pl.String)).alias("printings"),
 		)
+
+	# For multi-face cards, oracle_id may be in _face_data rather than oracleId column
+	# Coalesce to get the correct value before joining
+	lf = lf.with_columns(
+		pl.coalesce(
+			pl.col("_face_data").struct.field("oracle_id"),
+			pl.col("oracleId"),
+		).alias("oracleId")
+	)
 
 	lf = lf.join(
 		ctx.oracle_data_lf,

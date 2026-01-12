@@ -581,13 +581,22 @@ class PipelineContext:
             else:
                 cards = cards_raw
 
+            # For multi-face cards, oracle_id may be null at card level but present in card_faces
+            # Coalesce from first face's oracle_id if available
             printings = (
-                cards.select(["oracleId", "set"])
-                .filter(pl.col("oracleId").is_not_null())
-                .group_by("oracleId")
+                cards.with_columns(
+                    pl.coalesce(
+                        pl.col("oracleId"),
+                        pl.col("cardFaces").list.get(0).struct.field("oracle_id"),
+                    ).alias("_effectiveOracleId")
+                )
+                .select(["_effectiveOracleId", "set"])
+                .filter(pl.col("_effectiveOracleId").is_not_null())
+                .group_by("_effectiveOracleId")
                 .agg(
                     pl.col("set").str.to_uppercase().unique().sort().alias("printings")
                 )
+                .rename({"_effectiveOracleId": "oracleId"})
             )
 
             if printings.height > 0:
