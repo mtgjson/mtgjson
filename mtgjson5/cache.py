@@ -1,5 +1,11 @@
 """
 Global cache for MTGJSON provider data and pre-computed aggregations.
+
+This module is our main Data Layer and is responsible for:
+- Downloading and caching provider data
+- Storing all raw DataFrames/LazyFrames
+- Storing all dict lookups
+
 """
 
 import json
@@ -95,7 +101,12 @@ def _normalize_columns(
 
 
 class GlobalCache:
-    """Global shared access cache for provider data."""
+    """
+    Global shared access singleton for source data.
+
+    All DataFrame attributes use the `_lf` suffix as they will be LazyFrames
+    by time they are accessed.
+    """
 
     _instance: Optional["GlobalCache"] = None
 
@@ -112,48 +123,50 @@ class GlobalCache:
         constants.CACHE_PATH.mkdir(parents=True, exist_ok=True)
         self.cache_path = constants.CACHE_PATH
 
-        # Bulk data
-        self.cards_df: pl.LazyFrame | None = None
-        self.raw_rulings_df: pl.LazyFrame | None = None
+        # Core Bulk Data LFs
+        self.cards_lf: pl.LazyFrame | None = None
+        self.raw_rulings_lf: pl.LazyFrame | None = None
+        self.sets_lf: pl.LazyFrame | None = None
 
-        # Pre-computed aggregations
-        self.oracle_lookup: pl.LazyFrame | None = None
-        self.sets_df: pl.LazyFrame | None = None
-        self.rulings_df: pl.DataFrame | None = None
-        self.foreign_data_df: pl.DataFrame | None = None
-        self.uuid_cache_df: pl.DataFrame | None = None
+        # Pre-computed Aggregation LFs
+        self.oracle_lookup_lf: pl.LazyFrame | None = None
+        self.rulings_lf: pl.LazyFrame | None = None
+        self.foreign_data_lf: pl.LazyFrame | None = None
+        self.uuid_cache_lf: pl.LazyFrame | None = None
 
-        # Provider Data DataFrames
-        self.card_kingdom_df: pl.DataFrame | None = None
-        self.card_kingdom_raw_df: pl.DataFrame | None = None
-        self.mcm_lookup_df: pl.DataFrame | None = None
-        self.salt_df: pl.DataFrame | None = None
-        self.spellbook_df: pl.DataFrame | None = None
-        self.meld_lookup_df: pl.DataFrame | None = None
-        self.sld_subsets_df: pl.DataFrame | None = None
-        self.orientation_df: pl.DataFrame | None = None
-        self.gatherer_df: pl.DataFrame | None = None
+        # Provider Data lFs
+        self.card_kingdom_lf: pl.LazyFrame | None = None
+        self.card_kingdom_raw_lf: pl.LazyFrame | None = None
+        self.mcm_lookup_lf: pl.LazyFrame | None = None
+        self.salt_lf: pl.LazyFrame | None = None
+        self.spellbook_lf: pl.LazyFrame | None = None
+        self.meld_lookup_lf: pl.LazyFrame | None = None
+        self.sld_subsets_lf: pl.LazyFrame | None = None
+        self.orientation_lf: pl.LazyFrame | None = None
+        self.gatherer_lf: pl.LazyFrame | None = None
 
-        self.sealed_cards_df: pl.LazyFrame | None = None
-        self.sealed_products_df: pl.LazyFrame | None = None
-        self.sealed_contents_df: pl.LazyFrame | None = None
-        self.decks_df: pl.LazyFrame | None = None
-        self.boosters_df: pl.LazyFrame | None = None
+        # GitHub/Sealed LFs
+        self.sealed_cards_lf: pl.LazyFrame | None = None
+        self.sealed_products_lf: pl.LazyFrame | None = None
+        self.sealed_contents_lf: pl.LazyFrame | None = None
+        self.decks_lf: pl.LazyFrame | None = None
+        self.boosters_lf: pl.LazyFrame | None = None
 
+        # Marketplace Data LFs
         self.tcg_skus_lf: pl.LazyFrame | None = None
-        self.tcg_sku_map_df: pl.DataFrame | None = None
-        self.tcg_to_uuid_df: pl.DataFrame | None = None
-        self.tcg_etched_to_uuid_df: pl.DataFrame | None = None
-        self.mtgo_to_uuid_df: pl.DataFrame | None = None
-        self.cardmarket_to_uuid_df: pl.DataFrame | None = None
+        self.tcg_sku_map_lf: pl.LazyFrame | None = None
+        self.tcg_to_uuid_lf: pl.LazyFrame | None = None
+        self.tcg_etched_to_uuid_lf: pl.LazyFrame | None = None
+        self.mtgo_to_uuid_lf: pl.LazyFrame | None = None
+        self.cardmarket_to_uuid_lf: pl.LazyFrame | None = None
+        self.uuid_to_oracle_lf: pl.LazyFrame | None = None
 
-        self.uuid_to_oracle_df: pl.DataFrame | None = None
+        self.default_card_languages_lf: pl.LazyFrame | None = None
 
-        self.default_card_languages: pl.LazyFrame | None = None
-        
+        # Final Output
         self.final_cards_lf: pl.LazyFrame | None = None
 
-        # Raw resource data
+        # Raw Resource Dicts
         self.duel_deck_sides: dict = {}
         self.meld_data: dict | list = {}
         self.meld_triplets: dict[str, list[str]] = {}
@@ -162,10 +175,12 @@ class GlobalCache:
         self.foreigndata_exceptions: dict = {}
         self.gatherer_map: dict = {}
         self.standard_legal_sets: set[str] = set()
-        self.unlimited_cards: set[str] = set()  # Cards that can have unlimited copies
+        self.unlimited_cards: set[str] = set()
+
+        # Categoricals - discovered from scryfall data inspection
         self._categoricals: DynamicCategoricals | None = None
-        
-        # Provider instances (lazy)
+
+        # Provider Instances
         self._scryfall: ScryfallProvider | None = None
         self._cardkingdom: CKProvider | None = None
         self._cardmarket: CardMarketProvider | None = None
@@ -180,18 +195,150 @@ class GlobalCache:
         self._orientations: ScryfallProviderOrientationDetector | None = None
         self._bulkdata: BulkDataProvider | None = None
 
+        # State
         self._initialized = True
         self._loaded = False
         self._set_filter: list[str] | None = None
-        self.scryfall_id_filter: set[str] | None = None  # For deck-only builds
+        self.scryfall_id_filter: set[str] | None = None
         self._output_types: set[str] = set()
-        self._export_formats: set[str] | None = None  # For format-specific builds
+        self._export_formats: set[str] | None = None
+
+    # Backward Compatibility Properties (deprecated _df naming)
+    @property
+    def cards_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use cards_lf instead."""
+        return self.cards_lf
+
+    @property
+    def raw_rulings_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use raw_rulings_lf instead."""
+        return self.raw_rulings_lf
+
+    @property
+    def sets_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use sets_lf instead."""
+        return self.sets_lf
+
+    @property
+    def rulings_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use rulings_lf instead."""
+        return self.rulings_lf
+
+    @property
+    def foreign_data_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use foreign_data_lf instead."""
+        return self.foreign_data_lf
+
+    @property
+    def uuid_cache_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use uuid_cache_lf instead."""
+        return self.uuid_cache_lf
+
+    @property
+    def card_kingdom_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use card_kingdom_lf instead."""
+        return self.card_kingdom_lf
+
+    @property
+    def card_kingdom_raw_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use card_kingdom_raw_lf instead."""
+        return self.card_kingdom_raw_lf
+
+    @property
+    def mcm_lookup_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use mcm_lookup_lf instead."""
+        return self.mcm_lookup_lf
+
+    @property
+    def salt_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use salt_lf instead."""
+        return self.salt_lf
+
+    @property
+    def spellbook_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use spellbook_lf instead."""
+        return self.spellbook_lf
+
+    @property
+    def sld_subsets_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use sld_subsets_lf instead."""
+        return self.sld_subsets_lf
+
+    @property
+    def orientation_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use orientation_lf instead."""
+        return self.orientation_lf
+
+    @property
+    def gatherer_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use gatherer_lf instead."""
+        return self.gatherer_lf
+
+    @property
+    def sealed_cards_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use sealed_cards_lf instead."""
+        return self.sealed_cards_lf
+
+    @property
+    def sealed_products_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use sealed_products_lf instead."""
+        return self.sealed_products_lf
+
+    @property
+    def sealed_contents_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use sealed_contents_lf instead."""
+        return self.sealed_contents_lf
+
+    @property
+    def decks_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use decks_lf instead."""
+        return self.decks_lf
+
+    @property
+    def boosters_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use boosters_lf instead."""
+        return self.boosters_lf
+
+    @property
+    def tcg_sku_map_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use tcg_sku_map_lf instead."""
+        return self.tcg_sku_map_lf
+
+    @property
+    def tcg_to_uuid_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use tcg_to_uuid_lf instead."""
+        return self.tcg_to_uuid_lf
+
+    @property
+    def tcg_etched_to_uuid_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use tcg_etched_to_uuid_lf instead."""
+        return self.tcg_etched_to_uuid_lf
+
+    @property
+    def mtgo_to_uuid_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use mtgo_to_uuid_lf instead."""
+        return self.mtgo_to_uuid_lf
+
+    @property
+    def cardmarket_to_uuid_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use cardmarket_to_uuid_lf instead."""
+        return self.cardmarket_to_uuid_lf
+
+    @property
+    def uuid_to_oracle_df(self) -> pl.LazyFrame | None:
+        """Deprecated: Use uuid_to_oracle_lf instead."""
+        return self.uuid_to_oracle_lf
+
+    @property
+    def default_card_languages(self) -> pl.LazyFrame | None:
+        """Deprecated: Use default_card_languages_lf instead."""
+        return self.default_card_languages_lf
 
     def release(self, *attrs: str) -> None:
         """Release specific cached data to free memory.
 
         Args:
-            *attrs: Attribute names to clear (e.g., 'cards_df', 'rulings_df')
+            *attrs: Attribute names to clear (e.g., 'cards_lf', 'rulings_lf')
         """
         for attr in attrs:
             if hasattr(self, attr):
@@ -200,35 +347,35 @@ class GlobalCache:
     def clear(self) -> None:
         """Clear all cached data to free memory."""
         self.release(
-            "cards_df",
-            "raw_rulings_df",
-            "oracle_lookup",
-            "sets_df",
-            "rulings_df",
-            "foreign_data_df",
-            "uuid_cache_df",
-            "card_kingdom_df",
-            "card_kingdom_raw_df",
-            "mcm_lookup_df",
-            "salt_df",
-            "spellbook_df",
-            "meld_lookup_df",
-            "sld_subsets_df",
-            "orientation_df",
-            "gatherer_df",
-            "sealed_cards_df",
-            "sealed_products_df",
-            "sealed_contents_df",
-            "decks_df",
-            "boosters_df",
+            "cards_lf",
+            "raw_rulings_lf",
+            "oracle_lookup_lf",
+            "sets_lf",
+            "rulings_lf",
+            "foreign_data_lf",
+            "uuid_cache_lf",
+            "card_kingdom_lf",
+            "card_kingdom_raw_lf",
+            "mcm_lookup_lf",
+            "salt_lf",
+            "spellbook_lf",
+            "meld_lookup_lf",
+            "sld_subsets_lf",
+            "orientation_lf",
+            "gatherer_lf",
+            "sealed_cards_lf",
+            "sealed_products_lf",
+            "sealed_contents_lf",
+            "decks_lf",
+            "boosters_lf",
             "tcg_skus_lf",
-            "tcg_sku_map_df",
-            "tcg_to_uuid_df",
-            "tcg_etched_to_uuid_df",
-            "mtgo_to_uuid_df",
-            "cardmarket_to_uuid_df",
-            "uuid_to_oracle_df",
-            "default_card_languages",
+            "tcg_sku_map_lf",
+            "tcg_to_uuid_lf",
+            "tcg_etched_to_uuid_lf",
+            "mtgo_to_uuid_lf",
+            "cardmarket_to_uuid_lf",
+            "uuid_to_oracle_lf",
+            "default_card_languages_lf",
             "final_cards_lf",
         )
         self._loaded = False
@@ -259,7 +406,7 @@ class GlobalCache:
         self._load_bulk_data()
         self._load_resources()
         self._load_sets_metadata()
-        self._fetch_missing_set_cards()
+        self._load_missing_set_cards()
 
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = {
@@ -281,13 +428,13 @@ class GlobalCache:
                 except Exception as e:
                     LOGGER.error(f"Failed to load {name}: {e}")
 
-            if self.cards_df is None:
+            if self.cards_lf is None:
                 raise RuntimeError("Bulk data not loaded")
 
             self.unlimited_cards = self.scryfall.cards_without_limits
 
             # Build scryfall_id filter for deck-only builds
-            if self._output_types == {"decks"} and self.decks_df is not None:
+            if self._output_types == {"decks"} and self.decks_lf is not None:
                 self._build_deck_scryfall_filter()
 
             self._normalize_all_columns()
@@ -299,47 +446,43 @@ class GlobalCache:
 
     def _dump_and_reload_as_lazy(self) -> None:
         """
-        Dump all DataFrames to parquet and reload as LazyFrames to free memory.
+        Dump all DataFrames to parquet and reload as LazyFrames to free memory
+        and optimize query planning.
         """
         import gc
 
         lazy_cache_path = self.cache_path / "lazy"
         lazy_cache_path.mkdir(parents=True, exist_ok=True)
 
-        # Map of attribute -> parquet filename
         dataframes_to_dump = {
-            # Core data (already LazyFrames, but ensure on disk)
-            "cards_df": "cards.parquet",
-            "raw_rulings_df": "raw_rulings.parquet",
-            "sets_df": "sets.parquet",
-            # Provider DataFrames
-            "card_kingdom_df": "card_kingdom.parquet",
-            "card_kingdom_raw_df": "card_kingdom_raw.parquet",
-            "mcm_lookup_df": "mcm_lookup.parquet",
-            "salt_df": "salt.parquet",
-            "spellbook_df": "spellbook.parquet",
-            "meld_lookup_df": "meld_lookup.parquet",
-            "sld_subsets_df": "sld_subsets.parquet",
-            "orientation_df": "orientations.parquet",
-            "gatherer_df": "gatherer.parquet",
-            "uuid_cache_df": "uuid_cache.parquet",
-            "rulings_df": "rulings.parquet",
-            "foreign_data_df": "foreign_data.parquet",
-            # GitHub data
-            "sealed_cards_df": "sealed_cards.parquet",
-            "sealed_products_df": "sealed_products.parquet",
-            "sealed_contents_df": "sealed_contents.parquet",
-            "decks_df": "decks.parquet",
-            "boosters_df": "boosters.parquet",
-            # TCG data
+            "cards_lf": "cards.parquet",
+            "raw_rulings_lf": "raw_rulings.parquet",
+            "sets_lf": "sets.parquet",
+            "card_kingdom_lf": "card_kingdom.parquet",
+            "card_kingdom_raw_lf": "card_kingdom_raw.parquet",
+            "mcm_lookup_lf": "mcm_lookup.parquet",
+            "salt_lf": "salt.parquet",
+            "spellbook_lf": "spellbook.parquet",
+            "meld_lookup_lf": "meld_lookup.parquet",
+            "sld_subsets_lf": "sld_subsets.parquet",
+            "orientation_lf": "orientations.parquet",
+            "gatherer_lf": "gatherer.parquet",
+            "uuid_cache_lf": "uuid_cache.parquet",
+            "rulings_lf": "rulings.parquet",
+            "foreign_data_lf": "foreign_data.parquet",
+            "sealed_cards_lf": "sealed_cards.parquet",
+            "sealed_products_lf": "sealed_products.parquet",
+            "sealed_contents_lf": "sealed_contents.parquet",
+            "decks_lf": "decks.parquet",
+            "boosters_lf": "boosters.parquet",
             "tcg_skus_lf": "tcg_skus.parquet",
-            "tcg_sku_map_df": "tcg_sku_map.parquet",
-            "tcg_to_uuid_df": "tcg_to_uuid.parquet",
-            "tcg_etched_to_uuid_df": "tcg_etched_to_uuid.parquet",
-            "mtgo_to_uuid_df": "mtgo_to_uuid.parquet",
-            "cardmarket_to_uuid_df": "cardmarket_to_uuid.parquet",
-            "uuid_to_oracle_df": "uuid_to_oracle.parquet",
-            "default_card_languages": "default_card_languages.parquet",
+            "tcg_sku_map_lf": "tcg_sku_map.parquet",
+            "tcg_to_uuid_lf": "tcg_to_uuid.parquet",
+            "tcg_etched_to_uuid_lf": "tcg_etched_to_uuid.parquet",
+            "mtgo_to_uuid_lf": "mtgo_to_uuid.parquet",
+            "cardmarket_to_uuid_lf": "cardmarket_to_uuid.parquet",
+            "uuid_to_oracle_lf": "uuid_to_oracle.parquet",
+            "default_card_languages_lf": "default_card_languages.parquet",
         }
 
         for attr, filename in dataframes_to_dump.items():
@@ -370,8 +513,8 @@ class GlobalCache:
 
     def _apply_categoricals(self) -> None:
         """Apply dynamic categoricals to relevant DataFrames."""
-        if self._categoricals is None and self.cards_df is not None:
-            self._categoricals = discover_categoricals(self.cards_df, self.sets_df)
+        if self._categoricals is None and self.cards_lf is not None:
+            self._categoricals = discover_categoricals(self.cards_lf, self.sets_lf)
 
     def _build_deck_scryfall_filter(self) -> None:
         """
@@ -380,14 +523,14 @@ class GlobalCache:
         Extracts all UUIDs from deck card lists (mainBoard, sideBoard, commander, tokens),
         then uses uuid_cache to reverse-lookup the corresponding scryfall_ids.
         """
-        if self.decks_df is None:
+        if self.decks_lf is None:
             return
 
-        # Collect deck data (small - just metadata, not full cards)
+        # Collect deck metadata
         decks = (
-            self.decks_df.collect()
-            if isinstance(self.decks_df, pl.LazyFrame)
-            else self.decks_df
+            self.decks_lf.collect()
+            if isinstance(self.decks_lf, pl.LazyFrame)
+            else self.decks_lf
         )
 
         # Filter by set codes if specified
@@ -415,7 +558,7 @@ class GlobalCache:
         LOGGER.info(f"Found {len(deck_uuids):,} unique UUIDs in deck data")
 
         # Use uuid_cache to get scryfall_ids for these UUIDs
-        uuid_cache = self.uuid_cache_df
+        uuid_cache = self.uuid_cache_lf
         if uuid_cache is not None:
             if isinstance(uuid_cache, pl.LazyFrame):
                 uuid_cache = uuid_cache.collect()
@@ -472,7 +615,6 @@ class GlobalCache:
         rulings_path = self.cache_path / "rulings.ndjson"
 
         # Columns that may be numeric in some records but should be strings
-        # (e.g., power/toughness can be "*", "1+*", etc.)
         string_cast_columns = [
             "power",
             "toughness",
@@ -483,13 +625,12 @@ class GlobalCache:
         ]
 
         # Scan without schema overrides first
-        # Keep infer_schema_length high to capture optional fields that may not appear early
-        self.cards_df = pl.scan_ndjson(
+        self.cards_lf = pl.scan_ndjson(
             cards_path,
             infer_schema_length=10000,
         )
 
-        schema = self.cards_df.collect_schema()
+        schema = self.cards_lf.collect_schema()
 
         # Build cast expressions
         cast_exprs = []
@@ -498,9 +639,9 @@ class GlobalCache:
                 cast_exprs.append(pl.col(col_name).cast(pl.Utf8))
 
         if cast_exprs:
-            self.cards_df = self.cards_df.with_columns(cast_exprs)
+            self.cards_lf = self.cards_lf.with_columns(cast_exprs)
 
-        # Ensure optional columns exist (fields that may not appear in first N rows)
+        # Ensure optional columns exist
         optional_columns = {
             "defense": pl.Utf8,
             "flavor_name": pl.Utf8,
@@ -511,22 +652,17 @@ class GlobalCache:
                 missing_cols.append(pl.lit(None).cast(dtype).alias(col_name))
 
         if missing_cols:
-            self.cards_df = self.cards_df.with_columns(missing_cols)
+            self.cards_lf = self.cards_lf.with_columns(missing_cols)
 
-        self.raw_rulings_df = pl.scan_ndjson(rulings_path, infer_schema_length=1000)
+        self.raw_rulings_lf = pl.scan_ndjson(rulings_path, infer_schema_length=1000)
 
         # Build default_card_languages from default_cards
-        # This file contains "English or the printed language if the card is only
-        # available in one language" - exactly what we need for filtering
-        self._build_default_card_languages()
+        self._load_default_card_languages()
 
-    def _build_default_card_languages(self) -> None:
-        """Build default card languages mapping from default_cards bulk file.
-
-        The default_cards file contains cards in English, or in their printed
-        language if the card is only available in one language (e.g., foreign-only sets).
-        This mapping is used during sink_cards to filter to the "primary" language
-        version of each card.
+    def _load_default_card_languages(self) -> None:
+        """
+        Build default card languages mapping from default_cards bulk file.
+        Sets up the base for context.py to build full foreign data.
         """
         default_cards_path = self.cache_path / "default_cards.ndjson"
         if not default_cards_path.exists():
@@ -535,13 +671,11 @@ class GlobalCache:
 
         LOGGER.info("Building default_card_languages mapping...")
 
-        # Scan and extract only the columns we need: id (scryfallId) and lang
         default_lf = pl.scan_ndjson(default_cards_path, infer_schema_length=1000)
 
-        # Map Scryfall lang codes to MTGJSON language names
         from mtgjson5.constants import LANGUAGE_MAP
 
-        self.default_card_languages = (
+        self.default_card_languages_lf = (
             default_lf.select([
                 pl.col("id").alias("scryfallId"),
                 pl.col("lang")
@@ -573,7 +707,7 @@ class GlobalCache:
                 for sid, sides in uuid_raw.items()
                 for side, uuid in sides.items()
             ]
-            self.uuid_cache_df = pl.DataFrame(rows)
+            self.uuid_cache_lf = pl.DataFrame(rows).lazy()
 
         meld_triplets_expanded: dict[str, list[str]] = {}
         if isinstance(self.meld_data, list):
@@ -590,7 +724,7 @@ class GlobalCache:
         cache_path = self.cache_path / "sets.parquet"
 
         if _cache_fresh(cache_path):
-            self.sets_df = pl.read_parquet(cache_path).lazy()
+            self.sets_lf = pl.read_parquet(cache_path).lazy()
             return
 
         sets_response = self.scryfall.download(self.scryfall.ALL_SETS_URL)
@@ -623,31 +757,23 @@ class GlobalCache:
         )
 
         sets_df.write_parquet(cache_path)
-        self.sets_df = sets_df.lazy()
+        self.sets_lf = sets_df.lazy()
 
-    def _fetch_missing_set_cards(self) -> None:
-        """Fetch cards for sets in API but not in bulk data.
-
-        This handles preview sets like ECC and PW26 that have entries in the
-        Scryfall /sets API but aren't yet in the bulk download files.
-        """
-        if self.sets_df is None or self.cards_df is None:
+    def _load_missing_set_cards(self) -> None:
+        """Fetch cards for sets in API but not in bulk data."""
+        if self.sets_lf is None or self.cards_lf is None:
             return
 
-        import time
-
-        # Get sets from API
         sets_collected = (
-            self.sets_df.collect()
-            if isinstance(self.sets_df, pl.LazyFrame)
-            else self.sets_df
+            self.sets_lf.collect()
+            if isinstance(self.sets_lf, pl.LazyFrame)
+            else self.sets_lf
         )
 
-        # Get sets with cards in bulk
         cards_collected = (
-            self.cards_df.collect()
-            if isinstance(self.cards_df, pl.LazyFrame)
-            else self.cards_df
+            self.cards_lf.collect()
+            if isinstance(self.cards_lf, pl.LazyFrame)
+            else self.cards_lf
         )
         bulk_sets = set(
             cards_collected.select("set")
@@ -656,7 +782,6 @@ class GlobalCache:
             .to_list()
         )
 
-        # Find sets missing from bulk (have card_count > 0 but not in bulk)
         missing_sets = sets_collected.filter(
             (pl.col("card_count") > 0) & (~pl.col("code").is_in(bulk_sets))
         )
@@ -673,65 +798,52 @@ class GlobalCache:
             card_count = row.get("card_count", 0)
             set_name = row.get("name", set_code)
 
-            LOGGER.info(f"  Fetching {set_code} ({set_name}): {card_count} cards...")
+            LOGGER.info(f"Fetching {set_code} ({set_name}): {card_count} cards...")
 
             try:
-                # Use Scryfall search API
                 search_url = f"https://api.scryfall.com/cards/search?q=set:{set_code}&unique=prints"
                 cards = self.scryfall.download_all_pages_api(search_url)
 
                 if cards:
                     all_new_cards.extend(cards)
-                    LOGGER.info(f"    Fetched {len(cards)} cards for {set_code}")
-
-                # Rate limiting - Scryfall asks for 50-100ms between requests
-                time.sleep(0.1)
+                    LOGGER.info(f"Fetched {len(cards)} cards for {set_code}")
 
             except Exception as e:
-                LOGGER.warning(f"    Failed to fetch {set_code}: {e}")
+                LOGGER.warning(f"Failed to fetch {set_code}: {e}")
 
         if all_new_cards:
-            # Convert to DataFrame and append to cards_df
             new_cards_df = pl.DataFrame(all_new_cards)
             LOGGER.info(f"Adding {len(all_new_cards)} cards from {missing_sets.height} preview sets")
 
-            # Ensure cards_df is a DataFrame for concatenation
-            if isinstance(self.cards_df, pl.LazyFrame):
-                self.cards_df = self.cards_df.collect()
+            if isinstance(self.cards_lf, pl.LazyFrame):
+                cards_df = self.cards_lf.collect()
+            else:
+                cards_df = self.cards_lf
 
-            # Align schemas before concatenation
-            existing_cols = set(self.cards_df.columns)
+            existing_cols = set(cards_df.columns)
             new_cols = set(new_cards_df.columns)
 
-            # Add missing columns to new_cards_df
             for col in existing_cols - new_cols:
                 new_cards_df = new_cards_df.with_columns(pl.lit(None).alias(col))
 
-            # Select only columns that exist in original
             new_cards_df = new_cards_df.select(
-                [c for c in self.cards_df.columns if c in new_cards_df.columns]
+                [c for c in cards_df.columns if c in new_cards_df.columns]
             )
 
-            self.cards_df = pl.concat([self.cards_df, new_cards_df], how="diagonal")
+            self.cards_lf = pl.concat([cards_df, new_cards_df], how="diagonal").lazy()
 
     def _load_card_kingdom(self) -> None:
-        """Load Card Kingdom data with caching.
-
-        Stores both:
-        - Pivoted ID/URL data for card identifiers (ck_pivoted.parquet)
-        - Raw pricing data for price generation (ck_raw.parquet)
-        """
+        """Load Card Kingdom data with caching."""
         pivoted_cache = self.cache_path / "ck_pivoted.parquet"
         raw_cache = self.cache_path / "ck_raw.parquet"
 
-        # Check if both caches exist and are fresh
         if _cache_fresh(pivoted_cache) and _cache_fresh(raw_cache):
-            self.card_kingdom_df = pl.read_parquet(pivoted_cache)
-            self.card_kingdom_raw_df = pl.read_parquet(raw_cache)
+            self.card_kingdom_lf = pl.read_parquet(pivoted_cache).lazy()
+            self.card_kingdom_raw_lf = pl.read_parquet(raw_cache).lazy()
             return
 
         # Initialize empty DataFrames
-        self.card_kingdom_df = pl.DataFrame(
+        self.card_kingdom_lf = pl.DataFrame(
             {
                 "id": [],
                 "cardKingdomId": [],
@@ -747,27 +859,24 @@ class GlobalCache:
                 "cardKingdomUrl": pl.String,
                 "cardKingdomFoilUrl": pl.String,
             }
-        )
-        self.card_kingdom_raw_df = pl.DataFrame()
+        ).lazy()
+        self.card_kingdom_raw_lf = pl.DataFrame().lazy()
 
-        # Fetch fresh data
         try:
             self.card_kingdom.fetch_sync()
 
-            # Store pivoted data (for identifiers)
             ck_data = self.card_kingdom.get_join_data()
             if ck_data is not None and len(ck_data) > 0:
-                self.card_kingdom_df = ck_data
-                self.card_kingdom_df.write_parquet(pivoted_cache)
+                ck_data.write_parquet(pivoted_cache)
+                self.card_kingdom_lf = ck_data.lazy()
 
-            # Store raw data (for pricing)
             # pylint: disable=protected-access
             if (
                 self.card_kingdom._raw_df is not None
                 and len(self.card_kingdom._raw_df) > 0
             ):
-                self.card_kingdom_raw_df = self.card_kingdom._raw_df
-                self.card_kingdom_raw_df.write_parquet(raw_cache)
+                self.card_kingdom._raw_df.write_parquet(raw_cache)
+                self.card_kingdom_raw_lf = self.card_kingdom._raw_df.lazy()
 
         except Exception as e:
             LOGGER.warning(f"Failed to fetch Card Kingdom data: {e}")
@@ -777,12 +886,13 @@ class GlobalCache:
         cache_path = self.cache_path / "edhrec_salt.parquet"
 
         if _cache_fresh(cache_path):
-            self.salt_df = pl.read_parquet(cache_path)
+            self.salt_lf = pl.read_parquet(cache_path).lazy()
             return
 
-        self.salt_df = self.edhrec.get_data_frame()
-        if self.salt_df is not None and len(self.salt_df) > 0:
-            self.salt_df.write_parquet(cache_path)
+        salt_df = self.edhrec.get_data_frame()
+        if salt_df is not None and len(salt_df) > 0:
+            salt_df.write_parquet(cache_path)
+            self.salt_lf = salt_df.lazy()
 
     def _load_gatherer(self) -> None:
         """Load Gatherer original text data."""
@@ -791,7 +901,6 @@ class GlobalCache:
         if _cache_fresh(cache_path):
             with cache_path.open("rb") as f:
                 self.gatherer_map = json.loads(f.read())
-
         else:
             self.gatherer_map = getattr(self.gatherer, "_multiverse_id_to_data", {})
             with cache_path.open("w", encoding="utf-8") as f:
@@ -810,9 +919,9 @@ class GlobalCache:
                         }
                     )
             if rows:
-                self.gatherer_df = pl.DataFrame(rows)
+                self.gatherer_lf = pl.DataFrame(rows).lazy()
                 LOGGER.info(
-                    f"  [gatherer] Built gatherer_df: {_format_size(self.gatherer_df)}"
+                    f"[gatherer] Built gatherer_lf: {_format_size(self.gatherer_lf)}"
                 )
 
     def _load_whats_in_standard(self) -> None:
@@ -848,45 +957,42 @@ class GlobalCache:
         )
 
         if all_cached:
-            # Load directly into GlobalCache properties
-            self.sealed_cards_df = pl.read_parquet(card_to_products_cache).lazy()
-            self.sealed_products_df = pl.read_parquet(sealed_products_cache).lazy()
-            self.sealed_contents_df = pl.read_parquet(sealed_contents_cache).lazy()
-            self.decks_df = pl.read_parquet(decks_cache).lazy()
-            self.boosters_df = pl.read_parquet(booster_cache).lazy()
+            self.sealed_cards_lf = pl.read_parquet(card_to_products_cache).lazy()
+            self.sealed_products_lf = pl.read_parquet(sealed_products_cache).lazy()
+            self.sealed_contents_lf = pl.read_parquet(sealed_contents_cache).lazy()
+            self.decks_lf = pl.read_parquet(decks_cache).lazy()
+            self.boosters_lf = pl.read_parquet(booster_cache).lazy()
             return
 
-        # Start async load in background with callback
         def on_github_complete(provider: SealedDataProvider) -> None:
             """Called when GitHub data finishes loading."""
-            LOGGER.info("Sealedd loaded - transferring to GlobalCache...")
+            LOGGER.info("Sealed loaded - transferring to GlobalCache...")
 
-            # Save to cache
             if provider.card_to_products_df is not None:
                 provider.card_to_products_df.collect().write_parquet(
                     card_to_products_cache
                 )
-                self.sealed_cards_df = provider.card_to_products_df
+                self.sealed_cards_lf = provider.card_to_products_df
 
             if provider.sealed_products_df is not None:
                 provider.sealed_products_df.collect().write_parquet(
                     sealed_products_cache
                 )
-                self.sealed_products_df = provider.sealed_products_df
+                self.sealed_products_lf = provider.sealed_products_df
 
             if provider.sealed_contents_df is not None:
                 provider.sealed_contents_df.collect().write_parquet(
                     sealed_contents_cache
                 )
-                self.sealed_contents_df = provider.sealed_contents_df
+                self.sealed_contents_lf = provider.sealed_contents_df
 
             if provider.decks_df is not None:
                 provider.decks_df.collect().write_parquet(decks_cache)
-                self.decks_df = provider.decks_df
+                self.decks_lf = provider.decks_df
 
             if provider.boosters_df is not None:
                 provider.boosters_df.collect().write_parquet(booster_cache)
-                self.boosters_df = provider.boosters_df
+                self.boosters_lf = provider.boosters_df
 
         self.github.load_async_background(on_complete=on_github_complete)
 
@@ -894,18 +1000,18 @@ class GlobalCache:
         """Load orientation data for Art Series cards from Scryfall."""
         cache_path = self.cache_path / "orientations.parquet"
         if _cache_fresh(cache_path):
-            self.orientation_df = pl.read_parquet(cache_path)
+            self.orientation_lf = pl.read_parquet(cache_path).lazy()
             return
 
         detector = ScryfallProviderOrientationDetector()
-        sets_df_raw = self.sets_df
-        if sets_df_raw is None:
+        sets_lf_raw = self.sets_lf
+        if sets_lf_raw is None:
             LOGGER.warning("Sets not loaded, skipping orientations")
             return
         sets_df: pl.DataFrame = (
-            sets_df_raw.collect()
-            if isinstance(sets_df_raw, pl.LazyFrame)
-            else sets_df_raw
+            sets_lf_raw.collect()
+            if isinstance(sets_lf_raw, pl.LazyFrame)
+            else sets_lf_raw
         )
         art_series_sets = sets_df.filter(pl.col("name").str.contains("Art Series"))[
             "code"
@@ -917,16 +1023,17 @@ class GlobalCache:
             for scryfall_id, orientation in (orientation_map or {}).items():
                 rows.append({"scryfallId": scryfall_id, "orientation": orientation})
 
-        self.orientation_df = pl.DataFrame(rows) if rows else pl.DataFrame()
-        if len(self.orientation_df) > 0:
-            self.orientation_df.write_parquet(cache_path)
+        orientation_df = pl.DataFrame(rows) if rows else pl.DataFrame()
+        if len(orientation_df) > 0:
+            orientation_df.write_parquet(cache_path)
+        self.orientation_lf = orientation_df.lazy()
 
     def _load_secretlair_subsets(self) -> None:
         """Load Secret Lair subset mappings."""
         cache_path = self.cache_path / "sld_subsets.parquet"
 
         if _cache_fresh(cache_path):
-            self.sld_subsets_df = pl.read_parquet(cache_path)
+            self.sld_subsets_lf = pl.read_parquet(cache_path).lazy()
             return
 
         relation_map = self.secretlair.download()
@@ -934,33 +1041,27 @@ class GlobalCache:
             rows = [
                 {"number": num, "subsets": [name]} for num, name in relation_map.items()
             ]
-            self.sld_subsets_df = pl.DataFrame(rows)
-            self.sld_subsets_df.write_parquet(cache_path)
+            sld_df = pl.DataFrame(rows)
+            sld_df.write_parquet(cache_path)
+            self.sld_subsets_lf = sld_df.lazy()
 
     def _load_mcm_lookup(self) -> None:
         """
         Build MCM lookup table from CardMarket provider.
-
-        Must be called after sets_df is loaded since it iterates through all sets.
-        This is a slow operation (~10-30 min) as it fetches data for each expansion.
-
-        If CardMarket config is available, automatically fetches data from API.
-        """
+       """
         from mtgjson5.providers.v2.cardmarket.provider import load_cardmarket_data
 
         cache_path = self.cache_path / "mcm_lookup.parquet"
 
         if _cache_fresh(cache_path):
-            self.mcm_lookup_df = pl.read_parquet(cache_path)
+            self.mcm_lookup_lf = pl.read_parquet(cache_path).lazy()
             return
 
-        # Load raw MKM data (fetches from API if config available and cache stale)
         raw_cache = self.cache_path / "mkm_cards.parquet"
         raw_df = load_cardmarket_data(raw_cache)
 
         if raw_df is None or raw_df.is_empty():
-            # No config or fetch failed - return empty with correct schema
-            self.mcm_lookup_df = pl.DataFrame(
+            self.mcm_lookup_lf = pl.DataFrame(
                 schema={
                     "mcmId": pl.String,
                     "mcmMetaId": pl.String,
@@ -968,20 +1069,19 @@ class GlobalCache:
                     "nameLower": pl.String,
                     "number": pl.String,
                 }
-            )
+            ).lazy()
             return
 
-        sets_df_raw = self.sets_df
-        if sets_df_raw is None:
+        sets_lf_raw = self.sets_lf
+        if sets_lf_raw is None:
             LOGGER.warning("Sets not loaded, skipping MCM lookup table")
             return
         sets_df: pl.DataFrame = (
-            sets_df_raw.collect()
-            if isinstance(sets_df_raw, pl.LazyFrame)
-            else sets_df_raw
+            sets_lf_raw.collect()
+            if isinstance(sets_lf_raw, pl.LazyFrame)
+            else sets_lf_raw
         )
 
-        # Build setCode mapping: mcmId (expansion ID) -> setCode
         set_mapping = (
             sets_df.select([
                 pl.col("code").alias("setCode"),
@@ -991,8 +1091,7 @@ class GlobalCache:
             .unique(subset=["_mcm_expansion_id"])
         )
 
-        # Transform to lookup schema
-        self.mcm_lookup_df = (
+        mcm_df = (
             raw_df
             .join(
                 set_mapping,
@@ -1009,26 +1108,26 @@ class GlobalCache:
             ])
         )
 
-        # Cache the lookup
-        self.mcm_lookup_df.write_parquet(cache_path)
-        LOGGER.info(f"Built MCM lookup: {len(self.mcm_lookup_df):,} cards")
+        mcm_df.write_parquet(cache_path)
+        self.mcm_lookup_lf = mcm_df.lazy()
+        LOGGER.info(f"Built MCM lookup: {len(mcm_df):,} cards")
 
     def _normalize_all_columns(self) -> None:
-        """Normalize ALL DataFrame columns to camelCase"""
-        self.cards_df = _normalize_columns(self.cards_df)
-        self.raw_rulings_df = _normalize_columns(self.raw_rulings_df)
-        self.sets_df = _normalize_columns(self.sets_df)
-        self.rulings_df = _normalize_columns(self.rulings_df)
-        self.foreign_data_df = _normalize_columns(self.foreign_data_df)
-        self.uuid_cache_df = _normalize_columns(self.uuid_cache_df)
-        self.card_kingdom_df = _normalize_columns(self.card_kingdom_df)
-        self.mcm_lookup_df = _normalize_columns(self.mcm_lookup_df)
-        self.salt_df = _normalize_columns(self.salt_df)
-        self.spellbook_df = _normalize_columns(self.spellbook_df)
-        self.meld_lookup_df = _normalize_columns(self.meld_lookup_df)
-        self.sld_subsets_df = _normalize_columns(self.sld_subsets_df)
-        self.orientation_df = _normalize_columns(self.orientation_df)
-        self.gatherer_df = _normalize_columns(self.gatherer_df)
+        """Normalize ALL DataFrame columns to camelCase."""
+        self.cards_lf = _normalize_columns(self.cards_lf)
+        self.raw_rulings_lf = _normalize_columns(self.raw_rulings_lf)
+        self.sets_lf = _normalize_columns(self.sets_lf)
+        self.rulings_lf = _normalize_columns(self.rulings_lf)
+        self.foreign_data_lf = _normalize_columns(self.foreign_data_lf)
+        self.uuid_cache_lf = _normalize_columns(self.uuid_cache_lf)
+        self.card_kingdom_lf = _normalize_columns(self.card_kingdom_lf)
+        self.mcm_lookup_lf = _normalize_columns(self.mcm_lookup_lf)
+        self.salt_lf = _normalize_columns(self.salt_lf)
+        self.spellbook_lf = _normalize_columns(self.spellbook_lf)
+        self.meld_lookup_lf = _normalize_columns(self.meld_lookup_lf)
+        self.sld_subsets_lf = _normalize_columns(self.sld_subsets_lf)
+        self.orientation_lf = _normalize_columns(self.orientation_lf)
+        self.gatherer_lf = _normalize_columns(self.gatherer_lf)
         if self._github is not None:
             self._github.card_to_products_df = _normalize_columns(
                 self._github.card_to_products_df
@@ -1132,62 +1231,62 @@ class GlobalCache:
         return self._categoricals
 
     def get_tcg_to_uuid_map(self) -> dict[str, str]:
-        """
-        Get mapping from TCGPlayer product ID to MTGJSON UUID.
-
-        Returns empty dict if mapping not loaded.
-        """
-        if self.tcg_to_uuid_df is None or self.tcg_to_uuid_df.is_empty():
+        """Get mapping from TCGPlayer product ID to MTGJSON UUID."""
+        if self.tcg_to_uuid_lf is None:
+            return {}
+        df = self.tcg_to_uuid_lf.collect()
+        if df.is_empty():
             return {}
         return dict(
             zip(
-                self.tcg_to_uuid_df["tcgplayerProductId"].to_list(),
-                self.tcg_to_uuid_df["uuid"].to_list(), strict=False,
+                df["tcgplayerProductId"].to_list(),
+                df["uuid"].to_list(),
+                strict=False,
             )
         )
 
     def get_tcg_etched_to_uuid_map(self) -> dict[str, str]:
-        """
-        Get mapping from TCGPlayer etched product ID to MTGJSON UUID.
-
-        Returns empty dict if mapping not loaded.
-        """
-        if self.tcg_etched_to_uuid_df is None or self.tcg_etched_to_uuid_df.is_empty():
+        """Get mapping from TCGPlayer etched product ID to MTGJSON UUID."""
+        if self.tcg_etched_to_uuid_lf is None:
+            return {}
+        df = self.tcg_etched_to_uuid_lf.collect()
+        if df.is_empty():
             return {}
         return dict(
             zip(
-                self.tcg_etched_to_uuid_df["tcgplayerEtchedProductId"].to_list(),
-                self.tcg_etched_to_uuid_df["uuid"].to_list(), strict=False,
+                df["tcgplayerEtchedProductId"].to_list(),
+                df["uuid"].to_list(),
+                strict=False,
             )
         )
 
     def get_mtgo_to_uuid_map(self) -> dict[str, str]:
-        """
-        Get mapping from MTGO ID to MTGJSON UUID.
-
-        Returns empty dict if mapping not loaded.
-        """
-        if self.mtgo_to_uuid_df is None or self.mtgo_to_uuid_df.is_empty():
+        """Get mapping from MTGO ID to MTGJSON UUID."""
+        if self.mtgo_to_uuid_lf is None:
+            return {}
+        df = self.mtgo_to_uuid_lf.collect()
+        if df.is_empty():
             return {}
         return dict(
             zip(
-                self.mtgo_to_uuid_df["mtgoId"].to_list(),
-                self.mtgo_to_uuid_df["uuid"].to_list(), strict=False,
+                df["mtgoId"].to_list(),
+                df["uuid"].to_list(),
+                strict=False,
             )
         )
 
     def get_cardmarket_to_uuid_map(self) -> dict[str, str]:
-        """
-        Get mapping from CardMarket (MCM) ID to MTGJSON UUID.
-
-        Returns empty dict if mapping not loaded.
-        """
-        if self.cardmarket_to_uuid_df is None or self.cardmarket_to_uuid_df.is_empty():
+        """Get mapping from CardMarket (MCM) ID to MTGJSON UUID."""
+        if self.cardmarket_to_uuid_lf is None:
+            return {}
+        df = self.cardmarket_to_uuid_lf.collect()
+        if df.is_empty():
             return {}
         return dict(
             zip(
-                self.cardmarket_to_uuid_df["mcmId"].to_list(),
-                self.cardmarket_to_uuid_df["uuid"].to_list(), strict=False,
+                df["mcmId"].to_list(),
+                df["uuid"].to_list(),
+                strict=False,
             )
         )
 
@@ -1196,7 +1295,7 @@ class GlobalCache:
         """Get the singleton GlobalCache instance."""
         if cls._instance is None:
             cls()
-        return cls._instance
+        return cls._instance  # type: ignore[return-value]
 
 
 GLOBAL_CACHE = GlobalCache.get_instance()

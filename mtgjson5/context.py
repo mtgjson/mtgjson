@@ -1,7 +1,5 @@
 """
-Pipeline context for MTGJSON card building.
-
-Provides a container for all lookup data needed by the card pipeline
+Pipeline context for MTGJSON ELT Pipeline.
 """
 
 from __future__ import annotations
@@ -10,13 +8,14 @@ import json
 from argparse import Namespace
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
-from uuid import UUID, uuid5
+from typing import TYPE_CHECKING, Any
 
 import polars as pl
+import polars_hash as plh
 
 
 if TYPE_CHECKING:
+    from mtgjson5.cache import GlobalCache
     from mtgjson5.categoricals import DynamicCategoricals
 
 from mtgjson5.constants import LANGUAGE_MAP
@@ -29,42 +28,26 @@ from mtgjson5.mtgjson_models import (
 from mtgjson5.utils import LOGGER, get_expanded_set_codes
 
 
-# UUID namespace for MTGJSON
-_DNS_NAMESPACE = UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+_DNS_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+
 
 @dataclass
 class PipelineContext:
     """
-    Container for all lookup data needed by the card pipeline.
+    Container for pipeline configuration and derived lookups.
+    it holds a reference to GlobalCache for raw data access and owns:
 
-    Allows pipeline functions to be tested with smaller, controlled datasets
-    rather than always pulling from GLOBAL_CACHE.
+        - Pipeline-specific configuration (args, filters)
+        - Derived/consolidated lookups (built by consolidate_lookups())
+        - Model types and categoricals
 
-    After calling consolidate_lookups(), data is organized by join key for
-    efficient streaming pipeline execution.
+    Raw data is accessed through property accessors that delegate to
+    the underlying GlobalCache.
     """
+    _cache: GlobalCache | None = field(default=None, repr=False)
 
     args: Namespace | None = None
     scryfall_id_filter: set[str] | None = None
-    final_cards_lf: pl.LazyFrame | None = None
-
-    cards_lf: pl.LazyFrame | None = None
-    raw_rulings_lf: pl.LazyFrame | None = None
-    sets_df: pl.LazyFrame | pl.DataFrame | None = None
-
-    card_kingdom_df: pl.DataFrame | pl.LazyFrame | None = None
-    card_kingdom_raw_df: pl.DataFrame | pl.LazyFrame | None = None
-    mcm_lookup_df: pl.DataFrame | pl.LazyFrame | None = None
-    salt_df: pl.DataFrame | pl.LazyFrame | None = None
-    spellbook_df: pl.DataFrame | pl.LazyFrame | None = None
-    sld_subsets_df: pl.DataFrame | pl.LazyFrame | None = None
-    uuid_cache_df: pl.DataFrame | pl.LazyFrame | None = None
-    orientation_df: pl.DataFrame | pl.LazyFrame | None = None
-    gatherer_df: pl.DataFrame | pl.LazyFrame | None = None
-
-    rulings_df: pl.DataFrame | pl.LazyFrame | None = None
-    foreign_data_df: pl.DataFrame | pl.LazyFrame | None = None
-    uuid_lookup_df: pl.DataFrame | None = None
 
     identifiers_lf: pl.LazyFrame | None = None
     oracle_data_lf: pl.LazyFrame | None = None
@@ -72,52 +55,262 @@ class PipelineContext:
     name_lf: pl.LazyFrame | None = None
     signatures_lf: pl.LazyFrame | None = None
     face_flavor_names_df: pl.DataFrame | None = None
-
-    # Per-face foreign data lookup for multi-face cards
-    # Maps (setCode, number, language, face_index) -> (faceName, text, type)
     face_foreign_lf: pl.LazyFrame | None = None
+    uuid_lookup_df: pl.DataFrame | None = None
+    final_cards_lf: pl.LazyFrame | None = None
 
-    sealed_cards_lf: pl.LazyFrame | None = None
-    sealed_products_lf: pl.LazyFrame | None = None
-    sealed_contents_lf: pl.LazyFrame | None = None
-    decks_lf: pl.LazyFrame | None = None
-    boosters_lf: pl.LazyFrame | None = None
-
-    card_to_products_df: pl.DataFrame | pl.LazyFrame | None = None
-
-    tcg_skus_lf: pl.LazyFrame | None = None
-    tcg_sku_map_df: pl.DataFrame | None = None
-    tcg_to_uuid_df: pl.DataFrame | None = None
-    tcg_etched_to_uuid_df: pl.DataFrame | None = None
-    mtgo_to_uuid_df: pl.DataFrame | None = None
-    cardmarket_to_uuid_df: pl.DataFrame | None = None
-    uuid_to_oracle_df: pl.DataFrame | None = None
-
-    # Default card languages mapping (from default_cards bulk file)
-    # Maps scryfallId + language to determine which language version is "primary"
-    default_card_languages: pl.LazyFrame | None = None
-
-    meld_triplets: dict = field(default_factory=dict)
-    manual_overrides: dict = field(default_factory=dict)
-    foreigndata_exceptions: dict = field(default_factory=dict)
-    gatherer_map: dict = field(default_factory=dict)
-
-    standard_legal_sets: set[str] = field(default_factory=set)
-    unlimited_cards: set[str] = field(default_factory=set)
-
-    # Resource path for JSON lookups
-    resource_path: Path | None = None
-
-    # Model types for schema generation (use Model.polars_schema() when needed)
     card_set_model: type = field(default=CardSet)
     card_token_model: type = field(default=CardToken)
     card_deck_model: type = field(default=CardDeck)
     card_atomic_model: type = field(default=CardAtomic)
 
-    # Categoricals
     categoricals: DynamicCategoricals | None = None
+    
+    resource_path: Path | None = None
 
-    # Property aliases for _lf -> _df naming (functions expect _df suffix)
+    _test_data: dict[str, Any] = field(default_factory=dict, repr=False)
+
+    @property
+    def cards_lf(self) -> pl.LazyFrame | None:
+        """Raw card data from cache."""
+        if "_cards_lf" in self._test_data:
+            return self._test_data["_cards_lf"]
+        return self._cache.cards_lf if self._cache else None
+
+    @property
+    def raw_rulings_lf(self) -> pl.LazyFrame | None:
+        """Raw rulings data from cache."""
+        if "_raw_rulings_lf" in self._test_data:
+            return self._test_data["_raw_rulings_lf"]
+        return self._cache.raw_rulings_lf if self._cache else None
+
+    @property
+    def sets_df(self) -> pl.LazyFrame | None:
+        """Set metadata from cache (backward compat name)."""
+        if "_sets_lf" in self._test_data:
+            return self._test_data["_sets_lf"]
+        return self._cache.sets_lf if self._cache else None
+
+    @property
+    def sets_lf(self) -> pl.LazyFrame | None:
+        """Set metadata from cache."""
+        return self.sets_df
+
+    @property
+    def card_kingdom_df(self) -> pl.LazyFrame | None:
+        """Card Kingdom lookup from cache."""
+        if "_card_kingdom_lf" in self._test_data:
+            return self._test_data["_card_kingdom_lf"]
+        return self._cache.card_kingdom_lf if self._cache else None
+
+    @property
+    def card_kingdom_raw_df(self) -> pl.LazyFrame | None:
+        """Card Kingdom raw data from cache."""
+        if "_card_kingdom_raw_lf" in self._test_data:
+            return self._test_data["_card_kingdom_raw_lf"]
+        return self._cache.card_kingdom_raw_lf if self._cache else None
+
+    @property
+    def mcm_lookup_df(self) -> pl.LazyFrame | None:
+        """MCM lookup from cache."""
+        if "_mcm_lookup_lf" in self._test_data:
+            return self._test_data["_mcm_lookup_lf"]
+        return self._cache.mcm_lookup_lf if self._cache else None
+
+    @property
+    def salt_df(self) -> pl.LazyFrame | None:
+        """EDHREC salt data from cache."""
+        if "_salt_lf" in self._test_data:
+            return self._test_data["_salt_lf"]
+        return self._cache.salt_lf if self._cache else None
+
+    @property
+    def spellbook_df(self) -> pl.LazyFrame | None:
+        """Spellbook data from cache."""
+        if "_spellbook_lf" in self._test_data:
+            return self._test_data["_spellbook_lf"]
+        return self._cache.spellbook_lf if self._cache else None
+
+    @property
+    def sld_subsets_df(self) -> pl.LazyFrame | None:
+        """Secret Lair subsets from cache."""
+        if "_sld_subsets_lf" in self._test_data:
+            return self._test_data["_sld_subsets_lf"]
+        return self._cache.sld_subsets_lf if self._cache else None
+
+    @property
+    def uuid_cache_df(self) -> pl.LazyFrame | None:
+        """UUID cache from cache."""
+        if "_uuid_cache_lf" in self._test_data:
+            return self._test_data["_uuid_cache_lf"]
+        return self._cache.uuid_cache_lf if self._cache else None
+
+    @property
+    def orientation_df(self) -> pl.LazyFrame | None:
+        """Orientation data from cache."""
+        if "_orientation_lf" in self._test_data:
+            return self._test_data["_orientation_lf"]
+        return self._cache.orientation_lf if self._cache else None
+
+    @property
+    def gatherer_df(self) -> pl.LazyFrame | None:
+        """Gatherer data from cache."""
+        if "_gatherer_lf" in self._test_data:
+            return self._test_data["_gatherer_lf"]
+        return self._cache.gatherer_lf if self._cache else None
+
+    @property
+    def rulings_df(self) -> pl.LazyFrame | None:
+        """Rulings from cache."""
+        if "_rulings_lf" in self._test_data:
+            return self._test_data["_rulings_lf"]
+        return self._cache.rulings_lf if self._cache else None
+
+    @property
+    def foreign_data_df(self) -> pl.LazyFrame | None:
+        """Foreign data from cache."""
+        if "_foreign_data_lf" in self._test_data:
+            return self._test_data["_foreign_data_lf"]
+        return self._cache.foreign_data_lf if self._cache else None
+
+    @property
+    def sealed_cards_lf(self) -> pl.LazyFrame | None:
+        """Sealed cards from cache."""
+        if "_sealed_cards_lf" in self._test_data:
+            return self._test_data["_sealed_cards_lf"]
+        return self._cache.sealed_cards_lf if self._cache else None
+
+    @property
+    def sealed_products_lf(self) -> pl.LazyFrame | None:
+        """Sealed products from cache."""
+        if "_sealed_products_lf" in self._test_data:
+            return self._test_data["_sealed_products_lf"]
+        return self._cache.sealed_products_lf if self._cache else None
+
+    @property
+    def sealed_contents_lf(self) -> pl.LazyFrame | None:
+        """Sealed contents from cache."""
+        if "_sealed_contents_lf" in self._test_data:
+            return self._test_data["_sealed_contents_lf"]
+        return self._cache.sealed_contents_lf if self._cache else None
+
+    @property
+    def decks_lf(self) -> pl.LazyFrame | None:
+        """Decks from cache."""
+        if "_decks_lf" in self._test_data:
+            return self._test_data["_decks_lf"]
+        return self._cache.decks_lf if self._cache else None
+
+    @property
+    def boosters_lf(self) -> pl.LazyFrame | None:
+        """Boosters from cache."""
+        if "_boosters_lf" in self._test_data:
+            return self._test_data["_boosters_lf"]
+        return self._cache.boosters_lf if self._cache else None
+
+    @property
+    def card_to_products_df(self) -> pl.LazyFrame | None:
+        """Card to products mapping (alias for sealed_cards_lf)."""
+        return self.sealed_cards_lf
+
+    @property
+    def tcg_skus_lf(self) -> pl.LazyFrame | None:
+        """TCG SKUs from cache."""
+        if "_tcg_skus_lf" in self._test_data:
+            return self._test_data["_tcg_skus_lf"]
+        return self._cache.tcg_skus_lf if self._cache else None
+
+    @property
+    def tcg_sku_map_df(self) -> pl.LazyFrame | None:
+        """TCG SKU map from cache."""
+        if "_tcg_sku_map_lf" in self._test_data:
+            return self._test_data["_tcg_sku_map_lf"]
+        return self._cache.tcg_sku_map_lf if self._cache else None
+
+    @property
+    def tcg_to_uuid_df(self) -> pl.LazyFrame | None:
+        """TCG to UUID mapping from cache."""
+        if "_tcg_to_uuid_lf" in self._test_data:
+            return self._test_data["_tcg_to_uuid_lf"]
+        return self._cache.tcg_to_uuid_lf if self._cache else None
+
+    @property
+    def tcg_etched_to_uuid_df(self) -> pl.LazyFrame | None:
+        """TCG etched to UUID mapping from cache."""
+        if "_tcg_etched_to_uuid_lf" in self._test_data:
+            return self._test_data["_tcg_etched_to_uuid_lf"]
+        return self._cache.tcg_etched_to_uuid_lf if self._cache else None
+
+    @property
+    def mtgo_to_uuid_df(self) -> pl.LazyFrame | None:
+        """MTGO to UUID mapping from cache."""
+        if "_mtgo_to_uuid_lf" in self._test_data:
+            return self._test_data["_mtgo_to_uuid_lf"]
+        return self._cache.mtgo_to_uuid_lf if self._cache else None
+
+    @property
+    def cardmarket_to_uuid_df(self) -> pl.LazyFrame | None:
+        """Cardmarket to UUID mapping from cache."""
+        if "_cardmarket_to_uuid_lf" in self._test_data:
+            return self._test_data["_cardmarket_to_uuid_lf"]
+        return self._cache.cardmarket_to_uuid_lf if self._cache else None
+
+    @property
+    def uuid_to_oracle_df(self) -> pl.LazyFrame | None:
+        """UUID to oracle mapping from cache."""
+        if "_uuid_to_oracle_lf" in self._test_data:
+            return self._test_data["_uuid_to_oracle_lf"]
+        return self._cache.uuid_to_oracle_lf if self._cache else None
+
+    @property
+    def default_card_languages(self) -> pl.LazyFrame | None:
+        """Default card languages from cache."""
+        if "_default_card_languages_lf" in self._test_data:
+            return self._test_data["_default_card_languages_lf"]
+        return self._cache.default_card_languages_lf if self._cache else None
+
+    @property
+    def meld_triplets(self) -> dict[str, list[str]]:
+        """Meld triplets from cache."""
+        if "_meld_triplets" in self._test_data:
+            return self._test_data["_meld_triplets"]
+        return self._cache.meld_triplets if self._cache else {}
+
+    @property
+    def manual_overrides(self) -> dict:
+        """Manual overrides from cache."""
+        if "_manual_overrides" in self._test_data:
+            return self._test_data["_manual_overrides"]
+        return self._cache.manual_overrides if self._cache else {}
+
+    @property
+    def foreigndata_exceptions(self) -> dict:
+        """Foreign data exceptions from cache."""
+        if "_foreigndata_exceptions" in self._test_data:
+            return self._test_data["_foreigndata_exceptions"]
+        return self._cache.foreigndata_exceptions if self._cache else {}
+
+    @property
+    def gatherer_map(self) -> dict:
+        """Gatherer map from cache."""
+        if "_gatherer_map" in self._test_data:
+            return self._test_data["_gatherer_map"]
+        return self._cache.gatherer_map if self._cache else {}
+
+    @property
+    def standard_legal_sets(self) -> set[str]:
+        """Standard legal sets from cache."""
+        if "_standard_legal_sets" in self._test_data:
+            return self._test_data["_standard_legal_sets"]
+        return self._cache.standard_legal_sets if self._cache else set()
+
+    @property
+    def unlimited_cards(self) -> set[str]:
+        """Unlimited cards from cache."""
+        if "_unlimited_cards" in self._test_data:
+            return self._test_data["_unlimited_cards"]
+        return self._cache.unlimited_cards if self._cache else set()
+
     @property
     def decks_df(self) -> pl.LazyFrame | None:
         """Alias for decks_lf (backward compat)."""
@@ -168,7 +361,6 @@ class PipelineContext:
             return None
         formats_raw = getattr(self.args, "export", None)
         if formats_raw and isinstance(formats_raw, list | tuple | set):
-            # pylint: disable-next=not-an-iterable
             return {f.lower() for f in formats_raw}
         return None
 
@@ -184,9 +376,9 @@ class PipelineContext:
     @classmethod
     def from_global_cache(cls, args: Namespace | None = None) -> PipelineContext:
         """
-        Create a PipelineContext from the global cache.
+        Create a PipelineContext backed by the global cache.
 
-        All DataFrames are LazyFrames after GlobalCache._dump_and_reload_as_lazy().
+        This is the primary factory method for production use.
         """
         from mtgjson5 import constants
         from mtgjson5.cache import GLOBAL_CACHE
@@ -194,68 +386,85 @@ class PipelineContext:
 
         # Discover categoricals from the raw cards data
         categoricals = None
-        if GLOBAL_CACHE.cards_df is not None:
+        if GLOBAL_CACHE.cards_lf is not None:
             categoricals = discover_categoricals(
-                GLOBAL_CACHE.cards_df,
-                GLOBAL_CACHE.sets_df,
+                GLOBAL_CACHE.cards_lf,
+                GLOBAL_CACHE.sets_lf,
             )
 
-        ctx = cls(
+        return cls(
+            _cache=GLOBAL_CACHE,
             args=args,
-            # Core data
-            cards_lf=GLOBAL_CACHE.cards_df,
-            raw_rulings_lf=GLOBAL_CACHE.raw_rulings_df,
-            sets_df=GLOBAL_CACHE.sets_df,
-            # Provider lookups
-            card_kingdom_df=GLOBAL_CACHE.card_kingdom_df,
-            card_kingdom_raw_df=GLOBAL_CACHE.card_kingdom_raw_df,
-            mcm_lookup_df=GLOBAL_CACHE.mcm_lookup_df,
-            salt_df=GLOBAL_CACHE.salt_df,
-            spellbook_df=GLOBAL_CACHE.spellbook_df,
-            sld_subsets_df=GLOBAL_CACHE.sld_subsets_df,
-            uuid_cache_df=GLOBAL_CACHE.uuid_cache_df,
-            orientation_df=GLOBAL_CACHE.orientation_df,
-            gatherer_df=GLOBAL_CACHE.gatherer_df,
-            # Pre-computed
-            rulings_df=GLOBAL_CACHE.rulings_df,
-            foreign_data_df=GLOBAL_CACHE.foreign_data_df,
-            # GitHub data
-            sealed_cards_lf=GLOBAL_CACHE.sealed_cards_df,
-            sealed_products_lf=GLOBAL_CACHE.sealed_products_df,
-            sealed_contents_lf=GLOBAL_CACHE.sealed_contents_df,
-            decks_lf=GLOBAL_CACHE.decks_df,
-            boosters_lf=GLOBAL_CACHE.boosters_df,
-            card_to_products_df=GLOBAL_CACHE.sealed_cards_df,  # Alias for sourceProducts
-            # TCG data
-            tcg_skus_lf=GLOBAL_CACHE.tcg_skus_lf,
-            tcg_sku_map_df=GLOBAL_CACHE.tcg_sku_map_df,
-            tcg_to_uuid_df=GLOBAL_CACHE.tcg_to_uuid_df,
-            tcg_etched_to_uuid_df=GLOBAL_CACHE.tcg_etched_to_uuid_df,
-            mtgo_to_uuid_df=GLOBAL_CACHE.mtgo_to_uuid_df,
-            cardmarket_to_uuid_df=GLOBAL_CACHE.cardmarket_to_uuid_df,
-            uuid_to_oracle_df=GLOBAL_CACHE.uuid_to_oracle_df,
-            # Default card languages (for foreign-only set filtering)
-            default_card_languages=GLOBAL_CACHE.default_card_languages,
-            # Dict lookups
-            meld_triplets=GLOBAL_CACHE.meld_triplets or {},
-            manual_overrides=GLOBAL_CACHE.manual_overrides or {},
-            foreigndata_exceptions=GLOBAL_CACHE.foreigndata_exceptions or {},
-            gatherer_map=GLOBAL_CACHE.gatherer_map or {},
-            # Sets
-            standard_legal_sets=GLOBAL_CACHE.standard_legal_sets or set(),
-            unlimited_cards=GLOBAL_CACHE.unlimited_cards or set(),
-            # Resource path
-            resource_path=constants.RESOURCE_PATH,
-            # Categoricals
             categoricals=categoricals,
-            scryfall_id_filter=None,
+            scryfall_id_filter=GLOBAL_CACHE.scryfall_id_filter,
+            resource_path=constants.RESOURCE_PATH,
         )
 
-        return ctx
+    @classmethod
+    def for_testing(
+        cls,
+        cards_lf: pl.LazyFrame | None = None,
+        sets_lf: pl.LazyFrame | None = None,
+        raw_rulings_lf: pl.LazyFrame | None = None,
+        uuid_cache_lf: pl.LazyFrame | None = None,
+        card_kingdom_lf: pl.LazyFrame | None = None,
+        salt_lf: pl.LazyFrame | None = None,
+        orientation_lf: pl.LazyFrame | None = None,
+        meld_triplets: dict[str, list[str]] | None = None,
+        manual_overrides: dict | None = None,
+        foreigndata_exceptions: dict | None = None,
+        resource_path: Path | None = None,
+        args: Namespace | None = None,
+        **kwargs: Any,
+    ) -> PipelineContext:
+        """
+        Create a PipelineContext with explicit test data.
+
+        This factory allows testing pipeline functions without
+        requiring GlobalCache to be loaded.
+        """
+        test_data: dict[str, Any] = {}
+
+        if cards_lf is not None:
+            test_data["_cards_lf"] = cards_lf
+        if sets_lf is not None:
+            test_data["_sets_lf"] = sets_lf
+        if raw_rulings_lf is not None:
+            test_data["_raw_rulings_lf"] = raw_rulings_lf
+        if uuid_cache_lf is not None:
+            test_data["_uuid_cache_lf"] = uuid_cache_lf
+        if card_kingdom_lf is not None:
+            test_data["_card_kingdom_lf"] = card_kingdom_lf
+        if salt_lf is not None:
+            test_data["_salt_lf"] = salt_lf
+        if orientation_lf is not None:
+            test_data["_orientation_lf"] = orientation_lf
+        if meld_triplets is not None:
+            test_data["_meld_triplets"] = meld_triplets
+        if manual_overrides is not None:
+            test_data["_manual_overrides"] = manual_overrides
+        if foreigndata_exceptions is not None:
+            test_data["_foreigndata_exceptions"] = foreigndata_exceptions
+
+        for key, value in kwargs.items():
+            if key.startswith("_") or not key.endswith("_lf"):
+                test_data[f"_{key}"] = value
+            else:
+                test_data[key] = value
+
+        return cls(
+            _cache=None,
+            _test_data=test_data,
+            args=args,
+            resource_path=resource_path,
+        )
 
     def consolidate_lookups(self) -> PipelineContext:
         """
         Consolidate separate lookup tables into combined tables by join key.
+
+        This is where PipelineContext does actual work - building derived
+        lookups from the raw cached data.
         """
         LOGGER.info("Consolidating lookup tables...")
 
@@ -272,33 +481,31 @@ class PipelineContext:
         """
         Build consolidated identifiers lookup (by scryfallId + side).
         """
-        # Start with uuid_cache as base
-        if self.uuid_cache_df is None:
-            LOGGER.info("  identifiers: No uuid_cache_df, skipping")
+        uuid_cache_raw = self.uuid_cache_df
+        if uuid_cache_raw is None:
+            LOGGER.info("identifiers: No uuid_cache_df, skipping")
             return
 
-        uuid_cache_raw = self.uuid_cache_df
         if isinstance(uuid_cache_raw, pl.LazyFrame):
             uuid_cache: pl.DataFrame = uuid_cache_raw.collect()
         else:
             uuid_cache = uuid_cache_raw
 
         if uuid_cache.height == 0:
-            LOGGER.info("  identifiers: uuid_cache_df is empty, skipping")
+            LOGGER.info("identifiers: uuid_cache_df is empty, skipping")
             return
 
         result: pl.DataFrame = uuid_cache.select(["scryfallId", "side", "cachedUuid"])
-        LOGGER.info(f"  identifiers: +uuid_cache ({result.height:,} rows)")
+        LOGGER.info(f"identifiers: +uuid_cache ({result.height:,} rows)")
 
         # Add Card Kingdom data (by scryfallId only, duplicated for all sides)
-        if self.card_kingdom_df is not None:
-            ck_raw = self.card_kingdom_df
+        ck_raw = self.card_kingdom_df
+        if ck_raw is not None:
             if isinstance(ck_raw, pl.LazyFrame):
                 ck: pl.DataFrame = ck_raw.collect()
             else:
                 ck = ck_raw
             if ck.height > 0:
-                # Rename 'id' to 'scryfallId' for join
                 ck = ck.rename({"id": "scryfallId"}).select(
                     [
                         "scryfallId",
@@ -311,102 +518,33 @@ class PipelineContext:
                     ]
                 )
                 result = result.join(ck, on="scryfallId", how="left")
-                LOGGER.info(f"  identifiers: +card_kingdom ({ck.height:,} rows)")
+                LOGGER.info(f"identifiers: +card_kingdom ({ck.height:,} rows)")
 
         # Add orientation data (by scryfallId only)
-        if self.orientation_df is not None:
-            orient_raw = self.orientation_df
+        orient_raw = self.orientation_df
+        if orient_raw is not None:
             if isinstance(orient_raw, pl.LazyFrame):
                 orient: pl.DataFrame = orient_raw.collect()
             else:
                 orient = orient_raw
             if orient.height > 0:
                 result = result.join(orient, on="scryfallId", how="left")
-                LOGGER.info(f"  identifiers: +orientation ({orient.height:,} rows)")
+                LOGGER.info(f"identifiers: +orientation ({orient.height:,} rows)")
 
         self.identifiers_lf = result.lazy()
         LOGGER.info(
-            f"  identifiers_lf: {result.height:,} rows x {len(result.columns)} cols"
-        )
-
-        # Apply fix for CK data not in uuid_cache
-        self._fix_identifiers_missing_ck()
-
-    def _fix_identifiers_missing_ck(self) -> None:
-        """
-        Fix: Add CK data for scryfallIds not in uuid_cache.
-
-        The original logic only joins CK to scryfallIds already in uuid_cache.
-        This misses new cards (like TLE) that have CK data but no legacy UUID.
-
-        For DFCs, we need entries for BOTH sides since the pipeline joins on
-        (scryfallId, side). Adding both ensures back faces get CK data too.
-        """
-        if self.card_kingdom_df is None or self.identifiers_lf is None:
-            return
-
-        ck_raw = self.card_kingdom_df
-        if isinstance(ck_raw, pl.LazyFrame):
-            ck: pl.DataFrame = ck_raw.collect()
-        else:
-            ck = ck_raw
-
-        if ck.height == 0:
-            return
-
-        # Get current identifiers
-        current = self.identifiers_lf.collect()
-        current_ids = set(current["scryfallId"].to_list())
-
-        # Find CK scryfallIds not in current identifiers
-        ck_ids = set(ck["id"].to_list())
-        missing_ids = ck_ids - current_ids
-
-        if not missing_ids:
-            return
-
-        LOGGER.info(f"  identifiers: +{len(missing_ids)} CK entries not in uuid_cache")
-
-        # Build rows for missing CK data
-        ck_renamed = ck.rename({"id": "scryfallId"})
-        missing_ck = ck_renamed.filter(pl.col("scryfallId").is_in(list(missing_ids)))
-
-        # Add required columns (side, cachedUuid, orientation)
-        # Create entries for BOTH sides to support DFCs (back faces need CK data too)
-        side_a_rows = missing_ck.with_columns(
-            pl.lit("a").alias("side"),
-            pl.lit(None).cast(pl.String).alias("cachedUuid"),
-            pl.lit(None).cast(pl.String).alias("orientation"),
-        )
-        side_b_rows = missing_ck.with_columns(
-            pl.lit("b").alias("side"),
-            pl.lit(None).cast(pl.String).alias("cachedUuid"),
-            pl.lit(None).cast(pl.String).alias("orientation"),
-        )
-
-        # Combine both sides
-        missing_rows = pl.concat([side_a_rows, side_b_rows])
-
-        # Ensure column order matches
-        missing_rows = missing_rows.select(current.columns)
-
-        # Append to current
-        result = pl.concat([current, missing_rows], how="diagonal")
-        self.identifiers_lf = result.lazy()
-        LOGGER.info(
-            f"  identifiers_lf: {result.height:,} rows (after CK fix)"
+            f"identifiers_lf: {result.height:,} rows x {len(result.columns)} cols"
         )
 
     def _build_oracle_data_lookup(self) -> None:
         """
         Build consolidated oracle data lookup (by oracleId).
         """
-
         frames: list[tuple[str, pl.DataFrame]] = []
 
         # Salt data
-        if self.salt_df is not None:
-            salt_raw = self.salt_df
+        salt_raw = self.salt_df
+        if salt_raw is not None:
             if isinstance(salt_raw, pl.LazyFrame):
                 salt: pl.DataFrame = salt_raw.collect()
             else:
@@ -420,17 +558,16 @@ class PipelineContext:
                     ]
                 )
                 frames.append(("salt", salt))
-                LOGGER.info(f"  oracle_data: +salt ({salt.height:,} rows)")
+                LOGGER.info(f"oracle_data: +salt ({salt.height:,} rows)")
 
         # Rulings (aggregate by oracleId into list of structs)
-        if self.raw_rulings_lf is not None:
-            rulings_raw = self.raw_rulings_lf
+        rulings_raw = self.raw_rulings_lf
+        if rulings_raw is not None:
             if isinstance(rulings_raw, pl.LazyFrame):
                 rulings: pl.DataFrame = rulings_raw.collect()
             else:
                 rulings = rulings_raw
             if rulings.height > 0:
-                # Sort by date desc before aggregating
                 rulings_agg = (
                     rulings.sort("publishedAt", descending=True)
                     .group_by("oracleId")
@@ -439,17 +576,16 @@ class PipelineContext:
                     )
                 )
                 frames.append(("rulings", rulings_agg))
-                LOGGER.info(f"  oracle_data: +rulings ({rulings_agg.height:,} rows)")
+                LOGGER.info(f"oracle_data: +rulings ({rulings_agg.height:,} rows)")
 
         # Printings + originalReleaseDate (computed from cards_lf)
-        if self.cards_lf is not None:
-            cards_raw = self.cards_lf
+        cards_raw = self.cards_lf
+        if cards_raw is not None:
             if isinstance(cards_raw, pl.LazyFrame):
                 cards: pl.DataFrame = cards_raw.collect()
             else:
                 cards = cards_raw
 
-            # Compute printings: oracleId -> list of unique setCodes
             printings = (
                 cards.select(["oracleId", "set"])
                 .filter(pl.col("oracleId").is_not_null())
@@ -460,56 +596,55 @@ class PipelineContext:
             )
 
             if printings.height > 0:
-                # Note: originalReleaseDate is NOT computed here - it's set in the pipeline
-                # based on card-specific release dates for promos (Scryfall released_at != set released_at)
                 frames.append(("printings", printings))
                 LOGGER.info(
-                    f"  oracle_data: +printings ({printings.height:,} rows)"
+                    f"oracle_data: +printings ({printings.height:,} rows)"
                 )
 
         if not frames:
-            LOGGER.info("  oracle_data: No data to consolidate")
+            LOGGER.info("oracle_data: No data to consolidate")
             return
 
-        # Join all frames on oracleId
         result: pl.DataFrame = frames[0][1]
         for _name, df in frames[1:]:
             result = result.join(df, on="oracleId", how="full", coalesce=True)
 
         self.oracle_data_lf = result.lazy()
         LOGGER.info(
-            f"  oracle_data_lf: {result.height:,} rows x {len(result.columns)} cols"
+            f"oracle_data_lf: {result.height:,} rows x {len(result.columns)} cols"
         )
 
     def _build_set_number_lookup(self) -> None:
         """
-        Build consolidated setCode+number lookup.
+        If you're reading this function... don't.
+        Just know that it do what it do and it do it good.
+        Builds consolidated lookup by setCode + number...
+        Also aggregates foreign data...
+        Also applies foreign data exceptions...
+        Also generated UUIDs for foreign cards...
+        Also duel-deck stuff...
+        I'm sorry.
         """
         frames: list[tuple[str, pl.DataFrame]] = []
 
         # Foreign data: aggregate non-English cards by set+number
-        if self.cards_lf is not None:
-            cards_raw = self.cards_lf
+        cards_raw = self.cards_lf
+        if cards_raw is not None:
             if isinstance(cards_raw, pl.LazyFrame):
                 cards: pl.DataFrame = cards_raw.collect()
             else:
                 cards = cards_raw
 
             # Build default language card lookup for UUID generation
-            # foreignData UUID uses the DEFAULT language card's scryfallId
-            # For most sets this is English, for foreign-only sets (4BB, BCHR)
-            # it's the primary printed language (Spanish, Japanese, etc.)
-            # Note: Scryfall doesn't have a 'side' field - we use "a" as default
-            if self.default_card_languages is not None:
-                default_lang_df = self.default_card_languages
+            default_card_languages_raw = self.default_card_languages
+            if default_card_languages_raw is not None:
+                default_lang_df = default_card_languages_raw
                 if isinstance(default_lang_df, pl.LazyFrame):
                     default_lang_df = default_lang_df.collect()
 
-                # Join cards to default_card_languages to get only default versions
                 default_lang_lookup = (
                     cards.with_columns([
                         pl.col("set").str.to_uppercase().alias("setCode"),
-                        # Map lang to MTGJSON language format for joining
                         pl.col("lang")
                         .replace_strict(LANGUAGE_MAP, default=pl.col("lang"))
                         .alias("_lang_full"),
@@ -518,7 +653,7 @@ class PipelineContext:
                         default_lang_df,
                         left_on=["id", "_lang_full"],
                         right_on=["scryfallId", "language"],
-                        how="semi",  # Keep only default language versions
+                        how="semi",
                     )
                     .select([
                         "setCode",
@@ -528,7 +663,6 @@ class PipelineContext:
                     ])
                 )
             else:
-                # Fallback: use English lookup if default_card_languages not available
                 default_lang_lookup = (
                     cards.filter(pl.col("lang") == "en")
                     .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
@@ -543,34 +677,28 @@ class PipelineContext:
             # Parse foreignData exceptions
             fd_include: set[tuple[str, str]] = set()
             fd_exclude: set[tuple[str, str]] = set()
-            if self.foreigndata_exceptions:
-                for set_code, numbers in self.foreigndata_exceptions.get("include", {}).items():
+            foreigndata_exceptions = self.foreigndata_exceptions
+            if foreigndata_exceptions:
+                for set_code, numbers in foreigndata_exceptions.get("include", {}).items():
                     if not set_code.startswith("_"):
                         for number in numbers:
                             if not number.startswith("_"):
                                 fd_include.add((set_code, number))
-                for set_code, numbers in self.foreigndata_exceptions.get("exclude", {}).items():
+                for set_code, numbers in foreigndata_exceptions.get("exclude", {}).items():
                     if not set_code.startswith("_"):
                         for number in numbers:
                             if not number.startswith("_"):
                                 fd_exclude.add((set_code, number))
 
-            # Filter to non-English cards and aggregate
-            # foreignData contains all non-English language versions
-            # For foreign-only sets (4BB, BCHR), this includes the primary language
-            # Exclude variant cards (s, d, † suffixes) unless in include exceptions
-            # Note: ★ (star) variants DO have foreignData, so don't exclude them
             foreign_df = (
                 cards.filter(pl.col("lang") != "en")
                 .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
-                # Exclude variant collector numbers ending in s, d, or † (unless in exceptions)
                 .filter(
                     ~pl.col("collectorNumber").str.contains(r"[sd†]$")
                     | pl.struct(["setCode", "collectorNumber"]).is_in(
                         [{"setCode": s, "collectorNumber": n} for s, n in fd_include]
                     )
                 )
-                # Exclude specific cards from exceptions
                 .filter(
                     ~pl.struct(["setCode", "collectorNumber"]).is_in(
                         [{"setCode": s, "collectorNumber": n} for s, n in fd_exclude]
@@ -578,7 +706,6 @@ class PipelineContext:
                     if fd_exclude
                     else pl.lit(True)
                 )
-                # Join with default language lookup to get scryfallId for UUID
                 .join(
                     default_lang_lookup,
                     left_on=["setCode", "collectorNumber"],
@@ -587,14 +714,12 @@ class PipelineContext:
                 )
                 .with_columns(
                     [
-                        # Map language code to full name
                         pl.col("lang")
                         .replace_strict(
                             LANGUAGE_MAP,
                             default=pl.col("lang"),
                         )
                         .alias("language"),
-                        # Build full name from card_faces for multi-face
                         pl.when(pl.col("cardFaces").list.len() > 1)
                         .then(
                             pl.col("cardFaces")
@@ -606,9 +731,8 @@ class PipelineContext:
                             )
                             .list.join(" // ")
                         )
-                        .otherwise(pl.col("printedName"))  # Don't fallback to English name
+                        .otherwise(pl.col("printedName"))
                         .alias("_foreign_name"),
-                        # faceName for multi-face cards
                         pl.when(pl.col("cardFaces").list.len() > 1)
                         .then(
                             pl.coalesce(
@@ -620,7 +744,6 @@ class PipelineContext:
                         )
                         .otherwise(None)
                         .alias("_face_name"),
-                        # flavorText for foreign cards (from card or first face)
                         pl.when(pl.col("cardFaces").list.len() > 1)
                         .then(
                             pl.col("cardFaces")
@@ -629,7 +752,6 @@ class PipelineContext:
                         )
                         .otherwise(pl.col("flavorText"))
                         .alias("_flavor_text"),
-                        # text for foreign cards (from card or first face)
                         pl.when(pl.col("cardFaces").list.len() > 1)
                         .then(
                             pl.col("cardFaces")
@@ -638,7 +760,6 @@ class PipelineContext:
                         )
                         .otherwise(pl.col("printedText"))
                         .alias("_foreign_text"),
-                        # type for foreign cards (from card or first face)
                         pl.when(pl.col("cardFaces").list.len() > 1)
                         .then(
                             pl.col("cardFaces")
@@ -647,8 +768,6 @@ class PipelineContext:
                         )
                         .otherwise(pl.col("printedTypeLine"))
                         .alias("_foreign_type"),
-                        # Generate UUID for foreign data: uuid5(default_lang_scryfallId + side + "_" + language)
-                        # Formula: default_scryfall_id + side + "_" + full_language_name
                         pl.concat_str(
                             [
                                 pl.col("_default_scryfall_id"),
@@ -663,13 +782,9 @@ class PipelineContext:
                         ).alias("_uuid_source"),
                     ]
                 )
-                # Generate UUID5 from the source string
                 .with_columns(
-                    pl.col("_uuid_source")
-                    .map_elements(
-                        lambda x: str(uuid5(_DNS_NAMESPACE, x)) if x else None,
-                        return_dtype=pl.String,
-                    )
+                    pl.col("_uuid_source"),
+                    plh.col("_uuid_source").uuidhash.uuid5(_DNS_NAMESPACE)
                     .alias("_foreign_uuid")
                 )
                 .filter(pl.col("_foreign_name").is_not_null())
@@ -690,7 +805,6 @@ class PipelineContext:
                                 ]
                             ).alias("identifiers"),
                             pl.col("language"),
-                            # multiverseId at top level (deprecated but still present)
                             pl.col("multiverseIds")
                             .list.first()
                             .alias("multiverseId"),
@@ -705,19 +819,18 @@ class PipelineContext:
 
             if foreign_df.height > 0:
                 frames.append(("foreign", foreign_df))
-                LOGGER.info(f"  set_number: +foreign ({foreign_df.height:,} rows)")
+                LOGGER.info(f"set_number: +foreign ({foreign_df.height:,} rows)")
 
         # Duel deck sides from JSON
         duel_deck_df = self._load_duel_deck_sides()
         if duel_deck_df is not None and duel_deck_df.height > 0:
             frames.append(("duel_deck", duel_deck_df))
-            LOGGER.info(f"  set_number: +duel_deck ({duel_deck_df.height:,} rows)")
+            LOGGER.info(f"set_number: +duel_deck ({duel_deck_df.height:,} rows)")
 
         if not frames:
-            LOGGER.info("  set_number: No data to consolidate")
+            LOGGER.info("set_number: No data to consolidate")
             return
 
-        # Join all frames on setCode + number
         result: pl.DataFrame = frames[0][1]
         for _, df in frames[1:]:
             result = result.join(
@@ -726,7 +839,7 @@ class PipelineContext:
 
         self.set_number_lf = result.lazy()
         LOGGER.info(
-            f"  set_number_lf: {result.height:,} rows x {len(result.columns)} cols"
+            f"set_number_lf: {result.height:,} rows x {len(result.columns)} cols"
         )
 
     def _load_duel_deck_sides(self) -> pl.DataFrame | None:
@@ -761,49 +874,49 @@ class PipelineContext:
         frames: list[tuple[str, pl.DataFrame]] = []
 
         # Spellbook data
-        if self.spellbook_df is not None:
-            spellbook_raw = self.spellbook_df
+        spellbook_raw = self.spellbook_df
+        if spellbook_raw is not None:
             if isinstance(spellbook_raw, pl.LazyFrame):
                 spellbook: pl.DataFrame = spellbook_raw.collect()
             else:
                 spellbook = spellbook_raw
             if spellbook.height > 0:
                 frames.append(("spellbook", spellbook))
-                LOGGER.info(f"  name: +spellbook ({spellbook.height:,} rows)")
+                LOGGER.info(f"name: +spellbook ({spellbook.height:,} rows)")
 
         # Meld triplets (convert dict to DataFrame)
-        if self.meld_triplets:
+        meld_triplets = self.meld_triplets
+        if meld_triplets:
             meld_records = [
                 {"name": name, "cardParts": parts}
-                for name, parts in self.meld_triplets.items()
+                for name, parts in meld_triplets.items()
             ]
             meld_df = pl.DataFrame(meld_records)
             frames.append(("meld", meld_df))
-            LOGGER.info(f"  name: +meld ({meld_df.height:,} rows)")
+            LOGGER.info(f"name: +meld ({meld_df.height:,} rows)")
 
         if not frames:
-            LOGGER.info("  name: No data to consolidate")
+            LOGGER.info("name: No data to consolidate")
             return
 
-        # Join all frames on name
         result: pl.DataFrame = frames[0][1]
         for _name, df in frames[1:]:
             result = result.join(df, on="name", how="full", coalesce=True)
 
         self.name_lf = result.lazy()
-        LOGGER.info(f"  name_lf: {result.height:,} rows x {len(result.columns)} cols")
+        LOGGER.info(f"name_lf: {result.height:,} rows x {len(result.columns)} cols")
 
     def _build_signatures_lookup(self) -> None:
         """
         Build signatures lookup (by setCode + numberPrefix).
         """
         if self.resource_path is None:
-            LOGGER.info("  signatures: No resource_path set")
+            LOGGER.info("signatures: No resource_path set")
             return
 
         signatures_path = self.resource_path / "world_championship_signatures.json"
         if not signatures_path.exists():
-            LOGGER.info("  signatures: No signatures file found")
+            LOGGER.info("signatures: No signatures file found")
             return
 
         with signatures_path.open(encoding="utf-8") as f:
@@ -821,13 +934,13 @@ class PipelineContext:
                 )
 
         if not records:
-            LOGGER.info("  signatures: No signature data found")
+            LOGGER.info("signatures: No signature data found")
             return
 
         result = pl.DataFrame(records)
         self.signatures_lf = result.lazy()
         LOGGER.info(
-            f"  signatures_lf: {result.height:,} rows x {len(result.columns)} cols"
+            f"signatures_lf: {result.height:,} rows x {len(result.columns)} cols"
         )
 
     def _load_face_flavor_names(self) -> None:
@@ -838,12 +951,12 @@ class PipelineContext:
         with columns: scryfallId, side, _faceFlavorName, _flavorNameOverride
         """
         if self.resource_path is None:
-            LOGGER.info("  face_flavor_names: No resource_path set")
+            LOGGER.info("face_flavor_names: No resource_path set")
             return
 
         flavor_path = self.resource_path / "face_flavor_names.json"
         if not flavor_path.exists():
-            LOGGER.info("  face_flavor_names: No file found")
+            LOGGER.info("face_flavor_names: No file found")
             return
 
         with flavor_path.open(encoding="utf-8") as f:
@@ -851,7 +964,6 @@ class PipelineContext:
 
         records = []
         for key, data in flavor_data.items():
-            # Key format: "scryfallId_side" (e.g., "64b5818e-..._a")
             if "_" not in key:
                 continue
             scryfall_id, side = key.rsplit("_", 1)
@@ -863,10 +975,10 @@ class PipelineContext:
             })
 
         if not records:
-            LOGGER.info("  face_flavor_names: No data found")
+            LOGGER.info("face_flavor_names: No data found")
             return
 
         self.face_flavor_names_df = pl.DataFrame(records)
         LOGGER.info(
-            f"  face_flavor_names_df: {self.face_flavor_names_df.height:,} rows"
+            f"face_flavor_names_df: {self.face_flavor_names_df.height:,} rows"
         )
