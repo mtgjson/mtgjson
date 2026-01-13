@@ -3497,25 +3497,6 @@ def build_set_metadata_df(
 			pl.DataFrame({"setCode": [], "config": []}).cast({"setCode": pl.String, "config": pl.String}).lazy()
 		)
 
-	translations_by_name: dict[str, dict[str, str | None]] = {}
-	translations_path = constants.RESOURCE_PATH / "mkm_set_name_translations.json"
-	if translations_path.exists():
-		with translations_path.open(encoding="utf-8") as f:
-			raw_translations = json.load(f)
-			for set_name, langs in raw_translations.items():
-				translations_by_name[set_name] = {
-					"Chinese Simplified": langs.get("zhs"),
-					"Chinese Traditional": langs.get("zht"),
-					"French": langs.get("fr"),
-					"German": langs.get("de"),
-					"Italian": langs.get("it"),
-					"Japanese": langs.get("ja"),
-					"Korean": langs.get("ko"),
-					"Portuguese (Brazil)": langs.get("pt"),
-					"Russian": langs.get("ru"),
-					"Spanish": langs.get("es"),
-				}
-
 	mcm_set_map: dict[str, dict[str, Any]] = {}
 	try:
 		cardmarket_provider = CardMarketProvider()
@@ -3619,22 +3600,6 @@ def build_set_metadata_df(
 		else:
 			record["isPartialPreview"] = None
 
-		record["translations"] = translations_by_name.get(
-			set_name,
-			{
-				"Chinese Simplified": None,
-				"Chinese Traditional": None,
-				"French": None,
-				"German": None,
-				"Italian": None,
-				"Japanese": None,
-				"Korean": None,
-				"Portuguese (Brazil)": None,
-				"Russian": None,
-				"Spanish": None,
-			},
-		)
-
 		if record.get("baseSetSize") is None:
 			record["baseSetSize"] = record.get("totalSetSize", 0)
 		if record.get("totalSetSize") is None:
@@ -3670,18 +3635,6 @@ def build_set_metadata_df(
 					"totalSetSize": 0,
 					"keyruneCode": code_upper,
 					"tokenSetCode": f"T{code_upper}",
-					"translations": {
-						"Chinese Simplified": None,
-						"Chinese Traditional": None,
-						"French": None,
-						"German": None,
-						"Italian": None,
-						"Japanese": None,
-						"Korean": None,
-						"Portuguese (Brazil)": None,
-						"Russian": None,
-						"Spanish": None,
-					},
 					"isPartialPreview": None,
 				}
 				set_records.append(new_record)

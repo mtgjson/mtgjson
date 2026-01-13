@@ -179,6 +179,7 @@ class GlobalCache:
         self.set_code_watermarks: dict = {}
         self.standard_legal_sets: set[str] = set()
         self.unlimited_cards: set[str] = set()
+        self.set_translations: dict[str, dict[str, str | None]] = {}
 
         # Categoricals - discovered from scryfall data inspection
         self._categoricals: DynamicCategoricals | None = None
@@ -599,6 +600,24 @@ class GlobalCache:
                         meld_triplets_expanded[name] = triplet
 
         self.meld_triplets = meld_triplets_expanded
+
+        # Load set translations from MKM file
+        # Note: Portuguese (Brazil) is always null in CDN - MKM only has European Portuguese
+        raw_translations = cast(dict, load_resource_json("mkm_set_name_translations.json"))
+        for set_name, langs in raw_translations.items():
+            self.set_translations[set_name] = {
+                "Chinese Simplified": langs.get("zhs"),
+                "Chinese Traditional": langs.get("zht"),
+                "French": langs.get("fr"),
+                "German": langs.get("de"),
+                "Italian": langs.get("it"),
+                "Japanese": langs.get("ja"),
+                "Korean": langs.get("ko"),
+                "Portuguese (Brazil)": None,  # CDN always has null for Portuguese (Brazil)
+                "Russian": langs.get("ru"),
+                "Spanish": langs.get("es"),
+            }
+
         LOGGER.info("Loaded resource files")
 
     def _load_sets_metadata(self) -> None:

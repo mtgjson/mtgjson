@@ -63,6 +63,13 @@ class AssemblyContext:
             set_meta_df = set_meta_df.collect()
         set_meta = {row["code"]: row for row in set_meta_df.to_dicts()}
 
+        # Apply translations from GlobalCache (bypasses Polars struct schema issues)
+        if ctx._cache is not None:
+            translations_by_name = ctx._cache.set_translations
+            for code, meta in set_meta.items():
+                set_name = meta.get("name", "")
+                meta["translations"] = translations_by_name.get(set_name, {})
+
         # Load raw deck data
         LOGGER.info("Loading deck data...")
         decks_df = ctx.decks_lf

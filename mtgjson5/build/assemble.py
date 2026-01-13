@@ -237,8 +237,6 @@ class DeckAssembler:
             "releaseDate": deck_data.get("releaseDate"),
         }
 
-        # Always include sealedProductUuids (CDN has key with null when not set)
-        # Convert empty list to None to match CDN format
         sealed_uuids = deck_data.get("sealedProductUuids")
         result["sealedProductUuids"] = sealed_uuids if sealed_uuids else None
 
@@ -366,14 +364,7 @@ class SetAssembler(Assembler):
         meta = self.get_set_metadata(set_code)
         cards = self.get_cards(set_code)
         tokens = self.get_tokens(set_code)
-
-        # Clean translations (remove None values)
-        translations_raw = meta.get("translations", {})
-        translations = (
-            {k: v for k, v in translations_raw.items() if v is not None}
-            if translations_raw
-            else {}
-        )
+        translations = meta.get("translations", {})
 
         # Base set structure
         set_data: dict[str, Any] = {
@@ -439,14 +430,10 @@ class SetAssembler(Assembler):
                     }
                     if deck.get("releaseDate"):
                         minimal_deck["releaseDate"] = deck["releaseDate"]
-                    # Always include sealedProductUuids (CDN has key with null when not set)
-                    # Convert empty list to None to match CDN format
                     sealed_uuids = deck.get("sealedProductUuids")
                     minimal_deck["sealedProductUuids"] = sealed_uuids if sealed_uuids else None
-                    # sourceSetCodes
                     if deck.get("sourceSetCodes"):
                         minimal_deck["sourceSetCodes"] = deck["sourceSetCodes"]
-                    # Card boards (required) - only include isEtched when true
                     for board in ["mainBoard", "sideBoard", "commander"]:
                         cards_list = deck.get(board)
                         if cards_list:
@@ -528,14 +515,7 @@ class SetListAssembler(Assembler):
         meta = self.get_set_metadata(set_code)
         df = self.load_set_cards(set_code)
         card_count = len(df) if not df.is_empty() else 0
-
-        # Clean translations (remove None values)
-        translations_raw = meta.get("translations", {})
-        translations = (
-            {k: v for k, v in translations_raw.items() if v is not None}
-            if translations_raw
-            else {}
-        )
+        translations = meta.get("translations", {})
 
         return {
             "baseSetSize": meta.get("baseSetSize") or card_count,
