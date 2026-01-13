@@ -180,6 +180,9 @@ class GlobalCache:
         self.standard_legal_sets: set[str] = set()
         self.unlimited_cards: set[str] = set()
         self.set_translations: dict[str, dict[str, str | None]] = {}
+        self.tcgplayer_set_id_overrides: dict[str, int] = {}
+        self.keyrune_code_overrides: dict[str, str] = {}
+        self.base_set_sizes: dict[str, int] = {}
 
         # Categoricals - discovered from scryfall data inspection
         self._categoricals: DynamicCategoricals | None = None
@@ -601,8 +604,6 @@ class GlobalCache:
 
         self.meld_triplets = meld_triplets_expanded
 
-        # Load set translations from MKM file
-        # Note: Portuguese (Brazil) is always null in CDN - MKM only has European Portuguese
         raw_translations = cast(dict, load_resource_json("mkm_set_name_translations.json"))
         for set_name, langs in raw_translations.items():
             self.set_translations[set_name] = {
@@ -613,10 +614,18 @@ class GlobalCache:
                 "Italian": langs.get("it"),
                 "Japanese": langs.get("ja"),
                 "Korean": langs.get("ko"),
-                "Portuguese (Brazil)": None,  # CDN always has null for Portuguese (Brazil)
+                "Portuguese (Brazil)": None,
                 "Russian": langs.get("ru"),
                 "Spanish": langs.get("es"),
             }
+
+        self.tcgplayer_set_id_overrides = cast(
+            dict, load_resource_json("tcgplayer_set_id_overrides.json")
+        )
+
+        self.keyrune_code_overrides = cast(
+            dict, load_resource_json("keyrune_code_overrides.json")
+        )
 
         LOGGER.info("Loaded resource files")
 

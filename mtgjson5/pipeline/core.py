@@ -3550,22 +3550,10 @@ def build_set_metadata_df(
 	if "iconSvgUri" in available_cols:
 		base_exprs.append(pl.col("iconSvgUri").str.extract(r"/([^/]+)\.svg", 1).str.to_uppercase().alias("keyruneCode"))
 
+	# Use tokenSetCode from Scryfall join (null if no token set exists)
+	# Overrides are applied in context.py for sets needing specific values
 	if "tokenSetCode" in available_cols:
-		base_exprs.append(
-			pl.coalesce(
-				pl.col("tokenSetCode"),
-				pl.when(pl.col("code").str.starts_with("T"))
-				.then(pl.col("code").str.to_uppercase())
-				.otherwise(pl.lit("T") + pl.col("code").str.to_uppercase()),
-			).alias("tokenSetCode")
-		)
-	else:
-		base_exprs.append(
-			pl.when(pl.col("code").str.starts_with("T"))
-			.then(pl.col("code").str.to_uppercase())
-			.otherwise(pl.lit("T") + pl.col("code").str.to_uppercase())
-			.alias("tokenSetCode")
-		)
+		base_exprs.append(pl.col("tokenSetCode").alias("tokenSetCode"))
 
 	set_meta = sets_lf.with_columns(base_exprs)
 
@@ -3634,7 +3622,7 @@ def build_set_metadata_df(
 					"baseSetSize": 0,
 					"totalSetSize": 0,
 					"keyruneCode": code_upper,
-					"tokenSetCode": f"T{code_upper}",
+					"tokenSetCode": None,
 					"isPartialPreview": None,
 				}
 				set_records.append(new_record)

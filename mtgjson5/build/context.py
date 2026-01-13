@@ -63,12 +63,42 @@ class AssemblyContext:
             set_meta_df = set_meta_df.collect()
         set_meta = {row["code"]: row for row in set_meta_df.to_dicts()}
 
-        # Apply translations from GlobalCache (bypasses Polars struct schema issues)
+        # Apply translations, tcgplayerGroupId, and keyruneCode overrides from GlobalCache
         if ctx._cache is not None:
             translations_by_name = ctx._cache.set_translations
+            tcg_overrides = ctx._cache.tcgplayer_set_id_overrides
+            keyrune_overrides = ctx._cache.keyrune_code_overrides
             for code, meta in set_meta.items():
                 set_name = meta.get("name", "")
                 meta["translations"] = translations_by_name.get(set_name, {})
+                # Apply TCGPlayer group ID override if exists
+                if code in tcg_overrides:
+                    meta["tcgplayerGroupId"] = tcg_overrides[code]
+                # Apply keyrune code override if exists (STAR→PMEI, DCI→PARL, etc.)
+                raw_keyrune = meta.get("keyruneCode", "")
+                if raw_keyrune in keyrune_overrides:
+                    meta["keyruneCode"] = keyrune_overrides[raw_keyrune]
+
+        # Derive tokenSetCode from actual token parquet directories and set metadata
+        # Legacy logic: tokenSetCode = first token's setCode if tokens exist
+        for code, meta in set_meta.items():
+            set_type = meta.get("type", "")
+            parent_code = meta.get("parentCode")
+            # Substitute card sets (S-prefix like SKHM) and foil sets (F-prefix like FBRO)
+            # that have parent codes get tokenSetCode = their own code
+            # These sets have tokens embedded within themselves
+            if parent_code and (code.startswith("S") or code.startswith("F")) and set_type in ("token", "memorabilia"):
+                meta["tokenSetCode"] = code
+            else:
+                # Check candidate paths in order: T+code, code itself
+                t_code_path = tokens_dir / f"setCode=T{code}"
+                code_path = tokens_dir / f"setCode={code}"
+                if t_code_path.exists():
+                    meta["tokenSetCode"] = f"T{code}"
+                elif code_path.exists():
+                    meta["tokenSetCode"] = code
+                else:
+                    meta["tokenSetCode"] = None
 
         # Load raw deck data
         LOGGER.info("Loading deck data...")
