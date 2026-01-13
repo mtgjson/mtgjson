@@ -1,3 +1,5 @@
+"""Scryfall provider for detecting card orientation in Art Series sets."""
+
 from typing import Dict, List, Optional, Union
 
 import bs4
@@ -9,6 +11,8 @@ from ...providers.scryfall import sf_utils
 
 @singleton
 class ScryfallProviderOrientationDetector(AbstractProvider):
+    """Provider to detect card orientation (landscape/portrait) from Scryfall set pages."""
+
     MAIN_PAGE_URL: str = "https://scryfall.com/sets/{}"
 
     def __init__(self) -> None:
@@ -18,6 +22,7 @@ class ScryfallProviderOrientationDetector(AbstractProvider):
         return sf_utils.build_http_header()
 
     def get_uuid_to_orientation_map(self, set_code: str) -> Dict[str, str]:
+        """Build a mapping of Scryfall card IDs to their orientation for a set."""
         response = self.download(self.MAIN_PAGE_URL.format(set_code))
 
         soup = bs4.BeautifulSoup(response, "html.parser")
@@ -26,7 +31,7 @@ class ScryfallProviderOrientationDetector(AbstractProvider):
             "div", class_="card-grid-inner"
         )
 
-        return_map = dict()
+        return_map = {}
         for orientation_header, scryfall_card_entries in zip(
             orientation_headers, scryfall_card_entries_by_orientation
         ):

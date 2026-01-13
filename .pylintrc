@@ -2,6 +2,9 @@
 # Pickle collected data for later comparisons.
 persistent=yes
 
+# Allow C-extension modules to be introspected
+extension-pkg-allow-list=orjson,numpy,aiohttp
+
 [MESSAGES CONTROL]
 # Disable the message, report, category or checker with the given id(s). You
 # can either give multiple identifiers separated by comma (,) or put this
@@ -19,6 +22,7 @@ disable=
     line-too-long,
     logging-format-interpolation,
     logging-fstring-interpolation,
+    no-name-in-module,
     too-few-public-methods,
     too-many-arguments,
     too-many-branches,
@@ -26,6 +30,7 @@ disable=
     too-many-lines,
     too-many-locals,
     too-many-nested-blocks,
+    too-many-public-methods,
     too-many-return-statements,
     too-many-statements,
     unsubscriptable-object,
