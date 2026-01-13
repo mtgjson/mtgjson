@@ -3245,6 +3245,17 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 	if not isinstance(contents_lf, pl.LazyFrame):
 		contents_lf = contents_lf.lazy()
 
+	ck_sealed_urls_lf: pl.LazyFrame | None = None
+	if ctx.card_kingdom_raw_lf is not None:
+		ck_raw = ctx.card_kingdom_raw_lf
+		ck_sealed_urls_lf = (
+			ck_raw.filter(pl.col("scryfall_id").is_null())
+			.select([
+				pl.col("id").cast(pl.String).alias("_ck_id"),
+				pl.col("url").alias("_ck_url"),
+			])
+		)
+
 	# Aggregate contents by product and content_type
 	# Each content type becomes a list of structs
 	card_contents = (
@@ -3345,6 +3356,17 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 
 	result = result.with_columns(_uuid5_expr("productName").alias("uuid"))
 
+	# Join CK sealed URLs by cardKingdomId if available
+	if ck_sealed_urls_lf is not None:
+		result = result.with_columns(
+			pl.col("identifiers").struct.field("cardKingdomId").alias("_ck_join_id")
+		).join(
+			ck_sealed_urls_lf,
+			left_on="_ck_join_id",
+			right_on="_ck_id",
+			how="left",
+		).drop("_ck_join_id")
+
 	base_url = "https://mtgjson.com/links/"
 
 	# Build URL hash columns for each provider
@@ -3359,32 +3381,46 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 	has_release_date_snake = "release_date" in result_cols
 	has_card_count = "cardCount" in result_cols
 	has_language = "language" in result_cols
+	has_ck_url = "_ck_url" in result_cols
 
 	if "identifiers" in result_cols:
 		id_schema = result_schema.get("identifiers")
 		if isinstance(id_schema, pl.Struct):
 			id_fields = {f.name for f in id_schema.fields}
 
-			# Card Kingdom
-			if "cardKingdomId" in id_fields:
+			# Card Kingdom - hash seed is the full raw URL (base + path + referral)
+			if "cardKingdomId" in id_fields and has_ck_url:
+				ck_base = "https://www.cardkingdom.com/"
+				ck_referral = "?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson"
 				result = result.with_columns(
-					plh.concat_str([pl.col("uuid"), pl.lit("cardKingdom")])
+					plh.concat_str([
+						pl.lit(ck_base),
+						pl.col("_ck_url"),
+						pl.lit(ck_referral),
+					])
 					.chash.sha2_256()
 					.str.slice(0, 16)
 					.alias("_ck_hash")
 				)
 				hash_cols_added.append("_ck_hash")
+				hash_cols_added.append("_ck_url")
 				purchase_url_fields.append(
-					pl.when(pl.col("identifiers").struct.field("cardKingdomId").is_not_null())
+					pl.when(
+						pl.col("identifiers").struct.field("cardKingdomId").is_not_null()
+						& pl.col("_ck_hash").is_not_null()
+					)
 					.then(pl.lit(base_url) + pl.col("_ck_hash"))
 					.otherwise(None)
 					.alias("cardKingdom")
 				)
 
-			# TCGPlayer
+			# TCGPlayer - hash seed is tcgplayerProductId + uuid
 			if "tcgplayerProductId" in id_fields:
 				result = result.with_columns(
-					plh.concat_str([pl.col("uuid"), pl.lit("tcgplayer")])
+					plh.concat_str([
+						pl.col("identifiers").struct.field("tcgplayerProductId"),
+						pl.col("uuid"),
+					])
 					.chash.sha2_256()
 					.str.slice(0, 16)
 					.alias("_tcg_hash")
