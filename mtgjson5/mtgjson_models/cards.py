@@ -98,9 +98,10 @@ class CardBase(PolarsMixin, BaseModel):
 		sort_keys: bool = True,
 		sort_lists: bool = True,
 		exclude_none: bool = False,
+		keep_empty_lists: bool = False,
 	) -> dict[str, Any]:
 		"""Convert to dict, preserving WUBRG color order for split/adventure layouts."""
-		result = super().to_polars_dict(use_alias, sort_keys, sort_lists, exclude_none)
+		result = super().to_polars_dict(use_alias, sort_keys, sort_lists, exclude_none, keep_empty_lists)
 
 		# Split and adventure layouts use WUBRG order for colors only (not colorIdentity)
 		if self.layout in _WUBRG_COLOR_LAYOUTS:
@@ -325,15 +326,7 @@ class CardDeck(CardPrintingFull):
 	# Override source_products type to use SourceProducts struct instead of list[str]
 	source_products: SourceProducts | None = Field(default=None, alias="sourceProducts")  # type: ignore
 
-	# Exclude fields not needed in deck card output
-	booster_types: list[str] | None = Field(default=None, alias="boosterTypes", exclude=True)
-	other_face_ids: list[str] | None = Field(default=None, alias="otherFaceIds", exclude=True)
-	frame_effects: list[str] | None = Field(default=None, alias="frameEffects", exclude=True)
-	promo_types: list[str] | None = Field(default=None, alias="promoTypes", exclude=True)
-	rulings: list[Rulings] | None = Field(default=None, exclude=True)
-	variations: list[str] | None = Field(default=None, exclude=True)
-	is_starter: bool | None = Field(default=None, alias="isStarter", exclude=True)
-	keywords: list[str] | None = Field(default=None, exclude=True)
+	# Include all fields to match CDN deck card output
 	original_release_date: str | None = Field(default=None, alias="originalReleaseDate")
 
 

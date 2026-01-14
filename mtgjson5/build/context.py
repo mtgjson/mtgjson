@@ -71,7 +71,9 @@ class AssemblyContext:
             base_set_sizes = ctx._cache.base_set_sizes
             for code, meta in set_meta.items():
                 set_name = meta.get("name", "")
-                meta["translations"] = translations_by_name.get(set_name, {})
+                # Include None values in translations to match CDN output format
+                raw_translations = translations_by_name.get(set_name, {})
+                meta["translations"] = raw_translations if raw_translations else {}
                 # Apply TCGPlayer group ID override if exists
                 if code in tcg_overrides:
                     meta["tcgplayerGroupId"] = tcg_overrides[code]

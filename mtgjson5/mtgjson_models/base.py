@@ -129,9 +129,15 @@ class PolarsMixin:
 		sort_keys: bool = True,
 		sort_lists: bool = True,
 		exclude_none: bool = False,
+		keep_empty_lists: bool = False,
 	) -> dict[str, Any]:
-		"""Convert instance to dict suitable for Polars."""
-		return self._to_dict_recursive(self, use_alias, sort_keys, sort_lists, exclude_none)
+		"""Convert instance to dict suitable for Polars.
+
+		Args:
+			keep_empty_lists: If True, include empty lists even when exclude_none=True.
+			                  Used for deck cards where CDN includes empty arrays.
+		"""
+		return self._to_dict_recursive(self, use_alias, sort_keys, sort_lists, exclude_none, keep_empty_lists)
 
 	@classmethod
 	def _to_dict_recursive(
@@ -141,6 +147,7 @@ class PolarsMixin:
 		sort_keys: bool,
 		sort_lists: bool,
 		exclude_none: bool,
+		keep_empty_lists: bool = False,
 	) -> dict[str, Any]:
 		"""Recursively convert model to dict."""
 		result = {}
@@ -166,7 +173,7 @@ class PolarsMixin:
 				continue
 
 			if isinstance(value, BaseModel):
-				nested = cls._to_dict_recursive(value, use_alias, sort_keys, sort_lists, exclude_none)
+				nested = cls._to_dict_recursive(value, use_alias, sort_keys, sort_lists, exclude_none, keep_empty_lists)
 				if nested or field_name in cls._allow_if_falsey or not exclude_none:
 					result[key] = nested
 			elif isinstance(value, dict):
@@ -177,11 +184,12 @@ class PolarsMixin:
 					result[key] = dict(sorted(value.items())) if sort_keys else value
 			elif isinstance(value, list):
 				# Omit empty lists for fields in OMIT_EMPTY_LIST_FIELDS when exclude_none=True
-				if not value and exclude_none and key in OMIT_EMPTY_LIST_FIELDS:
+				# Unless keep_empty_lists is True (used for deck cards where CDN includes empty arrays)
+				if not value and exclude_none and key in OMIT_EMPTY_LIST_FIELDS and not keep_empty_lists:
 					continue
 				if value and isinstance(value[0], BaseModel):
 					result[key] = [
-						cls._to_dict_recursive(v, use_alias, sort_keys, sort_lists, exclude_none) for v in value
+						cls._to_dict_recursive(v, use_alias, sort_keys, sort_lists, exclude_none, keep_empty_lists) for v in value
 					]
 				elif value and isinstance(value[0], dict):
 					sorted_list = [dict(sorted(v.items())) for v in value] if sort_keys else list(value)

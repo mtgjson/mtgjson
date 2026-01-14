@@ -156,22 +156,22 @@ class Meta(TypedDict):
 class Translations(TypedDict, total=False):
 	"""Set name translations by language."""
 
-	AncientGreek: str
-	Arabic: str
-	ChineseSimplified: str
-	ChineseTraditional: str
-	French: str
-	German: str
-	Hebrew: str
-	Italian: str
-	Japanese: str
-	Korean: str
-	Latin: str
-	Phyrexian: str
-	PortugueseBrazil: str
-	Russian: str
-	Sanskrit: str
-	Spanish: str
+	AncientGreek: str | None
+	Arabic: str | None
+	ChineseSimplified: str | None
+	ChineseTraditional: str | None
+	French: str | None
+	German: str | None
+	Hebrew: str | None
+	Italian: str | None
+	Japanese: str | None
+	Korean: str | None
+	Latin: str | None
+	Phyrexian: str | None
+	PortugueseBrazil: str | None
+	Russian: str | None
+	Sanskrit: str | None
+	Spanish: str | None
 
 
 class TcgplayerSkus(TypedDict):

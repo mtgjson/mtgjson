@@ -3458,7 +3458,8 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 
 	# Remove subtype/category for certain values to match CDN output
 	# CDN doesn't include these fields for MTGO redemption products or secret_lair_drop
-	exclude_subtypes = ["redemption", "secret_lair_drop"]
+	# Note: source data uses uppercase, we check lowercase after conversion
+	exclude_subtypes = ["REDEMPTION", "SECRET_LAIR_DROP"]
 	result = result.with_columns(
 		pl.when(pl.col("subtype").is_in(exclude_subtypes))
 		.then(pl.lit(None).cast(pl.String))
