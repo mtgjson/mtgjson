@@ -619,7 +619,6 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 
 	face_name = face_field("name")
 	ascii_face_name = _ascii_name_expr(face_name)
-	# CDN uses full name (with "//") for asciiName value, but condition is based on face
 	ascii_full_name = _ascii_name_expr(pl.col("name"))
 	return (
 		lf.rename(
@@ -1337,14 +1336,7 @@ def add_identifiers_v4_uuid(lf: pl.LazyFrame) -> pl.LazyFrame:
 def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
 	"""
 	Link multi-face cards via Scryfall ID or name (for meld cards).
-
-	Legacy behavior: tokens with all_parts don't get otherFaceIds because:
-	1. Names is cleared when all_parts exists
-	2. The all_parts loop skips "token" components
-	3. So names stays None, and add_other_face_ids doesn't link them
 	"""
-	# CDN orders otherFaceIds by side (a, b, c, d, e), so sort by side before aggregating
-	# Use struct to preserve order while filtering (set_difference reorders elements)
 	face_links = (
 		lf.select(["scryfallId", "uuid", "side"])
 		.with_columns(pl.struct(["uuid", "side"]).alias("_face_struct"))
@@ -1613,18 +1605,13 @@ def add_leadership_skills_expr(
 def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
 	"""
 	Compute reverseRelated for tokens from all_parts.
-
-	For tokens, this lists the names of cards that create/reference this token.
-	Tokens without all_parts get an empty array (CDN behavior).
 	"""
-	# Extract names from all_parts where name differs from card name
-	# all_parts is List[Struct{name, ...}]
 	return lf.with_columns(
 		pl.col("_all_parts")
 		.list.eval(pl.element().struct.field("name"))
 		.list.set_difference(pl.col("name").cast(pl.List(pl.String)))
 		.list.sort()
-		.fill_null([])  # Tokens without all_parts get empty array
+		.fill_null([])
 		.alias("reverseRelated")
 	).drop("_all_parts")
 
@@ -1901,8 +1888,6 @@ def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyF
 		.agg(pl.col("uuid").alias("_rebalanced_uuids"))  # Preserve order from sort
 	)
 
-	# Build original name -> original UUIDs mapping (per set, default language only)
-	# CDN orders by collector number numerically first, then side (grouping sides together)
 	original_map = (
 		default_lang_lf.filter(~is_rebalanced)
 		.select(
@@ -1910,8 +1895,7 @@ def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyF
 				pl.col("setCode"),
 				pl.col("name").alias("_original_name"),
 				pl.col("uuid"),
-				pl.col("number"),  # Include number for ordering
-				# Extract numeric portion for proper numeric sort (e.g., "302" < "40" as strings but 40 < 302 as ints)
+				pl.col("number"),
 				pl.col("number").str.extract(r"(\d+)").cast(pl.Int64).alias("_number_int"),
 				pl.col("side").fill_null(""),  # Include side for ordering
 			]
@@ -2147,24 +2131,17 @@ def rename_all_the_things(lf: pl.LazyFrame, output_type: str = "card_set") -> pl
 		"cmc": "convertedManaCost",
 	}
 
-	# Build rename map: snake_case columns -> camelCase using to_camel_case utility
-	# Most columns are already camelCase from Scryfall, but internal columns use snake_case
 	schema = lf.collect_schema()
 	rename_map = {}
 	for col in schema.names():
 		if col in special_renames:
 			rename_map[col] = special_renames[col]
 		elif "_" in col:
-			# Convert snake_case to camelCase
 			rename_map[col] = to_camel_case(col)
-		# Otherwise, keep as-is (already camelCase or single word)
-
-	# We use strict=False because some source cols might be missing in specific batches
+	
 	if rename_map:
 		lf = lf.rename(rename_map, strict=False)
 
-	# For non-multiface cards, these should be null (omitted from output)
-	# CDN only includes faceManaValue for these layouts (not flip or reversible_card)
 	multiface_layouts = [
 		"split",
 		"aftermath",
@@ -3456,22 +3433,17 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 
 	result = result.with_columns(_uuid5_expr("productName").alias("uuid"))
 
-	# Remove subtype/category for certain values to match CDN output
-	# CDN doesn't include these fields for MTGO redemption products or secret_lair_drop
-	# Note: source data uses uppercase, we check lowercase after conversion
-	exclude_subtypes = ["REDEMPTION", "SECRET_LAIR_DROP"]
 	result = result.with_columns(
-		pl.when(pl.col("subtype").is_in(exclude_subtypes))
+		pl.when(pl.col("subtype").is_in(["REDEMPTION", "SECRET_LAIR_DROP"]))
 		.then(pl.lit(None).cast(pl.String))
 		.otherwise(pl.col("subtype"))
 		.alias("subtype"),
-		pl.when(pl.col("subtype").is_in(exclude_subtypes))
+		pl.when(pl.col("subtype") == "SECRET_LAIR_DROP")
 		.then(pl.lit(None).cast(pl.String))
 		.otherwise(pl.col("category"))
 		.alias("category"),
 	)
 
-	# Join CK sealed URLs by cardKingdomId if available
 	if ck_sealed_urls_lf is not None:
 		result = result.with_columns(
 			pl.col("identifiers").struct.field("cardKingdomId").alias("_ck_join_id")
@@ -3484,14 +3456,12 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 
 	base_url = "https://mtgjson.com/links/"
 
-	# Build URL hash columns for each provider
 	purchase_url_fields = []
 	hash_cols_added: list[str] = []  # Track hash columns to avoid extra schema call
 
-	# Check if identifiers column exists and extract provider IDs
 	result_schema = result.collect_schema()
 	result_cols = result_schema.names()
-	# Cache optional column checks now to avoid schema call later
+	
 	has_release_date = "releaseDate" in result_cols
 	has_release_date_snake = "release_date" in result_cols
 	has_card_count = "cardCount" in result_cols
@@ -3503,7 +3473,6 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 		if isinstance(id_schema, pl.Struct):
 			id_fields = {f.name for f in id_schema.fields}
 
-			# Card Kingdom - hash seed is the full raw URL (base + path + referral)
 			if "cardKingdomId" in id_fields and has_ck_url:
 				ck_base = "https://www.cardkingdom.com/"
 				ck_referral = "?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson"
@@ -3529,7 +3498,6 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 					.alias("cardKingdom")
 				)
 
-			# TCGPlayer - hash seed is tcgplayerProductId + uuid
 			if "tcgplayerProductId" in id_fields:
 				result = result.with_columns(
 					plh.concat_str([
@@ -3548,14 +3516,11 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 					.alias("tcgplayer")
 				)
 
-	# Build purchaseUrls struct if we have any fields
 	if purchase_url_fields:
 		result = result.with_columns(pl.struct(purchase_url_fields).alias("purchaseUrls"))
-		# Drop temporary hash columns
 		if hash_cols_added:
 			result = result.drop(hash_cols_added, strict=False)
 	else:
-		# Add empty purchaseUrls struct
 		result = result.with_columns(pl.struct([]).alias("purchaseUrls"))
 
 	select_cols = [

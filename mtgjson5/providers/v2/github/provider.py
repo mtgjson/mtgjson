@@ -65,7 +65,6 @@ def _build_card_to_products_records(data: dict) -> list[dict]:
     ]
 
 
-# Mappings to match CDN output for sealed product category/subtype values
 _SUBTYPE_REMAP = {
     "prerelease": "prerelease_kit",
     "starter": "starter_deck",
@@ -94,12 +93,11 @@ def _build_sealed_products_records(data: dict) -> list[dict]:
             if not isinstance(info, dict):
                 continue
             record = {"setCode": set_code.upper(), "productName": name, **info}
-            # Remap subtype/category to match CDN output (check lowercase for mapping)
-            if "subtype" in record and record["subtype"]:
+            if record.get("subtype"):
                 subtype_lower = record["subtype"].lower()
                 if subtype_lower in _SUBTYPE_REMAP:
                     record["subtype"] = _SUBTYPE_REMAP[subtype_lower]
-            if "category" in record and record["category"]:
+            if record.get("category"):
                 category_lower = record["category"].lower()
                 if category_lower in _CATEGORY_REMAP:
                     record["category"] = _CATEGORY_REMAP[category_lower]
@@ -352,7 +350,7 @@ class SealedDataProvider:
 
         for schema_key, log_label, builder_func, raw_keys in builders:
             args = [raw.get(k, {}) for k in raw_keys]
-            records = builder_func(*args) if len(args) == 1 else builder_func(*args)
+            records = builder_func(*args)
             lf = _to_lazyframe(records, schema_key, log_label)
             setattr(self, f"{schema_key}_df", lf)
 

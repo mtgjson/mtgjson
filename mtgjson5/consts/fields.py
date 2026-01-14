@@ -125,8 +125,6 @@ EXCLUDE_FROM_OUTPUT: Final[frozenset[str]] = frozenset()
 # Combined set of all fields to potentially omit
 OMIT_FIELDS: Final[frozenset[str]] = OPTIONAL_BOOL_FIELDS | OMIT_EMPTY_LIST_FIELDS | OTHER_OPTIONAL_FIELDS
 
-
-
 # List of fields that should always be included even if they are falsey
 ALLOW_IF_FALSEY: Final[frozenset[str]] = frozenset({
 	"uuid",

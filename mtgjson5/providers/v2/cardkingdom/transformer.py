@@ -106,17 +106,14 @@ class CardKingdomTransformer:
 
         Cards without scryfall_id are excluded.
         """
-        # Add derived columns for foil/etched detection
         df_with_flags = CardKingdomTransformer.add_derived_columns(df)
 
-        # Sort by id to ensure deterministic selection - CDN uses highest CK ID
         return (
             df_with_flags.filter(pl.col("scryfall_id").is_not_null())
-            .sort("id")  # Sort ascending, then use .last() to get highest ID
+            .sort("id")
             .group_by("scryfall_id")
             .agg(
                 [
-                    # Non-foil (not foil AND not etched) - use .last() for highest ID
                     pl.col("id")
                     .filter(~pl.col("is_foil_bool") & ~pl.col("is_etched"))
                     .last()
@@ -126,7 +123,6 @@ class CardKingdomTransformer:
                     .filter(~pl.col("is_foil_bool") & ~pl.col("is_etched"))
                     .last()
                     .alias("cardKingdomUrl"),
-                    # Foil (foil but not etched)
                     pl.col("id")
                     .filter(pl.col("is_foil_bool") & ~pl.col("is_etched"))
                     .last()
@@ -136,7 +132,6 @@ class CardKingdomTransformer:
                     .filter(pl.col("is_foil_bool") & ~pl.col("is_etched"))
                     .last()
                     .alias("cardKingdomFoilUrl"),
-                    # Etched
                     pl.col("id")
                     .filter(pl.col("is_etched"))
                     .last()

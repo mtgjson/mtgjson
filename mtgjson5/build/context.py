@@ -63,7 +63,6 @@ class AssemblyContext:
             set_meta_df = set_meta_df.collect()
         set_meta = {row["code"]: row for row in set_meta_df.to_dicts()}
 
-        # Apply translations, tcgplayerGroupId, keyruneCode, and baseSetSize overrides from GlobalCache
         if ctx._cache is not None:
             translations_by_name = ctx._cache.set_translations
             tcg_overrides = ctx._cache.tcgplayer_set_id_overrides
@@ -71,45 +70,32 @@ class AssemblyContext:
             base_set_sizes = ctx._cache.base_set_sizes
             for code, meta in set_meta.items():
                 set_name = meta.get("name", "")
-                # Include None values in translations to match CDN output format
                 raw_translations = translations_by_name.get(set_name, {})
                 meta["translations"] = raw_translations if raw_translations else {}
-                # Apply TCGPlayer group ID override if exists
                 if code in tcg_overrides:
                     meta["tcgplayerGroupId"] = tcg_overrides[code]
-                # Apply keyrune code override if exists (STAR→PMEI, DCI→PARL, etc.)
                 raw_keyrune = meta.get("keyruneCode", "")
                 if raw_keyrune in keyrune_overrides:
                     meta["keyruneCode"] = keyrune_overrides[raw_keyrune]
-                # Apply baseSetSize override if exists
                 if code in base_set_sizes:
                     meta["baseSetSize"] = base_set_sizes[code]
 
-        # Calculate totalSetSize from actual card counts per set (excluding rebalanced)
-        # This matches legacy behavior: sum(1 for card if not is_rebalanced)
         for code, meta in set_meta.items():
             card_path = parquet_dir / f"setCode={code}"
             if card_path.exists():
                 card_df = pl.read_parquet(card_path / "*.parquet")
-                # Count non-rebalanced cards (legacy: not getattr(card, "is_rebalanced", False))
                 if "isRebalanced" in card_df.columns:
                     total = card_df.filter(~pl.col("isRebalanced").fill_null(False)).height
                 else:
                     total = card_df.height
                 meta["totalSetSize"] = total
 
-        # Derive tokenSetCode from actual token parquet directories and set metadata
-        # Legacy logic: tokenSetCode = first token's setCode if tokens exist
         for code, meta in set_meta.items():
             set_type = meta.get("type", "")
             parent_code = meta.get("parentCode")
-            # Substitute card sets (S-prefix like SKHM) and foil sets (F-prefix like FBRO)
-            # that have parent codes get tokenSetCode = their own code
-            # These sets have tokens embedded within themselves
             if parent_code and (code.startswith("S") or code.startswith("F")) and set_type in ("token", "memorabilia"):
                 meta["tokenSetCode"] = code
             else:
-                # Check candidate paths in order: T+code, code itself
                 t_code_path = tokens_dir / f"setCode=T{code}"
                 code_path = tokens_dir / f"setCode={code}"
                 if t_code_path.exists():
@@ -119,19 +105,16 @@ class AssemblyContext:
                 else:
                     meta["tokenSetCode"] = None
 
-        # Load raw deck data
         LOGGER.info("Loading deck data...")
         decks_df = ctx.decks_lf
         if decks_df is not None and isinstance(decks_df, pl.LazyFrame):
             decks_df = decks_df.collect()
 
-        # Build sealed products
         LOGGER.info("Loading sealed products...")
         sealed_df = build_sealed_products_lf(ctx)
         if isinstance(sealed_df, pl.LazyFrame):
             sealed_df = sealed_df.collect()
 
-        # Parse booster configs from JSON strings in metadata
         booster_configs: dict[str, dict] = {}
         for code, meta in set_meta.items():
             booster_raw = meta.get("booster")
@@ -141,7 +124,6 @@ class AssemblyContext:
             elif isinstance(booster_raw, dict):
                 booster_configs[code] = booster_raw
 
-        # Create meta dict
         meta_obj = MtgjsonMetaObject()
         meta_dict = {"date": meta_obj.date, "version": meta_obj.version}
 

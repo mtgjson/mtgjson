@@ -30,19 +30,11 @@ if TYPE_CHECKING:
 	from polars import DataFrame
 
 
-# =============================================================================
-# Sealed Product Model
-# =============================================================================
-
-
 class SealedProduct(PolarsMixin, BaseModel):
 	"""Sealed product (booster box, bundle, etc.)."""
 
 	model_config = {"populate_by_name": True}
 
-	# Override to exclude 'language' from required fields
-	# SealedProduct only includes language for non-English products
-	# Always include 'identifiers' even when empty {} (CDN behavior)
 	_allow_if_falsey: ClassVar[frozenset[str]] = (ALLOW_IF_FALSEY - {"language"}) | {"identifiers"}
 
 	uuid: str
@@ -56,11 +48,6 @@ class SealedProduct(PolarsMixin, BaseModel):
 	contents: SealedProductContents | None = None
 	identifiers: Identifiers = Field(default_factory=dict)
 	purchase_urls: PurchaseUrls = Field(default_factory=dict, alias="purchaseUrls")
-
-
-# =============================================================================
-# Sealed Product Assembler
-# =============================================================================
 
 
 class SealedProductAssembler:
@@ -130,12 +117,6 @@ class SealedProductAssembler:
 				contents["other"] = [SealedProductOther(name=r["name"]) for r in type_rows.to_dicts()]
 
 		return contents
-
-
-# =============================================================================
-# Booster Assembler
-# =============================================================================
-
 
 class BoosterAssembler:
 	"""Assembles booster configurations from card/sheet data."""
@@ -382,20 +363,11 @@ class BoosterAssembler:
 		return result
 
 
-# =============================================================================
-# Namespace for Sealed Models
-# =============================================================================
-
-
 class Sealed:
 	"""Namespace for all sealed product models."""
 
 	SealedProduct = SealedProduct
 
-
-# =============================================================================
-# Registry for TypeScript generation
-# =============================================================================
 
 SEALED_MODEL_REGISTRY: list[type[BaseModel]] = [
 	SealedProduct,

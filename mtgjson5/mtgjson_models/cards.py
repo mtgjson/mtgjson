@@ -31,14 +31,10 @@ from .submodels import (
 	SourceProducts,
 )
 
+
 # Layouts that use WUBRG color order instead of alphabetical
 _WUBRG_COLOR_LAYOUTS = frozenset({"split", "adventure"})
 _WUBRG_ORDER = {"W": 0, "U": 1, "B": 2, "R": 3, "G": 4}
-
-
-# =============================================================================
-# Card Base Classes
-# =============================================================================
 
 
 class CardBase(PolarsMixin, BaseModel):
@@ -103,10 +99,8 @@ class CardBase(PolarsMixin, BaseModel):
 		"""Convert to dict, preserving WUBRG color order for split/adventure layouts."""
 		result = super().to_polars_dict(use_alias, sort_keys, sort_lists, exclude_none, keep_empty_lists)
 
-		# Split and adventure layouts use WUBRG order for colors only (not colorIdentity)
-		if self.layout in _WUBRG_COLOR_LAYOUTS:
-			if "colors" in result and result["colors"]:
-				result["colors"] = sorted(result["colors"], key=lambda c: _WUBRG_ORDER.get(c, 99))
+		if self.layout in _WUBRG_COLOR_LAYOUTS and "colors" in result and result["colors"]:
+			result["colors"] = sorted(result["colors"], key=lambda c: _WUBRG_ORDER.get(c, 99))
 
 		return result
 
@@ -323,10 +317,7 @@ class CardDeck(CardPrintingFull):
 	count: int = Field(description="Number of copies in deck.")
 	is_foil: bool | None = Field(default=None, alias="isFoil")
 	is_etched: bool | None = Field(default=None, alias="isEtched")
-	# Override source_products type to use SourceProducts struct instead of list[str]
 	source_products: SourceProducts | None = Field(default=None, alias="sourceProducts")  # type: ignore
-
-	# Include all fields to match CDN deck card output
 	original_release_date: str | None = Field(default=None, alias="originalReleaseDate")
 
 
@@ -336,9 +327,7 @@ class CardToken(CardPrintingBase):
 	orientation: str | None = Field(default=None)
 	reverse_related: list[str] | None = Field(default=None, alias="reverseRelated")
 	related_cards: RelatedCards | None = Field(default=None, alias="relatedCards")
-	# EDHRec saltiness (for art_series and tokens with associated cards)
 	edhrec_saltiness: float | None = Field(default=None, alias="edhrecSaltiness")
-	# Override source_products type to use SourceProducts struct instead of list[str]
 	source_products: SourceProducts | None = Field(default=None, alias="sourceProducts")  # type: ignore
 
 
@@ -352,11 +341,6 @@ class CardSetDeck(PolarsMixin, BaseModel):
 	uuid: str = Field(description="MTGJSON uuid.")
 
 
-# =============================================================================
-# Namespace for Card Models
-# =============================================================================
-
-
 class Cards:
 	"""Namespace for all card models."""
 
@@ -366,10 +350,6 @@ class Cards:
 	CardToken = CardToken
 	CardSetDeck = CardSetDeck
 
-
-# =============================================================================
-# Registry for TypeScript generation
-# =============================================================================
 
 CARD_MODEL_REGISTRY: list[type[BaseModel]] = [
 	CardSetDeck,

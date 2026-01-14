@@ -131,11 +131,8 @@ class PolarsMixin:
 		exclude_none: bool = False,
 		keep_empty_lists: bool = False,
 	) -> dict[str, Any]:
-		"""Convert instance to dict suitable for Polars.
-
-		Args:
-			keep_empty_lists: If True, include empty lists even when exclude_none=True.
-			                  Used for deck cards where CDN includes empty arrays.
+		"""
+		Convert instance to dict suitable for Polars.
 		"""
 		return self._to_dict_recursive(self, use_alias, sort_keys, sort_lists, exclude_none, keep_empty_lists)
 
@@ -158,14 +155,12 @@ class PolarsMixin:
 		for field_name, info in items:
 			key = (info.alias or field_name) if use_alias else field_name
 
-			# Skip excluded fields (global exclusions and Pydantic's exclude=True)
 			if key in EXCLUDE_FROM_OUTPUT or info.exclude:
 				continue
 
 			value = getattr(instance, field_name)
 
 			if value is None:
-				# Keep legalities and purchaseUrls as {} instead of None
 				if key in ("legalities", "purchaseUrls"):
 					result[key] = {}
 				elif field_name in cls._allow_if_falsey or not exclude_none:
@@ -177,14 +172,11 @@ class PolarsMixin:
 				if nested or field_name in cls._allow_if_falsey or not exclude_none:
 					result[key] = nested
 			elif isinstance(value, dict):
-				# Keep empty legalities and purchaseUrls as {}
 				if key in ("legalities", "purchaseUrls") and not value:
 					result[key] = {}
 				elif value or field_name in cls._allow_if_falsey or not exclude_none:
 					result[key] = dict(sorted(value.items())) if sort_keys else value
 			elif isinstance(value, list):
-				# Omit empty lists for fields in OMIT_EMPTY_LIST_FIELDS when exclude_none=True
-				# Unless keep_empty_lists is True (used for deck cards where CDN includes empty arrays)
 				if not value and exclude_none and key in OMIT_EMPTY_LIST_FIELDS and not keep_empty_lists:
 					continue
 				if value and isinstance(value[0], BaseModel):
@@ -193,20 +185,14 @@ class PolarsMixin:
 					]
 				elif value and isinstance(value[0], dict):
 					sorted_list = [dict(sorted(v.items())) for v in value] if sort_keys else list(value)
-					# Sort rulings by date then text
 					if key == "rulings":
 						sorted_list = sorted(sorted_list, key=lambda r: (r.get("date", ""), r.get("text", "")))
 					result[key] = sorted_list
 				else:
 					result[key] = cls._sort_list(key, value) if sort_lists else list(value)
 			else:
-				# Exclude False booleans when exclude_none is True
-				# MTGJSON convention: optional boolean flags only appear when True
-				# BUT required booleans (hasFoil, hasNonFoil, isFoil) must always be present
-				# Use `key` (the output alias) since ALLOW_IF_FALSEY uses aliases
 				if exclude_none and value is False and key not in cls._allow_if_falsey:
 					continue
-				# Exclude empty strings when exclude_none is True (unless required)
 				if exclude_none and value == "" and key not in cls._allow_if_falsey:
 					continue
 				result[key] = value

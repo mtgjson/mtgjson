@@ -200,10 +200,8 @@ class DeckAssembler:
         return self._uuid_index
 
     def expand_card_list(self, refs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Expand card references to full card objects.
-
-        Deck cards include all fields - no exclusions for empty lists.
-        CDN format includes boosterTypes, keywords, rulings, etc. even when empty.
+        """
+        Expand card references to full card objects.
         """
         result = []
         for ref in refs:
@@ -215,15 +213,11 @@ class DeckAssembler:
             if card is None:
                 continue
 
-            # Add deck-specific fields to the card dict
             expanded = dict(card)
             expanded["count"] = ref.get("count", 1)
             expanded["isFoil"] = ref.get("isFoil", False)
             expanded["isEtched"] = ref.get("isEtched", False)
 
-            # Use from_polars_row to convert aliased dict to CardDeck instance,
-            # then to_polars_dict with keep_empty_lists=True to include empty arrays
-            # (CDN deck cards include empty lists for keywords, rulings, etc.)
             deck_card = CardDeck.from_polars_row(expanded)
             result.append(deck_card.to_polars_dict(exclude_none=True, keep_empty_lists=True))
 
@@ -241,19 +235,14 @@ class DeckAssembler:
         sealed_uuids = deck_data.get("sealedProductUuids")
         result["sealedProductUuids"] = sealed_uuids if sealed_uuids else None
 
-        # Expand card board types - always include required boards
-        # CDN format includes all these fields even when null/empty
         for board in ["mainBoard", "sideBoard"]:
             refs = deck_data.get(board, [])
             result[board] = self.expand_card_list(refs) if refs else []
 
-        # Optional board types - include as empty list if not present, or expanded if present
-        # CDN format uses empty arrays [], not null
         for board in ["commander", "displayCommander", "planes", "schemes", "tokens"]:
             refs = deck_data.get(board)
             result[board] = self.expand_card_list(refs) if refs else []
 
-        # Include sourceSetCodes (empty list if not present to match CDN format)
         result["sourceSetCodes"] = deck_data.get("sourceSetCodes") or []
 
         return result
