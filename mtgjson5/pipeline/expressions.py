@@ -77,14 +77,14 @@ def extract_colors_from_mana_expr(col: str | pl.Expr = "manaCost") -> pl.Expr:
 
     Vectorized replacement for color extraction from mana cost.
 
-    "{2}{W}{U}" -> ["U", "W"]
-    "{2/W}{G}" -> ["G", "W"]
+    "{2}{W}{U}" -> ["W", "U"]
+    "{2/W}{G}" -> ["W", "G"]
 
     Args:
         col: Name of mana cost column or expression
 
     Returns:
-        Expression producing sorted list of color letters
+        Expression producing list of color letters sorted in WUBRG order
     """
     expr = pl.col(col) if isinstance(col, str) else col
     return (
@@ -92,11 +92,45 @@ def extract_colors_from_mana_expr(col: str | pl.Expr = "manaCost") -> pl.Expr:
         # Extract all WUBRG characters from the string
         .str.extract_all(r"[WUBRG]")
         .list.unique()
+        .list.eval(pl.element().replace_strict(
+            {"W": 0, "U": 1, "B": 2, "R": 3, "G": 4},
+            return_dtype=pl.Int8
+        ))
         .list.sort()
+        .list.eval(pl.element().replace_strict(
+            {0: "W", 1: "U", 2: "B", 3: "R", 4: "G"},
+            return_dtype=pl.String
+        ))
     )
+
+def sort_colors_wubrg_expr(col: str | pl.Expr = "colors") -> pl.Expr:
+    """
+    Sort a colors list in WUBRG order.
+
+    Args:
+        col: Name of colors column or expression
+
+    Returns:
+        Expression producing list of color letters sorted in WUBRG order
+    """
+    expr = pl.col(col) if isinstance(col, str) else col
+    return (
+        expr.fill_null([])
+        .list.eval(pl.element().replace_strict(
+            {"W": 0, "U": 1, "B": 2, "R": 3, "G": 4},
+            return_dtype=pl.Int8
+        ))
+        .list.sort()
+        .list.eval(pl.element().replace_strict(
+            {0: "W", 1: "U", 2: "B", 3: "R", 4: "G"},
+            return_dtype=pl.String
+        ))
+    )
+
 
 __all__ = [
     "calculate_cmc_expr",
     "extract_colors_from_mana_expr",
     "order_finishes_expr",
+    "sort_colors_wubrg_expr",
 ]

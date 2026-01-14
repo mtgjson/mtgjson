@@ -367,10 +367,12 @@ class SetAssembler(Assembler):
         translations = meta.get("translations", {})
 
         # Base set structure
+        # Use None checks instead of truthy checks since 0 is a valid value for size fields
+        base_size = meta.get("baseSetSize")
+        total_size = meta.get("totalSetSize")
         set_data: dict[str, Any] = {
-            "baseSetSize": meta.get("baseSetSize")
-            or len([c for c in cards if not c.get("isReprint")])
-            or len(cards),
+            "baseSetSize": base_size if base_size is not None
+            else len([c for c in cards if not c.get("isReprint")]) or len(cards),
             "cards": cards,
             "code": set_code,
             "isFoilOnly": meta.get("isFoilOnly", False),
@@ -379,7 +381,7 @@ class SetAssembler(Assembler):
             "name": meta.get("name", set_code),
             "releaseDate": meta.get("releaseDate", ""),
             "tokens": tokens,
-            "totalSetSize": meta.get("totalSetSize") or len(cards),
+            "totalSetSize": total_size if total_size is not None else len(cards),
             "translations": translations,
             "type": meta.get("type", ""),
         }
@@ -516,16 +518,18 @@ class SetListAssembler(Assembler):
         df = self.load_set_cards(set_code)
         card_count = len(df) if not df.is_empty() else 0
         translations = meta.get("translations", {})
+        base_size = meta.get("baseSetSize")
+        total_size = meta.get("totalSetSize")
 
         return {
-            "baseSetSize": meta.get("baseSetSize") or card_count,
+            "baseSetSize": base_size if base_size is not None else card_count,
             "code": set_code,
             "isFoilOnly": meta.get("isFoilOnly", False),
             "isOnlineOnly": meta.get("isOnlineOnly", False),
             "keyruneCode": meta.get("keyruneCode", set_code),
             "name": meta.get("name", set_code),
             "releaseDate": meta.get("releaseDate", ""),
-            "totalSetSize": meta.get("totalSetSize") or card_count,
+            "totalSetSize": total_size if total_size is not None else card_count,
             "translations": translations,
             "type": meta.get("type", ""),
             **{

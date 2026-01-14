@@ -19,10 +19,9 @@ SORTED_LIST_FIELDS: Final[frozenset[str]] = frozenset({
 	"frameEffects",
 	"games",
 	"keywords",
-	"originalPrintings",
+	# NOTE: originalPrintings, rebalancedPrintings, reverseRelated, variations are UUID arrays
+	# that should NOT be alphabetically sorted - they preserve semantic order
 	"printings",
-	"rebalancedPrintings",
-	"reverseRelated",
 	"subsets",
 })
 

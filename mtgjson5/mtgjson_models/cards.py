@@ -15,6 +15,8 @@ Inheritance hierarchy:
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 from .base import PolarsMixin
@@ -28,6 +30,10 @@ from .submodels import (
 	Rulings,
 	SourceProducts,
 )
+
+# Layouts that use WUBRG color order instead of alphabetical
+_WUBRG_COLOR_LAYOUTS = frozenset({"split", "adventure"})
+_WUBRG_ORDER = {"W": 0, "U": 1, "B": 2, "R": 3, "G": 4}
 
 
 # =============================================================================
@@ -85,6 +91,23 @@ class CardBase(PolarsMixin, BaseModel):
 
 	# Subsets
 	subsets: list[str] | None = Field(default=None)
+
+	def to_polars_dict(
+		self,
+		use_alias: bool = True,
+		sort_keys: bool = True,
+		sort_lists: bool = True,
+		exclude_none: bool = False,
+	) -> dict[str, Any]:
+		"""Convert to dict, preserving WUBRG color order for split/adventure layouts."""
+		result = super().to_polars_dict(use_alias, sort_keys, sort_lists, exclude_none)
+
+		# Split and adventure layouts use WUBRG order for colors only (not colorIdentity)
+		if self.layout in _WUBRG_COLOR_LAYOUTS:
+			if "colors" in result and result["colors"]:
+				result["colors"] = sorted(result["colors"], key=lambda c: _WUBRG_ORDER.get(c, 99))
+
+		return result
 
 
 class CardAtomicBase(CardBase):

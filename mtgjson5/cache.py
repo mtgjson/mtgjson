@@ -627,6 +627,10 @@ class GlobalCache:
             dict, load_resource_json("keyrune_code_overrides.json")
         )
 
+        self.base_set_sizes = cast(
+            dict, load_resource_json("base_set_sizes.json")
+        )
+
         LOGGER.info("Loaded resource files")
 
     def _load_sets_metadata(self) -> None:

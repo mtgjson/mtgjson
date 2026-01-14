@@ -63,11 +63,12 @@ class AssemblyContext:
             set_meta_df = set_meta_df.collect()
         set_meta = {row["code"]: row for row in set_meta_df.to_dicts()}
 
-        # Apply translations, tcgplayerGroupId, and keyruneCode overrides from GlobalCache
+        # Apply translations, tcgplayerGroupId, keyruneCode, and baseSetSize overrides from GlobalCache
         if ctx._cache is not None:
             translations_by_name = ctx._cache.set_translations
             tcg_overrides = ctx._cache.tcgplayer_set_id_overrides
             keyrune_overrides = ctx._cache.keyrune_code_overrides
+            base_set_sizes = ctx._cache.base_set_sizes
             for code, meta in set_meta.items():
                 set_name = meta.get("name", "")
                 meta["translations"] = translations_by_name.get(set_name, {})
@@ -78,6 +79,22 @@ class AssemblyContext:
                 raw_keyrune = meta.get("keyruneCode", "")
                 if raw_keyrune in keyrune_overrides:
                     meta["keyruneCode"] = keyrune_overrides[raw_keyrune]
+                # Apply baseSetSize override if exists
+                if code in base_set_sizes:
+                    meta["baseSetSize"] = base_set_sizes[code]
+
+        # Calculate totalSetSize from actual card counts per set (excluding rebalanced)
+        # This matches legacy behavior: sum(1 for card if not is_rebalanced)
+        for code, meta in set_meta.items():
+            card_path = parquet_dir / f"setCode={code}"
+            if card_path.exists():
+                card_df = pl.read_parquet(card_path / "*.parquet")
+                # Count non-rebalanced cards (legacy: not getattr(card, "is_rebalanced", False))
+                if "isRebalanced" in card_df.columns:
+                    total = card_df.filter(~pl.col("isRebalanced").fill_null(False)).height
+                else:
+                    total = card_df.height
+                meta["totalSetSize"] = total
 
         # Derive tokenSetCode from actual token parquet directories and set metadata
         # Legacy logic: tokenSetCode = first token's setCode if tokens exist

@@ -38,6 +38,7 @@ from mtgjson5.pipeline.expressions import (
 	calculate_cmc_expr,
 	extract_colors_from_mana_expr,
 	order_finishes_expr,
+	sort_colors_wubrg_expr,
 )
 from mtgjson5.pipeline.lookups import add_meld_other_face_ids, apply_meld_overrides
 from mtgjson5.providers.cardmarket.monolith import CardMarketProvider
@@ -683,9 +684,25 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 				face_field("watermark").alias("watermark"),
 				face_field("illustrationId").alias("illustrationId"),
 				face_field("colorIndicator").alias("colorIndicator"),
+				# Color extraction logic:
+				# - split/aftermath: extract from face mana cost
+				# - adventure side='a': use face colors
+				# - adventure side='b' on land-adventure: empty colors
+				# - adventure side='b' on creature-adventure: extract from face mana cost
+				# - others: use face colors
 				pl.when(pl.col("layout").is_in(["split", "aftermath"]))
 				.then(extract_colors_from_mana_expr(pl.col("_face_data").struct.field("mana_cost")))
-				.otherwise(face_field("colors"))
+				.when((pl.col("layout") == "adventure") & (pl.col("side") == "a"))
+				.then(sort_colors_wubrg_expr(face_field("colors")))
+				.when(
+					(pl.col("layout") == "adventure")
+					& (pl.col("side") == "b")
+					& (pl.col("typeLine").str.contains(r"(?i)\bLand\b").max().over("scryfallId"))
+				)
+				.then(pl.lit([]).cast(pl.List(pl.String)))
+				.when((pl.col("layout") == "adventure") & (pl.col("side") == "b"))
+				.then(extract_colors_from_mana_expr(pl.col("_face_data").struct.field("mana_cost")))
+				.otherwise(sort_colors_wubrg_expr(face_field("colors")))
 				.alias("colors"),
 				face_field("printedText").alias("printedText"),
 				face_field("printedTypeLine").alias("printedType"),
@@ -717,7 +734,11 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 				pl.col("securityStamp"),
 				pl.col("fullArt").alias("isFullArt"),
 				pl.col("textless").alias("isTextless"),
-				pl.col("oversized").alias("isOversized"),
+				# OC21 commander display cards are oversized (legacy override)
+				pl.when(pl.col("setCode").str.to_uppercase() == "OC21")
+				.then(pl.lit(True))
+				.otherwise(pl.col("oversized"))
+				.alias("isOversized"),
 				pl.col("promo").alias("isPromo"),
 				pl.col("reprint").alias("isReprint"),
 				pl.col("storySpotlight").alias("isStorySpotlight"),
@@ -1306,6 +1327,11 @@ def add_identifiers_v4_uuid(lf: pl.LazyFrame) -> pl.LazyFrame:
 def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
 	"""
 	Link multi-face cards via Scryfall ID or name (for meld cards).
+
+	Legacy behavior: tokens with all_parts don't get otherFaceIds because:
+	1. Names is cleared when all_parts exists
+	2. The all_parts loop skips "token" components
+	3. So names stays None, and add_other_face_ids doesn't link them
 	"""
 	face_links = lf.select(["scryfallId", "uuid"]).group_by("scryfallId").agg(pl.col("uuid").alias("_all_uuids"))
 
@@ -1321,6 +1347,44 @@ def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
 
 	if ctx.meld_overrides:
 		lf = apply_meld_overrides(lf, ctx.meld_overrides)
+
+	# Clear otherFaceIds for items that wouldn't be linked in legacy code
+	# Legacy conditions for NOT linking:
+	# 1. Tokens (types contains "Token") with all_parts - names cleared (loop skips "token" components)
+	# 2. Any item where faceName contains "//" - faceName wouldn't match names array
+	#    (names is split by "//", so "Card A // Card B" wouldn't match ["Card A", "Card B"])
+	#    This applies to art_series "tokens" which have types=['Card'] but faceName with "//"
+	# 3. Same-name reversible cards with all_parts where no part has "//" - names stays None
+	#    This is a narrow case: name="X // X" AND all_parts has no "//" in part names
+	is_token = pl.col("types").list.contains("Token")
+	has_all_parts = pl.col("_all_parts").list.len() > 0
+	face_name_has_double_slash = pl.col("faceName").fill_null("").str.contains("//")
+
+	# Detect same-name reversible cards where all_parts won't restore names
+	# These are cards like "Blightsteel Colossus // Blightsteel Colossus" with all_parts
+	# that only has "Blightsteel Colossus" (no "//"), so names stays None
+	# We detect this by checking if card name is "X // X" pattern AND no part has "//"
+	is_same_name_pattern = pl.col("name").str.split(" // ").list.unique().list.len() == 1
+	all_parts_has_no_double_slash = (
+		pl.col("_all_parts")
+		.list.eval(pl.element().struct.field("name").str.contains("//").any())
+		.list.first()
+		.fill_null(False)
+		== False
+	)
+	is_same_name_reversible_with_no_slash_parts = (
+		(pl.col("layout") == "reversible_card")
+		& has_all_parts
+		& is_same_name_pattern
+		& all_parts_has_no_double_slash
+	)
+
+	lf = lf.with_columns(
+		pl.when((is_token & has_all_parts) | face_name_has_double_slash | is_same_name_reversible_with_no_slash_parts)
+		.then(pl.lit(None).cast(pl.List(pl.String)))
+		.otherwise(pl.col("otherFaceIds"))
+		.alias("otherFaceIds")
+	)
 
 	return lf
 
@@ -1801,13 +1865,16 @@ def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyF
 				pl.col("setCode"),
 				original_name_expr.alias("_original_name"),
 				pl.col("uuid"),
+				pl.col("side").fill_null(""),  # Include side for ordering
 			]
 		)
+		.sort(["setCode", "_original_name", "side"])  # Sort by side before aggregating
 		.group_by(["setCode", "_original_name"])
-		.agg(pl.col("uuid").sort().alias("_rebalanced_uuids"))
+		.agg(pl.col("uuid").alias("_rebalanced_uuids"))  # Preserve order from sort
 	)
 
 	# Build original name -> original UUIDs mapping (per set, default language only)
+	# CDN orders by collector number numerically first, then side (grouping sides together)
 	original_map = (
 		default_lang_lf.filter(~is_rebalanced)
 		.select(
@@ -1815,6 +1882,10 @@ def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyF
 				pl.col("setCode"),
 				pl.col("name").alias("_original_name"),
 				pl.col("uuid"),
+				pl.col("number"),  # Include number for ordering
+				# Extract numeric portion for proper numeric sort (e.g., "302" < "40" as strings but 40 < 302 as ints)
+				pl.col("number").str.extract(r"(\d+)").cast(pl.Int64).alias("_number_int"),
+				pl.col("side").fill_null(""),  # Include side for ordering
 			]
 		)
 		.join(
@@ -1822,8 +1893,9 @@ def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyF
 			on=["setCode", "_original_name"],
 			how="semi",  # Only keep names that have a rebalanced version in same set
 		)
+		.sort(["setCode", "_original_name", "_number_int", "number", "side"])  # Sort by numeric, string, side
 		.group_by(["setCode", "_original_name"])
-		.agg(pl.col("uuid").sort().alias("_original_uuids"))
+		.agg(pl.col("uuid").alias("_original_uuids"))  # Preserve order from sort
 	)
 
 	# Join rebalancedPrintings onto original cards (by set + name)
