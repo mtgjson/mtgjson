@@ -436,7 +436,7 @@ class SetAssembler(Assembler):
                     minimal_deck["sealedProductUuids"] = sealed_uuids if sealed_uuids else None
                     if deck.get("sourceSetCodes"):
                         minimal_deck["sourceSetCodes"] = deck["sourceSetCodes"]
-                    for board in ["mainBoard", "sideBoard", "commander"]:
+                    for board in ["mainBoard", "sideBoard"]:
                         cards_list = deck.get(board)
                         if cards_list:
                             minimal_deck[board] = [
@@ -451,7 +451,22 @@ class SetAssembler(Assembler):
                             ]
                         else:
                             minimal_deck[board] = []
-                    # displayCommander includes isEtched when true
+                    # Commander cards: include isEtched if present
+                    commander_list = deck.get("commander")
+                    if commander_list:
+                        minimal_deck["commander"] = [
+                            {
+                                k: v
+                                for k, v in c.items()
+                                if k in ("count", "uuid", "isFoil", "isEtched")
+                                and v not in (None, False)
+                            }
+                            for c in commander_list
+                            if isinstance(c, dict)
+                        ]
+                    else:
+                        minimal_deck["commander"] = []
+                    # displayCommander: use source if present
                     cards_list = deck.get("displayCommander")
                     if cards_list:
                         minimal_deck["displayCommander"] = [

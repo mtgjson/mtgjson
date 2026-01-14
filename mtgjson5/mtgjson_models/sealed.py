@@ -42,7 +42,8 @@ class SealedProduct(PolarsMixin, BaseModel):
 
 	# Override to exclude 'language' from required fields
 	# SealedProduct only includes language for non-English products
-	_allow_if_falsey: ClassVar[frozenset[str]] = ALLOW_IF_FALSEY - {"language"}
+	# Always include 'identifiers' even when empty {} (CDN behavior)
+	_allow_if_falsey: ClassVar[frozenset[str]] = (ALLOW_IF_FALSEY - {"language"}) | {"identifiers"}
 
 	uuid: str
 	name: str

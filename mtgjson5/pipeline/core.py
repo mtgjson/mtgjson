@@ -135,6 +135,10 @@ _ASCII_REPLACEMENTS: dict[str, str] = {
 	"ÿ": "y",
 	"ñ": "n",
 	"ç": "c",
+	"꞉": "",  # U+A789 modifier letter colon (ACR cards - Ratonhnhake:ton)
+	"Š": "S",  # WC97/WC99 tokens (Šlemr)
+	"š": "s",
+	"®": "",  # UGL card (trademark symbol)
 }
 
 
@@ -614,7 +618,9 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 		)
 
 	face_name = face_field("name")
-	ascii_name = _ascii_name_expr(face_name)
+	ascii_face_name = _ascii_name_expr(face_name)
+	# CDN uses full name (with "//") for asciiName value, but condition is based on face
+	ascii_full_name = _ascii_name_expr(pl.col("name"))
 	return (
 		lf.rename(
 			{
@@ -774,7 +780,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
 			]
 		)
 		.with_columns(
-			pl.when(ascii_name != face_name).then(ascii_name).otherwise(None).alias("asciiName"),
+			pl.when(ascii_face_name != face_name).then(ascii_full_name).otherwise(None).alias("asciiName"),
 			pl.col("booster").alias("_in_booster"),
 			pl.col("promoTypes").fill_null([]).alias("promoTypes"),
 		)
@@ -944,15 +950,19 @@ def fix_power_toughness_for_multiface(lf: pl.LazyFrame) -> pl.LazyFrame:
 
 def propagate_watermark_to_faces(lf: pl.LazyFrame) -> pl.LazyFrame:
 	"""
-	For multi-face cards, propagate face a's watermark to other faces.
+	For multi-face cards, propagate face a's watermark to all faces.
 
 	MDFCs, split cards etc. should have the same watermark on all faces.
-	Face a typically has the watermark from Scryfall, but face b may be null.
+	Face a (first face) determines the watermark for the entire card.
+	This applies even when other faces have their own watermarks (e.g., DGM split cards).
 	"""
+	# Always use the first face's watermark for all faces of a multi-face card
+	first_face_watermark = pl.col("watermark").first().over("scryfallId")
 	return lf.with_columns(
-		pl.col("watermark").fill_null(
-			pl.col("watermark").first().over("scryfallId")
-		).alias("watermark")
+		pl.when(pl.col("side").is_not_null())
+		.then(first_face_watermark)  # Multi-face: use first face's watermark
+		.otherwise(pl.col("watermark"))  # Single-face: keep as-is
+		.alias("watermark")
 	)
 
 
@@ -1333,14 +1343,32 @@ def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
 	2. The all_parts loop skips "token" components
 	3. So names stays None, and add_other_face_ids doesn't link them
 	"""
-	face_links = lf.select(["scryfallId", "uuid"]).group_by("scryfallId").agg(pl.col("uuid").alias("_all_uuids"))
+	# CDN orders otherFaceIds by side (a, b, c, d, e), so sort by side before aggregating
+	# Use struct to preserve order while filtering (set_difference reorders elements)
+	face_links = (
+		lf.select(["scryfallId", "uuid", "side"])
+		.with_columns(pl.struct(["uuid", "side"]).alias("_face_struct"))
+		.sort(["scryfallId", "side"])
+		.group_by("scryfallId")
+		.agg(pl.col("_face_struct").alias("_all_faces"))
+	)
+
+	def _filter_self_from_faces(row: dict) -> list[str]:
+		"""Filter out current uuid from faces list while preserving side order."""
+		all_faces = row["all_faces"]
+		self_uuid = row["self_uuid"]
+		if all_faces is None:
+			return []
+		return [f["uuid"] for f in all_faces if f["uuid"] != self_uuid]
 
 	lf = (
 		lf.join(face_links, on="scryfallId", how="left")
 		.with_columns(
-			pl.col("_all_uuids").list.set_difference(pl.col("uuid").cast(pl.List(pl.String))).alias("otherFaceIds")
+			pl.struct([pl.col("uuid").alias("self_uuid"), pl.col("_all_faces").alias("all_faces")])
+			.map_elements(_filter_self_from_faces, return_dtype=pl.List(pl.String))
+			.alias("otherFaceIds")
 		)
-		.drop("_all_uuids")
+		.drop("_all_faces")
 	)
 
 	lf = add_meld_other_face_ids(lf)
@@ -3427,6 +3455,20 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
 	).drop(["_card_list", "_sealed_list", "_other_list", "_deck_list", "_pack_list", "_variable_list"])
 
 	result = result.with_columns(_uuid5_expr("productName").alias("uuid"))
+
+	# Remove subtype/category for certain values to match CDN output
+	# CDN doesn't include these fields for MTGO redemption products or secret_lair_drop
+	exclude_subtypes = ["redemption", "secret_lair_drop"]
+	result = result.with_columns(
+		pl.when(pl.col("subtype").is_in(exclude_subtypes))
+		.then(pl.lit(None).cast(pl.String))
+		.otherwise(pl.col("subtype"))
+		.alias("subtype"),
+		pl.when(pl.col("subtype").is_in(exclude_subtypes))
+		.then(pl.lit(None).cast(pl.String))
+		.otherwise(pl.col("category"))
+		.alias("category"),
+	)
 
 	# Join CK sealed URLs by cardKingdomId if available
 	if ck_sealed_urls_lf is not None:
