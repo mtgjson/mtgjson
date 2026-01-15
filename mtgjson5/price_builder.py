@@ -15,6 +15,7 @@ import mergedeep
 import requests
 
 from . import constants
+from .classes import MtgjsonPricesV2Container
 from .mtgjson_config import MtgjsonConfig
 from .mtgjson_s3_handler import MtgjsonS3Handler
 from .providers import (
@@ -113,6 +114,42 @@ class PriceBuilder:
 
         return final_results
 
+    def build_today_prices_v2(self) -> MtgjsonPricesV2Container:
+        """
+        Build v2 price records by calling build_v2_prices() on each provider.
+
+        Aggregates v2 records from providers that support the v2 interface.
+        Providers without v2 support will return empty lists.
+
+        :return: Container with all v2 price records from today
+        """
+        if not self.all_printings_path.is_file():
+            LOGGER.error(
+                f"Unable to build v2 prices. AllPrintings not found in {MtgjsonConfig().output_path}"
+            )
+            return MtgjsonPricesV2Container()
+
+        v2_container = MtgjsonPricesV2Container()
+
+        for provider in self.providers:
+            provider_name = type(provider).__name__
+            try:
+                LOGGER.info(f"Building v2 prices for {provider_name}")
+                records = provider.build_v2_prices(self.all_printings_path)
+                if records:
+                    v2_container.add_records(records)
+                    LOGGER.info(f"Added {len(records)} v2 records from {provider_name}")
+                else:
+                    LOGGER.info(f"{provider_name} returned no v2 records")
+            except Exception as exception:
+                LOGGER.error(
+                    f"Failed to build v2 prices for {provider_name} with error: {exception}"
+                )
+
+        total_records = v2_container.get_record_count()
+        LOGGER.info(f"Built {total_records} total v2 price records")
+        return v2_container
+
     def _generate_prices(self, provider: Any) -> Dict[str, Any]:
         """
         Generate the prices for a source and prepare them for
@@ -204,13 +241,21 @@ class PriceBuilder:
         with self.all_printings_path.open("w", encoding="utf8") as f:
             f.write(lzma.decompress(file_bytes).decode())
 
-    def build_prices(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def build_prices(
+        self,
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
-        The full build prices operation
-        Prune & Update remote database
-        :return Latest prices
+        The full build prices operation for LEGACY format only.
+        Prune & Update remote database.
+
+        Returns legacy price format:
+        - (all_prices, today_prices) as nested dictionaries
+
+        For v2 format, use build_prices_v2() instead.
+
+        :return: Tuple of (archive_prices, today_prices)
         """
-        LOGGER.info("Prices Build - Building Prices")
+        LOGGER.info("Prices Build - Building Prices (Legacy Format)")
 
         # We'll need AllPrintings.json to handle this
         if not self.all_printings_path.is_file():
@@ -252,3 +297,159 @@ class PriceBuilder:
         local_zip_file.unlink()
 
         return archive_prices, today_prices
+
+    def build_prices_v2(
+        self,
+    ) -> Tuple[MtgjsonPricesV2Container, MtgjsonPricesV2Container]:
+        """
+        Build v2 format prices with proper archive workflow.
+        Downloads existing v2 archive, merges today's v2 data, prunes old records,
+        and uploads updated v2 archive.
+
+        Returns v2 price format:
+        - (all_prices_v2, today_prices_v2) as MtgjsonPricesV2Container objects
+
+        :return: Tuple of (archive_prices_v2, today_prices_v2)
+        """
+        LOGGER.info("Prices Build - Building Prices (V2 Format)")
+
+        # Get today's v2 price database
+        LOGGER.info("Building new v2 price data from providers")
+        today_prices_v2 = self.build_today_prices_v2()
+        if not today_prices_v2 or today_prices_v2.get_record_count() == 0:
+            LOGGER.warning("V2 pricing information failed to generate")
+            empty_v2 = MtgjsonPricesV2Container()
+            return empty_v2, empty_v2
+
+        if not MtgjsonConfig().has_section("Prices"):
+            return today_prices_v2, today_prices_v2
+
+        bucket_name = MtgjsonConfig().get("Prices", "bucket_name")
+        bucket_object_path_v2 = MtgjsonConfig().get(
+            "Prices", "bucket_object_path_v2", fallback="AllPricesv2.json.tar.xz"
+        )
+
+        # Download existing v2 archive (dict format: {provider: [records...]})
+        archive_dict = self.get_price_archive_data(bucket_name, bucket_object_path_v2)
+
+        # Reconstruct container from downloaded archive
+        archive_prices_v2 = self._reconstruct_v2_container_from_dict(archive_dict)
+
+        # Merge today's v2 data into archive
+        LOGGER.info("Merging new v2 price data into archive")
+        self._merge_v2_prices(archive_prices_v2, today_prices_v2)
+
+        # Prune old v2 records
+        LOGGER.info("Pruning v2 price archive")
+        self._prune_v2_prices_archive(archive_prices_v2)
+
+        # Write and upload v2 archive
+        LOGGER.info("Compressing v2 price data")
+        local_zip_file_v2 = constants.CACHE_PATH.joinpath(bucket_object_path_v2)
+        self.write_price_archive_data(local_zip_file_v2, archive_prices_v2.to_json())
+
+        LOGGER.info("Uploading v2 price data")
+        MtgjsonS3Handler().upload_file(
+            str(local_zip_file_v2), bucket_name, bucket_object_path_v2
+        )
+        local_zip_file_v2.unlink()
+
+        return archive_prices_v2, today_prices_v2
+
+    def _reconstruct_v2_container_from_dict(
+        self, archive_dict: Dict[str, Any]
+    ) -> MtgjsonPricesV2Container:
+        """
+        Reconstruct a MtgjsonPricesV2Container from archived dict format.
+        Archive format is {provider: [record_dicts...]}
+
+        :param archive_dict: Downloaded archive data
+        :return: Reconstructed container
+        """
+        from .classes.mtgjson_prices_v2 import MtgjsonPricesRecordV2
+
+        container = MtgjsonPricesV2Container()
+        if not archive_dict:
+            return container
+
+        LOGGER.info("Loading existing v2 archive data")
+        # Archive is {provider: [records...]} format
+        for provider, records_list in archive_dict.items():
+            for record_dict in records_list:
+                # Reconstruct MtgjsonPricesRecordV2 from dict
+                record = MtgjsonPricesRecordV2(
+                    provider=record_dict.get("provider", provider),
+                    treatment=record_dict["treatment"],
+                    currency=record_dict["currency"],
+                    price_value=record_dict["priceValue"],
+                    price_variant=record_dict["priceVariant"],
+                    uuid=record_dict["uuid"],
+                    platform=record_dict["platform"],
+                    price_type=record_dict["priceType"],
+                    date=record_dict["date"],
+                    subtype=record_dict.get("subtype"),
+                )
+                container.add_record(record)
+
+        return container
+
+    def _merge_v2_prices(
+        self,
+        archive: MtgjsonPricesV2Container,
+        today: MtgjsonPricesV2Container,
+    ) -> None:
+        """
+        Merge today's v2 price records into the archive.
+        Adds all of today's records to the archive (records are timestamped).
+
+        :param archive: Archive container to merge into
+        :param today: Today's prices to merge from
+        """
+        # Simply add all today's records to archive
+        # Each record is timestamped with today's date, so we preserve history
+        # pylint: disable=import-outside-toplevel
+        from .classes.mtgjson_prices_v2 import MtgjsonPricesRecordV2
+
+        today_serialized = today.to_json()
+        for _, records_list in today_serialized.items():
+            for record_dict in records_list:
+                # Reconstruct record and add to archive
+                record = MtgjsonPricesRecordV2(
+                    provider=record_dict["provider"],
+                    treatment=record_dict["treatment"],
+                    currency=record_dict["currency"],
+                    price_value=record_dict["priceValue"],
+                    price_variant=record_dict["priceVariant"],
+                    uuid=record_dict["uuid"],
+                    platform=record_dict["platform"],
+                    price_type=record_dict["priceType"],
+                    date=record_dict["date"],
+                    subtype=record_dict.get("subtype"),
+                )
+                archive.add_record(record)
+
+    def _prune_v2_prices_archive(self, archive: MtgjsonPricesV2Container) -> None:
+        """
+        Prune old v2 price records similar to legacy pruning.
+        Removes records older than configured cutoff date.
+
+        :param archive: Archive container to prune
+        """
+        LOGGER.info("Pruning v2 archive data")
+        cutoff_date = datetime.date.today() - datetime.timedelta(
+            weeks=int(MtgjsonConfig().get("Prices", "max_weeks", fallback="104"))
+        )
+        cutoff_date_str = cutoff_date.isoformat()
+
+        # Build a new container with only non-expired records
+        pruned_container = MtgjsonPricesV2Container()
+
+        # Iterate through all providers and their records
+        for provider in archive.get_providers():
+            for record in archive.get_records_for_provider(provider):
+                # Keep record if date is after cutoff
+                if record.date >= cutoff_date_str:
+                    pruned_container.add_record(record)
+
+        # Replace archive contents with pruned data
+        archive.set_records(pruned_container.get_all_records())
