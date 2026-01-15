@@ -1077,7 +1077,10 @@ def build_mtgjson_card(
 
     # Handle Promo Types for MTGJSON
     mtgjson_card.promo_types = scryfall_object.get("promo_types", [])
-    if mtgjson_card.number.endswith("p") and "planeswalkerstamped" not in mtgjson_card.promo_types:
+    if (
+        mtgjson_card.number.endswith("p")
+        and "planeswalkerstamped" not in mtgjson_card.promo_types
+    ):
         mtgjson_card.promo_types.append("planeswalkerstamped")
 
     # Remove terms that are covered elsewhere

@@ -18,17 +18,18 @@ class GlobalCache:
     def __init__(self) -> None:
         if getattr(self, "_initialized", False):
             return
-        
+
         self.CACHE_DIR: pathlib.Path = constants.CACHE_PATH
         self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        
+
         self._initialized = True
-        
-        @classmethod
-        def get_instance(cls) -> "GlobalCache":
-            if cls._instance is None:
-                cls()
-            return cls._instance
+
+    @classmethod
+    def get_instance(cls) -> "GlobalCache":
+        """Get or create the singleton instance."""
+        if cls._instance is None:
+            cls()
+        return cls._instance
 
 
 GLOBAL_CACHE = GlobalCache.get_instance()

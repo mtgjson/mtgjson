@@ -1,10 +1,11 @@
 from dataclasses import dataclass, field
+
 import polars as pl
 
 from mtgjson5.cache import GLOBAL_CACHE
 
+TOKEN_LAYOUTS = {"token", "double_faced_token", "emblem", "art_series"}
 
-TOKEN_LAYOUTS={"token", "double_faced_token", "emblem", "art_series"}
 
 @dataclass
 class PipelineContext:
@@ -13,18 +14,18 @@ class PipelineContext:
     """
 
     # Core DataFrames
-    cards_df: pl.LazyFrame|None = None
-    sets_df: pl.DataFrame|None = None
+    cards_df: pl.LazyFrame | None = None
+    sets_df: pl.DataFrame | None = None
 
     # Lookup DataFrames
-    card_kingdom_df: pl.DataFrame|None = None
-    mcm_lookup_df: pl.DataFrame|None = None
-    printings_df: pl.DataFrame|None = None
-    rulings_df: pl.DataFrame|None = None
-    salt_df: pl.DataFrame|None = None
-    spellbook_df: pl.DataFrame|None = None
-    sld_subsets_df: pl.DataFrame|None = None
-    uuid_cache_df: pl.DataFrame|None = None
+    card_kingdom_df: pl.DataFrame | None = None
+    mcm_lookup_df: pl.DataFrame | None = None
+    printings_df: pl.DataFrame | None = None
+    rulings_df: pl.DataFrame | None = None
+    salt_df: pl.DataFrame | None = None
+    spellbook_df: pl.DataFrame | None = None
+    sld_subsets_df: pl.DataFrame | None = None
+    uuid_cache_df: pl.DataFrame | None = None
 
     # Dict lookups
     gatherer_map: dict = field(default_factory=dict)
@@ -37,9 +38,8 @@ class PipelineContext:
     unlimited_cards: set[str] = field(default_factory=set)
 
     # GitHub data
-    card_to_products_df: pl.DataFrame|None = None
-   
-   
+    card_to_products_df: pl.DataFrame | None = None
+
     @classmethod
     def from_global_cache(cls) -> "PipelineContext":
         """Create a PipelineContext from the global cache."""
@@ -59,16 +59,19 @@ class PipelineContext:
             manual_overrides=GLOBAL_CACHE.manual_overrides,
             multiverse_bridge_cards=GLOBAL_CACHE.multiverse_bridge_cards,
             standard_legal_sets=GLOBAL_CACHE.standard_legal_sets,
-            unlimited_cards=GLOBAL_CACHE.scryfall.cards_without_limits
-            if GLOBAL_CACHE._scryfall
-            else set(),
-            categoricals=GLOBAL_CACHE.categoricals,
-            card_to_products_df=GLOBAL_CACHE.github.card_to_products_df
-            if GLOBAL_CACHE._github
-            else None,
+            unlimited_cards=(
+                GLOBAL_CACHE.scryfall.cards_without_limits
+                if GLOBAL_CACHE._scryfall
+                else set()
+            ),
+            card_to_products_df=(
+                GLOBAL_CACHE.github.card_to_products_df
+                if GLOBAL_CACHE._github
+                else None
+            ),
         )
 
- 
+
 def _ascii_name_expr(expr: pl.Expr) -> pl.Expr:
     """
     Build expression to normalize card name to ASCII.
@@ -132,7 +135,7 @@ def _ascii_name_expr(expr: pl.Expr) -> pl.Expr:
         .str.replace_all("ñ", "n")
         .str.replace_all("ç", "c")
     )
-    
+
 
 def is_token_expr() -> pl.Expr:
     """
@@ -146,8 +149,8 @@ def is_token_expr() -> pl.Expr:
         | (pl.col("type_line").fill_null("") == "Dungeon")
         | pl.col("type_line").fill_null("").str.contains("Token")
     )
-    
-    
+
+
 def mark_tokens(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Add _isToken boolean column to identify tokens.

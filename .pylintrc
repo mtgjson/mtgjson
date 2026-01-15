@@ -2,6 +2,11 @@
 # Pickle collected data for later comparisons.
 persistent=yes
 
+# Ignore WIP files
+ignore-paths=
+    mtgjson5/cache.py,
+    mtgjson5/pipeline.py
+
 [MESSAGES CONTROL]
 # Disable the message, report, category or checker with the given id(s). You
 # can either give multiple identifiers separated by comma (,) or put this
