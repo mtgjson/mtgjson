@@ -17,6 +17,7 @@ class MtgjsonIdentifiersObject(JsonObject):
     card_kingdom_id: Optional[str]
     cardsphere_foil_id: Optional[str]
     cardsphere_id: Optional[str]
+    deckbox_id: Optional[str]
     mcm_id: Optional[str]
     mcm_meta_id: Optional[str]
     mtg_arena_id: Optional[str]
