@@ -1590,7 +1590,9 @@ def add_multiverse_bridge_backup_ids(mtgjson_set: MtgjsonSetObject) -> None:
         if card_backup.get("cardsphereId"):
             mtgjson_card.identifiers.cardsphere_id = str(card_backup["cardsphereId"])
         if card_backup.get("cardsphereFoilId"):
-            mtgjson_card.identifiers.cardsphere_foil_id = str(card_backup["cardsphereFoilId"])
+            mtgjson_card.identifiers.cardsphere_foil_id = str(
+                card_backup["cardsphereFoilId"]
+            )
         if card_backup.get("deckboxId"):
             mtgjson_card.identifiers.deckbox_id = str(card_backup["deckboxId"])
         cards_updated += 1
