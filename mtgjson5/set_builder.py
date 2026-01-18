@@ -37,7 +37,6 @@ from .providers import (
     GitHubDecksProvider,
     GitHubSealedProvider,
     MtgWikiProviderSecretLair,
-    MultiverseBridgeProvider,
     ScryfallProvider,
     ScryfallProviderOrientationDetector,
     ScryfallProviderSetLanguageDetector,
@@ -620,7 +619,7 @@ def build_mtgjson_set(set_code: str) -> Optional[MtgjsonSetObject]:
 
     add_token_signatures(mtgjson_set)
 
-    add_multiverse_bridge_ids(mtgjson_set)
+    add_multiverse_bridge_backup_ids(mtgjson_set)
 
     mark_duel_decks(set_code, mtgjson_set.cards)
 
@@ -1557,40 +1556,48 @@ def add_token_signatures(mtgjson_set: MtgjsonSetObject) -> None:
     LOGGER.info(f"Finished adding signatures to cards for {mtgjson_set.code}")
 
 
-def add_multiverse_bridge_ids(mtgjson_set: MtgjsonSetObject) -> None:
+def add_multiverse_bridge_backup_ids(mtgjson_set: MtgjsonSetObject) -> None:
     """
-    There are extra IDs that can be useful for the community to have
-    knowledge of. This step will incorporate all of those IDs
+    Add cardsphereId, cardsphereFoilId, and deckboxId from the local backup file
+    to cards in the set. Also adds cardsphereSetId to the set itself.
+    :param mtgjson_set: MTGJSON Set object to modify
     """
-    LOGGER.info(f"Adding MultiverseBridge details for {mtgjson_set.code}")
-    rosetta_stone_cards = MultiverseBridgeProvider().get_rosetta_stone_cards()
+    LOGGER.info(f"Adding MultiverseBridge backup IDs for {mtgjson_set.code}")
+
+    backup_path = RESOURCE_PATH.joinpath("multiverse_bridge_backup.json")
+    if not backup_path.exists():
+        LOGGER.warning("multiverse_bridge_backup.json not found in resources")
+        return
+
+    with backup_path.open(encoding="utf-8") as f:
+        backup_data = json.load(f)
+
+    # Apply set-level data
+    sets_data = backup_data.get("sets", {})
+    if mtgjson_set.code in sets_data:
+        set_backup = sets_data[mtgjson_set.code]
+        if set_backup.get("cardsphereSetId"):
+            mtgjson_set.cardsphere_set_id = set_backup["cardsphereSetId"]
+
+    # Apply card-level data
+    cards_data = backup_data.get("cards", {})
+    cards_updated = 0
     for mtgjson_card in mtgjson_set.cards:
-        if mtgjson_card.identifiers.scryfall_id not in rosetta_stone_cards:
-            LOGGER.info(
-                f"MultiverseBridge missing {mtgjson_card.name} in {mtgjson_card.set_code}"
-            )
+        if mtgjson_card.uuid not in cards_data:
             continue
 
-        for rosetta_card_print in rosetta_stone_cards.get(
-            mtgjson_card.identifiers.scryfall_id, []
-        ):
-            attr = (
-                "cardsphere_foil_id"
-                if rosetta_card_print.get("is_foil")
-                else "cardsphere_id"
-            )
-            setattr(mtgjson_card.identifiers, attr, str(rosetta_card_print["cs_id"]))
-            if rosetta_card_print["deckbox_id"]:
-                setattr(
-                    mtgjson_card.identifiers,
-                    "deckbox_id",
-                    str(rosetta_card_print["deckbox_id"]),
-                )
+        card_backup = cards_data[mtgjson_card.uuid]
+        if card_backup.get("cardsphereId"):
+            mtgjson_card.identifiers.cardsphere_id = str(card_backup["cardsphereId"])
+        if card_backup.get("cardsphereFoilId"):
+            mtgjson_card.identifiers.cardsphere_foil_id = str(card_backup["cardsphereFoilId"])
+        if card_backup.get("deckboxId"):
+            mtgjson_card.identifiers.deckbox_id = str(card_backup["deckboxId"])
+        cards_updated += 1
 
-    mtgjson_set.cardsphere_set_id = (
-        MultiverseBridgeProvider()
-        .get_rosetta_stone_sets()
-        .get(mtgjson_set.code.upper())
+    LOGGER.info(
+        f"Finished adding MultiverseBridge backup IDs for {mtgjson_set.code}: "
+        f"{cards_updated} cards updated"
     )
 
 
