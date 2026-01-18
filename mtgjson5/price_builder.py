@@ -22,7 +22,6 @@ from .providers import (
     CardKingdomProvider,
     CardMarketProvider,
     ManapoolPricesProvider,
-    MultiverseBridgeProvider,
     TCGPlayerProvider,
 )
 from .providers.abstract import AbstractProvider
@@ -51,7 +50,6 @@ class PriceBuilder:
                 TCGPlayerProvider(),
                 CardMarketProvider(),
                 CardKingdomProvider(),
-                MultiverseBridgeProvider(),
                 ManapoolPricesProvider(),
             ]
 
