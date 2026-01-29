@@ -2,6 +2,8 @@
 MTGJSON Singular Card.Identifiers Object
 """
 
+from typing import Optional
+
 from .json_object import JsonObject
 
 

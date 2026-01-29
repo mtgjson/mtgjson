@@ -4,7 +4,7 @@ MTGJSON Singular Card Object
 
 import json
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from .. import constants
 from ..classes.mtgjson_foreign_data import MtgjsonForeignDataObject
