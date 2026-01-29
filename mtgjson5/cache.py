@@ -162,7 +162,7 @@ class GlobalCache:
         self.cardmarket_to_uuid_lf: pl.LazyFrame | None = None
         self.uuid_to_oracle_lf: pl.LazyFrame | None = None
 
-        self.default_card_languages_lf: pl.LazyFrame | None = None
+        self.languages_lf: pl.LazyFrame | None = None
 
         # Final Output
         self.final_cards_lf: pl.LazyFrame | None = None
@@ -251,7 +251,7 @@ class GlobalCache:
             "mtgo_to_uuid_lf",
             "cardmarket_to_uuid_lf",
             "uuid_to_oracle_lf",
-            "default_card_languages_lf",
+            "languages_lf",
             "final_cards_lf",
         )
         self._loaded = False
@@ -364,7 +364,7 @@ class GlobalCache:
             "mtgo_to_uuid_lf": "mtgo_to_uuid.parquet",
             "cardmarket_to_uuid_lf": "cardmarket_to_uuid.parquet",
             "uuid_to_oracle_lf": "uuid_to_oracle.parquet",
-            "default_card_languages_lf": "default_card_languages.parquet",
+            "languages_lf": "languages.parquet",
         }
 
         for attr, filename in dataframes_to_dump.items():
@@ -540,10 +540,10 @@ class GlobalCache:
 
         self.raw_rulings_lf = pl.scan_ndjson(rulings_path, infer_schema_length=1000)
 
-        # Build default_card_languages from default_cards
-        self._load_default_card_languages()
+        # Build languages from default_cards
+        self._load_languages()
 
-    def _load_default_card_languages(self) -> None:
+    def _load_languages(self) -> None:
         """
         Build default card languages mapping from default_cards bulk file.
         Sets up the base for context.py to build full foreign data.
@@ -553,13 +553,13 @@ class GlobalCache:
             LOGGER.warning("default_cards.ndjson not found, skipping language mapping")
             return
 
-        LOGGER.info("Building default_card_languages mapping...")
+        LOGGER.info("Building languages mapping...")
 
         default_lf = pl.scan_ndjson(default_cards_path, infer_schema_length=1000)
 
         from mtgjson5.constants import LANGUAGE_MAP
 
-        self.default_card_languages_lf = default_lf.select(
+        self.languages_lf = default_lf.select(
             [
                 pl.col("id").alias("scryfallId"),
                 pl.col("lang")
@@ -568,7 +568,7 @@ class GlobalCache:
             ]
         ).unique(["scryfallId", "language"])
 
-        LOGGER.info("Built default_card_languages mapping")
+        LOGGER.info("Built languages mapping")
 
     def _load_resources(self) -> None:
         """Load local JSON resource files."""

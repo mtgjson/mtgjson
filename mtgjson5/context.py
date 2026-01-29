@@ -266,13 +266,13 @@ class PipelineContext:
         return self._cache.uuid_to_oracle_lf if self._cache else None
 
     @property
-    def default_card_languages_lf(self) -> pl.LazyFrame | None:
+    def languages_lf(self) -> pl.LazyFrame | None:
         """Default card languages from cache."""
-        if "_default_card_languages_lf" in self._test_data:
+        if "_languages_lf" in self._test_data:
             return self._test_data[  # type: ignore[no-any-return]
-                "_default_card_languages_lf"
+                "_languages_lf"
             ]
-        return self._cache.default_card_languages_lf if self._cache else None
+        return self._cache.languages_lf if self._cache else None
 
     @property
     def meld_triplets(self) -> dict[str, list[str]]:
@@ -690,9 +690,9 @@ class PipelineContext:
                 cards = cards_raw
 
             # Build default language card lookup for UUID generation
-            default_card_languages_raw = self.default_card_languages_lf
-            if default_card_languages_raw is not None:
-                default_lang_df = default_card_languages_raw
+            languages_raw = self.languages_lf
+            if languages_raw is not None:
+                default_lang_df = languages_raw
                 if isinstance(default_lang_df, pl.LazyFrame):
                     default_lang_df = default_lang_df.collect()  # type: ignore[assignment]
 

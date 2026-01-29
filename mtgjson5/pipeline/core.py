@@ -2101,7 +2101,7 @@ def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyF
 
     # Filter to default language only for UUID aggregation
     # This ensures we only link UUIDs that will exist in final output
-    default_langs = ctx.default_card_languages_lf
+    default_langs = ctx.languages_lf
     if default_langs is not None:
         default_lang_lf = lf.join(
             default_langs, on=["scryfallId", "language"], how="semi"
@@ -2482,7 +2482,7 @@ def sink_cards(ctx: PipelineContext) -> None:
         LOGGER.warning("sink_cards: final_cards_lf is None, returning early")
         return
 
-    default_langs = ctx.default_card_languages_lf
+    default_langs = ctx.languages_lf
 
     if default_langs is not None:
         # Join with default language mapping to filter to primary language per card
@@ -2491,7 +2491,7 @@ def sink_cards(ctx: PipelineContext) -> None:
     else:
         # Fallback: English only (if default_cards not loaded)
         LOGGER.warning(
-            "default_card_languages not available, filtering to English only"
+            "languages not available, filtering to English only"
         )
         lf = lf.filter(pl.col("language") == "English")
 
@@ -2777,9 +2777,9 @@ def join_set_number_data(
     )
 
     # Determine which cards should have foreignData
-    if ctx.default_card_languages_lf is not None:
+    if ctx.languages_lf is not None:
         lf = lf.join(
-            ctx.default_card_languages_lf.select(
+            ctx.languages_lf.select(
                 [
                     pl.col("scryfallId"),
                     pl.col("language").alias("_default_language"),
