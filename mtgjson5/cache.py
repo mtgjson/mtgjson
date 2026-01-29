@@ -443,10 +443,10 @@ class GlobalCache:
         uuid_cache = self.uuid_cache_lf
         if uuid_cache is not None:
             if isinstance(uuid_cache, pl.LazyFrame):
-                uuid_cache = uuid_cache.collect()
-            if len(uuid_cache) > 0:
+                uuid_cache = uuid_cache.collect()  # type: ignore[assignment]
+            if len(uuid_cache) > 0:  # type: ignore[arg-type]
                 scryfall_ids = (
-                    uuid_cache.filter(pl.col("cachedUuid").is_in(deck_uuids))
+                    uuid_cache.filter(pl.col("cachedUuid").is_in(deck_uuids))  # type: ignore[attr-defined]
                     .select("scryfallId")
                     .unique()
                     .to_series()
@@ -484,7 +484,9 @@ class GlobalCache:
         if needs_download:
             LOGGER.info("Downloading bulk scryfall data...")
             self.bulkdata.download_bulk_files_sync(
-                self.cache_path, ["all_cards", "default_cards", "rulings"], force_refresh
+                self.cache_path,
+                ["all_cards", "default_cards", "rulings"],
+                force_refresh,
             )
         else:
             LOGGER.info("Using cached bulk data")
@@ -557,15 +559,14 @@ class GlobalCache:
 
         from mtgjson5.constants import LANGUAGE_MAP
 
-        self.default_card_languages_lf = (
-            default_lf.select([
+        self.default_card_languages_lf = default_lf.select(
+            [
                 pl.col("id").alias("scryfallId"),
                 pl.col("lang")
                 .replace_strict(LANGUAGE_MAP, default=pl.col("lang"))
                 .alias("language"),
-            ])
-            .unique(["scryfallId", "language"])
-        )
+            ]
+        ).unique(["scryfallId", "language"])
 
         LOGGER.info("Built default_card_languages mapping")
 
@@ -604,7 +605,9 @@ class GlobalCache:
 
         self.meld_triplets = meld_triplets_expanded
 
-        raw_translations = cast(dict, load_resource_json("mkm_set_name_translations.json"))
+        raw_translations = cast(
+            dict, load_resource_json("mkm_set_name_translations.json")
+        )
         for set_name, langs in raw_translations.items():
             self.set_translations[set_name] = {
                 "Chinese Simplified": langs.get("zhs"),
@@ -627,9 +630,7 @@ class GlobalCache:
             dict, load_resource_json("keyrune_code_overrides.json")
         )
 
-        self.base_set_sizes = cast(
-            dict, load_resource_json("base_set_sizes.json")
-        )
+        self.base_set_sizes = cast(dict, load_resource_json("base_set_sizes.json"))
 
         LOGGER.info("Loaded resource files")
 
@@ -690,10 +691,7 @@ class GlobalCache:
             else self.cards_lf
         )
         bulk_sets = set(
-            cards_collected.select("set")
-            .unique()["set"]
-            .str.to_uppercase()
-            .to_list()
+            cards_collected.select("set").unique()["set"].str.to_uppercase().to_list()
         )
 
         missing_sets = sets_collected.filter(
@@ -704,7 +702,9 @@ class GlobalCache:
             LOGGER.info("No missing set cards to fetch")
             return
 
-        LOGGER.info(f"Fetching cards for {missing_sets.height} sets not in bulk data...")
+        LOGGER.info(
+            f"Fetching cards for {missing_sets.height} sets not in bulk data..."
+        )
 
         all_new_cards = []
         for row in missing_sets.iter_rows(named=True):
@@ -727,7 +727,9 @@ class GlobalCache:
 
         if all_new_cards:
             new_cards_df = pl.DataFrame(all_new_cards)
-            LOGGER.info(f"Adding {len(all_new_cards)} cards from {missing_sets.height} preview sets")
+            LOGGER.info(
+                f"Adding {len(all_new_cards)} cards from {missing_sets.height} preview sets"
+            )
 
             if isinstance(self.cards_lf, pl.LazyFrame):
                 cards_df = self.cards_lf.collect()
@@ -757,23 +759,27 @@ class GlobalCache:
             return
 
         # Initialize empty DataFrames
-        self.card_kingdom_lf = pl.DataFrame(
-            {
-                "id": [],
-                "cardKingdomId": [],
-                "cardKingdomFoilId": [],
-                "cardKingdomUrl": [],
-                "cardKingdomFoilUrl": [],
-            }
-        ).cast(
-            {
-                "id": pl.String,
-                "cardKingdomId": pl.String,
-                "cardKingdomFoilId": pl.String,
-                "cardKingdomUrl": pl.String,
-                "cardKingdomFoilUrl": pl.String,
-            }
-        ).lazy()
+        self.card_kingdom_lf = (
+            pl.DataFrame(
+                {
+                    "id": [],
+                    "cardKingdomId": [],
+                    "cardKingdomFoilId": [],
+                    "cardKingdomUrl": [],
+                    "cardKingdomFoilUrl": [],
+                }
+            )
+            .cast(
+                {
+                    "id": pl.String,
+                    "cardKingdomId": pl.String,
+                    "cardKingdomFoilId": pl.String,
+                    "cardKingdomUrl": pl.String,
+                    "cardKingdomFoilUrl": pl.String,
+                }
+            )
+            .lazy()
+        )
         self.card_kingdom_raw_lf = pl.DataFrame().lazy()
 
         try:
@@ -814,7 +820,6 @@ class GlobalCache:
 
         if _cache_fresh(cache_path):
             self.spellbook_lf = pl.read_parquet(cache_path).lazy()
-            LOGGER.info("Loaded spellbook from cache")
             return
 
         LOGGER.info("Fetching spellbook data from Scryfall...")
@@ -855,9 +860,6 @@ class GlobalCache:
                     )
             if rows:
                 self.gatherer_lf = pl.DataFrame(rows).lazy()
-                LOGGER.info(
-                    f"[gatherer] Built gatherer_lf: {_format_size(self.gatherer_lf)}"
-                )
 
     def _load_whats_in_standard(self) -> None:
         """Load current Standard-legal sets."""
@@ -982,8 +984,8 @@ class GlobalCache:
 
     def _load_mcm_lookup(self) -> None:
         """
-        Build MCM lookup table from CardMarket provider.
-       """
+        Load raw MCM data from CardMarket provider.
+        """
         from mtgjson5.providers.v2.cardmarket.provider import load_cardmarket_data
 
         cache_path = self.cache_path / "mcm_lookup.parquet"
@@ -1000,52 +1002,26 @@ class GlobalCache:
                 schema={
                     "mcmId": pl.String,
                     "mcmMetaId": pl.String,
-                    "setCode": pl.String,
-                    "nameLower": pl.String,
+                    "expansionName": pl.String,
+                    "name": pl.String,
                     "number": pl.String,
                 }
             ).lazy()
             return
 
-        sets_lf_raw = self.sets_lf
-        if sets_lf_raw is None:
-            LOGGER.warning("Sets not loaded, skipping MCM lookup table")
-            return
-        sets_df: pl.DataFrame = (
-            sets_lf_raw.collect()
-            if isinstance(sets_lf_raw, pl.LazyFrame)
-            else sets_lf_raw
-        )
-
-        set_mapping = (
-            sets_df.select([
-                pl.col("code").alias("setCode"),
-                pl.col("mcmId").cast(pl.Int64).alias("_mcm_expansion_id"),
-            ])
-            .filter(pl.col("_mcm_expansion_id").is_not_null())
-            .unique(subset=["_mcm_expansion_id"])
-        )
-
-        mcm_df = (
-            raw_df
-            .join(
-                set_mapping,
-                left_on="expansionId",
-                right_on="_mcm_expansion_id",
-                how="inner",
-            )
-            .select([
+        mcm_df = raw_df.select(
+            [
                 pl.col("mcmId").cast(pl.String),
                 pl.col("mcmMetaId").cast(pl.String),
-                pl.col("setCode"),
-                pl.col("name").str.to_lowercase().alias("nameLower"),
+                pl.col("expansionName"),
+                pl.col("name"),
                 pl.col("number").cast(pl.String),
-            ])
+            ]
         )
 
         mcm_df.write_parquet(cache_path)
         self.mcm_lookup_lf = mcm_df.lazy()
-        LOGGER.info(f"Built MCM lookup: {len(mcm_df):,} cards")
+        LOGGER.info(f"Loaded MCM data: {len(mcm_df):,} cards")
 
     def _normalize_all_columns(self) -> None:
         """Normalize ALL DataFrame columns to camelCase."""
@@ -1165,50 +1141,56 @@ class GlobalCache:
         """Get the DynamicCategoricals instance (set during load_all)."""
         return self._categoricals
 
-    def get_tcg_to_uuid_map(self) -> dict[str, str]:
-        """Get mapping from TCGPlayer product ID to MTGJSON UUID."""
+    def get_tcg_to_uuid_map(self) -> dict[str, set[str]]:
+        """Get mapping from TCGPlayer product ID to MTGJSON UUID(s)."""
         if self.tcg_to_uuid_lf is None:
             return {}
         df = self.tcg_to_uuid_lf.collect()
         if df.is_empty():
             return {}
-        return dict(
-            zip(
-                df["tcgplayerProductId"].to_list(),
-                df["uuid"].to_list(),
-                strict=False,
-            )
-        )
+        result: dict[str, set[str]] = {}
+        for row in df.iter_rows(named=True):
+            tcg_id = str(row.get("tcgplayerProductId", ""))
+            uuid = row.get("uuid")
+            if tcg_id and uuid:
+                if tcg_id not in result:
+                    result[tcg_id] = set()
+                result[tcg_id].add(uuid)
+        return result
 
-    def get_tcg_etched_to_uuid_map(self) -> dict[str, str]:
-        """Get mapping from TCGPlayer etched product ID to MTGJSON UUID."""
+    def get_tcg_etched_to_uuid_map(self) -> dict[str, set[str]]:
+        """Get mapping from TCGPlayer etched product ID to MTGJSON UUID(s)."""
         if self.tcg_etched_to_uuid_lf is None:
             return {}
         df = self.tcg_etched_to_uuid_lf.collect()
         if df.is_empty():
             return {}
-        return dict(
-            zip(
-                df["tcgplayerEtchedProductId"].to_list(),
-                df["uuid"].to_list(),
-                strict=False,
-            )
-        )
+        result: dict[str, set[str]] = {}
+        for row in df.iter_rows(named=True):
+            tcg_id = str(row.get("tcgplayerEtchedProductId", ""))
+            uuid = row.get("uuid")
+            if tcg_id and uuid:
+                if tcg_id not in result:
+                    result[tcg_id] = set()
+                result[tcg_id].add(uuid)
+        return result
 
-    def get_mtgo_to_uuid_map(self) -> dict[str, str]:
-        """Get mapping from MTGO ID to MTGJSON UUID."""
+    def get_mtgo_to_uuid_map(self) -> dict[str, set[str]]:
+        """Get mapping from MTGO ID to MTGJSON UUID(s)."""
         if self.mtgo_to_uuid_lf is None:
             return {}
         df = self.mtgo_to_uuid_lf.collect()
         if df.is_empty():
             return {}
-        return dict(
-            zip(
-                df["mtgoId"].to_list(),
-                df["uuid"].to_list(),
-                strict=False,
-            )
-        )
+        result: dict[str, set[str]] = {}
+        for row in df.iter_rows(named=True):
+            mtgo_id = str(row.get("mtgoId", ""))
+            uuid = row.get("uuid")
+            if mtgo_id and uuid:
+                if mtgo_id not in result:
+                    result[mtgo_id] = set()
+                result[mtgo_id].add(uuid)
+        return result
 
     def get_cardmarket_to_uuid_map(self) -> dict[str, str]:
         """Get mapping from CardMarket (MCM) ID to MTGJSON UUID."""
@@ -1224,6 +1206,25 @@ class GlobalCache:
                 strict=False,
             )
         )
+
+    def get_scryfall_to_uuid_map(self) -> dict[str, set[str]]:
+        """Get mapping from Scryfall ID to MTGJSON UUID(s)."""
+        if self.uuid_cache_lf is None:
+            return {}
+        df = self.uuid_cache_lf.collect()
+        if df.is_empty():
+            return {}
+
+        # uuid_cache has scryfallId and cachedUuid columns
+        result: dict[str, set[str]] = {}
+        for row in df.iter_rows(named=True):
+            scryfall_id = row.get("scryfallId")
+            uuid = row.get("cachedUuid")
+            if scryfall_id and uuid:
+                if scryfall_id not in result:
+                    result[scryfall_id] = set()
+                result[scryfall_id].add(uuid)
+        return result
 
     @classmethod
     def get_instance(cls) -> "GlobalCache":
