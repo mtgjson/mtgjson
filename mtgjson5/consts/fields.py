@@ -19,8 +19,6 @@ SORTED_LIST_FIELDS: Final[frozenset[str]] = frozenset({
 	"frameEffects",
 	"games",
 	"keywords",
-	# NOTE: originalPrintings, rebalancedPrintings, reverseRelated, variations are UUID arrays
-	# that should NOT be alphabetically sorted - they preserve semantic order
 	"printings",
 	"subsets",
 })
@@ -167,3 +165,35 @@ IDENTIFIERS_FIELD_SOURCES: Final[dict[str, str | tuple[str, ...]]] = {
 	"cardKingdomFoilId": "cardKingdomFoilId",
 	"cardKingdomEtchedId": "cardKingdomEtchedId",
 }
+
+SCRYFALL_COLUMNS_TO_DROP = [
+	"lang",  # -> language (via replace_strict)
+	"frame",  # -> frameVersion
+	"fullArt",  # -> isFullArt
+	"textless",  # -> isTextless
+	"oversized",  # -> isOversized
+	"promo",  # -> isPromo
+	"reprint",  # -> isReprint
+	"storySpotlight",  # -> isStorySpotlight
+	"reserved",  # -> isReserved
+	"digital",  # -> isOnlineOnly
+	"foil",  # dropped (finishes provides hasFoil)
+	"nonfoil",  # dropped (finishes provides hasNonFoil)
+	"cmc",  # -> manaValue
+	"typeLine",  # -> type (face-aware)
+	"oracleText",  # -> text (face-aware)
+	"printedTypeLine",  # -> printedType (face-aware)
+	"contentWarning",  # -> hasContentWarning
+	"handModifier",  # -> hand
+	"lifeModifier",  # -> life
+	"gameChanger",  # -> isGameChanger
+	"mcmId",  # intermediate column from CardMarket join
+	"mcmMetaId",  # intermediate column from CardMarket join
+	"illustrationId",  # -> identifiers.scryfallIllustrationId
+	"arenaId",  # -> identifiers.mtgArenaId
+	"mtgoId",  # -> identifiers.mtgoId
+	"mtgoFoilId",  # -> identifiers.mtgoFoilId
+	"tcgplayerId",  # -> identifiers.tcgplayerProductId
+	"tcgplayerEtchedId",  # -> identifiers.tcgplayerEtchedProductId
+	"_meld_face_name",  # temp column for meld card faceName assignment
+]

@@ -16,4 +16,3 @@ FINISH_ORDER: Final[dict[str, int]] = {
 	"signed": 3,
 	"other": 4,
 }
-"""Canonical ordering for card finishes. Lower values sort first."""

@@ -70,7 +70,6 @@ FACE_NAME_LAYOUTS: Final[frozenset[str]] = frozenset(
 	}
 )
 
-"""Layouts that populate the faceName field."""
 FACE_MANA_VALUE_LAYOUTS: Final[frozenset[str]] = frozenset(
 	{
 		LayoutVariant.SPLIT.value,
@@ -84,7 +83,6 @@ FACE_MANA_VALUE_LAYOUTS: Final[frozenset[str]] = frozenset(
 	}
 )
 
-"""Layouts that populate faceManaValue/faceConvertedManaCost."""
 TOKEN_LAYOUTS: Final[frozenset[str]] = frozenset(
 	{
 		LayoutVariant.TOKEN.value,
@@ -94,7 +92,6 @@ TOKEN_LAYOUTS: Final[frozenset[str]] = frozenset(
 	}
 )
 
-"""Layouts considered "tokens" for filtering purposes."""
 SPLIT_WATERMARK_LAYOUTS: Final[frozenset[str]] = frozenset(
 	{
 		LayoutVariant.SPLIT.value,
@@ -102,7 +99,6 @@ SPLIT_WATERMARK_LAYOUTS: Final[frozenset[str]] = frozenset(
 	}
 )
 
-"""Layouts where face[0] watermark applies to all faces (parity behavior)."""
 SPLIT_COLOR_LAYOUTS: Final[frozenset[str]] = frozenset(
 	{
 		LayoutVariant.SPLIT.value,

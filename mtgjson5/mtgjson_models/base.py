@@ -39,20 +39,11 @@ except ImportError:
 	orjson = None  # type: ignore
 
 
-# =============================================================================
-# Polars Serialization Mixin
-# =============================================================================
-
-
 class PolarsMixin:
 	"""Mixin providing Polars DataFrame serialization for Pydantic models."""
 
 	_sorted_list_fields: ClassVar[set[str]] = SORTED_LIST_FIELDS
 	_allow_if_falsey: ClassVar[set[str]] = ALLOW_IF_FALSEY
-
-	# -------------------------------------------------------------------------
-	# Schema Generation
-	# -------------------------------------------------------------------------
 
 	@classmethod
 	def polars_schema(cls) -> Schema:
@@ -118,10 +109,6 @@ class PolarsMixin:
 
 			with path.open("w", encoding="utf-8") as f:
 				json.dump(schema, f, indent=2 if pretty else None, sort_keys=True)
-
-	# -------------------------------------------------------------------------
-	# Instance -> Dict/DataFrame
-	# -------------------------------------------------------------------------
 
 	def to_polars_dict(
 		self,
@@ -224,10 +211,6 @@ class PolarsMixin:
 		"""Convert list of instances to LazyFrame."""
 		return cls.to_dataframe(instances).lazy()
 
-	# -------------------------------------------------------------------------
-	# DataFrame -> Instances
-	# -------------------------------------------------------------------------
-
 	@classmethod
 	def from_polars_row(cls, row: dict[str, Any]) -> PolarsMixin:
 		"""Reconstruct model from Polars row dict."""
@@ -293,10 +276,6 @@ class PolarsMixin:
 		"""Reconstruct list of models from LazyFrame."""
 		return cls.from_dataframe(lf.collect())
 
-	# -------------------------------------------------------------------------
-	# TypeScript Generation
-	# -------------------------------------------------------------------------
-
 	@classmethod
 	def to_typescript(cls, indent: str = "  ") -> str:
 		"""Generate TypeScript interface for this model."""
@@ -305,24 +284,19 @@ class PolarsMixin:
 		return TypeScriptGenerator.from_model(cls, indent)
 
 
-# =============================================================================
-# File Base Classes
-# =============================================================================
-
-
 class MtgjsonFileBase(PolarsMixin, BaseModel):
 	"""Base for all MTGJSON file structures."""
 
 	model_config = {"populate_by_name": True}
 
-	meta: dict[str, str]  # Meta TypedDict
+	meta: dict[str, str]
 
 	@classmethod
 	def make_meta(cls) -> dict[str, str]:
 		"""Create meta dict with current date/version."""
 		from datetime import date
 
-		# Version would come from package, hardcode for now
+		# Note: Version would come from package, hardcode for now
 		return {"date": date.today().isoformat(), "version": "5.3.0"}
 
 	@classmethod

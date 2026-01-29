@@ -8,11 +8,29 @@ significant performance improvements.
 from __future__ import annotations
 
 import polars as pl
+import polars_hash as plh
+
+from mtgjson5.consts.mappings import ASCII_REPLACEMENTS
 
 
-# =============================================================================
-# Finish Ordering
-# =============================================================================
+def uuid5_expr(col_name: str) -> pl.Expr:
+	"""Generate UUID5 from a column name using DNS namespace."""
+	return plh.col(col_name).uuidhash.uuid5()
+
+
+def uuid5_concat_expr(col1: pl.Expr, col2: pl.Expr, default: str = "a") -> pl.Expr:
+	"""Generate UUID5 from concatenation of two columns."""
+	return plh.col(col1.meta.output_name()).uuidhash.uuid5_concat(col2, default=default)
+
+
+def ascii_name_expr(col: str | pl.Expr) -> pl.Expr:
+	"""
+	Normalize card name to ASCII.
+
+	Uses str.replace_many for efficient batch replacement.
+	"""
+	expr = pl.col(col) if isinstance(col, str) else col
+	return expr.str.replace_many(ASCII_REPLACEMENTS)
 
 
 def order_finishes_expr(col: str = "finishes") -> pl.Expr:
@@ -28,11 +46,6 @@ def order_finishes_expr(col: str = "finishes") -> pl.Expr:
 			pl.element(),  # secondary sort alphabetical
 		)
 	)
-
-
-# =============================================================================
-# Mana Cost Parsing
-# =============================================================================
 
 
 def calculate_cmc_expr(col: str | pl.Expr = "manaCost") -> pl.Expr:
@@ -114,8 +127,11 @@ def sort_colors_wubrg_expr(col: str | pl.Expr = "colors") -> pl.Expr:
 
 
 __all__ = [
+	"ascii_name_expr",
 	"calculate_cmc_expr",
 	"extract_colors_from_mana_expr",
 	"order_finishes_expr",
 	"sort_colors_wubrg_expr",
+	"uuid5_concat_expr",
+	"uuid5_expr"
 ]
