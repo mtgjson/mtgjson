@@ -11,7 +11,6 @@ from singleton_decorator import singleton
 from .. import constants
 from .abstract import AbstractProvider
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -37,9 +36,7 @@ class UuidCacheProvider(AbstractProvider):
         """
         return {}
 
-    def download(
-        self, url: str, params: dict[str, str | int] | None = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from GitHub
         :param url: Download URL

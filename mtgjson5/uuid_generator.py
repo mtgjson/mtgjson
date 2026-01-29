@@ -11,7 +11,6 @@ import uuid
 import numpy as np
 import polars as pl
 
-
 NAMESPACE_DNS_BYTES = uuid.NAMESPACE_DNS.bytes
 
 

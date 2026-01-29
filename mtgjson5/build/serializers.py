@@ -98,4 +98,4 @@ def batched(iterable: Any, n: int) -> Iterator[list[Any]]:
             batch = []
     if batch:
         yield batch
-    return []
+    return []  # type: ignore[return-value]

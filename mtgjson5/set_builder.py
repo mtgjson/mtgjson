@@ -46,7 +46,6 @@ from .providers import (
 )
 from .utils import get_str_or_none, load_local_set_data, url_keygen
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -1503,7 +1502,9 @@ def add_multiverse_bridge_ids(mtgjson_set: MtgjsonSetObject) -> None:
             )
             setattr(mtgjson_card.identifiers, attr, str(rosetta_card_print["cs_id"]))
             if rosetta_card_print["deckbox_id"]:
-                mtgjson_card.identifiers.deckbox_id = str(rosetta_card_print["deckbox_id"])
+                mtgjson_card.identifiers.deckbox_id = str(  # type: ignore[attr-defined]
+                    rosetta_card_print["deckbox_id"]
+                )
 
     mtgjson_set.cardsphere_set_id = (
         MultiverseBridgeProvider()
@@ -1522,7 +1523,7 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
 
     extras_cards: dict[str, list[dict[str, Any]]] = {}
     if mtgjson_set.mcm_id_extras:
-        extras_cards = CardMarketProvider().get_mkm_cards(mtgjson_set.mcm_id_extras)
+        extras_cards = CardMarketProvider().get_mkm_cards(mtgjson_set.mcm_id_extras)  # type: ignore[assignment]
 
     for mtgjson_card in mtgjson_set.cards + mtgjson_set.tokens:
         delete_key = False
@@ -1532,7 +1533,7 @@ def add_mcm_details(mtgjson_set: MtgjsonSetObject) -> None:
             # It is an extended art, showcase, or borderless, search in the "Extras" set instead
             search_cards = extras_cards
         else:
-            search_cards = mkm_cards
+            search_cards = mkm_cards  # type: ignore[assignment]
 
         # There are multiple ways MKM represents cards...
         if mtgjson_card.name.lower() in search_cards:

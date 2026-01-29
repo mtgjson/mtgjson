@@ -7,7 +7,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, HttpUrl
 
-
 if TYPE_CHECKING:
     import polars as pl
 

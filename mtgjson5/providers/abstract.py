@@ -16,7 +16,6 @@ from ..classes import MtgjsonPricesObject
 from ..mtgjson_config import MtgjsonConfig
 from ..retryable_session import retryable_session
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -44,9 +43,7 @@ class AbstractProvider(abc.ABC):
         """
 
     @abc.abstractmethod
-    def download(
-        self, url: str, params: dict[str, str | int] | None = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download an object from a service using appropriate authentication protocols
         :param url: URL to download content from

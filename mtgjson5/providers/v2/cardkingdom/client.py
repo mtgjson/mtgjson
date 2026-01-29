@@ -9,7 +9,6 @@ import aiohttp
 
 from .models import ApiResponse, CKRecord
 
-
 LOGGER = logging.getLogger(__name__)
 
 # API endpoints

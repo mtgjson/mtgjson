@@ -2,7 +2,6 @@
 
 from .provider import SealedDataProvider
 
-
 __all__ = [
     "SealedDataProvider",
 ]

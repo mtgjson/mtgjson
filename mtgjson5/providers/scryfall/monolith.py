@@ -21,7 +21,6 @@ from ...providers.abstract import AbstractProvider
 from . import sf_utils
 from .data_source import get_bulk_data_source
 
-
 LOGGER = logging.getLogger(__name__)
 
 

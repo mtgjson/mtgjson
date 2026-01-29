@@ -4,7 +4,6 @@ import logging
 
 from ...mtgjson_config import MtgjsonConfig
 
-
 LOGGER = logging.getLogger(__name__)
 
 

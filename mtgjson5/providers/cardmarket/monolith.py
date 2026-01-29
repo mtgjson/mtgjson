@@ -21,7 +21,6 @@ from ...mtgjson_config import MtgjsonConfig
 from ...providers.abstract import AbstractProvider
 from ...utils import generate_entity_mapping
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -243,9 +242,7 @@ class CardMarketProvider(AbstractProvider):
         """
         return {}
 
-    def download(
-        self, url: str, params: dict[str, str | int] | None = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download from CardMarket JSON APIs
         :param url: Download URL

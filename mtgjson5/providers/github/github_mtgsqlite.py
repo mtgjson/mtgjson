@@ -17,7 +17,6 @@ from ...compiled_classes.mtgjson_structures import MtgjsonStructuresObject
 from ...mtgjson_config import MtgjsonConfig
 from ...providers.abstract import AbstractProvider
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -48,9 +47,7 @@ class GitHubMTGSqliteProvider(AbstractProvider):
         __github_token = MtgjsonConfig().get("GitHub", "api_token")
         return {"Authorization": f"Bearer {__github_token}"}
 
-    def download(
-        self, url: str, params: dict[str, str | int] | None = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from GitHub
         :param url: Download URL

@@ -10,7 +10,6 @@ from mtgjson5.classes import MtgjsonPricesObject
 from mtgjson5.providers.abstract import AbstractProvider
 from mtgjson5.utils import generate_entity_mapping
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -24,9 +23,7 @@ class ManapoolPricesProvider(AbstractProvider):
     def _build_http_header(self) -> dict[str, str]:
         return {}
 
-    def download(
-        self, url: str, params: dict[str, str | int] | None = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         response = self.session.get(url)
         self.log_download(response)
 
@@ -42,7 +39,8 @@ class ManapoolPricesProvider(AbstractProvider):
         for card in api_response:
             for card_key, finish in zip(
                 ("price_cents", "price_cents_foil", "price_cents_etched"),
-                ("normal", "foil", "etched"), strict=False,
+                ("normal", "foil", "etched"),
+                strict=False,
             ):
                 if card[card_key]:
                     mapping[card["scryfall_id"]][finish] = card[card_key] / 100.0

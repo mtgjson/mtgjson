@@ -20,7 +20,6 @@ from ..parallel_call import parallel_call
 from ..providers.abstract import AbstractProvider
 from ..utils import generate_entity_mapping
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -174,9 +173,7 @@ class TCGPlayerProvider(AbstractProvider):
 
         return str(request_as_json.get("access_token", ""))
 
-    def download(
-        self, url: str, params: dict[str, str | int] | None = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from Scryfall
         Api calls always return JSON from Scryfall
@@ -229,7 +226,9 @@ class TCGPlayerProvider(AbstractProvider):
         # pylint: disable=cyclic-import
         from ..cache import GLOBAL_CACHE
 
-        tcg_foil_and_non_foil_to_mtgjson_map: dict[str, str] | dict[str, set[Any]] = GLOBAL_CACHE.get_tcg_to_uuid_map()
+        tcg_foil_and_non_foil_to_mtgjson_map: dict[str, str] | dict[str, set[Any]] = (
+            GLOBAL_CACHE.get_tcg_to_uuid_map()
+        )
         if not tcg_foil_and_non_foil_to_mtgjson_map:
             tcg_foil_and_non_foil_to_mtgjson_map = generate_entity_mapping(
                 all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
@@ -327,9 +326,7 @@ class TCGPlayerProvider(AbstractProvider):
 
         return magic_set_product_data
 
-    def get_tcgplayer_sealed_data(
-        self, group_id: int | None
-    ) -> list[dict[str, Any]]:
+    def get_tcgplayer_sealed_data(self, group_id: int | None) -> list[dict[str, Any]]:
         """
         Finds all sealed product for a given group
         :param group_id: group id for the set to get data for

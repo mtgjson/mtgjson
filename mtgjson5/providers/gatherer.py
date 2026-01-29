@@ -10,7 +10,6 @@ from singleton_decorator import singleton
 from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -34,9 +33,7 @@ class GathererProvider(AbstractProvider):
         __github_token = MtgjsonConfig().get("GitHub", "api_token")
         return {"Authorization": f"Bearer {__github_token}"}
 
-    def download(
-        self, url: str, params: dict[str, str | int] | None = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from GitHub
         :param url: Download URL

@@ -39,9 +39,7 @@ class WhatsInStandardProvider(AbstractProvider):
         """
         return {}
 
-    def download(
-        self, url: str, params: dict[str, str | int] | None = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from Whats in Standard
         Api calls always return JSON from them

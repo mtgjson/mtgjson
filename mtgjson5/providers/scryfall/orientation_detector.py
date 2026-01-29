@@ -1,6 +1,5 @@
 """Scryfall provider for detecting card orientation in Art Series sets."""
 
-
 import bs4
 from singleton_decorator import singleton
 
@@ -41,9 +40,7 @@ class ScryfallProviderOrientationDetector(AbstractProvider):
 
         return return_map
 
-    def download(
-        self, url: str, params: dict[str, str | int] | None = None
-    ) -> str:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> str:
         response = self.session.get(url)
         self.log_download(response)
         return response.text

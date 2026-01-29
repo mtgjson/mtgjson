@@ -19,7 +19,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .compiled_classes import MtgjsonStructuresObject
 
-
 LOGGER = logging.getLogger(__name__)
 
 

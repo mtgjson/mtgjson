@@ -19,7 +19,6 @@ from ...mtgjson_config import MtgjsonConfig
 from ...parallel_call import parallel_call
 from ...providers.abstract import AbstractProvider
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -113,9 +112,7 @@ class GitHubDecksProvider(AbstractProvider):
 
         return self.decks_by_set.get(set_code, [])
 
-    def download(
-        self, url: str, params: dict[str, str | int] | None = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from GitHub
         :param url: Download URL

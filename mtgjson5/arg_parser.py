@@ -7,7 +7,6 @@ import logging
 import os
 import sys
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -134,7 +133,7 @@ def parse_args() -> argparse.Namespace:
     pipeline_group.add_argument(
         "--v2",
         action="store_true",
-        help="Shorthand for --use-models --polars --all-sets --full-build (new pipeline).",
+        help="Shorthand for --use-models --polars --all-sets --full-build --export all (new pipeline).",
     )
     pipeline_group.add_argument(
         "--skip-mcm",
@@ -188,6 +187,10 @@ def parse_args() -> argparse.Namespace:
         parsed_args.polars = True
         parsed_args.all_sets = True
         parsed_args.full_build = True
+        # Include all export formats unless explicitly specified
+        # Note: "json" is already built by assemble_with_models(), so skip it here
+        if not parsed_args.export:
+            parsed_args.export = ["sqlite", "sql", "psql", "csv", "parquet"]
 
     if parsed_args.sets:
         flattened_sets = []

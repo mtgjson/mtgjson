@@ -2,5 +2,4 @@
 
 from .monolith import ScryfallProvider
 
-
 __all__ = ["ScryfallProvider"]

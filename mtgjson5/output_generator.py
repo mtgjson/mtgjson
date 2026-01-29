@@ -29,7 +29,6 @@ from .price_builder import PriceBuilder
 from .providers.github import GitHubDecksProvider
 from .utils import get_file_hash
 
-
 LOGGER = logging.getLogger(__name__)
 
 

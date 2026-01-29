@@ -20,12 +20,12 @@ from .scryfall.set_language_detector import ScryfallProviderSetLanguageDetector
 from .tcgplayer import TCGPlayerProvider
 from .uuid_cache import UuidCacheProvider
 from .v2 import (
-	BulkDataProvider,
+    BulkDataProvider,
     CardMarketProvider,
-	CKProvider,
-	EdhrecSaltProvider,
-	SealedDataProvider,
-	TCGProvider,
+    CKProvider,
+    EdhrecSaltProvider,
+    SealedDataProvider,
+    TCGProvider,
 )
 from .whats_in_standard import WhatsInStandardProvider
 from .wizards import WizardsProvider

@@ -10,135 +10,134 @@ from __future__ import annotations
 
 from typing_extensions import Required, TypedDict  # noqa: UP035
 
-
 # =============================================================================
 # Core Card Sub-Models
 # =============================================================================
 
 
 class ForeignDataIdentifiers(TypedDict, total=False):
-	"""Identifiers for foreign card data."""
+    """Identifiers for foreign card data."""
 
-	multiverseId: str
-	scryfallId: str
+    multiverseId: str
+    scryfallId: str
 
 
 class ForeignData(TypedDict, total=False):
-	"""Localized card data."""
+    """Localized card data."""
 
-	faceName: str
-	flavorText: str
-	identifiers: ForeignDataIdentifiers
-	language: Required[str]
-	multiverseId: int  # Deprecated - top level multiverse ID
-	name: Required[str]
-	text: str
-	type: str
-	uuid: str
+    faceName: str
+    flavorText: str
+    identifiers: ForeignDataIdentifiers
+    language: Required[str]
+    multiverseId: int  # Deprecated - top level multiverse ID
+    name: Required[str]
+    text: str
+    type: str
+    uuid: str
 
 
 class Identifiers(TypedDict, total=False):
-	"""External identifiers for a card or sealed product."""
+    """External identifiers for a card or sealed product."""
 
-	# Sealed product identifiers
-	abuId: str
-	cardtraderId: str
-	csiId: str
-	miniaturemarketId: str
-	mvpId: str
-	scgId: str
-	tntId: str
-	# Card identifiers
-	cardKingdomEtchedId: str
-	cardKingdomFoilId: str
-	cardKingdomId: str
-	cardsphereId: str
-	cardsphereFoilId: str
-	deckboxId: str
-	mcmId: str
-	mcmMetaId: str
-	mtgArenaId: str
-	mtgjsonFoilVersionId: str
-	mtgjsonNonFoilVersionId: str
-	mtgjsonV4Id: str
-	mtgoFoilId: str
-	mtgoId: str
-	multiverseId: str
-	scryfallId: str
-	scryfallCardBackId: str
-	scryfallIllustrationId: str
-	scryfallOracleId: str
-	tcgplayerEtchedProductId: str
-	tcgplayerProductId: str
+    # Sealed product identifiers
+    abuId: str
+    cardtraderId: str
+    csiId: str
+    miniaturemarketId: str
+    mvpId: str
+    scgId: str
+    tntId: str
+    # Card identifiers
+    cardKingdomEtchedId: str
+    cardKingdomFoilId: str
+    cardKingdomId: str
+    cardsphereId: str
+    cardsphereFoilId: str
+    deckboxId: str
+    mcmId: str
+    mcmMetaId: str
+    mtgArenaId: str
+    mtgjsonFoilVersionId: str
+    mtgjsonNonFoilVersionId: str
+    mtgjsonV4Id: str
+    mtgoFoilId: str
+    mtgoId: str
+    multiverseId: str
+    scryfallId: str
+    scryfallCardBackId: str
+    scryfallIllustrationId: str
+    scryfallOracleId: str
+    tcgplayerEtchedProductId: str
+    tcgplayerProductId: str
 
 
 class LeadershipSkills(TypedDict):
-	"""Commander/Brawl/Oathbreaker legality."""
+    """Commander/Brawl/Oathbreaker legality."""
 
-	brawl: bool
-	commander: bool
-	oathbreaker: bool
+    brawl: bool
+    commander: bool
+    oathbreaker: bool
 
 
 class Legalities(TypedDict, total=False):
-	"""Format legalities for a card."""
+    """Format legalities for a card."""
 
-	alchemy: str
-	brawl: str
-	commander: str
-	duel: str
-	explorer: str
-	future: str
-	gladiator: str
-	historic: str
-	historicbrawl: str
-	legacy: str
-	modern: str
-	oathbreaker: str
-	oldschool: str
-	pauper: str
-	paupercommander: str
-	penny: str
-	pioneer: str
-	predh: str
-	premodern: str
-	standard: str
-	standardbrawl: str
-	timeless: str
-	vintage: str
+    alchemy: str
+    brawl: str
+    commander: str
+    duel: str
+    explorer: str
+    future: str
+    gladiator: str
+    historic: str
+    historicbrawl: str
+    legacy: str
+    modern: str
+    oathbreaker: str
+    oldschool: str
+    pauper: str
+    paupercommander: str
+    penny: str
+    pioneer: str
+    predh: str
+    premodern: str
+    standard: str
+    standardbrawl: str
+    timeless: str
+    vintage: str
 
 
 class PurchaseUrls(TypedDict, total=False):
-	"""Purchase URLs for a card."""
+    """Purchase URLs for a card."""
 
-	cardKingdom: str
-	cardKingdomEtched: str
-	cardKingdomFoil: str
-	cardmarket: str
-	tcgplayer: str
-	tcgplayerEtched: str
+    cardKingdom: str
+    cardKingdomEtched: str
+    cardKingdomFoil: str
+    cardmarket: str
+    tcgplayer: str
+    tcgplayerEtched: str
 
 
 class RelatedCards(TypedDict, total=False):
-	"""Related cards (spellbook, reverse related)."""
+    """Related cards (spellbook, reverse related)."""
 
-	reverseRelated: list[str]
-	spellbook: list[str]
+    reverseRelated: list[str]
+    spellbook: list[str]
 
 
 class Rulings(TypedDict):
-	"""Card ruling entry."""
+    """Card ruling entry."""
 
-	date: str
-	text: str
+    date: str
+    text: str
 
 
 class SourceProducts(TypedDict, total=False):
-	"""Sealed products containing this card."""
+    """Sealed products containing this card."""
 
-	etched: list[str]
-	foil: list[str]
-	nonfoil: list[str]
+    etched: list[str]
+    foil: list[str]
+    nonfoil: list[str]
 
 
 # =============================================================================
@@ -147,42 +146,42 @@ class SourceProducts(TypedDict, total=False):
 
 
 class Meta(TypedDict):
-	"""MTGJSON file metadata."""
+    """MTGJSON file metadata."""
 
-	date: str
-	version: str
+    date: str
+    version: str
 
 
 class Translations(TypedDict, total=False):
-	"""Set name translations by language."""
+    """Set name translations by language."""
 
-	AncientGreek: str | None
-	Arabic: str | None
-	ChineseSimplified: str | None
-	ChineseTraditional: str | None
-	French: str | None
-	German: str | None
-	Hebrew: str | None
-	Italian: str | None
-	Japanese: str | None
-	Korean: str | None
-	Latin: str | None
-	Phyrexian: str | None
-	PortugueseBrazil: str | None
-	Russian: str | None
-	Sanskrit: str | None
-	Spanish: str | None
+    AncientGreek: str | None
+    Arabic: str | None
+    ChineseSimplified: str | None
+    ChineseTraditional: str | None
+    French: str | None
+    German: str | None
+    Hebrew: str | None
+    Italian: str | None
+    Japanese: str | None
+    Korean: str | None
+    Latin: str | None
+    Phyrexian: str | None
+    PortugueseBrazil: str | None
+    Russian: str | None
+    Sanskrit: str | None
+    Spanish: str | None
 
 
 class TcgplayerSkus(TypedDict):
-	"""TCGPlayer SKU information."""
+    """TCGPlayer SKU information."""
 
-	condition: str
-	finish: str
-	language: str
-	printing: str
-	productId: str
-	skuId: str
+    condition: str
+    finish: str
+    language: str
+    printing: str
+    productId: str
+    skuId: str
 
 
 # =============================================================================
@@ -191,31 +190,31 @@ class TcgplayerSkus(TypedDict):
 
 
 class BoosterSheet(TypedDict, total=False):
-	"""Single sheet in a booster configuration."""
+    """Single sheet in a booster configuration."""
 
-	allowDuplicates: bool
-	balanceColors: bool
-	cards: Required[dict[str, int]]  # card_uuid -> weight
-	foil: Required[bool]
-	fixed: bool
-	totalWeight: Required[int]
+    allowDuplicates: bool
+    balanceColors: bool
+    cards: Required[dict[str, int]]  # card_uuid -> weight
+    foil: Required[bool]
+    fixed: bool
+    totalWeight: Required[int]
 
 
 class BoosterPack(TypedDict):
-	"""Single booster pack configuration."""
+    """Single booster pack configuration."""
 
-	contents: dict[str, int]  # sheet_name -> count
-	weight: int
+    contents: dict[str, int]  # sheet_name -> count
+    weight: int
 
 
 class BoosterConfig(TypedDict, total=False):
-	"""Complete booster configuration for a set."""
+    """Complete booster configuration for a set."""
 
-	boosters: Required[list[BoosterPack]]
-	boostersTotalWeight: Required[int]
-	name: str
-	sheets: Required[dict[str, BoosterSheet]]
-	sourceSetCodes: Required[list[str]]
+    boosters: Required[list[BoosterPack]]
+    boostersTotalWeight: Required[int]
+    name: str
+    sheets: Required[dict[str, BoosterSheet]]
+    sourceSetCodes: Required[list[str]]
 
 
 # =============================================================================
@@ -224,26 +223,26 @@ class BoosterConfig(TypedDict, total=False):
 
 
 class PricePoints(TypedDict, total=False):
-	"""Price points by finish type."""
+    """Price points by finish type."""
 
-	etched: dict[str, float]
-	foil: dict[str, float]
-	normal: dict[str, float]
+    etched: dict[str, float]
+    foil: dict[str, float]
+    normal: dict[str, float]
 
 
 class PriceList(TypedDict, total=False):
-	"""Price list from a provider."""
+    """Price list from a provider."""
 
-	buylist: PricePoints
-	currency: Required[str]
-	retail: PricePoints
+    buylist: PricePoints
+    currency: Required[str]
+    retail: PricePoints
 
 
 class PriceFormats(TypedDict, total=False):
-	"""Prices by format (paper/mtgo) and provider."""
+    """Prices by format (paper/mtgo) and provider."""
 
-	mtgo: dict[str, PriceList]
-	paper: dict[str, PriceList]
+    mtgo: dict[str, PriceList]
+    paper: dict[str, PriceList]
 
 
 # =============================================================================
@@ -252,77 +251,77 @@ class PriceFormats(TypedDict, total=False):
 
 
 class SealedProductCard(TypedDict, total=False):
-	"""Card in sealed product."""
+    """Card in sealed product."""
 
-	foil: bool
-	name: Required[str]
-	number: Required[str]
-	set: Required[str]
-	uuid: Required[str]
+    foil: bool
+    name: Required[str]
+    number: Required[str]
+    set: Required[str]
+    uuid: Required[str]
 
 
 class SealedProductDeck(TypedDict):
-	"""Deck in sealed product."""
+    """Deck in sealed product."""
 
-	name: str
-	set: str
+    name: str
+    set: str
 
 
 class SealedProductOther(TypedDict):
-	"""Non-card item in sealed product."""
+    """Non-card item in sealed product."""
 
-	name: str
+    name: str
 
 
 class SealedProductPack(TypedDict):
-	"""Booster pack in sealed product."""
+    """Booster pack in sealed product."""
 
-	code: str
-	set: str
+    code: str
+    set: str
 
 
 class SealedProductSealed(TypedDict, total=False):
-	"""Nested sealed product."""
+    """Nested sealed product."""
 
-	count: Required[int]
-	name: Required[str]
-	set: Required[str]
-	uuid: str
+    count: Required[int]
+    name: Required[str]
+    set: Required[str]
+    uuid: str
 
 
 class SealedProductVariableConfig(TypedDict, total=False):
-	"""Variable configuration weights."""
+    """Variable configuration weights."""
 
-	chance: int
-	weight: int
+    chance: int
+    weight: int
 
 
 class SealedProductVariableItem(TypedDict, total=False):
-	"""Single variable configuration option."""
+    """Single variable configuration option."""
 
-	card: list[SealedProductCard]
-	deck: list[SealedProductDeck]
-	other: list[SealedProductOther]
-	pack: list[SealedProductPack]
-	sealed: list[SealedProductSealed]
-	variable_config: list[SealedProductVariableConfig]
+    card: list[SealedProductCard]
+    deck: list[SealedProductDeck]
+    other: list[SealedProductOther]
+    pack: list[SealedProductPack]
+    sealed: list[SealedProductSealed]
+    variable_config: list[SealedProductVariableConfig]
 
 
 class SealedProductVariableEntry(TypedDict, total=False):
-	"""Variable contents entry with configs."""
+    """Variable contents entry with configs."""
 
-	configs: list[SealedProductVariableItem]
+    configs: list[SealedProductVariableItem]
 
 
 class SealedProductContents(TypedDict, total=False):
-	"""All possible contents of a sealed product."""
+    """All possible contents of a sealed product."""
 
-	card: list[SealedProductCard]
-	deck: list[SealedProductDeck]
-	other: list[SealedProductOther]
-	pack: list[SealedProductPack]
-	sealed: list[SealedProductSealed]
-	variable: list[SealedProductVariableEntry]
+    card: list[SealedProductCard]
+    deck: list[SealedProductDeck]
+    other: list[SealedProductOther]
+    pack: list[SealedProductPack]
+    sealed: list[SealedProductSealed]
+    variable: list[SealedProductVariableEntry]
 
 
 # =============================================================================
@@ -331,37 +330,37 @@ class SealedProductContents(TypedDict, total=False):
 
 
 class Keywords(TypedDict):
-	"""All keyword types in MTG."""
+    """All keyword types in MTG."""
 
-	abilityWords: list[str]
-	keywordAbilities: list[str]
-	keywordActions: list[str]
+    abilityWords: list[str]
+    keywordAbilities: list[str]
+    keywordActions: list[str]
 
 
 class CardType(TypedDict):
-	"""Type with its valid subtypes and supertypes."""
+    """Type with its valid subtypes and supertypes."""
 
-	subTypes: list[str]
-	superTypes: list[str]
+    subTypes: list[str]
+    superTypes: list[str]
 
 
 class CardTypes(TypedDict):
-	"""All card types and their valid sub/supertypes."""
+    """All card types and their valid sub/supertypes."""
 
-	artifact: CardType
-	battle: CardType
-	conspiracy: CardType
-	creature: CardType
-	enchantment: CardType
-	instant: CardType
-	land: CardType
-	phenomenon: CardType
-	plane: CardType
-	planeswalker: CardType
-	scheme: CardType
-	sorcery: CardType
-	tribal: CardType
-	vanguard: CardType
+    artifact: CardType
+    battle: CardType
+    conspiracy: CardType
+    creature: CardType
+    enchantment: CardType
+    instant: CardType
+    land: CardType
+    phenomenon: CardType
+    plane: CardType
+    planeswalker: CardType
+    scheme: CardType
+    sorcery: CardType
+    tribal: CardType
+    vanguard: CardType
 
 
 # =============================================================================
@@ -369,37 +368,37 @@ class CardTypes(TypedDict):
 # =============================================================================
 
 TYPEDDICT_REGISTRY: list[type] = [
-	# Core card sub-models
-	ForeignDataIdentifiers,
-	ForeignData,
-	Identifiers,
-	LeadershipSkills,
-	Legalities,
-	PurchaseUrls,
-	RelatedCards,
-	Rulings,
-	SourceProducts,
-	# Meta/translations
-	Meta,
-	Translations,
-	TcgplayerSkus,
-	# Booster
-	BoosterSheet,
-	BoosterPack,
-	BoosterConfig,
-	# Prices
-	PricePoints,
-	PriceList,
-	PriceFormats,
-	# Sealed product contents
-	SealedProductCard,
-	SealedProductDeck,
-	SealedProductOther,
-	SealedProductPack,
-	SealedProductSealed,
-	SealedProductContents,
-	# Compiled
-	Keywords,
-	CardType,
-	CardTypes,
+    # Core card sub-models
+    ForeignDataIdentifiers,
+    ForeignData,
+    Identifiers,
+    LeadershipSkills,
+    Legalities,
+    PurchaseUrls,
+    RelatedCards,
+    Rulings,
+    SourceProducts,
+    # Meta/translations
+    Meta,
+    Translations,
+    TcgplayerSkus,
+    # Booster
+    BoosterSheet,
+    BoosterPack,
+    BoosterConfig,
+    # Prices
+    PricePoints,
+    PriceList,
+    PriceFormats,
+    # Sealed product contents
+    SealedProductCard,
+    SealedProductDeck,
+    SealedProductOther,
+    SealedProductPack,
+    SealedProductSealed,
+    SealedProductContents,
+    # Compiled
+    Keywords,
+    CardType,
+    CardTypes,
 ]

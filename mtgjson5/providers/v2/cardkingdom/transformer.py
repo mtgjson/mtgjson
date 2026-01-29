@@ -6,7 +6,6 @@ import polars as pl
 
 from .models import CKRecord, ConditionValues
 
-
 LOGGER = logging.getLogger(__name__)
 
 

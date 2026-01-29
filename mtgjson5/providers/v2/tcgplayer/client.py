@@ -9,7 +9,6 @@ import aiohttp
 
 from .models import TcgPlayerConfig
 
-
 LOGGER = logging.getLogger(__name__)
 
 # Request settings

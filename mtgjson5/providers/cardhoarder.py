@@ -14,7 +14,6 @@ from ..mtgjson_config import MtgjsonConfig
 from ..providers.abstract import AbstractProvider
 from ..utils import get_all_entities
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -56,9 +55,7 @@ class CardHoarderProvider(AbstractProvider):
 
         return headers
 
-    def download(
-        self, url: str, params: dict[str, str | int] | None = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from Scryfall
         Api calls always return JSON from Scryfall

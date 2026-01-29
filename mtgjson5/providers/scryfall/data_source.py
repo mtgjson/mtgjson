@@ -19,7 +19,6 @@ import polars as pl
 
 from mtgjson5 import constants
 
-
 if TYPE_CHECKING:
     from .monolith import ScryfallProvider
 

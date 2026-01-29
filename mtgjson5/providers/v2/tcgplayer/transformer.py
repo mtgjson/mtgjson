@@ -14,7 +14,6 @@ from .models import (
     PRINTING_MAP,
 )
 
-
 LOGGER = logging.getLogger(__name__)
 
 

@@ -27,7 +27,6 @@ from .providers import (
 )
 from .providers.abstract import AbstractProvider
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -50,7 +49,7 @@ class PriceBuilder:
             self.providers = [
                 CardHoarderProvider(),
                 TCGPlayerProvider(),
-                CardMarketProvider(),
+                CardMarketProvider(),  # type: ignore[list-item]
                 CardKingdomProvider(),
                 MultiverseBridgeProvider(),
                 ManapoolPricesProvider(),

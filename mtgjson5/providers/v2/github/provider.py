@@ -21,7 +21,6 @@ from mtgjson5.providers.v2.github.models import (
     SealedProductModel,
 )
 
-
 LOGGER = logging.getLogger(__name__)
 
 SCHEMAS = {

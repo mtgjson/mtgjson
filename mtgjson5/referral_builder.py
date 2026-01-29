@@ -10,7 +10,6 @@ from .classes import MtgjsonCardObject, MtgjsonSetObject
 from .classes.mtgjson_sealed_product import MtgjsonSealedProductObject
 from .mtgjson_config import MtgjsonConfig
 
-
 LOGGER = logging.getLogger(__name__)
 
 

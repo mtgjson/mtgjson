@@ -39,15 +39,12 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     # Step 2: Get name->uuid lookup for all meld cards via semi-join
     # (cards whose name appears in any cardParts list)
-    meld_uuids = (
-        lf.join(
-            meld_parts.select(["setCode", "_meld_name"]).unique(),
-            left_on=["setCode", "name"],
-            right_on=["setCode", "_meld_name"],
-            how="semi",
-        )
-        .select(["setCode", "name", "uuid"])
-    )
+    meld_uuids = lf.join(
+        meld_parts.select(["setCode", "_meld_name"]).unique(),
+        left_on=["setCode", "name"],
+        right_on=["setCode", "_meld_name"],
+        how="semi",
+    ).select(["setCode", "name", "uuid"])
 
     # Step 3: For each meld card, find its triplet via the result, then get other UUIDs
     # card -> (find which result contains this card) -> (get all parts of that result) -> (exclude self)
