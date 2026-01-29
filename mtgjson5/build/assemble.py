@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pathlib
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any
 
@@ -14,6 +13,50 @@ from mtgjson5.mtgjson_models.sets import SealedProduct
 
 if TYPE_CHECKING:
     from .context import AssemblyContext
+
+
+def compute_format_legal_sets(
+    ctx: AssemblyContext,
+    format_name: str,
+) -> set[str]:
+    """
+    Compute which sets are legal for a format.
+
+    A set is format-legal if:
+    1. Its type is in SUPPORTED_SET_TYPES (expansion, core, etc.)
+    2. ALL non-Alchemy cards have the format key in their legalities struct
+
+    Note: This checks for key PRESENCE (is_not_null), not for "Legal"/"Restricted" values.
+    MTGJSON omits "not_legal" entries, so key presence indicates the card is part
+    of the format (Legal, Restricted, or Banned).
+    """
+    from mtgjson5.constants import SUPPORTED_SET_TYPES
+
+    # Filter by set type using metadata
+    valid_type_sets = {
+        code for code, meta in ctx.set_meta.items()
+        if meta.get("type", "") in SUPPORTED_SET_TYPES
+    }
+
+    lf = pl.scan_parquet(ctx.parquet_dir / "**/*.parquet")
+
+    set_legality = (
+        lf.filter(~pl.col("name").str.starts_with("A-"))
+        .with_columns(
+            pl.col("legalities")
+            .struct.field(format_name)
+            .is_not_null()
+            .alias("_has_format_key")
+        )
+        .group_by("setCode")
+        .agg(pl.col("_has_format_key").all().alias("_all_have_key"))
+        .filter(pl.col("_all_have_key"))
+        .select("setCode")
+        .collect()
+    )
+
+    format_legal = set(set_legality["setCode"].to_list())
+    return format_legal & valid_type_sets
 
 
 class Assembler:
@@ -178,30 +221,54 @@ class AtomicCardsAssembler(Assembler):
         return dict(self.iter_atomic())
 
 
-class DeckAssembler:
+class DeckAssembler(Assembler):
     """Assembles Deck objects with expanded card data."""
 
-    def __init__(self, cards_df: pl.DataFrame):
-        self.cards_df = cards_df
+    def __init__(self, ctx: AssemblyContext):
+        super().__init__(ctx)
         self._uuid_index: dict[str, dict[str, Any]] | None = None
+        self._token_uuids: set[str] | None = None
 
     @property
     def uuid_index(self) -> dict[str, dict[str, Any]]:
-        """Lazy-build UUID -> card dict index.
+        """Lazy-build UUID -> card/token dict index.
 
-        Uses CardSet (not CardDeck) since we're loading base card data.
+        Uses CardSet for cards and CardToken for tokens.
         Deck-specific fields (count, isFoil, isEtched) are added in expand_card_list().
+
+        Note: After building the index, source DataFrames are deleted to free memory.
         """
         if self._uuid_index is None:
-            models = CardSet.from_dataframe(self.cards_df)
+            self._token_uuids = set()
+            cards_df = self.load_all_cards().collect()
+            models = CardSet.from_dataframe(cards_df)
             self._uuid_index = {
-                m.uuid: m.to_polars_dict(exclude_none=True) for m in models
+                m.uuid: m.to_polars_dict(exclude_none=True) for m in models  # type: ignore[attr-defined]
             }
+            del cards_df
+
+            tokens_df = self.load_all_tokens().collect()
+            if not tokens_df.is_empty():
+                token_models = CardToken.from_dataframe(tokens_df)
+                for m in token_models:
+                    self._uuid_index[m.uuid] = m.to_polars_dict(exclude_none=True)  # type: ignore[attr-defined]
+                    self._token_uuids.add(m.uuid)  # type: ignore[attr-defined]
+            del tokens_df
+
         return self._uuid_index
+
+    def is_token(self, uuid: str) -> bool:
+        """Check if a UUID belongs to a token."""
+        # Ensure index is built first
+        _ = self.uuid_index
+        return uuid in self._token_uuids  # type: ignore[operator]
 
     def expand_card_list(self, refs: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
-        Expand card references to full card objects.
+        Expand card references to full card/token objects.
+
+        Cards are validated through CardDeck model.
+        Tokens use their existing data with deck fields (count, isFoil) added.
         """
         result = []
         for ref in refs:
@@ -218,8 +285,19 @@ class DeckAssembler:
             expanded["isFoil"] = ref.get("isFoil", False)
             expanded["isEtched"] = ref.get("isEtched", False)
 
-            deck_card = CardDeck.from_polars_row(expanded)
-            result.append(deck_card.to_polars_dict(exclude_none=True, keep_empty_lists=True))
+            if self.is_token(uuid):
+                # Tokens validated through CardToken model
+                # CardToken doesn't have deck fields, so add them after validation
+                deck_token = CardToken.from_polars_row(expanded)
+                token_dict = deck_token.to_polars_dict(exclude_none=True, keep_empty_lists=True)
+                token_dict["count"] = ref.get("count", 1)
+                if ref.get("isFoil"):
+                    token_dict["isFoil"] = True
+                result.append(token_dict)
+            else:
+                # Cards validated through CardDeck model (includes count/isFoil/isEtched)
+                deck_card = CardDeck.from_polars_row(expanded)
+                result.append(deck_card.to_polars_dict(exclude_none=True, keep_empty_lists=True))
 
         return result
 
@@ -282,25 +360,6 @@ class DeckAssembler:
                 dfs.append(df)
         return pl.concat(dfs) if dfs else pl.DataFrame()
 
-    @classmethod
-    def from_parquet(
-        cls,
-        parquet_dir: pathlib.Path,
-        set_codes: list[str] | None = None,
-    ) -> DeckAssembler:
-        """Create assembler with cards loaded from parquet."""
-        if set_codes:
-            dfs = []
-            for code in set_codes:
-                path = parquet_dir / f"setCode={code}"
-                if path.exists():
-                    dfs.append(pl.read_parquet(path / "*.parquet"))
-            cards_df = pl.concat(dfs) if dfs else pl.DataFrame()
-        else:
-            cards_df = pl.read_parquet(parquet_dir / "**/*.parquet")
-
-        return cls(cards_df)
-
 
 class DeckListAssembler(Assembler):
     """Assembles DeckList.json (deck summaries without cards)."""
@@ -339,7 +398,7 @@ class SetAssembler(Assembler):
         if df.is_empty():
             return []
         models = CardSet.from_dataframe(df)
-        models.sort()
+        models.sort(key=lambda m: m.uuid if hasattr(m, 'uuid') else '')
         return [m.to_polars_dict(exclude_none=True) for m in models]
 
     def get_tokens(self, set_code: str) -> list[dict[str, Any]]:
@@ -348,7 +407,7 @@ class SetAssembler(Assembler):
         if df.is_empty():
             return []
         models = CardToken.from_dataframe(df)
-        models.sort()
+        models.sort(key=lambda m: m.uuid if hasattr(m, 'uuid') else '')
         return [m.to_polars_dict(exclude_none=True) for m in models]
 
     def build(
@@ -620,7 +679,7 @@ class TableAssembler:
         # cardForeignData - explode list of structs
         if "foreignData" in schema and isinstance(schema["foreignData"], pl.List):
             tables["cardForeignData"] = (
-                cards_df.select("uuid", "foreignData")
+                cards_df.select("foreignData")
                 .filter(pl.col("foreignData").list.len() > 0)
                 .explode("foreignData")
                 .unnest("foreignData")

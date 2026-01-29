@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Union
 
 from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.utils import LOGGER
 
 from .context import AssemblyContext
 from .formats import CSVBuilder, JsonOutputBuilder, ParquetBuilder, PostgresBuilder, SQLiteBuilder
+
+# Type alias for all format builders
+FormatBuilder = Union[JsonOutputBuilder, SQLiteBuilder, PostgresBuilder, CSVBuilder, ParquetBuilder]
 
 
 if TYPE_CHECKING:
@@ -66,29 +69,29 @@ class UnifiedOutputWriter:
 
         try:
             if format_type == "json":
-                builder = JsonOutputBuilder(self.ctx)
-                builder.write_all(self.ctx.output_path)
+                json_builder = JsonOutputBuilder(self.ctx)
+                json_builder.write_all(self.ctx.output_path)
                 return self.ctx.output_path / "AllPrintings.json"
 
             elif format_type == "sqlite":
-                builder = SQLiteBuilder(self.ctx)
-                return builder.write()
+                sqlite_builder = SQLiteBuilder(self.ctx)
+                return sqlite_builder.write()
 
             elif format_type == "sql":
-                builder = SQLiteBuilder(self.ctx)
-                return builder.write_text_dump()
+                sql_builder = SQLiteBuilder(self.ctx)
+                return sql_builder.write_text_dump()
 
             elif format_type == "psql":
-                builder = PostgresBuilder(self.ctx)
-                return builder.write()
+                psql_builder = PostgresBuilder(self.ctx)
+                return psql_builder.write()
 
             elif format_type == "csv":
-                builder = CSVBuilder(self.ctx)
-                return builder.write()
+                csv_builder = CSVBuilder(self.ctx)
+                return csv_builder.write()
 
             elif format_type == "parquet":
-                builder = ParquetBuilder(self.ctx)
-                return builder.write()
+                parquet_builder = ParquetBuilder(self.ctx)
+                return parquet_builder.write()
 
             else:
                 LOGGER.error(f"Unknown format: {format_type}")

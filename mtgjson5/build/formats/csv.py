@@ -17,6 +17,32 @@ if TYPE_CHECKING:
     from ..context import AssemblyContext
 
 
+def _flatten_for_csv(df: pl.DataFrame) -> pl.DataFrame:
+    """
+    Flatten nested columns for CSV export.
+
+    - Struct columns are serialized to JSON strings
+    - List columns are serialized to JSON strings
+    """
+    schema = df.schema
+
+    # Convert struct and list columns to JSON strings
+    complex_cols = [
+        c for c in df.columns
+        if isinstance(schema.get(c), pl.Struct | pl.List)
+    ]
+
+    if not complex_cols:
+        return df
+
+    return df.with_columns([
+        pl.col(c).struct.json_encode().alias(c)
+        if isinstance(schema.get(c), pl.Struct)
+        else pl.col(c).cast(pl.String).alias(c)
+        for c in complex_cols
+    ])
+
+
 class CSVBuilder:
     """Builds CSV file exports."""
 
@@ -79,8 +105,10 @@ class CSVBuilder:
         for name, df in tables.items():
             if df is not None and len(df) > 0:
                 path = output_dir / f"{name}.csv"
-                df.write_csv(path)
-                LOGGER.info(f"  {name}.csv: {df.height:,} rows")
+                # Flatten nested columns for CSV compatibility
+                flat_df = _flatten_for_csv(df)
+                flat_df.write_csv(path)
+                LOGGER.info(f"  {name}.csv: {flat_df.height:,} rows")
 
         # Write meta
         meta = MtgjsonMetaObject()
@@ -94,8 +122,9 @@ class CSVBuilder:
             for name, df in booster_tables.items():
                 if df is not None and len(df) > 0:
                     path = output_dir / f"{name}.csv"
-                    df.write_csv(path)
-                    LOGGER.info(f"  {name}.csv: {df.height:,} rows")
+                    flat_df = _flatten_for_csv(df)
+                    flat_df.write_csv(path)
+                    LOGGER.info(f"  {name}.csv: {flat_df.height:,} rows")
 
         LOGGER.info(f"Wrote CSV files to {output_dir}")
         return output_dir
