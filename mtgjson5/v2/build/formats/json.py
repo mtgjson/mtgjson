@@ -347,8 +347,8 @@ class JsonOutputBuilder:
             deck_list_file.write(output_dir / "DeckList.json")
             results["DeckList"] = len(deck_list)
 
-        # Build price files
-        if should_build("AllPrices") or should_build("AllPricesToday"):
+        # Use --price-build flag for dedicated price builds, or --outputs AllPrices
+        if outputs and ("AllPrices" in outputs or "AllPricesToday" in outputs):
             LOGGER.info("Building price files...")
             price_results = self.write_prices(output_dir)
             results.update(price_results)
