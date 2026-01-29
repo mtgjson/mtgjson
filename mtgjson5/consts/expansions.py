@@ -12,6 +12,7 @@ from typing import Final
 
 class SetType(Enum):
     """Scryfall set types."""
+
     CORE = "core"
     EXPANSION = "expansion"
     MASTERS = "masters"
@@ -39,32 +40,62 @@ class SetType(Enum):
 
 # Set-specific behaviors
 
-DUEL_DECK_SETS: Final[frozenset[str]] = frozenset({
-    "DD1", "DD2", "DDC", "DDD", "DDE", "DDF", "DDG", "DDH", "DDI",
-    "DDJ", "DDK", "DDL", "DDM", "DDN", "DDO", "DDP", "DDQ", "DDR",
-    "DDS", "DDT", "DDU", "GS1",
-})
+DUEL_DECK_SETS: Final[frozenset[str]] = frozenset(
+    {
+        "DD1",
+        "DD2",
+        "DDC",
+        "DDD",
+        "DDE",
+        "DDF",
+        "DDG",
+        "DDH",
+        "DDI",
+        "DDJ",
+        "DDK",
+        "DDL",
+        "DDM",
+        "DDN",
+        "DDO",
+        "DDP",
+        "DDQ",
+        "DDR",
+        "DDS",
+        "DDT",
+        "DDU",
+        "GS1",
+    }
+)
 """Sets that use duelDeck field (DD* prefix + GS1)."""
 
-FOIL_NONFOIL_LINK_SETS: Final[frozenset[str]] = frozenset({
-    "CN2", "FRF", "ONS", "10E", "UNH",
-})
+FOIL_NONFOIL_LINK_SETS: Final[frozenset[str]] = frozenset(
+    {
+        "CN2",
+        "FRF",
+        "ONS",
+        "10E",
+        "UNH",
+    }
+)
 """Sets where foil/non-foil versions have different card details."""
 
-FUNNY_SETS_WITH_ACORN: Final[frozenset[str]] = frozenset({
-    "UNF",
-})
+FUNNY_SETS_WITH_ACORN: Final[frozenset[str]] = frozenset(
+    {
+        "UNF",
+    }
+)
 """Funny sets where isFunny depends on securityStamp=acorn."""
+
 
 class Expansion:
     """
     Umbrella class for expansion-related constants.
     """
-    SetType: Final[Enum] = SetType
+
+    SetType: Final[type[SetType]] = SetType
 
     DUEL_DECK_SETS: Final[frozenset[str]] = DUEL_DECK_SETS
 
     FOIL_NONFOIL_LINK_SETS: Final[frozenset[str]] = FOIL_NONFOIL_LINK_SETS
 
     FUNNY_SETS_WITH_ACORN: Final[frozenset[str]] = FUNNY_SETS_WITH_ACORN
-
