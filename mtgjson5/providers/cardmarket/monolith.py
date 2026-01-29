@@ -102,7 +102,7 @@ class CardMarketProvider(AbstractProvider):
         # Use cached ID mapping from GLOBAL_CACHE if available (when --polars/--bulk-files used)
         # Otherwise fall back to parsing AllPrintings.json
         # pylint: disable=cyclic-import
-        from ...cache import GLOBAL_CACHE
+        from mtgjson5.v2.data import GLOBAL_CACHE
 
         mtgjson_id_map: dict[str, str] | dict[str, set[Any]] = (
             GLOBAL_CACHE.get_cardmarket_to_uuid_map()

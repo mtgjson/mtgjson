@@ -122,7 +122,7 @@ class CardHoarderProvider(AbstractProvider):
         # Use cached mapping from GLOBAL_CACHE if available (when --polars/--bulk-files used)
         # Otherwise fall back to parsing AllPrintings.json
         # pylint: disable=cyclic-import
-        from ..cache import GLOBAL_CACHE
+        from mtgjson5.v2.data import GLOBAL_CACHE
 
         mtgo_to_mtgjson_map: dict[str, str] | dict[str, set[str]] = (
             GLOBAL_CACHE.get_mtgo_to_uuid_map()

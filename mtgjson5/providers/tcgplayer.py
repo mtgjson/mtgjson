@@ -224,7 +224,7 @@ class TCGPlayerProvider(AbstractProvider):
         # Use cached mappings from GLOBAL_CACHE if available (when --polars/--bulk-files used)
         # Otherwise fall back to parsing AllPrintings.json
         # pylint: disable=cyclic-import
-        from ..cache import GLOBAL_CACHE
+        from mtgjson5.v2.data import GLOBAL_CACHE
 
         tcg_foil_and_non_foil_to_mtgjson_map: dict[str, str] | dict[str, set[Any]] = (
             GLOBAL_CACHE.get_tcg_to_uuid_map()

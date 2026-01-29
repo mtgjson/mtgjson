@@ -9,7 +9,7 @@ import traceback
 import urllib3.exceptions
 
 from mtgjson5 import constants
-from mtgjson5.cache import GlobalCache
+from mtgjson5.v2.data import GlobalCache
 from mtgjson5.utils import init_logger, load_local_set_data
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -87,7 +87,7 @@ def dispatcher(args: argparse.Namespace) -> None:
         compress_mtgjson_contents,
         compress_mtgjson_contents_parallel,
     )
-    from mtgjson5.context import PipelineContext
+    from mtgjson5.v2.data import PipelineContext
     from mtgjson5.mtgjson_config import MtgjsonConfig
     from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
     from mtgjson5.output_generator import (
@@ -95,8 +95,8 @@ def dispatcher(args: argparse.Namespace) -> None:
         generate_compiled_prices_output,
         generate_output_file_hashes,
     )
-    from mtgjson5.pipeline.bridge import assemble_json_outputs, assemble_with_models
-    from mtgjson5.pipeline.core import build_cards
+    from mtgjson5.v2.build.writer import assemble_json_outputs, assemble_with_models
+    from mtgjson5.v2.pipeline.core import build_cards
     from mtgjson5.price_builder import PriceBuilder
     from mtgjson5.providers import GitHubMTGSqliteProvider, ScryfallProvider
 
@@ -104,7 +104,7 @@ def dispatcher(args: argparse.Namespace) -> None:
     if args.price_build:
         if args.polars:
             # Use Polars price builder for v2 pipeline
-            from mtgjson5.polars_price_builder import PolarsPriceBuilder
+            from mtgjson5.v2.build.price_builder import PolarsPriceBuilder
 
             all_prices, today_prices = PolarsPriceBuilder().build_prices()
         else:
@@ -162,7 +162,7 @@ def dispatcher(args: argparse.Namespace) -> None:
 
             if decks_only:
                 # Only build deck files, skip set JSON assembly
-                from mtgjson5.pipeline import build_expanded_decks_df
+                from mtgjson5.v2.pipeline import build_expanded_decks_df
 
                 decks_df = build_expanded_decks_df(ctx)
                 LOGGER.info(f"Built expanded decks DataFrame: {len(decks_df)} rows")
@@ -194,7 +194,7 @@ def dispatcher(args: argparse.Namespace) -> None:
             if ctx is None:
                 raise ValueError("PipelineContext not initialized")
 
-            from mtgjson5.build.writer import OutputWriter
+            from mtgjson5.v2.build.writer import OutputWriter
 
             OutputWriter.from_args(ctx).write_all()
         else:

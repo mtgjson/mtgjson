@@ -1,5 +1,8 @@
 """
 Provider Dispatcher
+
+Legacy providers are imported here for backwards compatibility.
+V2 providers have moved to mtgjson5.v2.providers.
 """
 
 from .cardhoarder import CardHoarderProvider
@@ -19,7 +22,11 @@ from .scryfall.orientation_detector import ScryfallProviderOrientationDetector
 from .scryfall.set_language_detector import ScryfallProviderSetLanguageDetector
 from .tcgplayer import TCGPlayerProvider
 from .uuid_cache import UuidCacheProvider
-from .v2 import (
+from .whats_in_standard import WhatsInStandardProvider
+from .wizards import WizardsProvider
+
+# Re-export v2 providers for backwards compatibility with legacy pipeline
+from mtgjson5.v2.providers import (
     BulkDataProvider,
     CardMarketProvider,
     CKProvider,
@@ -27,5 +34,3 @@ from .v2 import (
     SealedDataProvider,
     TCGProvider,
 )
-from .whats_in_standard import WhatsInStandardProvider
-from .wizards import WizardsProvider
