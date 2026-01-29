@@ -146,6 +146,7 @@ class GlobalCache:
         self.sld_subsets_lf: pl.LazyFrame | None = None
         self.orientation_lf: pl.LazyFrame | None = None
         self.gatherer_lf: pl.LazyFrame | None = None
+        self.multiverse_bridge_lf: pl.LazyFrame | None = None
 
         # GitHub/Sealed LFs
         self.sealed_cards_lf: pl.LazyFrame | None = None
@@ -184,6 +185,7 @@ class GlobalCache:
         self.tcgplayer_set_id_overrides: dict[str, int] = {}
         self.keyrune_code_overrides: dict[str, str] = {}
         self.base_set_sizes: dict[str, int] = {}
+        self.card_enrichment: dict[str, dict[str, dict]] = {}
 
         # Categoricals - discovered from scryfall data inspection
         self._categoricals: DynamicCategoricals | None = None
@@ -201,13 +203,12 @@ class GlobalCache:
         self._tcgplayer: TCGProvider | None = None
         self._secretlair: MtgWikiProviderSecretLair | None = None
         self._orientations: ScryfallProviderOrientationDetector | None = None
-        # Note: bulkdata now uses ScryfallProvider (consolidated v2 provider)
 
         # State
         self._initialized = True
         self._loaded = False
         self._set_filter: list[str] | None = None
-        self.scryfall_id_filter: set[str] | None = None
+        self._scryfall_id_filter: set[str] | None = None
         self._output_types: set[str] = set()
         self._export_formats: set[str] | None = None
 
@@ -240,6 +241,7 @@ class GlobalCache:
             "sld_subsets_lf",
             "orientation_lf",
             "gatherer_lf",
+            "multiverse_bridge_lf",
             "sealed_cards_lf",
             "sealed_products_lf",
             "sealed_contents_lf",
@@ -270,7 +272,7 @@ class GlobalCache:
         Args:
             set_codes: Optional list of set codes to filter
             output_types: Optional set of output types (e.g., {"decks"}).
-                When "decks" is the only output, computes scryfall_id_filter
+                When "decks" is the only output, computes _scryfall_id_filter
                 to limit card processing to only deck cards.
             export_formats: Optional set of export formats (e.g., {"parquet", "csv"}).
                 When specified, can be used to skip loading data not needed
@@ -350,6 +352,7 @@ class GlobalCache:
             "sld_subsets_lf": "sld_subsets.parquet",
             "orientation_lf": "orientations.parquet",
             "gatherer_lf": "gatherer.parquet",
+            "multiverse_bridge_lf": "multiverse_bridge.parquet",
             "uuid_cache_lf": "uuid_cache.parquet",
             "rulings_lf": "rulings.parquet",
             "foreign_data_lf": "foreign_data.parquet",
@@ -453,9 +456,9 @@ class GlobalCache:
                     .to_series()
                     .to_list()
                 )
-                self.scryfall_id_filter = set(scryfall_ids)
+                self._scryfall_id_filter = set(scryfall_ids)
                 LOGGER.info(
-                    f"Built scryfall_id filter: {len(self.scryfall_id_filter):,} IDs "
+                    f"Built scryfall_id filter: {len(self._scryfall_id_filter):,} IDs "
                     f"for {len(deck_uuids):,} deck UUIDs"
                 )
                 return
@@ -632,6 +635,25 @@ class GlobalCache:
         )
 
         self.base_set_sizes = cast(dict, load_resource_json("base_set_sizes.json"))
+        self.card_enrichment = cast(dict, load_resource_json("card_enrichment.json"))
+
+        multiverse_bridge_raw = cast(
+            dict, load_resource_json("multiverse_bridge_backup.json")
+        )
+        if multiverse_bridge_raw and "cards" in multiverse_bridge_raw:
+            cards_data = multiverse_bridge_raw["cards"]
+            rows = [
+                {
+                    "cachedUuid": uuid,
+                    "cardsphereId": data.get("cardsphereId"),
+                    "cardsphereFoilId": data.get("cardsphereFoilId"),
+                    "deckboxId": data.get("deckboxId"),
+                }
+                for uuid, data in cards_data.items()
+            ]
+            if rows:
+                self.multiverse_bridge_lf = pl.DataFrame(rows).lazy()
+                LOGGER.info(f"Loaded multiverse bridge: {len(rows):,} cards")
 
         LOGGER.info("Loaded resource files")
 
@@ -824,7 +846,7 @@ class GlobalCache:
             return
 
         LOGGER.info("Fetching spellbook data from Scryfall...")
-        spellbook_data = asyncio.run(BulkDataProvider.fetch_all_spellbooks())
+        spellbook_data = asyncio.run(ScryfallProvider.fetch_all_spellbooks())
         if spellbook_data:
             records = [
                 {"name": parent, "spellbook": cards}
@@ -1040,6 +1062,7 @@ class GlobalCache:
         self.sld_subsets_lf = _normalize_columns(self.sld_subsets_lf)
         self.orientation_lf = _normalize_columns(self.orientation_lf)
         self.gatherer_lf = _normalize_columns(self.gatherer_lf)
+        self.multiverse_bridge_lf = _normalize_columns(self.multiverse_bridge_lf)
         if self._github is not None:
             self._github.card_to_products_df = _normalize_columns(
                 self._github.card_to_products_df
@@ -1132,8 +1155,10 @@ class GlobalCache:
 
     @property
     def bulkdata(self) -> ScryfallProvider:
-        """Get the bulk data provider instance (now consolidated with scryfall)."""
-        return self.scryfall
+        """Get or create the Scryfall bulk data provider instance."""
+        if self._scryfall is None:
+            self._scryfall = ScryfallProvider()
+        return self._scryfall
 
     @property
     def categoricals(self) -> DynamicCategoricals | None:

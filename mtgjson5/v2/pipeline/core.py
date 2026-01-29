@@ -801,6 +801,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                 pl.col("setCode").str.to_uppercase(),
                 pl.col("cmc").alias("manaValue"),
                 pl.col("colorIdentity"),
+                pl.col("producedMana"),
                 pl.col("borderColor"),
                 pl.col("frame").alias("frameVersion"),
                 pl.col("frameEffects"),
@@ -1017,6 +1018,56 @@ def fix_promo_types(lf: pl.LazyFrame) -> pl.LazyFrame:
             .alias("promoTypes")
         )
     )
+
+
+def apply_card_enrichment(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
+    """
+    Apply card enrichment from card_enrichment.json.
+
+    Enrichment data adds promo_types (e.g., neon ink colors) based on
+    set code and collector number.
+    """
+    enrichment_data = ctx.card_enrichment
+    if not enrichment_data:
+        return lf
+
+    # Flatten enrichment data into rows: (setCode, number, promo_types_to_add)
+    rows = []
+    for set_code, cards in enrichment_data.items():
+        for number, data in cards.items():
+            enrichment = data.get("enrichment", {})
+            promo_types = enrichment.get("promo_types", [])
+            if promo_types:
+                rows.append({
+                    "setCode": set_code.upper(),
+                    "number": str(number),
+                    "enrichmentPromoTypes": promo_types,
+                })
+
+    if not rows:
+        return lf
+
+    enrichment_df = pl.DataFrame(rows).lazy()
+
+    # Left join enrichment data
+    lf = lf.join(
+        enrichment_df,
+        on=["setCode", "number"],
+        how="left",
+    )
+
+    # Merge enrichment promo_types into promoTypes
+    return lf.with_columns(
+        pl.when(pl.col("enrichmentPromoTypes").is_not_null())
+        .then(
+            pl.col("promoTypes")
+            .fill_null([])
+            .list.concat(pl.col("enrichmentPromoTypes"))
+            .list.unique()
+        )
+        .otherwise(pl.col("promoTypes"))
+        .alias("promoTypes")
+    ).drop("enrichmentPromoTypes")
 
 
 def fix_power_toughness_for_multiface(lf: pl.LazyFrame) -> pl.LazyFrame:
@@ -1403,6 +1454,9 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
             cardKingdomId=pl.col("cardKingdomId"),
             cardKingdomFoilId=pl.col("cardKingdomFoilId"),
             cardKingdomEtchedId=pl.col("cardKingdomEtchedId"),
+            cardsphereId=pl.col("cardsphereId"),
+            cardsphereFoilId=pl.col("cardsphereFoilId"),
+            deckboxId=pl.col("deckboxId"),
             mtgjsonFoilVersionId=pl.lit(None).cast(pl.String),
             mtgjsonNonFoilVersionId=pl.lit(None).cast(pl.String),
         ).alias("identifiers")
@@ -2530,6 +2584,9 @@ def join_identifiers(
             pl.lit(None).cast(pl.String).alias("cardKingdomUrl"),
             pl.lit(None).cast(pl.String).alias("cardKingdomFoilUrl"),
             pl.lit(None).cast(pl.String).alias("cardKingdomEtchedUrl"),
+            pl.lit(None).cast(pl.String).alias("cardsphereId"),
+            pl.lit(None).cast(pl.String).alias("cardsphereFoilId"),
+            pl.lit(None).cast(pl.String).alias("deckboxId"),
             pl.lit(None).cast(pl.String).alias("orientation"),
             pl.lit(None).cast(pl.String).alias("cachedUuid"),
         )
@@ -3319,6 +3376,7 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
         .pipe(add_basic_fields)
         .pipe(add_booster_types)
         .pipe(fix_promo_types)
+        .pipe(partial(apply_card_enrichment, ctx=ctx))
         .pipe(fix_power_toughness_for_multiface)
         .pipe(propagate_watermark_to_faces)
         .pipe(partial(apply_watermark_overrides, ctx=ctx))

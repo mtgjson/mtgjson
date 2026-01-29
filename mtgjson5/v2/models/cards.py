@@ -56,6 +56,7 @@ class CardBase(PolarsMixin, BaseModel):
     colors: list[str] = Field(default_factory=list)
     color_identity: list[str] = Field(default_factory=list, alias="colorIdentity")
     color_indicator: list[str] | None = Field(default=None, alias="colorIndicator")
+    produced_mana: list[str] | None = Field(default=None, alias="producedMana")
 
     # Mana
     mana_cost: str | None = Field(default=None, alias="manaCost")

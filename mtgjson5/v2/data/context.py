@@ -159,6 +159,13 @@ class PipelineContext:
         return self._cache.gatherer_lf if self._cache else None
 
     @property
+    def multiverse_bridge_lf(self) -> pl.LazyFrame | None:
+        """Multiverse bridge data (cardsphere, deckbox IDs) from cache."""
+        if "_multiverse_bridge_lf" in self._test_data:
+            return self._test_data["_multiverse_bridge_lf"]  # type: ignore[no-any-return]
+        return self._cache.multiverse_bridge_lf if self._cache else None
+
+    @property
     def rulings_lf(self) -> pl.LazyFrame | None:
         """Rulings from cache."""
         if "_rulings_lf" in self._test_data:
@@ -335,6 +342,13 @@ class PipelineContext:
         if "_unlimited_cards" in self._test_data:
             return self._test_data["_unlimited_cards"]  # type: ignore[no-any-return]
         return self._cache.unlimited_cards if self._cache else set()
+
+    @property
+    def card_enrichment(self) -> dict[str, dict[str, dict]]:
+        """Card enrichment data from cache."""
+        if "_card_enrichment" in self._test_data:
+            return self._test_data["_card_enrichment"]  # type: ignore[no-any-return]
+        return self._cache.card_enrichment if self._cache else {}
 
     @property
     def decks_df(self) -> pl.LazyFrame | None:
@@ -576,6 +590,17 @@ class PipelineContext:
             if orient.height > 0:
                 result = result.join(orient, on="scryfallId", how="left")
                 LOGGER.info(f"identifiers: +orientation ({orient.height:,} rows)")
+
+        # Add multiverse bridge data (cardsphere, deckbox IDs) by cachedUuid
+        mvb_raw = self.multiverse_bridge_lf
+        if mvb_raw is not None:
+            if isinstance(mvb_raw, pl.LazyFrame):
+                mvb: pl.DataFrame = mvb_raw.collect()
+            else:
+                mvb = mvb_raw
+            if mvb.height > 0 and "cachedUuid" in result.columns:
+                result = result.join(mvb, on="cachedUuid", how="left")
+                LOGGER.info(f"identifiers: +multiverse_bridge ({mvb.height:,} rows)")
 
         self.identifiers_lf = result.lazy()
         LOGGER.info(
