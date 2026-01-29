@@ -8,11 +8,10 @@ import json
 from argparse import Namespace
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import polars as pl
 import polars_hash as plh
-
 
 if TYPE_CHECKING:
     from mtgjson5.cache import GlobalCache
@@ -26,7 +25,6 @@ from mtgjson5.mtgjson_models import (
     CardToken,
 )
 from mtgjson5.utils import LOGGER, get_expanded_set_codes
-
 
 _DNS_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
 
@@ -44,6 +42,7 @@ class PipelineContext:
     Raw data is accessed through property accessors that delegate to
     the underlying GlobalCache.
     """
+
     _cache: GlobalCache | None = field(default=None, repr=False)
 
     args: Namespace | None = None
@@ -66,142 +65,146 @@ class PipelineContext:
     card_atomic_model: type = field(default=CardAtomic)
 
     categoricals: DynamicCategoricals | None = None
-    
+
     resource_path: Path | None = None
 
     _test_data: dict[str, Any] = field(default_factory=dict, repr=False)
+
+    mcm_set_map: dict[str, dict[str, Any]] = field(default_factory=dict, repr=False)
 
     @property
     def cards_lf(self) -> pl.LazyFrame | None:
         """Raw card data from cache."""
         if "_cards_lf" in self._test_data:
-            return self._test_data["_cards_lf"]
+            return cast("pl.LazyFrame | None", self._test_data["_cards_lf"])
         return self._cache.cards_lf if self._cache else None
 
     @property
     def raw_rulings_lf(self) -> pl.LazyFrame | None:
         """Raw rulings data from cache."""
         if "_raw_rulings_lf" in self._test_data:
-            return self._test_data["_raw_rulings_lf"]
+            return self._test_data["_raw_rulings_lf"]  # type: ignore[no-any-return]
         return self._cache.raw_rulings_lf if self._cache else None
 
     @property
     def sets_lf(self) -> pl.LazyFrame | None:
         """Set metadata from cache."""
         if "_sets_lf" in self._test_data:
-            return self._test_data["_sets_lf"]
+            return self._test_data["_sets_lf"]  # type: ignore[no-any-return]
         return self._cache.sets_lf if self._cache else None
 
     @property
     def card_kingdom_lf(self) -> pl.LazyFrame | None:
         """Card Kingdom lookup from cache."""
         if "_card_kingdom_lf" in self._test_data:
-            return self._test_data["_card_kingdom_lf"]
+            return self._test_data["_card_kingdom_lf"]  # type: ignore[no-any-return]
         return self._cache.card_kingdom_lf if self._cache else None
 
     @property
     def card_kingdom_raw_lf(self) -> pl.LazyFrame | None:
         """Card Kingdom raw data from cache."""
         if "_card_kingdom_raw_lf" in self._test_data:
-            return self._test_data["_card_kingdom_raw_lf"]
+            return self._test_data[  # type: ignore[no-any-return]
+                "_card_kingdom_raw_lf"
+            ]
         return self._cache.card_kingdom_raw_lf if self._cache else None
 
     @property
     def mcm_lookup_lf(self) -> pl.LazyFrame | None:
         """MCM lookup from cache."""
         if "_mcm_lookup_lf" in self._test_data:
-            return self._test_data["_mcm_lookup_lf"]
+            return self._test_data["_mcm_lookup_lf"]  # type: ignore[no-any-return]
         return self._cache.mcm_lookup_lf if self._cache else None
 
     @property
     def salt_lf(self) -> pl.LazyFrame | None:
         """EDHREC salt data from cache."""
         if "_salt_lf" in self._test_data:
-            return self._test_data["_salt_lf"]
+            return self._test_data["_salt_lf"]  # type: ignore[no-any-return]
         return self._cache.salt_lf if self._cache else None
 
     @property
     def spellbook_lf(self) -> pl.LazyFrame | None:
         """Spellbook data from cache."""
         if "_spellbook_lf" in self._test_data:
-            return self._test_data["_spellbook_lf"]
+            return self._test_data["_spellbook_lf"]  # type: ignore[no-any-return]
         return self._cache.spellbook_lf if self._cache else None
 
     @property
     def sld_subsets_lf(self) -> pl.LazyFrame | None:
         """Secret Lair subsets from cache."""
         if "_sld_subsets_lf" in self._test_data:
-            return self._test_data["_sld_subsets_lf"]
+            return self._test_data["_sld_subsets_lf"]  # type: ignore[no-any-return]
         return self._cache.sld_subsets_lf if self._cache else None
 
     @property
     def uuid_cache_lf(self) -> pl.LazyFrame | None:
         """UUID cache from cache."""
         if "_uuid_cache_lf" in self._test_data:
-            return self._test_data["_uuid_cache_lf"]
+            return self._test_data["_uuid_cache_lf"]  # type: ignore[no-any-return]
         return self._cache.uuid_cache_lf if self._cache else None
 
     @property
     def orientation_lf(self) -> pl.LazyFrame | None:
         """Orientation data from cache."""
         if "_orientation_lf" in self._test_data:
-            return self._test_data["_orientation_lf"]
+            return self._test_data["_orientation_lf"]  # type: ignore[no-any-return]
         return self._cache.orientation_lf if self._cache else None
 
     @property
     def gatherer_lf(self) -> pl.LazyFrame | None:
         """Gatherer data from cache."""
         if "_gatherer_lf" in self._test_data:
-            return self._test_data["_gatherer_lf"]
+            return self._test_data["_gatherer_lf"]  # type: ignore[no-any-return]
         return self._cache.gatherer_lf if self._cache else None
 
     @property
     def rulings_lf(self) -> pl.LazyFrame | None:
         """Rulings from cache."""
         if "_rulings_lf" in self._test_data:
-            return self._test_data["_rulings_lf"]
+            return self._test_data["_rulings_lf"]  # type: ignore[no-any-return]
         return self._cache.rulings_lf if self._cache else None
 
     @property
     def foreign_data_lf(self) -> pl.LazyFrame | None:
         """Foreign data from cache."""
         if "_foreign_data_lf" in self._test_data:
-            return self._test_data["_foreign_data_lf"]
+            return self._test_data["_foreign_data_lf"]  # type: ignore[no-any-return]
         return self._cache.foreign_data_lf if self._cache else None
 
     @property
     def sealed_cards_lf(self) -> pl.LazyFrame | None:
         """Sealed cards from cache."""
         if "_sealed_cards_lf" in self._test_data:
-            return self._test_data["_sealed_cards_lf"]
+            return self._test_data["_sealed_cards_lf"]  # type: ignore[no-any-return]
         return self._cache.sealed_cards_lf if self._cache else None
 
     @property
     def sealed_products_lf(self) -> pl.LazyFrame | None:
         """Sealed products from cache."""
         if "_sealed_products_lf" in self._test_data:
-            return self._test_data["_sealed_products_lf"]
+            return self._test_data["_sealed_products_lf"]  # type: ignore[no-any-return]
         return self._cache.sealed_products_lf if self._cache else None
 
     @property
     def sealed_contents_lf(self) -> pl.LazyFrame | None:
         """Sealed contents from cache."""
         if "_sealed_contents_lf" in self._test_data:
-            return self._test_data["_sealed_contents_lf"]
+            return self._test_data["_sealed_contents_lf"]  # type: ignore[no-any-return]
         return self._cache.sealed_contents_lf if self._cache else None
 
     @property
     def decks_lf(self) -> pl.LazyFrame | None:
         """Decks from cache."""
         if "_decks_lf" in self._test_data:
-            return self._test_data["_decks_lf"]
+            return self._test_data["_decks_lf"]  # type: ignore[no-any-return]
         return self._cache.decks_lf if self._cache else None
 
     @property
     def boosters_lf(self) -> pl.LazyFrame | None:
         """Boosters from cache."""
         if "_boosters_lf" in self._test_data:
-            return self._test_data["_boosters_lf"]
+            return self._test_data["_boosters_lf"]  # type: ignore[no-any-return]
         return self._cache.boosters_lf if self._cache else None
 
     @property
@@ -213,112 +216,124 @@ class PipelineContext:
     def tcg_skus_lf(self) -> pl.LazyFrame | None:
         """TCG SKUs from cache."""
         if "_tcg_skus_lf" in self._test_data:
-            return self._test_data["_tcg_skus_lf"]
+            return self._test_data["_tcg_skus_lf"]  # type: ignore[no-any-return]
         return self._cache.tcg_skus_lf if self._cache else None
 
     @property
     def tcg_sku_map_lf(self) -> pl.LazyFrame | None:
         """TCG SKU map from cache."""
         if "_tcg_sku_map_lf" in self._test_data:
-            return self._test_data["_tcg_sku_map_lf"]
+            return self._test_data["_tcg_sku_map_lf"]  # type: ignore[no-any-return]
         return self._cache.tcg_sku_map_lf if self._cache else None
 
     @property
     def tcg_to_uuid_lf(self) -> pl.LazyFrame | None:
         """TCG to UUID mapping from cache."""
         if "_tcg_to_uuid_lf" in self._test_data:
-            return self._test_data["_tcg_to_uuid_lf"]
+            return self._test_data["_tcg_to_uuid_lf"]  # type: ignore[no-any-return]
         return self._cache.tcg_to_uuid_lf if self._cache else None
 
     @property
     def tcg_etched_to_uuid_lf(self) -> pl.LazyFrame | None:
         """TCG etched to UUID mapping from cache."""
         if "_tcg_etched_to_uuid_lf" in self._test_data:
-            return self._test_data["_tcg_etched_to_uuid_lf"]
+            return self._test_data[  # type: ignore[no-any-return]
+                "_tcg_etched_to_uuid_lf"
+            ]
         return self._cache.tcg_etched_to_uuid_lf if self._cache else None
 
     @property
     def mtgo_to_uuid_lf(self) -> pl.LazyFrame | None:
         """MTGO to UUID mapping from cache."""
         if "_mtgo_to_uuid_lf" in self._test_data:
-            return self._test_data["_mtgo_to_uuid_lf"]
+            return self._test_data["_mtgo_to_uuid_lf"]  # type: ignore[no-any-return]
         return self._cache.mtgo_to_uuid_lf if self._cache else None
 
     @property
     def cardmarket_to_uuid_lf(self) -> pl.LazyFrame | None:
         """Cardmarket to UUID mapping from cache."""
         if "_cardmarket_to_uuid_lf" in self._test_data:
-            return self._test_data["_cardmarket_to_uuid_lf"]
+            return self._test_data[  # type: ignore[no-any-return]
+                "_cardmarket_to_uuid_lf"
+            ]
         return self._cache.cardmarket_to_uuid_lf if self._cache else None
 
     @property
     def uuid_to_oracle_lf(self) -> pl.LazyFrame | None:
         """UUID to oracle mapping from cache."""
         if "_uuid_to_oracle_lf" in self._test_data:
-            return self._test_data["_uuid_to_oracle_lf"]
+            return self._test_data["_uuid_to_oracle_lf"]  # type: ignore[no-any-return]
         return self._cache.uuid_to_oracle_lf if self._cache else None
 
     @property
     def default_card_languages_lf(self) -> pl.LazyFrame | None:
         """Default card languages from cache."""
         if "_default_card_languages_lf" in self._test_data:
-            return self._test_data["_default_card_languages_lf"]
+            return self._test_data[  # type: ignore[no-any-return]
+                "_default_card_languages_lf"
+            ]
         return self._cache.default_card_languages_lf if self._cache else None
 
     @property
     def meld_triplets(self) -> dict[str, list[str]]:
         """Meld triplets from cache."""
         if "_meld_triplets" in self._test_data:
-            return self._test_data["_meld_triplets"]
+            return self._test_data["_meld_triplets"]  # type: ignore[no-any-return]
         return self._cache.meld_triplets if self._cache else {}
 
     @property
     def meld_overrides(self) -> dict:
         """Meld overrides (uuid -> otherFaceIds, cardParts) from cache."""
         if "_meld_overrides" in self._test_data:
-            return self._test_data["_meld_overrides"]
+            return self._test_data["_meld_overrides"]  # type: ignore[no-any-return]
         return self._cache.meld_overrides if self._cache else {}
 
     @property
     def manual_overrides(self) -> dict:
         """Manual overrides from cache."""
         if "_manual_overrides" in self._test_data:
-            return self._test_data["_manual_overrides"]
+            return self._test_data["_manual_overrides"]  # type: ignore[no-any-return]
         return self._cache.manual_overrides if self._cache else {}
 
     @property
     def foreigndata_exceptions(self) -> dict:
         """Foreign data exceptions from cache."""
         if "_foreigndata_exceptions" in self._test_data:
-            return self._test_data["_foreigndata_exceptions"]
+            return self._test_data[  # type: ignore[no-any-return]
+                "_foreigndata_exceptions"
+            ]
         return self._cache.foreigndata_exceptions if self._cache else {}
 
     @property
     def gatherer_map(self) -> dict:
         """Gatherer map from cache."""
         if "_gatherer_map" in self._test_data:
-            return self._test_data["_gatherer_map"]
+            return self._test_data["_gatherer_map"]  # type: ignore[no-any-return]
         return self._cache.gatherer_map if self._cache else {}
 
     @property
     def set_code_watermarks(self) -> dict:
         """Set code watermarks from cache."""
         if "_set_code_watermarks" in self._test_data:
-            return self._test_data["_set_code_watermarks"]
+            return self._test_data[  # type: ignore[no-any-return]
+                "_set_code_watermarks"
+            ]
         return self._cache.set_code_watermarks if self._cache else {}
 
     @property
     def standard_legal_sets(self) -> set[str]:
         """Standard legal sets from cache."""
         if "_standard_legal_sets" in self._test_data:
-            return self._test_data["_standard_legal_sets"]
+            return self._test_data[  # type: ignore[no-any-return]
+                "_standard_legal_sets"
+            ]
         return self._cache.standard_legal_sets if self._cache else set()
 
     @property
     def unlimited_cards(self) -> set[str]:
         """Unlimited cards from cache."""
         if "_unlimited_cards" in self._test_data:
-            return self._test_data["_unlimited_cards"]
+            return self._test_data["_unlimited_cards"]  # type: ignore[no-any-return]
         return self._cache.unlimited_cards if self._cache else set()
 
     @property
@@ -370,8 +385,8 @@ class PipelineContext:
         if not self.args:
             return None
         formats_raw = getattr(self.args, "export", None)
-        if formats_raw and isinstance(formats_raw, list | tuple | set):
-            return {f.lower() for f in formats_raw}
+        if formats_raw and isinstance(formats_raw, (list, tuple, set)):
+            return {f.lower() for f in list(formats_raw)}
         return None
 
     @property
@@ -382,6 +397,17 @@ class PipelineContext:
         arg_sets = getattr(self.args, "sets", None)
         sets = get_expanded_set_codes(arg_sets)
         return {s.upper() for s in sets} if sets else None
+
+    def get_mcm_extras_set_id(self, set_name: str) -> int | None:
+        """
+        Get MKM 'Extras' set ID (e.g. 'Throne of Eldraine: Extras').
+
+        :param set_name: Scryfall set name
+        :return: MCM expansion ID for the extras set, or None
+        """
+        extras_key = f"{set_name.lower()}: extras"
+        entry = self.mcm_set_map.get(extras_key)
+        return int(entry["mcmId"]) if entry else None
 
     @classmethod
     def from_global_cache(cls, args: Namespace | None = None) -> PipelineContext:
@@ -485,6 +511,9 @@ class PipelineContext:
         self._build_signatures_lookup()
         self._build_watermark_overrides_lookup()
         self._load_face_flavor_names()
+        # Build MCM set map BEFORE _build_mcm_lookup() transforms away expansion columns
+        self._build_mcm_set_map()
+        self._build_mcm_lookup()
 
         return self
 
@@ -624,9 +653,7 @@ class PipelineContext:
 
             if printings.height > 0:
                 frames.append(("printings", printings))
-                LOGGER.info(
-                    f"oracle_data: +printings ({printings.height:,} rows)"
-                )
+                LOGGER.info(f"oracle_data: +printings ({printings.height:,} rows)")
 
         if not frames:
             LOGGER.info("oracle_data: No data to consolidate")
@@ -667,38 +694,44 @@ class PipelineContext:
             if default_card_languages_raw is not None:
                 default_lang_df = default_card_languages_raw
                 if isinstance(default_lang_df, pl.LazyFrame):
-                    default_lang_df = default_lang_df.collect()
+                    default_lang_df = default_lang_df.collect()  # type: ignore[assignment]
 
                 default_lang_lookup = (
-                    cards.with_columns([
-                        pl.col("set").str.to_uppercase().alias("setCode"),
-                        pl.col("lang")
-                        .replace_strict(LANGUAGE_MAP, default=pl.col("lang"))
-                        .alias("_lang_full"),
-                    ])
+                    cards.with_columns(
+                        [
+                            pl.col("set").str.to_uppercase().alias("setCode"),
+                            pl.col("lang")
+                            .replace_strict(LANGUAGE_MAP, default=pl.col("lang"))
+                            .alias("_lang_full"),
+                        ]
+                    )
                     .join(
-                        default_lang_df,
+                        default_lang_df,  # type: ignore[arg-type]
                         left_on=["id", "_lang_full"],
                         right_on=["scryfallId", "language"],
                         how="semi",
                     )
-                    .select([
-                        "setCode",
-                        pl.col("collectorNumber").alias("number"),
-                        pl.col("id").alias("_default_scryfall_id"),
-                        pl.lit("a").alias("_default_side"),
-                    ])
+                    .select(
+                        [
+                            "setCode",
+                            pl.col("collectorNumber").alias("number"),
+                            pl.col("id").alias("_default_scryfall_id"),
+                            pl.lit("a").alias("_default_side"),
+                        ]
+                    )
                 )
             else:
                 default_lang_lookup = (
                     cards.filter(pl.col("lang") == "en")
                     .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
-                    .select([
-                        "setCode",
-                        pl.col("collectorNumber").alias("number"),
-                        pl.col("id").alias("_default_scryfall_id"),
-                        pl.lit("a").alias("_default_side"),
-                    ])
+                    .select(
+                        [
+                            "setCode",
+                            pl.col("collectorNumber").alias("number"),
+                            pl.col("id").alias("_default_scryfall_id"),
+                            pl.lit("a").alias("_default_side"),
+                        ]
+                    )
                 )
 
             # Parse foreignData exceptions
@@ -706,12 +739,16 @@ class PipelineContext:
             fd_exclude: set[tuple[str, str]] = set()
             foreigndata_exceptions = self.foreigndata_exceptions
             if foreigndata_exceptions:
-                for set_code, numbers in foreigndata_exceptions.get("include", {}).items():
+                for set_code, numbers in foreigndata_exceptions.get(
+                    "include", {}
+                ).items():
                     if not set_code.startswith("_"):
                         for number in numbers:
                             if not number.startswith("_"):
                                 fd_include.add((set_code, number))
-                for set_code, numbers in foreigndata_exceptions.get("exclude", {}).items():
+                for set_code, numbers in foreigndata_exceptions.get(
+                    "exclude", {}
+                ).items():
                     if not set_code.startswith("_"):
                         for number in numbers:
                             if not number.startswith("_"):
@@ -773,9 +810,7 @@ class PipelineContext:
                         .alias("_face_name"),
                         pl.when(pl.col("cardFaces").list.len() > 1)
                         .then(
-                            pl.col("cardFaces")
-                            .list.first()
-                            .struct.field("flavor_text")
+                            pl.col("cardFaces").list.first().struct.field("flavor_text")
                         )
                         .otherwise(pl.col("flavorText"))
                         .alias("_flavor_text"),
@@ -800,8 +835,7 @@ class PipelineContext:
                                 pl.col("_default_scryfall_id"),
                                 pl.col("_default_side"),
                                 pl.lit("_"),
-                                pl.col("lang")
-                                .replace_strict(
+                                pl.col("lang").replace_strict(
                                     LANGUAGE_MAP,
                                     default=pl.col("lang"),
                                 ),
@@ -811,8 +845,9 @@ class PipelineContext:
                 )
                 .with_columns(
                     pl.col("_uuid_source"),
-                    plh.col("_uuid_source").uuidhash.uuid5(_DNS_NAMESPACE)
-                    .alias("_foreign_uuid")
+                    plh.col("_uuid_source")
+                    .uuidhash.uuid5(_DNS_NAMESPACE)
+                    .alias("_foreign_uuid"),
                 )
                 .filter(pl.col("_foreign_name").is_not_null())
                 .sort("setCode", "collectorNumber", "language", nulls_last=True)
@@ -832,9 +867,7 @@ class PipelineContext:
                                 ]
                             ).alias("identifiers"),
                             pl.col("language"),
-                            pl.col("multiverseIds")
-                            .list.first()
-                            .alias("multiverseId"),
+                            pl.col("multiverseIds").list.first().alias("multiverseId"),
                             pl.col("_foreign_name").alias("name"),
                             pl.col("_foreign_text").alias("text"),
                             pl.col("_foreign_type").alias("type"),
@@ -986,11 +1019,13 @@ class PipelineContext:
         for set_code, cards in watermarks_raw.items():
             for card in cards:
                 for name_part in card["name"].split(" // "):
-                    records.append({
-                        "setCode": set_code.upper(),
-                        "name": name_part,
-                        "_watermarkOverride": card["watermark"],
-                    })
+                    records.append(
+                        {
+                            "setCode": set_code.upper(),
+                            "name": name_part,
+                            "_watermarkOverride": card["watermark"],
+                        }
+                    )
 
         if not records:
             LOGGER.info("watermark_overrides: No overrides found")
@@ -1026,18 +1061,197 @@ class PipelineContext:
             if "_" not in key:
                 continue
             scryfall_id, side = key.rsplit("_", 1)
-            records.append({
-                "scryfallId": scryfall_id,
-                "side": side,
-                "_faceFlavorName": data.get("faceFlavorName"),
-                "_flavorNameOverride": data.get("flavorName"),
-            })
+            records.append(
+                {
+                    "scryfallId": scryfall_id,
+                    "side": side,
+                    "_faceFlavorName": data.get("faceFlavorName"),
+                    "_flavorNameOverride": data.get("flavorName"),
+                }
+            )
 
         if not records:
             LOGGER.info("face_flavor_names: No data found")
             return
 
         self.face_flavor_names_df = pl.DataFrame(records)
-        LOGGER.info(
-            f"face_flavor_names_df: {self.face_flavor_names_df.height:,} rows"
+        LOGGER.info(f"face_flavor_names_df: {self.face_flavor_names_df.height:,} rows")
+
+    def _build_mcm_lookup(self) -> None:
+        """
+        Build MCM lookup with setCode mapping.
+
+        Matches legacy behavior:
+        - Direct match: MCM expansion name == Scryfall set name
+        - Extras match: MCM expansion name == Scryfall set name + ": extras"
+        - Applies mkm_set_name_fixes.json to remap MCM names to Scryfall names
+        """
+        mcm_raw = self.mcm_lookup_lf
+        sets_raw = self.sets_lf
+
+        if mcm_raw is None or sets_raw is None:
+            LOGGER.info("mcm_lookup: Missing MCM or sets data, skipping")
+            return
+
+        mcm_df = mcm_raw.collect() if isinstance(mcm_raw, pl.LazyFrame) else mcm_raw
+        sets_df = sets_raw.collect() if isinstance(sets_raw, pl.LazyFrame) else sets_raw
+
+        if mcm_df.is_empty():
+            LOGGER.info("mcm_lookup: MCM data is empty, skipping")
+            return
+
+        # Check if already mapped (has setCode column)
+        if "setCode" in mcm_df.columns:
+            LOGGER.info("mcm_lookup: Already mapped, skipping")
+            return
+
+        # Load MCM name fixes
+        mcm_fixes: dict[str, str] = {}
+        if self.resource_path:
+            fixes_path = self.resource_path / "mkm_set_name_fixes.json"
+            if fixes_path.exists():
+                with fixes_path.open(encoding="utf-8") as f:
+                    mcm_fixes = json.load(f)
+
+        base_mapping = sets_df.select(
+            [
+                pl.col("code").alias("setCode"),
+                pl.col("name").str.to_lowercase().alias("_mcm_name"),
+            ]
         )
+        extras_mapping = sets_df.select(
+            [
+                pl.col("code").alias("setCode"),
+                (pl.col("name").str.to_lowercase() + ": extras").alias("_mcm_name"),
+            ]
+        )
+        set_mapping = pl.concat([base_mapping, extras_mapping]).unique(
+            subset=["_mcm_name"]
+        )
+
+        def apply_mcm_fixes(exp_name: str) -> str:
+            lower = exp_name.lower()
+            return mcm_fixes.get(lower, lower)
+
+        result = (
+            mcm_df.with_columns(
+                pl.col("expansionName")
+                .map_elements(apply_mcm_fixes, return_dtype=pl.String)
+                .alias("_exp_name_fixed")
+            )
+            .join(
+                set_mapping,
+                left_on="_exp_name_fixed",
+                right_on="_mcm_name",
+                how="inner",
+            )
+            .with_columns(
+                pl.col("name")
+                .str.to_lowercase()
+                .str.replace(r"\s*\(v\.\d+\)\s*$", "")
+                .alias("nameLower"),
+            )
+            .select(
+                [
+                    pl.col("mcmId"),
+                    pl.col("mcmMetaId"),
+                    pl.col("setCode"),
+                    pl.col("nameLower"),
+                    pl.col("number"),
+                ]
+            )
+            .unique(subset=["setCode", "nameLower", "number"], keep="first")
+        )
+        self._test_data["_mcm_lookup_lf"] = result.lazy()
+
+    def _build_mcm_set_map(self) -> None:
+        """
+        Build MCM set map for set metadata (set name -> mcmId/mcmName)
+        """
+        from mtgjson5 import constants
+
+        raw_mcm_path = constants.CACHE_PATH / "mkm_cards.parquet"
+        if not raw_mcm_path.exists():
+            LOGGER.info("mcm_set_map: No raw MCM cache file, skipping")
+            return
+
+        try:
+            mcm_df = pl.read_parquet(raw_mcm_path)
+        except Exception as e:
+            LOGGER.warning(f"mcm_set_map: Failed to read MCM cache: {e}")
+            return
+
+        if mcm_df.is_empty():
+            LOGGER.info("mcm_set_map: MCM data is empty, skipping")
+            return
+
+        if "expansionId" not in mcm_df.columns or "expansionName" not in mcm_df.columns:
+            LOGGER.info("mcm_set_map: MCM cache missing expansion columns, skipping")
+            return
+
+        expansions_df = (
+            mcm_df.select(["expansionId", "expansionName"])
+            .unique()
+            .filter(pl.col("expansionId").is_not_null())
+        )
+
+        if expansions_df.is_empty():
+            LOGGER.info("mcm_set_map: No expansions found in MCM data")
+            return
+
+        mcm_fixes: dict[str, str] = {}
+        if self.resource_path:
+            fixes_path = self.resource_path / "mkm_set_name_fixes.json"
+            if fixes_path.exists():
+                with fixes_path.open(encoding="utf-8") as f:
+                    mcm_fixes = json.load(f)
+
+        raw_map: dict[str, dict[str, Any]] = {}
+        for row in expansions_df.iter_rows(named=True):
+            exp_name = row["expansionName"]
+            exp_id = row["expansionId"]
+            raw_map[exp_name.lower()] = {
+                "mcmId": exp_id,
+                "mcmName": exp_name,
+            }
+
+        for old_name, new_name in mcm_fixes.items():
+            old_key = old_name.lower()
+            if old_key in raw_map:
+                self.mcm_set_map[new_name.lower()] = raw_map.pop(old_key)
+
+        self.mcm_set_map.update(raw_map)
+
+        LOGGER.info(f"mcm_set_map: Built with {len(self.mcm_set_map)} expansions")
+
+    def _build_mcm_set_map_from_sets(self, sets_df: pl.DataFrame) -> None:
+        """
+        Fallback: build MCM set map by matching MCM lookup setCode to Scryfall sets.
+
+        Used when MCM data has already been processed and lacks expansion columns.
+        """
+        mcm_raw = self.mcm_lookup_lf
+        if mcm_raw is None:
+            return
+
+        mcm_df = mcm_raw.collect() if isinstance(mcm_raw, pl.LazyFrame) else mcm_raw
+
+        if "setCode" not in mcm_df.columns:
+            LOGGER.info("mcm_set_map: No setCode column in MCM data")
+            return
+
+        # Get unique setCodes that have MCM data
+        mcm_set_codes = set(mcm_df["setCode"].unique().to_list())
+
+        # Build map from Scryfall sets that have MCM coverage
+        for row in sets_df.iter_rows(named=True):
+            set_code = row.get("code", "").upper()
+            set_name = row.get("name", "")
+
+            if set_code in mcm_set_codes and set_name:
+                self.mcm_set_map[set_name.lower()] = {
+                    "mcmId": None,  # Populated from card joins
+                    "mcmName": set_name,
+                }
+
+        LOGGER.info(f"mcm_set_map: Built fallback map for {len(self.mcm_set_map)} sets")
