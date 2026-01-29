@@ -20,10 +20,9 @@ from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
 
 from mtgjson5.classes import MtgjsonPricesObject
-from mtgjson5.constants import CACHE_PATH, RESOURCE_PATH
+from mtgjson5.constants import RESOURCE_PATH
 from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.utils import generate_entity_mapping
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -40,6 +39,7 @@ class CardMarketConfig:
 
     @classmethod
     def from_mtgjson_config(cls) -> "CardMarketConfig | None":
+        """Create config from mtgjson.properties file."""
         config = MtgjsonConfig()
         if not config.has_section("CardMarket"):
             return None
@@ -54,7 +54,9 @@ class CardMarketConfig:
             app_token=app_token,
             app_secret=app_secret,
             access_token=config.get("CardMarket", "mkm_access_token", fallback=""),
-            access_token_secret=config.get("CardMarket", "mkm_access_token_secret", fallback=""),
+            access_token_secret=config.get(
+                "CardMarket", "mkm_access_token_secret", fallback=""
+            ),
             prices_api_url=config.get("CardMarket", "prices_api_url", fallback=""),
         )
 
@@ -66,7 +68,9 @@ class CardMarketProvider:
     config: CardMarketConfig | None = None
     concurrency: int = 1  # MKM rate limits aggressively - must be sequential
     request_delay: float = 1.5  # seconds between requests (MCM needs ~1-2s)
-    today_date: str = field(default_factory=lambda: datetime.datetime.today().strftime("%Y-%m-%d"))
+    today_date: str = field(
+        default_factory=lambda: datetime.datetime.today().strftime("%Y-%m-%d")
+    )
 
     # Internal state
     _connection: Mkm | None = field(default=None, repr=False)
@@ -170,45 +174,52 @@ class CardMarketProvider:
     def _fetch_expansion_cards_sync(self, mcm_id: int, retries: int = 5) -> list[dict]:
         """Sync fetch of expansion cards - runs in thread pool."""
         import time
+
         conn = self._ensure_mkm_connection()
         resp = None
 
         for attempt in range(retries):
             try:
                 resp = conn.market_place.expansion_singles(1, expansion=mcm_id)
-                
+
                 # Handle rate limiting
                 if resp.status_code == 429:
-                    wait = min(30, 2 ** attempt * 5)  # 5, 10, 20, 30, 30
+                    wait = min(30, 2**attempt * 5)  # 5, 10, 20, 30, 30
                     LOGGER.warning(f"Rate limited on {mcm_id}, waiting {wait}s...")
                     time.sleep(wait)
                     resp = None
                     continue
-                    
+
                 break
             except mkmsdk.exceptions.ConnectionError as e:
                 if "429" in str(e):
-                    wait = min(30, 2 ** attempt * 5)
+                    wait = min(30, 2**attempt * 5)
                     LOGGER.warning(f"Rate limited on {mcm_id}, waiting {wait}s...")
                     time.sleep(wait)
                 else:
-                    LOGGER.warning(f"MKM connection error for {mcm_id} (attempt {attempt + 1}): {e}")
+                    LOGGER.warning(
+                        f"MKM connection error for {mcm_id} (attempt {attempt + 1}): {e}"
+                    )
                     time.sleep(10)
 
         if resp is None or resp.status_code != 200:
             if resp:
                 LOGGER.warning(f"MKM request failed for {mcm_id}: {resp.status_code}")
             else:
-                LOGGER.error(f"Failed to fetch cards for expansion {mcm_id} after {retries} attempts")
+                LOGGER.error(
+                    f"Failed to fetch cards for expansion {mcm_id} after {retries} attempts"
+                )
             return []
 
         try:
-            return resp.json().get("single", [])
+            return resp.json().get("single", [])  # type: ignore[no-any-return]
         except json.JSONDecodeError as e:
             LOGGER.warning(f"Failed to parse MKM response for {mcm_id}: {e}")
             return []
 
-    async def get_mkm_cards(self, mcm_id: int | None) -> dict[str, list[dict[str, Any]]]:
+    async def get_mkm_cards(
+        self, mcm_id: int | None
+    ) -> dict[str, list[dict[str, Any]]]:
         """
         Get cards for a set, keyed by normalized name.
 
@@ -268,8 +279,12 @@ class CardMarketProvider:
         if output_path and output_path.exists():
             try:
                 existing_df = pl.read_parquet(output_path)
-                fetched_expansion_ids = set(existing_df["expansionId"].unique().to_list())
-                LOGGER.info(f"Resuming: {len(fetched_expansion_ids)} expansions already fetched")
+                fetched_expansion_ids = set(
+                    existing_df["expansionId"].unique().to_list()
+                )
+                LOGGER.info(
+                    f"Resuming: {len(fetched_expansion_ids)} expansions already fetched"
+                )
             except Exception as e:
                 LOGGER.warning(f"Could not read existing cache for resumption: {e}")
 
@@ -317,7 +332,11 @@ class CardMarketProvider:
         # Return combined data
         new_df = pl.DataFrame(all_cards) if all_cards else pl.DataFrame()
         if existing_df is not None and not existing_df.is_empty():
-            return pl.concat([existing_df, new_df]) if not new_df.is_empty() else existing_df
+            return (
+                pl.concat([existing_df, new_df])
+                if not new_df.is_empty()
+                else existing_df
+            )
         return new_df
 
     def _write_incremental(
@@ -366,7 +385,9 @@ class CardMarketProvider:
         return {
             str(entry["idProduct"]): {
                 "trend": float(entry["trend"]) if entry.get("trend") else None,
-                "trend-foil": float(entry["trend-foil"]) if entry.get("trend-foil") else None,
+                "trend-foil": (
+                    float(entry["trend-foil"]) if entry.get("trend-foil") else None
+                ),
             }
             for entry in price_guides
         }
@@ -384,7 +405,7 @@ class CardMarketProvider:
         # Try cache first, fall back to parsing AllPrintings
         from mtgjson5.cache import GLOBAL_CACHE
 
-        mtgjson_id_map: dict[str, set[Any]] = GLOBAL_CACHE.get_cardmarket_to_uuid_map()
+        mtgjson_id_map: dict[str, set[Any]] = GLOBAL_CACHE.get_cardmarket_to_uuid_map()  # type: ignore[assignment]
         if not mtgjson_id_map:
             mtgjson_id_map = generate_entity_mapping(
                 all_printings_path, ("identifiers", "mcmId"), ("uuid",)
@@ -422,7 +443,9 @@ class CardMarketProvider:
                     today_dict[uuid].sell_normal = avg_sell
 
                 if avg_foil:
-                    finishes = mtgjson_finish_map.get(product_id, [])
+                    finishes: list[Any] | set[Any] = mtgjson_finish_map.get(
+                        product_id, []
+                    )
                     if "etched" in finishes:
                         today_dict[uuid].sell_etched = avg_foil
                     else:
@@ -434,7 +457,10 @@ class CardMarketProvider:
 
 # Convenience functions
 
-async def get_cardmarket_prices(all_printings_path: Path) -> dict[str, MtgjsonPricesObject]:
+
+async def get_cardmarket_prices(
+    all_printings_path: Path,
+) -> dict[str, MtgjsonPricesObject]:
     """Fetch today's CardMarket prices."""
     provider = CardMarketProvider()
     try:
@@ -463,7 +489,9 @@ async def get_all_cardmarket_cards(
     provider = CardMarketProvider(request_delay=request_delay)
     try:
         # Pass output_path directly - get_all_cards handles incremental writing
-        return await provider.get_all_cards(output_path=output_path, on_progress=on_progress)
+        return await provider.get_all_cards(
+            output_path=output_path, on_progress=on_progress
+        )
     finally:
         await provider.close()
 
@@ -488,8 +516,6 @@ def load_cardmarket_data(
     Returns:
         DataFrame with MCM card data, or None if no config
     """
-    import datetime
-
     # Check if config is available
     config = CardMarketConfig.from_mtgjson_config()
     if config is None:
@@ -501,9 +527,13 @@ def load_cardmarket_data(
         mtime = datetime.datetime.fromtimestamp(cache_path.stat().st_mtime)
         age = datetime.datetime.now() - mtime
         if age.total_seconds() < cache_max_age_hours * 3600:
-            LOGGER.info(f"Using cached MCM data ({age.total_seconds() / 3600:.1f}h old)")
+            LOGGER.info(
+                f"Using cached MCM data ({age.total_seconds() / 3600:.1f}h old)"
+            )
             return pl.read_parquet(cache_path)
-        LOGGER.info(f"MCM cache stale ({age.total_seconds() / 3600:.1f}h old), refetching...")
+        LOGGER.info(
+            f"MCM cache stale ({age.total_seconds() / 3600:.1f}h old), refetching..."
+        )
 
     # Fetch from API
     LOGGER.info("Fetching CardMarket data (this takes ~10-30 min)...")
@@ -533,8 +563,10 @@ def load_cardmarket_data(
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-    async def main():
-        def progress(done: int, total: int, name: str):
+    async def main() -> None:
+        """Entry point for CLI testing."""
+
+        def progress(done: int, total: int, name: str) -> None:
             print(f"[{done}/{total}] {name}")
 
         df = await get_all_cardmarket_cards(
@@ -543,5 +575,5 @@ if __name__ == "__main__":
         )
         print(f"\nDone! {len(df)} cards")
         print(df.head(10))
-    
+
     asyncio.run(main())

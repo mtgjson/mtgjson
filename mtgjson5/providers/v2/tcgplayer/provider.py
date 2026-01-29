@@ -5,6 +5,8 @@ Fetches all Magic products with nested SKUs. Streams results to parquet.
 Supports multiple API keys for increased throughput.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 from collections.abc import Callable
@@ -17,7 +19,6 @@ import polars as pl
 
 from mtgjson5 import constants
 from mtgjson5.mtgjson_config import MtgjsonConfig
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class TcgPlayerConfig:
     api_version: str = "v1.39.0"
 
     @classmethod
-    def from_mtgjson_config(cls, suffix: str = "") -> Optional["TcgPlayerConfig"]:
+    def from_mtgjson_config(cls, suffix: str = "") -> Optional[TcgPlayerConfig]:
         """Load config from mtgjson.properties [TCGPlayer] section."""
         config = MtgjsonConfig()
         if not config.has_section("TCGPlayer"):
@@ -57,7 +58,7 @@ class TcgPlayerConfig:
         )
 
     @classmethod
-    def load_all(cls) -> list["TcgPlayerConfig"]:
+    def load_all(cls) -> list[TcgPlayerConfig]:
         """Load all available API key configs (primary + secondary)."""
         configs = []
         primary = cls.from_mtgjson_config("")
@@ -77,7 +78,7 @@ class TcgPlayerClient:
         self.access_token: str | None = None
         self._session: aiohttp.ClientSession | None = None
 
-    async def __aenter__(self) -> "TcgPlayerClient":
+    async def __aenter__(self) -> TcgPlayerClient:
         connector = aiohttp.TCPConnector(limit=CONCURRENT_REQUESTS)
         self._session = aiohttp.ClientSession(connector=connector)
         await self.authenticate()
@@ -346,7 +347,9 @@ class TCGProvider:
             await asyncio.gather(
                 *[
                     fetch_client_pages(config, client_offsets)
-                    for config, client_offsets in zip(self.configs, offsets_per_client, strict=False)
+                    for config, client_offsets in zip(
+                        self.configs, offsets_per_client, strict=False
+                    )
                 ]
             )
 
