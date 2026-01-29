@@ -31,10 +31,11 @@ class MtgjsonCardObject(JsonObject):
     availability: MtgjsonGameFormatsObject
     booster_types: list[str]
     border_color: str
-    card_parts: list[str]
-    color_identity: list[str]
-    color_indicator: list[str] | None
-    colors: list[str]
+    card_parts: List[str]
+    color_identity: List[str]
+    color_indicator: Optional[List[str]]
+    colors: List[str]
+    produced_mana: Optional[List[str]]
     converted_mana_cost: float
     count: int
     defense: str | None
@@ -164,6 +165,7 @@ class MtgjsonCardObject(JsonObject):
         "color_identity",
         "color_indicator",
         "colors",
+        "produced_mana",
         "converted_mana_cost",
         "count",
         "defense",

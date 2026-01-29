@@ -1,11 +1,10 @@
 """Pytest configuration and fixtures for MTGJSON tests."""
 
 import os
-from collections.abc import Generator
-from typing import Any
+from typing import Any, Dict, Generator
+from unittest.mock import patch
 
 import pytest
-import requests_cache
 
 
 @pytest.fixture
@@ -13,24 +12,17 @@ def disable_cache() -> Generator[None, None, None]:
 	"""
 	Disable requests-cache for VCR tests.
 
-	Uses requests_cache.disabled() context manager (the official API) rather than
-	monkey-patching CachedSession. This approach:
-	- Is documented in requests-cache compatibility guide
-	- Properly handles global cache state
-	- Won't break if library internals change
-	- Makes the intent explicit
+    Patches MtgjsonConfig.use_cache to return False, causing retryable_session()
+    to use a regular requests.Session instead of CachedSession. This avoids
+    incompatibility between requests-cache and vcrpy (VCRHTTPResponse doesn't
+    have `_request_url` attribute that CachedSession expects).
 
-	Alternative (NOT used): unittest.mock.patch('requests_cache.CachedSession', requests.Session)
-	- More brittle, depends on internal implementation details
-	- Doesn't handle all caching mechanisms (e.g., globally installed cache)
-
-	While requests-cache and VCR can coexist, disabling the cache during VCR tests
-	ensures deterministic playback from cassettes without cache interference.
-
-	See: https://requests-cache.readthedocs.io/en/stable/user_guide/compatibility.html
-	"""
-	with requests_cache.disabled():
-		yield
+    This approach completely bypasses the caching mechanism during tests,
+    ensuring VCR cassettes work correctly for deterministic playback.
+    """
+    with patch("mtgjson5.retryable_session.MtgjsonConfig") as mock_config:
+        mock_config.return_value.use_cache = False
+        yield
 
 
 # VCR configuration

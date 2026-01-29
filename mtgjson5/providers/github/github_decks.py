@@ -82,7 +82,7 @@ class GitHubDecksProvider(AbstractProvider):
         if not self.decks_by_set:
             decks_uuid_content = self.download(self.decks_uuid_api_url)
             for deck in self.download(self.decks_api_url):
-                sealed_uuids = decks_uuid_content.get(set_code.lower(), {}).get(
+                sealed_uuids = decks_uuid_content.get(deck["set_code"].lower(), {}).get(
                     deck["name"]
                 )
 
