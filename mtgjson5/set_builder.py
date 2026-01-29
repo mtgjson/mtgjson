@@ -1019,6 +1019,10 @@ def build_mtgjson_card(
     mtgjson_card.attraction_lights = scryfall_object.get("attraction_lights")
     mtgjson_card.border_color = scryfall_object.get("border_color", "")
     mtgjson_card.color_identity = scryfall_object.get("color_identity", "")
+    if "produced_mana" in face_data:
+        mtgjson_card.produced_mana = face_data.get("produced_mana")
+    else:
+        mtgjson_card.produced_mana = scryfall_object.get("produced_mana")
     if not hasattr(mtgjson_card, "mana_value"):
         mtgjson_card.mana_value = scryfall_object.get("cmc", "")
         # Deprecated - Remove in 6.0.0

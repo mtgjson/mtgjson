@@ -34,6 +34,7 @@ class MtgjsonCardObject(JsonObject):
     color_identity: List[str]
     color_indicator: Optional[List[str]]
     colors: List[str]
+    produced_mana: Optional[List[str]]
     converted_mana_cost: float
     count: int
     defense: Optional[str]
@@ -163,6 +164,7 @@ class MtgjsonCardObject(JsonObject):
         "color_identity",
         "color_indicator",
         "colors",
+        "produced_mana",
         "converted_mana_cost",
         "count",
         "defense",
