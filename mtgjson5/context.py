@@ -80,11 +80,11 @@ class PipelineContext:
         return self._cache.cards_lf if self._cache else None
 
     @property
-    def raw_rulings_lf(self) -> pl.LazyFrame | None:
+    def rulings_lf(self) -> pl.LazyFrame | None:
         """Raw rulings data from cache."""
-        if "_raw_rulings_lf" in self._test_data:
-            return self._test_data["_raw_rulings_lf"]  # type: ignore[no-any-return]
-        return self._cache.raw_rulings_lf if self._cache else None
+        if "_rulings_lf" in self._test_data:
+            return self._test_data["_rulings_lf"]  # type: ignore[no-any-return]
+        return self._cache.rulings_lf if self._cache else None
 
     @property
     def sets_lf(self) -> pl.LazyFrame | None:
@@ -441,7 +441,7 @@ class PipelineContext:
         cls,
         cards_lf: pl.LazyFrame | None = None,
         sets_lf: pl.LazyFrame | None = None,
-        raw_rulings_lf: pl.LazyFrame | None = None,
+        rulings_lf: pl.LazyFrame | None = None,
         uuid_cache_lf: pl.LazyFrame | None = None,
         card_kingdom_lf: pl.LazyFrame | None = None,
         salt_lf: pl.LazyFrame | None = None,
@@ -465,8 +465,8 @@ class PipelineContext:
             test_data["_cards_lf"] = cards_lf
         if sets_lf is not None:
             test_data["_sets_lf"] = sets_lf
-        if raw_rulings_lf is not None:
-            test_data["_raw_rulings_lf"] = raw_rulings_lf
+        if rulings_lf is not None:
+            test_data["_rulings_lf"] = rulings_lf
         if uuid_cache_lf is not None:
             test_data["_uuid_cache_lf"] = uuid_cache_lf
         if card_kingdom_lf is not None:
@@ -608,7 +608,7 @@ class PipelineContext:
                 LOGGER.info(f"oracle_data: +salt ({salt.height:,} rows)")
 
         # Rulings (aggregate by oracleId into list of structs)
-        rulings_raw = self.raw_rulings_lf
+        rulings_raw = self.rulings_lf
         if rulings_raw is not None:
             if isinstance(rulings_raw, pl.LazyFrame):
                 rulings: pl.DataFrame = rulings_raw.collect()

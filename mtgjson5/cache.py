@@ -126,7 +126,7 @@ class GlobalCache:
 
         # Core Bulk Data LFs
         self.cards_lf: pl.LazyFrame | None = None
-        self.raw_rulings_lf: pl.LazyFrame | None = None
+        self.rulings_lf: pl.LazyFrame | None = None
         self.sets_lf: pl.LazyFrame | None = None
 
         # Pre-computed Aggregation LFs
@@ -224,7 +224,7 @@ class GlobalCache:
         """Clear all cached data to free memory."""
         self.release(
             "cards_lf",
-            "raw_rulings_lf",
+            "rulings_lf",
             "oracle_lookup_lf",
             "sets_lf",
             "rulings_lf",
@@ -338,7 +338,7 @@ class GlobalCache:
 
         dataframes_to_dump = {
             "cards_lf": "cards.parquet",
-            "raw_rulings_lf": "raw_rulings.parquet",
+            "rulings_lf": "rulings.parquet",
             "sets_lf": "sets.parquet",
             "card_kingdom_lf": "card_kingdom.parquet",
             "card_kingdom_raw_lf": "card_kingdom_raw.parquet",
@@ -538,7 +538,7 @@ class GlobalCache:
         if missing_cols:
             self.cards_lf = self.cards_lf.with_columns(missing_cols)
 
-        self.raw_rulings_lf = pl.scan_ndjson(rulings_path, infer_schema_length=1000)
+        self.rulings_lf = pl.scan_ndjson(rulings_path, infer_schema_length=1000)
 
         # Build languages from default_cards
         self._load_languages()
@@ -1026,7 +1026,7 @@ class GlobalCache:
     def _normalize_all_columns(self) -> None:
         """Normalize ALL DataFrame columns to camelCase."""
         self.cards_lf = _normalize_columns(self.cards_lf)
-        self.raw_rulings_lf = _normalize_columns(self.raw_rulings_lf)
+        self.rulings_lf = _normalize_columns(self.rulings_lf)
         self.sets_lf = _normalize_columns(self.sets_lf)
         self.rulings_lf = _normalize_columns(self.rulings_lf)
         self.foreign_data_lf = _normalize_columns(self.foreign_data_lf)
