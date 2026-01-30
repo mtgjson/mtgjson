@@ -180,7 +180,9 @@ class CardHoarderPriceProvider:
         finish = "foil" if is_foil else "normal"
 
         try:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=60)) as resp:
+            async with session.get(
+                url, timeout=aiohttp.ClientTimeout(total=60)
+            ) as resp:
                 resp.raise_for_status()
                 content = await resp.text()
 
@@ -231,9 +233,7 @@ class CardHoarderPriceProvider:
                     f"CardHoarder: {invalid_count} unmapped/invalid entries ({finish})"
                 )
 
-            LOGGER.info(
-                f"CardHoarder: Parsed {len(records):,} {finish} price records"
-            )
+            LOGGER.info(f"CardHoarder: Parsed {len(records):,} {finish} price records")
 
         except aiohttp.ClientError as e:
             LOGGER.error(f"Failed to fetch CardHoarder pricefile ({finish}): {e}")

@@ -5,9 +5,9 @@ This module exports the second generation of data providers including
 CardKingdom, GitHub, EDHREC Salt, Scryfall, and pricing providers.
 """
 
+from .cardhoarder import CardHoarderPriceProvider
 from .cardkingdom import CKProvider
 from .cardmarket import CardMarketProvider
-from .cardhoarder import CardHoarderPriceProvider
 from .github import SealedDataProvider
 from .manapool import ManapoolPriceProvider
 from .salt import EdhrecSaltProvider

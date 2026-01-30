@@ -446,7 +446,7 @@ class PipelineContext:
             _cache=GLOBAL_CACHE,
             args=args,
             categoricals=categoricals,
-            scryfall_id_filter=GLOBAL_CACHE.scryfall_id_filter,
+            scryfall_id_filter=GLOBAL_CACHE._scryfall_id_filter,
             resource_path=constants.RESOURCE_PATH,
         )
 

@@ -18,7 +18,5 @@ BASIC_LAND_NAMES: Final[frozenset[str]] = frozenset(
 )
 """The five basic land card names."""
 
-MULTI_WORD_SUB_TYPES: Final[frozenset[str]] = frozenset(
-    {"Time Lord"}
-)
+MULTI_WORD_SUB_TYPES: Final[frozenset[str]] = frozenset({"Time Lord"})
 """Subtypes that contain spaces."""

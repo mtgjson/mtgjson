@@ -12,12 +12,10 @@ import asyncio
 import datetime
 import json
 import logging
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-import aiohttp
 import polars as pl
 
 from mtgjson5 import constants
@@ -163,7 +161,7 @@ class TCGPlayerPriceProvider:
             endpoint = f"catalog/categories/1/groups?offset={offset}&limit=100"
             try:
                 resp = await client.get(endpoint, versioned=False)
-                results = resp.get("results", [])
+                results = cast(list[dict[str, Any]], resp.get("results", []))
                 if not results:
                     break
 
@@ -178,7 +176,9 @@ class TCGPlayerPriceProvider:
                     break
 
             except Exception as e:
-                LOGGER.error(f"Failed to fetch TCGPlayer groups at offset {offset}: {e}")
+                LOGGER.error(
+                    f"Failed to fetch TCGPlayer groups at offset {offset}: {e}"
+                )
                 break
 
         LOGGER.info(f"Found {len(group_ids)} TCGPlayer Magic sets")
@@ -201,7 +201,7 @@ class TCGPlayerPriceProvider:
         try:
             endpoint = f"pricing/group/{group_id}"
             resp = await client.get(endpoint, versioned=True)
-            results = resp.get("results", [])
+            results = cast(list[dict[str, Any]], resp.get("results", []))
 
             for price_obj in results:
                 if not isinstance(price_obj, dict):
@@ -297,7 +297,9 @@ class TCGPlayerPriceProvider:
         if self.output_path:
             self.output_path.parent.mkdir(parents=True, exist_ok=True)
             df.write_parquet(self.output_path, compression="zstd")
-            LOGGER.info(f"Saved {len(df):,} TCGPlayer price records to {self.output_path}")
+            LOGGER.info(
+                f"Saved {len(df):,} TCGPlayer price records to {self.output_path}"
+            )
 
         return df
 

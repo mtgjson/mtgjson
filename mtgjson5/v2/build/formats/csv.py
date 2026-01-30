@@ -55,33 +55,29 @@ class CSVBuilder:
         if not parquet_dir.exists():
             LOGGER.error("No parquet cache found")
             return None
-        # Exclude token sets
-        card_dirs = [
-            d
-            for d in parquet_dir.iterdir()
-            if d.is_dir() and not d.name.startswith("setCode=T")
-        ]
-        if not card_dirs:
-            LOGGER.error("No card parquet directories found")
-            return None
-        return pl.read_parquet(parquet_dir / "setCode=[!T]*/*.parquet")
+        return pl.read_parquet(parquet_dir / "*/*.parquet")
 
     def _load_tokens(self) -> pl.DataFrame | None:
-        """Load tokens from parquet cache."""
-        parquet_dir = self.ctx.parquet_dir
-        token_dirs = [
-            d
-            for d in parquet_dir.iterdir()
-            if d.is_dir() and d.name.startswith("setCode=T")
-        ]
-        if token_dirs:
-            return pl.read_parquet(parquet_dir / "setCode=T*/*.parquet")
-        return None
+        """Load tokens from parquet cache (separate tokens_dir)."""
+        tokens_dir = self.ctx.tokens_dir
+        if not tokens_dir.exists():
+            return None
+        return pl.read_parquet(tokens_dir / "*/*.parquet")
 
     def _load_sets(self) -> pl.DataFrame | None:
-        """Load sets metadata as DataFrame."""
+        """Load sets metadata as DataFrame.
+
+        Filters out traditional token sets (type='token' AND code starts with 'T')
+        to match CDN reference. Keeps special token sets like L14, SBRO, WMOM.
+        """
         if self.ctx.set_meta:
-            return pl.DataFrame(list(self.ctx.set_meta.values()))
+            df = pl.DataFrame(list(self.ctx.set_meta.values()))
+            if "type" in df.columns:
+                is_traditional_token = (
+                    (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
+                )
+                df = df.filter(~is_traditional_token)
+            return df
         return None
 
     def write(self, output_dir: pathlib.Path | None = None) -> pathlib.Path | None:

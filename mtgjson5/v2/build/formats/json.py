@@ -24,6 +24,12 @@ from mtgjson5.v2.models.files import (
 if TYPE_CHECKING:
     from ..context import AssemblyContext
 
+# Format definitions - single source of truth
+_PRINTINGS_FORMATS = ["legacy", "modern", "pioneer", "standard", "vintage"]
+_ATOMIC_FORMATS = ["legacy", "modern", "pauper", "pioneer", "standard", "vintage"]
+_PRINTINGS_OUTPUTS = {fmt.title() for fmt in _PRINTINGS_FORMATS}
+_ATOMIC_OUTPUTS = {f"{fmt.title()}Atomic" for fmt in _ATOMIC_FORMATS}
+
 
 class JsonOutputBuilder:
     """Writes all JSON-based MTGJSON output files."""
@@ -291,14 +297,13 @@ class JsonOutputBuilder:
             results["SetList"] = len(set_list.data)
 
         # Build format-specific files (require AllPrintings)
-        format_outputs = {"Legacy", "Modern", "Pioneer", "Standard", "Vintage"}
-        if outputs is None or (format_outputs & outputs):
+        if outputs is None or (_PRINTINGS_OUTPUTS & outputs):
             LOGGER.info("Building format-specific files...")
             if all_printings is None or (streaming and isinstance(all_printings, int)):
                 all_printings = AllPrintingsFile.read(output_dir / "AllPrintings.json")  # type: ignore[assignment]
 
             if isinstance(all_printings, AllPrintingsFile):
-                for fmt in ["legacy", "modern", "pioneer", "standard", "vintage"]:
+                for fmt in _PRINTINGS_FORMATS:
                     if should_build(fmt.title()):
                         fmt_file = self.write_format_file(
                             all_printings, fmt, output_dir / f"{fmt.title()}.json"
@@ -306,18 +311,10 @@ class JsonOutputBuilder:
                         results[fmt.title()] = len(fmt_file.data)
 
         # Format atomic files (require AtomicCards)
-        atomic_outputs = {
-            "LegacyAtomic",
-            "ModernAtomic",
-            "PauperAtomic",
-            "PioneerAtomic",
-            "StandardAtomic",
-            "VintageAtomic",
-        }
-        if outputs is None or (atomic_outputs & outputs):
+        if outputs is None or (_ATOMIC_OUTPUTS & outputs):
             if atomic_cards is None:
                 atomic_cards = self.write_atomic_cards(output_dir / "AtomicCards.json")
-            for fmt in ["legacy", "modern", "pauper", "pioneer", "standard", "vintage"]:
+            for fmt in _ATOMIC_FORMATS:
                 if should_build(f"{fmt.title()}Atomic"):
                     atomic_file = self.write_format_atomic(
                         atomic_cards, fmt, output_dir / f"{fmt.title()}Atomic.json"

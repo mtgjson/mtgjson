@@ -16,6 +16,7 @@ from mtgjson5.v2.consts import (
     SORTED_LIST_FIELDS,
     TYPEDDICT_FIELD_ALIASES,
 )
+
 from ._typing import TypedDictUtils, is_union_type
 
 if TYPE_CHECKING:

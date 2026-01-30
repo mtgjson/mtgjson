@@ -2487,6 +2487,7 @@ def filter_out_tokens(df: pl.LazyFrame) -> tuple[pl.LazyFrame, pl.LazyFrame]:
     - layout in {"token", "double_faced_token", "emblem", "art_series"}
     - type == "Dungeon"
     - "Token" in type string
+    - type == "Card" (non-playable helper cards: theme cards, substitute cards, counters)
 
     Returns:
         Tuple of (cards_df, tokens_df) - cards without tokens, and the filtered tokens
@@ -2496,6 +2497,7 @@ def filter_out_tokens(df: pl.LazyFrame) -> tuple[pl.LazyFrame, pl.LazyFrame]:
         pl.col("layout").is_in(TOKEN_LAYOUTS)
         | (pl.col("type") == "Dungeon")
         | pl.col("type").str.contains("Token")
+        | (pl.col("type") == "Card")
     )
 
     tokens_df = df.filter(is_token)

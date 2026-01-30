@@ -17,7 +17,7 @@ CK_API_V2 = "https://api.cardkingdom.com/api/v2/pricelist"
 CK_SEALED = "https://api.cardkingdom.com/api/sealed_pricelist"
 
 DEFAULT_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "User-Agent": "MTGJSON/5.0 (https://mtgjson.com)",
     "Accept": "application/json",
 }
 

@@ -73,8 +73,11 @@ class AssemblyContext:
             base_set_sizes = ctx._cache.base_set_sizes
             for code, meta in set_meta.items():
                 set_name = meta.get("name", "")
-                raw_translations = translations_by_name.get(set_name, {})
-                meta["translations"] = raw_translations if raw_translations else {}
+                if set_name:
+                    raw_translations = translations_by_name.get(set_name, {})
+                    meta["translations"] = raw_translations if raw_translations else {}
+                else:
+                    meta["translations"] = {}
                 if code in tcg_overrides:
                     meta["tcgplayerGroupId"] = tcg_overrides[code]
                 raw_keyrune = meta.get("keyruneCode", "")
@@ -98,6 +101,9 @@ class AssemblyContext:
         for code, meta in set_meta.items():
             set_type = meta.get("type", "")
             parent_code = meta.get("parentCode")
+            # S/F prefixes identify special token sets:
+            # S = Substitute/special token sets (e.g., SBRO, SMKM)
+            # F = Japanese promo token sets (e.g., F18, F20)
             if (
                 parent_code
                 and (code.startswith("S") or code.startswith("F"))

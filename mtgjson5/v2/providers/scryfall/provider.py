@@ -10,7 +10,6 @@ import asyncio
 import gzip
 import logging
 import pathlib
-import time
 from io import BytesIO
 from typing import Any
 
@@ -150,7 +149,7 @@ class ScryfallProvider:
         """Fetch all alchemy spellbook mappings from Scryfall."""
         async with aiohttp.ClientSession(
             headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+                "User-Agent": "MTGJSON/5.0 (https://mtgjson.com)",
                 "Accept": "application/json",
             }
         ) as session:
@@ -258,15 +257,26 @@ class ScryfallProvider:
                     async with session.get(
                         url, timeout=aiohttp.ClientTimeout(total=30)
                     ) as response:
-                        return await response.json()
+                        data: dict[str, Any] = await response.json()
+                        return data
             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                 if attempt == retry_count - 1:
-                    self.LOGGER.error(f"Failed to fetch {url} after {retry_count} attempts: {e}")
-                    return {"object": "error", "code": "network_error", "details": str(e)}
+                    self.LOGGER.error(
+                        f"Failed to fetch {url} after {retry_count} attempts: {e}"
+                    )
+                    return {
+                        "object": "error",
+                        "code": "network_error",
+                        "details": str(e),
+                    }
                 self.LOGGER.warning(f"Retry {attempt + 1}/{retry_count} for {url}: {e}")
                 await asyncio.sleep(1 * (attempt + 1))
 
-        return {"object": "error", "code": "max_retries", "details": "Max retries exceeded"}
+        return {
+            "object": "error",
+            "code": "max_retries",
+            "details": "Max retries exceeded",
+        }
 
     async def _fetch_all_pages_async(
         self,

@@ -71,7 +71,7 @@ class PostgresBuilder:
             f.write("BEGIN;\n\n")
 
             cols = ",\n    ".join([f'"{c}" TEXT' for c in serialized.columns])
-            f.write(f'CREATE TABLE "cards" (\n    {cols}\n);\n\n')
+            f.write(f'CREATE TABLE IF NOT EXISTS "cards" (\n    {cols}\n);\n\n')
 
             col_names = ", ".join([f'"{c}"' for c in serialized.columns])
             f.write(f'COPY "cards" ({col_names}) FROM stdin;\n')

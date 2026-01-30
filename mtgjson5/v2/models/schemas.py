@@ -128,6 +128,55 @@ REQUIRED_DECK_LIST_FIELDS: frozenset[str] = frozenset(
 
 
 # =============================================================================
+# Tabular Output Field Sets (CSV/Parquet/SQLite)
+# =============================================================================
+
+# Fields to exclude from cards table
+CARDS_TABLE_EXCLUDE: frozenset[str] = frozenset({
+    "identifiers",
+    "legalities",
+    "purchaseUrls",
+    "foreignData",
+    "rulings",
+    "convertedManaCost",
+    "orientation",
+    "originalType",
+    "reverseRelated",
+})
+
+# Fields to exclude from tokens table
+TOKENS_TABLE_EXCLUDE: frozenset[str] = frozenset({
+    "identifiers",
+    "cardParts",
+    "faceFlavorName",
+    "facePrintedName",
+    "isOnlineOnly",
+    "loyalty",
+    "originalType",
+    "printedName",
+    "printedText",
+    "subsets",
+})
+
+# Fields to exclude from sets table
+SETS_TABLE_EXCLUDE: frozenset[str] = frozenset({
+    "translations",
+    "arenaCode",
+    "blockCode",
+    "booster",
+    "cardCount",
+    "digital",
+    "foilOnly",
+    "nonfoilOnly",
+    "parentSetCode",
+    "releasedAt",
+    "setCode",
+    "setType",
+    "tcgplayerId",
+})
+
+
+# =============================================================================
 # Utility Functions
 # =============================================================================
 

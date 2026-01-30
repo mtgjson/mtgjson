@@ -8,6 +8,11 @@ from typing import TYPE_CHECKING, Any
 import polars as pl
 
 from mtgjson5.v2.models.cards import CardAtomic, CardDeck, CardSet, CardToken
+from mtgjson5.v2.models.schemas import (
+    CARDS_TABLE_EXCLUDE,
+    SETS_TABLE_EXCLUDE,
+    TOKENS_TABLE_EXCLUDE,
+)
 from mtgjson5.v2.models.sets import SealedProduct
 
 
@@ -646,19 +651,20 @@ class TableAssembler:
         Returns:
             Dict mapping table name to DataFrame
         """
+        from .serializers import serialize_complex_types
+
         tables: dict[str, pl.DataFrame] = {}
         schema = cards_df.schema
 
-        # Find ALL nested columns (List or Struct types)
-        nested = {
-            c for c in cards_df.columns if isinstance(schema[c], pl.List | pl.Struct)
-        }
-        scalar_cols = [
-            c for c in cards_df.columns if c not in nested and not c.startswith("_")
+        # Select card columns, excluding normalized and non-CDN fields
+        cards_cols = [
+            c for c in cards_df.columns
+            if c not in CARDS_TABLE_EXCLUDE and not c.startswith("_")
         ]
 
-        # cards - scalar columns
-        tables["cards"] = cards_df.select(scalar_cols)
+        # cards - serialize list columns as JSON strings (like CDN does)
+        cards_for_export = cards_df.select(cards_cols)
+        tables["cards"] = serialize_complex_types(cards_for_export)
 
         # cardIdentifiers - unnest struct
         if "identifiers" in schema and isinstance(schema["identifiers"], pl.Struct):
@@ -702,15 +708,15 @@ class TableAssembler:
                 .unnest("purchaseUrls")
             )
 
-        # tokens
+        # tokens - serialize list columns as JSON strings (like cards)
         if tokens_df is not None and len(tokens_df) > 0:
             token_schema = tokens_df.schema
-            token_scalar = [
+            token_cols = [
                 c for c in tokens_df.columns
-                if not isinstance(token_schema.get(c), pl.List | pl.Struct)
-                and not c.startswith("_")
+                if c not in TOKENS_TABLE_EXCLUDE and not c.startswith("_")
             ]
-            tables["tokens"] = tokens_df.select(token_scalar)
+            tokens_for_export = tokens_df.select(token_cols)
+            tables["tokens"] = serialize_complex_types(tokens_for_export)
 
             if "identifiers" in token_schema and isinstance(
                 token_schema["identifiers"], pl.Struct
@@ -721,18 +727,15 @@ class TableAssembler:
                     .unnest("identifiers")
                 )
 
-        # sets
+        # sets - serialize list columns as JSON strings, exclude translations (normalized)
         if sets_df is not None and len(sets_df) > 0:
             sets_schema = sets_df.schema
-            sets_nested = {
+            sets_cols = [
                 c for c in sets_df.columns
-                if isinstance(sets_schema[c], pl.List | pl.Struct)
-            }
-            sets_scalar = [
-                c for c in sets_df.columns
-                if c not in sets_nested and not c.startswith("_")
+                if c not in SETS_TABLE_EXCLUDE and not c.startswith("_")
             ]
-            tables["sets"] = sets_df.select(sets_scalar)
+            sets_for_export = sets_df.select(sets_cols)
+            tables["sets"] = serialize_complex_types(sets_for_export)
 
             # setTranslations
             if "translations" in sets_schema and isinstance(
@@ -757,10 +760,10 @@ class TableAssembler:
             Dict with tables: setBoosterSheets, setBoosterSheetCards,
             setBoosterContents, setBoosterContentWeights
         """
-        sheets_records: list[dict] = []
-        sheet_cards_records: list[dict] = []
-        contents_records: list[dict] = []
-        weights_records: list[dict] = []
+        sheets_records: list[dict[str, str | int | bool]] = []
+        sheet_cards_records: list[dict[str, str | int]] = []
+        contents_records: list[dict[str, str | int]] = []
+        weights_records: list[dict[str, str | int]] = []
 
         for set_code, config in booster_configs.items():
             if not isinstance(config, dict):

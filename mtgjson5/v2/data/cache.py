@@ -19,7 +19,6 @@ from typing import Optional, cast, overload
 import polars as pl
 
 from mtgjson5 import constants
-from mtgjson5.v2.utils import DynamicCategoricals, discover_categoricals
 from mtgjson5.providers import (
     GathererProvider,
     ManapoolPricesProvider,
@@ -27,8 +26,9 @@ from mtgjson5.providers import (
     ScryfallProviderOrientationDetector,
     WhatsInStandardProvider,
 )
+from mtgjson5.utils import LOGGER
+from mtgjson5.v2.providers import CardHoarderPriceProvider as CardHoarderProvider
 from mtgjson5.v2.providers import (
-    CardHoarderPriceProvider as CardHoarderProvider,
     CardMarketProvider,
     CKProvider,
     EdhrecSaltProvider,
@@ -36,7 +36,7 @@ from mtgjson5.v2.providers import (
     SealedDataProvider,
     TCGProvider,
 )
-from mtgjson5.utils import LOGGER
+from mtgjson5.v2.utils import DynamicCategoricals, discover_categoricals
 
 
 def _format_size(
@@ -132,7 +132,6 @@ class GlobalCache:
 
         # Pre-computed Aggregation LFs
         self.oracle_lookup_lf: pl.LazyFrame | None = None
-        self.rulings_lf: pl.LazyFrame | None = None
         self.foreign_data_lf: pl.LazyFrame | None = None
         self.uuid_cache_lf: pl.LazyFrame | None = None
 
@@ -354,7 +353,6 @@ class GlobalCache:
             "gatherer_lf": "gatherer.parquet",
             "multiverse_bridge_lf": "multiverse_bridge.parquet",
             "uuid_cache_lf": "uuid_cache.parquet",
-            "rulings_lf": "rulings.parquet",
             "foreign_data_lf": "foreign_data.parquet",
             "sealed_cards_lf": "sealed_cards.parquet",
             "sealed_products_lf": "sealed_products.parquet",
@@ -768,6 +766,21 @@ class GlobalCache:
             new_cards_df = new_cards_df.select(
                 [c for c in cards_df.columns if c in new_cards_df.columns]
             )
+
+            # Cast new_cards_df columns to match cards_df schema to avoid type errors
+            cards_schema = cards_df.schema
+            cast_exprs = []
+            for col in new_cards_df.columns:
+                if col in cards_schema:
+                    target_dtype = cards_schema[col]
+                    if new_cards_df.schema[col] != target_dtype:
+                        cast_exprs.append(pl.col(col).cast(target_dtype))
+                    else:
+                        cast_exprs.append(pl.col(col))
+                else:
+                    cast_exprs.append(pl.col(col))
+            if cast_exprs:
+                new_cards_df = new_cards_df.select(cast_exprs)
 
             self.cards_lf = pl.concat([cards_df, new_cards_df], how="diagonal").lazy()
 
