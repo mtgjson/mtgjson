@@ -114,6 +114,7 @@ class MtgjsonCardObject(JsonObject):
     subtypes: list[str]
     supertypes: list[str]
     text: str
+    token_products: Optional[List[Dict[str, Any]]]  # TODO: Define types
     toughness: str
     type: str
     types: list[str]
