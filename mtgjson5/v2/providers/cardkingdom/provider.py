@@ -116,6 +116,24 @@ class CKProvider:
 
         return self
 
+    async def load_or_fetch_async(
+        self, cache_path: Path | str | None = None
+    ) -> "CKProvider":
+        """Async version: load from cache if exists, otherwise fetch and cache."""
+        path = Path(cache_path) if cache_path else self._cache_path
+
+        if path and CardKingdomStorage.exists(path):
+            LOGGER.info(f"Loading CK data from cache: {path}")
+            return self.load(path)
+
+        LOGGER.info("Fetching fresh CK data...")
+        await self.fetch()
+
+        if path:
+            self.save(path)
+
+        return self
+
     @property
     def raw_df(self) -> pl.DataFrame:
         """Raw DataFrame with one row per SKU."""

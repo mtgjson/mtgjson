@@ -572,6 +572,29 @@ class GlobalCache:
 
         LOGGER.info("Built languages mapping")
 
+    def load_id_mappings(self) -> None:
+        """
+        Load ID -> UUID mappings from cache if they exist.
+
+        These mappings are created by the card pipeline in sink_cards() and are
+        used by PriceBuilderContext for price builds that run separately from
+        a full card build.
+        """
+        tcg_path = self.cache_path / "tcg_to_uuid.parquet"
+        if tcg_path.exists():
+            self.tcg_to_uuid_lf = pl.scan_parquet(tcg_path)
+            LOGGER.info(f"Loaded tcg_to_uuid mapping from cache")
+
+        tcg_etched_path = self.cache_path / "tcg_etched_to_uuid.parquet"
+        if tcg_etched_path.exists():
+            self.tcg_etched_to_uuid_lf = pl.scan_parquet(tcg_etched_path)
+            LOGGER.info(f"Loaded tcg_etched_to_uuid mapping from cache")
+
+        mtgo_path = self.cache_path / "mtgo_to_uuid.parquet"
+        if mtgo_path.exists():
+            self.mtgo_to_uuid_lf = pl.scan_parquet(mtgo_path)
+            LOGGER.info(f"Loaded mtgo_to_uuid mapping from cache")
+
     def _load_resources(self) -> None:
         """Load local JSON resource files."""
         LOGGER.info("Loading resource files...")

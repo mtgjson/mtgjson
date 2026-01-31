@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any
 import orjson
 
 from mtgjson5.v2.models.files import (
-    AllPricesFile,
     AllPrintingsFile,
     AtomicCardsFile,
     DeckListFile,
@@ -199,33 +198,31 @@ class JsonOutputBuilder:
             output_dir: Output directory for price files
 
         Returns:
-            Dict mapping file names to record counts
+            Dict mapping file names to record counts.
         """
         from mtgjson5.v2.build.price_builder import PolarsPriceBuilder
         from mtgjson5.utils import LOGGER
 
         builder = PolarsPriceBuilder()
-        all_prices, today_prices = builder.build_prices()
+        all_prices_path, today_prices_path = builder.build_prices()
 
-        if not all_prices:
+        if all_prices_path is None:
             LOGGER.warning("No price data generated")
             return {}
 
         results: dict[str, int] = {}
 
-        # Write AllPrices.json
-        all_file = AllPricesFile.with_meta(all_prices, self.ctx.meta)
-        all_file.write(output_dir / "AllPrices.json")
-        results["AllPrices"] = len(all_prices)
+        if all_prices_path.exists():
+            all_size_mb = all_prices_path.stat().st_size / 1024 / 1024
+            results["AllPrices"] = int(all_size_mb * 1000)
 
-        # Write AllPricesToday.json
-        today_file = AllPricesFile.with_meta(today_prices, self.ctx.meta)
-        today_file.write(output_dir / "AllPricesToday.json")
-        results["AllPricesToday"] = len(today_prices)
+        if today_prices_path and today_prices_path.exists():
+            today_size_mb = today_prices_path.stat().st_size / 1024 / 1024
+            results["AllPricesToday"] = int(today_size_mb * 1000)
 
         LOGGER.info(
-            f"Built AllPrices.json ({len(all_prices):,} cards) "
-            f"and AllPricesToday.json ({len(today_prices):,} cards)"
+            f"Built AllPrices.json ({all_size_mb:.1f} MB) "
+            f"and AllPricesToday.json ({today_size_mb:.1f} MB)"
         )
 
         return results

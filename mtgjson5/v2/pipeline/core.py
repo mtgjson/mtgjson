@@ -2506,6 +2506,80 @@ def filter_out_tokens(df: pl.LazyFrame) -> tuple[pl.LazyFrame, pl.LazyFrame]:
     return cards_df, tokens_df
 
 
+def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
+    """
+    Extract ID -> UUID mappings for price builder.
+
+    Builds parquet files for:
+    - tcg_to_uuid: TCGPlayer product ID -> UUID
+    - tcg_etched_to_uuid: TCGPlayer etched product ID -> UUID
+    - mtgo_to_uuid: MTGO ID -> UUID
+
+    These mappings are used by PriceBuilderContext to map provider IDs to UUIDs.
+    """
+    cache_path = constants.CACHE_PATH
+
+    # TCGPlayer product ID -> UUID
+    try:
+        tcg_df = (
+            lf.select([
+                pl.col("uuid"),
+                pl.col("identifiers").struct.field("tcgplayerProductId").alias("tcgplayerProductId"),
+            ])
+            .filter(pl.col("tcgplayerProductId").is_not_null())
+            .unique()
+            .collect()
+        )
+        if len(tcg_df) > 0:
+            tcg_path = cache_path / "tcg_to_uuid.parquet"
+            tcg_df.write_parquet(tcg_path)
+            if ctx._cache is not None:
+                ctx._cache.tcg_to_uuid_lf = tcg_df.lazy()
+            LOGGER.info(f"Built tcg_to_uuid mapping: {len(tcg_df):,} entries")
+    except Exception as e:
+        LOGGER.warning(f"Failed to build tcg_to_uuid mapping: {e}")
+
+    # TCGPlayer etched product ID -> UUID
+    try:
+        tcg_etched_df = (
+            lf.select([
+                pl.col("uuid"),
+                pl.col("identifiers").struct.field("tcgplayerEtchedProductId").alias("tcgplayerEtchedProductId"),
+            ])
+            .filter(pl.col("tcgplayerEtchedProductId").is_not_null())
+            .unique()
+            .collect()
+        )
+        if len(tcg_etched_df) > 0:
+            tcg_etched_path = cache_path / "tcg_etched_to_uuid.parquet"
+            tcg_etched_df.write_parquet(tcg_etched_path)
+            if ctx._cache is not None:
+                ctx._cache.tcg_etched_to_uuid_lf = tcg_etched_df.lazy()
+            LOGGER.info(f"Built tcg_etched_to_uuid mapping: {len(tcg_etched_df):,} entries")
+    except Exception as e:
+        LOGGER.warning(f"Failed to build tcg_etched_to_uuid mapping: {e}")
+
+    # MTGO ID -> UUID
+    try:
+        mtgo_df = (
+            lf.select([
+                pl.col("uuid"),
+                pl.col("identifiers").struct.field("mtgoId").alias("mtgoId"),
+            ])
+            .filter(pl.col("mtgoId").is_not_null())
+            .unique()
+            .collect()
+        )
+        if len(mtgo_df) > 0:
+            mtgo_path = cache_path / "mtgo_to_uuid.parquet"
+            mtgo_df.write_parquet(mtgo_path)
+            if ctx._cache is not None:
+                ctx._cache.mtgo_to_uuid_lf = mtgo_df.lazy()
+            LOGGER.info(f"Built mtgo_to_uuid mapping: {len(mtgo_df):,} entries")
+    except Exception as e:
+        LOGGER.warning(f"Failed to build mtgo_to_uuid mapping: {e}")
+
+
 def sink_cards(ctx: PipelineContext) -> None:
     """Sink cards and tokens to partitioned parquet files."""
     cards_dir = constants.CACHE_PATH / "_parquet"
@@ -2534,6 +2608,9 @@ def sink_cards(ctx: PipelineContext) -> None:
     lf = link_foil_nonfoil_versions(lf)
 
     lf = add_variations(lf)
+
+    # Build ID -> UUID mappings for price builder
+    _build_id_mappings(ctx, lf)
 
     # Split into cards and tokens, apply final renames
     cards_lf, tokens_lf = filter_out_tokens(lf)
