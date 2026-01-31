@@ -100,20 +100,10 @@ def dispatcher(args: argparse.Namespace) -> None:
     from mtgjson5.v2.data import PipelineContext
     from mtgjson5.v2.pipeline.core import build_cards
 
-    # If a price build, simply build prices and exit
-    if args.price_build:
-        if args.polars:
-            # Use Polars price builder for v2 pipeline
-            from mtgjson5.v2.build.price_builder import PolarsPriceBuilder
-
-            all_prices_path, today_prices_path = PolarsPriceBuilder().build_prices()
-            if all_prices_path is None:
-                LOGGER.error("Price build failed")
-                return
-            LOGGER.info(f"Price files written: {all_prices_path}, {today_prices_path}")
-        else:
-            all_prices, today_prices = PriceBuilder().build_prices()
-            generate_compiled_prices_output(all_prices, today_prices, args.pretty)
+    # Legacy price-only build (non-v2) - build prices and exit
+    if args.price_build and not args.polars:
+        all_prices, today_prices = PriceBuilder().build_prices()
+        generate_compiled_prices_output(all_prices, today_prices, args.pretty)
         if args.compress:
             compress_mtgjson_contents(MtgjsonConfig().output_path)
         generate_output_file_hashes(MtgjsonConfig().output_path)
@@ -203,6 +193,17 @@ def dispatcher(args: argparse.Namespace) -> None:
         else:
             generate_compiled_output_files(args.pretty)
             GitHubMTGSqliteProvider().build_alternative_formats()
+
+    # V2 price build (runs after card build if --price-build specified)
+    if args.price_build and args.polars:
+        from mtgjson5.v2.build.price_builder import PolarsPriceBuilder
+
+        LOGGER.info("Building prices...")
+        all_prices_path, today_prices_path = PolarsPriceBuilder().build_prices()
+        if all_prices_path is None:
+            LOGGER.error("Price build failed")
+        else:
+            LOGGER.info(f"Price files written: {all_prices_path}, {today_prices_path}")
 
     if args.compress:
         if args.parallel | args.polars:
