@@ -38,14 +38,40 @@ class ScryfallProvider:
         "o:cards%20o:named)%20or%20(o:deck%20o:have%20o:up%20o:to%20o:cards%20o:named)"
     )
 
+    RATE_LIMIT_SLEEP: int = 60
+
     def __init__(self) -> None:
         self._cards_without_limits: set[str] | None = None
+        self._rate_limiter: asyncio.Semaphore = asyncio.Semaphore(10)
+
+    async def _rate_limited_get(
+        self,
+        session: aiohttp.ClientSession,
+        url: str,
+        **kwargs: Any,
+    ) -> aiohttp.ClientResponse:
+        """Make a GET request respecting Scryfall's 10 req/s rate limit with 429 retry."""
+        async with self._rate_limiter:
+            await asyncio.sleep(0.1)
+            response = await session.get(url, **kwargs)
+
+            if response.status == 429:
+                response.release()
+                self.LOGGER.warning(
+                    f"Rate limited by Scryfall (429). "
+                    f"Sleeping for {self.RATE_LIMIT_SLEEP} seconds before retrying..."
+                )
+                await asyncio.sleep(self.RATE_LIMIT_SLEEP)
+                response = await session.get(url, **kwargs)
+
+            return response
 
     async def get_bulk_download_url(
         self, session: aiohttp.ClientSession, bulk_type: str
     ) -> tuple[str, int]:
         """Fetch download URL and file size for a bulk data type."""
-        async with session.get(self.BULK_DATA_URL) as response:
+        response = await self._rate_limited_get(session, self.BULK_DATA_URL)
+        async with response:
             response.raise_for_status()
             data = await response.json()
 
@@ -180,26 +206,34 @@ class ScryfallProvider:
             self.download_bulk_files(cache_dir, bulk_types, force_refresh)
         )
 
-    @staticmethod
-    async def fetch_all_spellbooks() -> dict[str, list[str]]:
+    async def fetch_all_spellbooks(self) -> dict[str, list[str]]:
         """Fetch all alchemy spellbook mappings from Scryfall."""
-        async with aiohttp.ClientSession(
-            headers={
-                "User-Agent": "MTGJSON/5.0 (https://mtgjson.com)",
-                "Accept": "application/json",
-            }
-        ) as session:
+        headers = {
+            "User-Agent": "MTGJSON/5.0 (https://mtgjson.com)",
+            "Accept": "application/json",
+        }
+        timeout = aiohttp.ClientTimeout(total=30)
+
+        async with aiohttp.ClientSession(headers=headers) as session:
 
             async def get_all_pages(url: str | None) -> list[dict]:
                 results = []
                 while url:
-                    print(f"Fetching: {url}")
-                    async with session.get(
-                        url, timeout=aiohttp.ClientTimeout(total=30)
-                    ) as resp:
-                        data = await resp.json()
+                    self.LOGGER.info(f"Fetching: {url}")
+                    response = await self._rate_limited_get(
+                        session, url, timeout=timeout
+                    )
+                    async with response:
+                        data = await response.json()
                     if data.get("object") == "error":
-                        print(f"Error: {data}")
+                        if data.get("code") == "rate_limited":
+                            self.LOGGER.warning(
+                                f"Rate limited by Scryfall (429). "
+                                f"Sleeping for {self.RATE_LIMIT_SLEEP} seconds..."
+                            )
+                            await asyncio.sleep(self.RATE_LIMIT_SLEEP)
+                            continue
+                        self.LOGGER.warning(f"Error: {data}")
                         break
                     results.extend(data.get("data", []))
                     url = data.get("next_page") if data.get("has_more") else None
@@ -207,45 +241,53 @@ class ScryfallProvider:
 
             async def get_cards_by_ids(ids: list[str]) -> list[dict]:
                 """Fetch cards in batches of 75 using collection endpoint."""
-                print(f"Fetching {len(ids)} cards in batches of 75...")
-                tasks = []
+                self.LOGGER.info(f"Fetching {len(ids)} cards in batches of 75...")
+                all_cards = []
                 for i in range(0, len(ids), 75):
                     batch = ids[i : i + 75]
                     identifiers = [{"id": card_id} for card_id in batch]
-                    tasks.append(
-                        session.post(
-                            "https://api.scryfall.com/cards/collection",
-                            json={"identifiers": identifiers},
-                            timeout=aiohttp.ClientTimeout(total=30),
-                        )
-                    )
-
-                all_cards = []
-                responses = await asyncio.gather(*tasks, return_exceptions=True)
-                for resp in responses:
-                    if isinstance(resp, BaseException):
-                        if isinstance(resp, Exception):
-                            print(f"Error fetching batch: {resp}")
-                        continue
-                    async with resp:
-                        data = await resp.json()
-                        all_cards.extend(data.get("data", []))
-                print(f"Fetched {len(all_cards)} cards")
+                    async with self._rate_limiter:
+                        await asyncio.sleep(0.1)
+                        try:
+                            async with session.post(
+                                "https://api.scryfall.com/cards/collection",
+                                json={"identifiers": identifiers},
+                                timeout=timeout,
+                            ) as resp:
+                                if resp.status == 429:
+                                    self.LOGGER.warning(
+                                        f"Rate limited by Scryfall (429). "
+                                        f"Sleeping for {self.RATE_LIMIT_SLEEP} seconds..."
+                                    )
+                                    await asyncio.sleep(self.RATE_LIMIT_SLEEP)
+                                    async with session.post(
+                                        "https://api.scryfall.com/cards/collection",
+                                        json={"identifiers": identifiers},
+                                        timeout=timeout,
+                                    ) as retry_resp:
+                                        data = await retry_resp.json()
+                                        all_cards.extend(data.get("data", []))
+                                else:
+                                    data = await resp.json()
+                                    all_cards.extend(data.get("data", []))
+                        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                            self.LOGGER.warning(f"Error fetching batch: {e}")
+                self.LOGGER.info(f"Fetched {len(all_cards)} cards")
                 return all_cards
 
             parents_url = "https://api.scryfall.com/cards/search?q=is:alchemy%20and%20oracle:/conjure|draft|%27s%20spellbook/&include_extras=true"
             spellbook_url = 'https://api.scryfall.com/cards/search?q=spellbook:"{}"'
 
             # Get parent cards
-            print("Fetching parent cards...")
+            self.LOGGER.info("Fetching parent cards...")
             parent_cards = await get_all_pages(parents_url)
-            print(f"Found {len(parent_cards)} parent cards")
+            self.LOGGER.info(f"Found {len(parent_cards)} parent cards")
 
             # Collect all spellbook card IDs first
             all_spellbook_ids = {}
             for parent in parent_cards:
                 parent_name = parent["name"]
-                print(f"Fetching spellbook for: {parent_name}")
+                self.LOGGER.info(f"Fetching spellbook for: {parent_name}")
                 spellbook_pages = await get_all_pages(spellbook_url.format(parent_name))
                 all_spellbook_ids[parent_name] = [
                     card["id"] for card in spellbook_pages
@@ -288,11 +330,10 @@ class ScryfallProvider:
         for attempt in range(retry_count):
             try:
                 async with aiohttp.ClientSession(headers=headers) as session:
-                    # Rate limit: 10 requests per second
-                    await asyncio.sleep(0.1)
-                    async with session.get(
-                        url, timeout=aiohttp.ClientTimeout(total=30)
-                    ) as response:
+                    response = await self._rate_limited_get(
+                        session, url, timeout=aiohttp.ClientTimeout(total=30)
+                    )
+                    async with response:
                         data: dict[str, Any] = await response.json()
                         return data
             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
@@ -331,12 +372,12 @@ class ScryfallProvider:
             page = 1
             while url:
                 self.LOGGER.debug(f"Downloading page {page} -- {url}")
-                await asyncio.sleep(0.1)  # Rate limit
 
                 try:
-                    async with session.get(
-                        url, timeout=aiohttp.ClientTimeout(total=30)
-                    ) as response:
+                    response = await self._rate_limited_get(
+                        session, url, timeout=aiohttp.ClientTimeout(total=30)
+                    )
+                    async with response:
                         data = await response.json()
                 except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                     self.LOGGER.warning(f"Failed to fetch page {page}: {e}")
