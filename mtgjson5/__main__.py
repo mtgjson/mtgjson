@@ -9,8 +9,8 @@ import traceback
 import urllib3.exceptions
 
 from mtgjson5 import constants
-from mtgjson5.v2.data import GlobalCache
 from mtgjson5.utils import init_logger, load_local_set_data
+from mtgjson5.v2.data import GlobalCache
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -87,7 +87,6 @@ def dispatcher(args: argparse.Namespace) -> None:
         compress_mtgjson_contents,
         compress_mtgjson_contents_parallel,
     )
-    from mtgjson5.v2.data import PipelineContext
     from mtgjson5.mtgjson_config import MtgjsonConfig
     from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
     from mtgjson5.output_generator import (
@@ -95,10 +94,11 @@ def dispatcher(args: argparse.Namespace) -> None:
         generate_compiled_prices_output,
         generate_output_file_hashes,
     )
-    from mtgjson5.v2.build.writer import assemble_json_outputs, assemble_with_models
-    from mtgjson5.v2.pipeline.core import build_cards
     from mtgjson5.price_builder import PriceBuilder
     from mtgjson5.providers import GitHubMTGSqliteProvider, ScryfallProvider
+    from mtgjson5.v2.build.writer import assemble_json_outputs, assemble_with_models
+    from mtgjson5.v2.data import PipelineContext
+    from mtgjson5.v2.pipeline.core import build_cards
 
     # If a price build, simply build prices and exit
     if args.price_build:
@@ -106,11 +106,14 @@ def dispatcher(args: argparse.Namespace) -> None:
             # Use Polars price builder for v2 pipeline
             from mtgjson5.v2.build.price_builder import PolarsPriceBuilder
 
-            all_prices, today_prices = PolarsPriceBuilder().build_prices()
+            all_prices_path, today_prices_path = PolarsPriceBuilder().build_prices()
+            if all_prices_path is None:
+                LOGGER.error("Price build failed")
+                return
+            LOGGER.info(f"Price files written: {all_prices_path}, {today_prices_path}")
         else:
-            # Legacy builder
             all_prices, today_prices = PriceBuilder().build_prices()
-        generate_compiled_prices_output(all_prices, today_prices, args.pretty)
+            generate_compiled_prices_output(all_prices, today_prices, args.pretty)
         if args.compress:
             compress_mtgjson_contents(MtgjsonConfig().output_path)
         generate_output_file_hashes(MtgjsonConfig().output_path)
