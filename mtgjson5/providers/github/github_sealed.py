@@ -3,7 +3,7 @@ Sealed Products via GitHub 3rd party provider
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from singleton_decorator import singleton
 
@@ -31,8 +31,8 @@ class GitHubSealedProvider(AbstractProvider):
     sealed_products_url: str = (
         "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/products.json?raw=true"
     )
-    sealed_products: Dict[str, Any]
-    sealed_contents: Dict[str, Any]
+    sealed_products: dict[str, Any]
+    sealed_contents: dict[str, Any]
 
     def __init__(self) -> None:
         """
@@ -42,7 +42,7 @@ class GitHubSealedProvider(AbstractProvider):
         self.sealed_products = self.download(self.sealed_products_url)
         self.sealed_contents = self.download(self.sealed_contents_url)
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Construct the Authorization header
         :return: Authorization header
@@ -50,9 +50,7 @@ class GitHubSealedProvider(AbstractProvider):
         __github_token = MtgjsonConfig().get("GitHub", "api_token")
         return {"Authorization": f"Bearer {__github_token}"}
 
-    def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from GitHub
         :param url: Download URL
@@ -70,7 +68,7 @@ class GitHubSealedProvider(AbstractProvider):
 
     def get_sealed_products_data(
         self, set_code: str
-    ) -> List[MtgjsonSealedProductObject]:
+    ) -> list[MtgjsonSealedProductObject]:
         """
         Grab an individual set's additional sealed products, if it exists
         :param set_code: Set to pull data from
@@ -112,7 +110,7 @@ class GitHubSealedProvider(AbstractProvider):
         return products_list
 
     def apply_sealed_contents_data(
-        self, set_code: str, sealed_products: List[MtgjsonSealedProductObject]
+        self, set_code: str, sealed_products: list[MtgjsonSealedProductObject]
     ) -> None:
         """
         Adds the sealed contents to each element of sealed_products.

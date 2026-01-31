@@ -5,7 +5,7 @@ MTGJSON EnumValues Object
 import json
 import logging
 import pathlib
-from typing import Any, Dict, List, Union
+from typing import Any
 
 from ..classes.json_object import JsonObject
 from ..compiled_classes.mtgjson_all_printings import MtgjsonAllPrintingsObject
@@ -22,9 +22,9 @@ class MtgjsonEnumValuesObject(JsonObject):
     MTGJSON EnumValues Object
     """
 
-    attr_value_dict: Dict[str, Union[Dict[str, List[str]], List[str]]]
+    attr_value_dict: dict[str, dict[str, list[str]] | list[str]]
 
-    set_key_struct: Dict[str, Union[List[str], Dict[str, List[str]]]] = {
+    set_key_struct: dict[str, list[str] | dict[str, list[str]]] = {
         "card": [
             "availability",
             "boosterTypes",
@@ -93,13 +93,13 @@ class MtgjsonEnumValuesObject(JsonObject):
             }
         )
 
-    def construct_deck_enums(self, decks_directory: pathlib.Path) -> Dict[str, Any]:
+    def construct_deck_enums(self, decks_directory: pathlib.Path) -> dict[str, Any]:
         """
         Given Decks Path, compile enums based on the types found in the files
         :param decks_directory: Path to the decks/ output directory
         :return Sorted list of enum options for each key
         """
-        type_map: Dict[str, Any] = {}
+        type_map: dict[str, Any] = {}
         for object_name, object_values in self.deck_key_struct.items():
             type_map[object_name] = {}
             for object_field_name in object_values:
@@ -109,28 +109,28 @@ class MtgjsonEnumValuesObject(JsonObject):
             with deck.open(encoding="utf-8") as file:
                 content = json.load(file).get("data", {})
 
-            for key in content.keys():
+            for key in content:
                 if key in self.deck_key_struct["deck"]:
                     type_map["deck"][key].add(content[key])
 
         return dict(sort_internal_lists(type_map))
 
     def construct_set_and_card_enums(
-        self, all_printing_content: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, all_printing_content: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Given AllPrintings, compile enums based on the types found in the file
         :param all_printing_content: AllPrintings internally
         :return Sorted list of enum options for each key
         """
-        type_map: Dict[str, Any] = {}
+        type_map: dict[str, Any] = {}
         for object_name, object_values in self.set_key_struct.items():
             type_map[object_name] = {}
             for object_field_name in object_values:
                 type_map[object_name][object_field_name] = set()
 
         for set_contents in all_printing_content.values():
-            for set_contents_key in set_contents.keys():
+            for set_contents_key in set_contents:
                 if set_contents_key in self.set_key_struct["set"]:
                     value = set_contents.get(set_contents_key)
                     if isinstance(value, list):
@@ -156,7 +156,7 @@ class MtgjsonEnumValuesObject(JsonObject):
                 set(self.set_key_struct.keys())
             )
             for card in set_contents.get("cards", []) + set_contents.get("tokens", []):
-                for card_key in card.keys():
+                for card_key in card:
                     if card_key not in match_keys:
                         continue
 
@@ -165,7 +165,7 @@ class MtgjsonEnumValuesObject(JsonObject):
 
                     # For Dicts, we just enum the keys
                     if isinstance(card_value, dict):
-                        for value in card_value.keys():
+                        for value in card_value:
                             type_map["card"][card_key].add(value)
                         continue
 
@@ -186,7 +186,7 @@ class MtgjsonEnumValuesObject(JsonObject):
 
         return dict(sort_internal_lists(type_map))
 
-    def to_json(self) -> Dict[str, Union[Dict[str, List[str]], List[str]]]:
+    def to_json(self) -> dict[str, dict[str, list[str]] | list[str]]:
         """
         Support json.dump()
         :return: JSON serialized object

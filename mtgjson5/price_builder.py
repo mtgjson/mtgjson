@@ -8,7 +8,7 @@ import logging
 import lzma
 import pathlib
 import subprocess
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import dateutil.relativedelta
 import mergedeep
@@ -34,13 +34,13 @@ class PriceBuilder:
     Build Daily Prices for defined providers
     """
 
-    providers: List[AbstractProvider]
+    providers: list[AbstractProvider]
     all_printings_path: pathlib.Path
 
     def __init__(
         self,
         *providers: AbstractProvider,
-        all_printings_path: Optional[pathlib.Path] = None,
+        all_printings_path: pathlib.Path | None = None,
     ) -> None:
         if providers:
             self.providers = list(providers)
@@ -48,7 +48,7 @@ class PriceBuilder:
             self.providers = [
                 CardHoarderProvider(),
                 TCGPlayerProvider(),
-                CardMarketProvider(),
+                CardMarketProvider(),  # type: ignore[list-item]
                 CardKingdomProvider(),
                 ManapoolPricesProvider(),
             ]
@@ -60,7 +60,7 @@ class PriceBuilder:
         )
 
     @staticmethod
-    def prune_prices_archive(content: Dict[str, Any], months: int = 3) -> None:
+    def prune_prices_archive(content: dict[str, Any], months: int = 3) -> None:
         """
         Prune entries from the MTGJSON database that are older than `months` old
         :param content: Dataset to modify
@@ -71,7 +71,7 @@ class PriceBuilder:
         ).strftime("%Y-%m-%d")
         keys_pruned = 0
 
-        def prune_recursive(obj: Dict[str, Any], depth: int = 0) -> None:
+        def prune_recursive(obj: dict[str, Any], depth: int = 0) -> None:
             """
             Recursive pruner to pluck out bad dates and empty fields
             """
@@ -92,7 +92,7 @@ class PriceBuilder:
         prune_recursive(content)
         LOGGER.info(f"Pruned {keys_pruned} structs")
 
-    def build_today_prices(self) -> Dict[str, Any]:
+    def build_today_prices(self) -> dict[str, Any]:
         """
         Get today's prices from upstream sources and combine them together
         :return: Today's prices (to be merged into archive)
@@ -103,7 +103,7 @@ class PriceBuilder:
             )
             return {}
 
-        final_results: Dict[str, Any] = {}
+        final_results: dict[str, Any] = {}
         mergedeep.merge(
             final_results,
             *[self._generate_prices(provider) for provider in self.providers],
@@ -111,7 +111,7 @@ class PriceBuilder:
 
         return final_results
 
-    def _generate_prices(self, provider: Any) -> Dict[str, Any]:
+    def _generate_prices(self, provider: Any) -> dict[str, Any]:
         """
         Generate the prices for a source and prepare them for
         merging with other entities
@@ -123,7 +123,7 @@ class PriceBuilder:
                 self.all_printings_path
             )
 
-            final_prices: Dict[str, Any] = json.loads(
+            final_prices: dict[str, Any] = json.loads(
                 json.dumps(preprocess_prices, default=lambda o: o.to_json())
             )
             return final_prices
@@ -137,7 +137,7 @@ class PriceBuilder:
     def get_price_archive_data(
         bucket_name: str,
         bucket_object_path: str,
-    ) -> Dict[str, Dict[str, float]]:
+    ) -> dict[str, dict[str, float]]:
         """
         Download compiled MTGJSON price data
         :return: MTGJSON price data
@@ -162,7 +162,7 @@ class PriceBuilder:
 
     @staticmethod
     def write_price_archive_data(
-        local_save_path: pathlib.Path, price_data: Dict[str, Any]
+        local_save_path: pathlib.Path, price_data: dict[str, Any]
     ) -> None:
         """
         Write price data to a compressed archive file
@@ -202,7 +202,7 @@ class PriceBuilder:
         with self.all_printings_path.open("w", encoding="utf8") as f:
             f.write(lzma.decompress(file_bytes).decode())
 
-    def build_prices(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def build_prices(self) -> tuple[dict[str, Any], dict[str, Any]]:
         """
         The full build prices operation
         Prune & Update remote database

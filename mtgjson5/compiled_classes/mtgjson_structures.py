@@ -2,8 +2,6 @@
 MTGJSON Internal Object for Output Files
 """
 
-from typing import List
-
 from singleton_decorator import singleton
 
 from ..classes.json_object import JsonObject
@@ -84,14 +82,14 @@ class MtgjsonStructuresObject(JsonObject):
         self.atomic_cards_vintage = "VintageAtomic"
         self.atomic_cards_pauper = "PauperAtomic"
 
-    def get_all_compiled_file_names(self) -> List[str]:
+    def get_all_compiled_file_names(self) -> list[str]:
         """
         Get all files that are compiled outputs
         :return: Compiled outputs files
         """
         return list(set(self.__dict__.values()))
 
-    def get_compiled_list_files(self) -> List[str]:
+    def get_compiled_list_files(self) -> list[str]:
         """
         Get all files that should appear in CompiledList.json
         :return: Files for CompiledList.json

@@ -4,7 +4,8 @@ Wrapper around creating a parallel function call
 
 import collections
 import itertools
-from typing import Any, Callable, List, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import Any
 
 import gevent
 import gevent.pool
@@ -13,7 +14,7 @@ import gevent.pool
 def parallel_call(
     function: Callable,
     args: Any,
-    repeatable_args: Optional[Union[Tuple[Any, ...], List[Any]]] = None,
+    repeatable_args: tuple[Any, ...] | list[Any] | None = None,
     fold_list: bool = False,
     fold_dict: bool = False,
     force_starmap: bool = False,
@@ -34,7 +35,9 @@ def parallel_call(
 
     if repeatable_args:
         extra_args_rep = [itertools.repeat(arg) for arg in repeatable_args]
-        results = pool.map(lambda g_args: function(*g_args), zip(args, *extra_args_rep))
+        results = pool.map(
+            lambda g_args: function(*g_args), zip(args, *extra_args_rep, strict=False)
+        )
     elif force_starmap:
         results = pool.map(lambda g_args: function(*g_args), args)
     else:

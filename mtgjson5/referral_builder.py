@@ -4,7 +4,7 @@ Referral Map builder operations
 
 import logging
 import re
-from typing import List, Pattern, Tuple, Union
+from re import Pattern
 
 from .classes import MtgjsonCardObject, MtgjsonSetObject
 from .classes.mtgjson_sealed_product import MtgjsonSealedProductObject
@@ -22,7 +22,7 @@ def build_and_write_referral_map(mtgjson_set: MtgjsonSetObject) -> None:
     write_referral_map(referral_map)
 
 
-def build_referral_map(mtgjson_set: MtgjsonSetObject) -> List[Tuple[str, str]]:
+def build_referral_map(mtgjson_set: MtgjsonSetObject) -> list[tuple[str, str]]:
     """
     Construct the referral map contents
     :param mtgjson_set: MTGJSON Set
@@ -40,9 +40,9 @@ def build_referral_map(mtgjson_set: MtgjsonSetObject) -> List[Tuple[str, str]]:
 
 
 def build_referral_map_helper(
-    mtgjson_object: Union[MtgjsonCardObject, MtgjsonSealedProductObject],
+    mtgjson_object: MtgjsonCardObject | MtgjsonSealedProductObject,
     string_regex: Pattern[str],
-) -> List[Tuple[str, str]]:
+) -> list[tuple[str, str]]:
     """
     Helps construct the referral map contents
     :param mtgjson_object: MTGJSON Set or Card object
@@ -64,7 +64,7 @@ def build_referral_map_helper(
     return return_list
 
 
-def write_referral_map(single_set_referral_map: List[Tuple[str, str]]) -> None:
+def write_referral_map(single_set_referral_map: list[tuple[str, str]]) -> None:
     """
     Dump referral map content to the database
     :param single_set_referral_map: Referrals to dump

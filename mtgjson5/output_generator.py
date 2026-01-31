@@ -5,7 +5,9 @@ MTGJSON output generator to write out contents to file & accessory methods
 import json
 import logging
 import pathlib
-from typing import Any, Dict, List
+from typing import Any
+
+import polars as pl
 
 from . import constants
 from .classes import MtgjsonDeckHeaderObject, MtgjsonMetaObject
@@ -24,14 +26,14 @@ from .compiled_classes import (
 )
 from .mtgjson_config import MtgjsonConfig
 from .price_builder import PriceBuilder
-from .providers import GitHubDecksProvider
+from .providers.github import GitHubDecksProvider
 from .utils import get_file_hash
 
 LOGGER = logging.getLogger(__name__)
 
 
 def generate_compiled_prices_output(
-    all_price_data: Dict[str, Any], today_price_data: Dict[str, Any], pretty_print: bool
+    all_price_data: dict[str, Any], today_price_data: dict[str, Any], pretty_print: bool
 ) -> None:
     """
     Dump AllPrices to a file
@@ -290,7 +292,7 @@ def construct_format_map(
         f"{MtgjsonStructuresObject().all_printings}.json"
     ),
     normal_sets_only: bool = True,
-) -> Dict[str, List[str]]:
+) -> dict[str, list[str]]:
     """
     For each set in AllPrintings, determine what format(s) the set is
     legal in and put the set's key into that specific entry in the
@@ -299,7 +301,7 @@ def construct_format_map(
     :param normal_sets_only: Should we only handle normal sets
     :return: Format Map for future identifications
     """
-    format_map: Dict[str, List[str]] = {
+    format_map: dict[str, list[str]] = {
         magic_format: [] for magic_format in constants.SUPPORTED_FORMAT_OUTPUTS
     }
 
@@ -336,7 +338,7 @@ def construct_atomic_cards_format_map(
     all_printings_path: pathlib.Path = MtgjsonConfig().output_path.joinpath(
         f"{MtgjsonStructuresObject().all_printings}.json"
     ),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Construct a format map for cards instead of sets,
     allowing for easy parsing and dispatching to different
@@ -344,7 +346,7 @@ def construct_atomic_cards_format_map(
     :param all_printings_path: Path to AllPrintings.json
     :return: Cards in a format map
     """
-    format_card_map: Dict[str, List[Dict[str, Any]]] = {
+    format_card_map: dict[str, list[dict[str, Any]]] = {
         magic_format: [] for magic_format in constants.SUPPORTED_FORMAT_OUTPUTS
     }
 
@@ -356,18 +358,18 @@ def construct_atomic_cards_format_map(
         content = json.load(file)
 
     for set_contents in content.get("data", {}).values():
-        set_cards: List[Dict[str, Any]] = set_contents.get("cards", [])
+        set_cards: list[dict[str, Any]] = set_contents.get("cards", [])
 
         # Workaround for Dungeons so they can be included
         for token in set_contents.get("tokens", []):
             if token.get("type") == "Dungeon":
                 token["legalities"] = {
-                    t_format: "Legal" for t_format in format_card_map.keys()
+                    t_format: "Legal" for t_format in format_card_map
                 }
                 set_cards.append(token)
 
         for card in set_cards:
-            for magic_format in format_card_map.keys():
+            for magic_format in format_card_map:
                 if card.get("legalities", {}).get(magic_format) in {
                     "Legal",
                     "Restricted",
@@ -434,3 +436,66 @@ def write_to_file(
             ensure_ascii=False,
             default=lambda o: o.to_json(),
         )
+
+
+def write_set_from_dataframe(
+    file_name: str,
+    cards_df: pl.DataFrame,
+    tokens_df: pl.DataFrame | None,
+    set_metadata: dict[str, Any],
+    pretty_print: bool = False,
+) -> None:
+    """
+    Write a set file directly from DataFrames using Polars native JSON serialization.
+
+    This is the vectorized alternative to write_to_file for set outputs.
+    Streams the JSON structure to avoid loading everything into memory.
+
+    :param file_name: Output file name (without .json extension)
+    :param cards_df: DataFrame containing card data
+    :param tokens_df: DataFrame containing token data (or None)
+    :param set_metadata: Set-level metadata dict (code, name, releaseDate, etc.)
+    :param pretty_print: Whether to format JSON with indentation
+    """
+    write_file = MtgjsonConfig().output_path.joinpath(f"{file_name}.json")
+    write_file.parent.mkdir(parents=True, exist_ok=True)
+
+    indent = 4 if pretty_print else None
+    sep = ",\n" if pretty_print else ","
+
+    with write_file.open("w", encoding="utf-8") as file:
+        # Write opening and meta
+        file.write('{"meta": ')
+        json.dump(
+            MtgjsonMetaObject().to_json(), file, indent=indent, ensure_ascii=False
+        )
+        file.write(f'{sep}"data": {{')
+
+        # Write set metadata fields (excluding cards/tokens)
+        first = True
+        for key, value in set_metadata.items():
+            if key in ("cards", "tokens"):
+                continue
+            if not first:
+                file.write(sep)
+            first = False
+            file.write(f'"{key}": ')
+            json.dump(value, file, indent=indent, ensure_ascii=False)
+
+        # Write cards array using Polars native JSON
+        file.write(f'{sep}"cards": ')
+        if cards_df is not None and len(cards_df) > 0:
+            # Use Polars write_json which returns row-oriented JSON string
+            file.write(cards_df.write_json())
+        else:
+            file.write("[]")
+
+        # Write tokens array using Polars native JSON
+        file.write(f'{sep}"tokens": ')
+        if tokens_df is not None and len(tokens_df) > 0:
+            file.write(tokens_df.write_json())
+        else:
+            file.write("[]")
+
+        # Close data and root objects
+        file.write("}}")

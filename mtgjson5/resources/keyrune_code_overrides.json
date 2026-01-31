@@ -1,6 +1,17 @@
 {
   "DCI": "PARL",
   "DD1": "EVG",
+  "DD3": "PMEI",
+  "FWB": "3ED",
+  "MB1": "DEFAULT",
   "PLANESWALKER": "MB1",
+  "Q01": "DEFAULT",
+  "Q02": "DEFAULT",
+  "Q03": "DEFAULT",
+  "Q04": "DEFAULT",
+  "Q05": "DEFAULT",
+  "Q06": "DEFAULT",
+  "Q07": "DEFAULT",
+  "Q08": "DEFAULT",
   "STAR": "PMEI"
 }

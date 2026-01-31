@@ -2,8 +2,6 @@
 MTGJSON DeckList Object
 """
 
-from typing import List
-
 from ..classes import MtgjsonDeckHeaderObject
 from ..classes.json_object import JsonObject
 
@@ -13,15 +11,15 @@ class MtgjsonDeckListObject(JsonObject):
     MTGJSON DeckList Object
     """
 
-    decks: List[MtgjsonDeckHeaderObject]
+    decks: list[MtgjsonDeckHeaderObject]
 
-    def __init__(self, deck_headers: List[MtgjsonDeckHeaderObject]) -> None:
+    def __init__(self, deck_headers: list[MtgjsonDeckHeaderObject]) -> None:
         """
         Initializer to build up the object
         """
         self.decks = deck_headers
 
-    def to_json(self) -> List[MtgjsonDeckHeaderObject]:
+    def to_json(self) -> list[MtgjsonDeckHeaderObject]:
         """
         Support json.dump()
         :return: JSON serialized object

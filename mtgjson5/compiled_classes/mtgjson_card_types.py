@@ -4,7 +4,8 @@ MTGJSON CardTypes Object
 
 import re
 import string
-from typing import Any, Dict, List, Match, Optional
+from re import Match
+from typing import Any
 
 from ..classes.json_object import JsonObject
 from ..providers.scryfall.monolith import ScryfallProvider
@@ -22,20 +23,20 @@ class MtgjsonCardTypesObject(JsonObject):
         MTGJSON CardTypes.CardTypesInner Object
         """
 
-        artifact: List[str]
-        battle: List[str]
-        conspiracy: List[str]
-        creature: List[str]
-        enchantment: List[str]
-        instant: List[str]
-        land: List[str]
-        phenomenon: List[str]
-        plane: List[str]
-        planeswalker: List[str]
-        scheme: List[str]
-        sorcery: List[str]
-        tribal: List[str]
-        vanguard: List[str]
+        artifact: list[str]
+        battle: list[str]
+        conspiracy: list[str]
+        creature: list[str]
+        enchantment: list[str]
+        instant: list[str]
+        land: list[str]
+        phenomenon: list[str]
+        plane: list[str]
+        planeswalker: list[str]
+        scheme: list[str]
+        sorcery: list[str]
+        tribal: list[str]
+        vanguard: list[str]
 
         def __init__(self, magic_rules: str) -> None:
             """
@@ -61,7 +62,7 @@ class MtgjsonCardTypesObject(JsonObject):
             self.tribal = []
             self.vanguard = []
 
-    types: Dict[str, Dict[str, List[str]]]
+    types: dict[str, dict[str, list[str]]]
 
     def __init__(self) -> None:
         """
@@ -83,7 +84,7 @@ class MtgjsonCardTypesObject(JsonObject):
         return super().to_json().get("types")
 
 
-def regex_str_to_list(regex_match: Optional[Match]) -> List[str]:
+def regex_str_to_list(regex_match: Match | None) -> list[str]:
     """
     Take a regex match object and turn a string in
     format "a, b, c, ..., and z." into [a,b,c,...,z]
@@ -97,7 +98,7 @@ def regex_str_to_list(regex_match: Optional[Match]) -> List[str]:
     card_types = regex_match.group(1).split(". ")[0]
 
     # Split the types by comma
-    card_types_split: List[str] = card_types.split(", ")
+    card_types_split: list[str] = card_types.split(", ")
 
     # If there are only two elements, split by " and " instead
     if len(card_types_split) == 1:

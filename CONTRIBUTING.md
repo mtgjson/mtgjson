@@ -18,18 +18,20 @@ In addition to PyCharm, you'll need to install Python 3. We develop actively on 
 
 ### Python venv
 
-If you want to work in a venv, you may follow this commands:
-* `python3.11 -m venv venv`
-  * Use another `python` binary to use it's respective version
-* `source venv/bin/activate`
-* `pip install -r requirements.txt`
-* `pip install -r requirements_test.txt`
-* `cp mtgjson.properties.example mtgjson5/resources/mtgjson.properties`
-* Fill in your credentials into `mtgjson5/resources/mtgjson.properties`
-  * Missing credentials won't fail the run, just extend the generated data
-* `python -m mtgjson5`
+If you want to work in a venv, you may follow these commands:
+
+- `python3.11 -m venv venv`
+  - Use another `python` binary to use it's respective version
+- `source venv/bin/activate`
+- `pip install -r requirements.txt`
+- `pip install -r requirements_test.txt`
+- `cp mtgjson.properties.example mtgjson5/resources/mtgjson.properties`
+- Fill in your credentials into `mtgjson5/resources/mtgjson.properties`
+  - Missing credentials won't fail the run, just extend the generated data
+- `python -m mtgjson5`
 
 ## Project Hierarchy
+
 The codebase is split up into different files based on functionality. While not perfect, we aim to segregate components based on their usages and dependencies.
 
 - `provider/`  is where we put code for each 3rd party resource we need to contact in order to collate our data. Each source should be given its own folder and should not be dependent on any other provider.
@@ -45,8 +47,9 @@ The codebase is split up into different files based on functionality. While not 
 We follow the [black](https://pypi.org/project/black/) style guides, a stricter version of [PEP-8](https://www.python.org/dev/peps/pep-0008/) styling.
 
 To reformat your code and ensure compatibility with our system, simply run the Tox file found in the repo before you open up a pull request.
+
 - Before running Tox, you'll need to install the requirements
-    - `python3 install -r requirements_test.txt`
+  - `python3 install -r requirements_test.txt`
 - In PyCharm, simply right click on `tox.ini` and click "Run Tox"
 
 You will need to pass all Tox requirements, including the unit tests, for your pull request to be approved.

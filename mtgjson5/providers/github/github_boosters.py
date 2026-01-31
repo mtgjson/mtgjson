@@ -3,7 +3,7 @@ Boosters via GitHub 3rd party provider
 """
 
 import logging
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from singleton_decorator import singleton
 
@@ -23,7 +23,7 @@ class GitHubBoostersProvider(AbstractProvider):
     booster_api_url: str = (
         "https://github.com/taw/magic-sealed-data/blob/master/experimental_export_for_mtgjson.json?raw=true"
     )
-    booster_data: Dict[str, Any]
+    booster_data: dict[str, Any]
 
     def __init__(self) -> None:
         """
@@ -32,7 +32,7 @@ class GitHubBoostersProvider(AbstractProvider):
         super().__init__(self._build_http_header())
         self.booster_data = self.download(self.booster_api_url)
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Construct the Authorization header
         :return: Authorization header
@@ -40,9 +40,7 @@ class GitHubBoostersProvider(AbstractProvider):
         __github_token = MtgjsonConfig().get("GitHub", "api_token")
         return {"Authorization": f"Bearer {__github_token}"}
 
-    def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from GitHub
         :param url: Download URL
@@ -58,7 +56,7 @@ class GitHubBoostersProvider(AbstractProvider):
         )
         return {}
 
-    def get_set_booster_data(self, set_code: str) -> Optional[Dict[str, Any]]:
+    def get_set_booster_data(self, set_code: str) -> dict[str, Any] | None:
         """
         Grab an individual set's booster variable, if it exists
         :param set_code: Set to pull data from (case-insensitive)

@@ -25,15 +25,19 @@ def parse_args() -> argparse.Namespace:
     )
 
     # What set(s) to build
+    def parse_sets(s: str) -> list[str]:
+        """Parse set codes, handling both comma and space separation."""
+        return [code.strip().upper() for code in s.split(",") if code.strip()]
+
     sets_group = parser.add_mutually_exclusive_group()
     sets_group.add_argument(
         "--sets",
         "-s",
-        type=lambda s: s.upper(),
+        type=parse_sets,
         nargs="*",
         metavar="SET",
         default=[],
-        help="Set(s) to build, using Scryfall set code notation. Non-existent sets silently ignored.",
+        help="Set(s) to build, using Scryfall set code notation. Supports comma or space separation. Non-existent sets silently ignored.",
     )
     sets_group.add_argument(
         "--all-sets",
@@ -61,6 +65,12 @@ def parse_args() -> argparse.Namespace:
         help="Compress the output folder's contents for distribution.",
     )
     parser.add_argument(
+        "--parallel",
+        "-P",
+        action="store_true",
+        help="Use parallel compression with ThreadPoolExecutor (use with --compress).",
+    )
+    parser.add_argument(
         "--pretty",
         "-p",
         action="store_true",
@@ -69,13 +79,69 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--skip-sets",
         "-SS",
-        type=lambda s: s.upper(),
+        type=parse_sets,
         nargs="*",
         metavar="SET",
         default=[],
-        help="Purposely exclude sets from the build that may have been set using --sets or --all-sets.",
+        help="Purposely exclude sets from the build that may have been set using --sets or --all-sets. Supports comma or space separation.",
     )
 
+    # Pipeline arguments - controls pipeline and selective output
+    pipeline_group = parser.add_argument_group("pipeline arguments")
+    pipeline_group.add_argument(
+        "--polars",
+        action="store_true",
+        help="Enables Polars-based pipeline.",
+    )
+    pipeline_group.add_argument(
+        "--bulk-files",
+        "-B",
+        action="store_true",
+        help="Enable the use of Scryfall bulk data files where possible.",
+    )
+    pipeline_group.add_argument(
+        "--outputs",
+        "-O",
+        type=lambda s: [x.strip() for x in s.split(",") if x.strip()],
+        metavar="LIST",
+        default=None,
+        help="Compiled outputs to build: AllPrintings, AllIdentifiers, TcgplayerSkus, AllPrices, CompiledList, Keywords, CardTypes, Meta, SetList, AtomicCards, Decks, EnumValues. Defaults to all.",
+    )
+    pipeline_group.add_argument(
+        "--export",
+        "-E",
+        type=lambda s: (
+            ["json", "sql", "sqlite", "psql", "csv", "parquet"]
+            if s.strip().lower() == "all"
+            else [x.strip().lower() for x in s.split(",") if x.strip()]
+        ),
+        metavar="LIST",
+        default=None,
+        help="Export formats: json, sql, sqlite, psql, csv, parquet, or 'all' for everything.",
+    )
+    pipeline_group.add_argument(
+        "--use-models",
+        "-M",
+        action="store_true",
+        help="Use Pydantic model-based assembly for JSON outputs (requires --polars).",
+    )
+    pipeline_group.add_argument(
+        "--from-cache",
+        action="store_true",
+        help="Fast path: assemble from cached parquet/metadata (skips pipeline). Requires prior --use-models run.",
+    )
+    pipeline_group.add_argument(
+        "--v2",
+        action="store_true",
+        help="Shorthand for --use-models --polars --all-sets --full-build --export all (new pipeline).",
+    )
+    pipeline_group.add_argument(
+        "--skip-mcm",
+        action="store_true",
+        help="Skip CardMarket data fetching (speeds up builds when MCM data not needed).",
+    )
+
+    # MTGJSON maintainer arguments
     mtgjson_arg_group = parser.add_argument_group("mtgjson maintainer arguments")
     mtgjson_arg_group.add_argument(
         "--price-build",
@@ -115,6 +181,26 @@ def parse_args() -> argparse.Namespace:
 
     parsed_args = parser.parse_args()
 
+    # Expand --v2 shorthand
+    if parsed_args.v2:
+        parsed_args.use_models = True
+        parsed_args.polars = True
+        parsed_args.all_sets = True
+        parsed_args.full_build = True
+        # Include all export formats unless explicitly specified
+        # Note: "json" is already built by assemble_with_models(), so skip it here
+        if not parsed_args.export:
+            parsed_args.export = ["sqlite", "sql", "psql", "csv", "parquet"]
+
+    if parsed_args.sets:
+        flattened_sets = []
+        for item in parsed_args.sets:
+            if isinstance(item, list):
+                flattened_sets.extend(item)
+            else:
+                flattened_sets.append(item.upper())
+        parsed_args.sets = flattened_sets
+
     if parsed_args.use_envvars:
         LOGGER.info("Using environment variables over parser flags")
         parsed_args.sets = list(filter(None, os.environ.get("SETS", "").split(",")))
@@ -122,7 +208,10 @@ def parse_args() -> argparse.Namespace:
         parsed_args.full_build = bool(os.environ.get("FULL_BUILD", False))
         parsed_args.resume_build = bool(os.environ.get("RESUME_BUILD", False))
         parsed_args.compress = bool(os.environ.get("COMPRESS", False))
+        parsed_args.parallel = bool(os.environ.get("PARALLEL", False))
         parsed_args.pretty = bool(os.environ.get("PRETTY", False))
+        parsed_args.polars = bool(os.environ.get("POLARS", False))
+        parsed_args.bulk_files = bool(os.environ.get("USE_BULK", False))
         parsed_args.skip_sets = list(
             filter(None, os.environ.get("SKIP_SETS", "").split(","))
         )
@@ -131,5 +220,12 @@ def parse_args() -> argparse.Namespace:
         parsed_args.no_alerts = bool(os.environ.get("NO_ALERTS", False))
         parsed_args.aws_ssm_download_config = os.environ.get("AWS_SSM_DOWNLOAD_CONFIG")
         parsed_args.aws_s3_upload_bucket = os.environ.get("AWS_S3_UPLOAD_BUCKET")
+        parsed_args.outputs = (
+            list(filter(None, os.environ.get("OUTPUTS", "").split(","))) or None
+        )
+        parsed_args.export_formats = (
+            list(filter(None, os.environ.get("EXPORT_FORMATS", "").lower().split(",")))
+            or None
+        )
 
     return parsed_args

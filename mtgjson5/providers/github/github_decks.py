@@ -7,7 +7,8 @@ import json
 import logging
 import pathlib
 from collections import defaultdict
-from typing import Any, Dict, Iterator, List, Optional, Union
+from collections.abc import Iterator
+from typing import Any
 
 from singleton_decorator import singleton
 
@@ -36,8 +37,8 @@ class GitHubDecksProvider(AbstractProvider):
     all_printings_file: pathlib.Path = MtgjsonConfig().output_path.joinpath(
         f"{MtgjsonStructuresObject().all_printings}.json"
     )
-    all_printings_cards: Dict[str, Any]
-    decks_by_set: Dict[str, List[MtgjsonDeckObject]]
+    all_printings_cards: dict[str, Any]
+    decks_by_set: dict[str, list[MtgjsonDeckObject]]
 
     def __init__(self) -> None:
         """
@@ -46,7 +47,7 @@ class GitHubDecksProvider(AbstractProvider):
         super().__init__(self._build_http_header())
         self.decks_by_set = defaultdict(list)
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Construct the Authorization header
         :return: Authorization header
@@ -55,7 +56,7 @@ class GitHubDecksProvider(AbstractProvider):
         return {"Authorization": f"Bearer {__github_token}"}
 
     @staticmethod
-    def _build_mtgjson_deck_card(card: Dict[str, Any]) -> MtgjsonCardObject:
+    def _build_mtgjson_deck_card(card: dict[str, Any]) -> MtgjsonCardObject:
         """
         Create a MTGJSON card, specialized for in-line decks
         :param card: Card dict to ETL into MTGJSON Card
@@ -71,7 +72,7 @@ class GitHubDecksProvider(AbstractProvider):
         del mtgjson_card.purchase_urls
         return mtgjson_card
 
-    def get_decks_in_set(self, set_code: str) -> List[MtgjsonDeckObject]:
+    def get_decks_in_set(self, set_code: str) -> list[MtgjsonDeckObject]:
         """
         Get individual decks within a specific set, from cache
         Builds up cache if not set
@@ -111,9 +112,7 @@ class GitHubDecksProvider(AbstractProvider):
 
         return self.decks_by_set.get(set_code, [])
 
-    def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from GitHub
         :param url: Download URL
@@ -184,7 +183,7 @@ class GitHubDecksProvider(AbstractProvider):
             yield this_deck
 
 
-def build_single_card(card: Dict[str, Any]) -> List[Dict[str, Any]]:
+def build_single_card(card: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Given a card, add components necessary to turn it into
     an enhanced MTGJSON card

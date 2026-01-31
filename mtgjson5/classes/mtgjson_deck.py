@@ -3,7 +3,7 @@ MTGJSON Singular Deck Object
 """
 
 import re
-from typing import Any, Dict, Iterable, List, Optional, Union
+from collections.abc import Iterable
 
 from .json_object import JsonObject
 from .mtgjson_card import MtgjsonCardObject
@@ -15,19 +15,19 @@ class MtgjsonDeckObject(JsonObject):
     MTGJSON Singular Card Object
     """
 
-    main_board: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    side_board: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    display_commander: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    commander: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    planes: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    schemes: List[Union[MtgjsonCardObject, Dict[str, Any]]]
-    tokens: List[Union[MtgjsonCardObject, Dict[str, Any]]]
+    main_board: list[MtgjsonCardObject]
+    side_board: list[MtgjsonCardObject]
+    display_commander: list[MtgjsonCardObject]
+    commander: list[MtgjsonCardObject]
+    planes: list[MtgjsonCardObject]
+    schemes: list[MtgjsonCardObject]
+    tokens: list[MtgjsonCardObject]
 
     code: str
     name: str
     release_date: str
-    sealed_product_uuids: Optional[List[str]]
-    source_set_codes: List[str]
+    sealed_product_uuids: list[str] | None
+    source_set_codes: list[str]
     type: str
     file_name: str
 
@@ -36,7 +36,7 @@ class MtgjsonDeckObject(JsonObject):
     def __init__(
         self,
         deck_name: str = "",
-        sealed_product_uuids: Optional[List[str]] = None,
+        sealed_product_uuids: list[str] | None = None,
     ):
         self.name = deck_name
         self.sealed_product_uuids = sealed_product_uuids
@@ -62,7 +62,7 @@ class MtgjsonDeckObject(JsonObject):
         self.file_name = f"{deck_name_sanitized}_{self.code}"
 
     def add_sealed_product_uuids(
-        self, mtgjson_set_sealed_products: List[MtgjsonSealedProductObject]
+        self, mtgjson_set_sealed_products: list[MtgjsonSealedProductObject]
     ) -> None:
         """
         Update the UUID for the deck to link back to sealed product, if able

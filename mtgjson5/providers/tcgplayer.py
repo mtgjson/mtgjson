@@ -9,7 +9,7 @@ import logging
 import pathlib
 import re
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any
 
 import requests
 from singleton_decorator import singleton
@@ -87,7 +87,7 @@ class TCGPlayerProvider(AbstractProvider):
     """
 
     api_version: str = ""
-    tcg_to_mtgjson_map: Dict[str, str]
+    tcg_to_mtgjson_map: dict[str, str]
     product_types = [
         "Booster Box",
         "Booster Pack",
@@ -121,7 +121,7 @@ class TCGPlayerProvider(AbstractProvider):
         """
         super().__init__(self._build_http_header())
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Construct the Authorization header for CardHoarder
         :return: Authorization header
@@ -173,9 +173,7 @@ class TCGPlayerProvider(AbstractProvider):
 
         return str(request_as_json.get("access_token", ""))
 
-    def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from Scryfall
         Api calls always return JSON from Scryfall
@@ -188,7 +186,7 @@ class TCGPlayerProvider(AbstractProvider):
         self.log_download(response)
         return response.content.decode()
 
-    def get_tcgplayer_magic_set_ids(self) -> List[Tuple[str, str]]:
+    def get_tcgplayer_magic_set_ids(self) -> list[tuple[str, str]]:
         """
         Download and grab all TCGPlayer set IDs for Magic: the Gathering
         :return: List of TCGPlayer Magic sets
@@ -215,21 +213,36 @@ class TCGPlayerProvider(AbstractProvider):
 
     def generate_today_price_dict(
         self, all_printings_path: pathlib.Path
-    ) -> Dict[str, MtgjsonPricesObject]:
+    ) -> dict[str, MtgjsonPricesObject]:
         """
         Download the TCGPlayer pricing API and collate into MTGJSON format
         :param all_printings_path Path to AllPrintings.json for pre-processing
         :return: Prices to combine with others
         """
         ids_and_names = self.get_tcgplayer_magic_set_ids()
-        tcg_foil_and_non_foil_to_mtgjson_map = generate_entity_mapping(
-            all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
+
+        # Use cached mappings from GLOBAL_CACHE if available (when --polars/--bulk-files used)
+        # Otherwise fall back to parsing AllPrintings.json
+        # pylint: disable=cyclic-import
+        from mtgjson5.v2.data import GLOBAL_CACHE
+
+        tcg_foil_and_non_foil_to_mtgjson_map: dict[str, str] | dict[str, set[Any]] = (
+            GLOBAL_CACHE.get_tcg_to_uuid_map()
         )
-        tcg_etched_foil_to_mtgjson_map = generate_entity_mapping(
-            all_printings_path,
-            ("identifiers", "tcgplayerEtchedProductId"),
-            ("uuid",),
+        if not tcg_foil_and_non_foil_to_mtgjson_map:
+            tcg_foil_and_non_foil_to_mtgjson_map = generate_entity_mapping(
+                all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
+            )
+
+        tcg_etched_foil_to_mtgjson_map: dict[str, str] | dict[str, set[Any]] = (
+            GLOBAL_CACHE.get_tcg_etched_to_uuid_map()
         )
+        if not tcg_etched_foil_to_mtgjson_map:
+            tcg_etched_foil_to_mtgjson_map = generate_entity_mapping(
+                all_printings_path,
+                ("identifiers", "tcgplayerEtchedProductId"),
+                ("uuid",),
+            )
 
         LOGGER.info("Building TCGPlayer buylist data")
         buylist_dict = parallel_call(
@@ -267,7 +280,7 @@ class TCGPlayerProvider(AbstractProvider):
         return dict(combined_listings)
 
     @staticmethod
-    def update_sealed_urls(sealed_products: List[MtgjsonSealedProductObject]) -> None:
+    def update_sealed_urls(sealed_products: list[MtgjsonSealedProductObject]) -> None:
         """
         Queries the TCGPlayer sealed product API to add URLs to any sealed product with a
         TCGPlayer ID.
@@ -282,8 +295,8 @@ class TCGPlayerProvider(AbstractProvider):
                 )
 
     def get_tcgplayer_sku_data(
-        self, group_id_and_name: Tuple[str, str]
-    ) -> List[Dict[str, Any]]:
+        self, group_id_and_name: tuple[str, str]
+    ) -> list[dict[str, Any]]:
         """
         Finds all sku data for a given group using the TCGPlayer API
         :param group_id_and_name: group id and name for the set to get data for
@@ -313,9 +326,7 @@ class TCGPlayerProvider(AbstractProvider):
 
         return magic_set_product_data
 
-    def get_tcgplayer_sealed_data(
-        self, group_id: Optional[int]
-    ) -> List[Dict[str, Any]]:
+    def get_tcgplayer_sealed_data(self, group_id: int | None) -> list[dict[str, Any]]:
         """
         Finds all sealed product for a given group
         :param group_id: group id for the set to get data for
@@ -352,8 +363,8 @@ class TCGPlayerProvider(AbstractProvider):
 
     @staticmethod
     def get_tcgplayer_sku_map(
-        tcgplayer_set_sku_data: List[Dict[str, Any]],
-    ) -> Dict[str, Dict[str, Optional[int]]]:
+        tcgplayer_set_sku_data: list[dict[str, Any]],
+    ) -> dict[str, dict[str, int | None]]:
         """
         takes product info and builds a sku map
         :param tcgplayer_set_sku_data: list of product data dicts used to a build a product id to sku map
@@ -384,8 +395,8 @@ class TCGPlayerProvider(AbstractProvider):
         return tcgplayer_sku_map
 
     def get_api_results(
-        self, tcg_api_url: str, params: Optional[Dict[str, Union[str, int]]] = None
-    ) -> List[Dict[str, Any]]:
+        self, tcg_api_url: str, params: dict[str, str | int] | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get TCGPlayer API Results Object
         :param tcg_api_url: Url to get data from
@@ -405,7 +416,7 @@ class TCGPlayerProvider(AbstractProvider):
         return list(response.get("results", []))
 
     @staticmethod
-    def get_card_finish(card_name: str) -> Optional[str]:
+    def get_card_finish(card_name: str) -> str | None:
         """
         Determine a card's TCGPlayer finish based on the card name,
         as TCGPlayer indicates their finishes by ending a card's name
@@ -427,8 +438,8 @@ class TCGPlayerProvider(AbstractProvider):
         return result_card_finish
 
     def convert_sku_data_enum(
-        self, product: Dict[str, Any]
-    ) -> List[Dict[str, Union[int, str]]]:
+        self, product: dict[str, Any]
+    ) -> list[dict[str, int | str]]:
         """
         Converts a TCGPlayer Product's SKUs from IDs to components
         :param product: TCGPlayer Product
@@ -456,10 +467,10 @@ class TCGPlayerProvider(AbstractProvider):
 
 
 def get_tcgplayer_buylist_prices_map(
-    group_id_and_name: Tuple[str, str],
-    tcg_foil_and_non_foil_to_mtgjson_map: Dict[str, Set[str]],
-    tcg_etched_foil_to_mtgjson_map: Dict[str, Set[str]],
-) -> Dict[str, MtgjsonPricesObject]:
+    group_id_and_name: tuple[str, str],
+    tcg_foil_and_non_foil_to_mtgjson_map: dict[str, set[str]],
+    tcg_etched_foil_to_mtgjson_map: dict[str, set[str]],
+) -> dict[str, MtgjsonPricesObject]:
     """
     takes a group id and name and finds all buylist data for that group
     :param group_id_and_name: TCGPlayer Set ID & Name to build
@@ -475,7 +486,7 @@ def get_tcgplayer_buylist_prices_map(
     if not results:
         return {}
 
-    prices_map: Dict[str, MtgjsonPricesObject] = defaultdict(
+    prices_map: dict[str, MtgjsonPricesObject] = defaultdict(
         lambda: copy.copy(
             MtgjsonPricesObject(
                 "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
@@ -520,10 +531,10 @@ def get_tcgplayer_buylist_prices_map(
 
 
 def get_tcgplayer_prices_map(
-    group_id_and_name: Tuple[str, str],
-    tcg_foil_and_non_foil_to_mtgjson_map: Dict[str, Set[str]],
-    tcg_etched_foil_to_mtgjson_map: Dict[str, Set[str]],
-) -> Dict[str, MtgjsonPricesObject]:
+    group_id_and_name: tuple[str, str],
+    tcg_foil_and_non_foil_to_mtgjson_map: dict[str, set[str]],
+    tcg_etched_foil_to_mtgjson_map: dict[str, set[str]],
+) -> dict[str, MtgjsonPricesObject]:
     """
     Construct MtgjsonPricesObjects from TCGPlayer data
     :param group_id_and_name: TCGPlayer Set ID & Name to build
@@ -537,7 +548,7 @@ def get_tcgplayer_prices_map(
     if not results:
         return {}
 
-    prices_map: Dict[str, MtgjsonPricesObject] = {}
+    prices_map: dict[str, MtgjsonPricesObject] = {}
     for tcgplayer_object in results:
         product_id = str(tcgplayer_object["productId"])
         keys_are_etched = False

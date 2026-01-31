@@ -1,7 +1,7 @@
 """Pytest configuration and fixtures for MTGJSON tests."""
 
 import os
-from typing import Any, Dict, Generator
+from typing import Any, Generator
 from unittest.mock import patch
 
 import pytest
@@ -27,7 +27,7 @@ def disable_cache() -> Generator[None, None, None]:
 
 # VCR configuration
 @pytest.fixture(scope="module")
-def vcr_config() -> Dict[str, Any]:
+def vcr_config() -> dict[str, Any]:
     """
     Configure VCR for deterministic HTTP testing.
 
@@ -37,13 +37,13 @@ def vcr_config() -> Dict[str, Any]:
         # Remove headers that change between requests to ensure cassette stability
         # Without this, cassettes would be invalidated on every API change
         "filter_headers": [
-            "authorization",    # API keys/tokens (security + stability)
-            "date",             # Server timestamp (changes every request)
-            "server",           # Server version info (changes with deployments)
+            "authorization",  # API keys/tokens (security + stability)
+            "date",  # Server timestamp (changes every request)
+            "server",  # Server version info (changes with deployments)
             "cf-cache-status",  # Cloudflare cache status (non-deterministic)
-            "expires",          # Cache expiry time (time-dependent)
-            "etag",             # Resource version identifier (changes with updates)
-            "last-modified",    # Resource modification time (time-dependent)
+            "expires",  # Cache expiry time (time-dependent)
+            "etag",  # Resource version identifier (changes with updates)
+            "last-modified",  # Resource modification time (time-dependent)
         ],
         # Automatically decode gzip/deflate responses for human-readable cassettes
         # Without this, cassette YAML would contain binary compressed data

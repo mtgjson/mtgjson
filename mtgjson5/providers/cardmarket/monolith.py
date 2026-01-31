@@ -8,7 +8,7 @@ import os
 import pathlib
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import mkmsdk.exceptions
 from mkmsdk.api_map import _API_MAP
@@ -31,10 +31,10 @@ class CardMarketProvider(AbstractProvider):
     """
 
     connection: Mkm
-    set_map: Dict[str, Dict[str, Any]]
+    set_map: dict[str, dict[str, Any]]
     price_guide_url: str
 
-    def __init__(self, headers: Optional[Dict[str, str]] = None, init_map: bool = True):
+    def __init__(self, headers: dict[str, str] | None = None, init_map: bool = True):
         super().__init__(headers or {})
         self.set_map = {}
         self.price_guide_url = ""
@@ -65,7 +65,7 @@ class CardMarketProvider(AbstractProvider):
         if init_map:
             self.__init_set_map()
 
-    def _get_card_market_data(self) -> Dict[str, Dict[str, Optional[float]]]:
+    def _get_card_market_data(self) -> dict[str, dict[str, float | None]]:
         """
         Use new MKM API to get MTG card prices
         :return Mapping of card ID to price struct
@@ -93,26 +93,37 @@ class CardMarketProvider(AbstractProvider):
 
     def generate_today_price_dict(
         self, all_printings_path: pathlib.Path
-    ) -> Dict[str, MtgjsonPricesObject]:
+    ) -> dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure from Card Market
+        :param all_printings_path: Path to AllPrintings.json for pre-processing
         :return MTGJSON prices single day structure
         """
+        # Use cached ID mapping from GLOBAL_CACHE if available (when --polars/--bulk-files used)
+        # Otherwise fall back to parsing AllPrintings.json
+        # pylint: disable=cyclic-import
+        from mtgjson5.v2.data import GLOBAL_CACHE
+
+        mtgjson_id_map: dict[str, str] | dict[str, set[Any]] = (
+            GLOBAL_CACHE.get_cardmarket_to_uuid_map()
+        )
+        if not mtgjson_id_map:
+            mtgjson_id_map = generate_entity_mapping(
+                all_printings_path, ("identifiers", "mcmId"), ("uuid",)
+            )
+
+        # Finish map still uses fallback since it requires finishes data not in cache
         mtgjson_finish_map = generate_entity_mapping(
             all_printings_path,
             ("identifiers", "mcmId"),
             ("finishes",),
         )
 
-        mtgjson_id_map = generate_entity_mapping(
-            all_printings_path, ("identifiers", "mcmId"), ("uuid",)
-        )
-
         LOGGER.info("Building CardMarket retail data")
 
         price_data = self._get_card_market_data()
 
-        today_dict: Dict[str, MtgjsonPricesObject] = {}
+        today_dict: dict[str, MtgjsonPricesObject] = {}
         for product_id, price_entities in price_data.items():
             avg_sell_price = price_entities.get("trend")
             avg_foil_price = price_entities.get("trend-foil")
@@ -183,7 +194,7 @@ class CardMarketProvider(AbstractProvider):
             self.set_map[new_set_name.lower()] = self.set_map[old_set_name.lower()]
             del self.set_map[old_set_name.lower()]
 
-    def get_set_id(self, set_name: str) -> Optional[int]:
+    def get_set_id(self, set_name: str) -> int | None:
         """
         Get MKM Set ID from pre-generated map
         :param set_name: Set to get ID from
@@ -196,7 +207,7 @@ class CardMarketProvider(AbstractProvider):
             return int(self.set_map[set_name.lower()]["mcmId"])
         return None
 
-    def get_extras_set_id(self, set_name: str) -> Optional[int]:
+    def get_extras_set_id(self, set_name: str) -> int | None:
         """
         Get "Extras" MKM Set ID from pre-generated map
         For "Throne of Eldraine" it will return the mcmId for "Throne of Eldraine: Extras"
@@ -211,7 +222,7 @@ class CardMarketProvider(AbstractProvider):
             return int(self.set_map[extras_set_name]["mcmId"])
         return None
 
-    def get_set_name(self, set_name: str) -> Optional[str]:
+    def get_set_name(self, set_name: str) -> str | None:
         """
         Get MKM Set Name from pre-generated map
         :param set_name: Set to get Name from
@@ -224,16 +235,14 @@ class CardMarketProvider(AbstractProvider):
             return str(self.set_map[set_name.lower()]["mcmName"])
         return None
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Generate HTTP Header -- Not Used
         :return: Nothing
         """
         return {}
 
-    def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download from CardMarket JSON APIs
         :param url: Download URL
@@ -249,7 +258,7 @@ class CardMarketProvider(AbstractProvider):
         )
         return {}
 
-    def get_mkm_cards(self, mcm_id: Optional[int]) -> Dict[str, List[Dict[str, Any]]]:
+    def get_mkm_cards(self, mcm_id: int | None) -> dict[str, list[dict[str, Any]]]:
         """
         Initialize the MKM global with the cards found in the set
         :param mcm_id: Set's ID, if possible

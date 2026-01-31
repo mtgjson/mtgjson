@@ -3,7 +3,8 @@ MTGJSON Singular Card Object
 """
 
 import json
-from typing import Any, Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any, Dict, List, Optional
 
 from .. import constants
 from ..classes.mtgjson_foreign_data import MtgjsonForeignDataObject
@@ -24,11 +25,11 @@ class MtgjsonCardObject(JsonObject):
     """
 
     artist: str
-    artist_ids: Optional[List[str]]
-    ascii_name: Optional[str]
-    attraction_lights: Optional[List[str]]
+    artist_ids: list[str] | None
+    ascii_name: str | None
+    attraction_lights: list[str] | None
     availability: MtgjsonGameFormatsObject
-    booster_types: List[str]
+    booster_types: list[str]
     border_color: str
     card_parts: List[str]
     color_identity: List[str]
@@ -37,96 +38,96 @@ class MtgjsonCardObject(JsonObject):
     produced_mana: Optional[List[str]]
     converted_mana_cost: float
     count: int
-    defense: Optional[str]
-    duel_deck: Optional[str]
-    edhrec_rank: Optional[int]
-    edhrec_saltiness: Optional[float]
+    defense: str | None
+    duel_deck: str | None
+    edhrec_rank: int | None
+    edhrec_saltiness: float | None
     face_converted_mana_cost: float
-    face_flavor_name: Optional[str]
+    face_flavor_name: str | None
     face_mana_value: float
-    face_name: Optional[str]
-    face_printed_name: Optional[str]
-    finishes: List[str]
-    first_printing: Optional[str]
-    flavor_name: Optional[str]
-    flavor_text: Optional[str]
-    foreign_data: List[MtgjsonForeignDataObject]
-    frame_effects: List[str]
+    face_name: str | None
+    face_printed_name: str | None
+    finishes: list[str]
+    first_printing: str | None
+    flavor_name: str | None
+    flavor_text: str | None
+    foreign_data: list[MtgjsonForeignDataObject]
+    frame_effects: list[str]
     frame_version: str
-    hand: Optional[str]
-    has_alternative_deck_limit: Optional[bool]
-    has_content_warning: Optional[bool]
-    has_foil: Optional[bool]  # Deprecated - Remove in 5.3.0
-    has_non_foil: Optional[bool]  # Deprecated - Remove in 5.3.0
+    hand: str | None
+    has_alternative_deck_limit: bool | None
+    has_content_warning: bool | None
+    has_foil: bool | None  # Deprecated - Remove in 5.3.0
+    has_non_foil: bool | None  # Deprecated - Remove in 5.3.0
     identifiers: MtgjsonIdentifiersObject
-    is_alternative: Optional[bool]
-    is_foil: Optional[bool]
-    is_etched: Optional[bool]
-    is_full_art: Optional[bool]
-    is_funny: Optional[bool]
-    is_game_changer: Optional[bool]
-    is_online_only: Optional[bool]
-    is_oversized: Optional[bool]
-    is_promo: Optional[bool]
-    is_rebalanced: Optional[bool]
-    is_reprint: Optional[bool]
-    is_reserved: Optional[bool]
-    is_starter: Optional[bool]  # Deprecated - Remove in 5.3.0
-    is_story_spotlight: Optional[bool]
-    is_textless: Optional[bool]
-    is_timeshifted: Optional[bool]
-    keywords: List[str]
+    is_alternative: bool | None
+    is_foil: bool | None
+    is_etched: bool | None
+    is_full_art: bool | None
+    is_funny: bool | None
+    is_game_changer: bool | None
+    is_online_only: bool | None
+    is_oversized: bool | None
+    is_promo: bool | None
+    is_rebalanced: bool | None
+    is_reprint: bool | None
+    is_reserved: bool | None
+    is_starter: bool | None  # Deprecated - Remove in 5.3.0
+    is_story_spotlight: bool | None
+    is_textless: bool | None
+    is_timeshifted: bool | None
+    keywords: list[str]
     language: str
     layout: str
-    leadership_skills: Optional[MtgjsonLeadershipSkillsObject]
+    leadership_skills: MtgjsonLeadershipSkillsObject | None
     legalities: MtgjsonLegalitiesObject
-    life: Optional[str]
-    loyalty: Optional[str]
+    life: str | None
+    loyalty: str | None
     mana_cost: str
     mana_value: float
     name: str
     number: str
-    orientation: Optional[str]
-    original_printings: List[str]
-    original_release_date: Optional[str]
-    original_text: Optional[str]
-    original_type: Optional[str]
-    other_face_ids: List[str]
+    orientation: str | None
+    original_printings: list[str]
+    original_release_date: str | None
+    original_text: str | None
+    original_type: str | None
+    other_face_ids: list[str]
     power: str
     prices: MtgjsonPricesObject
-    printed_name: Optional[str]
-    printed_type: Optional[str]
-    printed_text: Optional[str]
-    printings: List[str]
-    promo_types: List[str]
+    printed_name: str | None
+    printed_type: str | None
+    printed_text: str | None
+    printings: list[str]
+    promo_types: list[str]
     purchase_urls: MtgjsonPurchaseUrlsObject
     rarity: str
-    rebalanced_printings: List[str]
-    related_cards: Optional[MtgjsonRelatedCardsObject]
-    reverse_related: Optional[List[str]]
-    rulings: Optional[List[MtgjsonRulingObject]]
-    security_stamp: Optional[str]
-    side: Optional[str]
-    signature: Optional[str]
-    source_products: Optional[Dict[str, List[str]]]
-    subsets: Optional[List[str]]
-    subtypes: List[str]
-    supertypes: List[str]
+    rebalanced_printings: list[str]
+    related_cards: MtgjsonRelatedCardsObject | None
+    reverse_related: list[str] | None
+    rulings: list[MtgjsonRulingObject] | None
+    security_stamp: str | None
+    side: str | None
+    signature: str | None
+    source_products: dict[str, list[str]] | None
+    subsets: list[str] | None
+    subtypes: list[str]
+    supertypes: list[str]
     text: str
     toughness: str
     type: str
-    types: List[str]
+    types: list[str]
     uuid: str
-    variations: List[str]
-    watermark: Optional[str]
+    variations: list[str]
+    watermark: str | None
 
     # Outside entities, not published
     set_code: str
     is_token: bool
-    raw_purchase_urls: Dict[str, str]
-    __names: Optional[List[str]]
-    __illustration_ids: List[str]
-    __watermark_resource: Dict[str, List[Any]]
+    raw_purchase_urls: dict[str, str]
+    __names: list[str] | None
+    __illustration_ids: list[str]
+    __watermark_resource: dict[str, list[Any]]
 
     __allow_if_falsey = {
         "supertypes",
@@ -282,7 +283,7 @@ class MtgjsonCardObject(JsonObject):
 
         return self_number_clean_int < other_number_clean_int
 
-    def set_illustration_ids(self, illustration_ids: List[str]) -> None:
+    def set_illustration_ids(self, illustration_ids: list[str]) -> None:
         """
         Set internal illustration IDs for this card to
         better identify what side we're working on,
@@ -291,21 +292,21 @@ class MtgjsonCardObject(JsonObject):
         """
         self.__illustration_ids = illustration_ids
 
-    def get_illustration_ids(self) -> List[str]:
+    def get_illustration_ids(self) -> list[str]:
         """
         Get the internal illustration IDs roster for this card
         to better identify the sides for Art and Token cards
         """
         return self.__illustration_ids
 
-    def get_names(self) -> List[str]:
+    def get_names(self) -> list[str]:
         """
         Get internal names array for this card
         :return Names array or None
         """
         return self.__names or []
 
-    def set_names(self, names: Optional[List[str]]) -> None:
+    def set_names(self, names: list[str] | None) -> None:
         """
         Set internal names array for this card
         :param names: Names list (optional)
@@ -322,7 +323,7 @@ class MtgjsonCardObject(JsonObject):
         else:
             self.set_names([name])
 
-    def set_watermark(self, watermark: Optional[str]) -> None:
+    def set_watermark(self, watermark: str | None) -> None:
         """
         Watermarks sometimes aren't specific enough, so we
         must manually update them. This only applies if the
@@ -348,7 +349,7 @@ class MtgjsonCardObject(JsonObject):
 
         self.watermark = watermark
 
-    def get_atomic_keys(self) -> List[str]:
+    def get_atomic_keys(self) -> list[str]:
         """
         Get attributes of a card that don't change
         from printing to printing
@@ -369,8 +370,7 @@ class MtgjsonCardObject(JsonObject):
         excluded_keys = excluded_keys.union({"is_token", "raw_purchase_urls"})
 
         for key, value in self.__dict__.items():
-            if not value:
-                if key not in self.__allow_if_falsey:
-                    excluded_keys.add(key)
+            if not value and key not in self.__allow_if_falsey:
+                excluded_keys.add(key)
 
         return excluded_keys

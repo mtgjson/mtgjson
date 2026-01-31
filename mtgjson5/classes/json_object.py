@@ -3,7 +3,8 @@ MTGJSON Top Level Object
 """
 
 import abc
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from ..utils import to_camel_case
 

@@ -8,7 +8,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -24,6 +23,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.duckdb
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -113,7 +113,7 @@ venv*/
 # MTG JSON
 set_outputs/
 json_*/
-v*/
+
 mtgjson_logs/
 mtgjson_build_*/
 compiled_outputs/
@@ -127,9 +127,15 @@ stocks_data.json
 .*_cache/
 flamegraph.pl
 stacksampler.py
-
+*.psql
+*.json
+*.sh
+*.parquet
+docs/*
+benchmark*
 .run/
-
+*.bak
+*.tsv
 # AI Tools
 .beads/
 AGENTS.md
@@ -138,3 +144,6 @@ WARP.md
 
 # asdf languange/version manager
 .tool-versions
+
+# parquet cache files
+*.parquet

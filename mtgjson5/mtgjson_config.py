@@ -5,7 +5,6 @@ MTGJSON Configuration Service
 import configparser
 import logging
 import pathlib
-from typing import Optional
 
 import boto3
 import botocore.exceptions
@@ -26,14 +25,15 @@ class MtgjsonConfig:
     mtgjson_version: str
     use_cache: bool
     output_path: pathlib.Path
+    vectorized: bool
+    use_bulk_for_searches: bool
 
     def __init__(
         self,
-        aws_ssm_config_name: Optional[str] = None,
+        aws_ssm_config_name: str | None = None,
     ):
         self.logger = logging.getLogger(__name__)
         self.config_parser = configparser.ConfigParser()
-
         if aws_ssm_config_name:
             self.logger.info("Loading configuration from AWS SSM")
             self.__load_config_from_aws_ssm(aws_ssm_config_name)
@@ -58,6 +58,7 @@ class MtgjsonConfig:
             )
 
         self.use_cache = self.get_boolean("MTGJSON", "use_cache", False)
+        self.use_bulk_for_searches = False  # Set by --polars or --bulk-files flags
         self.output_path = constants.ENV_OUT_PATH.joinpath(
             f"mtgjson_build_{self.mtgjson_version}"
         )

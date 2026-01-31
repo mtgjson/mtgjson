@@ -2,10 +2,8 @@
 # Pickle collected data for later comparisons.
 persistent=yes
 
-# Ignore WIP files
-ignore-paths=
-    mtgjson5/cache.py,
-    mtgjson5/pipeline.py
+# Allow C-extension modules to be introspected
+extension-pkg-allow-list=orjson,numpy,aiohttp
 
 [MESSAGES CONTROL]
 # Disable the message, report, category or checker with the given id(s). You
@@ -19,11 +17,20 @@ ignore-paths=
 # --disable=W"
 disable=
     broad-except,
+    cyclic-import,
     duplicate-code,
+    global-statement,
     import-outside-toplevel,
+    invalid-name,
     line-too-long,
     logging-format-interpolation,
     logging-fstring-interpolation,
+    no-else-return,
+    no-name-in-module,
+    protected-access,
+    redefined-builtin,
+    redefined-outer-name,
+    singleton-comparison,
     too-few-public-methods,
     too-many-arguments,
     too-many-branches,
@@ -31,9 +38,12 @@ disable=
     too-many-lines,
     too-many-locals,
     too-many-nested-blocks,
+    too-many-public-methods,
     too-many-return-statements,
     too-many-statements,
+    unspecified-encoding,
     unsubscriptable-object,
+    unused-argument,
     used-before-assignment,
     wrong-import-order,
     wrong-import-position,

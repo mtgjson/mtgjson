@@ -2,7 +2,7 @@
 MTGJSON Singular Card.Identifiers Object
 """
 
-from typing import Dict, Optional
+from typing import Optional
 
 from .json_object import JsonObject
 
@@ -42,6 +42,6 @@ class MtgjsonIdentifiersObject(JsonObject):
         self.card_kingdom_id = ""
         self.tcgplayer_product_id = ""
 
-    def to_json(self) -> Dict[str, str]:
+    def to_json(self) -> dict[str, str]:
         parent = super().to_json()
         return {key: value for key, value in parent.items() if value}

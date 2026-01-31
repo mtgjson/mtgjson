@@ -3,7 +3,7 @@ Card Sealed Products via GitHub 3rd party provider
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from singleton_decorator import singleton
 
@@ -22,7 +22,7 @@ class GitHubCardSealedProductsProvider(AbstractProvider):
     card_products_api_url: str = (
         "https://github.com/mtgjson/mtg-sealed-content/raw/main/outputs/card_map.json?raw=True"
     )
-    card_uuid_to_products: Dict[str, Dict[str, List[str]]]
+    card_uuid_to_products: dict[str, dict[str, list[str]]]
 
     def __init__(self) -> None:
         """
@@ -31,13 +31,11 @@ class GitHubCardSealedProductsProvider(AbstractProvider):
         super().__init__(self._build_http_header())
         self.card_uuid_to_products = self.download(self.card_products_api_url)
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         __github_token = MtgjsonConfig().get("GitHub", "api_token")
         return {"Authorization": f"Bearer {__github_token}"}
 
-    def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         response = self.session.get(url)
         self.log_download(response)
         if response.ok:
@@ -48,7 +46,7 @@ class GitHubCardSealedProductsProvider(AbstractProvider):
 
     def get_products_card_found_in(
         self, mtgjson_uuid: str
-    ) -> Optional[Dict[str, List[str]]]:
+    ) -> dict[str, list[str]] | None:
         """
         Get Card Products from UUID
         :param mtgjson_uuid: Card UUID to get products for

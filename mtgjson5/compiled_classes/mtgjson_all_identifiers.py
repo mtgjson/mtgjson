@@ -3,7 +3,7 @@ MTGJSON AllIdentifiers Object
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from ..classes.json_object import JsonObject
 from ..utils import get_all_entities_from_content
@@ -16,9 +16,9 @@ class MtgjsonAllIdentifiersObject(JsonObject):
     MTGJSON AllIdentifiers Object
     """
 
-    all_identifiers_dict: Dict[str, Any]
+    all_identifiers_dict: dict[str, Any]
 
-    def __init__(self, all_printings: Dict[str, Any]) -> None:
+    def __init__(self, all_printings: dict[str, Any]) -> None:
         """
         Initialize to build up the object
         """
@@ -35,7 +35,7 @@ class MtgjsonAllIdentifiersObject(JsonObject):
 
             self.all_identifiers_dict[card["uuid"]] = card
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """
         Support json.dump()
         :return: JSON serialized object

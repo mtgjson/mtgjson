@@ -6,7 +6,6 @@ import datetime
 import hashlib
 import os
 import pathlib
-from typing import Dict, Set
 
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson5").joinpath("resources")
@@ -16,6 +15,7 @@ ENV_OUT_PATH: pathlib.Path = (
     .expanduser()
     .resolve()
 )
+OUTPUT_PATH: pathlib.Path = ENV_OUT_PATH.joinpath("output")
 
 LOG_PATH: pathlib.Path = ENV_OUT_PATH.joinpath("mtgjson_logs")
 
@@ -30,7 +30,7 @@ CARD_KINGDOM_REFERRAL: str = (
     "?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson"
 )
 
-FOREIGN_SETS: Set[str] = {
+FOREIGN_SETS: set[str] = {
     "PMPS11",
     "PS11",
     "PSAL",
@@ -49,30 +49,31 @@ FOREIGN_SETS: Set[str] = {
     "4BB",
     "FBB",
 }
-SUPER_TYPES: Set[str] = {"Basic", "Host", "Legendary", "Ongoing", "Snow", "World"}
-BASIC_LAND_NAMES: Set[str] = {"Plains", "Island", "Swamp", "Mountain", "Forest"}
-LANGUAGE_MAP: Dict[str, str] = {
-    "en": "English",
-    "es": "Spanish",
-    "fr": "French",
-    "de": "German",
-    "it": "Italian",
-    "pt": "Portuguese (Brazil)",
-    "ja": "Japanese",
-    "ko": "Korean",
-    "ru": "Russian",
-    "zhs": "Chinese Simplified",
-    "zht": "Chinese Traditional",
-    "he": "Hebrew",
-    "la": "Latin",
+TOKEN_LAYOUTS = {"token", "double_faced_token", "emblem", "art_series"}
+SUPER_TYPES: set[str] = {"Basic", "Host", "Legendary", "Ongoing", "Snow", "World"}
+BASIC_LAND_NAMES: set[str] = {"Plains", "Island", "Swamp", "Mountain", "Forest"}
+LANGUAGE_MAP: dict[str, str] = {
     "grc": "Ancient Greek",
     "ar": "Arabic",
-    "sa": "Sanskrit",
+    "zhs": "Chinese Simplified",
+    "zht": "Chinese Traditional",
+    "en": "English",
+    "fr": "French",
+    "de": "German",
+    "he": "Hebrew",
+    "it": "Italian",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "la": "Latin",
     "ph": "Phyrexian",
     "px": "Phyrexian",
+    "pt": "Portuguese (Brazil)",
     "qya": "Quenya",
+    "ru": "Russian",
+    "sa": "Sanskrit",
+    "es": "Spanish",
 }
-SYMBOL_MAP: Dict[str, str] = {
+SYMBOL_MAP: dict[str, str] = {
     "White": "W",
     "Blue": "U",
     "Black": "B",
@@ -111,7 +112,7 @@ SYMBOL_MAP: Dict[str, str] = {
     "Untap": "Q",
     "Infinite": "∞",
 }
-BAD_FILE_NAMES: Set[str] = {
+BAD_FILE_NAMES: set[str] = {
     # File names that can't exist on Windows
     "AUX",
     "COM0",
@@ -138,7 +139,7 @@ BAD_FILE_NAMES: Set[str] = {
     "NUL",
     "PRN",
 }
-SUPPORTED_FORMAT_OUTPUTS: Set[str] = {
+SUPPORTED_FORMAT_OUTPUTS: set[str] = {
     "standard",
     "pioneer",
     "modern",
@@ -146,11 +147,11 @@ SUPPORTED_FORMAT_OUTPUTS: Set[str] = {
     "vintage",
     "pauper",
 }
-SUPPORTED_SET_TYPES: Set[str] = {
+SUPPORTED_SET_TYPES: set[str] = {
     "expansion",
     "core",
     "draft_innovation",
     "commander",
     "masters",
 }
-MULTI_WORD_SUB_TYPES: Set[str] = {"Time Lord"}
+MULTI_WORD_SUB_TYPES: set[str] = {"Time Lord"}

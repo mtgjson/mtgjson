@@ -3,7 +3,8 @@ MTGJSON Singular Sealed Product Object
 """
 
 import enum
-from typing import Any, Dict, Iterable, Optional
+from collections.abc import Iterable
+from typing import Any
 
 from .json_object import JsonObject
 from .mtgjson_identifiers import MtgjsonIdentifiersObject
@@ -66,7 +67,7 @@ class MtgjsonSealedProductCategory(enum.Enum):
     PRERELEASE_PACK = "prerelease_pack"
     PRERELEASE_CASE = "prerelease_case"
 
-    def to_json(self) -> Optional[str]:
+    def to_json(self) -> str | None:
         """
         Support json.dump()
         :return: JSON serialized object
@@ -147,7 +148,7 @@ class MtgjsonSealedProductSubtype(enum.Enum):
     ADVANCED = "advanced"
     OTHER = "other"
 
-    def to_json(self) -> Optional[str]:
+    def to_json(self) -> str | None:
         """
         Support json.dump()
         :return: JSON serialized object
@@ -166,14 +167,14 @@ class MtgjsonSealedProductObject(JsonObject):
     uuid: str
     identifiers: MtgjsonIdentifiersObject
     purchase_urls: MtgjsonPurchaseUrlsObject
-    raw_purchase_urls: Dict[str, str]
-    release_date: Optional[str]
-    language: Optional[str]
-    category: Optional[MtgjsonSealedProductCategory]
-    subtype: Optional[MtgjsonSealedProductSubtype]
-    contents: Optional[Dict[str, Any]]  # Enumerated product contents
-    product_size: Optional[int]  # Number of packs in a booster box [DEPRECATED]
-    card_count: Optional[int]  # Number of cards in a booster pack or deck
+    raw_purchase_urls: dict[str, str]
+    release_date: str | None
+    language: str | None
+    category: MtgjsonSealedProductCategory | None
+    subtype: MtgjsonSealedProductSubtype | None
+    contents: dict[str, Any] | None  # Enumerated product contents
+    product_size: int | None  # Number of packs in a booster box [DEPRECATED]
+    card_count: int | None  # Number of cards in a booster pack or deck
 
     def __init__(self) -> None:
         self.identifiers = MtgjsonIdentifiersObject()
@@ -183,6 +184,6 @@ class MtgjsonSealedProductObject(JsonObject):
     def build_keys_to_skip(self) -> Iterable[str]:
         return {"raw_purchase_urls"}
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         parent = super().to_json()
         return {key: value for key, value in parent.items() if value}

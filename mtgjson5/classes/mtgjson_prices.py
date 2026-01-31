@@ -3,7 +3,7 @@ MTGJSON Singular Prices.Card Object
 """
 
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from mtgjson5.classes.json_object import JsonObject
 
@@ -17,12 +17,12 @@ class MtgjsonPricesObject(JsonObject):
     provider: str
     date: str
     currency: str
-    buy_normal: Optional[float]
-    buy_foil: Optional[float]
-    buy_etched: Optional[float]
-    sell_normal: Optional[float]
-    sell_foil: Optional[float]
-    sell_etched: Optional[float]
+    buy_normal: float | None
+    buy_foil: float | None
+    buy_etched: float | None
+    sell_normal: float | None
+    sell_foil: float | None
+    sell_etched: float | None
 
     def __init__(
         self,
@@ -30,12 +30,12 @@ class MtgjsonPricesObject(JsonObject):
         provider: str,
         date: str,
         currency: str,
-        buy_normal: Optional[float] = None,
-        buy_foil: Optional[float] = None,
-        buy_etched: Optional[float] = None,
-        sell_normal: Optional[float] = None,
-        sell_foil: Optional[float] = None,
-        sell_etched: Optional[float] = None,
+        buy_normal: float | None = None,
+        buy_foil: float | None = None,
+        buy_etched: float | None = None,
+        sell_normal: float | None = None,
+        sell_foil: float | None = None,
+        sell_etched: float | None = None,
     ) -> None:
         """
         Initializer for Pricing Container
@@ -51,7 +51,7 @@ class MtgjsonPricesObject(JsonObject):
         self.sell_foil = sell_foil
         self.sell_etched = sell_etched
 
-    def items(self) -> List[Tuple[str, Optional[float]]]:
+    def items(self) -> list[tuple[str, float | None]]:
         """
         Override dict iterator
         :return: List of entities
@@ -62,12 +62,12 @@ class MtgjsonPricesObject(JsonObject):
             if not callable(getattr(self, key)) and not key.startswith("__")
         ]
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """
         Support json.dump()
         :return: JSON serialized object
         """
-        buy_sell_option: Dict[str, Any] = {
+        buy_sell_option: dict[str, Any] = {
             "buylist": defaultdict(dict),
             "retail": defaultdict(dict),
             "currency": self.currency,

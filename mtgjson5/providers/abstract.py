@@ -7,7 +7,7 @@ import copy
 import datetime
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any
 
 import requests
 import requests_cache
@@ -25,10 +25,10 @@ class AbstractProvider(abc.ABC):
     """
 
     class_id: str
-    session: Union[requests.Session, requests_cache.CachedSession]
+    session: requests.Session | requests_cache.CachedSession
     today_date: str = datetime.datetime.today().strftime("%Y-%m-%d")
 
-    def __init__(self, headers: Dict[str, str]) -> None:
+    def __init__(self, headers: dict[str, str]) -> None:
         super().__init__()
         self.class_id = ""
         self.session = retryable_session()
@@ -36,16 +36,14 @@ class AbstractProvider(abc.ABC):
 
     # Abstract Methods
     @abc.abstractmethod
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Construct the HTTP authorization header
         :return: Authorization header
         """
 
     @abc.abstractmethod
-    def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download an object from a service using appropriate authentication protocols
         :param url: URL to download content from
@@ -91,18 +89,18 @@ class AbstractProvider(abc.ABC):
 
     def generic_generate_today_price_dict(
         self,
-        third_party_to_mtgjson: Dict[str, Set[Any]],
-        price_data_rows: List[Dict[str, Any]],
+        third_party_to_mtgjson: dict[str, set[Any]],
+        price_data_rows: list[dict[str, Any]],
         card_platform_id_key: str,
         default_prices_object: MtgjsonPricesObject,
         foil_key: str,
-        retail_key: Optional[str] = None,
-        retail_quantity_key: Optional[str] = None,
-        buy_key: Optional[str] = None,
-        buy_quantity_key: Optional[str] = None,
-        etched_key: Optional[str] = None,
-        etched_value: Optional[str] = None,
-    ) -> Dict[str, MtgjsonPricesObject]:
+        retail_key: str | None = None,
+        retail_quantity_key: str | None = None,
+        buy_key: str | None = None,
+        buy_quantity_key: str | None = None,
+        etched_key: str | None = None,
+        etched_value: str | None = None,
+    ) -> dict[str, MtgjsonPricesObject]:
         """
         Generically convert price data to MTGJSON data format
         :param third_party_to_mtgjson: Mapping of 3rdPartyID to MTGJSON ID(s)
@@ -118,7 +116,7 @@ class AbstractProvider(abc.ABC):
         :param etched_value: Optional value to find in etched_key to see if etched card or not
         :return Today's price setup in MTGJSON Price Format
         """
-        today_dict: Dict[str, MtgjsonPricesObject] = defaultdict(
+        today_dict: dict[str, MtgjsonPricesObject] = defaultdict(
             lambda: copy.copy(default_prices_object)
         )
 

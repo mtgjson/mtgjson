@@ -5,7 +5,7 @@ Whats In Standard 3rd party provider
 import datetime
 import logging
 import time
-from typing import Any, Dict, Optional, Set, Union
+from typing import Any
 
 import dateutil.parser
 from singleton_decorator import singleton
@@ -20,8 +20,8 @@ class WhatsInStandardProvider(AbstractProvider):
     """
 
     API_ENDPOINT: str = "https://whatsinstandard.com/api/v6/standard.json"
-    set_codes: Set[str]
-    standard_legal_sets: Set[str]
+    set_codes: set[str]
+    standard_legal_sets: set[str]
 
     def __init__(self) -> None:
         """
@@ -32,16 +32,14 @@ class WhatsInStandardProvider(AbstractProvider):
         self.standard_legal_sets = set()
         self.set_codes = self.standard_legal_set_codes()
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Construct the Authorization header -- unused
         :return: Authorization header
         """
         return {}
 
-    def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from Whats in Standard
         Api calls always return JSON from them
@@ -59,7 +57,7 @@ class WhatsInStandardProvider(AbstractProvider):
 
         return response.json()
 
-    def standard_legal_set_codes(self) -> Set[str]:
+    def standard_legal_set_codes(self) -> set[str]:
         """
         Get all set codes from sets that are currently legal in Standard
         :return: Set Codes legal in standard

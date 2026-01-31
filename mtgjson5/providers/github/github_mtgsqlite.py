@@ -7,7 +7,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import git
 from singleton_decorator import singleton
@@ -39,7 +39,7 @@ class GitHubMTGSqliteProvider(AbstractProvider):
         super().__init__(self._build_http_header())
         self.download(self.repo_url)
 
-    def _build_http_header(self) -> Dict[str, str]:
+    def _build_http_header(self) -> dict[str, str]:
         """
         Construct the Authorization header
         :return: Authorization header
@@ -47,9 +47,7 @@ class GitHubMTGSqliteProvider(AbstractProvider):
         __github_token = MtgjsonConfig().get("GitHub", "api_token")
         return {"Authorization": f"Bearer {__github_token}"}
 
-    def download(
-        self, url: str, params: Optional[Dict[str, Union[str, int]]] = None
-    ) -> Any:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> Any:
         """
         Download content from GitHub
         :param url: Download URL
