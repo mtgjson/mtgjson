@@ -859,7 +859,7 @@ class GlobalCache:
             return
 
         LOGGER.info("Fetching spellbook data from Scryfall...")
-        spellbook_data = asyncio.run(ScryfallProvider.fetch_all_spellbooks())
+        spellbook_data = asyncio.run(ScryfallProvider().fetch_all_spellbooks())
         if spellbook_data:
             records = [
                 {"name": parent, "spellbook": cards}
