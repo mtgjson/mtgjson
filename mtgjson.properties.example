@@ -23,6 +23,10 @@ version=
 date=
 use_cache=
 
+[Prices]
+bucket_name=
+bucket_object_path=
+
 [Pushover]
 app_token=
 user_tokens=

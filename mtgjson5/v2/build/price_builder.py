@@ -543,8 +543,6 @@ class PolarsPriceBuilder:
     def _load_json_archive(self, path: Path) -> pl.LazyFrame:
         """Load archive from JSON file and convert to LazyFrame."""
         try:
-            import orjson
-
             LOGGER.info(f"Converting JSON archive (orjson): {path}")
             with open(path, "rb") as f:
                 data = orjson.loads(f.read())
@@ -795,11 +793,9 @@ class PolarsPriceBuilder:
             return None
 
         bucket_name = MtgjsonConfig().get("Prices", "bucket_name")
-        bucket_object_path = MtgjsonConfig().get("Prices", "bucket_object_path")
+        # bucket_object_path = MtgjsonConfig().get("Prices", "bucket_object_path")
 
-        base_path = "price_archive"
-
-        return bucket_name, base_path
+        return bucket_name, "prices_archive"
 
     def sync_partition_to_s3(self, date: str) -> bool:
         """
