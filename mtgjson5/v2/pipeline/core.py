@@ -16,6 +16,8 @@ import polars as pl
 import polars_hash as plh
 
 from mtgjson5 import constants
+from mtgjson5.mtgjson_config import MtgjsonConfig
+from mtgjson5.utils import LOGGER, to_camel_case, to_snake_case
 from mtgjson5.v2.consts import (
     BASIC_LAND_NAMES,
     CARD_MARKET_BUFFER,
@@ -32,14 +34,13 @@ from mtgjson5.v2.consts import (
     TOKEN_LAYOUTS,
 )
 from mtgjson5.v2.data import PipelineContext
-from mtgjson5.v2.models.scryfall import CardFace
-from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.v2.models.schemas import (
     ALL_CARD_FIELDS,
     ATOMIC_EXCLUDE,
     CARD_DECK_EXCLUDE,
     TOKEN_EXCLUDE,
 )
+from mtgjson5.v2.models.scryfall import CardFace
 from mtgjson5.v2.pipeline.expressions import (
     calculate_cmc_expr,
     extract_colors_from_mana_expr,
@@ -47,7 +48,6 @@ from mtgjson5.v2.pipeline.expressions import (
     sort_colors_wubrg_expr,
 )
 from mtgjson5.v2.pipeline.lookups import add_meld_other_face_ids, apply_meld_overrides
-from mtgjson5.utils import LOGGER, to_camel_case, to_snake_case
 
 # List of raw Scryfall columns to drop after transformation to MTGJSON format
 _SCRYFALL_COLUMNS_TO_DROP = [
@@ -1038,11 +1038,13 @@ def apply_card_enrichment(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFram
             enrichment = data.get("enrichment", {})
             promo_types = enrichment.get("promo_types", [])
             if promo_types:
-                rows.append({
-                    "setCode": set_code.upper(),
-                    "number": str(number),
-                    "enrichmentPromoTypes": promo_types,
-                })
+                rows.append(
+                    {
+                        "setCode": set_code.upper(),
+                        "number": str(number),
+                        "enrichmentPromoTypes": promo_types,
+                    }
+                )
 
     if not rows:
         return lf
@@ -2522,10 +2524,14 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
     # TCGPlayer product ID -> UUID
     try:
         tcg_df = (
-            lf.select([
-                pl.col("uuid"),
-                pl.col("identifiers").struct.field("tcgplayerProductId").alias("tcgplayerProductId"),
-            ])
+            lf.select(
+                [
+                    pl.col("uuid"),
+                    pl.col("identifiers")
+                    .struct.field("tcgplayerProductId")
+                    .alias("tcgplayerProductId"),
+                ]
+            )
             .filter(pl.col("tcgplayerProductId").is_not_null())
             .unique()
             .collect()
@@ -2542,10 +2548,14 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
     # TCGPlayer etched product ID -> UUID
     try:
         tcg_etched_df = (
-            lf.select([
-                pl.col("uuid"),
-                pl.col("identifiers").struct.field("tcgplayerEtchedProductId").alias("tcgplayerEtchedProductId"),
-            ])
+            lf.select(
+                [
+                    pl.col("uuid"),
+                    pl.col("identifiers")
+                    .struct.field("tcgplayerEtchedProductId")
+                    .alias("tcgplayerEtchedProductId"),
+                ]
+            )
             .filter(pl.col("tcgplayerEtchedProductId").is_not_null())
             .unique()
             .collect()
@@ -2555,17 +2565,21 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
             tcg_etched_df.write_parquet(tcg_etched_path)
             if ctx._cache is not None:
                 ctx._cache.tcg_etched_to_uuid_lf = tcg_etched_df.lazy()
-            LOGGER.info(f"Built tcg_etched_to_uuid mapping: {len(tcg_etched_df):,} entries")
+            LOGGER.info(
+                f"Built tcg_etched_to_uuid mapping: {len(tcg_etched_df):,} entries"
+            )
     except Exception as e:
         LOGGER.warning(f"Failed to build tcg_etched_to_uuid mapping: {e}")
 
     # MTGO ID -> UUID
     try:
         mtgo_df = (
-            lf.select([
-                pl.col("uuid"),
-                pl.col("identifiers").struct.field("mtgoId").alias("mtgoId"),
-            ])
+            lf.select(
+                [
+                    pl.col("uuid"),
+                    pl.col("identifiers").struct.field("mtgoId").alias("mtgoId"),
+                ]
+            )
             .filter(pl.col("mtgoId").is_not_null())
             .unique()
             .collect()
@@ -2600,9 +2614,7 @@ def sink_cards(ctx: PipelineContext) -> None:
         LOGGER.info("Filtered to default language per card using default_cards mapping")
     else:
         # Fallback: English only (if default_cards not loaded)
-        LOGGER.warning(
-            "languages not available, filtering to English only"
-        )
+        LOGGER.warning("languages not available, filtering to English only")
         lf = lf.filter(pl.col("language") == "English")
 
     lf = link_foil_nonfoil_versions(lf)

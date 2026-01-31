@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from mtgjson5.v2.data.cache import GlobalCache
     from mtgjson5.v2.utils import DynamicCategoricals
 
+from mtgjson5.utils import LOGGER, get_expanded_set_codes
 from mtgjson5.v2.consts import LANGUAGE_MAP
 from mtgjson5.v2.models import (
     CardAtomic,
@@ -24,7 +25,6 @@ from mtgjson5.v2.models import (
     CardSet,
     CardToken,
 )
-from mtgjson5.utils import LOGGER, get_expanded_set_codes
 
 _DNS_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
 
@@ -166,13 +166,6 @@ class PipelineContext:
         return self._cache.multiverse_bridge_lf if self._cache else None
 
     @property
-    def rulings_lf(self) -> pl.LazyFrame | None:
-        """Rulings from cache."""
-        if "_rulings_lf" in self._test_data:
-            return self._test_data["_rulings_lf"]  # type: ignore[no-any-return]
-        return self._cache.rulings_lf if self._cache else None
-
-    @property
     def foreign_data_lf(self) -> pl.LazyFrame | None:
         """Foreign data from cache."""
         if "_foreign_data_lf" in self._test_data:
@@ -276,9 +269,7 @@ class PipelineContext:
     def languages_lf(self) -> pl.LazyFrame | None:
         """Default card languages from cache."""
         if "_languages_lf" in self._test_data:
-            return self._test_data[  # type: ignore[no-any-return]
-                "_languages_lf"
-            ]
+            return self._test_data["_languages_lf"]  # type: ignore[no-any-return]
         return self._cache.languages_lf if self._cache else None
 
     @property

@@ -364,7 +364,7 @@ def add_enrichment_data(mtgjson_set: MtgjsonSetObject) -> None:
 
             # If both are dicts, shallow-merge (enrichment overwrites keys if collision)
             if isinstance(existing, dict) and isinstance(val, dict):
-                merged_dict: Dict[str, Any] = existing.copy()
+                merged_dict: dict[str, Any] = existing.copy()
                 merged_dict.update(val)
                 setattr(mtgjson_card, key, merged_dict)
                 LOGGER.debug(

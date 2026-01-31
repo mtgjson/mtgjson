@@ -19,13 +19,13 @@ from typing import Optional, cast, overload
 import polars as pl
 
 from mtgjson5 import constants
-from mtgjson5.providers import (
-    GathererProvider,
-    ManapoolPricesProvider,
-    MtgWikiProviderSecretLair,
+from mtgjson5.providers.gatherer import GathererProvider
+from mtgjson5.providers.manapool.manapool_prices import ManapoolPricesProvider
+from mtgjson5.providers.mtgwiki.secret_lair import MtgWikiProviderSecretLair
+from mtgjson5.providers.scryfall.orientation_detector import (
     ScryfallProviderOrientationDetector,
-    WhatsInStandardProvider,
 )
+from mtgjson5.providers.whats_in_standard import WhatsInStandardProvider
 from mtgjson5.utils import LOGGER
 from mtgjson5.v2.providers import CardHoarderPriceProvider as CardHoarderProvider
 from mtgjson5.v2.providers import (
@@ -583,17 +583,17 @@ class GlobalCache:
         tcg_path = self.cache_path / "tcg_to_uuid.parquet"
         if tcg_path.exists():
             self.tcg_to_uuid_lf = pl.scan_parquet(tcg_path)
-            LOGGER.info(f"Loaded tcg_to_uuid mapping from cache")
+            LOGGER.info("Loaded tcg_to_uuid mapping from cache")
 
         tcg_etched_path = self.cache_path / "tcg_etched_to_uuid.parquet"
         if tcg_etched_path.exists():
             self.tcg_etched_to_uuid_lf = pl.scan_parquet(tcg_etched_path)
-            LOGGER.info(f"Loaded tcg_etched_to_uuid mapping from cache")
+            LOGGER.info("Loaded tcg_etched_to_uuid mapping from cache")
 
         mtgo_path = self.cache_path / "mtgo_to_uuid.parquet"
         if mtgo_path.exists():
             self.mtgo_to_uuid_lf = pl.scan_parquet(mtgo_path)
-            LOGGER.info(f"Loaded mtgo_to_uuid mapping from cache")
+            LOGGER.info("Loaded mtgo_to_uuid mapping from cache")
 
     def _load_resources(self) -> None:
         """Load local JSON resource files."""
@@ -1065,9 +1065,11 @@ class GlobalCache:
         bucket_name = MtgjsonConfig().get("Prices", "bucket_name")
         s3_path = "mkm_cards.parquet"
 
-        LOGGER.info(f"Downloading mkm_cards.parquet from S3...")
+        LOGGER.info("Downloading mkm_cards.parquet from S3...")
         if MtgjsonS3Handler().download_file(bucket_name, s3_path, str(raw_cache)):
-            LOGGER.info(f"Downloaded mkm_cards.parquet ({raw_cache.stat().st_size / 1024 / 1024:.1f} MB)")
+            LOGGER.info(
+                f"Downloaded mkm_cards.parquet ({raw_cache.stat().st_size / 1024 / 1024:.1f} MB)"
+            )
             return True
 
         LOGGER.warning("Failed to download mkm_cards.parquet from S3")

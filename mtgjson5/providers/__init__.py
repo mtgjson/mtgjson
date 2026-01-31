@@ -5,6 +5,16 @@ Legacy providers are imported here for backwards compatibility.
 V2 providers have moved to mtgjson5.v2.providers.
 """
 
+# Re-export v2 providers for backwards compatibility with legacy pipeline
+from mtgjson5.v2.providers import (
+    BulkDataProvider,
+    CardMarketProvider,
+    CKProvider,
+    EdhrecSaltProvider,
+    SealedDataProvider,
+    TCGProvider,
+)
+
 from .cardhoarder import CardHoarderProvider
 from .cardkingdom import CardKingdomProvider
 from .edhrec.card_ranks import EdhrecProviderCardRanks
@@ -24,13 +34,3 @@ from .tcgplayer import TCGPlayerProvider
 from .uuid_cache import UuidCacheProvider
 from .whats_in_standard import WhatsInStandardProvider
 from .wizards import WizardsProvider
-
-# Re-export v2 providers for backwards compatibility with legacy pipeline
-from mtgjson5.v2.providers import (
-    BulkDataProvider,
-    CardMarketProvider,
-    CKProvider,
-    EdhrecSaltProvider,
-    SealedDataProvider,
-    TCGProvider,
-)

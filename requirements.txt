@@ -17,4 +17,5 @@ ratelimit==2.2.1
 requests-cache==1.2.1
 requests==2.32.4
 singleton-decorator==1.0.0
+typing_extensions==4.15.0
 urllib3==2.5.0
