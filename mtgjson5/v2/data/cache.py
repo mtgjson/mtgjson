@@ -19,13 +19,13 @@ from typing import Optional, cast, overload
 import polars as pl
 
 from mtgjson5 import constants
-from mtgjson5.providers import (
-    GathererProvider,
-    ManapoolPricesProvider,
-    MtgWikiProviderSecretLair,
+from mtgjson5.providers.gatherer import GathererProvider
+from mtgjson5.providers.manapool.manapool_prices import ManapoolPricesProvider
+from mtgjson5.providers.mtgwiki.secret_lair import MtgWikiProviderSecretLair
+from mtgjson5.providers.scryfall.orientation_detector import (
     ScryfallProviderOrientationDetector,
-    WhatsInStandardProvider,
 )
+from mtgjson5.providers.whats_in_standard import WhatsInStandardProvider
 from mtgjson5.utils import LOGGER
 from mtgjson5.v2.providers import CardHoarderPriceProvider as CardHoarderProvider
 from mtgjson5.v2.providers import (
