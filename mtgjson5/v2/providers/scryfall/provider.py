@@ -10,6 +10,7 @@ import asyncio
 import gzip
 import logging
 import pathlib
+import time
 from io import BytesIO
 from typing import Any
 
@@ -42,8 +43,8 @@ class ScryfallProvider:
 
     async def get_bulk_download_url(
         self, session: aiohttp.ClientSession, bulk_type: str
-    ) -> str:
-        """Fetch download URL for a bulk data type."""
+    ) -> tuple[str, int]:
+        """Fetch download URL and file size for a bulk data type."""
         async with session.get(self.BULK_DATA_URL) as response:
             response.raise_for_status()
             data = await response.json()
@@ -51,8 +52,9 @@ class ScryfallProvider:
         for item in data.get("data", []):
             if item.get("type") == bulk_type:
                 download_uri = item.get("download_uri")
+                size = item.get("size", 0)
                 if download_uri:
-                    return str(download_uri)
+                    return str(download_uri), int(size)
 
         raise ValueError(f"Unknown bulk type: {bulk_type}")
 
@@ -61,14 +63,43 @@ class ScryfallProvider:
         session: aiohttp.ClientSession,
         url: str,
         destination: pathlib.Path,
+        total_size: int = 0,
     ) -> pathlib.Path:
         """Download JSON array and stream-convert to NDJSON."""
-        self.LOGGER.info(f"Downloading {url}...")
+        size_label = f" ({total_size / (1024**2):.1f} MB)" if total_size else ""
+        self.LOGGER.info(f"Downloading {url}{size_label}...")
+
+        chunks = []
+        downloaded = 0
+        last_log = time.monotonic()
+        last_downloaded = 0
 
         async with session.get(url) as response:
             response.raise_for_status()
-            content = await response.read()
+            actual_size = total_size or int(response.headers.get("Content-Length", 0))
 
+            async for chunk in response.content.iter_chunked(1024 * 256):
+                chunks.append(chunk)
+                downloaded += len(chunk)
+                now = time.monotonic()
+                elapsed = now - last_log
+                if actual_size and elapsed >= 10:
+                    delta_bytes = downloaded - last_downloaded
+                    speed_mbps = (delta_bytes * 8) / (elapsed * 1_000_000)
+                    if speed_mbps >= 1:
+                        speed_label = f"{speed_mbps:.1f} Mbps"
+                    else:
+                        speed_label = f"{speed_mbps * 1000:.0f} Kbps"
+                    last_log = now
+                    last_downloaded = downloaded
+                    pct = int(downloaded / actual_size * 100)
+                    self.LOGGER.info(
+                        f"  Progress: {pct}% "
+                        f"({downloaded / (1024**2):.1f}/{actual_size / (1024**2):.1f} MB) "
+                        f"@ {speed_label}"
+                    )
+
+        content = b"".join(chunks)
         self.LOGGER.info(f"Downloaded {len(content) / (1024**2):.1f} MB, converting...")
 
         # asyncio.to_thread to offload blocking conversion
@@ -106,23 +137,28 @@ class ScryfallProvider:
 
         Returns dict mapping bulk_type to file path.
         """
-        async with aiohttp.ClientSession() as session:
-            # Get all download URLs first
-            urls = {
-                bulk_type: await self.get_bulk_download_url(session, bulk_type)
-                for bulk_type in bulk_types
-            }
+        headers = {
+            "User-Agent": "MTGJSON/5.0 (https://mtgjson.com)",
+            "Accept": "application/json",
+        }
+        timeout = aiohttp.ClientTimeout(total=1800)
+        async with aiohttp.ClientSession(headers=headers, timeout=timeout) as session:
+            # Get all download URLs and sizes first
+            bulk_info = {}
+            for bulk_type in bulk_types:
+                url, size = await self.get_bulk_download_url(session, bulk_type)
+                bulk_info[bulk_type] = (url, size)
 
             # Download concurrently
             tasks = []
-            for bulk_type, url in urls.items():
+            for bulk_type, (url, size) in bulk_info.items():
                 dest = cache_dir / f"{bulk_type}.ndjson"
                 # local caching for dev convenience - wont matter in prod
                 if not force_refresh and dest.exists() and dest.stat().st_size > 0:
                     self.LOGGER.info(f"Using cached {bulk_type}")
                     continue
                 # send to executor to avoid blocking event loop
-                tasks.append(self.download_to_ndjson(session, url, dest))
+                tasks.append(self.download_to_ndjson(session, url, dest, size))
 
             if tasks:
                 # we waits
