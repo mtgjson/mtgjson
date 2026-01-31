@@ -795,7 +795,7 @@ class PolarsPriceBuilder:
         bucket_name = MtgjsonConfig().get("Prices", "bucket_name")
         # bucket_object_path = MtgjsonConfig().get("Prices", "bucket_object_path")
 
-        return bucket_name, "prices_archive"
+        return bucket_name, "price_archive"
 
     def sync_partition_to_s3(self, date: str) -> bool:
         """
