@@ -85,10 +85,7 @@ class PriceBuilderContext:
 
         # Load ID mappings from cache if they haven't been set
         # (happens when running price build separately from card build)
-        if (
-            GLOBAL_CACHE.tcg_to_uuid_lf is None
-            and GLOBAL_CACHE.mtgo_to_uuid_lf is None
-        ):
+        if GLOBAL_CACHE.tcg_to_uuid_lf is None and GLOBAL_CACHE.mtgo_to_uuid_lf is None:
             GLOBAL_CACHE.load_id_mappings()
 
         return cls(_cache=GLOBAL_CACHE)
@@ -292,7 +289,9 @@ class PolarsPriceBuilder:
             manapool_df = await self._manapool_provider.fetch_prices(scryfall_to_uuid)
             if len(manapool_df) > 0:
                 frames.append(manapool_df)
-                LOGGER.info(f"  ManapoolPriceProvider: {len(manapool_df):,} price points")
+                LOGGER.info(
+                    f"  ManapoolPriceProvider: {len(manapool_df):,} price points"
+                )
 
         # Fetch CardMarket - bulk API
         LOGGER.info("Fetching CardMarket prices")
@@ -315,7 +314,9 @@ class PolarsPriceBuilder:
             ck_pricing_df = self._ck_provider.get_pricing_df()
             if len(ck_pricing_df) > 0:
                 # Convert CK pricing df to flat price schema
-                ck_records = self._convert_ck_pricing(ck_pricing_df, scryfall_to_uuid or {})
+                ck_records = self._convert_ck_pricing(
+                    ck_pricing_df, scryfall_to_uuid or {}
+                )
                 if ck_records:
                     ck_df = pl.DataFrame(ck_records, schema=PRICE_SCHEMA)
                     frames.append(ck_df)
@@ -329,7 +330,9 @@ class PolarsPriceBuilder:
 
         return pl.concat(frames)
 
-    def build_today_prices(self, ctx: PriceBuilderContext | None = None) -> pl.DataFrame:
+    def build_today_prices(
+        self, ctx: PriceBuilderContext | None = None
+    ) -> pl.DataFrame:
         """Sync wrapper for build_today_prices_async."""
         return asyncio.run(self.build_today_prices_async(ctx))
 
@@ -612,10 +615,7 @@ class PolarsPriceBuilder:
         )
         return path
 
-
-    def save_prices_partitioned(
-        self, df: pl.LazyFrame | pl.DataFrame
-    ) -> Path:
+    def save_prices_partitioned(self, df: pl.LazyFrame | pl.DataFrame) -> Path:
         """
         Save today's prices to date-partitioned directory.
 
@@ -663,9 +663,7 @@ class PolarsPriceBuilder:
             LOGGER.info("No partition files found, returning empty LazyFrame")
             return pl.LazyFrame(schema=PRICE_SCHEMA)
 
-        cutoff = (
-            datetime.date.today() - datetime.timedelta(days=days)
-        ).isoformat()
+        cutoff = (datetime.date.today() - datetime.timedelta(days=days)).isoformat()
 
         valid_partitions = []
         for p in partitions:
@@ -696,9 +694,7 @@ class PolarsPriceBuilder:
         if not PRICES_PARTITION_DIR.exists():
             return 0
 
-        cutoff = (
-            datetime.date.today() - datetime.timedelta(days=days)
-        ).isoformat()
+        cutoff = (datetime.date.today() - datetime.timedelta(days=days)).isoformat()
 
         deleted_count = 0
         for partition in PRICES_PARTITION_DIR.glob("date=*"):
@@ -765,7 +761,14 @@ class PolarsPriceBuilder:
                     if output_file.exists():
                         existing = pl.read_parquet(output_file)
                         date_group = pl.concat([existing, date_group]).unique(
-                            subset=["uuid", "date", "source", "provider", "price_type", "finish"]
+                            subset=[
+                                "uuid",
+                                "date",
+                                "source",
+                                "provider",
+                                "price_type",
+                                "finish",
+                            ]
                         )
 
                     date_group.write_parquet(
@@ -780,7 +783,6 @@ class PolarsPriceBuilder:
                 LOGGER.error(f"Failed to migrate {legacy_path}: {e}")
 
         return migrated
-
 
     def _get_s3_config(self) -> tuple[str, str] | None:
         """
@@ -869,7 +871,9 @@ class PolarsPriceBuilder:
             dates = []
             paginator = s3.get_paginator("list_objects_v2")
 
-            for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix, Delimiter="/"):
+            for page in paginator.paginate(
+                Bucket=bucket_name, Prefix=prefix, Delimiter="/"
+            ):
                 # CommonPrefixes contains the "folders" (date=YYYY-MM-DD/)
                 for prefix_obj in page.get("CommonPrefixes", []):
                     folder = prefix_obj.get("Prefix", "")
@@ -921,9 +925,7 @@ class PolarsPriceBuilder:
             LOGGER.info("No S3 config, skipping partition sync")
             return 0
 
-        cutoff = (
-            datetime.date.today() - datetime.timedelta(days=days)
-        ).isoformat()
+        cutoff = (datetime.date.today() - datetime.timedelta(days=days)).isoformat()
 
         s3_partitions = set(self.list_s3_partitions())
         local_partitions = set(self.list_local_partitions())
@@ -965,9 +967,7 @@ class PolarsPriceBuilder:
             LOGGER.info("No S3 config, skipping partition upload")
             return 0
 
-        cutoff = (
-            datetime.date.today() - datetime.timedelta(days=days)
-        ).isoformat()
+        cutoff = (datetime.date.today() - datetime.timedelta(days=days)).isoformat()
 
         s3_partitions = set(self.list_s3_partitions())
         local_partitions = set(self.list_local_partitions())
@@ -988,61 +988,14 @@ class PolarsPriceBuilder:
             if self.sync_partition_to_s3(date):
                 uploaded += 1
                 if uploaded % 10 == 0:
-                    LOGGER.info(f"  Uploaded {uploaded}/{len(missing_on_s3)} partitions...")
+                    LOGGER.info(
+                        f"  Uploaded {uploaded}/{len(missing_on_s3)} partitions..."
+                    )
 
         LOGGER.info(f"Uploaded {uploaded} partitions to S3")
         return uploaded
 
-    def prune_s3_partitions(self, days: int = 90) -> int:
-        """
-        Delete old partitions from S3.
-
-        Args:
-            days: Number of days to keep (90 default)
-
-        Returns:
-            Number of partitions deleted
-        """
-        config = self._get_s3_config()
-        if config is None:
-            return 0
-
-        bucket_name, base_path = config
-        cutoff = (
-            datetime.date.today() - datetime.timedelta(days=days)
-        ).isoformat()
-
-        s3_partitions = self.list_s3_partitions()
-        old_partitions = [d for d in s3_partitions if d < cutoff]
-
-        if not old_partitions:
-            return 0
-
-        try:
-            import boto3
-
-            s3 = boto3.client("s3")
-            deleted = 0
-
-            for date in old_partitions:
-                s3_path = f"{base_path}/date={date}/data.parquet"
-                try:
-                    s3.delete_object(Bucket=bucket_name, Key=s3_path)
-                    LOGGER.info(f"Deleted S3 partition: date={date}")
-                    deleted += 1
-                except Exception as e:
-                    LOGGER.warning(f"Failed to delete S3 partition date={date}: {e}")
-
-            return deleted
-
-        except Exception as e:
-            LOGGER.warning(f"Failed to prune S3 partitions: {e}")
-            return 0
-
-
-    def stream_write_all_prices_json(
-        self, lf: pl.LazyFrame, path: Path
-    ) -> None:
+    def stream_write_all_prices_json(self, lf: pl.LazyFrame, path: Path) -> None:
         """
         Stream-write AllPrices.json without loading all data into memory.
 
@@ -1056,7 +1009,9 @@ class PolarsPriceBuilder:
         path.parent.mkdir(parents=True, exist_ok=True)
 
         aggregated = (
-            lf.group_by(["uuid", "source", "provider", "currency", "price_type", "finish"])
+            lf.group_by(
+                ["uuid", "source", "provider", "currency", "price_type", "finish"]
+            )
             .agg(pl.struct(["date", "price"]).alias("prices"))
             .sort("uuid")  # Sort by UUID to enable sequential processing
             .collect()
@@ -1135,10 +1090,7 @@ class PolarsPriceBuilder:
 
             f.write(b"}}")
 
-
-    def stream_write_today_prices_json(
-        self, df: pl.DataFrame, path: Path
-    ) -> None:
+    def stream_write_today_prices_json(self, df: pl.DataFrame, path: Path) -> None:
         """
         Stream-write AllPricesToday.json for today's prices only.
 
@@ -1171,11 +1123,15 @@ class PolarsPriceBuilder:
         local_parquet = constants.CACHE_PATH / "prices_archive_s3.parquet"
 
         LOGGER.info(f"Trying Parquet archive from S3: {parquet_path}")
-        if MtgjsonS3Handler().download_file(bucket_name, parquet_path, str(local_parquet)):
+        if MtgjsonS3Handler().download_file(
+            bucket_name, parquet_path, str(local_parquet)
+        ):
             try:
                 lf = pl.scan_parquet(local_parquet)
                 row_count = lf.select(pl.len()).collect().item()
-                LOGGER.info(f"Loaded {row_count:,} price records from S3 Parquet archive")
+                LOGGER.info(
+                    f"Loaded {row_count:,} price records from S3 Parquet archive"
+                )
                 return lf
             except Exception as e:
                 LOGGER.warning(f"Failed to read Parquet archive: {e}")
@@ -1185,7 +1141,9 @@ class PolarsPriceBuilder:
         LOGGER.info(f"Trying legacy JSON archive from S3: {bucket_object_path}")
         temp_file = constants.CACHE_PATH / "temp_prices.json.xz"
 
-        if not MtgjsonS3Handler().download_file(bucket_name, bucket_object_path, str(temp_file)):
+        if not MtgjsonS3Handler().download_file(
+            bucket_name, bucket_object_path, str(temp_file)
+        ):
             LOGGER.warning("S3 download failed, using local archive")
             return self.load_archive()
 
@@ -1285,10 +1243,10 @@ class PolarsPriceBuilder:
         """
 
         aggregated = (
-            df.group_by(["uuid", "source", "provider", "currency", "price_type", "finish"])
-            .agg([
-                pl.struct(["date", "price"]).alias("prices")
-            ])
+            df.group_by(
+                ["uuid", "source", "provider", "currency", "price_type", "finish"]
+            )
+            .agg([pl.struct(["date", "price"]).alias("prices")])
             .collect()
         )
 
