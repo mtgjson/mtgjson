@@ -1041,6 +1041,38 @@ class GlobalCache:
             sld_df.write_parquet(cache_path)
             self.sld_subsets_lf = sld_df.lazy()
 
+    def _download_mcm_from_s3(self) -> bool:
+        """
+        Download mkm_cards.parquet from S3 if not present locally.
+
+        Uses the Prices bucket configuration for S3 access.
+
+        Returns:
+            True if file exists (downloaded or already present), False otherwise
+        """
+        from mtgjson5.mtgjson_config import MtgjsonConfig
+        from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
+
+        raw_cache = self.cache_path / "mkm_cards.parquet"
+
+        if raw_cache.exists() and _cache_fresh(raw_cache):
+            return True
+
+        if not MtgjsonConfig().has_section("Prices"):
+            LOGGER.debug("No S3 config, skipping MCM download")
+            return raw_cache.exists()
+
+        bucket_name = MtgjsonConfig().get("Prices", "bucket_name")
+        s3_path = "mkm_cards.parquet"
+
+        LOGGER.info(f"Downloading mkm_cards.parquet from S3...")
+        if MtgjsonS3Handler().download_file(bucket_name, s3_path, str(raw_cache)):
+            LOGGER.info(f"Downloaded mkm_cards.parquet ({raw_cache.stat().st_size / 1024 / 1024:.1f} MB)")
+            return True
+
+        LOGGER.warning("Failed to download mkm_cards.parquet from S3")
+        return raw_cache.exists()
+
     def _load_mcm_lookup(self) -> None:
         """
         Load raw MCM data from CardMarket provider.
@@ -1052,6 +1084,9 @@ class GlobalCache:
         if _cache_fresh(cache_path):
             self.mcm_lookup_lf = pl.read_parquet(cache_path).lazy()
             return
+
+        # Try to download from S3 if not present
+        self._download_mcm_from_s3()
 
         raw_cache = self.cache_path / "mkm_cards.parquet"
         raw_df = load_cardmarket_data(raw_cache)
