@@ -17,7 +17,6 @@ from ..serializers import serialize_complex_types
 
 
 if TYPE_CHECKING:
-    from polars.datatypes import DataTypeClass
     from ..context import AssemblyContext
 
 
@@ -40,11 +39,11 @@ TABLE_INDEXES = {
 }
 
 
-def _polars_to_sqlite_type(dtype: DataTypeClass) -> str:
+def _polars_to_sqlite_type(dtype: pl.DataType) -> str:
     """Map Polars dtype to SQLite type."""
-    if dtype in (pl.Int8, pl.Int16, pl.Int32, pl.Int64, pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64):
+    if dtype.is_integer():
         return "INTEGER"
-    if dtype in (pl.Float32, pl.Float64):
+    if dtype.is_float():
         return "REAL"
     if dtype == pl.Boolean:
         return "INTEGER"
