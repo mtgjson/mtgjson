@@ -22,7 +22,6 @@ def set_v2_flags(parsed_args: argparse.Namespace) -> None:
         None
     """
     if parsed_args.v2:
-        print("Setting values")
         parsed_args.use_models = True
         parsed_args.polars = True
         parsed_args.all_sets = True

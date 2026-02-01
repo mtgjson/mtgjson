@@ -42,6 +42,7 @@ def init_logger() -> None:
                 str(constants.LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))
             ),
         ],
+        force=True,
     )
     logging.getLogger("urllib3").setLevel(logging.ERROR)
 

@@ -4,6 +4,7 @@ MTGJSON Configuration Service
 
 import configparser
 import logging
+import os
 import pathlib
 
 import boto3
@@ -12,15 +13,25 @@ from singleton_decorator import singleton
 
 from . import constants
 
+LOGGER = logging.getLogger(__name__)
+
 
 @singleton
 class MtgjsonConfig:
     """
     Configuration Class that loads in the appropriate configuration file
-    and provides the contents for the running program
+    and provides the contents for the running program.
+
+    Config source resolution order:
+      1. Explicit ``aws_ssm_config_name`` argument (if provided)
+      2. ``AWS_SSM_DOWNLOAD_CONFIG`` environment variable (if set)
+      3. Local config file at ``constants.CONFIG_PATH``
+
+    Because the class is a singleton, it is only initialised once.  Reading
+    the environment variable directly ensures the correct config source is
+    used regardless of *when* the first ``MtgjsonConfig()`` call happens.
     """
 
-    logger: logging.Logger
     config_parser: configparser.ConfigParser
     mtgjson_version: str
     use_cache: bool
@@ -32,25 +43,32 @@ class MtgjsonConfig:
         self,
         aws_ssm_config_name: str | None = None,
     ):
-        self.logger = logging.getLogger(__name__)
         self.config_parser = configparser.ConfigParser()
-        if aws_ssm_config_name:
-            self.logger.info("Loading configuration from AWS SSM")
-            self.__load_config_from_aws_ssm(aws_ssm_config_name)
+        ssm_config = aws_ssm_config_name or os.environ.get("AWS_SSM_DOWNLOAD_CONFIG")
+
+        if ssm_config:
+            LOGGER.info("Loading configuration from AWS SSM")
+            self.__load_config_from_aws_ssm(ssm_config)
         else:
-            self.logger.info("Loading configuration from local file")
+            if not constants.CONFIG_PATH.exists():
+                LOGGER.warning(
+                    f"{constants.CONFIG_PATH.name} was not found ({constants.CONFIG_PATH}). "
+                    "Running with empty configuration (all values will use defaults)."
+                )
+            else:
+                LOGGER.info("Loading configuration from local file")
             self.__load_config_from_local_file(constants.CONFIG_PATH)
 
         try:
             self.mtgjson_version = self.config_parser.get(
                 "MTGJSON", "version", fallback="NO_VERSION_FOUND"
             )
-            if aws_ssm_config_name:
+            if ssm_config:
                 self.mtgjson_version += (
                     f"+{constants.MTGJSON_BUILD_DATE.replace('-', '')}"
                 )
         except configparser.NoSectionError:
-            self.logger.warning(
+            LOGGER.warning(
                 "Key 'version' is missing from Section 'MTGJSON' in config file"
             )
             self.mtgjson_version = (
@@ -72,7 +90,7 @@ class MtgjsonConfig:
             ssm = boto3.client("ssm")
             parameter = ssm.get_parameter(Name=config_name, WithDecryption=True)
         except botocore.exceptions.ClientError as error:
-            self.logger.fatal(f"Unable to download {config_name} from SSM", error)
+            LOGGER.fatal(f"Unable to download {config_name} from SSM: {error}")
             raise error
 
         self.config_parser.read_string(parameter["Parameter"]["Value"])

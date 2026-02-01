@@ -27,9 +27,7 @@ class GitHubMTGSqliteProvider(AbstractProvider):
     """
 
     repo_url: str = "https://github.com/mtgjson/mtgsqlive/"
-    all_printings_file: pathlib.Path = MtgjsonConfig().output_path.joinpath(
-        f"{MtgjsonStructuresObject().all_printings}.json"
-    )
+    all_printings_file: pathlib.Path
     temp_download_path: pathlib.Path = constants.CACHE_PATH.joinpath("GitHub-MTGSQLive")
 
     def __init__(self) -> None:
@@ -37,6 +35,9 @@ class GitHubMTGSqliteProvider(AbstractProvider):
         Initializer
         """
         super().__init__(self._build_http_header())
+        self.all_printings_file = MtgjsonConfig().output_path.joinpath(
+            f"{MtgjsonStructuresObject().all_printings}.json"
+        )
         self.download(self.repo_url)
 
     def _build_http_header(self) -> dict[str, str]:

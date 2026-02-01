@@ -34,9 +34,7 @@ class GitHubDecksProvider(AbstractProvider):
     decks_uuid_api_url: str = (
         "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/deck_map.json?raw=True"
     )
-    all_printings_file: pathlib.Path = MtgjsonConfig().output_path.joinpath(
-        f"{MtgjsonStructuresObject().all_printings}.json"
-    )
+    all_printings_file: pathlib.Path
     all_printings_cards: dict[str, Any]
     decks_by_set: dict[str, list[MtgjsonDeckObject]]
 
@@ -45,6 +43,9 @@ class GitHubDecksProvider(AbstractProvider):
         Initializer
         """
         super().__init__(self._build_http_header())
+        self.all_printings_file = MtgjsonConfig().output_path.joinpath(
+            f"{MtgjsonStructuresObject().all_printings}.json"
+        )
         self.decks_by_set = defaultdict(list)
 
     def _build_http_header(self) -> dict[str, str]:

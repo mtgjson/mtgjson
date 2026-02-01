@@ -8,14 +8,15 @@ import traceback
 
 import urllib3.exceptions
 
-from mtgjson5 import constants
-from mtgjson5.utils import init_logger, load_local_set_data
-from mtgjson5.v2.data import GlobalCache
+from mtgjson5.utils import init_logger
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 init_logger()
 LOGGER: logging.Logger = logging.getLogger(__name__)
+
+from mtgjson5 import constants  # noqa: E402
+from mtgjson5.utils import load_local_set_data  # noqa: E402
+from mtgjson5.v2.data import GlobalCache  # noqa: E402
 
 
 def build_mtgjson_sets(
@@ -62,21 +63,6 @@ def build_mtgjson_sets(
 
     if sets_to_build and include_referrals:
         fixup_referral_map()
-
-
-def validate_config_file_in_place() -> None:
-    """
-    Check to see if the MTGJSON config file was found.
-    If not, kill the system with an error message.
-    """
-    if not constants.CONFIG_PATH.exists():
-        LOGGER.error(
-            f"{constants.CONFIG_PATH.name} was not found ({constants.CONFIG_PATH}). "
-            "Please create this file and re-run the program. "
-            "You can copy paste the example file into the "
-            "correct location and (optionally) fill in your keys."
-        )
-        raise ValueError("ConfigPath not found")
 
 
 def dispatcher(args: argparse.Namespace) -> None:
@@ -228,11 +214,7 @@ def main() -> None:
     from mtgjson5.utils import send_push_notification
 
     args = parse_args()
-    if args.aws_ssm_download_config:
-        MtgjsonConfig(args.aws_ssm_download_config)
-    else:
-        validate_config_file_in_place()
-        MtgjsonConfig()
+    MtgjsonConfig()
 
     LOGGER.info(
         f"Starting {MtgjsonConfig().mtgjson_version} on {constants.MTGJSON_BUILD_DATE}"
