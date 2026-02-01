@@ -44,6 +44,7 @@ from .providers import (
     UuidCacheProvider,
     WhatsInStandardProvider,
 )
+from .providers.github.github_token_products import GitHubTokenProductsProvider
 from .utils import get_str_or_none, load_local_set_data, url_keygen
 
 LOGGER = logging.getLogger(__name__)
@@ -618,6 +619,7 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject | None:
     add_sealed_purchase_url(mtgjson_set.sealed_product)
 
     add_token_signatures(mtgjson_set)
+    add_actual_tokens_to_mtgjson_faces(mtgjson_set)
 
     add_multiverse_bridge_backup_ids(mtgjson_set)
 
@@ -1907,3 +1909,13 @@ def apply_manual_overrides(mtgjson_cards: list[MtgjsonCardObject]) -> None:
             if key.startswith("__"):
                 continue
             setattr(mtgjson_card, key, value)
+
+
+def add_actual_tokens_to_mtgjson_faces(mtgjson_set: MtgjsonSetObject) -> None:
+    token_components_map = GitHubTokenProductsProvider().get_token_components(
+        mtgjson_set.code
+    )
+
+    for mtgjson_token in mtgjson_set.tokens:
+        if mtgjson_token.uuid in token_components_map:
+            mtgjson_token.token_products = token_components_map[mtgjson_token.uuid]
