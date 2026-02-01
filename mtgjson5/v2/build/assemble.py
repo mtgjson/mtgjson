@@ -662,8 +662,8 @@ class TableAssembler:
             if c not in CARDS_TABLE_EXCLUDE and not c.startswith("_")
         ]
 
-        # cards - serialize list columns as JSON strings (like CDN does)
-        cards_for_export = cards_df.select(cards_cols)
+        # cards - serialize list columns as JSON strings
+        cards_for_export = cards_df.select(cards_cols).unique(subset=["uuid"])
         tables["cards"] = serialize_complex_types(cards_for_export)
 
         # cardIdentifiers - unnest struct
