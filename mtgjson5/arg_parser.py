@@ -10,6 +10,29 @@ import sys
 LOGGER = logging.getLogger(__name__)
 
 
+def set_v2_flags(parsed_args: argparse.Namespace) -> None:
+    """
+    Expand the macro "--v2" into the full set of flags.
+
+    Args:
+        parsed_args (argparse.Namespace): The namespace object containing the parsed
+        command-line arguments. This object will be modified in place.
+
+    Returns:
+        None
+    """
+    if parsed_args.v2:
+        print("Setting values")
+        parsed_args.use_models = True
+        parsed_args.polars = True
+        parsed_args.all_sets = True
+        parsed_args.full_build = True
+        # Include all export formats unless explicitly specified
+        # Note: "json" is already built by assemble_with_models(), so skip it here
+        if not parsed_args.export:
+            parsed_args.export = ["sqlite", "sql", "psql", "csv", "parquet"]
+
+
 def parse_args() -> argparse.Namespace:
     """
     Parse command line arguments from user to determine how to spawn up
@@ -182,15 +205,7 @@ def parse_args() -> argparse.Namespace:
     parsed_args = parser.parse_args()
 
     # Expand --v2 shorthand
-    if parsed_args.v2:
-        parsed_args.use_models = True
-        parsed_args.polars = True
-        parsed_args.all_sets = True
-        parsed_args.full_build = True
-        # Include all export formats unless explicitly specified
-        # Note: "json" is already built by assemble_with_models(), so skip it here
-        if not parsed_args.export:
-            parsed_args.export = ["sqlite", "sql", "psql", "csv", "parquet"]
+    set_v2_flags(parsed_args)
 
     if parsed_args.sets:
         flattened_sets = []
@@ -227,5 +242,7 @@ def parse_args() -> argparse.Namespace:
             list(filter(None, os.environ.get("EXPORT_FORMATS", "").lower().split(",")))
             or None
         )
+        parsed_args.v2 = bool(os.environ.get("MTGJSON_V2", False))
+        set_v2_flags(parsed_args)
 
     return parsed_args
