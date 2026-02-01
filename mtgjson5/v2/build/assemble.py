@@ -75,7 +75,8 @@ class Assembler:
         path = self.ctx.parquet_dir / f"setCode={code}"
         if not path.exists():
             return pl.DataFrame()
-        return pl.read_parquet(path / "*.parquet")
+        df = pl.read_parquet(path / "*.parquet")
+        return df.unique(subset=["uuid"]) if "uuid" in df.columns else df
 
     def load_set_tokens(self, code: str) -> pl.DataFrame:
         """Load tokens for a specific set.
@@ -104,7 +105,8 @@ class Assembler:
 
     def load_all_cards(self) -> pl.LazyFrame:
         """Load all cards as LazyFrame."""
-        return pl.scan_parquet(self.ctx.parquet_dir / "**/*.parquet")
+        lf = pl.scan_parquet(self.ctx.parquet_dir / "**/*.parquet")
+        return lf.unique(subset=["uuid"])
 
     def load_all_tokens(self) -> pl.LazyFrame:
         """Load all tokens as LazyFrame."""
