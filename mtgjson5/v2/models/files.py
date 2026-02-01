@@ -25,6 +25,12 @@ if TYPE_CHECKING:
 # =============================================================================
 
 
+class MetaFile(RecordFileBase):
+    """Meta.json: { meta, data: { date, version } }"""
+
+    data: dict[str, str]
+
+
 class IndividualSetFile(RecordFileBase):
     """Individual set file: { meta, data: Set }"""
 
@@ -235,6 +241,7 @@ class Files:
     SetListFile = SetListFile
     DeckListFile = DeckListFile
     IndividualSetFile = IndividualSetFile
+    MetaFile = MetaFile
 
 
 # =============================================================================
@@ -249,6 +256,7 @@ FILE_MODEL_REGISTRY: list[type[BaseModel]] = [
     SetListFile,
     DeckListFile,
     IndividualSetFile,
+    MetaFile,
 ]
 
 __all__ = [

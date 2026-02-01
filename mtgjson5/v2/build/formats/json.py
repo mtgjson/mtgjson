@@ -17,6 +17,7 @@ from mtgjson5.v2.models.files import (
     FormatAtomicFile,
     FormatPrintingsFile,
     IndividualSetFile,
+    MetaFile,
     SetListFile,
 )
 
@@ -38,6 +39,12 @@ class JsonOutputBuilder:
         self._orjson_opts = orjson.OPT_SORT_KEYS | (
             orjson.OPT_INDENT_2 if ctx.pretty else 0
         )
+
+    def write_meta(self, output_path: pathlib.Path) -> MetaFile:
+        """Build Meta.json."""
+        file = MetaFile.with_meta(self.ctx.meta, self.ctx.meta)
+        file.write(output_path)
+        return file  # type: ignore[return-value]
 
     def write_all_printings(
         self,
@@ -264,6 +271,12 @@ class JsonOutputBuilder:
         # Helper to check if an output should be built
         def should_build(name: str) -> bool:
             return not outputs or name in outputs
+
+        # Build Meta
+        if should_build("Meta"):
+            LOGGER.info("Building Meta.json...")
+            self.write_meta(output_dir / "Meta.json")
+            results["Meta"] = 1
 
         # Build AllPrintings
         all_printings = None
