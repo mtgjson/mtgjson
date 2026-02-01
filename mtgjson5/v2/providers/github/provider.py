@@ -347,13 +347,14 @@ class SealedDataProvider:
         set_codes: list[str] = []
         try:
             async with session.get(TOKEN_PRODUCTS_DIR_URL) as r:
-                if r.status == 200:
+                if r.ok:
                     content = await r.read()
                     entries = json.loads(content)
                     set_codes = [
                         entry["name"].replace(".json", "")
                         for entry in entries
-                        if isinstance(entry, dict) and entry.get("name", "").endswith(".json")
+                        if isinstance(entry, dict)
+                        and entry.get("name", "").endswith(".json")
                     ]
                 else:
                     LOGGER.warning(
@@ -376,7 +377,7 @@ class SealedDataProvider:
                 url = TOKEN_PRODUCTS_RAW_URL.format(code)
                 try:
                     async with session.get(url) as r:
-                        if r.status == 200:
+                        if r.ok:
                             data = json.loads(await r.read())
                             return code, data
                 except (aiohttp.ClientError, json.JSONDecodeError):
@@ -455,9 +456,7 @@ class SealedDataProvider:
         self.sealed_dicts = self._partition_decks_by_type(decks_lf)
 
         # Token products (combined from per-set files)
-        token_records = _build_token_products_records(
-            raw.get("token_products", {})
-        )
+        token_records = _build_token_products_records(raw.get("token_products", {}))
         self.token_products_df = _to_lazyframe(
             token_records, "token_products", "token_products"
         )
