@@ -148,12 +148,14 @@ class AssemblyContext:
         tp_lf = ctx.token_products_lf
         if tp_lf is not None:
             tp_df = tp_lf.collect() if isinstance(tp_lf, pl.LazyFrame) else tp_lf
-            for row in tp_df.iter_rows(named=True):
-                uuid = row.get("uuid")
-                raw = row.get("tokenProducts")
-                if uuid and raw:
-                    token_products[uuid] = json.loads(raw)
-            LOGGER.info(f"Loaded token products for {len(token_products):,} tokens")
+            if not tp_df.is_empty():
+                uuids = tp_df["uuid"].to_list()
+                raw_products = tp_df["tokenProducts"].to_list()
+                token_products = {
+                    uuid: json.loads(raw)
+                    for uuid, raw in zip(uuids, raw_products)
+                    if uuid and raw
+                }
 
         meta_obj = MtgjsonMetaObject()
         meta_dict = {"date": meta_obj.date, "version": meta_obj.version}
@@ -233,9 +235,7 @@ class AssemblyContext:
         if token_products_path.exists():
             token_products = orjson.loads(token_products_path.read_bytes())
         LOGGER.info("Loading cached token products...")
-        LOGGER.debug(
-            f"Loaded cached token products for {len(token_products)} tokens."
-        )
+        LOGGER.debug(f"Loaded cached token products for {len(token_products)} tokens.")
 
         # Create meta dict
         meta_obj = MtgjsonMetaObject()

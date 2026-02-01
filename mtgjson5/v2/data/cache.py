@@ -997,9 +997,7 @@ class GlobalCache:
                 self.boosters_lf = provider.boosters_df
 
             if provider.token_products_df is not None:
-                provider.token_products_df.collect().write_parquet(
-                    token_products_cache
-                )
+                provider.token_products_df.collect().write_parquet(token_products_cache)
                 self.token_products_lf = provider.token_products_df
 
         self.github.load_async_background(on_complete=on_github_complete)
