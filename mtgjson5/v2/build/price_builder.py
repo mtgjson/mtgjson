@@ -7,6 +7,7 @@ import datetime
 import json
 import logging
 import lzma
+import os
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -996,95 +997,111 @@ class PolarsPriceBuilder:
         Stream-write AllPrices.json without loading all data into memory.
 
         Processes data UUID-by-UUID and writes incrementally to avoid
-        building the full nested structure in memory.
+        building the full nested structure in memory. Uses a temporary
+        parquet file for the aggregation step to keep memory bounded.
 
         Args:
             lf: LazyFrame with flat price data
             path: Output path for AllPrices.json
         """
+        import tempfile
+
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        aggregated = (
-            lf.group_by(
-                ["uuid", "source", "provider", "currency", "price_type", "finish"]
+        # Sink the aggregation to a temp parquet file so we never hold the
+        # full materialized result in Python memory at once.
+        fd, tmp_path = tempfile.mkstemp(suffix=".parquet", dir=path.parent)
+        os.close(fd)
+        tmp_parquet = Path(tmp_path)
+        try:
+            (
+                lf.group_by(
+                    ["uuid", "source", "provider", "currency", "price_type", "finish"]
+                )
+                .agg(pl.struct(["date", "price"]).alias("prices"))
+                .sort("uuid")  # Sort by UUID to enable sequential processing
+                .sink_parquet(tmp_parquet)
             )
-            .agg(pl.struct(["date", "price"]).alias("prices"))
-            .sort("uuid")  # Sort by UUID to enable sequential processing
-            .collect()
-        )
 
-        if len(aggregated) == 0:
-            LOGGER.warning("No price data to write")
+            aggregated = pl.scan_parquet(tmp_parquet)
+            row_count = aggregated.select(pl.len()).collect().item()
+
+            if row_count == 0:
+                LOGGER.warning("No price data to write")
+                with open(path, "wb") as f:
+                    meta = {
+                        "date": self.today_date,
+                        "version": MtgjsonConfig().mtgjson_version,
+                    }
+                    f.write(orjson.dumps({"meta": meta, "data": {}}))
+                return
+
+            LOGGER.info(f"Streaming {row_count:,} aggregated rows to {path}")
+
             with open(path, "wb") as f:
+                f.write(b'{"meta":')
                 meta = {
                     "date": self.today_date,
                     "version": MtgjsonConfig().mtgjson_version,
                 }
-                f.write(orjson.dumps({"meta": meta, "data": {}}))
-            return
+                f.write(orjson.dumps(meta))
+                f.write(b',"data":{')
 
-        LOGGER.info(f"Streaming {len(aggregated):,} aggregated rows to {path}")
+                # Track current UUID to batch writes
+                current_uuid: str | None = None
+                uuid_data: dict[str, Any] = {}
+                first_uuid = True
+                processed = 0
 
-        with open(path, "wb") as f:
-            f.write(b'{"meta":')
-            meta = {
-                "date": self.today_date,
-                "version": MtgjsonConfig().mtgjson_version,
-            }
-            f.write(orjson.dumps(meta))
-            f.write(b',"data":{')
+                # Read the sorted parquet back in batches
+                reader = aggregated.collect(engine="streaming")
+                for row in reader.iter_rows(named=True):
+                    uuid = row["uuid"]
 
-            # Track current UUID to batch writes
-            current_uuid: str | None = None
-            uuid_data: dict[str, Any] = {}
-            first_uuid = True
-            processed = 0
+                    # When UUID changes, flush previous UUID's data
+                    if uuid != current_uuid:
+                        if current_uuid is not None and uuid_data:
+                            if not first_uuid:
+                                f.write(b",")
+                            f.write(f'"{current_uuid}":'.encode())
+                            f.write(orjson.dumps(uuid_data))
+                            first_uuid = False
+                            processed += 1
 
-            for row in aggregated.iter_rows(named=True):
-                uuid = row["uuid"]
+                            if processed % 100000 == 0:
+                                LOGGER.info(f"  Streamed {processed:,} UUIDs...")
 
-                # When UUID changes, flush previous UUID's data
-                if uuid != current_uuid:
-                    if current_uuid is not None and uuid_data:
-                        if not first_uuid:
-                            f.write(b",")
-                        f.write(f'"{current_uuid}":'.encode())
-                        f.write(orjson.dumps(uuid_data))
-                        first_uuid = False
-                        processed += 1
+                        current_uuid = uuid
+                        uuid_data = {}
 
-                        if processed % 100000 == 0:
-                            LOGGER.info(f"  Streamed {processed:,} UUIDs...")
+                    source = row["source"]
+                    provider = row["provider"]
+                    currency = row["currency"]
+                    price_type = row["price_type"]
+                    finish = row["finish"]
+                    prices = {p["date"]: p["price"] for p in row["prices"]}
 
-                    current_uuid = uuid
-                    uuid_data = {}
+                    if source not in uuid_data:
+                        uuid_data[source] = {}
+                    if provider not in uuid_data[source]:
+                        uuid_data[source][provider] = {
+                            "buylist": {},
+                            "retail": {},
+                            "currency": currency,
+                        }
 
-                source = row["source"]
-                provider = row["provider"]
-                currency = row["currency"]
-                price_type = row["price_type"]
-                finish = row["finish"]
-                prices = {p["date"]: p["price"] for p in row["prices"]}
+                    uuid_data[source][provider][price_type][finish] = prices
 
-                if source not in uuid_data:
-                    uuid_data[source] = {}
-                if provider not in uuid_data[source]:
-                    uuid_data[source][provider] = {
-                        "buylist": {},
-                        "retail": {},
-                        "currency": currency,
-                    }
+                if current_uuid is not None and uuid_data:
+                    if not first_uuid:
+                        f.write(b",")
+                    f.write(f'"{current_uuid}":'.encode())
+                    f.write(orjson.dumps(uuid_data))
+                    processed += 1
 
-                uuid_data[source][provider][price_type][finish] = prices
-
-            if current_uuid is not None and uuid_data:
-                if not first_uuid:
-                    f.write(b",")
-                f.write(f'"{current_uuid}":'.encode())
-                f.write(orjson.dumps(uuid_data))
-                processed += 1
-
-            f.write(b"}}")
+                f.write(b"}}")
+        finally:
+            tmp_parquet.unlink(missing_ok=True)
 
     def stream_write_today_prices_json(self, df: pl.DataFrame, path: Path) -> None:
         """

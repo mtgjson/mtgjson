@@ -182,6 +182,16 @@ def dispatcher(args: argparse.Namespace) -> None:
 
     # V2 price build (runs after card build if --price-build specified)
     if args.price_build and args.polars:
+        # Release GlobalCache and PipelineContext before price build -
+        # all card/set data has been written to disk and is no longer needed.
+        # This frees significant memory for the price aggregation step.
+        if ctx is not None:
+            ctx = None
+        GlobalCache().clear()
+        import gc
+
+        gc.collect()
+
         from mtgjson5.v2.build.price_builder import PolarsPriceBuilder
 
         LOGGER.info("Building prices...")
