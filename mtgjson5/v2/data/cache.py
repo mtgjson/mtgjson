@@ -153,6 +153,7 @@ class GlobalCache:
         self.sealed_contents_lf: pl.LazyFrame | None = None
         self.decks_lf: pl.LazyFrame | None = None
         self.boosters_lf: pl.LazyFrame | None = None
+        self.token_products_lf: pl.LazyFrame | None = None
 
         # Marketplace Data LFs
         self.tcg_skus_lf: pl.LazyFrame | None = None
@@ -246,6 +247,7 @@ class GlobalCache:
             "sealed_contents_lf",
             "decks_lf",
             "boosters_lf",
+            "token_products_lf",
             "tcg_skus_lf",
             "tcg_sku_map_lf",
             "tcg_to_uuid_lf",
@@ -359,6 +361,7 @@ class GlobalCache:
             "sealed_contents_lf": "sealed_contents.parquet",
             "decks_lf": "decks.parquet",
             "boosters_lf": "boosters.parquet",
+            "token_products_lf": "token_products.parquet",
             "tcg_skus_lf": "tcg_skus.parquet",
             "tcg_sku_map_lf": "tcg_sku_map.parquet",
             "tcg_to_uuid_lf": "tcg_to_uuid.parquet",
@@ -934,12 +937,13 @@ class GlobalCache:
             json.dump(list(self.standard_legal_sets), f)
 
     def _load_github_data(self) -> None:
-        """Load GitHub sealed/deck/booster data."""
+        """Load GitHub sealed/deck/booster/token-products data."""
         card_to_products_cache = self.cache_path / "github_card_to_products.parquet"
         sealed_products_cache = self.cache_path / "github_sealed_products.parquet"
         sealed_contents_cache = self.cache_path / "github_sealed_contents.parquet"
         decks_cache = self.cache_path / "github_decks.parquet"
         booster_cache = self.cache_path / "github_booster.parquet"
+        token_products_cache = self.cache_path / "github_token_products.parquet"
 
         all_cached = all(
             _cache_fresh(p)
@@ -949,6 +953,7 @@ class GlobalCache:
                 sealed_contents_cache,
                 decks_cache,
                 booster_cache,
+                token_products_cache,
             ]
         )
 
@@ -958,6 +963,7 @@ class GlobalCache:
             self.sealed_contents_lf = pl.read_parquet(sealed_contents_cache).lazy()
             self.decks_lf = pl.read_parquet(decks_cache).lazy()
             self.boosters_lf = pl.read_parquet(booster_cache).lazy()
+            self.token_products_lf = pl.read_parquet(token_products_cache).lazy()
             return
 
         def on_github_complete(provider: SealedDataProvider) -> None:
@@ -989,6 +995,12 @@ class GlobalCache:
             if provider.boosters_df is not None:
                 provider.boosters_df.collect().write_parquet(booster_cache)
                 self.boosters_lf = provider.boosters_df
+
+            if provider.token_products_df is not None:
+                provider.token_products_df.collect().write_parquet(
+                    token_products_cache
+                )
+                self.token_products_lf = provider.token_products_df
 
         self.github.load_async_background(on_complete=on_github_complete)
 

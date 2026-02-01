@@ -140,6 +140,33 @@ class SourceProducts(TypedDict, total=False):
     nonfoil: list[str]
 
 
+class TokenProductIdentifiers(TypedDict, total=False):
+    """Identifiers for a token product."""
+
+    tcgplayerProductId: str
+
+
+class TokenProductPurchaseUrls(TypedDict, total=False):
+    """Purchase URLs for a token product."""
+
+    tcgplayer: str
+
+
+class TokenProductPart(TypedDict, total=False):
+    """A token face within a token product."""
+
+    faceAttribute: list[str]
+    uuid: Required[str]
+
+
+class TokenProduct(TypedDict, total=False):
+    """A real product printing of a token."""
+
+    identifiers: TokenProductIdentifiers
+    purchaseUrls: TokenProductPurchaseUrls
+    tokenParts: list[TokenProductPart]
+
+
 # =============================================================================
 # Meta/Translations
 # =============================================================================
@@ -378,6 +405,10 @@ TYPEDDICT_REGISTRY: list[type] = [
     RelatedCards,
     Rulings,
     SourceProducts,
+    TokenProductIdentifiers,
+    TokenProductPurchaseUrls,
+    TokenProductPart,
+    TokenProduct,
     # Meta/translations
     Meta,
     Translations,

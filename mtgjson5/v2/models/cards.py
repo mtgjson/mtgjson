@@ -347,6 +347,7 @@ class CardToken(CardPrintingBase):
     related_cards: RelatedCards | None = Field(default=None, alias="relatedCards")
     edhrec_saltiness: float | None = Field(default=None, alias="edhrecSaltiness")
     source_products: SourceProducts | None = Field(default=None, alias="sourceProducts")  # type: ignore
+    token_products: list[Any] | None = Field(default=None, alias="tokenProducts")
 
 
 class CardSetDeck(PolarsMixin, BaseModel):

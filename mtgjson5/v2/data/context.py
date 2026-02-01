@@ -208,6 +208,13 @@ class PipelineContext:
         return self._cache.boosters_lf if self._cache else None
 
     @property
+    def token_products_lf(self) -> pl.LazyFrame | None:
+        """Token products mapping from cache."""
+        if "_token_products_lf" in self._test_data:
+            return self._test_data["_token_products_lf"]  # type: ignore[no-any-return]
+        return self._cache.token_products_lf if self._cache else None
+
+    @property
     def card_to_products_lf(self) -> pl.LazyFrame | None:
         """Card to products mapping (alias for sealed_cards_lf)."""
         return self.sealed_cards_lf

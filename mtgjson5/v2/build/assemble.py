@@ -413,7 +413,16 @@ class SetAssembler(Assembler):
             return []
         models = CardToken.from_dataframe(df)
         models.sort(key=lambda m: m.uuid if hasattr(m, 'uuid') else '')
-        return [m.to_polars_dict(exclude_none=True) for m in models]
+        result = [m.to_polars_dict(exclude_none=True) for m in models]
+
+        # Merge token products from assembly context lookup
+        if self.ctx.token_products:
+            for token_dict in result:
+                uuid = token_dict.get("uuid")
+                if uuid and uuid in self.ctx.token_products:
+                    token_dict["tokenProducts"] = self.ctx.token_products[uuid]
+
+        return result
 
     def build(
         self,
