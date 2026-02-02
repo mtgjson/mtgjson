@@ -700,6 +700,8 @@ class TableAssembler:
                 .filter(pl.col("rulings").list.len() > 0)
                 .explode("rulings")
                 .unnest("rulings")
+                .drop("source")
+                .rename({"publishedAt": "date", "comment": "text"})
             )
 
         # cardPurchaseUrls - unnest struct
