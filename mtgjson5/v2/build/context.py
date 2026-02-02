@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import json
 import pathlib
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -33,6 +34,7 @@ CACHE_SET_META = "_assembly_set_meta.json"
 CACHE_BOOSTER_CONFIGS = "_assembly_boosters.json"
 CACHE_DECKS = "_assembly_decks.parquet"
 CACHE_SEALED = "_assembly_sealed.parquet"
+CACHE_TOKEN_PRODUCTS = "_assembly_token_products.json"
 
 
 @dataclass
@@ -46,6 +48,7 @@ class AssemblyContext:
     decks_df: pl.DataFrame | None = None
     sealed_df: pl.DataFrame | None = None
     booster_configs: dict[str, dict[str, Any]] = field(default_factory=dict)
+    token_products: dict[str, list] = field(default_factory=dict)
     output_path: pathlib.Path = field(
         default_factory=lambda: MtgjsonConfig().output_path
     )
@@ -139,6 +142,21 @@ class AssemblyContext:
             elif isinstance(booster_raw, dict):
                 booster_configs[code] = booster_raw
 
+        # Load token products lookup (uuid -> list of product dicts)
+        LOGGER.info("Loading token products...")
+        token_products: dict[str, list] = {}
+        tp_lf = ctx.token_products_lf
+        if tp_lf is not None:
+            tp_df = tp_lf.collect() if isinstance(tp_lf, pl.LazyFrame) else tp_lf
+            if not tp_df.is_empty():
+                uuids = tp_df["uuid"].to_list()
+                raw_products = tp_df["tokenProducts"].to_list()
+                token_products = {
+                    uuid: json.loads(raw)
+                    for uuid, raw in zip(uuids, raw_products)
+                    if uuid and raw
+                }
+
         meta_obj = MtgjsonMetaObject()
         meta_dict = {"date": meta_obj.date, "version": meta_obj.version}
 
@@ -150,6 +168,7 @@ class AssemblyContext:
             decks_df=decks_df,  # type: ignore[arg-type]
             sealed_df=sealed_df,  # type: ignore[arg-type]
             booster_configs=booster_configs,
+            token_products=token_products,
         )
 
     @classmethod
@@ -210,6 +229,14 @@ class AssemblyContext:
             f"Loaded cached sealed products DataFrame with {len(sealed_df) if sealed_df is not None else 0} rows."
         )
 
+        # Load token products
+        token_products_path = cache_dir / CACHE_TOKEN_PRODUCTS
+        token_products: dict[str, list] = {}
+        if token_products_path.exists():
+            token_products = orjson.loads(token_products_path.read_bytes())
+        LOGGER.info("Loading cached token products...")
+        LOGGER.debug(f"Loaded cached token products for {len(token_products)} tokens.")
+
         # Create meta dict
         meta_obj = MtgjsonMetaObject()
         meta_dict = {"date": meta_obj.date, "version": meta_obj.version}
@@ -224,6 +251,7 @@ class AssemblyContext:
             decks_df=decks_df,
             sealed_df=sealed_df,
             booster_configs=booster_configs,
+            token_products=token_products,
         )
 
     def save_cache(self, cache_dir: pathlib.Path | None = None) -> None:
@@ -272,6 +300,15 @@ class AssemblyContext:
             LOGGER.info("Saved sealed products DataFrame to assembly cache.")
             LOGGER.debug(
                 f"Saved cached sealed products DataFrame with {len(self.sealed_df)} rows to {sealed_path}"
+            )
+
+        # Save token products
+        if self.token_products:
+            token_products_path = cache_dir / CACHE_TOKEN_PRODUCTS
+            token_products_path.write_bytes(orjson.dumps(self.token_products))
+            LOGGER.info("Saved token products to assembly cache.")
+            LOGGER.debug(
+                f"Saved cached token products for {len(self.token_products)} tokens to {token_products_path}"
             )
 
         LOGGER.info("Assembly cache saved successfully.")

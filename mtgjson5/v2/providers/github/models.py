@@ -256,6 +256,15 @@ class PreconModel(PolarsSchemaModel):
     )
 
 
+class TokenProductsModel(PolarsSchemaModel):
+    """Mapping of token UUIDs to their product printings (JSON-encoded)."""
+
+    uuid: str = Field(..., description="The UUID of the token.")
+    tokenProducts: str = Field(
+        ..., description="JSON-encoded list of product dicts for this token."
+    )
+
+
 class BoosterModel(PolarsSchemaModel):
     """Booster configuration model."""
 

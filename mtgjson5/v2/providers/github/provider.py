@@ -19,6 +19,7 @@ from mtgjson5.v2.providers.github.models import (
     PreconModel,
     SealedContentModel,
     SealedProductModel,
+    TokenProductsModel,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -29,7 +30,17 @@ SCHEMAS = {
     "sealed_contents": SealedContentModel.polars_schema(),
     "precon": PreconModel.polars_schema(),
     "boosters": BoosterModel.polars_schema(),
+    "token_products": TokenProductsModel.polars_schema(),
 }
+
+TOKEN_PRODUCTS_DIR_URL = (
+    "https://api.github.com/repos/mtgjson/mtg-sealed-content"
+    "/contents/outputs/token_products_mappings"
+)
+TOKEN_PRODUCTS_RAW_URL = (
+    "https://github.com/mtgjson/mtg-sealed-content/raw/main"
+    "/outputs/token_products_mappings/{}.json"
+)
 
 
 def _to_lazyframe(
@@ -188,6 +199,28 @@ def _build_boosters_records(data: dict) -> list[dict]:
     return [{"setCode": k, "config": json.dumps(v)} for k, v in data.items()]
 
 
+def _build_token_products_records(per_set_data: dict[str, dict]) -> list[dict]:
+    """Build token products records from combined per-set data.
+
+    Merges all per-set token product mappings into a single list of records,
+    each with a token UUID and its JSON-encoded product list.
+    """
+    combined: dict[str, list] = {}
+    for _set_code, set_data in per_set_data.items():
+        if not isinstance(set_data, dict):
+            continue
+        for token_uuid, products in set_data.items():
+            if token_uuid in combined:
+                combined[token_uuid].extend(products)
+            else:
+                combined[token_uuid] = list(products)
+
+    return [
+        {"uuid": uuid, "tokenProducts": json.dumps(products)}
+        for uuid, products in combined.items()
+    ]
+
+
 class SealedDataProvider:
     """Provider for MTGJSON GitHub data."""
 
@@ -208,6 +241,7 @@ class SealedDataProvider:
         self.sealed_contents_df: pl.LazyFrame | None = None
         self.sealed_dicts: dict[str, pl.LazyFrame] | None = None
         self.decks_df: pl.LazyFrame | None = None
+        self.token_products_df: pl.LazyFrame | None = None
         self._executor: ThreadPoolExecutor | None = None
         self._load_future: Any = None
         self._on_complete_callback: Callable[[Any], None] | None = None
@@ -291,9 +325,69 @@ class SealedDataProvider:
             tasks = [self._fetch(session, k, url) for k, url in self.URLS.items()]
             results = await asyncio.gather(*tasks)
 
+            # Fetch token products (per-set files)
+            token_products_data = await self._fetch_token_products(session)
+
         raw = dict(results)
+        raw["token_products"] = token_products_data
         self._build_all_dataframes(raw)
         LOGGER.info("GitHub data loaded")
+
+    async def _fetch_token_products(
+        self, session: aiohttp.ClientSession
+    ) -> dict[str, dict]:
+        """Fetch all per-set token product mapping files from GitHub.
+
+        Uses the GitHub Contents API to list available files, then fetches
+        all of them concurrently.
+        """
+        LOGGER.info("Fetching token products directory listing...")
+
+        # Get directory listing
+        set_codes: list[str] = []
+        try:
+            async with session.get(TOKEN_PRODUCTS_DIR_URL) as r:
+                if r.ok:
+                    content = await r.read()
+                    entries = json.loads(content)
+                    set_codes = [
+                        entry["name"].replace(".json", "")
+                        for entry in entries
+                        if isinstance(entry, dict)
+                        and entry.get("name", "").endswith(".json")
+                    ]
+                else:
+                    LOGGER.warning(
+                        f"Failed to list token products directory: HTTP {r.status}"
+                    )
+        except (aiohttp.ClientError, json.JSONDecodeError) as e:
+            LOGGER.warning(f"Failed to list token products directory: {e}")
+
+        if not set_codes:
+            LOGGER.warning("No token product files found")
+            return {}
+
+        LOGGER.info(f"Fetching token products for {len(set_codes)} sets...")
+
+        # Fetch all per-set files concurrently
+        sem = asyncio.Semaphore(20)
+
+        async def _fetch_one(code: str) -> tuple[str, dict]:
+            async with sem:
+                url = TOKEN_PRODUCTS_RAW_URL.format(code)
+                try:
+                    async with session.get(url) as r:
+                        if r.ok:
+                            data = json.loads(await r.read())
+                            return code, data
+                except (aiohttp.ClientError, json.JSONDecodeError):
+                    pass
+                return code, {}
+
+        results = await asyncio.gather(*[_fetch_one(c) for c in set_codes])
+        combined = {code: data for code, data in results if data}
+        LOGGER.info(f"Fetched token products for {len(combined)} sets")
+        return combined
 
     def _build_headers(self) -> dict[str, str]:
         """Build HTTP headers for GitHub requests."""
@@ -360,6 +454,12 @@ class SealedDataProvider:
         decks_lf = _to_lazyframe(deck_records, "decks", "decks")
         self.decks_df = decks_lf
         self.sealed_dicts = self._partition_decks_by_type(decks_lf)
+
+        # Token products (combined from per-set files)
+        token_records = _build_token_products_records(raw.get("token_products", {}))
+        self.token_products_df = _to_lazyframe(
+            token_records, "token_products", "token_products"
+        )
 
     def _partition_decks_by_type(
         self, decks_lf: pl.LazyFrame
