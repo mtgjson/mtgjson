@@ -101,6 +101,11 @@ def dispatcher(args: argparse.Namespace) -> None:
     outputs_requested = {o.lower() for o in (args.outputs or [])}
     export_formats = {f.lower() for f in (args.export or [])} if args.export else None
 
+    # Sets-only mode: specific sets requested without --all-sets or --full-build
+    # Only builds individual set files, skipping compiled outputs and exports
+    # Override with --outputs, --export, or --full-build to include more
+    sets_only = bool(args.sets) and not args.all_sets and not args.full_build
+
     # Load global cache only when using Polars pipeline
     # Pass set_codes to filter aggregation computations to only requested sets
     if args.polars:
@@ -149,25 +154,37 @@ def dispatcher(args: argparse.Namespace) -> None:
                 # Model-based assembly with Pydantic types
                 # Pass outputs if specified (use original case from args.outputs)
                 outputs_set = set(args.outputs) if args.outputs else None
+                set_codes = sets_to_build if sets_only else None
                 results = assemble_with_models(
-                    ctx, streaming=True, outputs=outputs_set, pretty=args.pretty
+                    ctx,
+                    streaming=True,
+                    set_codes=set_codes,
+                    outputs=outputs_set,
+                    pretty=args.pretty,
+                    sets_only=sets_only,
                 )
                 LOGGER.info(f"Model assembly results: {results}")
             else:
+                set_codes = sets_to_build if sets_only else None
                 assemble_json_outputs(
                     ctx,
                     include_referrals=args.referrals,
                     parallel=True,
                     max_workers=30,
+                    set_codes=set_codes,
                     pretty=args.pretty,
+                    sets_only=sets_only,
                 )
         else:
             build_mtgjson_sets(sorted(sets_to_build), args.pretty, args.referrals)
 
     # --outputs or --export implies --full-build (unless only decks requested)
+    # In sets-only mode, only export when explicit formats were requested
     should_export = (
         args.full_build or export_formats or (args.outputs and not decks_only)
     )
+    if sets_only and not export_formats:
+        should_export = False
     if should_export:
         if args.polars:
             if ctx is None:

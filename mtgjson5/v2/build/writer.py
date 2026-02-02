@@ -34,6 +34,7 @@ def assemble_with_models(
     set_codes: list[str] | None = None,
     outputs: set[str] | None = None,
     pretty: bool = False,
+    sets_only: bool = False,
 ) -> dict[str, int]:
     """
     Assemble MTGJSON outputs using the model-based approach.
@@ -48,6 +49,8 @@ def assemble_with_models(
         outputs: Optional set of output types to build (e.g., {"AllPrintings"}).
                 If None or empty, builds all outputs.
         pretty: Pretty-print JSON output with indentation
+        sets_only: When True, only build individual set files (skip compiled outputs
+                  unless explicitly listed in ``outputs``)
 
     Returns:
         Dict mapping output file names to record counts
@@ -63,6 +66,7 @@ def assemble_with_models(
         streaming=streaming,
         include_decks=True,
         outputs=outputs,
+        sets_only=sets_only,
     )
 
     LOGGER.info(f"Model assembly complete: {sum(results.values())} total records")
@@ -76,6 +80,7 @@ def assemble_json_outputs(
     max_workers: int = 30,
     set_codes: list[str] | None = None,
     pretty: bool = False,
+    sets_only: bool = False,
 ) -> dict[str, int]:
     """
     Assemble MTGJSON JSON outputs from pipeline context.
@@ -91,6 +96,7 @@ def assemble_json_outputs(
         max_workers: Maximum parallel workers
         set_codes: Optional filter for specific set codes
         pretty: Pretty-print JSON output with indentation
+        sets_only: When True, only build individual set files (skip compiled outputs)
 
     Returns:
         Dict mapping output file names to record counts
@@ -105,6 +111,26 @@ def assemble_json_outputs(
     output_path.mkdir(parents=True, exist_ok=True)
 
     results: dict[str, int] = {}
+
+    # Build individual set files
+    LOGGER.info("Building individual set files...")
+    codes_to_build = set_codes or sorted(assembly_ctx.set_meta.keys())
+    valid_codes = [c for c in codes_to_build if c in assembly_ctx.set_meta]
+
+    if parallel and len(valid_codes) > 1:
+        results["sets"] = _write_sets_parallel(
+            assembly_ctx, valid_codes, output_path, max_workers
+        )
+    else:
+        results["sets"] = _write_sets_sequential(assembly_ctx, valid_codes, output_path)
+
+    if sets_only:
+        LOGGER.info(
+            f"Sets-only mode: built {results.get('sets', 0)} set files, "
+            "skipping compiled outputs"
+        )
+        return results
+
     json_builder = JsonOutputBuilder(assembly_ctx)
 
     # Build AllPrintings.json (streaming)
@@ -130,18 +156,6 @@ def assemble_json_outputs(
     LOGGER.info("Building SetList.json...")
     set_list = json_builder.write_set_list(output_path / "SetList.json")
     results["SetList"] = len(set_list.data)
-
-    # Build individual set files
-    LOGGER.info("Building individual set files...")
-    codes_to_build = set_codes or sorted(assembly_ctx.set_meta.keys())
-    valid_codes = [c for c in codes_to_build if c in assembly_ctx.set_meta]
-
-    if parallel and len(valid_codes) > 1:
-        results["sets"] = _write_sets_parallel(
-            assembly_ctx, valid_codes, output_path, max_workers
-        )
-    else:
-        results["sets"] = _write_sets_sequential(assembly_ctx, valid_codes, output_path)
 
     # Build deck files
     LOGGER.info("Building deck files...")
