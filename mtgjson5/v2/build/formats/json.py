@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any
 import orjson
 
 from mtgjson5.v2.models.files import (
-    AllIdentifiersFile,
     AllPrintingsFile,
     AtomicCardsFile,
     CardTypesFile,
@@ -300,7 +299,6 @@ class JsonOutputBuilder:
             Number of entries written
         """
         import gc
-        import orjson
 
         from mtgjson5.utils import LOGGER
 

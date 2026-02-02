@@ -79,6 +79,7 @@ class AllIdentifiersFile(RecordFileBase):
     the data contains both cards (CardSet) and tokens (CardToken) which have
     different required fields.
     """
+
     data: dict[str, Any]
 
     def get_by_uuid(self, uuid: str) -> dict[str, Any] | None:
@@ -121,6 +122,7 @@ class KeywordsFile(RecordFileBase):
 
     Contains lists of Magic keyword types from Scryfall catalogs.
     """
+
     data: dict[str, list[str]]
 
 
@@ -129,6 +131,7 @@ class CardTypesFile(RecordFileBase):
 
     Maps card types to their sub-types and super-types.
     """
+
     data: dict[str, dict[str, list[str]]]
 
 
@@ -137,6 +140,7 @@ class CompiledListFile(ListFileBase):
 
     Sorted list of all compiled output file names.
     """
+
     data: list[str]
 
 

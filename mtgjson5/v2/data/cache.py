@@ -1145,7 +1145,9 @@ class GlobalCache:
             super_regex = re.compile(r".*The supertypes are (.*)\.")
             planar_regex = re.compile(r".*The planar types are (.*)\.")
             self.super_types = self._regex_str_to_list(super_regex.search(magic_rules))
-            self.planar_types = self._regex_str_to_list(planar_regex.search(magic_rules))
+            self.planar_types = self._regex_str_to_list(
+                planar_regex.search(magic_rules)
+            )
 
             with types_cache.open("w", encoding="utf-8") as f:
                 json.dump(
