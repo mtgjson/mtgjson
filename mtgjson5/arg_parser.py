@@ -24,12 +24,14 @@ def set_v2_flags(parsed_args: argparse.Namespace) -> None:
     if parsed_args.v2:
         parsed_args.use_models = True
         parsed_args.polars = True
-        parsed_args.all_sets = True
-        parsed_args.full_build = True
-        # Include all export formats unless explicitly specified
-        # Note: "json" is already built by assemble_with_models(), so skip it here
-        if not parsed_args.export:
-            parsed_args.export = ["sqlite", "sql", "psql", "csv", "parquet"]
+        if not parsed_args.sets:
+            # Full build: all sets, compiled outputs, and exports
+            parsed_args.all_sets = True
+            parsed_args.full_build = True
+            # Include all export formats unless explicitly specified
+            # Note: "json" is already built by assemble_with_models(), so skip it here
+            if not parsed_args.export:
+                parsed_args.export = ["sqlite", "sql", "psql", "csv", "parquet"]
 
 
 def parse_args() -> argparse.Namespace:
@@ -155,7 +157,7 @@ def parse_args() -> argparse.Namespace:
     pipeline_group.add_argument(
         "--v2",
         action="store_true",
-        help="Shorthand for --use-models --polars --all-sets --full-build --export all (new pipeline).",
+        help="Shorthand for --use-models --polars --all-sets --full-build --export all. When combined with --sets, only builds individual set files (skipping compiled outputs and exports unless --outputs/--export/--full-build are specified).",
     )
     pipeline_group.add_argument(
         "--skip-mcm",

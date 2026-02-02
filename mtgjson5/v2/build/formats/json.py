@@ -241,6 +241,7 @@ class JsonOutputBuilder:
         streaming: bool = True,
         include_decks: bool = True,
         outputs: set[str] | None = None,
+        sets_only: bool = False,
     ) -> dict[str, int]:
         """Build all MTGJSON JSON output files.
 
@@ -251,6 +252,8 @@ class JsonOutputBuilder:
             include_decks: Include individual deck files and DeckList.json
             outputs: Optional set of output types to build (e.g., {"AllPrintings"}).
                     If None or empty, builds all outputs.
+            sets_only: When True, only build individual set files. Compiled
+                      outputs are skipped unless explicitly listed in ``outputs``.
 
         Returns:
             Dict mapping file names to record counts.
@@ -270,6 +273,9 @@ class JsonOutputBuilder:
 
         # Helper to check if an output should be built
         def should_build(name: str) -> bool:
+            if sets_only:
+                # In sets-only mode, only build outputs explicitly requested
+                return outputs is not None and name in outputs
             return not outputs or name in outputs
 
         # Build Meta
@@ -307,32 +313,34 @@ class JsonOutputBuilder:
             results["SetList"] = len(set_list.data)
 
         # Build format-specific files (require AllPrintings)
-        if outputs is None or (_PRINTINGS_OUTPUTS & outputs):
-            LOGGER.info("Building format-specific files...")
-            if all_printings is None or (streaming and isinstance(all_printings, int)):
-                all_printings = AllPrintingsFile.read(output_dir / "AllPrintings.json")  # type: ignore[assignment]
+        if not sets_only or (outputs and (_PRINTINGS_OUTPUTS & outputs)):
+            if outputs is None or (_PRINTINGS_OUTPUTS & outputs):
+                LOGGER.info("Building format-specific files...")
+                if all_printings is None or (streaming and isinstance(all_printings, int)):
+                    all_printings = AllPrintingsFile.read(output_dir / "AllPrintings.json")  # type: ignore[assignment]
 
-            if isinstance(all_printings, AllPrintingsFile):
-                for fmt in _PRINTINGS_FORMATS:
-                    if should_build(fmt.title()):
-                        fmt_file = self.write_format_file(
-                            all_printings, fmt, output_dir / f"{fmt.title()}.json"
-                        )
-                        results[fmt.title()] = len(fmt_file.data)
+                if isinstance(all_printings, AllPrintingsFile):
+                    for fmt in _PRINTINGS_FORMATS:
+                        if should_build(fmt.title()):
+                            fmt_file = self.write_format_file(
+                                all_printings, fmt, output_dir / f"{fmt.title()}.json"
+                            )
+                            results[fmt.title()] = len(fmt_file.data)
 
         # Format atomic files (require AtomicCards)
-        if outputs is None or (_ATOMIC_OUTPUTS & outputs):
-            if atomic_cards is None:
-                atomic_cards = self.write_atomic_cards(output_dir / "AtomicCards.json")
-            for fmt in _ATOMIC_FORMATS:
-                if should_build(f"{fmt.title()}Atomic"):
-                    atomic_file = self.write_format_atomic(
-                        atomic_cards, fmt, output_dir / f"{fmt.title()}Atomic.json"
-                    )
-                    results[f"{fmt.title()}Atomic"] = len(atomic_file.data)
+        if not sets_only or (outputs and (_ATOMIC_OUTPUTS & outputs)):
+            if outputs is None or (_ATOMIC_OUTPUTS & outputs):
+                if atomic_cards is None:
+                    atomic_cards = self.write_atomic_cards(output_dir / "AtomicCards.json")
+                for fmt in _ATOMIC_FORMATS:
+                    if should_build(f"{fmt.title()}Atomic"):
+                        atomic_file = self.write_format_atomic(
+                            atomic_cards, fmt, output_dir / f"{fmt.title()}Atomic.json"
+                        )
+                        results[f"{fmt.title()}Atomic"] = len(atomic_file.data)
 
         # Build individual set files
-        if outputs is None or not outputs:
+        if outputs is None or not outputs or sets_only:
             LOGGER.info("Building individual set files...")
             set_count = 0
             for code, set_data in self.ctx.sets.iter_sets(set_codes=valid_codes):
@@ -344,7 +352,7 @@ class JsonOutputBuilder:
         # Build deck files
         if include_decks and (
             outputs is None or "Decks" in outputs or "DeckList" in outputs
-        ):
+        ) and not (sets_only and not outputs):
             LOGGER.info("Building deck files...")
             deck_count = self.write_decks(output_dir / "decks", set_codes=valid_codes)
             results["decks"] = deck_count
