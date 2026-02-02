@@ -13,7 +13,7 @@ import json
 import pathlib
 import time
 from argparse import Namespace
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from typing import Optional, cast, overload
 
 import polars as pl
@@ -211,6 +211,7 @@ class GlobalCache:
         self._scryfall_id_filter: set[str] | None = None
         self._output_types: set[str] = set()
         self._export_formats: set[str] | None = None
+        self._tcg_skus_future: Future[pl.LazyFrame] | None = None
 
     def release(self, *attrs: str) -> None:
         """Release specific cached data to free memory.
@@ -306,6 +307,8 @@ class GlobalCache:
             else:
                 LOGGER.info("Skipping MCM data (--skip-mcm flag)")
 
+            self._start_tcg_skus_fetch(executor)
+
             for future in as_completed(futures):
                 name = futures[future]
                 try:
@@ -329,6 +332,47 @@ class GlobalCache:
 
             self._loaded = True
             return self
+
+    def _start_tcg_skus_fetch(self, executor: ThreadPoolExecutor) -> None:
+        """Start TCGPlayer SKU fetch in background.
+
+        The fetch runs in a thread pool executor. The result can be awaited
+        later using _await_tcg_skus() when TcgplayerSkus.json is needed.
+        """
+        cache_path = self.cache_path / "tcg_skus.parquet"
+
+        if _cache_fresh(cache_path):
+            self.tcg_skus_lf = pl.read_parquet(cache_path).lazy()
+            LOGGER.info("Using cached TCG SKUs data")
+            return
+
+        LOGGER.info("Starting TCGPlayer SKU fetch in background...")
+        self._tcg_skus_future = executor.submit(
+            self.tcgplayer.fetch_all_products_sync
+        )
+
+    def _await_tcg_skus(self) -> None:
+        """Block until TCG SKUs are ready (called when actually needed).
+
+        This method is called by TcgplayerSkusAssembler when it needs the data.
+        If the data was cached, this returns immediately. If the background
+        fetch is still running, this blocks until completion.
+        """
+        if self.tcg_skus_lf is not None:
+            return  # Already loaded from cache
+
+        if self._tcg_skus_future is not None:
+            try:
+                LOGGER.info("Waiting for TCGPlayer SKU fetch to complete...")
+                self.tcg_skus_lf = self._tcg_skus_future.result()
+                LOGGER.info("TCGPlayer SKU fetch complete")
+            except Exception as e:
+                LOGGER.warning(f"Failed to fetch TCGPlayer SKUs: {e}")
+                from mtgjson5.v2.providers.tcgplayer.models import PRODUCT_SCHEMA
+
+                self.tcg_skus_lf = pl.DataFrame(schema=PRODUCT_SCHEMA).lazy()
+            finally:
+                self._tcg_skus_future = None
 
     def _dump_and_reload_as_lazy(self) -> None:
         """
@@ -1055,8 +1099,6 @@ class GlobalCache:
         """
         Download mkm_cards.parquet from S3 if not present locally.
 
-        Uses the Prices bucket configuration for S3 access.
-
         Returns:
             True if file exists (downloaded or already present), False otherwise
         """
@@ -1313,6 +1355,41 @@ class GlobalCache:
                 strict=False,
             )
         )
+
+    def get_cardmarket_to_finishes_map(self) -> dict[str, set[str]]:
+        """Get mapping from CardMarket (MCM) ID to finishes.
+
+        Returns:
+            Dict mapping mcmId -> set of finish strings (e.g. {"foil", "nonfoil"})
+        """
+        # Use cards_lf which has cardmarketId and finishes columns
+        if self.cards_lf is None:
+            return {}
+        try:
+            df = (
+                self.cards_lf
+                .filter(pl.col("cardmarketId").is_not_null())
+                .select([
+                    pl.col("cardmarketId").cast(pl.String).alias("mcmId"),
+                    pl.col("finishes"),
+                ])
+                .unique(subset=["mcmId"])
+                .collect()
+            )
+        except Exception as e:
+            LOGGER.warning(f"Failed to build cardmarket finishes map: {e}")
+            return {}
+
+        if df.is_empty():
+            return {}
+
+        result: dict[str, set[str]] = {}
+        for row in df.iter_rows(named=True):
+            mcm_id = row.get("mcmId")
+            finishes = row.get("finishes")
+            if mcm_id and finishes:
+                result[mcm_id] = set(finishes) if isinstance(finishes, list) else set()
+        return result
 
     def get_scryfall_to_uuid_map(self) -> dict[str, set[str]]:
         """Get mapping from Scryfall ID to MTGJSON UUID(s)."""
