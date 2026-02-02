@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         DeckListAssembler,
         SetAssembler,
         SetListAssembler,
+        TcgplayerSkusAssembler,
     )
 
 # Cache file names for fast-path assembly
@@ -350,3 +351,10 @@ class AssemblyContext:
         from .assemble import DeckAssembler
 
         return DeckAssembler(self)
+
+    @cached_property
+    def tcgplayer_skus(self) -> TcgplayerSkusAssembler:
+        """Assembler for TcgplayerSkus.json."""
+        from .assemble import TcgplayerSkusAssembler
+
+        return TcgplayerSkusAssembler(self)

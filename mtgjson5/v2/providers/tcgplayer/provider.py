@@ -8,6 +8,7 @@ Supports multiple API keys for increased throughput.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -51,9 +52,16 @@ class TcgPlayerConfig:
             return None
 
         key_suffix = f"_{suffix}" if suffix else ""
+        public_key = config.get("TCGPlayer", f"client_id{key_suffix}")
+        private_key = config.get("TCGPlayer", f"client_secret{key_suffix}")
+
+        # Skip if keys are empty or missing
+        if not public_key or not private_key:
+            return None
+
         return cls(
-            public_key=config.get("TCGPlayer", f"client_id{key_suffix}"),
-            private_key=config.get("TCGPlayer", f"client_secret{key_suffix}"),
+            public_key=public_key,
+            private_key=private_key,
             api_version=config.get("TCGPlayer", "api_version", fallback="v1.39.0"),
         )
 
@@ -80,7 +88,8 @@ class TcgPlayerClient:
 
     async def __aenter__(self) -> TcgPlayerClient:
         connector = aiohttp.TCPConnector(limit=CONCURRENT_REQUESTS)
-        self._session = aiohttp.ClientSession(connector=connector)
+        timeout = aiohttp.ClientTimeout(total=60, connect=10)
+        self._session = aiohttp.ClientSession(connector=connector, timeout=timeout)
         await self.authenticate()
         return self
 
@@ -198,71 +207,67 @@ class TCGProvider:
         Streams results to parquet incrementally using part files.
         Returns LazyFrame of final combined output.
         """
+        empty_schema = {
+            "productId": pl.Int64(),
+            "name": pl.String(),
+            "cleanName": pl.String(),
+            "groupId": pl.Int64(),
+            "url": pl.String(),
+            "skus": pl.List(
+                pl.Struct(
+                    {
+                        "skuId": pl.Int64(),
+                        "languageId": pl.Int64(),
+                        "printingId": pl.Int64(),
+                        "conditionId": pl.Int64(),
+                    }
+                )
+            ),
+        }
+
         if not self.configs:
             LOGGER.warning("No TCGPlayer API keys configured")
-            pl.DataFrame(
-                schema={
-                    "productId": pl.Int64(),
-                    "name": pl.String(),
-                    "cleanName": pl.String(),
-                    "groupId": pl.Int64(),
-                    "url": pl.String(),
-                    "skus": pl.List(
-                        pl.Struct(
-                            {
-                                "skuId": pl.Int64(),
-                                "languageId": pl.Int64(),
-                                "printingId": pl.Int64(),
-                                "conditionId": pl.Int64(),
-                            }
-                        )
-                    ),
-                }
-            ).write_parquet(self.output_path)
+            pl.DataFrame(schema=empty_schema).write_parquet(self.output_path)
             return pl.scan_parquet(self.output_path)
 
-        # Get total count
-        async with TcgPlayerClient(self.configs[0]) as client:
-            total_items = await client.get_total_products()
+        # Create all clients upfront and keep them alive throughout
+        # This avoids rate limiting on token requests
+        async with contextlib.AsyncExitStack() as stack:
+            clients: list[TcgPlayerClient] = []
+            for config in self.configs:
+                client = await stack.enter_async_context(TcgPlayerClient(config))
+                clients.append(client)
 
-        if total_items == 0:
-            LOGGER.info("No TCGPlayer products found")
-            pl.DataFrame(
-                schema={
-                    "productId": pl.Int64(),
-                    "name": pl.String(),
-                    "cleanName": pl.String(),
-                    "groupId": pl.Int64(),
-                    "url": pl.String(),
-                    "skus": pl.List(
-                        pl.Struct(
-                            {
-                                "skuId": pl.Int64(),
-                                "languageId": pl.Int64(),
-                                "printingId": pl.Int64(),
-                                "conditionId": pl.Int64(),
-                            }
-                        )
-                    ),
-                }
-            ).write_parquet(self.output_path)
-            return pl.scan_parquet(self.output_path)
+            if not clients:
+                LOGGER.warning("Failed to create any TCGPlayer clients")
+                pl.DataFrame(schema=empty_schema).write_parquet(self.output_path)
+                return pl.scan_parquet(self.output_path)
 
-        # Calculate pagination
-        offsets = list(range(0, total_items, PRODUCTS_PER_PAGE))
-        total_pages = len(offsets)
-        LOGGER.info(f"Fetching {total_items} products in {total_pages} pages")
+            # Get total count using first client
+            total_items = await clients[0].get_total_products()
 
-        # Distribute work across API keys
-        offsets_per_client: list[list[int]] = [[] for _ in self.configs]
-        for i, offset in enumerate(offsets):
-            offsets_per_client[i % len(self.configs)].append(offset)
+            if total_items == 0:
+                LOGGER.info("No TCGPlayer products found")
+                pl.DataFrame(schema=empty_schema).write_parquet(self.output_path)
+                return pl.scan_parquet(self.output_path)
 
-        # Fetch with streaming to part files
-        part_files = await self._fetch_with_streaming(offsets_per_client, total_pages)
+            # Calculate pagination
+            offsets = list(range(0, total_items, PRODUCTS_PER_PAGE))
+            total_pages = len(offsets)
+            LOGGER.info(f"Fetching {total_items} products in {total_pages} pages")
 
-        # Combine part files
-        return await self._combine_part_files(part_files)
+            # Distribute work across clients
+            offsets_per_client: list[list[int]] = [[] for _ in clients]
+            for i, offset in enumerate(offsets):
+                offsets_per_client[i % len(clients)].append(offset)
+
+            # Fetch with streaming to part files (pass authenticated clients)
+            part_files = await self._fetch_with_streaming_clients(
+                clients, offsets_per_client, total_pages
+            )
+
+            # Combine part files
+            return await self._combine_part_files(part_files)
 
     async def _fetch_with_streaming(
         self, offsets_per_client: list[list[int]], total_pages: int
@@ -352,6 +357,108 @@ class TCGProvider:
                     )
                 ]
             )
+
+            # Final flush
+            async with lock:
+                await flush_buffer()
+
+            LOGGER.info(f"TCGPlayer fetch complete: {len(part_files)} part files")
+            return part_files
+
+        except Exception as e:
+            LOGGER.error(f"Error during TCGPlayer fetch: {e}")
+            raise
+
+    async def _fetch_with_streaming_clients(
+        self,
+        clients: list[TcgPlayerClient],
+        offsets_per_client: list[list[int]],
+        total_pages: int,
+    ) -> list[Path]:
+        """Fetch products in parallel using pre-authenticated clients.
+
+        Uses semaphore to limit concurrent requests while still parallelizing
+        within each client for better performance.
+        """
+        part_files: list[Path] = []
+        part_counter = 0
+        buffer: list[dict] = []
+        lock = asyncio.Lock()
+        completed = 0
+        semaphore = asyncio.Semaphore(CONCURRENT_REQUESTS)
+
+        async def flush_buffer() -> None:
+            nonlocal buffer, part_counter
+            if not buffer:
+                return
+
+            to_write = buffer
+            buffer = []
+
+            part_path = (
+                self.output_path.parent / f".tcg_part_{part_counter:04d}.parquet"
+            )
+            part_counter += 1
+            pl.DataFrame(to_write).write_parquet(part_path)
+            part_files.append(part_path)
+            LOGGER.debug(f"Flushed {len(to_write)} products to {part_path}")
+
+        async def fetch_single_page(client: TcgPlayerClient, offset: int) -> None:
+            nonlocal completed, buffer
+            async with semaphore:
+                try:
+                    resp = await client.get_products_page(
+                        offset=offset, include_skus=True
+                    )
+                    products_raw = resp.get("results", [])
+                    products = products_raw if isinstance(products_raw, list) else []
+                    page_products = [
+                        {
+                            "productId": product["productId"],
+                            "name": product.get("name", ""),
+                            "cleanName": product.get("cleanName", ""),
+                            "groupId": product.get("groupId"),
+                            "url": product.get("url", ""),
+                            "skus": [
+                                {
+                                    "skuId": sku["skuId"],
+                                    "languageId": sku["languageId"],
+                                    "printingId": sku["printingId"],
+                                    "conditionId": sku["conditionId"],
+                                }
+                                for sku in (
+                                    product.get("skus", [])
+                                    if isinstance(product.get("skus", []), list)
+                                    else []
+                                )
+                            ],
+                        }
+                        for product in products
+                    ]
+
+                    async with lock:
+                        buffer.extend(page_products)
+                        completed += 1
+                        if len(buffer) >= self.flush_threshold:
+                            await flush_buffer()
+                        if self.on_progress:
+                            self.on_progress(completed, total_pages, f"offset={offset}")
+                except Exception as e:
+                    LOGGER.warning(f"Failed offset {offset}: {e}")
+                    async with lock:
+                        completed += 1
+
+        try:
+            # Create tasks for all pages across all clients
+            tasks = []
+            for client, client_offsets in zip(
+                clients, offsets_per_client, strict=False
+            ):
+                for offset in client_offsets:
+                    tasks.append(fetch_single_page(client, offset))
+
+            # Run all tasks in parallel (semaphore limits concurrency)
+            await asyncio.gather(*tasks)
 
             # Final flush
             async with lock:

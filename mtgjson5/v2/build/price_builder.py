@@ -11,7 +11,7 @@ import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, BinaryIO
 
 import dateutil.relativedelta
 import orjson
@@ -993,37 +993,22 @@ class PolarsPriceBuilder:
 
     def stream_write_all_prices_json(self, lf: pl.LazyFrame, path: Path) -> None:
         """
-        Stream-write AllPrices.json without loading all data into memory.
-
-        Processes data UUID-by-UUID and writes incrementally to avoid
-        building the full nested structure in memory.
-
-        Args:
-            lf: LazyFrame with flat price data
-            path: Output path for AllPrices.json
+        Stream-write AllPrices.json using Prefix Partitioning.
         """
         path.parent.mkdir(parents=True, exist_ok=True)
+        prefixes = "0123456789abcdef"
 
-        aggregated = (
-            lf.group_by(
-                ["uuid", "source", "provider", "currency", "price_type", "finish"]
-            )
-            .agg(pl.struct(["date", "price"]).alias("prices"))
-            .sort("uuid")  # Sort by UUID to enable sequential processing
-            .collect()
+        LOGGER.info(f"Streaming AllPrices.json to {path}")
+
+        opt_lf = lf.with_columns(
+            [
+                pl.col("source").cast(pl.Categorical),
+                pl.col("provider").cast(pl.Categorical),
+                pl.col("price_type").cast(pl.Categorical),
+                pl.col("finish").cast(pl.Categorical),
+                pl.col("currency").cast(pl.Categorical),
+            ]
         )
-
-        if len(aggregated) == 0:
-            LOGGER.warning("No price data to write")
-            with open(path, "wb") as f:
-                meta = {
-                    "date": self.today_date,
-                    "version": MtgjsonConfig().mtgjson_version,
-                }
-                f.write(orjson.dumps({"meta": meta, "data": {}}))
-            return
-
-        LOGGER.info(f"Streaming {len(aggregated):,} aggregated rows to {path}")
 
         with open(path, "wb") as f:
             f.write(b'{"meta":')
@@ -1034,57 +1019,164 @@ class PolarsPriceBuilder:
             f.write(orjson.dumps(meta))
             f.write(b',"data":{')
 
-            # Track current UUID to batch writes
-            current_uuid: str | None = None
-            uuid_data: dict[str, Any] = {}
-            first_uuid = True
-            processed = 0
+            total_processed = 0
+            first_chunk_written = False
 
-            for row in aggregated.iter_rows(named=True):
-                uuid = row["uuid"]
+            for prefix in prefixes:
+                chunk_lf = opt_lf.filter(pl.col("uuid").str.starts_with(prefix))
 
-                # When UUID changes, flush previous UUID's data
-                if uuid != current_uuid:
-                    if current_uuid is not None and uuid_data:
-                        if not first_uuid:
-                            f.write(b",")
-                        f.write(f'"{current_uuid}":'.encode())
-                        f.write(orjson.dumps(uuid_data))
-                        first_uuid = False
-                        processed += 1
+                try:
+                    df_chunk = chunk_lf.collect()
+                except Exception as e:
+                    LOGGER.error(f"Failed to collect chunk {prefix}: {e}")
+                    continue
 
-                        if processed % 100000 == 0:
-                            LOGGER.info(f"  Streamed {processed:,} UUIDs...")
+                if df_chunk.height == 0:
+                    del df_chunk
+                    continue
 
-                    current_uuid = uuid
-                    uuid_data = {}
+                # We sort here because we need grouped UUIDs for the iterator
+                df_chunk = df_chunk.sort(
+                    ["uuid", "source", "provider", "price_type", "finish", "date"]
+                )
 
-                source = row["source"]
-                provider = row["provider"]
-                currency = row["currency"]
-                price_type = row["price_type"]
-                finish = row["finish"]
-                prices = {p["date"]: p["price"] for p in row["prices"]}
-
-                if source not in uuid_data:
-                    uuid_data[source] = {}
-                if provider not in uuid_data[source]:
-                    uuid_data[source][provider] = {
-                        "buylist": {},
-                        "retail": {},
-                        "currency": currency,
-                    }
-
-                uuid_data[source][provider][price_type][finish] = prices
-
-            if current_uuid is not None and uuid_data:
-                if not first_uuid:
+                # Handle comma between chunks
+                if first_chunk_written:
                     f.write(b",")
-                f.write(f'"{current_uuid}":'.encode())
-                f.write(orjson.dumps(uuid_data))
-                processed += 1
+
+                items_written = self._process_chunk_to_json(f, df_chunk)
+
+                if items_written > 0:
+                    first_chunk_written = True
+                    total_processed += items_written
+
+                # Explicitly release memory before next iteration
+                del df_chunk
+
+                LOGGER.info(
+                    f"  Processed prefix '{prefix}' (Total: {total_processed:,})"
+                )
 
             f.write(b"}}")
+
+        LOGGER.info(
+            f"Finished streaming AllPrices.json. Total UUIDs: {total_processed:,}"
+        )
+
+    def _process_chunk_to_json(self, f: BinaryIO, df: pl.DataFrame) -> int:
+        """
+        Aggregates a materialized DataFrame and writes to the open file handle.
+        Returns number of UUIDs written.
+        """
+        aggregated = (
+            df.group_by(
+                ["uuid", "source", "provider", "currency", "price_type", "finish"]
+            )
+            .agg([pl.col("date"), pl.col("price")])
+            .sort("uuid")
+        )
+
+        current_uuid = None
+        uuid_data: dict[str, dict[str, dict[str, Any]]] = {}
+        written_count = 0
+        first_in_chunk = True
+
+        rows = aggregated.iter_rows(named=True)
+
+        for row in rows:
+            uuid = row["uuid"]
+
+            # Switch to new UUID
+            if uuid != current_uuid:
+                if current_uuid is not None:
+                    # Flush previous UUID data
+                    if not first_in_chunk:
+                        f.write(b",")
+
+                    f.write(f'"{current_uuid}":'.encode())
+                    f.write(orjson.dumps(uuid_data))
+                    first_in_chunk = False
+                    written_count += 1
+
+                current_uuid = uuid
+                uuid_data = {}
+
+            source = row["source"]
+            provider = row["provider"]
+            currency = row["currency"]
+            p_type = row["price_type"]
+            finish = row["finish"]
+
+            date_prices = dict(zip(row["date"], row["price"]))
+
+            if source not in uuid_data:
+                uuid_data[source] = {}
+            if provider not in uuid_data[source]:
+                uuid_data[source][provider] = {
+                    "buylist": {},
+                    "retail": {},
+                    "currency": currency,
+                }
+
+            if p_type in uuid_data[source][provider]:
+                uuid_data[source][provider][p_type][finish] = date_prices
+
+        # Flush the final UUID of the chunk
+        if current_uuid is not None:
+            if not first_in_chunk:
+                f.write(b",")
+            f.write(f'"{current_uuid}":'.encode())
+            f.write(orjson.dumps(uuid_data))
+            written_count += 1
+
+        return written_count
+
+    def _flush_uuid_to_json(
+        self, file_handle: BinaryIO, uuid: str, rows: list[dict], is_first: bool
+    ) -> None:
+        """
+        Helper to structure and write a single UUID's data to the open JSON file handle.
+        """
+        uuid_data: dict[str, Any] = {}
+
+        for row in rows:
+            source = row["source"]
+            provider = row["provider"]
+            p_type = row["price_type"]
+            finish = row["finish"]
+            date = row["date"]
+            price = row["price"]
+            currency = row["currency"]
+
+            if source not in uuid_data:
+                uuid_data[source] = {}
+
+            if provider not in uuid_data[source]:
+                uuid_data[source][provider] = {
+                    "buylist": {},
+                    "retail": {},
+                    "currency": currency,
+                }
+
+            if not p_type or not finish:
+                continue
+
+            target_dict = uuid_data[source][provider].get(p_type)
+            if target_dict is None:
+                continue
+
+            if finish not in target_dict:
+                target_dict[finish] = {}
+
+            target_dict[finish][date] = price
+
+        if not uuid_data:
+            return
+
+        if not is_first:
+            file_handle.write(b",")
+        file_handle.write(f'"{uuid}":'.encode())
+        file_handle.write(orjson.dumps(uuid_data))
 
     def stream_write_today_prices_json(self, df: pl.DataFrame, path: Path) -> None:
         """

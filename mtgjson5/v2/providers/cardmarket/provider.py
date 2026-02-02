@@ -411,9 +411,15 @@ class CardMarketProvider:
                 all_printings_path, ("identifiers", "mcmId"), ("uuid",)
             )
 
-        mtgjson_finish_map = generate_entity_mapping(
-            all_printings_path, ("identifiers", "mcmId"), ("finishes",)
+        # Try cached finishes map first, fall back to parsing AllPrintings
+        mtgjson_finish_map: dict[str, set[Any]] = (
+            GLOBAL_CACHE.get_cardmarket_to_finishes_map()
         )
+        if not mtgjson_finish_map:
+            LOGGER.info("Finishes not in cache, parsing AllPrintings.json...")
+            mtgjson_finish_map = generate_entity_mapping(
+                all_printings_path, ("identifiers", "mcmId"), ("finishes",)
+            )
 
         LOGGER.info("Building CardMarket retail data")
 

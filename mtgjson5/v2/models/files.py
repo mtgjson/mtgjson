@@ -92,6 +92,26 @@ class AllPricesFile(RecordFileBase):
         return self.data.get(uuid)
 
 
+class TcgplayerSkusFile(RecordFileBase):
+    """TcgplayerSkus.json: { meta, data: { UUID: [SkuEntry, ...] } }
+
+    Maps card UUIDs to their TCGPlayer SKU information.
+    Each SKU entry contains:
+    - skuId: TCGPlayer SKU ID (string)
+    - productId: TCGPlayer product ID (string)
+    - language: Language name (e.g., "ENGLISH")
+    - printing: "FOIL" or "NON FOIL"
+    - condition: e.g., "NEAR MINT", "LIGHTLY PLAYED"
+    - finish: (optional) Special finish like "ETCHED"
+    """
+
+    data: dict[str, list[dict[str, Any]]]
+
+    def get_skus(self, uuid: str) -> list[dict[str, Any]] | None:
+        """Get SKUs for a card by UUID."""
+        return self.data.get(uuid)
+
+
 # =============================================================================
 # List Files (data: T[])
 # =============================================================================
@@ -238,6 +258,7 @@ class Files:
     AtomicCardsFile = AtomicCardsFile
     AllIdentifiersFile = AllIdentifiersFile
     AllPricesFile = AllPricesFile
+    TcgplayerSkusFile = TcgplayerSkusFile
     SetListFile = SetListFile
     DeckListFile = DeckListFile
     IndividualSetFile = IndividualSetFile
@@ -253,6 +274,7 @@ FILE_MODEL_REGISTRY: list[type[BaseModel]] = [
     AtomicCardsFile,
     AllIdentifiersFile,
     AllPricesFile,
+    TcgplayerSkusFile,
     SetListFile,
     DeckListFile,
     IndividualSetFile,

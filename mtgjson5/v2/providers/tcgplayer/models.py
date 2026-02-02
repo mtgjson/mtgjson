@@ -66,9 +66,16 @@ class TcgPlayerConfig(BaseModel):
 
         key_suffix = f"_{suffix}" if suffix else ""
         try:
+            public_key = config.get("TCGPlayer", f"client_id{key_suffix}")
+            private_key = config.get("TCGPlayer", f"client_secret{key_suffix}")
+
+            # Skip if keys are empty or missing
+            if not public_key or not private_key:
+                return None
+
             return cls(
-                public_key=config.get("TCGPlayer", f"client_id{key_suffix}"),
-                private_key=config.get("TCGPlayer", f"client_secret{key_suffix}"),
+                public_key=public_key,
+                private_key=private_key,
                 api_version=config.get("TCGPlayer", "api_version", fallback="v1.39.0"),
             )
         except Exception:

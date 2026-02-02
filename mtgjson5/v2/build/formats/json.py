@@ -19,6 +19,7 @@ from mtgjson5.v2.models.files import (
     IndividualSetFile,
     MetaFile,
     SetListFile,
+    TcgplayerSkusFile,
 )
 
 if TYPE_CHECKING:
@@ -234,6 +235,20 @@ class JsonOutputBuilder:
 
         return results
 
+    def write_tcgplayer_skus(self, output_path: pathlib.Path) -> TcgplayerSkusFile:
+        """Build TcgplayerSkus.json.
+
+        Args:
+            output_path: Output file path
+
+        Returns:
+            TcgplayerSkusFile with UUID to SKU mappings
+        """
+        data = self.ctx.tcgplayer_skus.build()
+        file = TcgplayerSkusFile.with_meta(data, self.ctx.meta)
+        file.write(output_path)
+        return file  # type: ignore[return-value]
+
     def write_all(
         self,
         output_dir: pathlib.Path | None = None,
@@ -367,6 +382,14 @@ class JsonOutputBuilder:
             LOGGER.info("Building price files...")
             price_results = self.write_prices(output_dir)
             results.update(price_results)
+
+        # Build TcgplayerSkus.json
+        if should_build("TcgplayerSkus"):
+            LOGGER.info("Building TcgplayerSkus.json...")
+            tcgplayer_skus = self.write_tcgplayer_skus(
+                output_dir / "TcgplayerSkus.json"
+            )
+            results["TcgplayerSkus"] = len(tcgplayer_skus.data)
 
         return results
 
