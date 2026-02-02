@@ -347,9 +347,7 @@ class GlobalCache:
             return
 
         LOGGER.info("Starting TCGPlayer SKU fetch in background...")
-        self._tcg_skus_future = executor.submit(
-            self.tcgplayer.fetch_all_products_sync
-        )
+        self._tcg_skus_future = executor.submit(self.tcgplayer.fetch_all_products_sync)
 
     def _await_tcg_skus(self) -> None:
         """Block until TCG SKUs are ready (called when actually needed).
@@ -1367,12 +1365,13 @@ class GlobalCache:
             return {}
         try:
             df = (
-                self.cards_lf
-                .filter(pl.col("cardmarketId").is_not_null())
-                .select([
-                    pl.col("cardmarketId").cast(pl.String).alias("mcmId"),
-                    pl.col("finishes"),
-                ])
+                self.cards_lf.filter(pl.col("cardmarketId").is_not_null())
+                .select(
+                    [
+                        pl.col("cardmarketId").cast(pl.String).alias("mcmId"),
+                        pl.col("finishes"),
+                    ]
+                )
                 .unique(subset=["mcmId"])
                 .collect()
             )

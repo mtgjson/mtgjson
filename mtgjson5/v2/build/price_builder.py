@@ -11,7 +11,7 @@ import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, BinaryIO
 
 import dateutil.relativedelta
 import orjson
@@ -991,25 +991,25 @@ class PolarsPriceBuilder:
         LOGGER.info(f"Uploaded {uploaded} partitions to S3")
         return uploaded
 
-    def stream_write_all_prices_json(
-        self, lf: pl.LazyFrame, path: Path
-    ) -> None:
+    def stream_write_all_prices_json(self, lf: pl.LazyFrame, path: Path) -> None:
         """
         Stream-write AllPrices.json using Prefix Partitioning.
         """
         path.parent.mkdir(parents=True, exist_ok=True)
         prefixes = "0123456789abcdef"
-        
+
         LOGGER.info(f"Streaming AllPrices.json to {path}")
-        
-        opt_lf = lf.with_columns([
-            pl.col("source").cast(pl.Categorical),
-            pl.col("provider").cast(pl.Categorical),
-            pl.col("price_type").cast(pl.Categorical),
-            pl.col("finish").cast(pl.Categorical),
-            pl.col("currency").cast(pl.Categorical),
-        ])
-        
+
+        opt_lf = lf.with_columns(
+            [
+                pl.col("source").cast(pl.Categorical),
+                pl.col("provider").cast(pl.Categorical),
+                pl.col("price_type").cast(pl.Categorical),
+                pl.col("finish").cast(pl.Categorical),
+                pl.col("currency").cast(pl.Categorical),
+            ]
+        )
+
         with open(path, "wb") as f:
             f.write(b'{"meta":')
             meta = {
@@ -1024,7 +1024,7 @@ class PolarsPriceBuilder:
 
             for prefix in prefixes:
                 chunk_lf = opt_lf.filter(pl.col("uuid").str.starts_with(prefix))
-                
+
                 try:
                     df_chunk = chunk_lf.collect()
                 except Exception as e:
@@ -1034,63 +1034,70 @@ class PolarsPriceBuilder:
                 if df_chunk.height == 0:
                     del df_chunk
                     continue
-            
+
                 # We sort here because we need grouped UUIDs for the iterator
-                df_chunk = df_chunk.sort(["uuid", "source", "provider", "price_type", "finish", "date"])
-                
+                df_chunk = df_chunk.sort(
+                    ["uuid", "source", "provider", "price_type", "finish", "date"]
+                )
+
                 # Handle comma between chunks
                 if first_chunk_written:
                     f.write(b",")
-                
+
                 items_written = self._process_chunk_to_json(f, df_chunk)
-                
+
                 if items_written > 0:
                     first_chunk_written = True
                     total_processed += items_written
-                
+
                 # Explicitly release memory before next iteration
                 del df_chunk
-                
-                LOGGER.info(f"  Processed prefix '{prefix}' (Total: {total_processed:,})")
+
+                LOGGER.info(
+                    f"  Processed prefix '{prefix}' (Total: {total_processed:,})"
+                )
 
             f.write(b"}}")
 
-        LOGGER.info(f"Finished streaming AllPrices.json. Total UUIDs: {total_processed:,}")
+        LOGGER.info(
+            f"Finished streaming AllPrices.json. Total UUIDs: {total_processed:,}"
+        )
 
-    def _process_chunk_to_json(self, f, df: pl.DataFrame) -> int:
+    def _process_chunk_to_json(self, f: BinaryIO, df: pl.DataFrame) -> int:
         """
         Aggregates a materialized DataFrame and writes to the open file handle.
         Returns number of UUIDs written.
         """
-        aggregated = df.group_by(
-            ["uuid", "source", "provider", "currency", "price_type", "finish"]
-        ).agg([
-            pl.col("date"),
-            pl.col("price")
-        ]).sort("uuid") 
+        aggregated = (
+            df.group_by(
+                ["uuid", "source", "provider", "currency", "price_type", "finish"]
+            )
+            .agg([pl.col("date"), pl.col("price")])
+            .sort("uuid")
+        )
 
         current_uuid = None
-        uuid_data = {}
+        uuid_data: dict[str, dict[str, dict[str, Any]]] = {}
         written_count = 0
         first_in_chunk = True
-        
+
         rows = aggregated.iter_rows(named=True)
-        
+
         for row in rows:
             uuid = row["uuid"]
-            
+
             # Switch to new UUID
             if uuid != current_uuid:
                 if current_uuid is not None:
                     # Flush previous UUID data
                     if not first_in_chunk:
                         f.write(b",")
-                    
+
                     f.write(f'"{current_uuid}":'.encode())
                     f.write(orjson.dumps(uuid_data))
                     first_in_chunk = False
                     written_count += 1
-                
+
                 current_uuid = uuid
                 uuid_data = {}
 
@@ -1099,20 +1106,20 @@ class PolarsPriceBuilder:
             currency = row["currency"]
             p_type = row["price_type"]
             finish = row["finish"]
-            
+
             date_prices = dict(zip(row["date"], row["price"]))
-            
+
             if source not in uuid_data:
                 uuid_data[source] = {}
             if provider not in uuid_data[source]:
                 uuid_data[source][provider] = {
                     "buylist": {},
                     "retail": {},
-                    "currency": currency
+                    "currency": currency,
                 }
-            
+
             if p_type in uuid_data[source][provider]:
-                 uuid_data[source][provider][p_type][finish] = date_prices
+                uuid_data[source][provider][p_type][finish] = date_prices
 
         # Flush the final UUID of the chunk
         if current_uuid is not None:
@@ -1121,11 +1128,11 @@ class PolarsPriceBuilder:
             f.write(f'"{current_uuid}":'.encode())
             f.write(orjson.dumps(uuid_data))
             written_count += 1
-            
+
         return written_count
 
     def _flush_uuid_to_json(
-        self, file_handle, uuid: str, rows: list[dict], is_first: bool
+        self, file_handle: BinaryIO, uuid: str, rows: list[dict], is_first: bool
     ) -> None:
         """
         Helper to structure and write a single UUID's data to the open JSON file handle.
@@ -1143,14 +1150,14 @@ class PolarsPriceBuilder:
 
             if source not in uuid_data:
                 uuid_data[source] = {}
-            
+
             if provider not in uuid_data[source]:
                 uuid_data[source][provider] = {
                     "buylist": {},
                     "retail": {},
-                    "currency": currency
+                    "currency": currency,
                 }
-            
+
             if not p_type or not finish:
                 continue
 
@@ -1165,15 +1172,13 @@ class PolarsPriceBuilder:
 
         if not uuid_data:
             return
-        
+
         if not is_first:
             file_handle.write(b",")
         file_handle.write(f'"{uuid}":'.encode())
         file_handle.write(orjson.dumps(uuid_data))
 
-    def stream_write_today_prices_json(
-        self, df: pl.DataFrame, path: Path
-    ) -> None:
+    def stream_write_today_prices_json(self, df: pl.DataFrame, path: Path) -> None:
         """
         Stream-write AllPricesToday.json for today's prices only.
 

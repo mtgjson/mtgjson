@@ -8,6 +8,7 @@ Supports multiple API keys for increased throughput.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -231,11 +232,10 @@ class TCGProvider:
 
         # Create all clients upfront and keep them alive throughout
         # This avoids rate limiting on token requests
-        clients: list[TcgPlayerClient] = []
-        try:
+        async with contextlib.AsyncExitStack() as stack:
+            clients: list[TcgPlayerClient] = []
             for config in self.configs:
-                client = TcgPlayerClient(config)
-                await client.__aenter__()
+                client = await stack.enter_async_context(TcgPlayerClient(config))
                 clients.append(client)
 
             if not clients:
@@ -268,14 +268,6 @@ class TCGProvider:
 
             # Combine part files
             return await self._combine_part_files(part_files)
-
-        finally:
-            # Clean up all clients
-            for client in clients:
-                try:
-                    await client.__aexit__(None, None, None)
-                except Exception:
-                    pass
 
     async def _fetch_with_streaming(
         self, offsets_per_client: list[list[int]], total_pages: int
@@ -411,9 +403,7 @@ class TCGProvider:
             part_files.append(part_path)
             LOGGER.debug(f"Flushed {len(to_write)} products to {part_path}")
 
-        async def fetch_single_page(
-            client: TcgPlayerClient, offset: int
-        ) -> None:
+        async def fetch_single_page(client: TcgPlayerClient, offset: int) -> None:
             nonlocal completed, buffer
             async with semaphore:
                 try:
@@ -421,9 +411,7 @@ class TCGProvider:
                         offset=offset, include_skus=True
                     )
                     products_raw = resp.get("results", [])
-                    products = (
-                        products_raw if isinstance(products_raw, list) else []
-                    )
+                    products = products_raw if isinstance(products_raw, list) else []
                     page_products = [
                         {
                             "productId": product["productId"],
@@ -454,9 +442,7 @@ class TCGProvider:
                         if len(buffer) >= self.flush_threshold:
                             await flush_buffer()
                         if self.on_progress:
-                            self.on_progress(
-                                completed, total_pages, f"offset={offset}"
-                            )
+                            self.on_progress(completed, total_pages, f"offset={offset}")
                 except Exception as e:
                     LOGGER.warning(f"Failed offset {offset}: {e}")
                     async with lock:
