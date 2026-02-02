@@ -574,7 +574,11 @@ class SetAssembler(Assembler):
                 set_data["decks"] = minimal_decks
 
         # Sealed products
-        if include_sealed and self.ctx.sealed_df is not None:
+        if (
+            include_sealed
+            and self.ctx.sealed_df is not None
+            and len(self.ctx.sealed_df.columns) > 0
+        ):
             set_sealed = self.ctx.sealed_df.filter(pl.col("setCode") == set_code)
             if len(set_sealed) > 0:
                 models = SealedProduct.from_dataframe(set_sealed.drop("setCode"))
@@ -647,6 +651,169 @@ class SetListAssembler(Assembler):
         return [self.build_one(code) for code in self.iter_set_codes()]
 
 
+class TcgplayerSkusAssembler(Assembler):
+    """Assembles TcgplayerSkus.json - maps UUIDs to TCGPlayer SKU information."""
+
+    def __init__(self, ctx: AssemblyContext):
+        super().__init__(ctx)
+        self._tcg_skus_lf: pl.LazyFrame | None = None
+        self._tcg_to_uuid_lf: pl.LazyFrame | None = None
+        self._tcg_etched_to_uuid_lf: pl.LazyFrame | None = None
+
+    def _load_tcg_data(self) -> None:
+        """Load TCGPlayer SKU data, awaiting background fetch if needed."""
+        from mtgjson5 import constants
+        from mtgjson5.v2.data import GLOBAL_CACHE
+
+        GLOBAL_CACHE._await_tcg_skus()
+
+        lazy_cache = constants.CACHE_PATH / "lazy"
+
+        tcg_skus_path = lazy_cache / "tcg_skus.parquet"
+        if not tcg_skus_path.exists():
+            tcg_skus_path = constants.CACHE_PATH / "tcg_skus.parquet"
+        if tcg_skus_path.exists():
+            self._tcg_skus_lf = pl.scan_parquet(tcg_skus_path)
+
+        tcg_to_uuid_path = lazy_cache / "tcg_to_uuid.parquet"
+        if not tcg_to_uuid_path.exists():
+            tcg_to_uuid_path = constants.CACHE_PATH / "tcg_to_uuid.parquet"
+        if tcg_to_uuid_path.exists():
+            self._tcg_to_uuid_lf = pl.scan_parquet(tcg_to_uuid_path)
+
+        tcg_etched_path = lazy_cache / "tcg_etched_to_uuid.parquet"
+        if not tcg_etched_path.exists():
+            tcg_etched_path = constants.CACHE_PATH / "tcg_etched_to_uuid.parquet"
+        if tcg_etched_path.exists():
+            self._tcg_etched_to_uuid_lf = pl.scan_parquet(tcg_etched_path)
+
+    def build(self) -> dict[str, list[dict[str, Any]]]:
+        """Build TcgplayerSkus data dict.
+
+        Returns:
+            Dict mapping UUID to list of SKU entries.
+            Each SKU entry contains: skuId, productId, language, printing, condition,
+            and optionally finish (for etched products).
+        """
+        from mtgjson5.v2.providers.tcgplayer.models import (
+            CONDITION_MAP,
+            LANGUAGE_MAP,
+            PRINTING_MAP,
+        )
+        from mtgjson5.utils import LOGGER
+
+        self._load_tcg_data()
+
+        if self._tcg_skus_lf is None:
+            LOGGER.warning(
+                "TCG SKUs data not found (tcg_skus.parquet missing). "
+                "TcgplayerSkus.json will be empty. "
+                "Run TCGProvider.fetch_all_products() to fetch SKU data."
+            )
+            return {}
+
+        if self._tcg_to_uuid_lf is None and self._tcg_etched_to_uuid_lf is None:
+            LOGGER.warning("TCG to UUID mappings not found, TcgplayerSkus.json will be empty")
+            return {}
+
+        tcg_skus_df = self._tcg_skus_lf.collect()
+
+        if "skus" not in tcg_skus_df.columns:
+            LOGGER.warning("No 'skus' column in TCG data, TcgplayerSkus.json will be empty")
+            return {}
+
+        flattened = (
+            tcg_skus_df.explode("skus")
+            .unnest("skus")
+            .with_columns([
+                pl.col("languageId")
+                .replace_strict(LANGUAGE_MAP, default="UNKNOWN")
+                .alias("language"),
+                pl.col("printingId")
+                .replace_strict(PRINTING_MAP, default="UNKNOWN")
+                .str.replace("_", " ")
+                .alias("printing"),
+                pl.col("conditionId")
+                .replace_strict(CONDITION_MAP, default="UNKNOWN")
+                .alias("condition"),
+            ])
+            .with_columns([
+                pl.col("skuId").cast(pl.String),
+                pl.col("productId").cast(pl.String),
+            ])
+        )
+
+        result: dict[str, list[dict[str, Any]]] = {}
+
+        if self._tcg_to_uuid_lf is not None:
+            tcg_to_uuid_df = self._tcg_to_uuid_lf.collect()
+            if "tcgplayerProductId" in tcg_to_uuid_df.columns and "uuid" in tcg_to_uuid_df.columns:
+                tcg_to_uuid_df = tcg_to_uuid_df.with_columns(
+                    pl.col("tcgplayerProductId").cast(pl.String).alias("productId_join")
+                )
+
+                normal_joined = flattened.join(
+                    tcg_to_uuid_df.select(["productId_join", "uuid"]),
+                    left_on="productId",
+                    right_on="productId_join",
+                    how="inner",
+                )
+
+                self._add_skus_to_result(normal_joined, result, is_etched=False)
+
+        if self._tcg_etched_to_uuid_lf is not None:
+            tcg_etched_df = self._tcg_etched_to_uuid_lf.collect()
+            if "tcgplayerEtchedProductId" in tcg_etched_df.columns and "uuid" in tcg_etched_df.columns:
+                tcg_etched_df = tcg_etched_df.with_columns(
+                    pl.col("tcgplayerEtchedProductId").cast(pl.String).alias("productId_join")
+                )
+
+                etched_joined = flattened.join(
+                    tcg_etched_df.select(["productId_join", "uuid"]),
+                    left_on="productId",
+                    right_on="productId_join",
+                    how="inner",
+                )
+
+                self._add_skus_to_result(etched_joined, result, is_etched=True)
+
+        LOGGER.info(f"Built TcgplayerSkus with {len(result)} UUIDs")
+        return result
+
+    def _add_skus_to_result(
+        self,
+        joined_df: pl.DataFrame,
+        result: dict[str, list[dict[str, Any]]],
+        is_etched: bool,
+    ) -> None:
+        """Add SKUs from joined DataFrame to result dict.
+
+        Args:
+            joined_df: DataFrame with SKU data joined to UUIDs
+            result: Result dict to populate
+            is_etched: Whether these are etched products (adds finish field)
+        """
+        for row in joined_df.iter_rows(named=True):
+            uuid = row.get("uuid")
+            if not uuid:
+                continue
+
+            sku_entry: dict[str, Any] = {
+                "condition": row.get("condition", "UNKNOWN"),
+                "language": row.get("language", "UNKNOWN"),
+                "printing": row.get("printing", "UNKNOWN"),
+                "productId": row.get("productId", ""),
+                "skuId": row.get("skuId", ""),
+            }
+
+            if is_etched:
+                sku_entry["finish"] = "ETCHED"
+
+            if uuid not in result:
+                result[uuid] = []
+            result[uuid].append(sku_entry)
+
+
 class TableAssembler:
     """Build normalized relational tables from card data."""
 
@@ -673,7 +840,6 @@ class TableAssembler:
             if c not in CARDS_TABLE_EXCLUDE and not c.startswith("_")
         ]
 
-        # cards - serialize list columns as JSON strings
         cards_for_export = cards_df.select(cards_cols).unique(subset=["uuid"])
         tables["cards"] = serialize_complex_types(cards_for_export)
 
