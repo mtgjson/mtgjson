@@ -43,7 +43,7 @@ class JsonOutputBuilder:
     def write_meta(self, output_path: pathlib.Path) -> MetaFile:
         """Build Meta.json."""
         file = MetaFile.with_meta(self.ctx.meta, self.ctx.meta)
-        file.write(output_path)
+        file.write(output_path, pretty=self.ctx.pretty)
         return file  # type: ignore[return-value]
 
     def write_all_printings(
@@ -61,7 +61,7 @@ class JsonOutputBuilder:
             data[code] = set_data
 
         file = AllPrintingsFile.with_meta(data, self.ctx.meta)
-        file.write(output_path)
+        file.write(output_path, pretty=self.ctx.pretty)
         return file  # type: ignore[return-value]
 
     def _write_all_printings_streaming(
@@ -100,7 +100,7 @@ class JsonOutputBuilder:
         data = self.ctx.atomic_cards.build()
 
         file = AtomicCardsFile.with_meta(data, self.ctx.meta)
-        file.write(output_path)
+        file.write(output_path, pretty=self.ctx.pretty)
         return file  # type: ignore[return-value]
 
     def write_set_list(self, output_path: pathlib.Path) -> SetListFile:
@@ -108,7 +108,7 @@ class JsonOutputBuilder:
         data = self.ctx.set_list.build()
 
         file = SetListFile.with_meta(data, self.ctx.meta)
-        file.write(output_path)
+        file.write(output_path, pretty=self.ctx.pretty)
         return file  # type: ignore[return-value]
 
     def write_format_file(
@@ -124,7 +124,7 @@ class JsonOutputBuilder:
         file = FormatPrintingsFile.for_format(
             format_name, all_printings, format_legal_sets
         )
-        file.write(output_path)
+        file.write(output_path, pretty=self.ctx.pretty)
         return file
 
     def write_format_atomic(
@@ -135,7 +135,7 @@ class JsonOutputBuilder:
     ) -> FormatAtomicFile:
         """Build format-specific atomic file."""
         file = FormatAtomicFile.for_format(format_name, atomic_cards)
-        file.write(output_path)
+        file.write(output_path, pretty=self.ctx.pretty)
         return file
 
     def write_decks(
@@ -345,7 +345,7 @@ class JsonOutputBuilder:
             set_count = 0
             for code, set_data in self.ctx.sets.iter_sets(set_codes=valid_codes):
                 single = IndividualSetFile.from_set_data(set_data, self.ctx.meta)
-                single.write(output_dir / f"{code}.json")
+                single.write(output_dir / f"{code}.json", pretty=self.ctx.pretty)
                 set_count += 1
             results["sets"] = set_count
 
@@ -359,7 +359,7 @@ class JsonOutputBuilder:
 
             deck_list = self.ctx.deck_list.build()
             deck_list_file = DeckListFile.with_meta(deck_list, self.ctx.meta)
-            deck_list_file.write(output_dir / "DeckList.json")
+            deck_list_file.write(output_dir / "DeckList.json", pretty=self.ctx.pretty)
             results["DeckList"] = len(deck_list)
 
         # Use --price-build flag for dedicated price builds, or --outputs AllPrices

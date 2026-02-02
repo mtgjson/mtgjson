@@ -166,7 +166,7 @@ def assemble_json_outputs(
     from mtgjson5.v2.models.files import DeckListFile
 
     deck_list_file = DeckListFile.with_meta(deck_list, assembly_ctx.meta)
-    deck_list_file.write(output_path / "DeckList.json")
+    deck_list_file.write(output_path / "DeckList.json", pretty=assembly_ctx.pretty)
     results["DeckList"] = len(deck_list)
 
     if include_referrals:
@@ -189,7 +189,7 @@ def _write_sets_parallel(
         try:
             set_data = ctx.sets.build(code)
             single = IndividualSetFile.from_set_data(set_data, ctx.meta)
-            single.write(output_path / f"{code}.json")
+            single.write(output_path / f"{code}.json", pretty=ctx.pretty)
             return True
         except Exception as e:
             LOGGER.error(f"Failed to write set {code}: {e}")
@@ -218,7 +218,7 @@ def _write_sets_sequential(
         try:
             set_data = ctx.sets.build(code)
             single = IndividualSetFile.from_set_data(set_data, ctx.meta)
-            single.write(output_path / f"{code}.json")
+            single.write(output_path / f"{code}.json", pretty=ctx.pretty)
             count += 1
         except Exception as e:
             LOGGER.error(f"Failed to write set {code}: {e}")
@@ -354,6 +354,8 @@ class OutputWriter:
     def write(self, format_name: str) -> Path | None:
         """Write a single export format."""
         assembly_ctx = AssemblyContext.from_pipeline(self.ctx)
+        if self.ctx.args:
+            assembly_ctx.pretty = getattr(self.ctx.args, "pretty", False)
         unified = UnifiedOutputWriter(assembly_ctx)
         return unified.write(format_name)  # type: ignore[arg-type]
 
@@ -365,5 +367,7 @@ class OutputWriter:
             return {}
 
         assembly_ctx = AssemblyContext.from_pipeline(self.ctx)
+        if self.ctx.args:
+            assembly_ctx.pretty = getattr(self.ctx.args, "pretty", False)
         unified = UnifiedOutputWriter(assembly_ctx)
         return unified.write_all(formats)  # type: ignore[arg-type]
