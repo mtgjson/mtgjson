@@ -39,6 +39,18 @@ TABLE_INDEXES = {
 }
 
 
+def _polars_to_sqlite_type(dtype: pl.DataType) -> str:
+    """Map Polars dtype to SQLite type."""
+    if dtype.is_integer():
+        return "INTEGER"
+    if dtype.is_float():
+        return "REAL"
+    if dtype == pl.Boolean:
+        return "INTEGER"
+    # String, Date, Datetime, List, Struct -> TEXT
+    return "TEXT"
+
+
 class SQLiteBuilder:
     """Builds SQLite database exports."""
 
@@ -91,7 +103,11 @@ class SQLiteBuilder:
 
         serialized = serialize_complex_types(df)
 
-        cols = ", ".join([f'"{c}" TEXT' for c in serialized.columns])
+        schema = serialized.schema
+        cols = ", ".join([
+            f'"{c}" {_polars_to_sqlite_type(schema[c])}'
+            for c in serialized.columns
+        ])
         cursor.execute(f'CREATE TABLE IF NOT EXISTS "{table_name}" ({cols})')
 
         # Batch insert rows
@@ -211,7 +227,11 @@ class SQLiteBuilder:
 
                 serialized = serialize_complex_types(df)
 
-                cols = ",\n    ".join([f'"{c}" TEXT' for c in serialized.columns])
+                schema = serialized.schema
+                cols = ",\n    ".join([
+                    f'"{c}" {_polars_to_sqlite_type(schema[c])}'
+                    for c in serialized.columns
+                ])
                 f.write(f'CREATE TABLE IF NOT EXISTS "{table_name}" (\n    {cols}\n);\n\n')
 
                 col_names = ", ".join([f'"{c}"' for c in serialized.columns])
