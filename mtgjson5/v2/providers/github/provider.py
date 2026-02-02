@@ -31,6 +31,7 @@ SCHEMAS = {
     "precon": PreconModel.polars_schema(),
     "boosters": BoosterModel.polars_schema(),
     "token_products": TokenProductsModel.polars_schema(),
+    "decks": PreconModel.polars_schema(),
 }
 
 TOKEN_PRODUCTS_DIR_URL = (
