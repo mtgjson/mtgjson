@@ -37,6 +37,7 @@ class ScryfallProvider:
         "https://api.scryfall.com/cards/search?q=(o:deck%20o:any%20o:number%20"
         "o:cards%20o:named)%20or%20(o:deck%20o:have%20o:up%20o:to%20o:cards%20o:named)"
     )
+    TYPE_CATALOG_URL: str = "https://api.scryfall.com/catalog/{0}"
 
     RATE_LIMIT_SLEEP: int = 60
 
@@ -442,6 +443,25 @@ class ScryfallProvider:
                 card["name"] for card in cards.get("data", [])
             }
         return self._cards_without_limits
+
+    def get_catalog_entry(self, catalog_key: str) -> list[str]:
+        """Fetch Scryfall catalog data.
+
+        Catalogs include: ability-words, keyword-abilities, keyword-actions,
+        artifact-types, battle-types, creature-types, enchantment-types,
+        land-types, planeswalker-types, spell-types, etc.
+
+        Args:
+            catalog_key: The catalog type to fetch (e.g., "keyword-abilities")
+
+        Returns:
+            List of catalog entries, or empty list on error
+        """
+        catalog_data = self.download(self.TYPE_CATALOG_URL.format(catalog_key))
+        if catalog_data.get("object") == "error":
+            self.LOGGER.error(f"Unable to fetch catalog {catalog_key}: not found")
+            return []
+        return list(catalog_data.get("data", []))
 
 
 # Alias for backwards compatibility during migration

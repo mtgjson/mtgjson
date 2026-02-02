@@ -11,6 +11,7 @@ This module is our main Data Layer and is responsible for:
 import asyncio
 import json
 import pathlib
+import re
 import time
 from argparse import Namespace
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
@@ -26,6 +27,7 @@ from mtgjson5.providers.scryfall.orientation_detector import (
     ScryfallProviderOrientationDetector,
 )
 from mtgjson5.providers.whats_in_standard import WhatsInStandardProvider
+from mtgjson5.providers.wizards import WizardsProvider
 from mtgjson5.utils import LOGGER
 from mtgjson5.v2.providers import CardHoarderPriceProvider as CardHoarderProvider
 from mtgjson5.v2.providers import (
@@ -37,20 +39,6 @@ from mtgjson5.v2.providers import (
     TCGProvider,
 )
 from mtgjson5.v2.utils import DynamicCategoricals, discover_categoricals
-
-
-def _format_size(
-    df: pl.DataFrame | pl.LazyFrame | None, _show_schema: bool = False
-) -> str:
-    """Format DataFrame size for logging."""
-    if df is None:
-        return "None"
-    if isinstance(df, pl.LazyFrame):
-        schema = df.collect_schema()
-        return f"LazyFrame ({len(schema)} cols)"
-    rows = len(df)
-    cols = len(df.columns)
-    return f"{rows:,} rows x {cols} cols"
 
 
 def load_resource_json(filename: str) -> dict | list:
@@ -187,6 +175,14 @@ class GlobalCache:
         self.base_set_sizes: dict[str, int] = {}
         self.card_enrichment: dict[str, dict[str, dict]] = {}
 
+        # Scryfall Catalog Data (for Keywords.json and CardTypes.json)
+        self.keyword_abilities: list[str] = []
+        self.keyword_actions: list[str] = []
+        self.ability_words: list[str] = []
+        self.card_type_subtypes: dict[str, list[str]] = {}
+        self.super_types: list[str] = []
+        self.planar_types: list[str] = []
+
         # Categoricals - discovered from scryfall data inspection
         self._categoricals: DynamicCategoricals | None = None
 
@@ -203,6 +199,7 @@ class GlobalCache:
         self._tcgplayer: TCGProvider | None = None
         self._secretlair: MtgWikiProviderSecretLair | None = None
         self._orientations: ScryfallProviderOrientationDetector | None = None
+        self._wizards: WizardsProvider | None = None
 
         # State
         self._initialized = True
@@ -301,6 +298,7 @@ class GlobalCache:
                 executor.submit(self._load_whats_in_standard): "standard",
                 executor.submit(self._load_github_data): "github",
                 executor.submit(self._load_secretlair_subsets): "secretlair",
+                executor.submit(self._load_scryfall_catalogs): "scryfall_catalogs",
             }
             if not skip_mcm:
                 futures[executor.submit(self._load_mcm_lookup)] = "mcm"
@@ -558,7 +556,7 @@ class GlobalCache:
         # Scan without schema overrides first
         self.cards_lf = pl.scan_ndjson(
             cards_path,
-            infer_schema_length=10000,
+            infer_schema_length=100000,
         )
 
         schema = self.cards_lf.collect_schema()
@@ -1093,6 +1091,94 @@ class GlobalCache:
             sld_df.write_parquet(cache_path)
             self.sld_subsets_lf = sld_df.lazy()
 
+    def _load_scryfall_catalogs(self) -> None:
+        """Load keyword and card type catalogs from Scryfall API and Magic rules.
+
+        These are used by Keywords.json and CardTypes.json assemblers.
+        Cached to JSON files to avoid repeated API calls.
+        """
+        from mtgjson5.utils import parse_magic_rules_subset
+
+        keywords_cache = self.cache_path / "scryfall_keywords.json"
+        types_cache = self.cache_path / "scryfall_card_types.json"
+
+        if _cache_fresh(keywords_cache):
+            with keywords_cache.open("rb") as f:
+                data = json.loads(f.read())
+                self.ability_words = data.get("ability_words", [])
+                self.keyword_abilities = data.get("keyword_abilities", [])
+                self.keyword_actions = data.get("keyword_actions", [])
+        else:
+            provider = self.scryfall
+            self.ability_words = provider.get_catalog_entry("ability-words")
+            self.keyword_abilities = provider.get_catalog_entry("keyword-abilities")
+            self.keyword_actions = provider.get_catalog_entry("keyword-actions")
+            with keywords_cache.open("w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "ability_words": self.ability_words,
+                        "keyword_abilities": self.keyword_abilities,
+                        "keyword_actions": self.keyword_actions,
+                    },
+                    f,
+                )
+
+        if _cache_fresh(types_cache):
+            with types_cache.open("rb") as f:
+                data = json.loads(f.read())
+                self.card_type_subtypes = data.get("subtypes", {})
+                self.super_types = data.get("super_types", [])
+                self.planar_types = data.get("planar_types", [])
+        else:
+            provider = self.scryfall
+            self.card_type_subtypes = {
+                "artifact": provider.get_catalog_entry("artifact-types"),
+                "battle": provider.get_catalog_entry("battle-types"),
+                "creature": provider.get_catalog_entry("creature-types"),
+                "enchantment": provider.get_catalog_entry("enchantment-types"),
+                "land": provider.get_catalog_entry("land-types"),
+                "planeswalker": provider.get_catalog_entry("planeswalker-types"),
+                "spell": provider.get_catalog_entry("spell-types"),
+            }
+
+            magic_rules = parse_magic_rules_subset(self.wizards.get_magic_rules())
+            super_regex = re.compile(r".*The supertypes are (.*)\.")
+            planar_regex = re.compile(r".*The planar types are (.*)\.")
+            self.super_types = self._regex_str_to_list(super_regex.search(magic_rules))
+            self.planar_types = self._regex_str_to_list(planar_regex.search(magic_rules))
+
+            with types_cache.open("w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "subtypes": self.card_type_subtypes,
+                        "super_types": self.super_types,
+                        "planar_types": self.planar_types,
+                    },
+                    f,
+                )
+
+        LOGGER.info(
+            f"Loaded Scryfall catalogs: {len(self.keyword_abilities)} keyword abilities, "
+            f"{len(self.card_type_subtypes)} card types"
+        )
+
+    @staticmethod
+    def _regex_str_to_list(regex_match: re.Match | None) -> list[str]:
+        """Convert regex match to list of types."""
+        import string
+
+        if not regex_match:
+            return []
+        card_types = regex_match.group(1).split(". ")[0]
+        card_types_split: list[str] = card_types.split(", ")
+        if len(card_types_split) == 1:
+            card_types_split = card_types.split(" and ")
+        else:
+            card_types_split[-1] = card_types_split[-1].split(" ", 1)[1]
+        for index, value in enumerate(card_types_split):
+            card_types_split[index] = string.capwords(value.split(" (")[0])
+        return card_types_split
+
     def _download_mcm_from_s3(self) -> bool:
         """
         Download mkm_cards.parquet from S3 if not present locally.
@@ -1275,6 +1361,13 @@ class GlobalCache:
         if self._secretlair is None:
             self._secretlair = MtgWikiProviderSecretLair()
         return self._secretlair
+
+    @property
+    def wizards(self) -> WizardsProvider:
+        """Get or create the Wizards provider instance."""
+        if self._wizards is None:
+            self._wizards = WizardsProvider()
+        return self._wizards
 
     @property
     def bulkdata(self) -> ScryfallProvider:

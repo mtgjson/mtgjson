@@ -73,12 +73,16 @@ class AtomicCardsFile(RecordFileBase):
 
 
 class AllIdentifiersFile(RecordFileBase):
-    """AllIdentifiers.json: { meta, data: { UUID: CardSet } }"""
+    """AllIdentifiers.json: { meta, data: { UUID: CardSet | CardToken } }
 
-    data: dict[str, CardSet]
+    Maps UUIDs to their full card or token data. Uses dict[str, Any] since
+    the data contains both cards (CardSet) and tokens (CardToken) which have
+    different required fields.
+    """
+    data: dict[str, Any]
 
-    def get_by_uuid(self, uuid: str) -> CardSet | None:
-        """Get card by UUID."""
+    def get_by_uuid(self, uuid: str) -> dict[str, Any] | None:
+        """Get card or token by UUID."""
         return self.data.get(uuid)
 
 
@@ -110,6 +114,30 @@ class TcgplayerSkusFile(RecordFileBase):
     def get_skus(self, uuid: str) -> list[dict[str, Any]] | None:
         """Get SKUs for a card by UUID."""
         return self.data.get(uuid)
+
+
+class KeywordsFile(RecordFileBase):
+    """Keywords.json: { meta, data: { abilityWords, keywordAbilities, keywordActions } }
+
+    Contains lists of Magic keyword types from Scryfall catalogs.
+    """
+    data: dict[str, list[str]]
+
+
+class CardTypesFile(RecordFileBase):
+    """CardTypes.json: { meta, data: { type: { subTypes, superTypes } } }
+
+    Maps card types to their sub-types and super-types.
+    """
+    data: dict[str, dict[str, list[str]]]
+
+
+class CompiledListFile(ListFileBase):
+    """CompiledList.json: { meta, data: [filename, ...] }
+
+    Sorted list of all compiled output file names.
+    """
+    data: list[str]
 
 
 # =============================================================================
@@ -263,6 +291,9 @@ class Files:
     DeckListFile = DeckListFile
     IndividualSetFile = IndividualSetFile
     MetaFile = MetaFile
+    KeywordsFile = KeywordsFile
+    CardTypesFile = CardTypesFile
+    CompiledListFile = CompiledListFile
 
 
 # =============================================================================
@@ -279,6 +310,9 @@ FILE_MODEL_REGISTRY: list[type[BaseModel]] = [
     DeckListFile,
     IndividualSetFile,
     MetaFile,
+    KeywordsFile,
+    CardTypesFile,
+    CompiledListFile,
 ]
 
 __all__ = [

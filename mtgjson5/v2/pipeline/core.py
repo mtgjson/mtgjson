@@ -2650,7 +2650,10 @@ def sink_cards(ctx: PipelineContext) -> None:
 
         for set_df in partitions:
             s_code = set_df.get_column("setCode")[0]
-            set_path = out_dir / f"setCode={s_code}"
+            from mtgjson5.v2.utils import get_windows_safe_set_code
+
+            safe_code = get_windows_safe_set_code(s_code)
+            set_path = out_dir / f"setCode={safe_code}"
             set_path.mkdir(exist_ok=True)
             set_df.write_parquet(set_path / "0.parquet")
 
