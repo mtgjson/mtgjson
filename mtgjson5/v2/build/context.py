@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from mtgjson5.v2.data import PipelineContext
 
     from .assemble import (
+        AllIdentifiersAssembler,
         AtomicCardsAssembler,
         DeckAssembler,
         DeckListAssembler,
@@ -54,6 +55,11 @@ class AssemblyContext:
         default_factory=lambda: MtgjsonConfig().output_path
     )
     pretty: bool = False
+    # Scryfall catalog data (loaded in GlobalCache, passed through for assemblers)
+    keyword_data: dict[str, list[str]] = field(default_factory=dict)
+    card_type_data: dict[str, list[str]] = field(default_factory=dict)
+    super_types: list[str] = field(default_factory=list)
+    planar_types: list[str] = field(default_factory=list)
 
     @classmethod
     def from_pipeline(cls, ctx: PipelineContext) -> AssemblyContext:
@@ -90,8 +96,11 @@ class AssemblyContext:
                 if code in base_set_sizes:
                     meta["baseSetSize"] = base_set_sizes[code]
 
+        from mtgjson5.v2.utils import get_windows_safe_set_code
+
         for code, meta in set_meta.items():
-            card_path = parquet_dir / f"setCode={code}"
+            safe_code = get_windows_safe_set_code(code)
+            card_path = parquet_dir / f"setCode={safe_code}"
             if card_path.exists():
                 card_df = pl.read_parquet(card_path / "*.parquet")
                 if "isRebalanced" in card_df.columns:
@@ -115,8 +124,10 @@ class AssemblyContext:
             ):
                 meta["tokenSetCode"] = code
             else:
-                t_code_path = tokens_dir / f"setCode=T{code}"
-                code_path = tokens_dir / f"setCode={code}"
+                safe_t_code = get_windows_safe_set_code(f"T{code}")
+                safe_code = get_windows_safe_set_code(code)
+                t_code_path = tokens_dir / f"setCode={safe_t_code}"
+                code_path = tokens_dir / f"setCode={safe_code}"
                 if t_code_path.exists():
                     meta["tokenSetCode"] = f"T{code}"
                 elif code_path.exists():
@@ -161,6 +172,20 @@ class AssemblyContext:
         meta_obj = MtgjsonMetaObject()
         meta_dict = {"date": meta_obj.date, "version": meta_obj.version}
 
+        keyword_data: dict[str, list[str]] = {}
+        card_type_data: dict[str, list[str]] = {}
+        super_types: list[str] = []
+        planar_types: list[str] = []
+        if ctx._cache is not None:
+            keyword_data = {
+                "abilityWords": sorted(ctx._cache.ability_words),
+                "keywordAbilities": sorted(ctx._cache.keyword_abilities),
+                "keywordActions": sorted(ctx._cache.keyword_actions),
+            }
+            card_type_data = ctx._cache.card_type_subtypes
+            super_types = ctx._cache.super_types
+            planar_types = ctx._cache.planar_types
+
         return cls(
             parquet_dir=parquet_dir,
             tokens_dir=tokens_dir,
@@ -170,6 +195,10 @@ class AssemblyContext:
             sealed_df=sealed_df,  # type: ignore[arg-type]
             booster_configs=booster_configs,
             token_products=token_products,
+            keyword_data=keyword_data,
+            card_type_data=card_type_data,
+            super_types=super_types,
+            planar_types=planar_types,
         )
 
     @classmethod
@@ -238,6 +267,25 @@ class AssemblyContext:
         LOGGER.info("Loading cached token products...")
         LOGGER.debug(f"Loaded cached token products for {len(token_products)} tokens.")
 
+        keyword_data: dict[str, list[str]] = {}
+        card_type_data: dict[str, list[str]] = {}
+        super_types: list[str] = []
+        planar_types: list[str] = []
+        keywords_cache = cache_dir / "scryfall_keywords.json"
+        types_cache = cache_dir / "scryfall_card_types.json"
+        if keywords_cache.exists():
+            data = orjson.loads(keywords_cache.read_bytes())
+            keyword_data = {
+                "abilityWords": sorted(data.get("ability_words", [])),
+                "keywordAbilities": sorted(data.get("keyword_abilities", [])),
+                "keywordActions": sorted(data.get("keyword_actions", [])),
+            }
+        if types_cache.exists():
+            data = orjson.loads(types_cache.read_bytes())
+            card_type_data = data.get("subtypes", {})
+            super_types = data.get("super_types", [])
+            planar_types = data.get("planar_types", [])
+
         # Create meta dict
         meta_obj = MtgjsonMetaObject()
         meta_dict = {"date": meta_obj.date, "version": meta_obj.version}
@@ -253,6 +301,10 @@ class AssemblyContext:
             sealed_df=sealed_df,
             booster_configs=booster_configs,
             token_products=token_products,
+            keyword_data=keyword_data,
+            card_type_data=card_type_data,
+            super_types=super_types,
+            planar_types=planar_types,
         )
 
     def save_cache(self, cache_dir: pathlib.Path | None = None) -> None:
@@ -358,3 +410,10 @@ class AssemblyContext:
         from .assemble import TcgplayerSkusAssembler
 
         return TcgplayerSkusAssembler(self)
+
+    @cached_property
+    def all_identifiers(self) -> AllIdentifiersAssembler:
+        """Assembler for AllIdentifiers.json."""
+        from .assemble import AllIdentifiersAssembler
+
+        return AllIdentifiersAssembler(self)

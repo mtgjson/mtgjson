@@ -13,10 +13,13 @@ import orjson
 from mtgjson5.v2.models.files import (
     AllPrintingsFile,
     AtomicCardsFile,
+    CardTypesFile,
+    CompiledListFile,
     DeckListFile,
     FormatAtomicFile,
     FormatPrintingsFile,
     IndividualSetFile,
+    KeywordsFile,
     MetaFile,
     SetListFile,
     TcgplayerSkusFile,
@@ -249,6 +252,102 @@ class JsonOutputBuilder:
         file.write(output_path)
         return file  # type: ignore[return-value]
 
+    def write_keywords(self, output_path: pathlib.Path) -> KeywordsFile:
+        """Build Keywords.json.
+
+        Args:
+            output_path: Output file path
+
+        Returns:
+            KeywordsFile with abilityWords, keywordAbilities, keywordActions
+        """
+        from ..assemble import KeywordsAssembler
+
+        assembler = KeywordsAssembler(self.ctx)
+        data = assembler.build()
+        file = KeywordsFile.with_meta(data, self.ctx.meta)
+        file.write(output_path)
+        return file  # type: ignore[return-value]
+
+    def write_card_types(self, output_path: pathlib.Path) -> CardTypesFile:
+        """Build CardTypes.json.
+
+        Args:
+            output_path: Output file path
+
+        Returns:
+            CardTypesFile with type -> {subTypes, superTypes} mapping
+        """
+        from ..assemble import CardTypesAssembler
+
+        assembler = CardTypesAssembler(self.ctx)
+        data = assembler.build()
+        file = CardTypesFile.with_meta(data, self.ctx.meta)
+        file.write(output_path)
+        return file  # type: ignore[return-value]
+
+    def write_all_identifiers(self, output_path: pathlib.Path) -> int:
+        """Build AllIdentifiers.json using streaming to minimize memory usage.
+
+        Streams UUID:card/token pairs directly to file without holding the full
+        dict in memory. This reduces memory usage significantly for 100k+ entries.
+
+        Args:
+            output_path: Output file path
+
+        Returns:
+            Number of entries written
+        """
+        import gc
+
+        from mtgjson5.utils import LOGGER
+
+        count = 0
+        meta_dict = self.ctx.meta
+
+        with open(output_path, "wb") as f:
+            f.write(b'{"meta": ')
+            f.write(orjson.dumps(meta_dict))
+            f.write(b', "data": {')
+
+            first = True
+            for uuid, entry in self.ctx.all_identifiers.iter_entries():
+                if not first:
+                    f.write(b",")
+                first = False
+
+                f.write(b"\n")
+                f.write(orjson.dumps(uuid))
+                f.write(b": ")
+                f.write(orjson.dumps(entry))
+                count += 1
+
+                if count % 5000 == 0:
+                    gc.collect()
+                    LOGGER.debug(f"AllIdentifiers: streamed {count} entries")
+
+            f.write(b"\n}}")
+
+        LOGGER.info(f"Streamed AllIdentifiers with {count} entries")
+        return count
+
+    def write_compiled_list(self, output_path: pathlib.Path) -> CompiledListFile:
+        """Build CompiledList.json.
+
+        Args:
+            output_path: Output file path
+
+        Returns:
+            CompiledListFile with sorted list of compiled file names
+        """
+        from ..assemble import CompiledListAssembler
+
+        assembler = CompiledListAssembler()
+        data = assembler.build()
+        file = CompiledListFile.with_meta(data, self.ctx.meta)
+        file.write(output_path)
+        return file  # type: ignore[return-value]
+
     def write_all(
         self,
         output_dir: pathlib.Path | None = None,
@@ -331,7 +430,9 @@ class JsonOutputBuilder:
         if not sets_only or (outputs and (_PRINTINGS_OUTPUTS & outputs)):
             if outputs is None or (_PRINTINGS_OUTPUTS & outputs):
                 LOGGER.info("Building format-specific files...")
-                if all_printings is None or (streaming and isinstance(all_printings, int)):
+                if all_printings is None or (
+                    streaming and isinstance(all_printings, int)
+                ):
                     all_printings = AllPrintingsFile.read(output_dir / "AllPrintings.json")  # type: ignore[assignment]
 
                 if isinstance(all_printings, AllPrintingsFile):
@@ -346,7 +447,9 @@ class JsonOutputBuilder:
         if not sets_only or (outputs and (_ATOMIC_OUTPUTS & outputs)):
             if outputs is None or (_ATOMIC_OUTPUTS & outputs):
                 if atomic_cards is None:
-                    atomic_cards = self.write_atomic_cards(output_dir / "AtomicCards.json")
+                    atomic_cards = self.write_atomic_cards(
+                        output_dir / "AtomicCards.json"
+                    )
                 for fmt in _ATOMIC_FORMATS:
                     if should_build(f"{fmt.title()}Atomic"):
                         atomic_file = self.write_format_atomic(
@@ -356,18 +459,23 @@ class JsonOutputBuilder:
 
         # Build individual set files
         if outputs is None or not outputs or sets_only:
+            from mtgjson5.v2.utils import get_windows_safe_set_code
+
             LOGGER.info("Building individual set files...")
             set_count = 0
             for code, set_data in self.ctx.sets.iter_sets(set_codes=valid_codes):
                 single = IndividualSetFile.from_set_data(set_data, self.ctx.meta)
-                single.write(output_dir / f"{code}.json", pretty=self.ctx.pretty)
+                safe_code = get_windows_safe_set_code(code)
+                single.write(output_dir / f"{safe_code}.json", pretty=self.ctx.pretty)
                 set_count += 1
             results["sets"] = set_count
 
         # Build deck files
-        if include_decks and (
-            outputs is None or "Decks" in outputs or "DeckList" in outputs
-        ) and not (sets_only and not outputs):
+        if (
+            include_decks
+            and (outputs is None or "Decks" in outputs or "DeckList" in outputs)
+            and not (sets_only and not outputs)
+        ):
             LOGGER.info("Building deck files...")
             deck_count = self.write_decks(output_dir / "decks", set_codes=valid_codes)
             results["decks"] = deck_count
@@ -390,6 +498,32 @@ class JsonOutputBuilder:
                 output_dir / "TcgplayerSkus.json"
             )
             results["TcgplayerSkus"] = len(tcgplayer_skus.data)
+
+        # Build Keywords.json
+        if should_build("Keywords"):
+            LOGGER.info("Building Keywords.json...")
+            keywords = self.write_keywords(output_dir / "Keywords.json")
+            results["Keywords"] = sum(len(v) for v in keywords.data.values())
+
+        # Build CardTypes.json
+        if should_build("CardTypes"):
+            LOGGER.info("Building CardTypes.json...")
+            card_types = self.write_card_types(output_dir / "CardTypes.json")
+            results["CardTypes"] = len(card_types.data)
+
+        # Build AllIdentifiers.json
+        if should_build("AllIdentifiers"):
+            LOGGER.info("Building AllIdentifiers.json...")
+            all_identifiers_count = self.write_all_identifiers(
+                output_dir / "AllIdentifiers.json"
+            )
+            results["AllIdentifiers"] = all_identifiers_count
+
+        # Build CompiledList.json
+        if should_build("CompiledList"):
+            LOGGER.info("Building CompiledList.json...")
+            compiled_list = self.write_compiled_list(output_dir / "CompiledList.json")
+            results["CompiledList"] = len(compiled_list.data)
 
         return results
 
