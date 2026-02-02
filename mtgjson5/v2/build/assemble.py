@@ -39,7 +39,8 @@ def compute_format_legal_sets(
 
     # Filter by set type using metadata
     valid_type_sets = {
-        code for code, meta in ctx.set_meta.items()
+        code
+        for code, meta in ctx.set_meta.items()
         if meta.get("type", "") in SUPPORTED_SET_TYPES
     }
 
@@ -72,7 +73,10 @@ class Assembler:
 
     def load_set_cards(self, code: str) -> pl.DataFrame:
         """Load cards for a specific set."""
-        path = self.ctx.parquet_dir / f"setCode={code}"
+        from mtgjson5.v2.utils import get_windows_safe_set_code
+
+        safe_code = get_windows_safe_set_code(code)
+        path = self.ctx.parquet_dir / f"setCode={safe_code}"
         if not path.exists():
             return pl.DataFrame()
         df = pl.read_parquet(path / "*.parquet")
@@ -86,6 +90,8 @@ class Assembler:
         2. T{code} (standard token set prefix)
         3. {code} itself (for sets like WC00 where tokens share the set code)
         """
+        from mtgjson5.v2.utils import get_windows_safe_set_code
+
         meta = self.ctx.set_meta.get(code, {})
 
         # Build list of candidate token codes to check
@@ -97,7 +103,8 @@ class Assembler:
 
         # Try each candidate in order
         for token_code in candidates:
-            path = self.ctx.tokens_dir / f"setCode={token_code}"
+            safe_code = get_windows_safe_set_code(token_code)
+            path = self.ctx.tokens_dir / f"setCode={safe_code}"
             if path.exists():
                 return pl.read_parquet(path / "*.parquet")
 
@@ -130,9 +137,17 @@ class Assembler:
         Keeps special token sets like L14 (League Tokens), SBRO (Substitute Cards),
         WMOM (Japanese Promo Tokens), etc. that don't start with 'T'.
         """
+        from mtgjson5.constants import BAD_FILE_NAMES
+
+        def _normalize_set_code(dir_code: str) -> str:
+            """Convert Windows-safe directory code back to original set code."""
+            if dir_code.endswith("_") and dir_code[:-1] in BAD_FILE_NAMES:
+                return dir_code[:-1]
+            return dir_code
+
         # Sets with card parquet data
         card_sets = {
-            p.name.replace("setCode=", "")
+            _normalize_set_code(p.name.replace("setCode=", ""))
             for p in self.ctx.parquet_dir.iterdir()
             if p.is_dir() and p.name.startswith("setCode=")
         }
@@ -141,7 +156,7 @@ class Assembler:
         token_sets: set[str] = set()
         if self.ctx.tokens_dir.exists():
             token_sets = {
-                p.name.replace("setCode=", "")
+                _normalize_set_code(p.name.replace("setCode=", ""))
                 for p in self.ctx.tokens_dir.iterdir()
                 if p.is_dir() and p.name.startswith("setCode=")
             }
@@ -155,7 +170,8 @@ class Assembler:
         # Filter out traditional token sets (type='token' AND code starts with 'T')
         # Keep special token sets like L14, SBRO, WMOM that don't start with 'T'
         return sorted(
-            code for code in all_sets
+            code
+            for code in all_sets
             if not (
                 self.ctx.set_meta.get(code, {}).get("type") == "token"
                 and code.startswith("T")
@@ -174,11 +190,17 @@ class AtomicCardsAssembler(Assembler):
         TypedDicts don't accept None where a string is expected.
         """
         if isinstance(obj, dict):
-            return {k: AtomicCardsAssembler._strip_none_recursive(v)
-                    for k, v in obj.items() if v is not None}
+            return {
+                k: AtomicCardsAssembler._strip_none_recursive(v)
+                for k, v in obj.items()
+                if v is not None
+            }
         if isinstance(obj, list):
-            return [AtomicCardsAssembler._strip_none_recursive(v)
-                    for v in obj if v is not None]
+            return [
+                AtomicCardsAssembler._strip_none_recursive(v)
+                for v in obj
+                if v is not None
+            ]
         return obj
 
     def iter_atomic(self) -> Iterator[tuple[str, list[dict[str, Any]]]]:
@@ -195,7 +217,9 @@ class AtomicCardsAssembler(Assembler):
 
         df = (
             lf.select(select_cols)
-            .unique(subset=["name", "colorIdentity", "manaCost", "type"])
+            .unique(
+                subset=["name", "faceName", "colorIdentity", "manaCost", "type", "text"]
+            )
             .sort("name")
             .collect()
         )
@@ -296,7 +320,9 @@ class DeckAssembler(Assembler):
                 # Tokens validated through CardToken model
                 # CardToken doesn't have deck fields, so add them after validation
                 deck_token = CardToken.from_polars_row(expanded)
-                token_dict = deck_token.to_polars_dict(exclude_none=True, keep_empty_lists=True)
+                token_dict = deck_token.to_polars_dict(
+                    exclude_none=True, keep_empty_lists=True
+                )
                 token_dict["count"] = ref.get("count", 1)
                 if ref.get("isFoil"):
                     token_dict["isFoil"] = True
@@ -304,7 +330,9 @@ class DeckAssembler(Assembler):
             else:
                 # Cards validated through CardDeck model (includes count/isFoil/isEtched)
                 deck_card = CardDeck.from_polars_row(expanded)
-                result.append(deck_card.to_polars_dict(exclude_none=True, keep_empty_lists=True))
+                result.append(
+                    deck_card.to_polars_dict(exclude_none=True, keep_empty_lists=True)
+                )
 
         return result
 
@@ -405,7 +433,7 @@ class SetAssembler(Assembler):
         if df.is_empty():
             return []
         models = CardSet.from_dataframe(df)
-        models.sort(key=lambda m: m.uuid if hasattr(m, 'uuid') else '')
+        models.sort(key=lambda m: m.uuid if hasattr(m, "uuid") else "")
         return [m.to_polars_dict(exclude_none=True) for m in models]
 
     def get_tokens(self, set_code: str) -> list[dict[str, Any]]:
@@ -414,7 +442,7 @@ class SetAssembler(Assembler):
         if df.is_empty():
             return []
         models = CardToken.from_dataframe(df)
-        models.sort(key=lambda m: m.uuid if hasattr(m, 'uuid') else '')
+        models.sort(key=lambda m: m.uuid if hasattr(m, "uuid") else "")
         result = [m.to_polars_dict(exclude_none=True) for m in models]
 
         # Merge token products from assembly context lookup
@@ -444,8 +472,11 @@ class SetAssembler(Assembler):
         base_size = meta.get("baseSetSize")
         total_size = meta.get("totalSetSize")
         set_data: dict[str, Any] = {
-            "baseSetSize": base_size if base_size is not None
-            else len([c for c in cards if not c.get("isReprint")]) or len(cards),
+            "baseSetSize": (
+                base_size
+                if base_size is not None
+                else len([c for c in cards if not c.get("isReprint")]) or len(cards)
+            ),
             "cards": cards,
             "code": set_code,
             "isFoilOnly": meta.get("isFoilOnly", False),
@@ -506,7 +537,9 @@ class SetAssembler(Assembler):
                     if deck.get("releaseDate"):
                         minimal_deck["releaseDate"] = deck["releaseDate"]
                     sealed_uuids = deck.get("sealedProductUuids")
-                    minimal_deck["sealedProductUuids"] = sealed_uuids if sealed_uuids else None
+                    minimal_deck["sealedProductUuids"] = (
+                        sealed_uuids if sealed_uuids else None
+                    )
                     if deck.get("sourceSetCodes"):
                         minimal_deck["sourceSetCodes"] = deck["sourceSetCodes"]
                     for board in ["mainBoard", "sideBoard"]:
@@ -713,41 +746,52 @@ class TcgplayerSkusAssembler(Assembler):
             return {}
 
         if self._tcg_to_uuid_lf is None and self._tcg_etched_to_uuid_lf is None:
-            LOGGER.warning("TCG to UUID mappings not found, TcgplayerSkus.json will be empty")
+            LOGGER.warning(
+                "TCG to UUID mappings not found, TcgplayerSkus.json will be empty"
+            )
             return {}
 
         tcg_skus_df = self._tcg_skus_lf.collect()
 
         if "skus" not in tcg_skus_df.columns:
-            LOGGER.warning("No 'skus' column in TCG data, TcgplayerSkus.json will be empty")
+            LOGGER.warning(
+                "No 'skus' column in TCG data, TcgplayerSkus.json will be empty"
+            )
             return {}
 
         flattened = (
             tcg_skus_df.explode("skus")
             .unnest("skus")
-            .with_columns([
-                pl.col("languageId")
-                .replace_strict(LANGUAGE_MAP, default="UNKNOWN")
-                .alias("language"),
-                pl.col("printingId")
-                .replace_strict(PRINTING_MAP, default="UNKNOWN")
-                .str.replace("_", " ")
-                .alias("printing"),
-                pl.col("conditionId")
-                .replace_strict(CONDITION_MAP, default="UNKNOWN")
-                .alias("condition"),
-            ])
-            .with_columns([
-                pl.col("skuId").cast(pl.String),
-                pl.col("productId").cast(pl.String),
-            ])
+            .with_columns(
+                [
+                    pl.col("languageId")
+                    .replace_strict(LANGUAGE_MAP, default="UNKNOWN")
+                    .alias("language"),
+                    pl.col("printingId")
+                    .replace_strict(PRINTING_MAP, default="UNKNOWN")
+                    .str.replace("_", " ")
+                    .alias("printing"),
+                    pl.col("conditionId")
+                    .replace_strict(CONDITION_MAP, default="UNKNOWN")
+                    .alias("condition"),
+                ]
+            )
+            .with_columns(
+                [
+                    pl.col("skuId").cast(pl.String),
+                    pl.col("productId").cast(pl.String),
+                ]
+            )
         )
 
         result: dict[str, list[dict[str, Any]]] = {}
 
         if self._tcg_to_uuid_lf is not None:
             tcg_to_uuid_df = self._tcg_to_uuid_lf.collect()
-            if "tcgplayerProductId" in tcg_to_uuid_df.columns and "uuid" in tcg_to_uuid_df.columns:
+            if (
+                "tcgplayerProductId" in tcg_to_uuid_df.columns
+                and "uuid" in tcg_to_uuid_df.columns
+            ):
                 tcg_to_uuid_df = tcg_to_uuid_df.with_columns(
                     pl.col("tcgplayerProductId").cast(pl.String).alias("productId_join")
                 )
@@ -763,9 +807,14 @@ class TcgplayerSkusAssembler(Assembler):
 
         if self._tcg_etched_to_uuid_lf is not None:
             tcg_etched_df = self._tcg_etched_to_uuid_lf.collect()
-            if "tcgplayerEtchedProductId" in tcg_etched_df.columns and "uuid" in tcg_etched_df.columns:
+            if (
+                "tcgplayerEtchedProductId" in tcg_etched_df.columns
+                and "uuid" in tcg_etched_df.columns
+            ):
                 tcg_etched_df = tcg_etched_df.with_columns(
-                    pl.col("tcgplayerEtchedProductId").cast(pl.String).alias("productId_join")
+                    pl.col("tcgplayerEtchedProductId")
+                    .cast(pl.String)
+                    .alias("productId_join")
                 )
 
                 etched_joined = flattened.join(
@@ -836,7 +885,8 @@ class TableAssembler:
 
         # Select card columns, excluding normalized and non-CDN fields
         cards_cols = [
-            c for c in cards_df.columns
+            c
+            for c in cards_df.columns
             if c not in CARDS_TABLE_EXCLUDE and not c.startswith("_")
         ]
 
@@ -891,7 +941,8 @@ class TableAssembler:
         if tokens_df is not None and len(tokens_df) > 0:
             token_schema = tokens_df.schema
             token_cols = [
-                c for c in tokens_df.columns
+                c
+                for c in tokens_df.columns
                 if c not in TOKENS_TABLE_EXCLUDE and not c.startswith("_")
             ]
             tokens_for_export = tokens_df.select(token_cols)
@@ -910,7 +961,8 @@ class TableAssembler:
         if sets_df is not None and len(sets_df) > 0:
             sets_schema = sets_df.schema
             sets_cols = [
-                c for c in sets_df.columns
+                c
+                for c in sets_df.columns
                 if c not in SETS_TABLE_EXCLUDE and not c.startswith("_")
             ]
             sets_for_export = sets_df.select(sets_cols)
@@ -931,7 +983,9 @@ class TableAssembler:
         return tables
 
     @staticmethod
-    def build_boosters(booster_configs: dict[str, dict[str, Any]]) -> dict[str, pl.DataFrame]:
+    def build_boosters(
+        booster_configs: dict[str, dict[str, Any]],
+    ) -> dict[str, pl.DataFrame]:
         """
         Build booster configuration tables.
 
@@ -958,25 +1012,31 @@ class TableAssembler:
                     if not isinstance(sheet_data, dict):
                         continue
 
-                    sheets_records.append({
-                        "setCode": set_code,
-                        "boosterName": booster_name,
-                        "sheetName": sheet_name,
-                        "sheetIsFoil": sheet_data.get("foil", False),
-                        "sheetHasBalanceColors": sheet_data.get("balanceColors", False),
-                        "sheetTotalWeight": sheet_data.get("totalWeight", 0),
-                    })
+                    sheets_records.append(
+                        {
+                            "setCode": set_code,
+                            "boosterName": booster_name,
+                            "sheetName": sheet_name,
+                            "sheetIsFoil": sheet_data.get("foil", False),
+                            "sheetHasBalanceColors": sheet_data.get(
+                                "balanceColors", False
+                            ),
+                            "sheetTotalWeight": sheet_data.get("totalWeight", 0),
+                        }
+                    )
 
                     # Parse cards in sheet
                     cards = sheet_data.get("cards", {})
                     for card_uuid, weight in cards.items():
-                        sheet_cards_records.append({
-                            "setCode": set_code,
-                            "boosterName": booster_name,
-                            "sheetName": sheet_name,
-                            "cardUuid": card_uuid,
-                            "cardWeight": weight,
-                        })
+                        sheet_cards_records.append(
+                            {
+                                "setCode": set_code,
+                                "boosterName": booster_name,
+                                "sheetName": sheet_name,
+                                "cardUuid": card_uuid,
+                                "cardWeight": weight,
+                            }
+                        )
 
                 # Parse boosters (contents and weights)
                 boosters = booster_data.get("boosters", [])
@@ -985,26 +1045,208 @@ class TableAssembler:
                         continue
 
                     booster_weight = booster_variant.get("weight", 1)
-                    weights_records.append({
-                        "setCode": set_code,
-                        "boosterName": booster_name,
-                        "boosterIndex": idx,
-                        "boosterWeight": booster_weight,
-                    })
-
-                    contents = booster_variant.get("contents", {})
-                    for sheet_name, picks in contents.items():
-                        contents_records.append({
+                    weights_records.append(
+                        {
                             "setCode": set_code,
                             "boosterName": booster_name,
                             "boosterIndex": idx,
-                            "sheetName": sheet_name,
-                            "sheetPicks": picks,
-                        })
+                            "boosterWeight": booster_weight,
+                        }
+                    )
+
+                    contents = booster_variant.get("contents", {})
+                    for sheet_name, picks in contents.items():
+                        contents_records.append(
+                            {
+                                "setCode": set_code,
+                                "boosterName": booster_name,
+                                "boosterIndex": idx,
+                                "sheetName": sheet_name,
+                                "sheetPicks": picks,
+                            }
+                        )
 
         return {
-            "setBoosterSheets": pl.DataFrame(sheets_records) if sheets_records else pl.DataFrame(),
-            "setBoosterSheetCards": pl.DataFrame(sheet_cards_records) if sheet_cards_records else pl.DataFrame(),
-            "setBoosterContents": pl.DataFrame(contents_records) if contents_records else pl.DataFrame(),
-            "setBoosterContentWeights": pl.DataFrame(weights_records) if weights_records else pl.DataFrame(),
+            "setBoosterSheets": (
+                pl.DataFrame(sheets_records)
+                if sheets_records
+                else pl.DataFrame()
+            ),
+            "setBoosterSheetCards": (
+                pl.DataFrame(sheet_cards_records)
+                if sheet_cards_records
+                else pl.DataFrame()
+            ),
+            "setBoosterContents": (
+                pl.DataFrame(contents_records)
+                if contents_records
+                else pl.DataFrame()
+            ),
+            "setBoosterContentWeights": (
+                pl.DataFrame(weights_records)
+                if weights_records
+                else pl.DataFrame()
+            ),
         }
+
+
+class KeywordsAssembler(Assembler):
+    """Assembles Keywords.json from cached Scryfall catalogs.
+
+    Uses keyword data loaded by GlobalCache during initialization,
+    avoiding API calls during assembly.
+    """
+
+    def build(self) -> dict[str, list[str]]:
+        """Build Keywords data dict.
+
+        Returns:
+            Dict with abilityWords, keywordAbilities, and keywordActions lists.
+        """
+        return self.ctx.keyword_data
+
+
+class CardTypesAssembler(Assembler):
+    """Assembles CardTypes.json from cached Scryfall catalogs and Magic rules.
+
+    Uses card type data loaded by GlobalCache during initialization,
+    avoiding API calls during assembly.
+    """
+
+    def build(self) -> dict[str, dict[str, list[str]]]:
+        """Build CardTypes data dict.
+
+        Returns:
+            Dict mapping card types to their subTypes and superTypes.
+        """
+        cached = self.ctx.card_type_data
+        super_types = self.ctx.super_types
+        planar_types = self.ctx.planar_types
+
+        subtypes = {
+            "artifact": cached.get("artifact", []),
+            "battle": cached.get("battle", []),
+            "conspiracy": [],
+            "creature": cached.get("creature", []),
+            "enchantment": cached.get("enchantment", []),
+            "instant": cached.get("spell", []),
+            "land": cached.get("land", []),
+            "phenomenon": [],
+            "plane": planar_types,
+            "planeswalker": cached.get("planeswalker", []),
+            "scheme": [],
+            "sorcery": cached.get("spell", []),
+            "tribal": [],
+            "vanguard": [],
+        }
+
+        return {
+            card_type: {
+                "subTypes": sorted(sub_list),
+                "superTypes": sorted(super_types),
+            }
+            for card_type, sub_list in subtypes.items()
+        }
+
+
+class AllIdentifiersAssembler(Assembler):
+    """Assembles AllIdentifiers.json - UUID to card/token mapping.
+
+    Uses chunked processing to minimize memory usage when building
+    the UUID -> card/token mapping.
+    """
+
+    CHUNK_SIZE = 5000
+
+    def iter_entries(self) -> Iterator[tuple[str, dict[str, Any]]]:
+        """Yield (uuid, data) pairs for all cards and tokens.
+
+        Memory-efficient iterator that processes data in chunks.
+        """
+        from mtgjson5.utils import LOGGER
+
+        seen_uuids: set[str] = set()
+
+        LOGGER.info("Loading all cards for AllIdentifiers...")
+        cards_lf = self.load_all_cards()
+        cards_df = cards_lf.collect()
+
+        for start in range(0, len(cards_df), self.CHUNK_SIZE):
+            chunk = cards_df.slice(start, self.CHUNK_SIZE)
+            models = CardSet.from_dataframe(chunk)
+            for model in models:
+                uuid = model.uuid  # type: ignore[attr-defined]
+                if uuid in seen_uuids:
+                    continue
+                seen_uuids.add(uuid)
+                yield uuid, model.to_polars_dict(exclude_none=True)
+            del models, chunk
+
+        del cards_df
+
+        LOGGER.info("Loading all tokens for AllIdentifiers...")
+        tokens_lf = self.load_all_tokens()
+        tokens_df = tokens_lf.collect()
+
+        if not tokens_df.is_empty():
+            for start in range(0, len(tokens_df), self.CHUNK_SIZE):
+                chunk = tokens_df.slice(start, self.CHUNK_SIZE)
+                models = CardToken.from_dataframe(chunk)
+                for model in models:
+                    uuid = model.uuid  # type: ignore[attr-defined]
+                    if uuid in seen_uuids:
+                        continue
+                    seen_uuids.add(uuid)
+                    yield uuid, model.to_polars_dict(exclude_none=True)
+                del models, chunk
+
+        del tokens_df
+
+        LOGGER.info(f"Built AllIdentifiers with {len(seen_uuids)} entries")
+
+    def build(self) -> dict[str, dict[str, Any]]:
+        """Build AllIdentifiers data dict.
+
+        Returns:
+            Dict mapping UUID to full card/token data.
+        """
+        return dict(self.iter_entries())
+
+
+class CompiledListAssembler:
+    """Assembles CompiledList.json - sorted list of compiled output files."""
+
+    COMPILED_FILES = [
+        "AllIdentifiers",
+        "AllPrices",
+        "AllPricesToday",
+        "AllPrintings",
+        "AtomicCards",
+        "CardTypes",
+        "CompiledList",
+        "DeckList",
+        "EnumValues",
+        "Keywords",
+        "Legacy",
+        "LegacyAtomic",
+        "Meta",
+        "Modern",
+        "ModernAtomic",
+        "PauperAtomic",
+        "Pioneer",
+        "PioneerAtomic",
+        "SetList",
+        "Standard",
+        "StandardAtomic",
+        "TcgplayerSkus",
+        "Vintage",
+        "VintageAtomic",
+    ]
+
+    def build(self) -> list[str]:
+        """Build CompiledList data.
+
+        Returns:
+            Sorted list of compiled output file names.
+        """
+        return sorted(self.COMPILED_FILES)
