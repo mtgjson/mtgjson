@@ -910,13 +910,19 @@ class TableAssembler:
             )
 
         # cardForeignData - explode list of structs
+        # Note: foreignData struct may contain its own uuid field, so we alias
+        # the card uuid first, then drop any struct uuid after unnest
         if "foreignData" in schema and isinstance(schema["foreignData"], pl.List):
-            tables["cardForeignData"] = (
-                cards_df.select("foreignData")
+            foreign_df = (
+                cards_df.select(pl.col("uuid").alias("_card_uuid"), "foreignData")
                 .filter(pl.col("foreignData").list.len() > 0)
                 .explode("foreignData")
                 .unnest("foreignData")
             )
+            # Drop struct's uuid if present, keep card's uuid
+            if "uuid" in foreign_df.columns:
+                foreign_df = foreign_df.drop("uuid")
+            tables["cardForeignData"] = foreign_df.rename({"_card_uuid": "uuid"})
 
         # cardRulings - explode list of structs
         if "rulings" in schema and isinstance(schema["rulings"], pl.List):
