@@ -415,12 +415,20 @@ def compress_mtgjson_contents_parallel(
         )
 
     if csv_files:
-        LOGGER.info("Creating archive: csv")
-        _compress_directory_python(csv_files, directory.joinpath("csv"))
+        LOGGER.info(f"Creating archive: {MtgjsonStructuresObject().all_csvs_directory}")
+        _compress_directory_python(
+            csv_files,
+            directory.joinpath(MtgjsonStructuresObject().all_csvs_directory),
+        )
 
     if parquet_files:
-        LOGGER.info("Creating archive: parquet")
-        _compress_directory_python(parquet_files, directory.joinpath("parquet"))
+        LOGGER.info(
+            f"Creating archive: {MtgjsonStructuresObject().all_parquets_directory}"
+        )
+        _compress_directory_python(
+            parquet_files,
+            directory.joinpath(MtgjsonStructuresObject().all_parquets_directory),
+        )
 
     LOGGER.info(
         f"Finished parallel compression: {stats['success']}/{stats['total']} files"
