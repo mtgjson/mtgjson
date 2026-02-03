@@ -10,7 +10,9 @@ import logging
 import lzma
 import shutil
 import sqlite3
+import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, BinaryIO
@@ -947,7 +949,38 @@ class PolarsPriceBuilder:
 
         return downloaded
 
-    def sync_local_partitions_to_s3(self, days: int = 90) -> int:
+    def sync_partition_to_s3_with_retry(
+        self, date: str, max_retries: int = 3, base_delay: float = 1.0
+    ) -> bool:
+        """
+        Upload a single date partition to S3 with retry logic.
+
+        Args:
+            date: Date string in YYYY-MM-DD format
+            max_retries: Maximum number of retry attempts (default: 3)
+            base_delay: Base delay in seconds for exponential backoff (default: 1.0)
+
+        Returns:
+            True if upload succeeded
+        """
+        for attempt in range(max_retries + 1):
+            if self.sync_partition_to_s3(date):
+                return True
+
+            if attempt < max_retries:
+                delay = base_delay * (2**attempt)
+                LOGGER.warning(
+                    f"Retry {attempt + 1}/{max_retries} for partition {date} "
+                    f"after {delay}s delay"
+                )
+                time.sleep(delay)
+
+        LOGGER.error(f"Failed to upload partition {date} after {max_retries + 1} attempts")
+        return False
+
+    def sync_local_partitions_to_s3(
+        self, days: int = 90, max_workers: int = 16, max_retries: int = 3
+    ) -> int:
         """
         Upload local partitions to S3 that S3 doesn't have.
 
@@ -956,9 +989,14 @@ class PolarsPriceBuilder:
 
         Args:
             days: Maximum age of partitions to sync (default 90)
+            max_workers: Maximum number of concurrent uploads (default: 16)
+            max_retries: Maximum number of retry attempts per partition (default: 3)
 
         Returns:
             Number of partitions uploaded
+
+        Raises:
+            RuntimeError: If any partitions fail to upload after retries
         """
         config = self._get_s3_config()
         if config is None:
@@ -979,16 +1017,40 @@ class PolarsPriceBuilder:
             LOGGER.info("All local partitions are synced to S3")
             return 0
 
-        LOGGER.info(f"Uploading {len(missing_on_s3)} local partitions to S3")
+        total = len(missing_on_s3)
+        LOGGER.info(f"Uploading {total} local partitions to S3 with {max_workers} workers")
 
         uploaded = 0
-        for date in sorted(missing_on_s3):
-            if self.sync_partition_to_s3(date):
-                uploaded += 1
-                if uploaded % 10 == 0:
-                    LOGGER.info(
-                        f"  Uploaded {uploaded}/{len(missing_on_s3)} partitions..."
-                    )
+        failed_partitions: list[str] = []
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(
+                    self.sync_partition_to_s3_with_retry, date, max_retries
+                ): date
+                for date in missing_on_s3
+            }
+
+            for future in as_completed(futures):
+                date = futures[future]
+                try:
+                    if future.result():
+                        uploaded += 1
+                    else:
+                        failed_partitions.append(date)
+                except Exception as e:
+                    LOGGER.error(f"Unexpected error uploading partition {date}: {e}")
+                    failed_partitions.append(date)
+
+                completed = uploaded + len(failed_partitions)
+                if completed % 10 == 0:
+                    LOGGER.info(f"  Progress: {completed}/{total} partitions processed...")
+
+        if failed_partitions:
+            raise RuntimeError(
+                f"Upload incomplete: {len(failed_partitions)}/{total} partitions failed "
+                f"after retries: {sorted(failed_partitions)}"
+            )
 
         LOGGER.info(f"Uploaded {uploaded} partitions to S3")
         return uploaded
