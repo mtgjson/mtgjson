@@ -4112,7 +4112,7 @@ def build_set_metadata_df(
     release_col = "releasedAt" if "releasedAt" in available_cols else "setReleasedAt"
     base_exprs = [
         pl.col("code").str.to_uppercase().alias("code"),
-        pl.col("name"),
+        pl.col("name").str.strip_chars(),
         pl.col(release_col).alias("releaseDate"),
         pl.col("setType").alias("type"),
         pl.col("digital").alias("isOnlineOnly"),
