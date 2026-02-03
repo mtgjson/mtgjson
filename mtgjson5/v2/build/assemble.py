@@ -927,6 +927,7 @@ class TableAssembler:
                 .unnest("rulings")
                 .drop("source")
                 .rename({"publishedAt": "date", "comment": "text"})
+                .with_columns(pl.col("date").str.to_date("%Y-%m-%d"))
             )
 
         # cardPurchaseUrls - unnest struct
