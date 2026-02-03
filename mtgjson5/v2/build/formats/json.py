@@ -510,7 +510,7 @@ class JsonOutputBuilder:
             results.update(price_results)
 
         # Build TcgplayerSkus.json
-        if should_build("TcgplayerSkus"):
+        if False and should_build("TcgplayerSkus"):
             LOGGER.info("Building TcgplayerSkus.json...")
             tcgplayer_skus = self.write_tcgplayer_skus(
                 output_dir / "TcgplayerSkus.json"

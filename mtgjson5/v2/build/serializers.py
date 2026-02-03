@@ -20,7 +20,11 @@ import polars as pl
 # =============================================================================
 
 def serialize_complex_types(df: pl.DataFrame) -> pl.DataFrame:
-    """Convert List and Struct columns to JSON strings for SQL export."""
+    """Convert List and Struct columns to SQL-compatible strings.
+
+    Lists are converted to comma-separated strings (e.g., "Defender, Flying").
+    Structs are converted to JSON strings with null values removed.
+    """
     schema = df.schema
     struct_cols = [c for c in df.columns if isinstance(schema[c], pl.Struct)]
     list_cols = [c for c in df.columns if isinstance(schema[c], pl.List)]
@@ -31,32 +35,59 @@ def serialize_complex_types(df: pl.DataFrame) -> pl.DataFrame:
     result = df
 
     if struct_cols:
-        struct_exprs = [
-            pl.col(col_name).struct.json_encode().alias(col_name)
-            for col_name in struct_cols
-        ]
-        result = result.with_columns(struct_exprs)
+        for col_name in struct_cols:
+            result = result.with_columns(
+                pl.col(col_name)
+                .map_batches(_struct_to_json_batch, return_dtype=pl.String)
+                .alias(col_name)
+            )
 
     if list_cols:
         for col_name in list_cols:
             result = result.with_columns(
                 pl.col(col_name)
-                .map_batches(_to_json_batch, return_dtype=pl.String)
+                .map_batches(_list_to_csv_batch, return_dtype=pl.String)
                 .alias(col_name)
             )
 
     return result
 
 
-def _to_json_batch(series: pl.Series) -> pl.Series:
-    """Batch convert Series to JSON strings using orjson."""
+def _list_to_csv_batch(series: pl.Series) -> pl.Series:
+    """Batch convert list Series to comma-separated strings."""
     return pl.Series(
         [
-            orjson.dumps(x).decode("utf-8") if x is not None else None
+            ", ".join(str(item) for item in x) if x is not None else None
             for x in series.to_list()
         ],
         dtype=pl.String,
     )
+
+
+def _struct_to_json_batch(series: pl.Series) -> pl.Series:
+    """Batch convert struct Series to JSON strings, dropping null values."""
+    return pl.Series(
+        [
+            _struct_to_json(x) if x is not None else None
+            for x in series.to_list()
+        ],
+        dtype=pl.String,
+    )
+
+
+def _struct_to_json(obj: dict[str, Any]) -> str:
+    """Convert a struct/dict to JSON string, dropping null values recursively."""
+    cleaned = _drop_nulls(obj)
+    return orjson.dumps(cleaned).decode("utf-8")
+
+
+def _drop_nulls(obj: Any) -> Any:
+    """Recursively drop null values from dicts and empty lists."""
+    if isinstance(obj, dict):
+        return {k: _drop_nulls(v) for k, v in obj.items() if v is not None}
+    if isinstance(obj, list):
+        return [_drop_nulls(item) for item in obj]
+    return obj
 
 
 def escape_postgres(value: Any) -> str:
