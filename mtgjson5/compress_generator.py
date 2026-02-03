@@ -18,6 +18,12 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .compiled_classes import MtgjsonStructuresObject
+from .v2.consts import (
+    ALL_CSVS_DIRECTORY,
+    ALL_DECKS_DIRECTORY,
+    ALL_PARQUETS_DIRECTORY,
+    ALL_SETS_DIRECTORY,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -264,30 +270,20 @@ def compress_mtgjson_contents(directory: pathlib.Path, use_python: bool = True) 
         compress_file(compiled_file)
 
     if single_set_files:
-        LOGGER.info(f"Creating archive: {MtgjsonStructuresObject().all_sets_directory}")
-        compress_dir(
-            single_set_files, directory, MtgjsonStructuresObject().all_sets_directory
-        )
+        LOGGER.info(f"Creating archive: {ALL_SETS_DIRECTORY}")
+        compress_dir(single_set_files, directory, ALL_SETS_DIRECTORY)
 
     if deck_files:
-        LOGGER.info(
-            f"Creating archive: {MtgjsonStructuresObject().all_decks_directory}"
-        )
-        compress_dir(
-            deck_files, directory, MtgjsonStructuresObject().all_decks_directory
-        )
+        LOGGER.info(f"Creating archive: {ALL_DECKS_DIRECTORY}")
+        compress_dir(deck_files, directory, ALL_DECKS_DIRECTORY)
 
     if csv_files:
-        LOGGER.info(f"Creating archive: {MtgjsonStructuresObject().all_csvs_directory}")
-        compress_dir(csv_files, directory, MtgjsonStructuresObject().all_csvs_directory)
+        LOGGER.info(f"Creating archive: {ALL_CSVS_DIRECTORY}")
+        compress_dir(csv_files, directory, ALL_CSVS_DIRECTORY)
 
     if parquet_files:
-        LOGGER.info(
-            f"Creating archive: {MtgjsonStructuresObject().all_parquets_directory}"
-        )
-        compress_dir(
-            parquet_files, directory, MtgjsonStructuresObject().all_parquets_directory
-        )
+        LOGGER.info(f"Creating archive: {ALL_PARQUETS_DIRECTORY}")
+        compress_dir(parquet_files, directory, ALL_PARQUETS_DIRECTORY)
 
     LOGGER.info(f"Finished compression on {directory.name}")
 
@@ -399,28 +395,32 @@ def compress_mtgjson_contents_parallel(
 
     # Directory archives
     if set_files:
-        LOGGER.info(f"Creating archive: {MtgjsonStructuresObject().all_sets_directory}")
+        LOGGER.info(f"Creating archive: {ALL_SETS_DIRECTORY}")
         _compress_directory_python(
             set_files,
-            directory.joinpath(MtgjsonStructuresObject().all_sets_directory),
+            directory.joinpath(ALL_SETS_DIRECTORY),
         )
 
     if deck_files:
-        LOGGER.info(
-            f"Creating archive: {MtgjsonStructuresObject().all_decks_directory}"
-        )
+        LOGGER.info(f"Creating archive: {ALL_DECKS_DIRECTORY}")
         _compress_directory_python(
             deck_files,
-            directory.joinpath(MtgjsonStructuresObject().all_decks_directory),
+            directory.joinpath(ALL_DECKS_DIRECTORY),
         )
 
     if csv_files:
-        LOGGER.info("Creating archive: csv")
-        _compress_directory_python(csv_files, directory.joinpath("csv"))
+        LOGGER.info(f"Creating archive: {ALL_CSVS_DIRECTORY}")
+        _compress_directory_python(
+            csv_files,
+            directory.joinpath(ALL_CSVS_DIRECTORY),
+        )
 
     if parquet_files:
-        LOGGER.info("Creating archive: parquet")
-        _compress_directory_python(parquet_files, directory.joinpath("parquet"))
+        LOGGER.info(f"Creating archive: {ALL_PARQUETS_DIRECTORY}")
+        _compress_directory_python(
+            parquet_files,
+            directory.joinpath(ALL_PARQUETS_DIRECTORY),
+        )
 
     LOGGER.info(
         f"Finished parallel compression: {stats['success']}/{stats['total']} files"
