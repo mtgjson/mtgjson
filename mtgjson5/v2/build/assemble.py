@@ -1213,6 +1213,153 @@ class AllIdentifiersAssembler(Assembler):
         return dict(self.iter_entries())
 
 
+class EnumValuesAssembler(Assembler):
+    """Assembles EnumValues.json by collecting unique values from card/set data.
+
+    Mirrors the v1 MtgjsonEnumValuesObject logic using Polars DataFrames
+    instead of iterating over AllPrintings JSON.
+    """
+
+    CARD_FIELDS = [
+        "availability",
+        "boosterTypes",
+        "borderColor",
+        "colorIdentity",
+        "colorIndicator",
+        "colors",
+        "duelDeck",
+        "finishes",
+        "frameEffects",
+        "frameVersion",
+        "language",
+        "layout",
+        "promoTypes",
+        "rarity",
+        "securityStamp",
+        "side",
+        "subtypes",
+        "supertypes",
+        "types",
+        "watermark",
+    ]
+
+    SET_FIELDS = ["type"]
+
+    FOREIGN_DATA_FIELDS = ["language"]
+
+    def _collect_unique(self, series: pl.Series) -> list[str]:
+        """Collect unique non-null string values from a Series, handling lists."""
+        if series.dtype == pl.List(pl.String) or isinstance(series.dtype, pl.List):
+            exploded = series.explode().drop_nulls().cast(pl.String)
+            return sorted(set(exploded.to_list()))
+        return sorted(set(series.drop_nulls().cast(pl.String).to_list()))
+
+    def build(self) -> dict[str, dict[str, list[str]]]:
+        """Build EnumValues data dict.
+
+        Returns:
+            Dict with card, set, foreignData, sealedProduct, deck,
+            keywords, and tcgplayerSkus enum value lists.
+        """
+        from mtgjson5.utils import LOGGER
+
+        result: dict[str, dict[str, list[str]]] = {}
+
+        # --- Card enums ---
+        LOGGER.info("EnumValues: collecting card enums...")
+        cards_lf = self.load_all_cards()
+        tokens_lf = self.load_all_tokens()
+
+        # Combine cards and tokens
+        card_cols = [c for c in self.CARD_FIELDS if c in cards_lf.collect_schema().names()]
+        token_cols = [c for c in self.CARD_FIELDS if c in tokens_lf.collect_schema().names()]
+        all_cols = sorted(set(card_cols) | set(token_cols))
+
+        cards_df = cards_lf.select([c for c in all_cols if c in cards_lf.collect_schema().names()]).collect()
+        tokens_df = tokens_lf.select([c for c in all_cols if c in tokens_lf.collect_schema().names()]).collect()
+
+        card_enums: dict[str, list[str]] = {}
+        for col in all_cols:
+            values: set[str] = set()
+            if col in cards_df.columns:
+                values.update(self._collect_unique(cards_df[col]))
+            if col in tokens_df.columns:
+                values.update(self._collect_unique(tokens_df[col]))
+            card_enums[col] = sorted(values)
+
+        result["card"] = card_enums
+
+        # --- Set enums ---
+        set_enums: dict[str, list[str]] = {}
+        for field in self.SET_FIELDS:
+            values_set: set[str] = set()
+            for meta in self.ctx.set_meta.values():
+                val = meta.get(field)
+                if val is not None:
+                    values_set.add(str(val))
+            set_enums[field] = sorted(values_set)
+
+        # Collect set languages from foreignData
+        languages: set[str] = {"English"}
+        fd_col = "foreignData"
+        if fd_col in cards_lf.collect_schema().names():
+            fd_series = cards_lf.select(fd_col).collect()[fd_col]
+            if isinstance(fd_series.dtype, pl.List):
+                exploded = fd_series.explode().drop_nulls()
+                if isinstance(exploded.dtype, pl.Struct) and "language" in [
+                    f.name for f in exploded.dtype.fields
+                ]:
+                    lang_series = exploded.struct.field("language").drop_nulls()
+                    languages.update(lang_series.to_list())
+        set_enums["languages"] = sorted(languages)
+        result["set"] = set_enums
+
+        # --- ForeignData enums ---
+        foreign_enums: dict[str, list[str]] = {}
+        foreign_languages = languages - {"English"}
+        foreign_enums["language"] = sorted(foreign_languages)
+        result["foreignData"] = foreign_enums
+
+        # --- Sealed product enums ---
+        if self.ctx.sealed_df is not None and not self.ctx.sealed_df.is_empty():
+            sealed_enums: dict[str, list[str]] = {}
+            for field in ("category", "subtype"):
+                if field in self.ctx.sealed_df.columns:
+                    sealed_enums[field] = self._collect_unique(self.ctx.sealed_df[field])
+            if sealed_enums:
+                result["sealedProduct"] = sealed_enums
+
+        # --- Deck enums ---
+        if self.ctx.decks_df is not None and not self.ctx.decks_df.is_empty():
+            deck_enums: dict[str, list[str]] = {}
+            if "type" in self.ctx.decks_df.columns:
+                deck_enums["type"] = self._collect_unique(self.ctx.decks_df["type"])
+            if deck_enums:
+                result["deck"] = deck_enums
+
+        # --- Keywords ---
+        if self.ctx.keyword_data:
+            result["keywords"] = {
+                k: sorted(v) for k, v in self.ctx.keyword_data.items()
+            }
+
+        # --- TCGPlayer SKU enums ---
+        from mtgjson5.v2.providers.tcgplayer.models import (
+            CONDITION_MAP,
+            LANGUAGE_MAP,
+            PRINTING_MAP,
+        )
+
+        result["tcgplayerSkus"] = {
+            "condition": sorted(CONDITION_MAP.values()),
+            "finishes": ["FOIL_ETCHED"],
+            "language": sorted(LANGUAGE_MAP.values()),
+            "printing": sorted(PRINTING_MAP.values()),
+        }
+
+        return result
+
+
 class CompiledListAssembler:
     """Assembles CompiledList.json - sorted list of compiled output files."""
 

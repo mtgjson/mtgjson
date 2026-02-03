@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 import orjson
 
+from mtgjson5.v2.models.compiled import EnumValuesFile
 from mtgjson5.v2.models.files import (
     AllPrintingsFile,
     AtomicCardsFile,
@@ -286,6 +287,23 @@ class JsonOutputBuilder:
         file.write(output_path)
         return file  # type: ignore[return-value]
 
+    def write_enum_values(self, output_path: pathlib.Path) -> EnumValuesFile:
+        """Build EnumValues.json.
+
+        Args:
+            output_path: Output file path
+
+        Returns:
+            EnumValuesFile with enum value mappings
+        """
+        from ..assemble import EnumValuesAssembler
+
+        assembler = EnumValuesAssembler(self.ctx)
+        data = assembler.build()
+        file = EnumValuesFile.with_meta(data, self.ctx.meta)
+        file.write(output_path)
+        return file  # type: ignore[return-value]
+
     def write_all_identifiers(self, output_path: pathlib.Path) -> int:
         """Build AllIdentifiers.json using streaming to minimize memory usage.
 
@@ -510,6 +528,15 @@ class JsonOutputBuilder:
             LOGGER.info("Building CardTypes.json...")
             card_types = self.write_card_types(output_dir / "CardTypes.json")
             results["CardTypes"] = len(card_types.data)
+
+        # Build EnumValues.json
+        if should_build("EnumValues"):
+            LOGGER.info("Building EnumValues.json...")
+            enum_values = self.write_enum_values(output_dir / "EnumValues.json")
+            results["EnumValues"] = sum(
+                len(v) if isinstance(v, list) else sum(len(vv) for vv in v.values())
+                for v in enum_values.data.values()
+            )
 
         # Build AllIdentifiers.json
         if should_build("AllIdentifiers"):

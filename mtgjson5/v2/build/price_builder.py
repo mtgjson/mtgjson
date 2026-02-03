@@ -3,11 +3,13 @@ Polars-based Price Builder for MTGJSON v2.
 """
 
 import asyncio
+import contextlib
 import datetime
 import json
 import logging
 import lzma
 import shutil
+import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -1188,6 +1190,156 @@ class PolarsPriceBuilder:
         """
         self.stream_write_all_prices_json(df.lazy(), path)
 
+    # -----------------------------------------------------------------
+    # SQL format writers
+    # -----------------------------------------------------------------
+
+    _PRICE_SQL_COLUMNS = (
+        '"uuid" TEXT',
+        '"date" TEXT',
+        '"source" TEXT',
+        '"provider" TEXT',
+        '"priceType" TEXT',
+        '"finish" TEXT',
+        '"price" REAL',
+        '"currency" TEXT',
+    )
+
+    _PRICE_INDEXES = (
+        ("uuid", "uuid"),
+        ("date", "date"),
+        ("provider", "provider"),
+    )
+
+    def _prepare_price_df_for_sql(self, df: pl.DataFrame) -> pl.DataFrame:
+        """Rename snake_case columns to camelCase for SQL output."""
+        renames = {c: c for c in df.columns}
+        if "price_type" in df.columns:
+            renames["price_type"] = "priceType"
+        return df.rename({k: v for k, v in renames.items() if k != v})
+
+    def write_prices_sqlite(self, df: pl.DataFrame, path: Path) -> None:
+        """Write price data to a SQLite binary database.
+
+        Creates a ``prices`` table and a ``meta`` table with indexes
+        on uuid, date, and provider.
+        """
+        from mtgjson5.classes import MtgjsonMetaObject
+
+        prepared = self._prepare_price_df_for_sql(df)
+
+        if path.exists():
+            path.unlink()
+
+        conn = sqlite3.connect(str(path))
+        cursor = conn.cursor()
+
+        cols = ", ".join(self._PRICE_SQL_COLUMNS)
+        cursor.execute(f'CREATE TABLE "prices" ({cols})')
+
+        placeholders = ", ".join(["?" for _ in prepared.columns])
+        col_names = ", ".join([f'"{c}"' for c in prepared.columns])
+
+        batch_size = 10_000
+        rows = prepared.rows()
+        for i in range(0, len(rows), batch_size):
+            cursor.executemany(
+                f'INSERT INTO "prices" ({col_names}) VALUES ({placeholders})',
+                rows[i : i + batch_size],
+            )
+
+        for idx_name, col in self._PRICE_INDEXES:
+            with contextlib.suppress(Exception):
+                cursor.execute(
+                    f'CREATE INDEX "idx_prices_{idx_name}" ON "prices" ("{col}")'
+                )
+
+        meta = MtgjsonMetaObject()
+        cursor.execute('CREATE TABLE "meta" ("date" TEXT, "version" TEXT)')
+        cursor.execute(
+            'INSERT INTO "meta" VALUES (?, ?)', (meta.date, meta.version)
+        )
+
+        conn.commit()
+        conn.close()
+        LOGGER.info(f"Wrote {path.name} ({len(prepared):,} rows)")
+
+    def write_prices_sql(self, df: pl.DataFrame, path: Path) -> None:
+        """Write price data as a SQL text dump with INSERT statements."""
+        from mtgjson5.classes import MtgjsonMetaObject
+
+        from .serializers import escape_sqlite
+
+        prepared = self._prepare_price_df_for_sql(df)
+        meta = MtgjsonMetaObject()
+
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(
+                f"-- MTGJSON Price SQL Dump\n"
+                f"-- Generated: {datetime.date.today().isoformat()}\n"
+            )
+            f.write("BEGIN TRANSACTION;\n\n")
+
+            cols = ",\n    ".join(self._PRICE_SQL_COLUMNS)
+            f.write(f'CREATE TABLE IF NOT EXISTS "prices" (\n    {cols}\n);\n\n')
+
+            col_names = ", ".join([f'"{c}"' for c in prepared.columns])
+            for row in prepared.rows():
+                values = ", ".join(escape_sqlite(v) for v in row)
+                f.write(f'INSERT INTO "prices" ({col_names}) VALUES ({values});\n')
+
+            for idx_name, col in self._PRICE_INDEXES:
+                f.write(
+                    f'CREATE INDEX IF NOT EXISTS "idx_prices_{idx_name}" '
+                    f'ON "prices" ("{col}");\n'
+                )
+
+            f.write("\n")
+            f.write('CREATE TABLE IF NOT EXISTS "meta" ("date" TEXT, "version" TEXT);\n')
+            f.write(
+                f"INSERT INTO \"meta\" VALUES ({escape_sqlite(meta.date)}, "
+                f"{escape_sqlite(meta.version)});\n"
+            )
+
+            f.write("\nCOMMIT;\n")
+
+        LOGGER.info(f"Wrote {path.name} ({len(prepared):,} rows)")
+
+    def write_prices_psql(self, df: pl.DataFrame, path: Path) -> None:
+        """Write price data as a PostgreSQL dump with COPY format."""
+        from .serializers import escape_postgres
+
+        prepared = self._prepare_price_df_for_sql(df)
+
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(
+                f"-- MTGJSON Price PostgreSQL Dump\n"
+                f"-- Generated: {datetime.date.today().isoformat()}\n"
+            )
+            f.write("BEGIN;\n\n")
+
+            cols = ",\n    ".join(self._PRICE_SQL_COLUMNS)
+            f.write(f'CREATE TABLE IF NOT EXISTS "prices" (\n    {cols}\n);\n\n')
+
+            col_names = ", ".join([f'"{c}"' for c in prepared.columns])
+            f.write(f'COPY "prices" ({col_names}) FROM stdin;\n')
+
+            for row in prepared.rows():
+                escaped = [escape_postgres(v) for v in row]
+                f.write("\t".join(escaped) + "\n")
+
+            f.write("\\.\n\n")
+
+            for idx_name, col in self._PRICE_INDEXES:
+                f.write(
+                    f'CREATE INDEX IF NOT EXISTS "idx_prices_{idx_name}" '
+                    f'ON "prices" ("{col}");\n'
+                )
+
+            f.write("\nCOMMIT;\n")
+
+        LOGGER.info(f"Wrote {path.name} ({len(prepared):,} rows)")
+
     def get_price_archive_from_s3(self) -> pl.LazyFrame:
         """
         Download price archive from S3 and convert to LazyFrame.
@@ -1455,6 +1607,19 @@ class PolarsPriceBuilder:
         today_prices_path = output_path / "AllPricesToday.json"
         LOGGER.info(f"Streaming AllPricesToday.json to {today_prices_path}")
         self.stream_write_today_prices_json(today_df, today_prices_path)
+
+        # Write SQL formats for AllPricesToday
+        LOGGER.info("Writing AllPricesToday SQL formats")
+        self.write_prices_sqlite(today_df, output_path / "AllPricesToday.sqlite")
+        self.write_prices_sql(today_df, output_path / "AllPricesToday.sql")
+        self.write_prices_psql(today_df, output_path / "AllPricesToday.psql")
+
+        # Write SQL formats for AllPrices
+        LOGGER.info("Writing AllPrices SQL formats")
+        archive_df = archive_lf.collect()
+        self.write_prices_sqlite(archive_df, output_path / "AllPrices.sqlite")
+        self.write_prices_sql(archive_df, output_path / "AllPrices.sql")
+        self.write_prices_psql(archive_df, output_path / "AllPrices.psql")
 
         LOGGER.info("Price build complete")
         return all_prices_path, today_prices_path
