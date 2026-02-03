@@ -71,7 +71,17 @@ class CSVBuilder:
         to match CDN reference. Keeps special token sets like L14, SBRO, WMOM.
         """
         if self.ctx.set_meta:
-            df = pl.DataFrame(list(self.ctx.set_meta.values()))
+            # Explicit schema to avoid type inference issues with mixed None/bool values
+            schema_overrides = {
+                "isOnlineOnly": pl.Boolean,
+                "isFoilOnly": pl.Boolean,
+                "isNonFoilOnly": pl.Boolean,
+                "isForeignOnly": pl.Boolean,
+                "isPartialPreview": pl.Boolean,
+            }
+            df = pl.DataFrame(
+                list(self.ctx.set_meta.values()), schema_overrides=schema_overrides
+            )
             if "type" in df.columns:
                 is_traditional_token = (
                     (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
