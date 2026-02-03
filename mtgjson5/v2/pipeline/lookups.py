@@ -31,30 +31,29 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     # cardParts[2] is always the meld result name
     meld_cards = (
         lf.filter(pl.col("cardParts").is_not_null())
-        .select([
-            "setCode",
-            "faceName",
-            "uuid",
-            pl.col("cardParts").list.get(0).alias("_front1_name"),
-            pl.col("cardParts").list.get(1).alias("_front2_name"),
-            pl.col("cardParts").list.get(2).alias("_result_name"),
-        ])
+        .select(
+            [
+                "setCode",
+                "faceName",
+                "uuid",
+                pl.col("cardParts").list.get(0).alias("_front1_name"),
+                pl.col("cardParts").list.get(1).alias("_front2_name"),
+                pl.col("cardParts").list.get(2).alias("_result_name"),
+            ]
+        )
         .with_columns(
             (pl.col("faceName") == pl.col("_result_name")).alias("_is_result")
         )
     )
 
     # Build name->uuid lookup for all meld cards (unique by setCode + faceName)
-    name_to_uuid = (
-        meld_cards
-        .select(["setCode", "faceName", "uuid"])
-        .unique(subset=["setCode", "faceName"])
+    name_to_uuid = meld_cards.select(["setCode", "faceName", "uuid"]).unique(
+        subset=["setCode", "faceName"]
     )
 
     # For FRONT faces: otherFaceIds = [result_uuid]
     front_other_ids = (
-        meld_cards
-        .filter(~pl.col("_is_result"))
+        meld_cards.filter(~pl.col("_is_result"))
         .select(["setCode", "faceName", "_result_name"])
         .unique()
         .join(
@@ -68,8 +67,7 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     # For RESULT: otherFaceIds = [front1_uuid, front2_uuid]
     result_other_ids = (
-        meld_cards
-        .filter(pl.col("_is_result"))
+        meld_cards.filter(pl.col("_is_result"))
         .select(["setCode", "faceName", "_front1_name", "_front2_name"])
         .unique()
         # Join to get front1 uuid

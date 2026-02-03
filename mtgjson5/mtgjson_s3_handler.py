@@ -136,7 +136,9 @@ class MtgjsonS3Handler:
         :param max_workers: Maximum number of concurrent uploads (default: 16)
         :param max_retries: Maximum number of retry attempts per file (default: 3)
         """
-        files_to_upload = [item for item in directory_path.glob("**/*") if item.is_file()]
+        files_to_upload = [
+            item for item in directory_path.glob("**/*") if item.is_file()
+        ]
         total_files = len(files_to_upload)
         self.logger.info(
             f"Uploading {total_files} files from {directory_path} to {bucket_name} "
