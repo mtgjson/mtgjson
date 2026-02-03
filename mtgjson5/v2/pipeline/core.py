@@ -4238,4 +4238,12 @@ def build_set_metadata_df(
                 set_records.append(new_record)
                 LOGGER.debug(f"Added additional set: {code_upper}")
 
-    return pl.DataFrame(set_records)
+    # Explicit schema to avoid type inference issues with mixed None/bool values
+    schema_overrides = {
+        "isOnlineOnly": pl.Boolean,
+        "isFoilOnly": pl.Boolean,
+        "isNonFoilOnly": pl.Boolean,
+        "isForeignOnly": pl.Boolean,
+        "isPartialPreview": pl.Boolean,
+    }
+    return pl.DataFrame(set_records, schema_overrides=schema_overrides)
