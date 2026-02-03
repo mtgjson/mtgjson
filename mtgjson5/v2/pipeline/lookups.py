@@ -14,72 +14,91 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Add otherFaceIds for meld cards using cardParts column.
 
-    Uses lazy self-join pattern to find UUIDs of related meld cards
-    without any mid-pipeline collects.
+    Meld otherFaceIds rules:
+    - Front faces (side a): otherFaceIds points only to the meld result (side b)
+    - Meld result (side b): otherFaceIds points to both front faces (side a)
 
-    Assumes cardParts column exists (from join_name_data).
+    cardParts format: [front1_name, front2_name, meld_result_name]
+    The 3rd element (index 2) is always the meld result.
 
     Args:
-        lf: LazyFrame with cardParts, name, uuid, setCode, otherFaceIds columns
+        lf: LazyFrame with cardParts, faceName, uuid, setCode, otherFaceIds columns
 
     Returns:
         LazyFrame with meld otherFaceIds updated
     """
-    # Cards with cardParts are meld results - cardParts lists all 3 names in triplet
-    # For each card in a meld triplet, we need UUIDs of the other 2 cards
-
-    # Step 1: Explode cardParts to get (setCode, result_name, meld_name) rows
-    # This gives us all meld card names associated with each result
-    meld_parts = (
+    # Get all meld cards with their role (front vs result)
+    # cardParts[2] is always the meld result name
+    meld_cards = (
         lf.filter(pl.col("cardParts").is_not_null())
-        .select(["setCode", pl.col("name").alias("_result_name"), "cardParts"])
-        .explode("cardParts")
-        .rename({"cardParts": "_meld_name"})
+        .select([
+            "setCode",
+            "faceName",
+            "uuid",
+            pl.col("cardParts").list.get(0).alias("_front1_name"),
+            pl.col("cardParts").list.get(1).alias("_front2_name"),
+            pl.col("cardParts").list.get(2).alias("_result_name"),
+        ])
+        .with_columns(
+            (pl.col("faceName") == pl.col("_result_name")).alias("_is_result")
+        )
     )
 
-    # Step 2: Get name->uuid lookup for all meld cards via semi-join
-    # (cards whose name appears in any cardParts list)
-    meld_uuids = lf.join(
-        meld_parts.select(["setCode", "_meld_name"]).unique(),
-        left_on=["setCode", "name"],
-        right_on=["setCode", "_meld_name"],
-        how="semi",
-    ).select(["setCode", "name", "uuid"])
+    # Build name->uuid lookup for all meld cards (unique by setCode + faceName)
+    name_to_uuid = (
+        meld_cards
+        .select(["setCode", "faceName", "uuid"])
+        .unique(subset=["setCode", "faceName"])
+    )
 
-    # Step 3: For each meld card, find its triplet via the result, then get other UUIDs
-    # card -> (find which result contains this card) -> (get all parts of that result) -> (exclude self)
-    card_to_triplet = (
-        meld_uuids
-        # Find the result that contains this card
+    # For FRONT faces: otherFaceIds = [result_uuid]
+    front_other_ids = (
+        meld_cards
+        .filter(~pl.col("_is_result"))
+        .select(["setCode", "faceName", "_result_name"])
+        .unique()
         .join(
-            meld_parts,
-            left_on=["setCode", "name"],
-            right_on=["setCode", "_meld_name"],
-            how="inner",
-        )
-        .select(["setCode", "name", "_result_name"])
-        # Get all cards in that result's triplet
-        .join(
-            meld_parts.rename({"_meld_name": "_other_name"}),
+            name_to_uuid.rename({"faceName": "_result_name", "uuid": "_result_uuid"}),
             on=["setCode", "_result_name"],
-            how="inner",
-        )
-        # Exclude self
-        .filter(pl.col("name") != pl.col("_other_name"))
-        # Get UUIDs for the other cards
-        .join(
-            meld_uuids.rename({"name": "_other_name", "uuid": "_other_uuid"}),
-            on=["setCode", "_other_name"],
             how="left",
         )
-        # Aggregate other UUIDs per card
-        .group_by(["setCode", "name"])
-        .agg(pl.col("_other_uuid").drop_nulls().alias("_meld_other_uuids"))
+        .group_by(["setCode", "faceName"])
+        .agg(pl.col("_result_uuid").drop_nulls().unique().alias("_meld_other_uuids"))
     )
 
-    # Step 4: Join back and update otherFaceIds for meld cards
+    # For RESULT: otherFaceIds = [front1_uuid, front2_uuid]
+    result_other_ids = (
+        meld_cards
+        .filter(pl.col("_is_result"))
+        .select(["setCode", "faceName", "_front1_name", "_front2_name"])
+        .unique()
+        # Join to get front1 uuid
+        .join(
+            name_to_uuid.rename({"faceName": "_front1_name", "uuid": "_front1_uuid"}),
+            on=["setCode", "_front1_name"],
+            how="left",
+        )
+        # Join to get front2 uuid
+        .join(
+            name_to_uuid.rename({"faceName": "_front2_name", "uuid": "_front2_uuid"}),
+            on=["setCode", "_front2_name"],
+            how="left",
+        )
+        .with_columns(
+            pl.concat_list(["_front1_uuid", "_front2_uuid"])
+            .list.drop_nulls()
+            .list.unique()
+            .alias("_meld_other_uuids")
+        )
+        .select(["setCode", "faceName", "_meld_other_uuids"])
+    )
+
+    # Combine front and result lookups
+    all_meld_other_ids = pl.concat([front_other_ids, result_other_ids])
+
+    # Join back and update otherFaceIds for meld cards
     return (
-        lf.join(card_to_triplet, on=["setCode", "name"], how="left")
+        lf.join(all_meld_other_ids, on=["setCode", "faceName"], how="left")
         .with_columns(
             pl.when(pl.col("_meld_other_uuids").is_not_null())
             .then(pl.col("_meld_other_uuids"))
