@@ -168,7 +168,6 @@ def dispatcher(args: argparse.Namespace) -> None:
                 set_codes = sets_to_build if sets_only else None
                 assemble_json_outputs(
                     ctx,
-                    include_referrals=args.referrals,
                     parallel=True,
                     max_workers=30,
                     set_codes=set_codes,
@@ -196,6 +195,24 @@ def dispatcher(args: argparse.Namespace) -> None:
         else:
             generate_compiled_output_files(args.pretty)
             GitHubMTGSqliteProvider().build_alternative_formats()
+
+    # V2 referral map build (runs after card/export build if --referrals specified)
+    if args.referrals and args.polars:
+        if ctx is None:
+            raise ValueError("PipelineContext not initialized for referral build")
+
+        from mtgjson5.v2.build.context import AssemblyContext
+        from mtgjson5.v2.build.referral_builder import build_and_write_referral_map
+
+        LOGGER.info("Building referral map...")
+        assembly_ctx = AssemblyContext.from_pipeline(ctx)
+        referral_count = build_and_write_referral_map(
+            ctx=ctx,
+            parquet_dir=assembly_ctx.parquet_dir,
+            sealed_df=assembly_ctx.sealed_df,
+            output_path=MtgjsonConfig().output_path,
+        )
+        LOGGER.info(f"Referral map written: {referral_count:,} entries")
 
     # V2 price build (runs after card build if --price-build specified)
     if args.price_build and args.polars:

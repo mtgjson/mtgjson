@@ -75,7 +75,6 @@ def assemble_with_models(
 
 def assemble_json_outputs(
     ctx: PipelineContext,
-    include_referrals: bool = False,
     parallel: bool = True,
     max_workers: int = 30,
     set_codes: list[str] | None = None,
@@ -91,7 +90,6 @@ def assemble_json_outputs(
 
     Args:
         ctx: PipelineContext with processed card data
-        include_referrals: Include referral URL processing (not yet implemented)
         parallel: Use parallel processing for set file generation
         max_workers: Maximum parallel workers
         set_codes: Optional filter for specific set codes
@@ -168,9 +166,6 @@ def assemble_json_outputs(
     deck_list_file = DeckListFile.with_meta(deck_list, assembly_ctx.meta)
     deck_list_file.write(output_path / "DeckList.json", pretty=assembly_ctx.pretty)
     results["DeckList"] = len(deck_list)
-
-    if include_referrals:
-        LOGGER.info("Referral processing requested but delegated to legacy path")
 
     LOGGER.info(f"JSON assembly complete: {sum(results.values())} total records")
     return results
