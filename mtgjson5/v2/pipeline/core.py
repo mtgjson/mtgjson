@@ -4219,6 +4219,9 @@ def build_set_metadata_df(
                     "isOnlineOnly": set_data.get("digital", False),
                     "isFoilOnly": set_data.get("foil_only", False),
                     "isNonFoilOnly": set_data.get("nonfoil_only", False),
+                    "isForeignOnly": (
+                        True if code_upper in constants.FOREIGN_SETS else None
+                    ),
                     "parentCode": (
                         set_data.get("parent_set_code", "").upper()
                         if set_data.get("parent_set_code")
