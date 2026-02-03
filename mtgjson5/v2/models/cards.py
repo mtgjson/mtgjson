@@ -127,9 +127,6 @@ class CardAtomicBase(CardBase):
     # Battle
     defense: str | None = Field(default=None)
 
-    # Un-sets
-    attraction_lights: list[int] | None = Field(default=None, alias="attractionLights")
-
     # Vanguard
     hand: str | None = Field(default=None)
     life: str | None = Field(default=None)
@@ -262,6 +259,9 @@ class CardPrintingBase(CardBase):
     has_foil: bool = Field(alias="hasFoil")
     has_non_foil: bool = Field(alias="hasNonFoil")
     promo_types: list[str] | None = Field(default=None, alias="promoTypes")
+
+    # Un-sets
+    attraction_lights: list[int] | None = Field(default=None, alias="attractionLights")
 
     # Flags
     is_full_art: bool | None = Field(default=None, alias="isFullArt")
