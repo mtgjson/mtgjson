@@ -4180,6 +4180,10 @@ def build_set_metadata_df(
         record["mcmName"] = mcm_data.get("mcmName")
         record["mcmIdExtras"] = ctx.get_mcm_extras_set_id(set_name)
 
+        record["isForeignOnly"] = (
+            True if record.get("code", "") in constants.FOREIGN_SETS else None
+        )
+
         release_date = record.get("releaseDate")
         if release_date:
             build_date = date.today().isoformat()
