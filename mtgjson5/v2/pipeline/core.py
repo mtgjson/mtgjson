@@ -731,7 +731,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                         ]
                     )
                 )
-                .then(pl.col("flavorName"))
+                .then(face_field("flavorName"))
                 .otherwise(pl.lit(None).cast(pl.String))
                 .alias("faceFlavorName"),
                 # Face-aware fields (must have explicit aliases to avoid duplicates)
@@ -817,9 +817,9 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                 pl.col("storySpotlight").alias("isStorySpotlight"),
                 pl.col("reserved").alias("isReserved"),
                 pl.col("digital").alias("isOnlineOnly"),
-                pl.coalesce(pl.col("flavorName"), pl.col("printedName")).alias(
-                    "flavorName"
-                ),
+                pl.coalesce(
+                    face_field("flavorName"), pl.col("printedName")
+                ).alias("flavorName"),
                 pl.col("allParts"),
                 pl.col("lang")
                 .replace_strict(
