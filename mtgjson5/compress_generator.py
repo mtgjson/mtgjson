@@ -19,7 +19,8 @@ import subprocess
 import threading
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import BinaryIO
+from types import TracebackType
+from typing import Any, BinaryIO, Callable, Type
 
 from .compiled_classes import MtgjsonStructuresObject
 from .v2.consts import (
@@ -32,6 +33,7 @@ from .v2.consts import (
 LOGGER = logging.getLogger(__name__)
 
 COMPRESSION_CHUNK_SIZE = 1024 * 1024
+
 
 def _compress_mtgjson_directory(
     files: list[pathlib.Path], directory: pathlib.Path, output_file: str
@@ -144,6 +146,7 @@ def _compress_file_python(file: pathlib.Path) -> list[tuple[bool, str]]:
 
     return results
 
+
 class StreamingCompressor:
     """
     Compresses data streamed via write() to a specific format.
@@ -159,8 +162,9 @@ class StreamingCompressor:
         self.output_path = output_path
         self.fmt = fmt
         self.original_filename = original_filename
-        self._file: BinaryIO | None = None
+        self._file: BinaryIO | io.BufferedIOBase | None = None
         self._lock = threading.Lock()
+        self._buffer = io.BytesIO()
 
     def __enter__(self) -> "StreamingCompressor":
         if self.fmt == "gz":
@@ -170,8 +174,7 @@ class StreamingCompressor:
         elif self.fmt == "xz":
             self._file = lzma.open(self.output_path, "wb", preset=6)
         elif self.fmt == "zip":
-            self._buffer = io.BytesIO()
-            self._file = self._buffer  # type: ignore
+            self._file = self._buffer
         else:
             raise ValueError(f"Unknown format: {self.fmt}")
         return self
@@ -182,7 +185,12 @@ class StreamingCompressor:
             if self._file is not None:
                 self._file.write(data)
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         if self._file is not None:
             if self.fmt == "zip":
                 self._buffer.seek(0)
@@ -218,6 +226,7 @@ def _compress_file_streaming(
         for fmt in formats:
             output_path = pathlib.Path(f"{file}.{fmt}")
             compressor = StreamingCompressor(output_path, fmt, file.name)
+            # pylint: disable=unnecessary-dunder-call
             compressor.__enter__()
             compressors.append(compressor)
 
@@ -277,7 +286,9 @@ def _compress_file_streaming_parallel(
         """Worker thread that compresses chunks from queue."""
         try:
             if fmt == "gz":
-                f_out = gzip.open(output_path, "wb", compresslevel=6)
+                f_out: BinaryIO | io.BufferedIOBase = gzip.open(
+                    output_path, "wb", compresslevel=6
+                )
             elif fmt == "bz2":
                 f_out = bz2.open(output_path, "wb", compresslevel=9)
             elif fmt == "xz":
@@ -414,7 +425,9 @@ def _get_compression_workers() -> int:
     return max(2, min(16, int(cpu_count * 0.75)))
 
 
-def compress_mtgjson_contents(directory: pathlib.Path, use_python: bool = True, streaming: bool = True) -> None:
+def compress_mtgjson_contents(
+    directory: pathlib.Path, use_python: bool = True, streaming: bool = True
+) -> None:
     """
     Compress all files within the MTGJSON output directory.
 
@@ -426,12 +439,12 @@ def compress_mtgjson_contents(directory: pathlib.Path, use_python: bool = True, 
     LOGGER.info(f"Starting compression on {directory.name}")
 
     if use_python and streaming:
-        compress_file = _compress_file_streaming_parallel
+        compress_file: Callable[[pathlib.Path], Any] = _compress_file_streaming_parallel
     elif use_python:
         compress_file = _compress_file_python
     else:
         compress_file = _compress_mtgjson_file
-        
+
     compress_dir = (
         (lambda files, d, name: _compress_directory_python(files, d.joinpath(name)))
         if use_python
@@ -500,9 +513,7 @@ def compress_mtgjson_contents(directory: pathlib.Path, use_python: bool = True, 
 
 
 def compress_files_parallel(
-    files: list[pathlib.Path],
-    max_workers: int | None = None,
-    streaming: bool = True
+    files: list[pathlib.Path], max_workers: int | None = None, streaming: bool = True
 ) -> dict[str, int]:
     """
     Compress multiple files in parallel using ThreadPoolExecutor.
@@ -519,7 +530,7 @@ def compress_files_parallel(
     stats = {"total": len(files), "success": 0, "failed": 0}
 
     if streaming:
-        compress_fn = _compress_file_streaming_parallel
+        compress_fn: Callable[[pathlib.Path], Any] = _compress_file_streaming_parallel
     else:
         compress_fn = _compress_file_python
 
@@ -544,9 +555,7 @@ def compress_files_parallel(
 
 
 def compress_mtgjson_contents_parallel(
-    directory: pathlib.Path,
-    max_workers: int | None = None,
-    streaming: bool = True
+    directory: pathlib.Path, max_workers: int | None = None, streaming: bool = True
 ) -> dict[str, int]:
     """
     Compress all files within the MTGJSON output directory using parallel processing.
