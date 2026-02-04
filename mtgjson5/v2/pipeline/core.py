@@ -3418,6 +3418,31 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
     if set_codes:
         base_lf = base_lf.filter(pl.col("_set_upper").is_in(set_codes))
 
+    # Pattern: "A // B // A" where first and third parts are identical
+    base_lf = (
+        base_lf
+        .with_columns([
+            (pl.col("name").str.count_matches(" // ") + 1).alias("_num_parts"),
+            pl.col("name").str.extract(r"^([^/]+) // ", 1).str.strip_chars().alias("_part0"),
+            pl.col("name").str.extract(r" // ([^/]+) // ", 1).str.strip_chars().alias("_part1"),
+            pl.col("name").str.extract(r" // ([^/]+)$", 1).str.strip_chars().alias("_part2"),
+        ])
+        .with_columns(
+            pl.when(
+                (pl.col("_set_upper") == "TDM")
+                & (pl.col("_num_parts") == 3)
+                & (pl.col("_part0") == pl.col("_part2"))
+                & pl.col("_part1").is_not_null()
+            )
+            .then(
+                pl.concat_str([pl.col("name"), pl.lit(" // "), pl.col("_part1")])
+            )
+            .otherwise(pl.col("name"))
+            .alias("name")
+        )
+        .drop(["_num_parts", "_part0", "_part1", "_part2"])
+    )
+
     english_numbers = (
         base_lf.filter(pl.col("lang") == "en")
         .select(["_set_upper", "collectorNumber"])
