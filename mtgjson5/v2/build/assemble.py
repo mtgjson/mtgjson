@@ -433,7 +433,7 @@ class SetAssembler(Assembler):
         if df.is_empty():
             return []
         models = CardSet.from_dataframe(df)
-        models.sort(key=lambda m: m.uuid if hasattr(m, "uuid") else "")
+        models.sort()
         return [m.to_polars_dict(exclude_none=True) for m in models]
 
     def get_tokens(self, set_code: str) -> list[dict[str, Any]]:
@@ -442,7 +442,7 @@ class SetAssembler(Assembler):
         if df.is_empty():
             return []
         models = CardToken.from_dataframe(df)
-        models.sort(key=lambda m: m.uuid if hasattr(m, "uuid") else "")
+        models.sort()
         result = [m.to_polars_dict(exclude_none=True) for m in models]
 
         # Merge token products from assembly context lookup
