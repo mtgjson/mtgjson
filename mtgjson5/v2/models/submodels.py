@@ -280,6 +280,7 @@ class PriceFormats(TypedDict, total=False):
 class SealedProductCard(TypedDict, total=False):
     """Card in sealed product."""
 
+    finishes: list[str]
     foil: bool
     name: Required[str]
     number: Required[str]
