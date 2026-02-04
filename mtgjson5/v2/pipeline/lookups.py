@@ -21,7 +21,6 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     cardParts format: [front1_name, front2_name, meld_result_name]
     The 3rd element (index 2) is always the meld result.
 
-    Variant handling (fixes #1426):
     Sets like FIN have multiple variants of the same meld triplet with different
     collector numbers (e.g., 99a/100a/99b, 282a/283a/282b). We use a two-pass
     approach:
@@ -61,7 +60,6 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     front_cards = meld_cards.filter(~pl.col("_is_result"))
     result_cards = meld_cards.filter(pl.col("_is_result"))
 
-    # === PASS 1: Number-proximity matching (for variant sets like FIN) ===
     # For FRONT faces: find result card with matching name AND adjacent number base
     front_other_ids_strict = (
         front_cards
@@ -118,7 +116,6 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
         .select(["setCode", "faceName", "_num_base", "_meld_other_uuids"])
     )
 
-    # === PASS 2: Name-only matching (fallback for non-variant sets) ===
     # For FRONT faces: find ANY result card with matching name in the set
     front_other_ids_loose = (
         front_cards
