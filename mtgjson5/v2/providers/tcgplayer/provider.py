@@ -90,7 +90,12 @@ class TcgPlayerClient:
         connector = aiohttp.TCPConnector(limit=CONCURRENT_REQUESTS)
         timeout = aiohttp.ClientTimeout(total=60, connect=10)
         self._session = aiohttp.ClientSession(connector=connector, timeout=timeout)
-        await self.authenticate()
+        try:
+            await self.authenticate()
+        except Exception:
+            # Close session if authentication fails to avoid unclosed connector
+            await self._session.close()
+            raise
         return self
 
     async def __aexit__(self, *args: object) -> None:
