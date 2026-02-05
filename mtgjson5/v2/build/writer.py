@@ -10,10 +10,24 @@ from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.utils import LOGGER
 
 from .context import AssemblyContext
-from .formats import CSVBuilder, JsonOutputBuilder, ParquetBuilder, PostgresBuilder, SQLiteBuilder
+from .formats import (
+    CSVBuilder,
+    JsonOutputBuilder,
+    MySQLBuilder,
+    ParquetBuilder,
+    PostgresBuilder,
+    SQLiteBuilder,
+)
 
 # Type alias for all format builders
-FormatBuilder = Union[JsonOutputBuilder, SQLiteBuilder, PostgresBuilder, CSVBuilder, ParquetBuilder]
+FormatBuilder = Union[
+    JsonOutputBuilder,
+    SQLiteBuilder,
+    MySQLBuilder,
+    PostgresBuilder,
+    CSVBuilder,
+    ParquetBuilder,
+]
 
 
 if TYPE_CHECKING:
@@ -282,8 +296,8 @@ class UnifiedOutputWriter:
                 return sqlite_builder.write()
 
             elif format_type == "sql":
-                sql_builder = SQLiteBuilder(self.ctx)
-                return sql_builder.write_text_dump()
+                mysql_builder = MySQLBuilder(self.ctx)
+                return mysql_builder.write()
 
             elif format_type == "psql":
                 psql_builder = PostgresBuilder(self.ctx)
@@ -305,7 +319,9 @@ class UnifiedOutputWriter:
             LOGGER.error(f"Failed to write {format_type}: {e}")
             return None
 
-    def write_all(self, formats: list[FormatType] | None = None) -> dict[str, Path | None]:
+    def write_all(
+        self, formats: list[FormatType] | None = None
+    ) -> dict[str, Path | None]:
         """
         Write output in multiple formats.
 

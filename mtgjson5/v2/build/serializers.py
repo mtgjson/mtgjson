@@ -119,6 +119,28 @@ def escape_sqlite(value: Any) -> str:
     return "'" + s.replace("'", "''") + "'"
 
 
+def escape_mysql(value: Any) -> str:
+    """Escape value for MySQL INSERT statement."""
+    if value is None:
+        return "NULL"
+    if isinstance(value, bool):
+        return "TRUE" if value else "FALSE"
+    if isinstance(value, int | float):
+        return str(value)
+    s = json.dumps(value) if isinstance(value, list | dict) else str(value)
+    # MySQL uses backslash escaping
+    s = (
+        s.replace("\\", "\\\\")
+        .replace("'", "\\'")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+        .replace("\0", "\\0")
+    )
+    return "'" + s + "'"
+
+
 def batched(iterable: Any, n: int) -> Iterator[list[Any]]:
     """Yield batches of n items."""
     batch: list[Any] = []
