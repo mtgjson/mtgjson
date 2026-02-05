@@ -408,7 +408,7 @@ class DeckListAssembler(Assembler):
         for deck in self.ctx.decks_df.to_dicts():
             set_code = deck.get("setCode", "")
             name = deck.get("name", "")
-            safe_name = "".join(c for c in name if c.isalnum())
+            safe_name = "".join(c for c in name.title() if c.isalnum())
 
             entry = {
                 "code": set_code,
