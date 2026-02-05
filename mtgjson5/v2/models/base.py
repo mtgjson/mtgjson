@@ -8,6 +8,7 @@ import pathlib
 from typing import TYPE_CHECKING, Any, ClassVar, get_args, get_origin
 
 from pydantic import BaseModel
+from typing_extensions import Self
 
 from mtgjson5.v2.consts import (
     ALLOW_IF_FALSEY,
@@ -250,7 +251,7 @@ class PolarsMixin:
         return cls.to_dataframe(instances).lazy()
 
     @classmethod
-    def from_polars_row(cls, row: dict[str, Any]) -> PolarsMixin:
+    def from_polars_row(cls, row: dict[str, Any]) -> Self:
         """Reconstruct model from Polars row dict."""
         converted = cls._from_row_recursive(row, cls)  # type: ignore[arg-type]
         return cls.model_validate(converted)  # type: ignore[attr-defined, no-any-return]
@@ -316,12 +317,12 @@ class PolarsMixin:
         return result
 
     @classmethod
-    def from_dataframe(cls, df: DataFrame) -> list[PolarsMixin]:
+    def from_dataframe(cls, df: DataFrame) -> list[Self]:
         """Reconstruct list of models from DataFrame."""
         return [cls.from_polars_row(row) for row in df.iter_rows(named=True)]
 
     @classmethod
-    def from_lazyframe(cls, lf: LazyFrame) -> list[PolarsMixin]:
+    def from_lazyframe(cls, lf: LazyFrame) -> list[Self]:
         """Reconstruct list of models from LazyFrame."""
         return cls.from_dataframe(lf.collect())
 

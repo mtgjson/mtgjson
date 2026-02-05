@@ -274,7 +274,7 @@ class DeckAssembler(Assembler):
             cards_df = self.load_all_cards().collect()
             models = CardSet.from_dataframe(cards_df)
             self._uuid_index = {
-                m.uuid: m.to_polars_dict(exclude_none=True) for m in models  # type: ignore[attr-defined]
+                m.uuid: m.to_polars_dict(exclude_none=True) for m in models
             }
             del cards_df
 
@@ -282,8 +282,8 @@ class DeckAssembler(Assembler):
             if not tokens_df.is_empty():
                 token_models = CardToken.from_dataframe(tokens_df)
                 for m in token_models:
-                    self._uuid_index[m.uuid] = m.to_polars_dict(exclude_none=True)  # type: ignore[attr-defined]
-                    self._token_uuids.add(m.uuid)  # type: ignore[attr-defined]
+                    self._uuid_index[m.uuid] = m.to_polars_dict(exclude_none=True)
+                    self._token_uuids.add(m.uuid)
             del tokens_df
 
         return self._uuid_index
@@ -433,7 +433,7 @@ class SetAssembler(Assembler):
         if df.is_empty():
             return []
         models = CardSet.from_dataframe(df)
-        models.sort(key=lambda m: m.uuid if hasattr(m, "uuid") else "")
+        models.sort()
         return [m.to_polars_dict(exclude_none=True) for m in models]
 
     def get_tokens(self, set_code: str) -> list[dict[str, Any]]:
@@ -442,7 +442,7 @@ class SetAssembler(Assembler):
         if df.is_empty():
             return []
         models = CardToken.from_dataframe(df)
-        models.sort(key=lambda m: m.uuid if hasattr(m, "uuid") else "")
+        models.sort()
         result = [m.to_polars_dict(exclude_none=True) for m in models]
 
         # Merge token products from assembly context lookup
@@ -1182,7 +1182,7 @@ class AllIdentifiersAssembler(Assembler):
             chunk = cards_df.slice(start, self.CHUNK_SIZE)
             models = CardSet.from_dataframe(chunk)
             for model in models:
-                uuid = model.uuid  # type: ignore[attr-defined]
+                uuid = model.uuid
                 if uuid in seen_uuids:
                     continue
                 seen_uuids.add(uuid)
@@ -1198,14 +1198,14 @@ class AllIdentifiersAssembler(Assembler):
         if not tokens_df.is_empty():
             for start in range(0, len(tokens_df), self.CHUNK_SIZE):
                 chunk = tokens_df.slice(start, self.CHUNK_SIZE)
-                models = CardToken.from_dataframe(chunk)
-                for model in models:
-                    uuid = model.uuid  # type: ignore[attr-defined]
+                token_models = CardToken.from_dataframe(chunk)
+                for token in token_models:
+                    uuid = token.uuid
                     if uuid in seen_uuids:
                         continue
                     seen_uuids.add(uuid)
-                    yield uuid, model.to_polars_dict(exclude_none=True)
-                del models, chunk
+                    yield uuid, token.to_polars_dict(exclude_none=True)
+                del token_models, chunk
 
         del tokens_df
 
