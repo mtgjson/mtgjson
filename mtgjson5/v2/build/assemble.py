@@ -123,6 +123,102 @@ class Assembler:
         """Get metadata for a specific set."""
         return self.ctx.set_meta.get(code, {})
 
+    def build_languages(self, cards: list[dict[str, Any]]) -> list[str]:
+        """Build sorted language list from card foreignData."""
+        languages = {"English"}
+        for card in cards:
+            for fd in card.get("foreignData", []):
+                if fd.get("language"):
+                    languages.add(fd["language"])
+        return sorted(languages)
+
+    def build_minimal_decks(self, set_code: str) -> list[dict[str, Any]] | None:
+        """Build minimal deck references for a set, or None if no decks."""
+        if self.ctx.decks_df is None:
+            return None
+        set_decks = self.ctx.decks_df.filter(pl.col("setCode") == set_code)
+        if len(set_decks) == 0:
+            return None
+        minimal_decks = []
+        for deck in set_decks.to_dicts():
+            minimal_deck: dict[str, Any] = {
+                "code": deck.get("code", set_code),
+                "name": deck.get("name", ""),
+                "type": deck.get("type", ""),
+            }
+            if deck.get("releaseDate"):
+                minimal_deck["releaseDate"] = deck["releaseDate"]
+            sealed_uuids = deck.get("sealedProductUuids")
+            minimal_deck["sealedProductUuids"] = (
+                sealed_uuids if sealed_uuids else None
+            )
+            if deck.get("sourceSetCodes"):
+                minimal_deck["sourceSetCodes"] = deck["sourceSetCodes"]
+            for board in ["mainBoard", "sideBoard"]:
+                cards_list = deck.get(board)
+                if cards_list:
+                    minimal_deck[board] = [
+                        {
+                            k: v
+                            for k, v in c.items()
+                            if k in ("count", "uuid", "isFoil", "isEtched")
+                            and v not in (None, False)
+                        }
+                        for c in cards_list
+                        if isinstance(c, dict)
+                    ]
+                else:
+                    minimal_deck[board] = []
+            # Commander cards: include isEtched if present
+            for board in ["commander", "displayCommander"]:
+                cards_list = deck.get(board)
+                if cards_list:
+                    minimal_deck[board] = [
+                        {
+                            k: v
+                            for k, v in c.items()
+                            if k in ("count", "uuid", "isFoil", "isEtched")
+                            and v not in (None, False)
+                        }
+                        for c in cards_list
+                        if isinstance(c, dict)
+                    ]
+                else:
+                    minimal_deck[board] = []
+            # Other optional lists (tokens, planes, schemes) - no isEtched
+            for board in ["tokens", "planes", "schemes"]:
+                cards_list = deck.get(board)
+                if cards_list:
+                    minimal_deck[board] = [
+                        {
+                            k: v
+                            for k, v in c.items()
+                            if k in ("count", "uuid", "isFoil")
+                            and v not in (None, False)
+                        }
+                        for c in cards_list
+                        if isinstance(c, dict)
+                    ]
+                else:
+                    minimal_deck[board] = []
+            minimal_decks.append(minimal_deck)
+        return minimal_decks
+
+    def build_sealed_products(
+        self, set_code: str
+    ) -> list[dict[str, Any]] | None:
+        """Build sealed product list for a set, or None if no products."""
+        if (
+            self.ctx.sealed_df is None
+            or len(self.ctx.sealed_df.columns) == 0
+        ):
+            return None
+        set_sealed = self.ctx.sealed_df.filter(pl.col("setCode") == set_code)
+        if len(set_sealed) == 0:
+            return None
+        models = SealedProduct.from_dataframe(set_sealed.drop("setCode"))
+        return [m.to_polars_dict(exclude_none=True) for m in models]
+
     def iter_set_codes(self) -> list[str]:
         """Get list of all set codes to include in output.
 
@@ -512,112 +608,23 @@ class SetAssembler(Assembler):
                 set_data[fld] = val
 
         # Languages from foreign data
-        languages = {"English"}
-        for card in cards:
-            for fd in card.get("foreignData", []):
-                if fd.get("language"):
-                    languages.add(fd["language"])
-        set_data["languages"] = sorted(languages)
+        set_data["languages"] = self.build_languages(cards)
 
         # Booster config
         if include_booster and set_code in self.ctx.booster_configs:
             set_data["booster"] = self.ctx.booster_configs[set_code]
 
         # Decks (minimal format)
-        if include_decks and self.ctx.decks_df is not None:
-            set_decks = self.ctx.decks_df.filter(pl.col("setCode") == set_code)
-            if len(set_decks) > 0:
-                minimal_decks = []
-                for deck in set_decks.to_dicts():
-                    minimal_deck = {
-                        "code": deck.get("code", set_code),
-                        "name": deck.get("name", ""),
-                        "type": deck.get("type", ""),
-                    }
-                    if deck.get("releaseDate"):
-                        minimal_deck["releaseDate"] = deck["releaseDate"]
-                    sealed_uuids = deck.get("sealedProductUuids")
-                    minimal_deck["sealedProductUuids"] = (
-                        sealed_uuids if sealed_uuids else None
-                    )
-                    if deck.get("sourceSetCodes"):
-                        minimal_deck["sourceSetCodes"] = deck["sourceSetCodes"]
-                    for board in ["mainBoard", "sideBoard"]:
-                        cards_list = deck.get(board)
-                        if cards_list:
-                            minimal_deck[board] = [
-                                {
-                                    k: v
-                                    for k, v in c.items()
-                                    if k in ("count", "uuid", "isFoil", "isEtched")
-                                    and v not in (None, False)
-                                }
-                                for c in cards_list
-                                if isinstance(c, dict)
-                            ]
-                        else:
-                            minimal_deck[board] = []
-                    # Commander cards: include isEtched if present
-                    commander_list = deck.get("commander")
-                    if commander_list:
-                        minimal_deck["commander"] = [
-                            {
-                                k: v
-                                for k, v in c.items()
-                                if k in ("count", "uuid", "isFoil", "isEtched")
-                                and v not in (None, False)
-                            }
-                            for c in commander_list
-                            if isinstance(c, dict)
-                        ]
-                    else:
-                        minimal_deck["commander"] = []
-                    # displayCommander: use source if present
-                    cards_list = deck.get("displayCommander")
-                    if cards_list:
-                        minimal_deck["displayCommander"] = [
-                            {
-                                k: v
-                                for k, v in c.items()
-                                if k in ("count", "uuid", "isFoil", "isEtched")
-                                and v not in (None, False)
-                            }
-                            for c in cards_list
-                            if isinstance(c, dict)
-                        ]
-                    else:
-                        minimal_deck["displayCommander"] = []
-                    # Other optional lists (tokens, planes, schemes) - no isEtched
-                    for board in ["tokens", "planes", "schemes"]:
-                        cards_list = deck.get(board)
-                        if cards_list:
-                            minimal_deck[board] = [
-                                {
-                                    k: v
-                                    for k, v in c.items()
-                                    if k in ("count", "uuid", "isFoil")
-                                    and v not in (None, False)
-                                }
-                                for c in cards_list
-                                if isinstance(c, dict)
-                            ]
-                        else:
-                            minimal_deck[board] = []
-                    minimal_decks.append(minimal_deck)
-                set_data["decks"] = minimal_decks
+        if include_decks:
+            decks = self.build_minimal_decks(set_code)
+            if decks is not None:
+                set_data["decks"] = decks
 
         # Sealed products
-        if (
-            include_sealed
-            and self.ctx.sealed_df is not None
-            and len(self.ctx.sealed_df.columns) > 0
-        ):
-            set_sealed = self.ctx.sealed_df.filter(pl.col("setCode") == set_code)
-            if len(set_sealed) > 0:
-                models = SealedProduct.from_dataframe(set_sealed.drop("setCode"))
-                set_data["sealedProduct"] = [
-                    m.to_polars_dict(exclude_none=True) for m in models
-                ]
+        if include_sealed:
+            sealed = self.build_sealed_products(set_code)
+            if sealed is not None:
+                set_data["sealedProduct"] = sealed
 
         return set_data
 
@@ -646,7 +653,7 @@ class SetListAssembler(Assembler):
         base_size = meta.get("baseSetSize")
         total_size = meta.get("totalSetSize")
 
-        return {
+        entry: dict[str, Any] = {
             "baseSetSize": base_size if base_size is not None else card_count,
             "code": set_code,
             "isFoilOnly": meta.get("isFoilOnly", False),
@@ -678,6 +685,28 @@ class SetListAssembler(Assembler):
                 if (v := meta.get(k)) is not None and v is not False
             },
         }
+
+        # Languages from foreign data
+        if not df.is_empty():
+            cards = [
+                m.to_polars_dict(exclude_none=True)
+                for m in CardSet.from_dataframe(df)
+            ]
+            entry["languages"] = self.build_languages(cards)
+        else:
+            entry["languages"] = ["English"]
+
+        # Decks (minimal format)
+        decks = self.build_minimal_decks(set_code)
+        if decks is not None:
+            entry["decks"] = decks
+
+        # Sealed products
+        sealed = self.build_sealed_products(set_code)
+        if sealed is not None:
+            entry["sealedProduct"] = sealed
+
+        return entry
 
     def build(self) -> list[dict[str, Any]]:
         """Build all SetList entries."""
