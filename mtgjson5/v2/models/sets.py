@@ -88,6 +88,12 @@ class SetList(PolarsMixin, BaseModel):
     # Languages
     languages: list[str] | None = None
 
+    # Decks and sealed products (included in SetList.json)
+    decks: list[DeckSet] | None = None
+    sealed_product: list[SealedProduct] | None = Field(
+        default=None, alias="sealedProduct"
+    )
+
 
 class MtgSet(SetList):
     """Full set with cards, tokens, decks, etc."""
@@ -95,10 +101,6 @@ class MtgSet(SetList):
     cards: list[CardSet] = Field(default_factory=list)
     tokens: list[CardToken] = Field(default_factory=list)
     booster: dict[str, BoosterConfig] | None = None
-    decks: list[DeckSet] | None = None
-    sealed_product: list[SealedProduct] | None = Field(
-        default=None, alias="sealedProduct"
-    )
 
 
 # =============================================================================
