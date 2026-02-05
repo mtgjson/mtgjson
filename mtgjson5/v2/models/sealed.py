@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from mtgjson5.v2.consts import ALLOW_IF_FALSEY
 
@@ -49,6 +49,18 @@ class SealedProduct(PolarsMixin, BaseModel):
     contents: SealedProductContents | None = None
     identifiers: Identifiers = Field(default_factory=dict)  # type: ignore[assignment]
     purchase_urls: PurchaseUrls = Field(default_factory=dict, alias="purchaseUrls")  # type: ignore[assignment]
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_finishes_from_foil(cls, data: Any) -> Any:
+        """Populate finishes field from foil boolean for sealed product cards."""
+        if isinstance(data, dict) and "contents" in data:
+            contents = data["contents"]
+            if isinstance(contents, dict) and "card" in contents:
+                for card in contents["card"]:
+                    if isinstance(card, dict) and "finishes" not in card:
+                        card["finishes"] = ["foil"] if card.get("foil") else ["nonfoil"]
+        return data
 
 
 class SealedProductAssembler:
@@ -97,6 +109,7 @@ class SealedProductAssembler:
                         number=r["number"],
                         set=r["set"],
                         foil=r.get("foil"),  # type: ignore[typeddict-item]
+                        finishes=["foil"] if r.get("foil") else ["nonfoil"],
                     )
                     for r in type_rows.to_dicts()
                 ]
