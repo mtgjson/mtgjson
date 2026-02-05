@@ -186,7 +186,7 @@ class JsonOutputBuilder:
         for deck_raw in decks_df.to_dicts():
             deck = assembler.build(deck_raw)
 
-            safe_name = "".join(c for c in deck["name"] if c.isalnum())
+            safe_name = "".join(c for c in deck["name"].title() if c.isalnum())
             set_code = deck.get("code", deck_raw.get("setCode", "UNK"))
             filename = f"{safe_name}_{set_code}"
 
