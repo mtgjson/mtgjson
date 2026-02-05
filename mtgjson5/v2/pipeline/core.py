@@ -3189,10 +3189,10 @@ def join_name_data(
         )
 
         # Coalesce: prefer name lookup, fall back to faceName lookup
-        # Only keep cardParts for original meld sets (BRO, EMN) - not reprints
-        meld_original_sets = ["BRO", "EMN", "FIN"]
+        # Keep cardParts for ALL meld layout cards (including reprints)
+        # Fixes: #1425, #1427 - reprints were excluded by set filter
         lf = lf.with_columns(
-            pl.when(pl.col("setCode").is_in(meld_original_sets))
+            pl.when(pl.col("layout") == "meld")
             .then(
                 pl.coalesce(
                     pl.col("cardParts"),

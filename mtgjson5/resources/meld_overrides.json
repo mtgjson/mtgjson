@@ -1,0 +1,38 @@
+{
+  "2a5b16d1-88c5-59d5-b1fb-f077ba0d1e60": {
+    "otherFaceIds": ["e831d957-15cf-5d61-bcd7-87d9c5c77429"]
+  },
+  "37352d29-3bab-5fef-8b0d-8cc80e5d3b2e": {
+    "otherFaceIds": ["e831d957-15cf-5d61-bcd7-87d9c5c77429"]
+  },
+  "e831d957-15cf-5d61-bcd7-87d9c5c77429": {
+    "otherFaceIds": ["2a5b16d1-88c5-59d5-b1fb-f077ba0d1e60", "37352d29-3bab-5fef-8b0d-8cc80e5d3b2e"]
+  },
+  "523b97de-7744-5ca1-adef-818ff02528d1": {
+    "otherFaceIds": ["3b656422-c867-58ea-8c4d-960317d5712f"]
+  },
+  "14d87a06-22b6-575d-8963-9d9868ba3521": {
+    "otherFaceIds": ["3b656422-c867-58ea-8c4d-960317d5712f"]
+  },
+  "3b656422-c867-58ea-8c4d-960317d5712f": {
+    "otherFaceIds": ["523b97de-7744-5ca1-adef-818ff02528d1", "14d87a06-22b6-575d-8963-9d9868ba3521"]
+  },
+  "10e5f45a-743f-514b-9846-297fb997f534": {
+    "otherFaceIds": ["d870de05-4e42-532a-95d9-4e9d5980dfc2"]
+  },
+  "5af57b16-2554-552f-98f5-ad8ed0a51beb": {
+    "otherFaceIds": ["d870de05-4e42-532a-95d9-4e9d5980dfc2"]
+  },
+  "d870de05-4e42-532a-95d9-4e9d5980dfc2": {
+    "otherFaceIds": ["10e5f45a-743f-514b-9846-297fb997f534", "5af57b16-2554-552f-98f5-ad8ed0a51beb"]
+  },
+  "aed50dfb-16cd-54d4-9b02-3daeab2e606a": {
+    "otherFaceIds": ["bd42102d-9ec8-5ddc-81cd-f2ee99c9d5e8"]
+  },
+  "f73959fe-4ed2-5a27-b218-d0979d6b1b75": {
+    "otherFaceIds": ["bd42102d-9ec8-5ddc-81cd-f2ee99c9d5e8"]
+  },
+  "bd42102d-9ec8-5ddc-81cd-f2ee99c9d5e8": {
+    "otherFaceIds": ["aed50dfb-16cd-54d4-9b02-3daeab2e606a", "f73959fe-4ed2-5a27-b218-d0979d6b1b75"]
+  }
+}
