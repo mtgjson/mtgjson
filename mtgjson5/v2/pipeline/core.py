@@ -823,27 +823,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                 pl.col("allParts"),
                 pl.col("lang")
                 .replace_strict(
-                    {
-                        "en": "English",
-                        "es": "Spanish",
-                        "fr": "French",
-                        "de": "German",
-                        "it": "Italian",
-                        "pt": "Portuguese (Brazil)",
-                        "ja": "Japanese",
-                        "ko": "Korean",
-                        "ru": "Russian",
-                        "zhs": "Chinese Simplified",
-                        "zht": "Chinese Traditional",
-                        "he": "Hebrew",
-                        "la": "Latin",
-                        "grc": "Ancient Greek",
-                        "ar": "Arabic",
-                        "sa": "Sanskrit",
-                        "ph": "Phyrexian",
-                    },
-                    default=pl.col("lang"),
-                    return_dtype=pl.String,
+                    LANGUAGE_MAP, default=pl.col("lang"), return_dtype=pl.String
                 )
                 .alias("language"),
             ]
