@@ -15,6 +15,7 @@ on:
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
+    continue-on-error: ${{ github.event_name == 'pull_request' }}
     steps:
       - name: Checkout Repository
         id: checkout-repo
