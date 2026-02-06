@@ -149,6 +149,7 @@ class GlobalCache:
         self.tcg_to_uuid_lf: pl.LazyFrame | None = None
         self.tcg_etched_to_uuid_lf: pl.LazyFrame | None = None
         self.mtgo_to_uuid_lf: pl.LazyFrame | None = None
+        self.scryfall_to_uuid_lf: pl.LazyFrame | None = None
         self.cardmarket_to_uuid_lf: pl.LazyFrame | None = None
         self.uuid_to_oracle_lf: pl.LazyFrame | None = None
 
@@ -251,6 +252,7 @@ class GlobalCache:
             "tcg_to_uuid_lf",
             "tcg_etched_to_uuid_lf",
             "mtgo_to_uuid_lf",
+            "scryfall_to_uuid_lf",
             "cardmarket_to_uuid_lf",
             "uuid_to_oracle_lf",
             "languages_lf",
@@ -407,6 +409,7 @@ class GlobalCache:
             "tcg_to_uuid_lf": "tcg_to_uuid.parquet",
             "tcg_etched_to_uuid_lf": "tcg_etched_to_uuid.parquet",
             "mtgo_to_uuid_lf": "mtgo_to_uuid.parquet",
+            "scryfall_to_uuid_lf": "scryfall_to_uuid.parquet",
             "cardmarket_to_uuid_lf": "cardmarket_to_uuid.parquet",
             "uuid_to_oracle_lf": "uuid_to_oracle.parquet",
             "languages_lf": "languages.parquet",
@@ -637,6 +640,11 @@ class GlobalCache:
         if mtgo_path.exists():
             self.mtgo_to_uuid_lf = pl.scan_parquet(mtgo_path)
             LOGGER.info("Loaded mtgo_to_uuid mapping from cache")
+
+        scryfall_path = self.cache_path / "scryfall_to_uuid.parquet"
+        if scryfall_path.exists():
+            self.scryfall_to_uuid_lf = pl.scan_parquet(scryfall_path)
+            LOGGER.info("Loaded scryfall_to_uuid mapping from cache")
 
     def _load_resources(self) -> None:
         """Load local JSON resource files."""
