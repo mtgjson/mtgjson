@@ -2496,6 +2496,7 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
     - tcg_to_uuid: TCGPlayer product ID -> UUID
     - tcg_etched_to_uuid: TCGPlayer etched product ID -> UUID
     - mtgo_to_uuid: MTGO ID -> UUID
+    - scryfall_to_uuid: Scryfall ID -> UUID
 
     These mappings are used by PriceBuilderContext to map provider IDs to UUIDs.
     """
@@ -2572,6 +2573,32 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
             LOGGER.info(f"Built mtgo_to_uuid mapping: {len(mtgo_df):,} entries")
     except Exception as e:
         LOGGER.warning(f"Failed to build mtgo_to_uuid mapping: {e}")
+
+    # Scryfall ID -> UUID
+    try:
+        scryfall_df = (
+            lf.select(
+                [
+                    pl.col("uuid"),
+                    pl.col("identifiers")
+                    .struct.field("scryfallId")
+                    .alias("scryfallId"),
+                ]
+            )
+            .filter(pl.col("scryfallId").is_not_null())
+            .unique()
+            .collect()
+        )
+        if len(scryfall_df) > 0:
+            scryfall_path = cache_path / "scryfall_to_uuid.parquet"
+            scryfall_df.write_parquet(scryfall_path)
+            if ctx._cache is not None:
+                ctx._cache.scryfall_to_uuid_lf = scryfall_df.lazy()
+            LOGGER.info(
+                f"Built scryfall_to_uuid mapping: {len(scryfall_df):,} entries"
+            )
+    except Exception as e:
+        LOGGER.warning(f"Failed to build scryfall_to_uuid mapping: {e}")
 
 
 def sink_cards(ctx: PipelineContext) -> None:

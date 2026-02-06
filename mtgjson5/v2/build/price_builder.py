@@ -174,22 +174,37 @@ class PriceBuilderContext:
         return result
 
     def _build_scryfall_to_uuid(self) -> dict[str, set[str]]:
-        """Build Scryfall ID -> UUID mapping from cache."""
-        if self._cache is None or self._cache.uuid_cache_lf is None:
+        """Build Scryfall ID -> UUID mapping from pipeline-derived cache."""
+        if self._cache is None:
             return {}
-        df = self._cache.uuid_cache_lf.collect()
-        if df.is_empty():
-            return {}
-        result: dict[str, set[str]] = {}
-        for row in df.iter_rows(named=True):
-            scryfall_id = row.get("scryfallId")
-            uuid = row.get("cachedUuid")
-            if scryfall_id and uuid:
-                if scryfall_id not in result:
-                    result[scryfall_id] = set()
-                result[scryfall_id].add(uuid)
-        return result
 
+        if self._cache.scryfall_to_uuid_lf is not None:
+            df = self._cache.scryfall_to_uuid_lf.collect()
+            if not df.is_empty():
+                result: dict[str, set[str]] = {}
+                for row in df.iter_rows(named=True):
+                    scryfall_id = row.get("scryfallId")
+                    uuid = row.get("uuid")
+                    if scryfall_id and uuid:
+                        if scryfall_id not in result:
+                            result[scryfall_id] = set()
+                        result[scryfall_id].add(uuid)
+                return result
+
+        if self._cache.uuid_cache_lf is not None:
+            df = self._cache.uuid_cache_lf.collect()
+            if not df.is_empty():
+                result = {}
+                for row in df.iter_rows(named=True):
+                    scryfall_id = row.get("scryfallId")
+                    uuid = row.get("cachedUuid")
+                    if scryfall_id and uuid:
+                        if scryfall_id not in result:
+                            result[scryfall_id] = set()
+                        result[scryfall_id].add(uuid)
+                return result
+
+        return {}
 
 class PolarsPriceBuilder:
     """
