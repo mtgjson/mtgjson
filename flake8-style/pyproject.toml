@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "flake8-mtgjson-style"
 version = "1.0.0"
 description = "Flake8 import style plugin for MTGJSON"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [project.entry-points."flake8.extension"]
 IMP = "style_plugin:ImportStyleChecker"

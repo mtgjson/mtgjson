@@ -47,7 +47,8 @@ disable=
     used-before-assignment,
     wrong-import-order,
     wrong-import-position,
-    too-many-positional-arguments
+    too-many-positional-arguments,
+    unidiomatic-typecheck
 
 [REPORTS]
 # Set the output format. Available formats are text, parseable, colorized, json

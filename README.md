@@ -71,7 +71,6 @@ While MTGJSON will work on Windows, Mac, and Linux, we prefer working within the
 
 #### Install Python3
 MTGJSON is built on and tested against a wide range of Python3 versions. Currently, we maintain support for the following versions:
-- Python 3.10
 - Python 3.11
 - Python 3.12
 - Python 3.13
