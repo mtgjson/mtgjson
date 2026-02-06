@@ -807,8 +807,8 @@ class TcgplayerSkusAssembler(Assembler):
             )
             .with_columns(
                 [
-                    pl.col("skuId").cast(pl.String),
-                    pl.col("productId").cast(pl.String),
+                    pl.col("skuId").cast(pl.Int64),
+                    pl.col("productId").cast(pl.Int64),
                 ]
             )
         )
@@ -822,7 +822,7 @@ class TcgplayerSkusAssembler(Assembler):
                 and "uuid" in tcg_to_uuid_df.columns
             ):
                 tcg_to_uuid_df = tcg_to_uuid_df.with_columns(
-                    pl.col("tcgplayerProductId").cast(pl.String).alias("productId_join")
+                    pl.col("tcgplayerProductId").cast(pl.Int64).alias("productId_join")
                 )
 
                 normal_joined = flattened.join(
@@ -842,7 +842,7 @@ class TcgplayerSkusAssembler(Assembler):
             ):
                 tcg_etched_df = tcg_etched_df.with_columns(
                     pl.col("tcgplayerEtchedProductId")
-                    .cast(pl.String)
+                    .cast(pl.Int64)
                     .alias("productId_join")
                 )
 
@@ -880,8 +880,8 @@ class TcgplayerSkusAssembler(Assembler):
                 "condition": row.get("condition", "UNKNOWN"),
                 "language": row.get("language", "UNKNOWN"),
                 "printing": row.get("printing", "UNKNOWN"),
-                "productId": row.get("productId", ""),
-                "skuId": row.get("skuId", ""),
+                "productId": row.get("productId"),
+                "skuId": row.get("skuId"),
             }
 
             if is_etched:
