@@ -16,19 +16,15 @@ In addition to PyCharm, you'll need to install Python 3. We develop actively on 
 - Linux: `sudo apt-get install python3.11`
 - Windows: [Download Python 3](https://www.python.org/downloads/)
 
-### Python venv
+### Setup with uv
 
-If you want to work in a venv, you may follow these commands:
+We use [uv](https://docs.astral.sh/uv/) for dependency management. To get started:
 
-- `python3.11 -m venv venv`
-  - Use another `python` binary to use it's respective version
-- `source venv/bin/activate`
-- `pip install -r requirements.txt`
-- `pip install -r requirements_test.txt`
+- `uv sync --extra dev`
 - `cp mtgjson.properties.example mtgjson5/resources/mtgjson.properties`
 - Fill in your credentials into `mtgjson5/resources/mtgjson.properties`
   - Missing credentials won't fail the run, just extend the generated data
-- `python -m mtgjson5`
+- `uv run python -m mtgjson5`
 
 ## Project Hierarchy
 
@@ -48,9 +44,8 @@ We follow the [black](https://pypi.org/project/black/) style guides, a stricter 
 
 To reformat your code and ensure compatibility with our system, simply run the Tox file found in the repo before you open up a pull request.
 
-- Before running Tox, you'll need to install the requirements
-  - `python3 install -r requirements_test.txt`
-- In PyCharm, simply right click on `tox.ini` and click "Run Tox"
+- Ensure dev dependencies are installed: `uv sync --extra dev`
+- Run tox: `uvx --with tox-uv tox`
 
 You will need to pass all Tox requirements, including the unit tests, for your pull request to be approved.
 

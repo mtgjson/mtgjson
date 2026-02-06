@@ -1,15 +1,20 @@
 FROM python:3.11-slim
 
-WORKDIR /mtgjson
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-COPY ./mtgjson5 ./mtgjson5
-COPY ./requirements.txt ./requirements.txt
+WORKDIR /mtgjson
 
 RUN apt update \
     && apt install -y --no-install-recommends git bzip2 xz-utils zip htop  \
     && apt purge -y --auto-remove \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install -r ./requirements.txt pip
+# Install Python dependencies (cached when only source code changes)
+COPY ./pyproject.toml ./uv.lock ./
+RUN uv sync --no-dev --frozen --no-install-project
 
-ENTRYPOINT ["python3", "-m", "mtgjson5", "--use-envvars"]
+# Copy source and install the project itself
+COPY ./mtgjson5 ./mtgjson5
+RUN uv sync --no-dev --frozen
+
+ENTRYPOINT ["uv", "run", "python3", "-m", "mtgjson5", "--use-envvars"]
