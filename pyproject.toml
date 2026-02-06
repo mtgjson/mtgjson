@@ -93,7 +93,7 @@ dev = [
 environments = ["platform_python_implementation == 'CPython'"]
 
 [tool.setuptools.dynamic]
-version = { attr = "mtgjson5._version.__version__" }
+version = { attr = "mtgjson5.v2._version.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["mtgjson5*"]
