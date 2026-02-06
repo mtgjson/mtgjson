@@ -236,7 +236,7 @@ env_list = ["isort-inplace", "black-inplace", "mypy", "lint", "unit"]
 
 [tool.tox.env_run_base]
 set_env = { PYTHONPATH = "{toxinidir}" }
-deps = []
+extras = ["dev"]
 
 [tool.tox.env.isort-inplace]
 description = "Sort imports"
