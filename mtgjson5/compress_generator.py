@@ -7,6 +7,7 @@ Supports both native Python compression and external tools.
 """
 
 import bz2
+import contextlib
 import gzip
 import io
 import logging
@@ -36,9 +37,7 @@ LOGGER = logging.getLogger(__name__)
 COMPRESSION_CHUNK_SIZE = 1024 * 1024
 
 
-def _compress_mtgjson_directory(
-    files: list[pathlib.Path], directory: pathlib.Path, output_file: str
-) -> None:
+def _compress_mtgjson_directory(files: list[pathlib.Path], directory: pathlib.Path, output_file: str) -> None:
     """
     Create a temporary directory of files to be compressed
     :param files: Files to compress into a single archive
@@ -106,9 +105,8 @@ def _compress_file_python(file: pathlib.Path) -> list[tuple[bool, str]]:
 
     # gzip
     try:
-        with open(file, "rb") as f_in:
-            with gzip.open(f"{file}.gz", "wb", compresslevel=6) as f_out:
-                shutil.copyfileobj(f_in, f_out)
+        with open(file, "rb") as f_in, gzip.open(f"{file}.gz", "wb", compresslevel=6) as f_out:
+            shutil.copyfileobj(f_in, f_out)
         results.append((True, "gzip"))
     except Exception as e:
         LOGGER.error(f"gzip failed for {file.name}: {e}")
@@ -116,9 +114,8 @@ def _compress_file_python(file: pathlib.Path) -> list[tuple[bool, str]]:
 
     # bzip2
     try:
-        with open(file, "rb") as f_in:
-            with bz2.open(f"{file}.bz2", "wb", compresslevel=9) as f_out:
-                shutil.copyfileobj(f_in, f_out)
+        with open(file, "rb") as f_in, bz2.open(f"{file}.bz2", "wb", compresslevel=9) as f_out:
+            shutil.copyfileobj(f_in, f_out)
         results.append((True, "bzip2"))
     except Exception as e:
         LOGGER.error(f"bzip2 failed for {file.name}: {e}")
@@ -126,9 +123,8 @@ def _compress_file_python(file: pathlib.Path) -> list[tuple[bool, str]]:
 
     # xz/lzma
     try:
-        with open(file, "rb") as f_in:
-            with lzma.open(f"{file}.xz", "wb", preset=6) as f_out:
-                shutil.copyfileobj(f_in, f_out)
+        with open(file, "rb") as f_in, lzma.open(f"{file}.xz", "wb", preset=6) as f_out:
+            shutil.copyfileobj(f_in, f_out)
         results.append((True, "xz"))
     except Exception as e:
         LOGGER.error(f"xz failed for {file.name}: {e}")
@@ -136,9 +132,7 @@ def _compress_file_python(file: pathlib.Path) -> list[tuple[bool, str]]:
 
     # zip
     try:
-        with zipfile.ZipFile(
-            f"{file}.zip", "w", zipfile.ZIP_DEFLATED, compresslevel=6
-        ) as zf:
+        with zipfile.ZipFile(f"{file}.zip", "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
             zf.write(file, file.name)
         results.append((True, "zip"))
     except Exception as e:
@@ -195,9 +189,7 @@ class StreamingCompressor:
         if self._file is not None:
             if self.fmt == "zip":
                 self._buffer.seek(0)
-                with zipfile.ZipFile(
-                    self.output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6
-                ) as zf:
+                with zipfile.ZipFile(self.output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
                     zf.writestr(self.original_filename, self._buffer.read())
                 self._buffer.close()
             else:
@@ -250,10 +242,8 @@ def _compress_file_streaming(
     except Exception as e:
         LOGGER.error(f"Streaming compression failed for {file.name}: {e}")
         for compressor in compressors:
-            try:
+            with contextlib.suppress(Exception):
                 compressor.__exit__(None, None, None)
-            except Exception:
-                pass
         results = [(False, fmt) for fmt in formats]
 
     return results
@@ -278,18 +268,14 @@ def _compress_file_streaming_parallel(
         List of (success, format) tuples
     """
     formats = ["gz", "bz2", "xz", "zip"]
-    results: dict[str, bool] = {fmt: True for fmt in formats}
-    queues: dict[str, queue.Queue[bytes | None]] = {
-        fmt: queue.Queue(maxsize=4) for fmt in formats
-    }
+    results: dict[str, bool] = dict.fromkeys(formats, True)
+    queues: dict[str, queue.Queue[bytes | None]] = {fmt: queue.Queue(maxsize=4) for fmt in formats}
 
     def compress_worker(fmt: str, output_path: pathlib.Path, q: queue.Queue) -> None:
         """Worker thread that compresses chunks from queue."""
         try:
             if fmt == "gz":
-                f_out: BinaryIO | io.BufferedIOBase = gzip.open(
-                    output_path, "wb", compresslevel=6
-                )
+                f_out: BinaryIO | io.BufferedIOBase = gzip.open(output_path, "wb", compresslevel=6)
             elif fmt == "bz2":
                 f_out = bz2.open(output_path, "wb", compresslevel=9)
             elif fmt == "xz":
@@ -302,9 +288,7 @@ def _compress_file_streaming_parallel(
                         break
                     buffer.write(chunk)
                 buffer.seek(0)
-                with zipfile.ZipFile(
-                    output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6
-                ) as zf:
+                with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
                     zf.writestr(file.name, buffer.read())
                 buffer.close()
                 return
@@ -406,9 +390,7 @@ def _compress_directory_python(
 
     # zip
     try:
-        with zipfile.ZipFile(
-            f"{output_base}.zip", "w", zipfile.ZIP_DEFLATED, compresslevel=6
-        ) as zf:
+        with zipfile.ZipFile(f"{output_base}.zip", "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
             for f in files:
                 zf.write(f, f"{dir_name}/{f.name}")
         results.append((True, "zip"))
@@ -426,9 +408,7 @@ def _get_compression_workers() -> int:
     return max(2, min(16, int(cpu_count * 0.75)))
 
 
-def compress_mtgjson_contents(
-    directory: pathlib.Path, use_python: bool = True, streaming: bool = True
-) -> None:
+def compress_mtgjson_contents(directory: pathlib.Path, use_python: bool = True, streaming: bool = True) -> None:
     """
     Compress all files within the MTGJSON output directory.
 
@@ -466,11 +446,7 @@ def compress_mtgjson_contents(
         LOGGER.info(f"Compressing {deck_file.name}")
         compress_file(deck_file)
 
-    sql_files = (
-        list(directory.glob("*.sql"))
-        + list(directory.glob("*.sqlite"))
-        + list(directory.glob("*.psql"))
-    )
+    sql_files = list(directory.glob("*.sql")) + list(directory.glob("*.sqlite")) + list(directory.glob("*.psql"))
     for sql_file in sql_files:
         LOGGER.info(f"Compressing {sql_file.name}")
         compress_file(sql_file)
@@ -570,33 +546,19 @@ def compress_mtgjson_contents_parallel(
         Dict with compression statistics
     """
     workers = max_workers or _get_compression_workers()
-    LOGGER.info(
-        f"Starting parallel compression on {directory.name} ({workers} workers)"
-    )
+    LOGGER.info(f"Starting parallel compression on {directory.name} ({workers} workers)")
 
     compiled_names = MtgjsonStructuresObject().get_all_compiled_file_names()
 
-    set_files = [
-        f
-        for f in directory.glob("*.json")
-        if f.stem not in compiled_names and f.stem.isupper()
-    ]
+    set_files = [f for f in directory.glob("*.json") if f.stem not in compiled_names and f.stem.isupper()]
     deck_files = list(directory.joinpath("decks").glob("*.json"))
 
     # SQL files
     sql_dir = directory.joinpath("sql")
     if sql_dir.exists():
-        sql_files = (
-            list(sql_dir.glob("*.sql"))
-            + list(sql_dir.glob("*.sqlite"))
-            + list(sql_dir.glob("*.psql"))
-        )
+        sql_files = list(sql_dir.glob("*.sql")) + list(sql_dir.glob("*.sqlite")) + list(sql_dir.glob("*.psql"))
     else:
-        sql_files = (
-            list(directory.glob("*.sql"))
-            + list(directory.glob("*.sqlite"))
-            + list(directory.glob("*.psql"))
-        )
+        sql_files = list(directory.glob("*.sql")) + list(directory.glob("*.sqlite")) + list(directory.glob("*.psql"))
 
     # CSV files
     csv_files = list(directory.joinpath("csv").glob("*.csv"))
@@ -609,13 +571,9 @@ def compress_mtgjson_contents_parallel(
     if compiled_dir.exists():
         compiled_files = list(compiled_dir.glob("*.json"))
     else:
-        compiled_files = [
-            f for f in directory.glob("*.json") if f.stem in compiled_names
-        ]
+        compiled_files = [f for f in directory.glob("*.json") if f.stem in compiled_names]
 
-    all_files = (
-        set_files + deck_files + sql_files + csv_files + parquet_files + compiled_files
-    )
+    all_files = set_files + deck_files + sql_files + csv_files + parquet_files + compiled_files
 
     stats = compress_files_parallel(all_files, workers, streaming=streaming)
 
@@ -652,7 +610,5 @@ def compress_mtgjson_contents_parallel(
             directory.joinpath(ALL_PARQUETS_DIRECTORY),
         )
 
-    LOGGER.info(
-        f"Finished parallel compression: {stats['success']}/{stats['total']} files"
-    )
+    LOGGER.info(f"Finished parallel compression: {stats['success']}/{stats['total']} files")
     return stats

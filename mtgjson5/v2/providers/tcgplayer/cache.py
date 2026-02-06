@@ -52,9 +52,7 @@ class PartFileManager:
         if not self._buffer:
             return None
 
-        part_path = (
-            self.output_path.parent / f"{self.prefix}_{self._part_counter:04d}.parquet"
-        )
+        part_path = self.output_path.parent / f"{self.prefix}_{self._part_counter:04d}.parquet"
         self._part_counter += 1
 
         pl.DataFrame(

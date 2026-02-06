@@ -2,4 +2,4 @@
 
 from .provider import BulkDataProvider, ScryfallProvider
 
-__all__ = ["ScryfallProvider", "BulkDataProvider"]
+__all__ = ["BulkDataProvider", "ScryfallProvider"]

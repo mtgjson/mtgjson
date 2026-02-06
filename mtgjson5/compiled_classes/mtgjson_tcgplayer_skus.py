@@ -43,13 +43,9 @@ class MtgjsonTcgplayerSkusObject(JsonObject):
                 normal_keys: set[str] = tcg_normal_to_mtgjson_map.get(product_id, set())
                 etched_keys: set[str] = tcg_etched_to_mtgjson_map.get(product_id, set())
                 for normal_key in normal_keys:
-                    self.enhanced_tcgplayer_skus[normal_key].extend(
-                        TCGPlayerProvider().convert_sku_data_enum(product)
-                    )
+                    self.enhanced_tcgplayer_skus[normal_key].extend(TCGPlayerProvider().convert_sku_data_enum(product))
                 for etched_key in etched_keys:
-                    self.enhanced_tcgplayer_skus[etched_key].extend(
-                        TCGPlayerProvider().convert_sku_data_enum(product)
-                    )
+                    self.enhanced_tcgplayer_skus[etched_key].extend(TCGPlayerProvider().convert_sku_data_enum(product))
 
     def to_json(self) -> dict[str, list[dict[str, int | str]]]:
         """

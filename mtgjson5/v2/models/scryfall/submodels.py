@@ -7,14 +7,7 @@ For validated parsing, use the Pydantic models with TypeAdapters.
 
 from __future__ import annotations
 
-import sys
-
-if sys.version_info >= (3, 11):
-    from typing import Literal, Required, TypedDict
-else:
-    from typing import Literal, TypedDict
-
-    from typing_extensions import Required
+from typing import Literal, Required, TypedDict
 
 from .literals import (
     BorderColor,

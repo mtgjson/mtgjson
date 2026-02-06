@@ -5,10 +5,9 @@ MTGJSON base classes and mixins.
 from __future__ import annotations
 
 import pathlib
-from typing import TYPE_CHECKING, Any, ClassVar, get_args, get_origin
+from typing import TYPE_CHECKING, Any, ClassVar, Self, get_args, get_origin
 
 from pydantic import BaseModel
-from typing_extensions import Self
 
 from mtgjson5.v2.consts import (
     ALLOW_IF_FALSEY,
@@ -145,9 +144,7 @@ class PolarsMixin:
         result: dict[str, Any] = {}
         items = list(type(instance).model_fields.items())
         if sort_keys:
-            items = sorted(
-                items, key=lambda x: (x[1].alias or x[0]) if use_alias else x[0]
-            )
+            items = sorted(items, key=lambda x: (x[1].alias or x[0]) if use_alias else x[0])
 
         for field_name, info in items:
             key = (info.alias or field_name) if use_alias else field_name
@@ -181,12 +178,7 @@ class PolarsMixin:
                 elif value or field_name in cls._allow_if_falsey or not exclude_none:
                     result[key] = dict(sorted(value.items())) if sort_keys else value
             elif isinstance(value, list):
-                if (
-                    not value
-                    and exclude_none
-                    and key in OMIT_EMPTY_LIST_FIELDS
-                    and not keep_empty_lists
-                ):
+                if not value and exclude_none and key in OMIT_EMPTY_LIST_FIELDS and not keep_empty_lists:
                     continue
                 if value and isinstance(value[0], BaseModel):
                     result[key] = [
@@ -201,11 +193,7 @@ class PolarsMixin:
                         for v in value
                     ]
                 elif value and isinstance(value[0], dict):
-                    sorted_list = (
-                        [dict(sorted(v.items())) for v in value]
-                        if sort_keys
-                        else list(value)
-                    )
+                    sorted_list = [dict(sorted(v.items())) for v in value] if sort_keys else list(value)
                     if key == "rulings":
                         sorted_list = sorted(
                             sorted_list,
@@ -213,9 +201,7 @@ class PolarsMixin:
                         )
                     result[key] = sorted_list
                 else:
-                    result[key] = (
-                        cls._sort_list(key, value) if sort_lists else list(value)
-                    )
+                    result[key] = cls._sort_list(key, value) if sort_lists else list(value)
             else:
                 if exclude_none and value is False and key not in cls._allow_if_falsey:
                     continue
@@ -257,13 +243,9 @@ class PolarsMixin:
         return cls.model_validate(converted)  # type: ignore[attr-defined, no-any-return]
 
     @classmethod
-    def _from_row_recursive(
-        cls, row: dict[str, Any], model: type[BaseModel]
-    ) -> dict[str, Any]:
+    def _from_row_recursive(cls, row: dict[str, Any], model: type[BaseModel]) -> dict[str, Any]:
         """Recursively convert row dict to model-compatible dict."""
-        alias_map = {
-            (info.alias or name): name for name, info in model.model_fields.items()
-        }
+        alias_map = {(info.alias or name): name for name, info in model.model_fields.items()}
         result = {}
 
         for key, value in row.items():
@@ -289,7 +271,9 @@ class PolarsMixin:
                     result[field_name] = cls._from_row_recursive(value, annotation)
                 elif TypedDictUtils.is_typeddict(annotation):
                     result[field_name] = TypedDictUtils.apply_aliases(
-                        annotation, value, TYPEDDICT_FIELD_ALIASES  # type: ignore[arg-type]
+                        annotation,  # type: ignore[arg-type]
+                        value,
+                        TYPEDDICT_FIELD_ALIASES,
                     )
                 else:
                     result[field_name] = value
@@ -302,10 +286,7 @@ class PolarsMixin:
                         ]
                     elif TypedDictUtils.is_typeddict(inner):
                         result[field_name] = [  # type: ignore[assignment]
-                            TypedDictUtils.apply_aliases(
-                                inner, v, TYPEDDICT_FIELD_ALIASES
-                            )
-                            for v in value
+                            TypedDictUtils.apply_aliases(inner, v, TYPEDDICT_FIELD_ALIASES) for v in value
                         ]
                     else:
                         result[field_name] = value  # type: ignore[assignment]
@@ -350,9 +331,7 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
         return {"date": date.today().isoformat(), "version": "5.3.0"}
 
     @classmethod
-    def with_meta(
-        cls, data: Any, meta: dict[str, str] | None = None
-    ) -> MtgjsonFileBase:
+    def with_meta(cls, data: Any, meta: dict[str, str] | None = None) -> MtgjsonFileBase:
         """Create file with auto-generated meta if not provided."""
         if meta is None:
             meta = cls.make_meta()
@@ -364,11 +343,7 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
             raise ImportError("orjson required")
         opts = orjson.OPT_SORT_KEYS | (orjson.OPT_INDENT_2 if pretty else 0)
         with path.open("wb") as f:
-            f.write(
-                orjson.dumps(
-                    self.model_dump(by_alias=True, exclude_none=True), option=opts
-                )
-            )
+            f.write(orjson.dumps(self.model_dump(by_alias=True, exclude_none=True), option=opts))
 
     @classmethod
     def read(cls, path: pathlib.Path) -> MtgjsonFileBase:
@@ -379,9 +354,7 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
             return cls.model_validate(orjson.loads(f.read()))
 
     @classmethod
-    def write_all_schemas(
-        cls, output_dir: pathlib.Path, pretty: bool = True
-    ) -> list[pathlib.Path]:
+    def write_all_schemas(cls, output_dir: pathlib.Path, pretty: bool = True) -> list[pathlib.Path]:
         """Write JSON schemas for this file type and all nested models.
 
         Args:
@@ -419,9 +392,7 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
                 import json
 
                 with def_path.open("w", encoding="utf-8") as f:
-                    json.dump(
-                        standalone, f, indent=2 if pretty else None, sort_keys=True
-                    )
+                    json.dump(standalone, f, indent=2 if pretty else None, sort_keys=True)
             written.append(def_path)
 
         return written
@@ -431,9 +402,7 @@ class RecordFileBase(MtgjsonFileBase):
     """Base for files with data: Record<string, T> structure."""
 
     @classmethod
-    def from_items(
-        cls, items: dict[str, Any], meta: dict[str, str] | None = None
-    ) -> RecordFileBase:
+    def from_items(cls, items: dict[str, Any], meta: dict[str, str] | None = None) -> RecordFileBase:
         """Create file from dictionary items."""
         return cls.with_meta(items, meta)  # type: ignore[return-value]
 
@@ -442,8 +411,6 @@ class ListFileBase(MtgjsonFileBase):
     """Base for files with data: T[] structure."""
 
     @classmethod
-    def from_items(
-        cls, items: list[Any], meta: dict[str, str] | None = None
-    ) -> ListFileBase:
+    def from_items(cls, items: list[Any], meta: dict[str, str] | None = None) -> ListFileBase:
         """Create file from list items."""
         return cls.with_meta(items, meta)  # type: ignore[return-value]

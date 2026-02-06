@@ -1,7 +1,7 @@
 """Scryfall data models and schemas."""
 
 from datetime import date
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     import polars as pl
 
 
-class Color(str, Enum):
+class Color(StrEnum):
     """Magic color symbols."""
 
     WHITE = "W"
@@ -21,7 +21,7 @@ class Color(str, Enum):
     GREEN = "G"
 
 
-class Rarity(str, Enum):
+class Rarity(StrEnum):
     """Card rarity levels."""
 
     COMMON = "common"
@@ -32,7 +32,7 @@ class Rarity(str, Enum):
     BONUS = "bonus"
 
 
-class BorderColor(str, Enum):
+class BorderColor(StrEnum):
     """Physical card border colors."""
 
     BLACK = "black"
@@ -42,7 +42,7 @@ class BorderColor(str, Enum):
     GOLD = "gold"
 
 
-class Layout(str, Enum):
+class Layout(StrEnum):
     """Card layout types determining face structure and rendering."""
 
     NORMAL = "normal"
@@ -71,7 +71,7 @@ class Layout(str, Enum):
     REVERSIBLE_CARD = "reversible_card"
 
 
-class Frame(str, Enum):
+class Frame(StrEnum):
     """Card frame versions by year of introduction."""
 
     FRAME_1993 = "1993"
@@ -81,7 +81,7 @@ class Frame(str, Enum):
     FUTURE = "future"
 
 
-class SecurityStamp(str, Enum):
+class SecurityStamp(StrEnum):
     """Holographic security stamp shapes."""
 
     OVAL = "oval"
@@ -92,7 +92,7 @@ class SecurityStamp(str, Enum):
     HEART = "heart"
 
 
-class ImageStatus(str, Enum):
+class ImageStatus(StrEnum):
     """Scryfall image availability status."""
 
     MISSING = "missing"
@@ -101,7 +101,7 @@ class ImageStatus(str, Enum):
     HIGHRES_SCAN = "highres_scan"
 
 
-class Legality(str, Enum):
+class Legality(StrEnum):
     """Format legality status values."""
 
     LEGAL = "legal"
@@ -110,7 +110,7 @@ class Legality(str, Enum):
     BANNED = "banned"
 
 
-class Finish(str, Enum):
+class Finish(StrEnum):
     """Physical card finish types."""
 
     FOIL = "foil"
@@ -118,7 +118,7 @@ class Finish(str, Enum):
     ETCHED = "etched"
 
 
-class Game(str, Enum):
+class Game(StrEnum):
     """Game platforms where a card exists."""
 
     PAPER = "paper"
@@ -126,7 +126,7 @@ class Game(str, Enum):
     MTGO = "mtgo"
 
 
-class Component(str, Enum):
+class Component(StrEnum):
     """Role a related card plays in a relationship."""
 
     TOKEN = "token"
@@ -469,10 +469,7 @@ class CardFace(BaseModel):
     )
     colors: list[Color] | None = Field(
         default=None,
-        description=(
-            "This face's colors, if the game defines colors for the individual "
-            "face of this card."
-        ),
+        description=("This face's colors, if the game defines colors for the individual face of this card."),
     )
     color_indicator: list[Color] | None = Field(
         default=None,
@@ -480,16 +477,12 @@ class CardFace(BaseModel):
     )
     power: str | None = Field(
         default=None,
-        description=(
-            "This face's power, if any. Note that some cards have powers that "
-            "are not numeric, such as *."
-        ),
+        description=("This face's power, if any. Note that some cards have powers that are not numeric, such as *."),
     )
     toughness: str | None = Field(
         default=None,
         description=(
-            "This face's toughness, if any. Note that some cards have toughnesses "
-            "that are not numeric, such as *."
+            "This face's toughness, if any. Note that some cards have toughnesses that are not numeric, such as *."
         ),
     )
     defense: str | None = Field(
@@ -521,17 +514,11 @@ class CardFace(BaseModel):
     )
     artist: str | None = Field(
         default=None,
-        description=(
-            "The name of the illustrator of this card face. Newly spoiled cards "
-            "may not have this field yet."
-        ),
+        description=("The name of the illustrator of this card face. Newly spoiled cards may not have this field yet."),
     )
     artist_id: UUID | None = Field(
         default=None,
-        description=(
-            "The ID of the illustrator of this card face. Newly spoiled cards "
-            "may not have this field yet."
-        ),
+        description=("The ID of the illustrator of this card face. Newly spoiled cards may not have this field yet."),
     )
     watermark: str | None = Field(
         default=None,
@@ -635,10 +622,7 @@ class RelatedCard(BaseModel):
         description="The type line of this card.",
     )
     uri: HttpUrl = Field(
-        description=(
-            "A URI where you can retrieve a full object describing this card "
-            "on Scryfall's API."
-        ),
+        description=("A URI where you can retrieve a full object describing this card on Scryfall's API."),
     )
 
 
@@ -674,21 +658,15 @@ class ScryfallCard(BaseModel):
     )
     multiverse_ids: list[int] | None = Field(
         default=None,
-        description=(
-            "This card's multiverse IDs on Gatherer, if any, as an array of integers."
-        ),
+        description=("This card's multiverse IDs on Gatherer, if any, as an array of integers."),
     )
     mtgo_id: int | None = Field(
         default=None,
-        description=(
-            "This card's Magic Online ID (also known as the Catalog ID), if any."
-        ),
+        description=("This card's Magic Online ID (also known as the Catalog ID), if any."),
     )
     mtgo_foil_id: int | None = Field(
         default=None,
-        description=(
-            "This card's foil Magic Online ID (also known as the Catalog ID), if any."
-        ),
+        description=("This card's foil Magic Online ID (also known as the Catalog ID), if any."),
     )
     tcgplayer_id: int | None = Field(
         default=None,
@@ -718,9 +696,7 @@ class ScryfallCard(BaseModel):
         description="A language code for this printing.",
     )
     prints_search_uri: HttpUrl = Field(
-        description=(
-            "A link to where you can begin paginating all re/prints for this card on Scryfall's API."
-        ),
+        description=("A link to where you can begin paginating all re/prints for this card on Scryfall's API."),
     )
     rulings_uri: HttpUrl = Field(
         description="A link to this card's rulings list on Scryfall's API.",
@@ -742,9 +718,7 @@ class ScryfallCard(BaseModel):
         description="An array of Card Face objects, if this card is multifaced.",
     )
     cmc: float = Field(
-        description=(
-            "The card's mana value. Note that some funny cards have fractional mana costs."
-        ),
+        description=("The card's mana value. Note that some funny cards have fractional mana costs."),
     )
     color_identity: list[Color] = Field(
         description="This card's color identity.",
@@ -767,9 +741,7 @@ class ScryfallCard(BaseModel):
     )
     edhrec_rank: int | None = Field(
         default=None,
-        description=(
-            "This card's overall rank/popularity on EDHREC. Not all cards are ranked."
-        ),
+        description=("This card's overall rank/popularity on EDHREC. Not all cards are ranked."),
     )
     game_changer: bool | None = Field(
         default=None,
@@ -777,14 +749,10 @@ class ScryfallCard(BaseModel):
     )
     hand_modifier: str | None = Field(
         default=None,
-        description=(
-            "This card's hand modifier, if it is Vanguard card. This value will contain a delta, such as -1."
-        ),
+        description=("This card's hand modifier, if it is Vanguard card. This value will contain a delta, such as -1."),
     )
     keywords: list[str] = Field(
-        description=(
-            "An array of keywords that this card uses, such as 'Flying' and 'Cumulative upkeep'."
-        ),
+        description=("An array of keywords that this card uses, such as 'Flying' and 'Cumulative upkeep'."),
     )
     layout: Layout = Field(
         description="A code for this card's layout.",
@@ -797,15 +765,11 @@ class ScryfallCard(BaseModel):
     )
     life_modifier: str | None = Field(
         default=None,
-        description=(
-            "This card's life modifier, if it is Vanguard card. This value will contain a delta, such as +2."
-        ),
+        description=("This card's life modifier, if it is Vanguard card. This value will contain a delta, such as +2."),
     )
     loyalty: str | None = Field(
         default=None,
-        description=(
-            "This loyalty if any. Note that some cards have loyalties that are not numeric, such as X."
-        ),
+        description=("This loyalty if any. Note that some cards have loyalties that are not numeric, such as X."),
     )
     mana_cost: str | None = Field(
         default=None,
@@ -824,15 +788,11 @@ class ScryfallCard(BaseModel):
     )
     penny_rank: int | None = Field(
         default=None,
-        description=(
-            "This card's rank/popularity on Penny Dreadful. Not all cards are ranked."
-        ),
+        description=("This card's rank/popularity on Penny Dreadful. Not all cards are ranked."),
     )
     power: str | None = Field(
         default=None,
-        description=(
-            "This card's power, if any. Note that some cards have powers that are not numeric, such as *."
-        ),
+        description=("This card's power, if any. Note that some cards have powers that are not numeric, such as *."),
     )
     produced_mana: list[Color] | None = Field(
         default=None,
@@ -853,9 +813,7 @@ class ScryfallCard(BaseModel):
 
     artist: str | None = Field(
         default=None,
-        description=(
-            "The name of the illustrator of this card. Newly spoiled cards may not have this field yet."
-        ),
+        description=("The name of the illustrator of this card. Newly spoiled cards may not have this field yet."),
     )
     artist_ids: list[UUID] | None = Field(
         default=None,
@@ -872,9 +830,7 @@ class ScryfallCard(BaseModel):
         description="Whether this card is found in boosters.",
     )
     border_color: BorderColor = Field(
-        description=(
-            "This card's border color: black, white, borderless, silver, or gold."
-        ),
+        description=("This card's border color: black, white, borderless, silver, or gold."),
     )
     card_back_id: UUID = Field(
         description="The Scryfall ID for the card back design present on this card.",
@@ -886,9 +842,7 @@ class ScryfallCard(BaseModel):
     )
     content_warning: bool | None = Field(
         default=None,
-        description=(
-            "True if you should consider avoiding use of this print downstream."
-        ),
+        description=("True if you should consider avoiding use of this print downstream."),
     )
     digital: bool = Field(
         description="True if this card was only released in a video game.",
@@ -900,9 +854,7 @@ class ScryfallCard(BaseModel):
     )
     flavor_name: str | None = Field(
         default=None,
-        description=(
-            "The just-for-fun name printed on the card (such as for Godzilla series cards)."
-        ),
+        description=("The just-for-fun name printed on the card (such as for Godzilla series cards)."),
     )
     flavor_text: str | None = Field(
         default=None,
@@ -919,9 +871,7 @@ class ScryfallCard(BaseModel):
         description="True if this card's artwork is larger than normal.",
     )
     games: list[Game] | None = Field(
-        description=(
-            "A list of games that this card print is available in, paper, arena, and/or mtgo."
-        ),
+        description=("A list of games that this card print is available in, paper, arena, and/or mtgo."),
     )
     highres_image: bool = Field(
         description="True if this card's imagery is high resolution.",
@@ -945,9 +895,7 @@ class ScryfallCard(BaseModel):
         description="True if this card is oversized.",
     )
     prices: Prices = Field(
-        description=(
-            "An object containing daily price information for this card, if any is available."
-        ),
+        description=("An object containing daily price information for this card, if any is available."),
     )
     printed_name: str | None = Field(
         default=None,
@@ -966,9 +914,7 @@ class ScryfallCard(BaseModel):
     )
     promo_types: list[str] | None = Field(
         default=None,
-        description=(
-            "An array of strings describing what categories of promo cards this card falls into."
-        ),
+        description=("An array of strings describing what categories of promo cards this card falls into."),
     )
     purchase_uris: PurchaseUris | None = Field(
         default=None,
@@ -977,14 +923,10 @@ class ScryfallCard(BaseModel):
         ),
     )
     rarity: Rarity = Field(
-        description=(
-            "This card's rarity. One of common, uncommon, rare, special, mythic, or bonus."
-        ),
+        description=("This card's rarity. One of common, uncommon, rare, special, mythic, or bonus."),
     )
     related_uris: RelatedUris = Field(
-        description=(
-            "An object providing URIs to this card's listing on other Magic: The Gathering online resources."
-        ),
+        description=("An object providing URIs to this card's listing on other Magic: The Gathering online resources."),
     )
     released_at: date = Field(
         description="The date this card was first released.",
@@ -999,9 +941,7 @@ class ScryfallCard(BaseModel):
         description="This card's full set name.",
     )
     set_search_uri: HttpUrl = Field(
-        description=(
-            "A link to where you can begin paginating this card's set on the Scryfall API."
-        ),
+        description=("A link to where you can begin paginating this card's set on the Scryfall API."),
     )
     set_type: str = Field(
         description="The type of set this printing is in.",
@@ -1030,9 +970,7 @@ class ScryfallCard(BaseModel):
     )
     security_stamp: SecurityStamp | None = Field(
         default=None,
-        description=(
-            "The security stamp on this card, if any. One of oval, triangle, acorn, circle, arena, or heart."
-        ),
+        description=("The security stamp on this card, if any. One of oval, triangle, acorn, circle, arena, or heart."),
     )
     watermark: str | None = Field(
         default=None,

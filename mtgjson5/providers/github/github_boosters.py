@@ -51,9 +51,7 @@ class GitHubBoostersProvider(AbstractProvider):
         if response.ok:
             return response.json()
 
-        LOGGER.error(
-            f"Error downloading GitHub Boosters: {response} --- {response.text}"
-        )
+        LOGGER.error(f"Error downloading GitHub Boosters: {response} --- {response.text}")
         return {}
 
     def get_set_booster_data(self, set_code: str) -> dict[str, Any] | None:

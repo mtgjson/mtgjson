@@ -16,9 +16,9 @@ from .tcgplayer import TCGPlayerPriceProvider, TCGProvider
 
 __all__ = [
     "BulkDataProvider",
+    "CKProvider",
     "CardHoarderPriceProvider",
     "CardMarketProvider",
-    "CKProvider",
     "EdhrecSaltProvider",
     "ManapoolPriceProvider",
     "ScryfallProvider",

@@ -116,9 +116,7 @@ class CKProvider:
 
         return self
 
-    async def load_or_fetch_async(
-        self, cache_path: Path | str | None = None
-    ) -> "CKProvider":
+    async def load_or_fetch_async(self, cache_path: Path | str | None = None) -> "CKProvider":
         """Async version: load from cache if exists, otherwise fetch and cache."""
         path = Path(cache_path) if cache_path else self._cache_path
 

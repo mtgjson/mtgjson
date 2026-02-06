@@ -12,7 +12,6 @@ from mtgjson5.utils import LOGGER
 
 from ..assemble import TableAssembler
 
-
 if TYPE_CHECKING:
     from ..context import AssemblyContext
 
@@ -27,20 +26,19 @@ def _flatten_for_csv(df: pl.DataFrame) -> pl.DataFrame:
     schema = df.schema
 
     # Convert struct and list columns to JSON strings
-    complex_cols = [
-        c for c in df.columns
-        if isinstance(schema.get(c), pl.Struct | pl.List)
-    ]
+    complex_cols = [c for c in df.columns if isinstance(schema.get(c), pl.Struct | pl.List)]
 
     if not complex_cols:
         return df
 
-    return df.with_columns([
-        pl.col(c).struct.json_encode().alias(c)
-        if isinstance(schema.get(c), pl.Struct)
-        else pl.col(c).cast(pl.String).alias(c)
-        for c in complex_cols
-    ])
+    return df.with_columns(
+        [
+            pl.col(c).struct.json_encode().alias(c)
+            if isinstance(schema.get(c), pl.Struct)
+            else pl.col(c).cast(pl.String).alias(c)
+            for c in complex_cols
+        ]
+    )
 
 
 class CSVBuilder:
@@ -79,13 +77,9 @@ class CSVBuilder:
                 "isForeignOnly": pl.Boolean,
                 "isPartialPreview": pl.Boolean,
             }
-            df = pl.DataFrame(
-                list(self.ctx.set_meta.values()), schema_overrides=schema_overrides
-            )
+            df = pl.DataFrame(list(self.ctx.set_meta.values()), schema_overrides=schema_overrides)
             if "type" in df.columns:
-                is_traditional_token = (
-                    (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
-                )
+                is_traditional_token = (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
                 df = df.filter(~is_traditional_token)
             return df
         return None

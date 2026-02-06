@@ -144,9 +144,7 @@ class TypeScriptGenerator:
 
         if origin is dict:
             if args and len(args) == 2:
-                return (
-                    f"Record<{cls.python_to_ts(args[0])}, {cls.python_to_ts(args[1])}>"
-                )
+                return f"Record<{cls.python_to_ts(args[0])}, {cls.python_to_ts(args[1])}>"
             return "Record<string, any>"
 
         if TypedDictUtils.is_typeddict(python_type):
@@ -185,20 +183,14 @@ class TypeScriptGenerator:
         except Exception:
             hints = {}
 
-        sorted_fields = sorted(
-            model.model_fields.items(), key=lambda x: x[1].alias or x[0]
-        )
+        sorted_fields = sorted(model.model_fields.items(), key=lambda x: x[1].alias or x[0])
 
         for name, info in sorted_fields:
             output_name = info.alias or name
             annotation = hints.get(name, info.annotation)
 
             # Determine optionality
-            is_optional = (
-                info.default is not None
-                or info.default_factory is not None
-                or not info.is_required()
-            )
+            is_optional = info.default is not None or info.default_factory is not None or not info.is_required()
 
             # Check for Optional in annotation
             if is_union_type(annotation):

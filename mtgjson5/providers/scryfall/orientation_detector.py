@@ -25,9 +25,7 @@ class ScryfallProviderOrientationDetector(AbstractProvider):
 
         soup = bs4.BeautifulSoup(response, "html.parser")
         orientation_headers = soup.find_all("span", class_="card-grid-header-content")
-        scryfall_card_entries_by_orientation = soup.find_all(
-            "div", class_="card-grid-inner"
-        )
+        scryfall_card_entries_by_orientation = soup.find_all("div", class_="card-grid-inner")
 
         return_map = {}
         for orientation_header, scryfall_card_entries in zip(

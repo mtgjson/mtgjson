@@ -61,10 +61,10 @@ __all__ = [
     "calculate_cmc_expr",
     "extract_colors_from_mana_expr",
     "order_finishes_expr",
-    "sort_colors_wubrg_expr",
     "require_columns",
     "safe_drop",
     "safe_rename",
     "safe_struct_field",
+    "sort_colors_wubrg_expr",
     "validate_stage",
 ]

@@ -15,7 +15,6 @@ from mtgjson5.v2.models.schemas import (
 )
 from mtgjson5.v2.models.sets import SealedProduct
 
-
 if TYPE_CHECKING:
     from .context import AssemblyContext
 
@@ -38,22 +37,13 @@ def compute_format_legal_sets(
     from mtgjson5.v2.consts import SUPPORTED_SET_TYPES
 
     # Filter by set type using metadata
-    valid_type_sets = {
-        code
-        for code, meta in ctx.set_meta.items()
-        if meta.get("type", "") in SUPPORTED_SET_TYPES
-    }
+    valid_type_sets = {code for code, meta in ctx.set_meta.items() if meta.get("type", "") in SUPPORTED_SET_TYPES}
 
     lf = pl.scan_parquet(ctx.parquet_dir / "**/*.parquet")
 
     set_legality = (
         lf.filter(~pl.col("name").str.starts_with("A-"))
-        .with_columns(
-            pl.col("legalities")
-            .struct.field(format_name)
-            .is_not_null()
-            .alias("_has_format_key")
-        )
+        .with_columns(pl.col("legalities").struct.field(format_name).is_not_null().alias("_has_format_key"))
         .group_by("setCode")
         .agg(pl.col("_has_format_key").all().alias("_all_have_key"))
         .filter(pl.col("_all_have_key"))
@@ -156,9 +146,7 @@ class Assembler:
             if deck.get("releaseDate"):
                 minimal_deck["releaseDate"] = deck["releaseDate"]
             sealed_uuids = deck.get("sealedProductUuids")
-            minimal_deck["sealedProductUuids"] = (
-                sealed_uuids if sealed_uuids else None
-            )
+            minimal_deck["sealedProductUuids"] = sealed_uuids if sealed_uuids else None
             if deck.get("sourceSetCodes"):
                 minimal_deck["sourceSetCodes"] = deck["sourceSetCodes"]
             for board in ["mainBoard", "sideBoard"]:
@@ -168,8 +156,7 @@ class Assembler:
                         {
                             k: v
                             for k, v in c.items()
-                            if k in ("count", "uuid", "isFoil", "isEtched")
-                            and v not in (None, False)
+                            if k in ("count", "uuid", "isFoil", "isEtched") and v not in (None, False)
                         }
                         for c in cards_list
                         if isinstance(c, dict)
@@ -184,8 +171,7 @@ class Assembler:
                         {
                             k: v
                             for k, v in c.items()
-                            if k in ("count", "uuid", "isFoil", "isEtched")
-                            and v not in (None, False)
+                            if k in ("count", "uuid", "isFoil", "isEtched") and v not in (None, False)
                         }
                         for c in cards_list
                         if isinstance(c, dict)
@@ -197,12 +183,7 @@ class Assembler:
                 cards_list = deck.get(board)
                 if cards_list:
                     minimal_deck[board] = [
-                        {
-                            k: v
-                            for k, v in c.items()
-                            if k in ("count", "uuid", "isFoil")
-                            and v not in (None, False)
-                        }
+                        {k: v for k, v in c.items() if k in ("count", "uuid", "isFoil") and v not in (None, False)}
                         for c in cards_list
                         if isinstance(c, dict)
                     ]
@@ -211,14 +192,9 @@ class Assembler:
             minimal_decks.append(minimal_deck)
         return minimal_decks
 
-    def build_sealed_products(
-        self, set_code: str
-    ) -> list[dict[str, Any]] | None:
+    def build_sealed_products(self, set_code: str) -> list[dict[str, Any]] | None:
         """Build sealed product list for a set, or None if no products."""
-        if (
-            self.ctx.sealed_df is None
-            or len(self.ctx.sealed_df.columns) == 0
-        ):
+        if self.ctx.sealed_df is None or len(self.ctx.sealed_df.columns) == 0:
             return None
         set_sealed = self.ctx.sealed_df.filter(pl.col("setCode") == set_code)
         if len(set_sealed) == 0:
@@ -275,10 +251,7 @@ class Assembler:
         return sorted(
             code
             for code in all_sets
-            if not (
-                self.ctx.set_meta.get(code, {}).get("type") == "token"
-                and code.startswith("T")
-            )
+            if not (self.ctx.set_meta.get(code, {}).get("type") == "token" and code.startswith("T"))
         )
 
 
@@ -293,17 +266,9 @@ class AtomicCardsAssembler(Assembler):
         TypedDicts don't accept None where a string is expected.
         """
         if isinstance(obj, dict):
-            return {
-                k: AtomicCardsAssembler._strip_none_recursive(v)
-                for k, v in obj.items()
-                if v is not None
-            }
+            return {k: AtomicCardsAssembler._strip_none_recursive(v) for k, v in obj.items() if v is not None}
         if isinstance(obj, list):
-            return [
-                AtomicCardsAssembler._strip_none_recursive(v)
-                for v in obj
-                if v is not None
-            ]
+            return [AtomicCardsAssembler._strip_none_recursive(v) for v in obj if v is not None]
         return obj
 
     def iter_atomic(self) -> Iterator[tuple[str, list[dict[str, Any]]]]:
@@ -320,9 +285,7 @@ class AtomicCardsAssembler(Assembler):
 
         df = (
             lf.select(select_cols)
-            .unique(
-                subset=["name", "faceName", "colorIdentity", "manaCost", "type", "text"]
-            )
+            .unique(subset=["name", "faceName", "colorIdentity", "manaCost", "type", "text"])
             .sort("name")
             .collect()
         )
@@ -376,9 +339,7 @@ class DeckAssembler(Assembler):
             self._token_uuids = set()
             cards_df = self.load_all_cards().collect()
             models = CardSet.from_dataframe(cards_df)
-            self._uuid_index = {
-                m.uuid: m.to_polars_dict(exclude_none=True) for m in models
-            }
+            self._uuid_index = {m.uuid: m.to_polars_dict(exclude_none=True) for m in models}
             del cards_df
 
             tokens_df = self.load_all_tokens().collect()
@@ -423,9 +384,7 @@ class DeckAssembler(Assembler):
                 # Tokens validated through CardToken model
                 # CardToken doesn't have deck fields, so add them after validation
                 deck_token = CardToken.from_polars_row(expanded)
-                token_dict = deck_token.to_polars_dict(
-                    exclude_none=True, keep_empty_lists=True
-                )
+                token_dict = deck_token.to_polars_dict(exclude_none=True, keep_empty_lists=True)
                 token_dict["count"] = ref.get("count", 1)
                 if ref.get("isFoil"):
                     token_dict["isFoil"] = True
@@ -433,9 +392,7 @@ class DeckAssembler(Assembler):
             else:
                 # Cards validated through CardDeck model (includes count/isFoil/isEtched)
                 deck_card = CardDeck.from_polars_row(expanded)
-                result.append(
-                    deck_card.to_polars_dict(exclude_none=True, keep_empty_lists=True)
-                )
+                result.append(deck_card.to_polars_dict(exclude_none=True, keep_empty_lists=True))
 
         return result
 
@@ -576,9 +533,7 @@ class SetAssembler(Assembler):
         total_size = meta.get("totalSetSize")
         set_data: dict[str, Any] = {
             "baseSetSize": (
-                base_size
-                if base_size is not None
-                else len([c for c in cards if not c.get("isReprint")]) or len(cards)
+                base_size if base_size is not None else len([c for c in cards if not c.get("isReprint")]) or len(cards)
             ),
             "cards": cards,
             "code": set_code,
@@ -695,10 +650,7 @@ class SetListAssembler(Assembler):
 
         # Languages from foreign data
         if not df.is_empty():
-            cards = [
-                m.to_polars_dict(exclude_none=True)
-                for m in CardSet.from_dataframe(df)
-            ]
+            cards = [m.to_polars_dict(exclude_none=True) for m in CardSet.from_dataframe(df)]
             entry["languages"] = self.build_languages(cards)
         else:
             entry["languages"] = ["English"]
@@ -764,12 +716,12 @@ class TcgplayerSkusAssembler(Assembler):
             Each SKU entry contains: skuId, productId, language, printing, condition,
             and optionally finish (for etched products).
         """
+        from mtgjson5.utils import LOGGER
         from mtgjson5.v2.providers.tcgplayer.models import (
             CONDITION_MAP,
             LANGUAGE_MAP,
             PRINTING_MAP,
         )
-        from mtgjson5.utils import LOGGER
 
         self._load_tcg_data()
 
@@ -782,17 +734,13 @@ class TcgplayerSkusAssembler(Assembler):
             return {}
 
         if self._tcg_to_uuid_lf is None and self._tcg_etched_to_uuid_lf is None:
-            LOGGER.warning(
-                "TCG to UUID mappings not found, TcgplayerSkus.json will be empty"
-            )
+            LOGGER.warning("TCG to UUID mappings not found, TcgplayerSkus.json will be empty")
             return {}
 
         tcg_skus_df = self._tcg_skus_lf.collect()
 
         if "skus" not in tcg_skus_df.columns:
-            LOGGER.warning(
-                "No 'skus' column in TCG data, TcgplayerSkus.json will be empty"
-            )
+            LOGGER.warning("No 'skus' column in TCG data, TcgplayerSkus.json will be empty")
             return {}
 
         flattened = (
@@ -800,16 +748,12 @@ class TcgplayerSkusAssembler(Assembler):
             .unnest("skus")
             .with_columns(
                 [
-                    pl.col("languageId")
-                    .replace_strict(LANGUAGE_MAP, default="UNKNOWN")
-                    .alias("language"),
+                    pl.col("languageId").replace_strict(LANGUAGE_MAP, default="UNKNOWN").alias("language"),
                     pl.col("printingId")
                     .replace_strict(PRINTING_MAP, default="UNKNOWN")
                     .str.replace("_", " ")
                     .alias("printing"),
-                    pl.col("conditionId")
-                    .replace_strict(CONDITION_MAP, default="UNKNOWN")
-                    .alias("condition"),
+                    pl.col("conditionId").replace_strict(CONDITION_MAP, default="UNKNOWN").alias("condition"),
                 ]
             )
             .with_columns(
@@ -824,10 +768,7 @@ class TcgplayerSkusAssembler(Assembler):
 
         if self._tcg_to_uuid_lf is not None:
             tcg_to_uuid_df = self._tcg_to_uuid_lf.collect()
-            if (
-                "tcgplayerProductId" in tcg_to_uuid_df.columns
-                and "uuid" in tcg_to_uuid_df.columns
-            ):
+            if "tcgplayerProductId" in tcg_to_uuid_df.columns and "uuid" in tcg_to_uuid_df.columns:
                 tcg_to_uuid_df = tcg_to_uuid_df.with_columns(
                     pl.col("tcgplayerProductId").cast(pl.Int64).alias("productId_join")
                 )
@@ -843,14 +784,9 @@ class TcgplayerSkusAssembler(Assembler):
 
         if self._tcg_etched_to_uuid_lf is not None:
             tcg_etched_df = self._tcg_etched_to_uuid_lf.collect()
-            if (
-                "tcgplayerEtchedProductId" in tcg_etched_df.columns
-                and "uuid" in tcg_etched_df.columns
-            ):
+            if "tcgplayerEtchedProductId" in tcg_etched_df.columns and "uuid" in tcg_etched_df.columns:
                 tcg_etched_df = tcg_etched_df.with_columns(
-                    pl.col("tcgplayerEtchedProductId")
-                    .cast(pl.Int64)
-                    .alias("productId_join")
+                    pl.col("tcgplayerEtchedProductId").cast(pl.Int64).alias("productId_join")
                 )
 
                 etched_joined = flattened.join(
@@ -920,11 +856,7 @@ class TableAssembler:
         schema = cards_df.schema
 
         # Select card columns, excluding normalized and non-CDN fields
-        cards_cols = [
-            c
-            for c in cards_df.columns
-            if c not in CARDS_TABLE_EXCLUDE and not c.startswith("_")
-        ]
+        cards_cols = [c for c in cards_df.columns if c not in CARDS_TABLE_EXCLUDE and not c.startswith("_")]
 
         cards_for_export = cards_df.select(cards_cols).unique(subset=["uuid"])
         tables["cards"] = serialize_complex_types(cards_for_export)
@@ -932,17 +864,13 @@ class TableAssembler:
         # cardIdentifiers - unnest struct
         if "identifiers" in schema and isinstance(schema["identifiers"], pl.Struct):
             tables["cardIdentifiers"] = (
-                cards_df.select("uuid", "identifiers")
-                .filter(pl.col("identifiers").is_not_null())
-                .unnest("identifiers")
+                cards_df.select("uuid", "identifiers").filter(pl.col("identifiers").is_not_null()).unnest("identifiers")
             )
 
         # cardLegalities - unnest struct
         if "legalities" in schema and isinstance(schema["legalities"], pl.Struct):
             tables["cardLegalities"] = (
-                cards_df.select("uuid", "legalities")
-                .filter(pl.col("legalities").is_not_null())
-                .unnest("legalities")
+                cards_df.select("uuid", "legalities").filter(pl.col("legalities").is_not_null()).unnest("legalities")
             )
 
         # cardForeignData - explode list of structs
@@ -983,17 +911,11 @@ class TableAssembler:
         # tokens - serialize list columns as JSON strings (like cards)
         if tokens_df is not None and len(tokens_df) > 0:
             token_schema = tokens_df.schema
-            token_cols = [
-                c
-                for c in tokens_df.columns
-                if c not in TOKENS_TABLE_EXCLUDE and not c.startswith("_")
-            ]
+            token_cols = [c for c in tokens_df.columns if c not in TOKENS_TABLE_EXCLUDE and not c.startswith("_")]
             tokens_for_export = tokens_df.select(token_cols)
             tables["tokens"] = serialize_complex_types(tokens_for_export)
 
-            if "identifiers" in token_schema and isinstance(
-                token_schema["identifiers"], pl.Struct
-            ):
+            if "identifiers" in token_schema and isinstance(token_schema["identifiers"], pl.Struct):
                 tables["tokenIdentifiers"] = (
                     tokens_df.select("uuid", "identifiers")
                     .filter(pl.col("identifiers").is_not_null())
@@ -1003,18 +925,12 @@ class TableAssembler:
         # sets - serialize list columns as JSON strings, exclude translations (normalized)
         if sets_df is not None and len(sets_df) > 0:
             sets_schema = sets_df.schema
-            sets_cols = [
-                c
-                for c in sets_df.columns
-                if c not in SETS_TABLE_EXCLUDE and not c.startswith("_")
-            ]
+            sets_cols = [c for c in sets_df.columns if c not in SETS_TABLE_EXCLUDE and not c.startswith("_")]
             sets_for_export = sets_df.select(sets_cols)
             tables["sets"] = serialize_complex_types(sets_for_export)
 
             # setTranslations
-            if "translations" in sets_schema and isinstance(
-                sets_schema["translations"], pl.Struct
-            ):
+            if "translations" in sets_schema and isinstance(sets_schema["translations"], pl.Struct):
                 trans_df = (
                     sets_df.select("code", "translations")
                     .filter(pl.col("translations").is_not_null())
@@ -1061,9 +977,7 @@ class TableAssembler:
                             "boosterName": booster_name,
                             "sheetName": sheet_name,
                             "sheetIsFoil": sheet_data.get("foil", False),
-                            "sheetHasBalanceColors": sheet_data.get(
-                                "balanceColors", False
-                            ),
+                            "sheetHasBalanceColors": sheet_data.get("balanceColors", False),
                             "sheetTotalWeight": sheet_data.get("totalWeight", 0),
                         }
                     )
@@ -1110,26 +1024,10 @@ class TableAssembler:
                         )
 
         return {
-            "setBoosterSheets": (
-                pl.DataFrame(sheets_records)
-                if sheets_records
-                else pl.DataFrame()
-            ),
-            "setBoosterSheetCards": (
-                pl.DataFrame(sheet_cards_records)
-                if sheet_cards_records
-                else pl.DataFrame()
-            ),
-            "setBoosterContents": (
-                pl.DataFrame(contents_records)
-                if contents_records
-                else pl.DataFrame()
-            ),
-            "setBoosterContentWeights": (
-                pl.DataFrame(weights_records)
-                if weights_records
-                else pl.DataFrame()
-            ),
+            "setBoosterSheets": (pl.DataFrame(sheets_records) if sheets_records else pl.DataFrame()),
+            "setBoosterSheetCards": (pl.DataFrame(sheet_cards_records) if sheet_cards_records else pl.DataFrame()),
+            "setBoosterContents": (pl.DataFrame(contents_records) if contents_records else pl.DataFrame()),
+            "setBoosterContentWeights": (pl.DataFrame(weights_records) if weights_records else pl.DataFrame()),
         }
 
 
@@ -1349,9 +1247,7 @@ class EnumValuesAssembler(Assembler):
             fd_series = cards_lf.select(fd_col).collect()[fd_col]
             if isinstance(fd_series.dtype, pl.List):
                 exploded = fd_series.explode().drop_nulls()
-                if isinstance(exploded.dtype, pl.Struct) and "language" in [
-                    f.name for f in exploded.dtype.fields
-                ]:
+                if isinstance(exploded.dtype, pl.Struct) and "language" in [f.name for f in exploded.dtype.fields]:
                     lang_series = exploded.struct.field("language").drop_nulls()
                     languages.update(lang_series.to_list())
         set_enums["languages"] = sorted(languages)
@@ -1382,9 +1278,7 @@ class EnumValuesAssembler(Assembler):
 
         # --- Keywords ---
         if self.ctx.keyword_data:
-            result["keywords"] = {
-                k: sorted(v) for k, v in self.ctx.keyword_data.items()
-            }
+            result["keywords"] = {k: sorted(v) for k, v in self.ctx.keyword_data.items()}
 
         # --- TCGPlayer SKU enums ---
         from mtgjson5.v2.providers.tcgplayer.models import (

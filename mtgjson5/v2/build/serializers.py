@@ -14,10 +14,10 @@ from typing import Any
 import orjson
 import polars as pl
 
-
 # =============================================================================
 # SQL Serialization
 # =============================================================================
+
 
 def serialize_complex_types(df: pl.DataFrame) -> pl.DataFrame:
     """Convert List and Struct columns to SQL-compatible strings.
@@ -37,17 +37,13 @@ def serialize_complex_types(df: pl.DataFrame) -> pl.DataFrame:
     if struct_cols:
         for col_name in struct_cols:
             result = result.with_columns(
-                pl.col(col_name)
-                .map_batches(_struct_to_json_batch, return_dtype=pl.String)
-                .alias(col_name)
+                pl.col(col_name).map_batches(_struct_to_json_batch, return_dtype=pl.String).alias(col_name)
             )
 
     if list_cols:
         for col_name in list_cols:
             result = result.with_columns(
-                pl.col(col_name)
-                .map_batches(_list_to_csv_batch, return_dtype=pl.String)
-                .alias(col_name)
+                pl.col(col_name).map_batches(_list_to_csv_batch, return_dtype=pl.String).alias(col_name)
             )
 
     return result
@@ -56,10 +52,7 @@ def serialize_complex_types(df: pl.DataFrame) -> pl.DataFrame:
 def _list_to_csv_batch(series: pl.Series) -> pl.Series:
     """Batch convert list Series to comma-separated strings."""
     return pl.Series(
-        [
-            ", ".join(str(item) for item in x) if x is not None else None
-            for x in series.to_list()
-        ],
+        [", ".join(str(item) for item in x) if x is not None else None for x in series.to_list()],
         dtype=pl.String,
     )
 
@@ -67,10 +60,7 @@ def _list_to_csv_batch(series: pl.Series) -> pl.Series:
 def _struct_to_json_batch(series: pl.Series) -> pl.Series:
     """Batch convert struct Series to JSON strings, dropping null values."""
     return pl.Series(
-        [
-            _struct_to_json(x) if x is not None else None
-            for x in series.to_list()
-        ],
+        [_struct_to_json(x) if x is not None else None for x in series.to_list()],
         dtype=pl.String,
     )
 
@@ -99,12 +89,7 @@ def escape_postgres(value: Any) -> str:
     if isinstance(value, int | float):
         return str(value)
     s = json.dumps(value) if isinstance(value, list | dict) else str(value)
-    return (
-        s.replace("\\", "\\\\")
-        .replace("\t", "\\t")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-    )
+    return s.replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
 
 
 def escape_sqlite(value: Any) -> str:

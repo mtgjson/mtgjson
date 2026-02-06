@@ -35,12 +35,10 @@ SCHEMAS = {
 }
 
 TOKEN_PRODUCTS_DIR_URL = (
-    "https://api.github.com/repos/mtgjson/mtg-sealed-content"
-    "/contents/outputs/token_products_mappings"
+    "https://api.github.com/repos/mtgjson/mtg-sealed-content/contents/outputs/token_products_mappings"
 )
 TOKEN_PRODUCTS_RAW_URL = (
-    "https://github.com/mtgjson/mtg-sealed-content/raw/main"
-    "/outputs/token_products_mappings/{}.json"
+    "https://github.com/mtgjson/mtg-sealed-content/raw/main/outputs/token_products_mappings/{}.json"
 )
 
 
@@ -137,9 +135,7 @@ def _build_sealed_contents_records(data: dict) -> list[dict]:
             }
 
             for content_type, items in contents.items():
-                if content_type in ("size", "card_count") or not isinstance(
-                    items, list
-                ):
+                if content_type in ("size", "card_count") or not isinstance(items, list):
                     continue
                 for item in items:
                     record = {**base, "contentType": content_type}
@@ -178,9 +174,7 @@ def _build_decks_records(decks_raw: list, deck_map: dict) -> list[dict]:
             "type": deck.get("type"),
             "releaseDate": deck.get("release_date"),
             "sourceSetCodes": [s.upper() for s in deck.get("sourceSetCodes", [])],
-            "sealedProductUuids": (deck_map or {})
-            .get(deck.get("set_code", "").lower(), {})
-            .get(deck.get("name", "")),
+            "sealedProductUuids": (deck_map or {}).get(deck.get("set_code", "").lower(), {}).get(deck.get("name", "")),
             "mainBoard": _extract_card_list(deck.get("cards", [])),
             "sideBoard": _extract_card_list(deck.get("sideboard", [])),
             "commander": _extract_card_list(deck.get("commander", [])),
@@ -207,7 +201,7 @@ def _build_token_products_records(per_set_data: dict[str, dict]) -> list[dict]:
     each with a token UUID and its JSON-encoded product list.
     """
     combined: dict[str, list] = {}
-    for _set_code, set_data in per_set_data.items():
+    for set_data in per_set_data.values():
         if not isinstance(set_data, dict):
             continue
         for token_uuid, products in set_data.items():
@@ -216,10 +210,7 @@ def _build_token_products_records(per_set_data: dict[str, dict]) -> list[dict]:
             else:
                 combined[token_uuid] = list(products)
 
-    return [
-        {"uuid": uuid, "tokenProducts": json.dumps(products)}
-        for uuid, products in combined.items()
-    ]
+    return [{"uuid": uuid, "tokenProducts": json.dumps(products)} for uuid, products in combined.items()]
 
 
 class SealedDataProvider:
@@ -247,9 +238,7 @@ class SealedDataProvider:
         self._load_future: Any = None
         self._on_complete_callback: Callable[[Any], None] | None = None
 
-    def load_async_background(
-        self, on_complete: Callable[[Any], None] | None = None
-    ) -> None:
+    def load_async_background(self, on_complete: Callable[[Any], None] | None = None) -> None:
         """
         Start loading data in a background thread (non-blocking).
 
@@ -263,9 +252,7 @@ class SealedDataProvider:
             return
 
         self._on_complete_callback = on_complete
-        self._executor = ThreadPoolExecutor(
-            max_workers=6, thread_name_prefix="github_loader"
-        )
+        self._executor = ThreadPoolExecutor(max_workers=6, thread_name_prefix="github_loader")
         self._load_future = self._executor.submit(self._run_async_in_thread)
         LOGGER.info("GitHub data loading started in background thread")
 
@@ -320,9 +307,7 @@ class SealedDataProvider:
 
         headers = self._build_headers()
 
-        async with aiohttp.ClientSession(
-            timeout=self._timeout, headers=headers
-        ) as session:
+        async with aiohttp.ClientSession(timeout=self._timeout, headers=headers) as session:
             tasks = [self._fetch(session, k, url) for k, url in self.URLS.items()]
             results = await asyncio.gather(*tasks)
 
@@ -334,9 +319,7 @@ class SealedDataProvider:
         self._build_all_dataframes(raw)
         LOGGER.info("GitHub data loaded")
 
-    async def _fetch_token_products(
-        self, session: aiohttp.ClientSession
-    ) -> dict[str, dict]:
+    async def _fetch_token_products(self, session: aiohttp.ClientSession) -> dict[str, dict]:
         """Fetch all per-set token product mapping files from GitHub.
 
         Uses the GitHub Contents API to list available files, then fetches
@@ -354,13 +337,10 @@ class SealedDataProvider:
                     set_codes = [
                         entry["name"].replace(".json", "")
                         for entry in entries
-                        if isinstance(entry, dict)
-                        and entry.get("name", "").endswith(".json")
+                        if isinstance(entry, dict) and entry.get("name", "").endswith(".json")
                     ]
                 else:
-                    LOGGER.warning(
-                        f"Failed to list token products directory: HTTP {r.status}"
-                    )
+                    LOGGER.warning(f"Failed to list token products directory: HTTP {r.status}")
         except (aiohttp.ClientError, json.JSONDecodeError) as e:
             LOGGER.warning(f"Failed to list token products directory: {e}")
 
@@ -404,9 +384,7 @@ class SealedDataProvider:
             pass
         return headers
 
-    async def _fetch(
-        self, session: aiohttp.ClientSession, key: str, url: str
-    ) -> tuple[str, Any]:
+    async def _fetch(self, session: aiohttp.ClientSession, key: str, url: str) -> tuple[str, Any]:
         """Fetch JSON from URL."""
         try:
             async with session.get(url) as r:
@@ -449,29 +427,19 @@ class SealedDataProvider:
             setattr(self, f"{schema_key}_df", lf)
 
         # Decks needs special handling (two raw inputs, partitioned by type)
-        deck_records = _build_decks_records(
-            raw.get("decks", []), raw.get("deck_map", {})
-        )
+        deck_records = _build_decks_records(raw.get("decks", []), raw.get("deck_map", {}))
         decks_lf = _to_lazyframe(deck_records, "decks", "decks")
         self.decks_df = decks_lf
         self.sealed_dicts = self._partition_decks_by_type(decks_lf)
 
         # Token products (combined from per-set files)
         token_records = _build_token_products_records(raw.get("token_products", {}))
-        self.token_products_df = _to_lazyframe(
-            token_records, "token_products", "token_products"
-        )
+        self.token_products_df = _to_lazyframe(token_records, "token_products", "token_products")
 
-    def _partition_decks_by_type(
-        self, decks_lf: pl.LazyFrame
-    ) -> dict[str, pl.LazyFrame]:
+    def _partition_decks_by_type(self, decks_lf: pl.LazyFrame) -> dict[str, pl.LazyFrame]:
         """Partition decks LazyFrame by deck type."""
         type_counts = (
-            decks_lf.group_by("type")
-            .len()
-            .sort("len", descending=True)
-            .collect()
-            .filter(pl.col("type").is_not_null())
+            decks_lf.group_by("type").len().sort("len", descending=True).collect().filter(pl.col("type").is_not_null())
         )
         # Get unique field sets per type
         _schema_sets = (
@@ -479,17 +447,13 @@ class SealedDataProvider:
             .agg(
                 [
                     pl.len().alias("count"),
-                    *[
-                        pl.col(c).drop_nulls().len().alias(f"has_{c}")
-                        for c in decks_lf.collect_schema().names()
-                    ],
+                    *[pl.col(c).drop_nulls().len().alias(f"has_{c}") for c in decks_lf.collect_schema().names()],
                 ]
             )
             .collect()
         )
         partitions = {
-            row["type"]: decks_lf.filter(pl.col("type") == row["type"])
-            for row in type_counts.iter_rows(named=True)
+            row["type"]: decks_lf.filter(pl.col("type") == row["type"]) for row in type_counts.iter_rows(named=True)
         }
         return partitions
 

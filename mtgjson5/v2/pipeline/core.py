@@ -192,9 +192,7 @@ def explode_card_faces(lf: pl.LazyFrame) -> pl.LazyFrame:
             pl.lit(None).cast(face_struct_schema).alias("_face_data"),
         )
 
-    lf = lf.with_columns(
-        pl.int_ranges(pl.col("cardFaces").list.len()).alias("_face_idx")
-    )
+    lf = lf.with_columns(pl.int_ranges(pl.col("cardFaces").list.len()).alias("_face_idx"))
 
     lf = lf.explode(["cardFaces", "_face_idx"])
 
@@ -293,10 +291,7 @@ def update_meld_names(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
     return (
         lf.with_columns(
             # Store original name for meld cards (used for faceName later)
-            pl.when(is_meld)
-            .then(pl.col("name"))
-            .otherwise(pl.lit(None).cast(pl.String))
-            .alias("_meld_face_name"),
+            pl.when(is_meld).then(pl.col("name")).otherwise(pl.lit(None).cast(pl.String)).alias("_meld_face_name"),
         )
         .with_columns(
             # Update name to "Front // Melded" for meld front sides
@@ -338,10 +333,7 @@ def detect_aftermath_layout(lf: pl.LazyFrame) -> pl.LazyFrame:
     is_aftermath_card = has_aftermath.max().over("_row_id")
 
     return lf.with_columns(
-        pl.when(is_aftermath_card)
-        .then(pl.lit("aftermath"))
-        .otherwise(pl.col("layout"))
-        .alias("layout")
+        pl.when(is_aftermath_card).then(pl.lit("aftermath")).otherwise(pl.col("layout")).alias("layout")
     )
 
 
@@ -372,20 +364,13 @@ def prepare_cards_for_json(df: pl.DataFrame) -> pl.DataFrame:
     # Nullify empty lists for omit fields
     for field in OMIT_EMPTY_LIST_FIELDS:
         if field in df.columns:
-            expressions.append(
-                pl.when(pl.col(field).list.len() == 0)
-                .then(None)
-                .otherwise(pl.col(field))
-                .alias(field)
-            )
+            expressions.append(pl.when(pl.col(field).list.len() == 0).then(None).otherwise(pl.col(field)).alias(field))
 
     # Nullify False for optional bool fields
     for field in OPTIONAL_BOOL_FIELDS:
         if field in df.columns:
             expressions.append(
-                pl.when(
-                    pl.col(field) == True
-                )  # noqa: E712  # pylint: disable=singleton-comparison
+                pl.when(pl.col(field) == True)  # pylint: disable=singleton-comparison
                 .then(True)
                 .otherwise(None)
                 .alias(field)
@@ -400,20 +385,10 @@ def prepare_cards_for_json(df: pl.DataFrame) -> pl.DataFrame:
 
         if col_type in (pl.String, pl.Utf8):
             # Empty strings to null
-            expressions.append(
-                pl.when(pl.col(field) == "")
-                .then(None)
-                .otherwise(pl.col(field))
-                .alias(field)
-            )
+            expressions.append(pl.when(pl.col(field) == "").then(None).otherwise(pl.col(field)).alias(field))
         elif isinstance(col_type, pl.List):
             # Empty lists to null
-            expressions.append(
-                pl.when(pl.col(field).list.len() == 0)
-                .then(None)
-                .otherwise(pl.col(field))
-                .alias(field)
-            )
+            expressions.append(pl.when(pl.col(field).list.len() == 0).then(None).otherwise(pl.col(field)).alias(field))
         elif isinstance(col_type, pl.Struct):
             # Clean struct sub-fields
             struct_fields = col_type.fields
@@ -423,37 +398,19 @@ def prepare_cards_for_json(df: pl.DataFrame) -> pl.DataFrame:
                 sf_expr = pl.col(field).struct.field(sf.name)
 
                 if sf.dtype in (pl.String, pl.Utf8):
-                    cleaned_fields.append(
-                        pl.when(sf_expr == "")
-                        .then(None)
-                        .otherwise(sf_expr)
-                        .alias(sf.name)
-                    )
+                    cleaned_fields.append(pl.when(sf_expr == "").then(None).otherwise(sf_expr).alias(sf.name))
                 elif isinstance(sf.dtype, pl.List):
-                    cleaned_fields.append(
-                        pl.when(sf_expr.list.len() == 0)
-                        .then(None)
-                        .otherwise(sf_expr)
-                        .alias(sf.name)
-                    )
+                    cleaned_fields.append(pl.when(sf_expr.list.len() == 0).then(None).otherwise(sf_expr).alias(sf.name))
                 else:
                     cleaned_fields.append(sf_expr.alias(sf.name))
 
             # Rebuild struct, preserve null if original was null
             expressions.append(
-                pl.when(pl.col(field).is_null())
-                .then(None)
-                .otherwise(pl.struct(cleaned_fields))
-                .alias(field)
+                pl.when(pl.col(field).is_null()).then(None).otherwise(pl.struct(cleaned_fields)).alias(field)
             )
         elif col_type in (pl.Float64, pl.Float32, pl.Int64, pl.Int32):
             # Nullify zero values
-            expressions.append(
-                pl.when(pl.col(field) == 0)
-                .then(None)
-                .otherwise(pl.col(field))
-                .alias(field)
-            )
+            expressions.append(pl.when(pl.col(field) == 0).then(None).otherwise(pl.col(field)).alias(field))
 
     # Apply all transformations
     if expressions:
@@ -527,11 +484,7 @@ def clean_nested(
                 continue
 
             # Omit empty collections (except required list fields and legalities)
-            if (
-                omit_empty
-                and isinstance(cleaned_value, dict | list)
-                and not cleaned_value
-            ):
+            if omit_empty and isinstance(cleaned_value, dict | list) and not cleaned_value:
                 if isinstance(cleaned_value, list) and key in REQUIRED_LIST_FIELDS:
                     pass  # Keep empty required list
                 elif isinstance(cleaned_value, dict) and key == "legalities":
@@ -567,12 +520,8 @@ def clean_nested(
                 result_list = sorted(result_list)
 
         # Sort rulings by date (desc), then text
-        elif (
-            field_name == "rulings" and result_list and isinstance(result_list[0], dict)
-        ):
-            result_list = sorted(
-                result_list, key=lambda r: (r.get("date", ""), r.get("text", ""))
-            )
+        elif field_name == "rulings" and result_list and isinstance(result_list[0], dict):
+            result_list = sorted(result_list, key=lambda r: (r.get("date", ""), r.get("text", "")))
 
         if not result_list and omit_empty and field_name not in REQUIRED_LIST_FIELDS:
             return None
@@ -640,11 +589,7 @@ def format_planeswalker_text(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Wrap planeswalker loyalty ability costs in square brackets.
     """
-    return lf.with_columns(
-        pl.col("text")
-        .str.replace_all(r"(?m)^([+\u2212−]?[\dX]+):", r"[$1]:")
-        .alias("text")
-    )  # noqa: RUF001
+    return lf.with_columns(pl.col("text").str.replace_all(r"(?m)^([+\u2212−]?[\dX]+):", r"[$1]:").alias("text"))
 
 
 def add_original_release_date(lf: pl.LazyFrame) -> pl.LazyFrame:
@@ -670,9 +615,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
     """
 
     def face_field(field_name: str) -> pl.Expr:
-        struct_field = (
-            to_snake_case(field_name) if "_" not in field_name else field_name
-        )
+        struct_field = to_snake_case(field_name) if "_" not in field_name else field_name
         return pl.coalesce(
             pl.col("_face_data").struct.field(struct_field),
             pl.col(field_name),
@@ -751,30 +694,17 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                 face_field("illustrationId").alias("illustrationId"),
                 face_field("colorIndicator").alias("colorIndicator"),
                 pl.when(pl.col("layout").is_in(["split", "aftermath"]))
-                .then(
-                    extract_colors_from_mana_expr(
-                        pl.col("_face_data").struct.field("mana_cost")
-                    )
-                )
+                .then(extract_colors_from_mana_expr(pl.col("_face_data").struct.field("mana_cost")))
                 .when((pl.col("layout") == "adventure") & (pl.col("side") == "a"))
                 .then(sort_colors_wubrg_expr(face_field("colors")))
                 .when(
                     (pl.col("layout") == "adventure")
                     & (pl.col("side") == "b")
-                    & (
-                        pl.col("typeLine")
-                        .str.contains(r"(?i)\bLand\b")
-                        .max()
-                        .over("scryfallId")
-                    )
+                    & (pl.col("typeLine").str.contains(r"(?i)\bLand\b").max().over("scryfallId"))
                 )
                 .then(pl.lit([]).cast(pl.List(pl.String)))
                 .when((pl.col("layout") == "adventure") & (pl.col("side") == "b"))
-                .then(
-                    extract_colors_from_mana_expr(
-                        pl.col("_face_data").struct.field("mana_cost")
-                    )
-                )
+                .then(extract_colors_from_mana_expr(pl.col("_face_data").struct.field("mana_cost")))
                 .otherwise(sort_colors_wubrg_expr(face_field("colors")))
                 .alias("colors"),
                 face_field("printedText").alias("printedText"),
@@ -817,22 +747,15 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                 pl.col("storySpotlight").alias("isStorySpotlight"),
                 pl.col("reserved").alias("isReserved"),
                 pl.col("digital").alias("isOnlineOnly"),
-                pl.coalesce(face_field("flavorName"), pl.col("printedName")).alias(
-                    "flavorName"
-                ),
+                pl.coalesce(face_field("flavorName"), pl.col("printedName")).alias("flavorName"),
                 pl.col("allParts"),
                 pl.col("lang")
-                .replace_strict(
-                    LANGUAGE_MAP, default=pl.col("lang"), return_dtype=pl.String
-                )
+                .replace_strict(LANGUAGE_MAP, default=pl.col("lang"), return_dtype=pl.String)
                 .alias("language"),
             ]
         )
         .with_columns(
-            pl.when(ascii_face_name != face_name)
-            .then(ascii_full_name)
-            .otherwise(None)
-            .alias("asciiName"),
+            pl.when(ascii_face_name != face_name).then(ascii_full_name).otherwise(None).alias("asciiName"),
             pl.col("booster").alias("_in_booster"),
             pl.col("promoTypes").fill_null([]).alias("promoTypes"),
         )
@@ -854,20 +777,14 @@ def parse_type_line_expr(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     subtypes_processed = subtypes_part
     for mw_subtype in multi_word_subtypes:
-        subtypes_processed = subtypes_processed.str.replace_all(
-            mw_subtype, mw_subtype.replace(" ", "\x00")
-        )
+        subtypes_processed = subtypes_processed.str.replace_all(mw_subtype, mw_subtype.replace(" ", "\x00"))
 
     subtypes_expr = (
         pl.when(pl.col("_subtypes_part").is_null())
         .then(pl.lit([]).cast(pl.List(pl.String)))
         .when(pl.col("_types_part").str.starts_with("Plane"))
         .then(pl.concat_list([pl.col("_subtypes_part").str.strip_chars()]))
-        .otherwise(
-            subtypes_processed.str.split(" ").list.eval(
-                pl.element().str.replace_all("\x00", " ")
-            )
-        )
+        .otherwise(subtypes_processed.str.split(" ").list.eval(pl.element().str.replace_all("\x00", " ")))
     )
 
     return (
@@ -882,9 +799,7 @@ def parse_type_line_expr(lf: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("_type_words")
             .list.eval(pl.element().filter(pl.element().is_in(super_types_list)))
             .alias("supertypes"),
-            pl.col("_type_words")
-            .list.eval(pl.element().filter(~pl.element().is_in(super_types_list)))
-            .alias("types"),
+            pl.col("_type_words").list.eval(pl.element().filter(~pl.element().is_in(super_types_list))).alias("types"),
             subtypes_expr.alias("subtypes"),
         )
         .drop(["_types_part", "_subtypes_part", "_type_words"])
@@ -922,9 +837,7 @@ def fix_manavalue_for_multiface(lf: pl.LazyFrame) -> pl.LazyFrame:
     use_face_cmc = pl.col("layout").is_in(face_specific_layouts)
 
     fixed_mana_value = (
-        pl.when(pl.col("_face_data").is_not_null() & use_face_cmc)
-        .then(face_cmc)
-        .otherwise(pl.col("manaValue"))
+        pl.when(pl.col("_face_data").is_not_null() & use_face_cmc).then(face_cmc).otherwise(pl.col("manaValue"))
     )
 
     return lf.with_columns(
@@ -946,10 +859,7 @@ def add_card_attributes(lf: pl.LazyFrame) -> pl.LazyFrame:
         pl.col("watermark"),
         order_finishes_expr("finishes").fill_null([]).alias("finishes"),
         pl.col("finishes").list.contains("foil").fill_null(False).alias("hasFoil"),
-        pl.col("finishes")
-        .list.contains("nonfoil")
-        .fill_null(False)
-        .alias("hasNonFoil"),
+        pl.col("finishes").list.contains("nonfoil").fill_null(False).alias("hasNonFoil"),
         pl.col("contentWarning").alias("hasContentWarning"),
         (pl.col("setType") == "funny").alias("_is_funny_set"),
         pl.col("loyalty"),
@@ -986,9 +896,7 @@ def fix_promo_types(lf: pl.LazyFrame) -> pl.LazyFrame:
         )
         # Remove planeswalkerdeck
         .with_columns(
-            pl.col("promoTypes")
-            .list.eval(pl.element().filter(pl.element() != "planeswalkerdeck"))
-            .alias("promoTypes")
+            pl.col("promoTypes").list.eval(pl.element().filter(pl.element() != "planeswalkerdeck")).alias("promoTypes")
         )
         # Empty list -> null
         .with_columns(
@@ -1041,12 +949,7 @@ def apply_card_enrichment(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFram
     # Merge enrichment promo_types into promoTypes
     return lf.with_columns(
         pl.when(pl.col("enrichmentPromoTypes").is_not_null())
-        .then(
-            pl.col("promoTypes")
-            .fill_null([])
-            .list.concat(pl.col("enrichmentPromoTypes"))
-            .list.unique()
-        )
+        .then(pl.col("promoTypes").fill_null([]).list.concat(pl.col("enrichmentPromoTypes")).list.unique())
         .otherwise(pl.col("promoTypes"))
         .alias("promoTypes")
     ).drop("enrichmentPromoTypes")
@@ -1061,14 +964,8 @@ def fix_power_toughness_for_multiface(lf: pl.LazyFrame) -> pl.LazyFrame:
     face_toughness = pl.col("_face_data").struct.field("toughness")
 
     return lf.with_columns(
-        pl.when(has_face_data)
-        .then(face_power)
-        .otherwise(pl.col("power"))
-        .alias("power"),
-        pl.when(has_face_data)
-        .then(face_toughness)
-        .otherwise(pl.col("toughness"))
-        .alias("toughness"),
+        pl.when(has_face_data).then(face_power).otherwise(pl.col("power")).alias("power"),
+        pl.when(has_face_data).then(face_toughness).otherwise(pl.col("toughness")).alias("toughness"),
     )
 
 
@@ -1115,9 +1012,7 @@ def apply_watermark_overrides(
     )
 
     lf = lf.with_columns(
-        pl.when(
-            (pl.col("watermark") == "set") & pl.col("_watermarkOverride").is_not_null()
-        )
+        pl.when((pl.col("watermark") == "set") & pl.col("_watermarkOverride").is_not_null())
         .then(pl.col("_watermarkOverride"))
         .otherwise(pl.col("watermark"))
         .alias("watermark")
@@ -1139,11 +1034,9 @@ def filter_keywords_for_face(lf: pl.LazyFrame) -> pl.LazyFrame:
             out.append([k for k in kws if k.lower() in txt])
         return pl.Series(out, dtype=pl.List(pl.String))
 
-    return lf.with_columns(
-        pl.struct(["text", "_all_keywords"])
-        .map_batches(_filter_logic)
-        .alias("keywords")
-    ).drop("_all_keywords")
+    return lf.with_columns(pl.struct(["text", "_all_keywords"]).map_batches(_filter_logic).alias("keywords")).drop(
+        "_all_keywords"
+    )
 
 
 def add_booster_types(lf: pl.LazyFrame) -> pl.LazyFrame:
@@ -1151,10 +1044,7 @@ def add_booster_types(lf: pl.LazyFrame) -> pl.LazyFrame:
     Compute boosterTypes and isStarter based on Scryfall booster field and promoTypes.
     """
     has_starter_promo = (
-        pl.col("promoTypes")
-        .list.set_intersection(pl.lit(["starterdeck", "planeswalkerdeck"]))
-        .list.len()
-        > 0
+        pl.col("promoTypes").list.set_intersection(pl.lit(["starterdeck", "planeswalkerdeck"])).list.len() > 0
     )
     in_booster = pl.col("_in_booster").fill_null(False)
 
@@ -1162,16 +1052,8 @@ def add_booster_types(lf: pl.LazyFrame) -> pl.LazyFrame:
         [
             # boosterTypes computation
             pl.when(in_booster)
-            .then(
-                pl.when(has_starter_promo)
-                .then(pl.lit(["default", "deck"]))
-                .otherwise(pl.lit(["default"]))
-            )
-            .otherwise(
-                pl.when(has_starter_promo)
-                .then(pl.lit(["deck"]))
-                .otherwise(pl.lit([]).cast(pl.List(pl.String)))
-            )
+            .then(pl.when(has_starter_promo).then(pl.lit(["default", "deck"])).otherwise(pl.lit(["default"])))
+            .otherwise(pl.when(has_starter_promo).then(pl.lit(["deck"])).otherwise(pl.lit([]).cast(pl.List(pl.String))))
             .alias("boosterTypes"),
             pl.when(~pl.col("_in_booster").fill_null(True))
             .then(pl.lit(True))
@@ -1191,9 +1073,7 @@ def add_legalities_struct(
     lf = lf.unnest("legalities")
 
     formats = (
-        ctx.categoricals.legalities
-        if ctx.categoricals is not None and ctx.categoricals.legalities is not None
-        else []
+        ctx.categoricals.legalities if ctx.categoricals is not None and ctx.categoricals.legalities is not None else []
     )
 
     if not formats:
@@ -1202,20 +1082,14 @@ def add_legalities_struct(
     struct_fields = []
     for fmt in formats:
         expr = (
-            pl.when(
-                pl.col(fmt).is_not_null()
-                & (pl.col(fmt) != "not_legal")
-                & (pl.col("setType") != "memorabilia")
-            )
+            pl.when(pl.col(fmt).is_not_null() & (pl.col(fmt) != "not_legal") & (pl.col("setType") != "memorabilia"))
             .then(pl.col(fmt).str.to_titlecase())
             .otherwise(pl.lit(None))
             .alias(fmt)
         )
         struct_fields.append(expr)
 
-    return lf.with_columns(pl.struct(struct_fields).alias("legalities")).drop(
-        formats, strict=False
-    )
+    return lf.with_columns(pl.struct(struct_fields).alias("legalities")).drop(formats, strict=False)
 
 
 def add_availability_struct(
@@ -1228,9 +1102,7 @@ def add_availability_struct(
     schema = lf.collect_schema()
 
     if "games" not in schema.names():
-        return lf.with_columns(
-            pl.lit([]).cast(pl.List(pl.String)).alias("availability")
-        )
+        return lf.with_columns(pl.lit([]).cast(pl.List(pl.String)).alias("availability"))
 
     categoricals = ctx.categoricals
     platforms = categoricals.games if categoricals else []
@@ -1244,9 +1116,7 @@ def add_availability_struct(
         return lf.with_columns(
             pl.concat_list(
                 [
-                    pl.when(pl.col("games").struct.field(p).fill_null(False))
-                    .then(pl.lit(p))
-                    .otherwise(pl.lit(None))
+                    pl.when(pl.col("games").struct.field(p).fill_null(False)).then(pl.lit(p)).otherwise(pl.lit(None))
                     for p in platforms
                 ]
             )
@@ -1269,9 +1139,7 @@ def remap_availability_values(lf: pl.LazyFrame) -> pl.LazyFrame:
         return lf
 
     return lf.with_columns(
-        pl.col("availability")
-        .list.eval(pl.element().replace({"astral": "shandalar", "sega": "dreamcast"}))
-        .list.sort()
+        pl.col("availability").list.eval(pl.element().replace({"astral": "shandalar", "sega": "dreamcast"})).list.sort()
     )
 
 
@@ -1288,10 +1156,7 @@ def fix_availability_from_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     if "mtgoId" in schema.names():
         exprs.append(
-            pl.when(
-                pl.col("mtgoId").is_not_null()
-                & ~pl.col("availability").list.contains("mtgo")
-            )
+            pl.when(pl.col("mtgoId").is_not_null() & ~pl.col("availability").list.contains("mtgo"))
             .then(pl.col("availability").list.concat(pl.lit(["mtgo"])))
             .otherwise(pl.col("availability"))
             .alias("availability")
@@ -1299,10 +1164,7 @@ def fix_availability_from_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     if "arenaId" in schema.names():
         exprs.append(
-            pl.when(
-                pl.col("arenaId").is_not_null()
-                & ~pl.col("availability").list.contains("arena")
-            )
+            pl.when(pl.col("arenaId").is_not_null() & ~pl.col("availability").list.contains("arena"))
             .then(pl.col("availability").list.concat(pl.lit(["arena"])))
             .otherwise(pl.col("availability"))
             .alias("availability")
@@ -1477,9 +1339,7 @@ def join_gatherer_data(
         )
 
     # Extract multiverse_id from identifiers for join
-    lf = lf.with_columns(
-        pl.col("identifiers").struct.field("multiverseId").alias("_mv_id_lookup")
-    )
+    lf = lf.with_columns(pl.col("identifiers").struct.field("multiverseId").alias("_mv_id_lookup"))
 
     lf = lf.join(
         gatherer_df.lazy(),
@@ -1500,9 +1360,7 @@ def add_identifiers_v4_uuid(lf: pl.LazyFrame) -> pl.LazyFrame:
     # V4 UUID: Token uses different formula than normal cards
     card_name = pl.coalesce(pl.col("faceName"), pl.col("name")).fill_null("")
     scryfall_id = pl.col("scryfallId").fill_null("")
-    is_token = (
-        pl.col("types").list.set_intersection(pl.lit(["Token", "Card"])).list.len() > 0
-    )
+    is_token = pl.col("types").list.set_intersection(pl.lit(["Token", "Card"])).list.len() > 0
 
     token_source = pl.concat_str(
         [
@@ -1520,13 +1378,9 @@ def add_identifiers_v4_uuid(lf: pl.LazyFrame) -> pl.LazyFrame:
     # Combine sources and generate UUID5
     combined_source = pl.when(is_token).then(token_source).otherwise(normal_source)
     lf = lf.with_columns(combined_source.alias("_v4_source"))
-    lf = lf.with_columns(_uuid5_expr("_v4_source").alias("_mtgjsonV4Id")).drop(
-        "_v4_source"
-    )
+    lf = lf.with_columns(_uuid5_expr("_v4_source").alias("_mtgjsonV4Id")).drop("_v4_source")
     return lf.with_columns(
-        pl.col("identifiers").struct.with_fields(
-            [pl.col("_mtgjsonV4Id").alias("mtgjsonV4Id")]
-        )
+        pl.col("identifiers").struct.with_fields([pl.col("_mtgjsonV4Id").alias("mtgjsonV4Id")])
     ).drop("_mtgjsonV4Id")
 
 
@@ -1573,29 +1427,20 @@ def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
     is_token = pl.col("types").list.contains("Token")
     has_all_parts = pl.col("_all_parts").list.len() > 0
     face_name_has_double_slash = pl.col("faceName").fill_null("").str.contains("//")
-    is_same_name_pattern = (
-        pl.col("name").str.split(" // ").list.unique().list.len() == 1
-    )
+    is_same_name_pattern = pl.col("name").str.split(" // ").list.unique().list.len() == 1
     all_parts_has_no_double_slash = (
         pl.col("_all_parts")  # pylint: disable=singleton-comparison
         .list.eval(pl.element().struct.field("name").str.contains("//").any())
         .list.first()
         .fill_null(False)
-        == False  # noqa: E712 - Polars expression, not Python comparison
+        == False
     )
     is_same_name_reversible_with_no_slash_parts = (
-        (pl.col("layout") == "reversible_card")
-        & has_all_parts
-        & is_same_name_pattern
-        & all_parts_has_no_double_slash
+        (pl.col("layout") == "reversible_card") & has_all_parts & is_same_name_pattern & all_parts_has_no_double_slash
     )
 
     lf = lf.with_columns(
-        pl.when(
-            (is_token & has_all_parts)
-            | face_name_has_double_slash
-            | is_same_name_reversible_with_no_slash_parts
-        )
+        pl.when((is_token & has_all_parts) | face_name_has_double_slash | is_same_name_reversible_with_no_slash_parts)
         .then(pl.lit(None).cast(pl.List(pl.String)))
         .otherwise(pl.col("otherFaceIds"))
         .alias("otherFaceIds")
@@ -1628,18 +1473,13 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     lf = lf.with_columns(
         pl.when(pl.col("_group_uuids").list.len() > 1)
-        .then(
-            pl.col("_group_uuids").list.set_difference(pl.concat_list(pl.col("uuid")))
-        )
+        .then(pl.col("_group_uuids").list.set_difference(pl.concat_list(pl.col("uuid"))))
         .otherwise(pl.lit([]).cast(pl.List(pl.String)))
         .alias("variations")
     )
 
     lf = lf.with_columns(
-        pl.when(
-            pl.col("otherFaceIds").is_not_null()
-            & (pl.col("otherFaceIds").list.len() > 0)
-        )
+        pl.when(pl.col("otherFaceIds").is_not_null() & (pl.col("otherFaceIds").list.len() > 0))
         .then(pl.col("variations").list.set_difference(pl.col("otherFaceIds")))
         .otherwise(pl.col("variations"))
         .alias("variations")
@@ -1677,20 +1517,14 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
             how="left",
         )
         .group_by("uuid")
-        .agg(
-            pl.col("variations")
-            .sort_by(["_var_num_int", "_var_num_str"])
-            .alias("_variations_sorted")
-        )
+        .agg(pl.col("variations").sort_by(["_var_num_int", "_var_num_str"]).alias("_variations_sorted"))
     )
 
     # Join back and replace variations with sorted version
     lf = lf.join(variations_sorted, on="uuid", how="left")
-    lf = lf.with_columns(
-        pl.coalesce(pl.col("_variations_sorted"), pl.col("variations")).alias(
-            "variations"
-        )
-    ).drop("_variations_sorted")
+    lf = lf.with_columns(pl.coalesce(pl.col("_variations_sorted"), pl.col("variations")).alias("variations")).drop(
+        "_variations_sorted"
+    )
 
     # Build the "printing key" that defines uniqueness within a set
     frame_effects_str = pl.col("frameEffects").list.sort().list.join(",").fill_null("")
@@ -1721,11 +1555,7 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     # Within each printing key, the card with the lowest collector number is "canonical"
     number_digits_expr = (
-        pl.col("number")
-        .str.extract_all(r"\d")
-        .list.join("")
-        .str.replace(r"^$", "100000")
-        .cast(pl.Int64)
+        pl.col("number").str.extract_all(r"\d").list.join("").str.replace(r"^$", "100000").cast(pl.Int64)
     )
 
     lf = lf.with_columns(number_digits_expr.alias("_number_digits"))
@@ -1733,18 +1563,12 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
     # Use rank to find the canonical entry (lowest numeric value, then alphabetical tiebreaker)
     # The card with rank 1 within each group is canonical
     # Struct comparison is lexicographic: first by _number_digits, then by number string
-    rank_expr = (
-        pl.struct("_number_digits", "number")
-        .rank("ordinal")
-        .over(["setCode", "_printing_key"])
-    )
+    rank_expr = pl.struct("_number_digits", "number").rank("ordinal").over(["setCode", "_printing_key"])
     canonical_expr = rank_expr == 1
 
     lf = lf.with_columns(
         pl.when(
-            (pl.col("variations").list.len() > 0)
-            & (~pl.col("name").is_in(list(BASIC_LAND_NAMES)))
-            & (~canonical_expr)
+            (pl.col("variations").list.len() > 0) & (~pl.col("name").is_in(list(BASIC_LAND_NAMES))) & (~canonical_expr)
         )
         .then(pl.lit(True))
         .otherwise(pl.lit(None))
@@ -1787,20 +1611,14 @@ def add_leadership_skills_expr(
     is_legendary = pl.col("type").str.contains("Legendary")
     is_creature = pl.col("type").str.contains("Creature")
     is_vehicle_or_spacecraft = pl.col("type").str.contains("Vehicle|Spacecraft")
-    has_power_toughness = (
-        pl.col("power").is_not_null() & pl.col("toughness").is_not_null()
-    )
+    has_power_toughness = pl.col("power").is_not_null() & pl.col("toughness").is_not_null()
     is_front_face = pl.col("side").is_null() | (pl.col("side") == "a")
     can_be_commander_text = pl.col("text").str.contains("can be your commander")
     is_override = pl.col("name").is_in(override_cards)
 
     is_commander_legal = (
         is_override
-        | (
-            is_legendary
-            & (is_creature | (is_vehicle_or_spacecraft & has_power_toughness))
-            & is_front_face
-        )
+        | (is_legendary & (is_creature | (is_vehicle_or_spacecraft & has_power_toughness)) & is_front_face)
         | can_be_commander_text
     )
 
@@ -1862,11 +1680,7 @@ def add_alternative_deck_limit(
     pattern1 = oracle_text.str.contains(r"deck.*any.*number.*cards.*named")
     pattern2 = oracle_text.str.contains(r"have.*up.*to.*cards.*named.*deck")
 
-    in_list = (
-        pl.col("name").is_in(list(unlimited_cards))
-        if unlimited_cards
-        else pl.lit(False)
-    )
+    in_list = pl.col("name").is_in(list(unlimited_cards)) if unlimited_cards else pl.lit(False)
     matches_pattern = pattern1 | pattern2
 
     return lf.with_columns(
@@ -1893,11 +1707,7 @@ def add_is_funny(
         pl.when(pl.col("setType") != "funny")
         .then(pl.lit(None))
         .when(pl.col("setCode") == "UNF")
-        .then(
-            pl.when(pl.col("securityStamp") == "acorn")
-            .then(pl.lit(True))
-            .otherwise(pl.lit(None))
-        )
+        .then(pl.when(pl.col("securityStamp") == "acorn").then(pl.lit(True)).otherwise(pl.lit(None)))
         .otherwise(pl.lit(True))
         .alias("isFunny")
     )
@@ -1973,10 +1783,7 @@ def add_purchase_urls_struct(
                         mcm_id.cast(pl.String),
                         pl.col("uuid"),
                         pl.lit(CARD_MARKET_BUFFER),
-                        pl.col("identifiers")
-                        .struct.field("mcmMetaId")
-                        .cast(pl.String)
-                        .fill_null(""),
+                        pl.col("identifiers").struct.field("mcmMetaId").cast(pl.String).fill_null(""),
                     ]
                 )
                 .chash.sha2_256()
@@ -2100,16 +1907,11 @@ def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyF
     """
     Link rebalanced cards (A-Name) to their original printings and vice versa.
     """
-    is_rebalanced = pl.col("name").str.starts_with("A-") | pl.col(
-        "promoTypes"
-    ).list.contains("rebalanced")
+    is_rebalanced = pl.col("name").str.starts_with("A-") | pl.col("promoTypes").list.contains("rebalanced")
 
     # Add isRebalanced boolean (True for rebalanced, null otherwise)
     lf = lf.with_columns(
-        pl.when(is_rebalanced)
-        .then(pl.lit(True))
-        .otherwise(pl.lit(None).cast(pl.Boolean))
-        .alias("isRebalanced")
+        pl.when(is_rebalanced).then(pl.lit(True)).otherwise(pl.lit(None).cast(pl.Boolean)).alias("isRebalanced")
     )
 
     is_rebalanced = pl.col("name").str.starts_with("A-")
@@ -2120,9 +1922,7 @@ def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyF
     # This ensures we only link UUIDs that will exist in final output
     default_langs = ctx.languages_lf
     if default_langs is not None:
-        default_lang_lf = lf.join(
-            default_langs, on=["scryfallId", "language"], how="semi"
-        )
+        default_lang_lf = lf.join(default_langs, on=["scryfallId", "language"], how="semi")
     else:
         # Fallback to English
         default_lang_lf = lf.filter(pl.col("language") == "English")
@@ -2150,10 +1950,7 @@ def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyF
                 pl.col("name").alias("_original_name"),
                 pl.col("uuid"),
                 pl.col("number"),
-                pl.col("number")
-                .str.extract(r"(\d+)")
-                .cast(pl.Int64)
-                .alias("_number_int"),
+                pl.col("number").str.extract(r"(\d+)").cast(pl.Int64).alias("_number_int"),
                 pl.col("side").fill_null(""),  # Include side for ordering
             ]
         )
@@ -2162,9 +1959,7 @@ def add_rebalanced_linkage(lf: pl.LazyFrame, ctx: "PipelineContext") -> pl.LazyF
             on=["setCode", "_original_name"],
             how="semi",  # Only keep names that have a rebalanced version in same set
         )
-        .sort(
-            ["setCode", "_original_name", "_number_int", "number", "side"]
-        )  # Sort by numeric, string, side
+        .sort(["setCode", "_original_name", "_number_int", "number", "side"])  # Sort by numeric, string, side
         .group_by(["setCode", "_original_name"])
         .agg(pl.col("uuid").alias("_original_uuids"))  # Preserve order from sort
     )
@@ -2226,11 +2021,7 @@ def link_foil_nonfoil_versions(lf: pl.LazyFrame) -> pl.LazyFrame:
     for row in target_df.iter_rows(named=True):
         uuid = row["uuid"]
         set_code = row["setCode"]
-        ill_id = (
-            row["identifiers"].get("scryfallIllustrationId")
-            if row["identifiers"]
-            else None
-        )
+        ill_id = row["identifiers"].get("scryfallIllustrationId") if row["identifiers"] else None
         finishes = row["finishes"] or []
 
         if ill_id is None:
@@ -2350,16 +2141,10 @@ def add_source_products(
     )
 
     if card_to_products_df is None:
-        return lf.with_columns(
-            pl.lit(None).cast(source_products_struct).alias("sourceProducts")
-        )
+        return lf.with_columns(pl.lit(None).cast(source_products_struct).alias("sourceProducts"))
 
     # card_to_products_df can be LazyFrame (from cache) or DataFrame
-    products_lf = (
-        card_to_products_df
-        if isinstance(card_to_products_df, pl.LazyFrame)
-        else card_to_products_df.lazy()
-    )
+    products_lf = card_to_products_df if isinstance(card_to_products_df, pl.LazyFrame) else card_to_products_df.lazy()
 
     # Rename product columns to avoid collision with Scryfall's boolean foil/nonfoil
     products_lf = products_lf.rename(
@@ -2390,9 +2175,7 @@ def add_source_products(
 
 
 # 6.2:
-def rename_all_the_things(
-    lf: pl.LazyFrame, output_type: str = "card_set"
-) -> pl.LazyFrame:
+def rename_all_the_things(lf: pl.LazyFrame, output_type: str = "card_set") -> pl.LazyFrame:
     """
     Final transformation: Renames internal columns to MTGJSON CamelCase,
     builds nested structs, and selects only fields valid for the output_type.
@@ -2453,9 +2236,7 @@ def rename_all_the_things(
     existing_cols = set(renamed_schema.names())
     final_cols = sorted(existing_cols & allowed_fields)
 
-    LOGGER.debug(
-        f"Selecting {len(final_cols)} columns for output type '{output_type}':{', '.join(final_cols)}"
-    )
+    LOGGER.debug(f"Selecting {len(final_cols)} columns for output type '{output_type}':{', '.join(final_cols)}")
 
     return lf.select(final_cols)
 
@@ -2508,9 +2289,7 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
             lf.select(
                 [
                     pl.col("uuid"),
-                    pl.col("identifiers")
-                    .struct.field("tcgplayerProductId")
-                    .alias("tcgplayerProductId"),
+                    pl.col("identifiers").struct.field("tcgplayerProductId").alias("tcgplayerProductId"),
                 ]
             )
             .filter(pl.col("tcgplayerProductId").is_not_null())
@@ -2532,9 +2311,7 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
             lf.select(
                 [
                     pl.col("uuid"),
-                    pl.col("identifiers")
-                    .struct.field("tcgplayerEtchedProductId")
-                    .alias("tcgplayerEtchedProductId"),
+                    pl.col("identifiers").struct.field("tcgplayerEtchedProductId").alias("tcgplayerEtchedProductId"),
                 ]
             )
             .filter(pl.col("tcgplayerEtchedProductId").is_not_null())
@@ -2546,9 +2323,7 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
             tcg_etched_df.write_parquet(tcg_etched_path)
             if ctx._cache is not None:
                 ctx._cache.tcg_etched_to_uuid_lf = tcg_etched_df.lazy()
-            LOGGER.info(
-                f"Built tcg_etched_to_uuid mapping: {len(tcg_etched_df):,} entries"
-            )
+            LOGGER.info(f"Built tcg_etched_to_uuid mapping: {len(tcg_etched_df):,} entries")
     except Exception as e:
         LOGGER.warning(f"Failed to build tcg_etched_to_uuid mapping: {e}")
 
@@ -2580,9 +2355,7 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
             lf.select(
                 [
                     pl.col("uuid"),
-                    pl.col("identifiers")
-                    .struct.field("scryfallId")
-                    .alias("scryfallId"),
+                    pl.col("identifiers").struct.field("scryfallId").alias("scryfallId"),
                 ]
             )
             .filter(pl.col("scryfallId").is_not_null())
@@ -2747,9 +2520,7 @@ def propagate_salt_to_tokens(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     # Identify tokens
     is_token = (
-        pl.col("layout").is_in(TOKEN_LAYOUTS)
-        | (pl.col("type") == "Dungeon")
-        | pl.col("type").str.contains("Token")
+        pl.col("layout").is_in(TOKEN_LAYOUTS) | (pl.col("type") == "Dungeon") | pl.col("type").str.contains("Token")
     )
 
     parent_salt = (
@@ -2783,11 +2554,7 @@ def propagate_salt_to_tokens(lf: pl.LazyFrame) -> pl.LazyFrame:
             on="uuid",
             how="left",
         )
-        .with_columns(
-            pl.coalesce(pl.col("edhrecSaltiness"), pl.col("_parent_salt")).alias(
-                "edhrecSaltiness"
-            )
-        )
+        .with_columns(pl.coalesce(pl.col("edhrecSaltiness"), pl.col("_parent_salt")).alias("edhrecSaltiness"))
         .drop("_parent_salt", strict=False)
     )
 
@@ -2803,9 +2570,7 @@ def calculate_duel_deck(lf: pl.LazyFrame) -> pl.LazyFrame:
     - When we see a basic land followed by a non-basic land, switch to deck 'b'
     - Tokens and emblems are skipped (no duelDeck)
     """
-    is_duel_deck_set = pl.col("setCode").str.starts_with("DD") | (
-        pl.col("setCode") == "GS1"
-    )
+    is_duel_deck_set = pl.col("setCode").str.starts_with("DD") | (pl.col("setCode") == "GS1")
     basic_land_names = list(BASIC_LAND_NAMES)
 
     # Only process cards from duel deck sets
@@ -2822,15 +2587,9 @@ def calculate_duel_deck(lf: pl.LazyFrame) -> pl.LazyFrame:
             # Mark basic lands
             pl.col("name").is_in(basic_land_names).alias("_is_basic_land"),
             # Mark tokens/emblems (skip these)
-            pl.col("type")
-            .str.contains("Token|Emblem")
-            .fill_null(False)
-            .alias("_is_token"),
+            pl.col("type").str.contains("Token|Emblem").fill_null(False).alias("_is_token"),
             # Extract numeric part of collector number for sorting
-            pl.col("number")
-            .str.extract(r"^(\d+)", 1)
-            .cast(pl.Int32)
-            .alias("_num_sort"),
+            pl.col("number").str.extract(r"^(\d+)", 1).cast(pl.Int32).alias("_num_sort"),
         )
         .sort(["setCode", "_num_sort", "number"])
     )
@@ -2839,26 +2598,15 @@ def calculate_duel_deck(lf: pl.LazyFrame) -> pl.LazyFrame:
     # Use a window function to check if previous card was a basic land
     dd_cards = (
         dd_cards.with_columns(
-            pl.col("_is_basic_land")
-            .shift(1)
-            .over("setCode")
-            .fill_null(False)
-            .alias("_prev_was_land"),
+            pl.col("_is_basic_land").shift(1).over("setCode").fill_null(False).alias("_prev_was_land"),
         )
         .with_columns(
             # Transition occurs when previous was basic land and current is not basic land and not token
-            (
-                pl.col("_prev_was_land")
-                & ~pl.col("_is_basic_land")
-                & ~pl.col("_is_token")
-            ).alias("_is_transition"),
+            (pl.col("_prev_was_land") & ~pl.col("_is_basic_land") & ~pl.col("_is_token")).alias("_is_transition"),
         )
         .with_columns(
             # Count transitions to get deck number
-            pl.col("_is_transition")
-            .cum_sum()
-            .over("setCode")
-            .alias("_deck_num"),
+            pl.col("_is_transition").cum_sum().over("setCode").alias("_deck_num"),
         )
         .with_columns(
             # Convert deck number to letter, skip tokens
@@ -2867,9 +2615,7 @@ def calculate_duel_deck(lf: pl.LazyFrame) -> pl.LazyFrame:
             .otherwise(
                 # 0 -> 'a', 1 -> 'b', etc.
                 pl.lit("a").str.replace("a", "")
-                + pl.col("_deck_num").map_elements(
-                    lambda n: chr(ord("a") + n), return_dtype=pl.String
-                )
+                + pl.col("_deck_num").map_elements(lambda n: chr(ord("a") + n), return_dtype=pl.String)
             )
             .alias("_calc_duelDeck"),
         )
@@ -2883,9 +2629,7 @@ def calculate_duel_deck(lf: pl.LazyFrame) -> pl.LazyFrame:
             on="uuid",
             how="left",
         )
-        .with_columns(
-            pl.coalesce(pl.col("_dd_calculated"), pl.col("duelDeck")).alias("duelDeck")
-        )
+        .with_columns(pl.coalesce(pl.col("_dd_calculated"), pl.col("duelDeck")).alias("duelDeck"))
         .drop("_dd_calculated")
     )
 
@@ -2959,22 +2703,14 @@ def fix_foreigndata_for_faces(
     # Build per-face lookup for non-primary faces
     face_lookup = None
     if ctx.cards_lf is not None:
-        cards_df = (
-            ctx.cards_lf.collect()
-            if isinstance(ctx.cards_lf, pl.LazyFrame)
-            else ctx.cards_lf
-        )
+        cards_df = ctx.cards_lf.collect() if isinstance(ctx.cards_lf, pl.LazyFrame) else ctx.cards_lf
 
         face_lookup = (
-            cards_df.filter(
-                (pl.col("lang") != "en") & (pl.col("cardFaces").list.len() > 1)
-            )
+            cards_df.filter((pl.col("lang") != "en") & (pl.col("cardFaces").list.len() > 1))
             .with_columns(
                 [
                     pl.col("set").str.to_uppercase().alias("setCode"),
-                    pl.col("lang")
-                    .replace_strict(LANGUAGE_MAP, default=pl.col("lang"))
-                    .alias("language"),
+                    pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("language"),
                     pl.int_ranges(pl.col("cardFaces").list.len()).alias("_face_idx"),
                 ]
             )
@@ -2987,12 +2723,8 @@ def fix_foreigndata_for_faces(
                         pl.col("cardFaces").struct.field("name"),
                     ).alias("_faceName"),
                     pl.col("cardFaces").struct.field("printed_text").alias("_text"),
-                    pl.col("cardFaces")
-                    .struct.field("printed_type_line")
-                    .alias("_type"),
-                    pl.col("cardFaces")
-                    .struct.field("flavor_text")
-                    .alias("_flavorText"),
+                    pl.col("cardFaces").struct.field("printed_type_line").alias("_type"),
+                    pl.col("cardFaces").struct.field("flavor_text").alias("_flavorText"),
                 ]
             )
             .select(
@@ -3024,10 +2756,7 @@ def fix_foreigndata_for_faces(
         .with_columns(
             [
                 pl.col("foreignData").struct.field("language").alias("_fd_lang"),
-                pl.col("_side")
-                .replace_strict(side_to_index, default=0)
-                .cast(pl.Int64)
-                .alias("_face_index"),
+                pl.col("_side").replace_strict(side_to_index, default=0).cast(pl.Int64).alias("_face_index"),
             ]
         )
         # Regenerate UUID: scryfallId + side + "_" + language
@@ -3059,10 +2788,7 @@ def fix_foreigndata_for_faces(
         fd_processed = fd_processed.with_columns(
             pl.struct(
                 [
-                    pl.when(
-                        (pl.col("_side") != "a")
-                        & pl.col("_has_face_data").fill_null(False)
-                    )
+                    pl.when((pl.col("_side") != "a") & pl.col("_has_face_data").fill_null(False))
                     .then(pl.col("_faceName"))
                     .when(pl.col("_side") != "a")
                     .then(
@@ -3073,10 +2799,7 @@ def fix_foreigndata_for_faces(
                     )
                     .otherwise(pl.col("foreignData").struct.field("faceName"))
                     .alias("faceName"),
-                    pl.when(
-                        (pl.col("_side") != "a")
-                        & pl.col("_has_face_data").fill_null(False)
-                    )
+                    pl.when((pl.col("_side") != "a") & pl.col("_has_face_data").fill_null(False))
                     .then(pl.col("_flavorText"))
                     .when(pl.col("_side") != "a")
                     .then(
@@ -3091,30 +2814,16 @@ def fix_foreigndata_for_faces(
                     pl.col("foreignData").struct.field("language"),
                     pl.col("foreignData").struct.field("multiverseId"),
                     pl.col("foreignData").struct.field("name"),
-                    pl.when(
-                        (pl.col("_side") != "a")
-                        & pl.col("_has_face_data").fill_null(False)
-                    )
+                    pl.when((pl.col("_side") != "a") & pl.col("_has_face_data").fill_null(False))
                     .then(pl.col("_text"))
                     .when(pl.col("_side") != "a")
-                    .then(
-                        pl.coalesce(
-                            pl.col("_text"), pl.col("foreignData").struct.field("text")
-                        )
-                    )
+                    .then(pl.coalesce(pl.col("_text"), pl.col("foreignData").struct.field("text")))
                     .otherwise(pl.col("foreignData").struct.field("text"))
                     .alias("text"),
-                    pl.when(
-                        (pl.col("_side") != "a")
-                        & pl.col("_has_face_data").fill_null(False)
-                    )
+                    pl.when((pl.col("_side") != "a") & pl.col("_has_face_data").fill_null(False))
                     .then(pl.col("_type"))
                     .when(pl.col("_side") != "a")
-                    .then(
-                        pl.coalesce(
-                            pl.col("_type"), pl.col("foreignData").struct.field("type")
-                        )
-                    )
+                    .then(pl.coalesce(pl.col("_type"), pl.col("foreignData").struct.field("type")))
                     .otherwise(pl.col("foreignData").struct.field("type"))
                     .alias("type"),
                     pl.col("_new_uuid").alias("uuid"),
@@ -3140,18 +2849,16 @@ def fix_foreigndata_for_faces(
         )
 
     # Re-aggregate by card+side (deduplication happens naturally here)
-    fd_final = fd_processed.group_by(
-        ["scryfallId", "setCode", "number", "_side_key"]
-    ).agg(pl.col("foreignData").alias("_foreignData_fixed"))
+    fd_final = fd_processed.group_by(["scryfallId", "setCode", "number", "_side_key"]).agg(
+        pl.col("foreignData").alias("_foreignData_fixed")
+    )
 
     # Join back
     lf = lf.with_columns(pl.col("side").fill_null("").alias("_side_key"))
-    lf = lf.join(
-        fd_final, on=["scryfallId", "setCode", "number", "_side_key"], how="left"
+    lf = lf.join(fd_final, on=["scryfallId", "setCode", "number", "_side_key"], how="left")
+    return lf.with_columns(pl.coalesce(pl.col("_foreignData_fixed"), pl.lit([])).alias("foreignData")).drop(
+        ["_foreignData_fixed", "_side_key"]
     )
-    return lf.with_columns(
-        pl.coalesce(pl.col("_foreignData_fixed"), pl.lit([])).alias("foreignData")
-    ).drop(["_foreignData_fixed", "_side_key"])
 
 
 def join_name_data(
@@ -3215,9 +2922,7 @@ def join_name_data(
     if has_spellbook_col:
         lf = lf.rename({"spellbook": "_spellbook_list"})
     else:
-        lf = lf.with_columns(
-            pl.lit(None).cast(pl.List(pl.String)).alias("_spellbook_list")
-        )
+        lf = lf.with_columns(pl.lit(None).cast(pl.List(pl.String)).alias("_spellbook_list"))
 
     return lf
 
@@ -3241,12 +2946,8 @@ def join_face_flavor_names(
 
     # Override faceFlavorName and flavorName with joined values if present
     return lf.with_columns(
-        pl.coalesce(pl.col("_faceFlavorName"), pl.col("faceFlavorName")).alias(
-            "faceFlavorName"
-        ),
-        pl.coalesce(pl.col("_flavorNameOverride"), pl.col("flavorName")).alias(
-            "flavorName"
-        ),
+        pl.coalesce(pl.col("_faceFlavorName"), pl.col("faceFlavorName")).alias("faceFlavorName"),
+        pl.coalesce(pl.col("_flavorNameOverride"), pl.col("flavorName")).alias("flavorName"),
     ).drop(["_faceFlavorName", "_flavorNameOverride"], strict=False)
 
 
@@ -3268,9 +2969,7 @@ def join_signatures(
         return lf.with_columns(pl.lit(None).cast(pl.String).alias("_wc_signature"))
 
     # Extract number prefix for join (e.g., "gb" from "gb123")
-    lf = lf.with_columns(
-        pl.col("number").str.extract(r"^([^0-9]+)", 1).alias("_num_prefix")
-    )
+    lf = lf.with_columns(pl.col("number").str.extract(r"^([^0-9]+)", 1).alias("_num_prefix"))
 
     lf = lf.join(
         ctx.signatures_lf,
@@ -3302,9 +3001,7 @@ def add_signatures_combined(
     """
     Combine signature logic for art series and memorabilia cards.
     """
-    is_art_series = pl.col("setName").str.ends_with("Art Series") & (
-        pl.col("setCode") != "MH1"
-    )
+    is_art_series = pl.col("setName").str.ends_with("Art Series") & (pl.col("setCode") != "MH1")
     is_memorabilia = pl.col("setType") == "memorabilia"
 
     # Extract number parts for memorabilia logic
@@ -3337,10 +3034,7 @@ def add_signatures_combined(
 
     # Update finishes to include "signed" where signature exists
     lf = lf.with_columns(
-        pl.when(
-            pl.col("signature").is_not_null()
-            & ~pl.col("finishes").list.contains("signed")
-        )
+        pl.when(pl.col("signature").is_not_null() & ~pl.col("finishes").list.contains("signed"))
         .then(pl.col("finishes").list.concat(pl.lit(["signed"])))
         .otherwise(pl.col("finishes"))
         .alias("finishes")
@@ -3358,23 +3052,15 @@ def add_related_cards_from_context(
     Build relatedCards struct using pre-joined spellbook data.
     """
     is_token = (
-        pl.col("layout").is_in(TOKEN_LAYOUTS)
-        | (pl.col("type") == "Dungeon")
-        | pl.col("type").str.contains("Token")
+        pl.col("layout").is_in(TOKEN_LAYOUTS) | (pl.col("type") == "Dungeon") | pl.col("type").str.contains("Token")
     )
 
     # Alchemy spellbook check (applies to both tokens and non-tokens)
     is_alchemy = pl.col("setType").str.to_lowercase().str.contains("alchemy")
-    has_spellbook = (
-        is_alchemy
-        & pl.col("_spellbook_list").is_not_null()
-        & (pl.col("_spellbook_list").list.len() > 0)
-    )
+    has_spellbook = is_alchemy & pl.col("_spellbook_list").is_not_null() & (pl.col("_spellbook_list").list.len() > 0)
 
     # Tokens get reverseRelated
-    has_reverse = pl.col("reverseRelated").is_not_null() & (
-        pl.col("reverseRelated").list.len() > 0
-    )
+    has_reverse = pl.col("reverseRelated").is_not_null() & (pl.col("reverseRelated").list.len() > 0)
 
     # Build struct based on what data is present
     # For tokens: include both spellbook and reverseRelated
@@ -3417,9 +3103,7 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
     if ctx.cards_lf is None:
         raise ValueError("cards_lf is not available in context")
 
-    base_lf = ctx.cards_lf.with_columns(
-        pl.col("set").str.to_uppercase().alias("_set_upper")
-    )
+    base_lf = ctx.cards_lf.with_columns(pl.col("set").str.to_uppercase().alias("_set_upper"))
     if set_codes:
         base_lf = base_lf.filter(pl.col("_set_upper").is_in(set_codes))
 
@@ -3428,18 +3112,9 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
         base_lf.with_columns(
             [
                 (pl.col("name").str.count_matches(" // ") + 1).alias("_num_parts"),
-                pl.col("name")
-                .str.extract(r"^([^/]+) // ", 1)
-                .str.strip_chars()
-                .alias("_part0"),
-                pl.col("name")
-                .str.extract(r" // ([^/]+) // ", 1)
-                .str.strip_chars()
-                .alias("_part1"),
-                pl.col("name")
-                .str.extract(r" // ([^/]+)$", 1)
-                .str.strip_chars()
-                .alias("_part2"),
+                pl.col("name").str.extract(r"^([^/]+) // ", 1).str.strip_chars().alias("_part0"),
+                pl.col("name").str.extract(r" // ([^/]+) // ", 1).str.strip_chars().alias("_part1"),
+                pl.col("name").str.extract(r" // ([^/]+)$", 1).str.strip_chars().alias("_part2"),
             ]
         )
         .with_columns(
@@ -3471,8 +3146,7 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
         )
         .filter(
             # English cards OR non-English cards with no English equivalent
-            (pl.col("lang") == "en")
-            | pl.col("_has_english").is_null()
+            (pl.col("lang") == "en") | pl.col("_has_english").is_null()
         )
         .drop(["_has_english", "_set_upper"])
     )
@@ -3659,9 +3333,7 @@ def _expand_card_list(
     if col not in decks.columns:
         return decks.select("_deck_id").with_columns(pl.lit([]).alias(col))
 
-    exploded = (
-        decks.select(["_deck_id", col]).explode(col).filter(pl.col(col).is_not_null())
-    )
+    exploded = decks.select(["_deck_id", col]).explode(col).filter(pl.col(col).is_not_null())
 
     if len(exploded) == 0:
         return decks.select("_deck_id").unique().with_columns(pl.lit([]).alias(col))
@@ -3685,9 +3357,7 @@ def _expand_card_list(
     result = joined.group_by("_deck_id").agg(pl.struct(card_cols).alias(col))
 
     all_deck_ids = decks.select("_deck_id").unique()
-    result = all_deck_ids.join(result, on="_deck_id", how="left").with_columns(
-        pl.col(col).fill_null([])
-    )
+    result = all_deck_ids.join(result, on="_deck_id", how="left").with_columns(pl.col(col).fill_null([]))
 
     return result
 
@@ -3756,9 +3426,7 @@ def build_expanded_decks_df(
     if parquet_dir.exists():
         cards_lf = pl.scan_parquet(parquet_dir / "**/*.parquet")
         cards_df = cards_lf.filter(pl.col("uuid").is_in(uuid_list)).collect()
-        LOGGER.info(
-            f"Loaded {len(cards_df):,} cards/tokens for deck expansion (filtered)"
-        )
+        LOGGER.info(f"Loaded {len(cards_df):,} cards/tokens for deck expansion (filtered)")
 
     available_cols = decks_df.columns
 
@@ -3821,9 +3489,7 @@ def build_expanded_decks_df(
     return result
 
 
-def build_sealed_products_lf(
-    ctx: PipelineContext, _set_code: str | None = None
-) -> pl.LazyFrame:  # pylint: disable=no-member
+def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None) -> pl.LazyFrame:  # pylint: disable=no-member
     """
     Build sealed products LazyFrame with contents struct.
 
@@ -3982,9 +3648,7 @@ def build_sealed_products_lf(
 
     if ck_sealed_urls_lf is not None:
         result = (
-            result.with_columns(
-                pl.col("identifiers").struct.field("cardKingdomId").alias("_ck_join_id")
-            )
+            result.with_columns(pl.col("identifiers").struct.field("cardKingdomId").alias("_ck_join_id"))
             .join(
                 ck_sealed_urls_lf,
                 left_on="_ck_join_id",
@@ -4032,9 +3696,7 @@ def build_sealed_products_lf(
                 hash_cols_added.append("_ck_url")
                 purchase_url_fields.append(
                     pl.when(
-                        pl.col("identifiers")
-                        .struct.field("cardKingdomId")
-                        .is_not_null()
+                        pl.col("identifiers").struct.field("cardKingdomId").is_not_null()
                         & pl.col("_ck_hash").is_not_null()
                     )
                     .then(pl.lit(base_url) + pl.col("_ck_hash"))
@@ -4056,20 +3718,14 @@ def build_sealed_products_lf(
                 )
                 hash_cols_added.append("_tcg_hash")
                 purchase_url_fields.append(
-                    pl.when(
-                        pl.col("identifiers")
-                        .struct.field("tcgplayerProductId")
-                        .is_not_null()
-                    )
+                    pl.when(pl.col("identifiers").struct.field("tcgplayerProductId").is_not_null())
                     .then(pl.lit(base_url) + pl.col("_tcg_hash"))
                     .otherwise(None)
                     .alias("tcgplayer")
                 )
 
     if purchase_url_fields:
-        result = result.with_columns(
-            pl.struct(purchase_url_fields).alias("purchaseUrls")
-        )
+        result = result.with_columns(pl.struct(purchase_url_fields).alias("purchaseUrls"))
         if hash_cols_added:
             result = result.drop(hash_cols_added, strict=False)
     else:
@@ -4126,9 +3782,7 @@ def build_set_metadata_df(
             booster_lf = booster_lf.lazy()
     else:
         booster_lf = (
-            pl.DataFrame({"setCode": [], "config": []})
-            .cast({"setCode": pl.String, "config": pl.String})
-            .lazy()
+            pl.DataFrame({"setCode": [], "config": []}).cast({"setCode": pl.String, "config": pl.String}).lazy()
         )
 
     mcm_set_map = ctx.mcm_set_map or {}
@@ -4164,9 +3818,7 @@ def build_set_metadata_df(
     if "nonfoilOnly" in available_cols:
         base_exprs.append(pl.col("nonfoilOnly").alias("isNonFoilOnly"))
     if "parentSetCode" in available_cols:
-        base_exprs.append(
-            pl.col("parentSetCode").str.to_uppercase().alias("parentCode")
-        )
+        base_exprs.append(pl.col("parentSetCode").str.to_uppercase().alias("parentCode"))
     if "block" in available_cols:
         base_exprs.append(pl.col("block"))
 
@@ -4178,12 +3830,7 @@ def build_set_metadata_df(
         base_exprs.append(pl.col("cardCount").alias("baseSetSize"))
 
     if "iconSvgUri" in available_cols:
-        base_exprs.append(
-            pl.col("iconSvgUri")
-            .str.extract(r"/([^/]+)\.svg", 1)
-            .str.to_uppercase()
-            .alias("keyruneCode")
-        )
+        base_exprs.append(pl.col("iconSvgUri").str.extract(r"/([^/]+)\.svg", 1).str.to_uppercase().alias("keyruneCode"))
 
     if "tokenSetCode" in available_cols:
         base_exprs.append(pl.col("tokenSetCode").alias("tokenSetCode"))
@@ -4191,11 +3838,7 @@ def build_set_metadata_df(
     set_meta = sets_lf.with_columns(base_exprs)
 
     set_meta_cols = set_meta.collect_schema().names()
-    cols_to_drop = [
-        c
-        for c in set_meta_cols
-        if c in scryfall_only_fields or c.lower() in scryfall_only_fields
-    ]
+    cols_to_drop = [c for c in set_meta_cols if c in scryfall_only_fields or c.lower() in scryfall_only_fields]
     if cols_to_drop:
         set_meta = set_meta.drop(cols_to_drop, strict=False)
 
@@ -4218,16 +3861,12 @@ def build_set_metadata_df(
         record["mcmName"] = mcm_data.get("mcmName")
         record["mcmIdExtras"] = ctx.get_mcm_extras_set_id(set_name)
 
-        record["isForeignOnly"] = (
-            True if record.get("code", "") in constants.FOREIGN_SETS else None
-        )
+        record["isForeignOnly"] = True if record.get("code", "") in constants.FOREIGN_SETS else None
 
         release_date = record.get("releaseDate")
         if release_date:
             build_date = date.today().isoformat()
-            record["isPartialPreview"] = (
-                build_date < release_date if build_date < release_date else None
-            )
+            record["isPartialPreview"] = build_date < release_date if build_date < release_date else None
         else:
             record["isPartialPreview"] = None
 
@@ -4257,13 +3896,9 @@ def build_set_metadata_df(
                     "isOnlineOnly": set_data.get("digital", False),
                     "isFoilOnly": set_data.get("foil_only", False),
                     "isNonFoilOnly": set_data.get("nonfoil_only", False),
-                    "isForeignOnly": (
-                        True if code_upper in constants.FOREIGN_SETS else None
-                    ),
+                    "isForeignOnly": (True if code_upper in constants.FOREIGN_SETS else None),
                     "parentCode": (
-                        set_data.get("parent_set_code", "").upper()
-                        if set_data.get("parent_set_code")
-                        else None
+                        set_data.get("parent_set_code", "").upper() if set_data.get("parent_set_code") else None
                     ),
                     "block": set_data.get("block"),
                     "tcgplayerGroupId": set_data.get("tcgplayer_id"),

@@ -103,11 +103,7 @@ def safe_struct_field(
         default = pl.lit(None)
 
     # Use when().then() pattern since struct.field() errors on missing
-    return (
-        pl.when(pl.col(col).is_not_null())
-        .then(pl.col(col).struct.field(field_name))
-        .otherwise(default)
-    )
+    return pl.when(pl.col(col).is_not_null()).then(pl.col(col).struct.field(field_name)).otherwise(default)
 
 
 def require_columns(

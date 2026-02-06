@@ -48,9 +48,7 @@ REQUIRED_DECK_LIST_FIELDS: Final[frozenset[str]] = frozenset(
 )
 
 # Combined required list fields
-REQUIRED_LIST_FIELDS: Final[frozenset[str]] = (
-    REQUIRED_CARD_LIST_FIELDS | REQUIRED_DECK_LIST_FIELDS
-)
+REQUIRED_LIST_FIELDS: Final[frozenset[str]] = REQUIRED_CARD_LIST_FIELDS | REQUIRED_DECK_LIST_FIELDS
 
 # Fields where empty list should be OMITTED
 OMIT_EMPTY_LIST_FIELDS: Final[frozenset[str]] = frozenset(
@@ -136,9 +134,7 @@ OTHER_OPTIONAL_FIELDS: Final[frozenset[str]] = frozenset(
 EXCLUDE_FROM_OUTPUT: Final[frozenset[str]] = frozenset()
 
 # Combined set of all fields to potentially omit
-OMIT_FIELDS: Final[frozenset[str]] = (
-    OPTIONAL_BOOL_FIELDS | OMIT_EMPTY_LIST_FIELDS | OTHER_OPTIONAL_FIELDS
-)
+OMIT_FIELDS: Final[frozenset[str]] = OPTIONAL_BOOL_FIELDS | OMIT_EMPTY_LIST_FIELDS | OTHER_OPTIONAL_FIELDS
 
 # List of fields that should always be included even if they are falsey
 ALLOW_IF_FALSEY: Final[frozenset[str]] = frozenset(

@@ -23,25 +23,17 @@ class MtgjsonAllPrintingsObject(JsonObject):
         Initialize to build up the object
         """
         self.all_sets_dict = {}
-        files_to_build = self.get_files_to_build(
-            MtgjsonStructuresObject().get_all_compiled_file_names()
-        )
+        files_to_build = self.get_files_to_build(MtgjsonStructuresObject().get_all_compiled_file_names())
         self.iterate_all_sets(files_to_build)
 
-    def get_set_contents(
-        self, sets: list[str] | None = None
-    ) -> dict[str, MtgjsonSetObject]:
+    def get_set_contents(self, sets: list[str] | None = None) -> dict[str, MtgjsonSetObject]:
         """
         Give the contents of certain sets. Empty for all sets.
         :param sets: Sets to get. Empty for all sets.
         :return Subset of AllPrintings sets
         """
         if sets:
-            return {
-                key: self.all_sets_dict[key]
-                for key in sets
-                if key in self.all_sets_dict
-            }
+            return {key: self.all_sets_dict[key] for key in sets if key in self.all_sets_dict}
 
         return self.all_sets_dict
 

@@ -206,6 +206,7 @@ class PriceBuilderContext:
 
         return {}
 
+
 class PolarsPriceBuilder:
     """
     Build daily prices using Polars DataFrames with v2 async providers.
@@ -234,9 +235,7 @@ class PolarsPriceBuilder:
     ) -> None:
         self.on_progress = on_progress
         self.all_printings_path = (
-            all_printings_path
-            if all_printings_path
-            else MtgjsonConfig().output_path.joinpath("AllPrintings.json")
+            all_printings_path if all_printings_path else MtgjsonConfig().output_path.joinpath("AllPrintings.json")
         )
         self.today_date = datetime.date.today().strftime("%Y-%m-%d")
 
@@ -247,9 +246,7 @@ class PolarsPriceBuilder:
         self._mcm_provider: CardMarketProvider | None = None
         self._ck_provider: CKProvider | None = None
 
-    async def build_today_prices_async(
-        self, ctx: PriceBuilderContext | None = None
-    ) -> pl.DataFrame:
+    async def build_today_prices_async(self, ctx: PriceBuilderContext | None = None) -> pl.DataFrame:
         """
         Fetch today's prices from v2 async providers.
 
@@ -287,9 +284,7 @@ class PolarsPriceBuilder:
         # Fetch TCGPlayer prices (largest, async with streaming)
         LOGGER.info("Fetching TCGPlayer prices")
         if tcg_to_uuid or tcg_etched_to_uuid:
-            tcg_df = await self._tcg_provider.fetch_all_prices(
-                tcg_to_uuid or {}, tcg_etched_to_uuid or {}
-            )
+            tcg_df = await self._tcg_provider.fetch_all_prices(tcg_to_uuid or {}, tcg_etched_to_uuid or {})
             if len(tcg_df) > 0:
                 frames.append(tcg_df)
                 LOGGER.info(f"  TCGPlayerPriceProvider: {len(tcg_df):,} price points")
@@ -308,15 +303,11 @@ class PolarsPriceBuilder:
             manapool_df = await self._manapool_provider.fetch_prices(scryfall_to_uuid)
             if len(manapool_df) > 0:
                 frames.append(manapool_df)
-                LOGGER.info(
-                    f"  ManapoolPriceProvider: {len(manapool_df):,} price points"
-                )
+                LOGGER.info(f"  ManapoolPriceProvider: {len(manapool_df):,} price points")
 
         # Fetch CardMarket - bulk API
         LOGGER.info("Fetching CardMarket prices")
-        mcm_dict = await self._mcm_provider.generate_today_price_dict(
-            self.all_printings_path
-        )
+        mcm_dict = await self._mcm_provider.generate_today_price_dict(self.all_printings_path)
         if mcm_dict:
             mcm_df = self._prices_dict_to_dataframe(mcm_dict)
             if len(mcm_df) > 0:
@@ -327,15 +318,11 @@ class PolarsPriceBuilder:
         # Fetch CardKingdom - async fetch, convert to DataFrame
         LOGGER.info("Fetching CardKingdom prices")
         try:
-            await self._ck_provider.load_or_fetch_async(
-                constants.CACHE_PATH / "ck_raw.parquet"
-            )
+            await self._ck_provider.load_or_fetch_async(constants.CACHE_PATH / "ck_raw.parquet")
             ck_pricing_df = self._ck_provider.get_pricing_df()
             if len(ck_pricing_df) > 0:
                 # Convert CK pricing df to flat price schema
-                ck_records = self._convert_ck_pricing(
-                    ck_pricing_df, scryfall_to_uuid or {}
-                )
+                ck_records = self._convert_ck_pricing(ck_pricing_df, scryfall_to_uuid or {})
                 if ck_records:
                     ck_df = pl.DataFrame(ck_records, schema=PRICE_SCHEMA)
                     frames.append(ck_df)
@@ -349,9 +336,7 @@ class PolarsPriceBuilder:
 
         return pl.concat(frames)
 
-    def build_today_prices(
-        self, ctx: PriceBuilderContext | None = None
-    ) -> pl.DataFrame:
+    def build_today_prices(self, ctx: PriceBuilderContext | None = None) -> pl.DataFrame:
         """Sync wrapper for build_today_prices_async."""
         return asyncio.run(self.build_today_prices_async(ctx))
 
@@ -496,9 +481,7 @@ class PolarsPriceBuilder:
         Returns:
             Filtered LazyFrame
         """
-        cutoff = (
-            datetime.date.today() + dateutil.relativedelta.relativedelta(months=-months)
-        ).strftime("%Y-%m-%d")
+        cutoff = (datetime.date.today() + dateutil.relativedelta.relativedelta(months=-months)).strftime("%Y-%m-%d")
 
         return df.filter(pl.col("date") >= cutoff)
 
@@ -627,9 +610,7 @@ class PolarsPriceBuilder:
         collected = df.collect()
         collected.write_parquet(path, compression="zstd", compression_level=9)
 
-        LOGGER.info(
-            f"Saved price archive: {len(collected):,} rows, {path.stat().st_size:,} bytes"
-        )
+        LOGGER.info(f"Saved price archive: {len(collected):,} rows, {path.stat().st_size:,} bytes")
         return path
 
     def save_prices_partitioned(self, df: pl.LazyFrame | pl.DataFrame) -> Path:
@@ -788,9 +769,7 @@ class PolarsPriceBuilder:
                             ]
                         )
 
-                    date_group.write_parquet(
-                        output_file, compression="zstd", compression_level=9
-                    )
+                    date_group.write_parquet(output_file, compression="zstd", compression_level=9)
 
                 legacy_path.unlink()
                 LOGGER.info(f"Migration complete, removed {legacy_path}")
@@ -886,9 +865,7 @@ class PolarsPriceBuilder:
             dates = []
             paginator = s3.get_paginator("list_objects_v2")
 
-            for page in paginator.paginate(
-                Bucket=bucket_name, Prefix=prefix, Delimiter="/"
-            ):
+            for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix, Delimiter="/"):
                 # CommonPrefixes contains the "folders" (date=YYYY-MM-DD/)
                 for prefix_obj in page.get("CommonPrefixes", []):
                     folder = prefix_obj.get("Prefix", "")
@@ -964,9 +941,7 @@ class PolarsPriceBuilder:
 
         return downloaded
 
-    def sync_partition_to_s3_with_retry(
-        self, date: str, max_retries: int = 3, base_delay: float = 1.0
-    ) -> bool:
+    def sync_partition_to_s3_with_retry(self, date: str, max_retries: int = 3, base_delay: float = 1.0) -> bool:
         """
         Upload a single date partition to S3 with retry logic.
 
@@ -984,18 +959,13 @@ class PolarsPriceBuilder:
 
             if attempt < max_retries:
                 delay = base_delay * (2**attempt)
-                LOGGER.warning(
-                    f"Retry {attempt + 1}/{max_retries} for partition {date} "
-                    f"after {delay}s delay"
-                )
+                LOGGER.warning(f"Retry {attempt + 1}/{max_retries} for partition {date} after {delay}s delay")
                 time.sleep(delay)
 
         LOGGER.error(f"Failed to upload partition {date} after {max_retries + 1} attempts")
         return False
 
-    def sync_local_partitions_to_s3(
-        self, days: int = 90, max_workers: int = 16, max_retries: int = 3
-    ) -> int:
+    def sync_local_partitions_to_s3(self, days: int = 90, max_workers: int = 16, max_retries: int = 3) -> int:
         """
         Upload local partitions to S3 that S3 doesn't have.
 
@@ -1040,10 +1010,7 @@ class PolarsPriceBuilder:
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
-                executor.submit(
-                    self.sync_partition_to_s3_with_retry, date, max_retries
-                ): date
-                for date in missing_on_s3
+                executor.submit(self.sync_partition_to_s3_with_retry, date, max_retries): date for date in missing_on_s3
             }
 
             for future in as_completed(futures):
@@ -1113,9 +1080,7 @@ class PolarsPriceBuilder:
                     continue
 
                 # We sort here because we need grouped UUIDs for the iterator
-                df_chunk = df_chunk.sort(
-                    ["uuid", "source", "provider", "price_type", "finish", "date"]
-                )
+                df_chunk = df_chunk.sort(["uuid", "source", "provider", "price_type", "finish", "date"])
 
                 # Handle comma between chunks
                 if first_chunk_written:
@@ -1130,15 +1095,11 @@ class PolarsPriceBuilder:
                 # Explicitly release memory before next iteration
                 del df_chunk
 
-                LOGGER.info(
-                    f"  Processed prefix '{prefix}' (Total: {total_processed:,})"
-                )
+                LOGGER.info(f"  Processed prefix '{prefix}' (Total: {total_processed:,})")
 
             f.write(b"}}")
 
-        LOGGER.info(
-            f"Finished streaming AllPrices.json. Total UUIDs: {total_processed:,}"
-        )
+        LOGGER.info(f"Finished streaming AllPrices.json. Total UUIDs: {total_processed:,}")
 
     def _process_chunk_to_json(self, f: BinaryIO, df: pl.DataFrame) -> int:
         """
@@ -1146,9 +1107,7 @@ class PolarsPriceBuilder:
         Returns number of UUIDs written.
         """
         aggregated = (
-            df.group_by(
-                ["uuid", "source", "provider", "currency", "price_type", "finish"]
-            )
+            df.group_by(["uuid", "source", "provider", "currency", "price_type", "finish"])
             .agg([pl.col("date"), pl.col("price")])
             .sort("uuid")
         )
@@ -1184,7 +1143,7 @@ class PolarsPriceBuilder:
             p_type = row["price_type"]
             finish = row["finish"]
 
-            date_prices = dict(zip(row["date"], row["price"]))
+            date_prices = dict(zip(row["date"], row["price"], strict=False))
 
             if source not in uuid_data:
                 uuid_data[source] = {}
@@ -1208,9 +1167,7 @@ class PolarsPriceBuilder:
 
         return written_count
 
-    def _flush_uuid_to_json(
-        self, file_handle: BinaryIO, uuid: str, rows: list[dict], is_first: bool
-    ) -> None:
+    def _flush_uuid_to_json(self, file_handle: BinaryIO, uuid: str, rows: list[dict], is_first: bool) -> None:
         """
         Helper to structure and write a single UUID's data to the open JSON file handle.
         """
@@ -1325,9 +1282,7 @@ class PolarsPriceBuilder:
 
         for idx_name, col in self._PRICE_INDEXES:
             with contextlib.suppress(Exception):
-                cursor.execute(
-                    f'CREATE INDEX "idx_prices_{idx_name}" ON "prices" ("{col}")'
-                )
+                cursor.execute(f'CREATE INDEX "idx_prices_{idx_name}" ON "prices" ("{col}")')
 
         meta = MtgjsonMetaObject()
         cursor.execute('CREATE TABLE "meta" ("date" TEXT, "version" TEXT)')
@@ -1347,10 +1302,7 @@ class PolarsPriceBuilder:
         meta = MtgjsonMetaObject()
 
         with open(path, "w", encoding="utf-8") as f:
-            f.write(
-                f"-- MTGJSON Price SQL Dump\n"
-                f"-- Generated: {datetime.date.today().isoformat()}\n"
-            )
+            f.write(f"-- MTGJSON Price SQL Dump\n-- Generated: {datetime.date.today().isoformat()}\n")
             f.write("BEGIN TRANSACTION;\n\n")
 
             cols = ",\n    ".join(self._PRICE_SQL_COLUMNS)
@@ -1362,19 +1314,11 @@ class PolarsPriceBuilder:
                 f.write(f'INSERT INTO "prices" ({col_names}) VALUES ({values});\n')
 
             for idx_name, col in self._PRICE_INDEXES:
-                f.write(
-                    f'CREATE INDEX IF NOT EXISTS "idx_prices_{idx_name}" '
-                    f'ON "prices" ("{col}");\n'
-                )
+                f.write(f'CREATE INDEX IF NOT EXISTS "idx_prices_{idx_name}" ON "prices" ("{col}");\n')
 
             f.write("\n")
-            f.write(
-                'CREATE TABLE IF NOT EXISTS "meta" ("date" TEXT, "version" TEXT);\n'
-            )
-            f.write(
-                f'INSERT INTO "meta" VALUES ({escape_sqlite(meta.date)}, '
-                f"{escape_sqlite(meta.version)});\n"
-            )
+            f.write('CREATE TABLE IF NOT EXISTS "meta" ("date" TEXT, "version" TEXT);\n')
+            f.write(f'INSERT INTO "meta" VALUES ({escape_sqlite(meta.date)}, {escape_sqlite(meta.version)});\n')
 
             f.write("\nCOMMIT;\n")
 
@@ -1387,10 +1331,7 @@ class PolarsPriceBuilder:
         prepared = self._prepare_price_df_for_sql(df)
 
         with open(path, "w", encoding="utf-8") as f:
-            f.write(
-                f"-- MTGJSON Price PostgreSQL Dump\n"
-                f"-- Generated: {datetime.date.today().isoformat()}\n"
-            )
+            f.write(f"-- MTGJSON Price PostgreSQL Dump\n-- Generated: {datetime.date.today().isoformat()}\n")
             f.write("BEGIN;\n\n")
 
             cols = ",\n    ".join(self._PRICE_SQL_COLUMNS)
@@ -1406,10 +1347,7 @@ class PolarsPriceBuilder:
             f.write("\\.\n\n")
 
             for idx_name, col in self._PRICE_INDEXES:
-                f.write(
-                    f'CREATE INDEX IF NOT EXISTS "idx_prices_{idx_name}" '
-                    f'ON "prices" ("{col}");\n'
-                )
+                f.write(f'CREATE INDEX IF NOT EXISTS "idx_prices_{idx_name}" ON "prices" ("{col}");\n')
 
             f.write("\nCOMMIT;\n")
 
@@ -1438,15 +1376,11 @@ class PolarsPriceBuilder:
         local_parquet = constants.CACHE_PATH / "prices_archive_s3.parquet"
 
         LOGGER.info(f"Trying Parquet archive from S3: {parquet_path}")
-        if MtgjsonS3Handler().download_file(
-            bucket_name, parquet_path, str(local_parquet)
-        ):
+        if MtgjsonS3Handler().download_file(bucket_name, parquet_path, str(local_parquet)):
             try:
                 lf = pl.scan_parquet(local_parquet)
                 row_count = lf.select(pl.len()).collect().item()
-                LOGGER.info(
-                    f"Loaded {row_count:,} price records from S3 Parquet archive"
-                )
+                LOGGER.info(f"Loaded {row_count:,} price records from S3 Parquet archive")
                 return lf
             except Exception as e:
                 LOGGER.warning(f"Failed to read Parquet archive: {e}")
@@ -1456,9 +1390,7 @@ class PolarsPriceBuilder:
         LOGGER.info(f"Trying legacy JSON archive from S3: {bucket_object_path}")
         temp_file = constants.CACHE_PATH / "temp_prices.json.xz"
 
-        if not MtgjsonS3Handler().download_file(
-            bucket_name, bucket_object_path, str(temp_file)
-        ):
+        if not MtgjsonS3Handler().download_file(bucket_name, bucket_object_path, str(temp_file)):
             LOGGER.warning("S3 download failed, using local archive")
             return self.load_archive()
 
@@ -1478,9 +1410,7 @@ class PolarsPriceBuilder:
                 temp_file.unlink()
             return self.load_archive()
 
-    def upload_archive_to_s3(
-        self, archive_data: dict[str, Any] | pl.LazyFrame | pl.DataFrame
-    ) -> None:
+    def upload_archive_to_s3(self, archive_data: dict[str, Any] | pl.LazyFrame | pl.DataFrame) -> None:
         """
         Upload price archive to S3 in Parquet format.
         Args:
@@ -1507,9 +1437,7 @@ class PolarsPriceBuilder:
 
         LOGGER.info(f"Writing {len(df):,} rows to Parquet...")
         df.write_parquet(local_parquet, compression="zstd", compression_level=9)
-        LOGGER.info(
-            f"Parquet archive: {local_parquet.stat().st_size / 1024 / 1024:.1f} MB"
-        )
+        LOGGER.info(f"Parquet archive: {local_parquet.stat().st_size / 1024 / 1024:.1f} MB")
 
         LOGGER.info(f"Uploading to S3: {parquet_path}")
         MtgjsonS3Handler().upload_file(str(local_parquet), bucket_name, parquet_path)
@@ -1558,9 +1486,7 @@ class PolarsPriceBuilder:
         """
 
         aggregated = (
-            df.group_by(
-                ["uuid", "source", "provider", "currency", "price_type", "finish"]
-            )
+            df.group_by(["uuid", "source", "provider", "currency", "price_type", "finish"])
             .agg([pl.struct(["date", "price"]).alias("prices")])
             .collect()
         )

@@ -83,9 +83,7 @@ class CardHoarderPriceProvider:
 
     output_path: Path | None = None
     on_progress: ProgressCallback | None = None
-    today_date: str = field(
-        default_factory=lambda: datetime.date.today().strftime("%Y-%m-%d")
-    )
+    today_date: str = field(default_factory=lambda: datetime.date.today().strftime("%Y-%m-%d"))
 
     # Internal state
     _config: CardHoarderConfig | None = field(default=None, repr=False)
@@ -116,12 +114,8 @@ class CardHoarderPriceProvider:
 
         async with aiohttp.ClientSession() as session:
             # Fetch normal and foil in parallel
-            normal_task = self._fetch_pricefile(
-                session, self._config.normal_url, mtgo_to_uuid_map, is_foil=False
-            )
-            foil_task = self._fetch_pricefile(
-                session, self._config.foil_url, mtgo_to_uuid_map, is_foil=True
-            )
+            normal_task = self._fetch_pricefile(session, self._config.normal_url, mtgo_to_uuid_map, is_foil=False)
+            foil_task = self._fetch_pricefile(session, self._config.foil_url, mtgo_to_uuid_map, is_foil=True)
 
             normal_records, foil_records = await asyncio.gather(normal_task, foil_task)
 
@@ -138,9 +132,7 @@ class CardHoarderPriceProvider:
         if self.output_path:
             self.output_path.parent.mkdir(parents=True, exist_ok=True)
             df.write_parquet(self.output_path, compression="zstd")
-            LOGGER.info(
-                f"Saved {len(df):,} CardHoarder price records to {self.output_path}"
-            )
+            LOGGER.info(f"Saved {len(df):,} CardHoarder price records to {self.output_path}")
 
         if self.on_progress:
             self.on_progress(2, 2, "CardHoarder complete")
@@ -180,9 +172,7 @@ class CardHoarderPriceProvider:
         finish = "foil" if is_foil else "normal"
 
         try:
-            async with session.get(
-                url, timeout=aiohttp.ClientTimeout(total=60)
-            ) as resp:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=60)) as resp:
                 resp.raise_for_status()
                 content = await resp.text()
 
@@ -229,9 +219,7 @@ class CardHoarderPriceProvider:
                     )
 
             if invalid_count > 0:
-                LOGGER.debug(
-                    f"CardHoarder: {invalid_count} unmapped/invalid entries ({finish})"
-                )
+                LOGGER.debug(f"CardHoarder: {invalid_count} unmapped/invalid entries ({finish})")
 
             LOGGER.info(f"CardHoarder: Parsed {len(records):,} {finish} price records")
 
@@ -254,9 +242,7 @@ class CardHoarderPriceProvider:
         df = await self.fetch_prices(mtgo_to_uuid_map)
         return self._dataframe_to_price_dict(df)
 
-    def _dataframe_to_price_dict(
-        self, df: pl.DataFrame
-    ) -> dict[str, MtgjsonPricesObject]:
+    def _dataframe_to_price_dict(self, df: pl.DataFrame) -> dict[str, MtgjsonPricesObject]:
         """Convert DataFrame to MTGJSON price dict format."""
         result: dict[str, MtgjsonPricesObject] = {}
 
@@ -266,9 +252,7 @@ class CardHoarderPriceProvider:
             price = row["price"]
 
             if uuid not in result:
-                result[uuid] = MtgjsonPricesObject(
-                    "mtgo", "cardhoarder", self.today_date, "USD"
-                )
+                result[uuid] = MtgjsonPricesObject("mtgo", "cardhoarder", self.today_date, "USD")
 
             prices_obj = result[uuid]
             if finish == "normal":

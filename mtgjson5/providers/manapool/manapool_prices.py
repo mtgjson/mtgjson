@@ -47,9 +47,7 @@ class ManapoolPricesProvider(AbstractProvider):
 
         return mapping
 
-    def generate_today_price_dict(
-        self, all_printings_path: pathlib.Path
-    ) -> dict[str, MtgjsonPricesObject]:
+    def generate_today_price_dict(self, all_printings_path: pathlib.Path) -> dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure for MTGO from Manapool
         :return MTGJSON prices single day structure
@@ -60,9 +58,7 @@ class ManapoolPricesProvider(AbstractProvider):
             all_printings_path, ("identifiers", "scryfallId"), ("uuid",)
         )
 
-        default_prices_obj = MtgjsonPricesObject(
-            "paper", "manapool", self.today_date, "USD"
-        )
+        default_prices_obj = MtgjsonPricesObject("paper", "manapool", self.today_date, "USD")
 
         final_data = {}
 
@@ -76,16 +72,10 @@ class ManapoolPricesProvider(AbstractProvider):
             for mtgjson_uuid in scryfall_id_to_mtgjson_id[scryfall_uuid]:
                 final_data[mtgjson_uuid] = copy.copy(default_prices_obj)
                 if "normal" in card_finish_to_price:
-                    final_data[mtgjson_uuid].sell_normal = card_finish_to_price.get(
-                        "normal"
-                    )
+                    final_data[mtgjson_uuid].sell_normal = card_finish_to_price.get("normal")
                 if "foil" in card_finish_to_price:
-                    final_data[mtgjson_uuid].sell_foil = card_finish_to_price.get(
-                        "foil"
-                    )
+                    final_data[mtgjson_uuid].sell_foil = card_finish_to_price.get("foil")
                 if "etched" in card_finish_to_price:
-                    final_data[mtgjson_uuid].sell_etched = card_finish_to_price.get(
-                        "etched"
-                    )
+                    final_data[mtgjson_uuid].sell_etched = card_finish_to_price.get("etched")
 
         return final_data

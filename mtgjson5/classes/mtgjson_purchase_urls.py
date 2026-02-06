@@ -26,7 +26,7 @@ class MtgjsonPurchaseUrlsObject(JsonObject):
         """
         excluded_keys = set()
 
-        for _, value in self.__dict__.items():
+        for value in self.__dict__.values():
             if not value:
                 excluded_keys.add(value)
 

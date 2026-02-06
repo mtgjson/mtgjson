@@ -24,9 +24,7 @@ class MtgjsonS3Handler:
         self.logger = logging.getLogger(__name__)
         self.s3_client = boto3.client("s3")
 
-    def download_file(
-        self, bucket_name: str, bucket_object_path: str, local_save_file_path: str
-    ) -> bool:
+    def download_file(self, bucket_name: str, bucket_object_path: str, local_save_file_path: str) -> bool:
         """
         Download a file from S3
         :param bucket_name: Bucket to get file from
@@ -35,14 +33,10 @@ class MtgjsonS3Handler:
         :returns Did download complete successfully
         """
         try:
-            self.s3_client.download_file(
-                bucket_name, bucket_object_path, local_save_file_path
-            )
+            self.s3_client.download_file(bucket_name, bucket_object_path, local_save_file_path)
             return True
         except botocore.exceptions.ClientError as error:
-            self.logger.error(
-                f"Failed to download s3://{bucket_name}/{bucket_object_path}: {error}"
-            )
+            self.logger.error(f"Failed to download s3://{bucket_name}/{bucket_object_path}: {error}")
             return False
 
     def upload_file(
@@ -67,17 +61,11 @@ class MtgjsonS3Handler:
             if tags:
                 extra_args["Tagging"] = urllib.parse.urlencode(tags)
 
-            self.s3_client.upload_file(
-                local_file_path, bucket_name, bucket_object_path, ExtraArgs=extra_args
-            )
-            self.logger.info(
-                f"Successfully uploaded {local_file_path} to s3://{bucket_name}/{bucket_object_path}"
-            )
+            self.s3_client.upload_file(local_file_path, bucket_name, bucket_object_path, ExtraArgs=extra_args)
+            self.logger.info(f"Successfully uploaded {local_file_path} to s3://{bucket_name}/{bucket_object_path}")
             return True
         except botocore.exceptions.ClientError as error:
-            self.logger.error(
-                f"Failed to upload {local_file_path} to s3://{bucket_name}/{bucket_object_path}: {error}"
-            )
+            self.logger.error(f"Failed to upload {local_file_path} to s3://{bucket_name}/{bucket_object_path}: {error}")
         return False
 
     def upload_file_with_retry(
@@ -102,22 +90,15 @@ class MtgjsonS3Handler:
         :returns True if upload succeeded
         """
         for attempt in range(max_retries + 1):
-            if self.upload_file(
-                local_file_path, bucket_name, bucket_object_path, tags, cache_ttl_sec
-            ):
+            if self.upload_file(local_file_path, bucket_name, bucket_object_path, tags, cache_ttl_sec):
                 return True
 
             if attempt < max_retries:
                 delay = base_delay * (2**attempt)
-                self.logger.warning(
-                    f"Retry {attempt + 1}/{max_retries} for {local_file_path} "
-                    f"after {delay}s delay"
-                )
+                self.logger.warning(f"Retry {attempt + 1}/{max_retries} for {local_file_path} after {delay}s delay")
                 time.sleep(delay)
 
-        self.logger.error(
-            f"Failed to upload {local_file_path} after {max_retries + 1} attempts"
-        )
+        self.logger.error(f"Failed to upload {local_file_path} after {max_retries + 1} attempts")
         return False
 
     def upload_directory(
@@ -136,13 +117,10 @@ class MtgjsonS3Handler:
         :param max_workers: Maximum number of concurrent uploads (default: 16)
         :param max_retries: Maximum number of retry attempts per file (default: 3)
         """
-        files_to_upload = [
-            item for item in directory_path.glob("**/*") if item.is_file()
-        ]
+        files_to_upload = [item for item in directory_path.glob("**/*") if item.is_file()]
         total_files = len(files_to_upload)
         self.logger.info(
-            f"Uploading {total_files} files from {directory_path} to {bucket_name} "
-            f"with {max_workers} workers"
+            f"Uploading {total_files} files from {directory_path} to {bucket_name} with {max_workers} workers"
         )
 
         successful = 0
@@ -174,8 +152,6 @@ class MtgjsonS3Handler:
                     failed += 1
 
         if failed > 0:
-            raise RuntimeError(
-                f"Upload incomplete: {failed}/{total_files} files failed after retries"
-            )
+            raise RuntimeError(f"Upload incomplete: {failed}/{total_files} files failed after retries")
 
         self.logger.info(f"Upload complete: {successful}/{total_files} files uploaded")

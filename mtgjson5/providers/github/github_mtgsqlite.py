@@ -60,9 +60,7 @@ class GitHubMTGSqliteProvider(AbstractProvider):
         git_sh = git.cmd.Git()
         git_sh.clone(url, self.temp_download_path, depth=1)
         try:
-            subprocess.check_call(
-                [sys.executable, "-m", "pip", "install", self.temp_download_path]
-            )
+            subprocess.check_call([sys.executable, "-m", "pip", "install", self.temp_download_path])
         except subprocess.CalledProcessError as error:
             LOGGER.error(f"Unable to pip install: {error}")
 

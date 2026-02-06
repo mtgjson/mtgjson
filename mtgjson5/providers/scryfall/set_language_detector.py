@@ -19,7 +19,9 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
     """Provider to detect which languages a set was printed in via Scryfall API."""
 
     FIRST_CARD_URL = "https://api.scryfall.com/cards/search?q=set:{}&unique=prints&include_extras=true"
-    LANG_QUERY_URL = 'https://api.scryfall.com/cards/search?q=set:{}%20number:"{}"%20lang:any&unique=prints&include_extras=true'
+    LANG_QUERY_URL = (
+        'https://api.scryfall.com/cards/search?q=set:{}%20number:"{}"%20lang:any&unique=prints&include_extras=true'
+    )
 
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
@@ -48,9 +50,7 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
         try:
             return response.json()
         except requests.exceptions.JSONDecodeError as exception:
-            LOGGER.error(
-                f"Unable to return {url} with {params} response: {response.text} exception: {exception}"
-            )
+            LOGGER.error(f"Unable to return {url} with {params} response: {response.text} exception: {exception}")
             return None
 
     def get_set_printing_languages(self, set_code: str) -> list[str]:
@@ -77,18 +77,12 @@ class ScryfallProviderSetLanguageDetector(AbstractProvider):
         else:
             first_card_number = 0
 
-        lang_response = self.download(
-            self.LANG_QUERY_URL.format(set_code, first_card_number)
-        )
+        lang_response = self.download(self.LANG_QUERY_URL.format(set_code, first_card_number))
 
         if not lang_response:
-            LOGGER.error(
-                f"Failed to get set printing languages for {set_code} due to bad response: {lang_response}"
-            )
+            LOGGER.error(f"Failed to get set printing languages for {set_code} due to bad response: {lang_response}")
             return []
 
-        set_languages = {
-            LANGUAGE_MAP.get(card.get("lang")) for card in lang_response.get("data", [])
-        }
+        set_languages = {LANGUAGE_MAP.get(card.get("lang")) for card in lang_response.get("data", [])}
 
         return sorted(filter(None, set_languages))

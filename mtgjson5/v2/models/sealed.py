@@ -34,9 +34,7 @@ class SealedProduct(PolarsMixin, BaseModel):
 
     model_config = {"populate_by_name": True}
 
-    _allow_if_falsey: ClassVar[frozenset[str]] = (ALLOW_IF_FALSEY - {"language"}) | {
-        "identifiers"
-    }
+    _allow_if_falsey: ClassVar[frozenset[str]] = (ALLOW_IF_FALSEY - {"language"}) | {"identifiers"}
 
     uuid: str
     name: str
@@ -124,19 +122,11 @@ class SealedProductAssembler:
                     for r in type_rows.to_dicts()
                 ]
             elif content_type == "deck":
-                contents["deck"] = [
-                    SealedProductDeck(name=r["name"], set=r["set"])
-                    for r in type_rows.to_dicts()
-                ]
+                contents["deck"] = [SealedProductDeck(name=r["name"], set=r["set"]) for r in type_rows.to_dicts()]
             elif content_type == "pack":
-                contents["pack"] = [
-                    SealedProductPack(code=r["code"], set=r["set"])
-                    for r in type_rows.to_dicts()
-                ]
+                contents["pack"] = [SealedProductPack(code=r["code"], set=r["set"]) for r in type_rows.to_dicts()]
             elif content_type == "other":
-                contents["other"] = [
-                    SealedProductOther(name=r["name"]) for r in type_rows.to_dicts()
-                ]
+                contents["other"] = [SealedProductOther(name=r["name"]) for r in type_rows.to_dicts()]
 
         return contents
 
@@ -313,8 +303,8 @@ class BoosterAssembler:
         mythics = cards_df.filter(pl.col("rarity") == "mythic")["uuid"].to_list()
         rares = cards_df.filter(pl.col("rarity") == "rare")["uuid"].to_list()
 
-        rare_mythic_cards = {uuid: 1 for uuid in mythics}
-        rare_mythic_cards.update({uuid: 2 for uuid in rares})
+        rare_mythic_cards = dict.fromkeys(mythics, 1)
+        rare_mythic_cards.update(dict.fromkeys(rares, 2))
 
         if rare_mythic_cards:
             sheets["rareMythic"] = {
@@ -334,10 +324,9 @@ class BoosterAssembler:
             sheets["common"] = assembler.build_sheet("common", commons)
 
         # Basic lands
-        basics = cards_df.filter(
-            pl.col("supertypes").list.contains("Basic")
-            & pl.col("types").list.contains("Land")
-        )["uuid"].to_list()
+        basics = cards_df.filter(pl.col("supertypes").list.contains("Basic") & pl.col("types").list.contains("Land"))[
+            "uuid"
+        ].to_list()
         if basics:
             sheets["basicLand"] = assembler.build_sheet("basicLand", basics)
 

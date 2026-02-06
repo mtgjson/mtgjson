@@ -16,7 +16,6 @@ from .writer import (
     assemble_with_models,
 )
 
-
 __all__ = [
     "AssemblyContext",
     "AtomicCardsAssembler",

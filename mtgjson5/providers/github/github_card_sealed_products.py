@@ -19,9 +19,7 @@ class GitHubCardSealedProductsProvider(AbstractProvider):
     GitHub Card Sealed Products Provider
     """
 
-    card_products_api_url: str = (
-        "https://github.com/mtgjson/mtg-sealed-content/raw/main/outputs/card_map.json?raw=True"
-    )
+    card_products_api_url: str = "https://github.com/mtgjson/mtg-sealed-content/raw/main/outputs/card_map.json?raw=True"
     card_uuid_to_products: dict[str, dict[str, list[str]]]
 
     def __init__(self) -> None:
@@ -44,9 +42,7 @@ class GitHubCardSealedProductsProvider(AbstractProvider):
         LOGGER.error(f"Error downloading GitHub Cards: {response} --- {response.text}")
         return []
 
-    def get_products_card_found_in(
-        self, mtgjson_uuid: str
-    ) -> dict[str, list[str]] | None:
+    def get_products_card_found_in(self, mtgjson_uuid: str) -> dict[str, list[str]] | None:
         """
         Get Card Products from UUID
         :param mtgjson_uuid: Card UUID to get products for

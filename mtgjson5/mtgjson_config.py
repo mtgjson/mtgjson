@@ -60,26 +60,16 @@ class MtgjsonConfig:
             self.__load_config_from_local_file(constants.CONFIG_PATH)
 
         try:
-            self.mtgjson_version = self.config_parser.get(
-                "MTGJSON", "version", fallback="NO_VERSION_FOUND"
-            )
+            self.mtgjson_version = self.config_parser.get("MTGJSON", "version", fallback="NO_VERSION_FOUND")
             if ssm_config:
-                self.mtgjson_version += (
-                    f"+{constants.MTGJSON_BUILD_DATE.replace('-', '')}"
-                )
+                self.mtgjson_version += f"+{constants.MTGJSON_BUILD_DATE.replace('-', '')}"
         except configparser.NoSectionError:
-            LOGGER.warning(
-                "Key 'version' is missing from Section 'MTGJSON' in config file"
-            )
-            self.mtgjson_version = (
-                f"5.X.X+{constants.MTGJSON_BUILD_DATE.replace('-', '')}"
-            )
+            LOGGER.warning("Key 'version' is missing from Section 'MTGJSON' in config file")
+            self.mtgjson_version = f"5.X.X+{constants.MTGJSON_BUILD_DATE.replace('-', '')}"
 
         self.use_cache = self.get_boolean("MTGJSON", "use_cache", False)
         self.use_bulk_for_searches = False  # Set by --polars or --bulk-files flags
-        self.output_path = constants.ENV_OUT_PATH.joinpath(
-            f"mtgjson_build_{self.mtgjson_version}"
-        )
+        self.output_path = constants.ENV_OUT_PATH.joinpath(f"mtgjson_build_{self.mtgjson_version}")
 
     def __load_config_from_aws_ssm(self, config_name: str) -> None:
         """
@@ -142,7 +132,4 @@ class MtgjsonConfig:
         :param option: Option to find in section
         :return Does option exist in section
         """
-        return (
-            self.config_parser.has_option(section, option)
-            and len(str(self.config_parser.get(section, option))) > 0
-        )
+        return self.config_parser.has_option(section, option) and len(str(self.config_parser.get(section, option))) > 0

@@ -34,9 +34,7 @@ class WizardsProvider(AbstractProvider):
         """
         return {}
 
-    def download(
-        self, url: str, params: dict[str, str | int] | None = None
-    ) -> requests.Response:
+    def download(self, url: str, params: dict[str, str | int] | None = None) -> requests.Response:
         """
         Download from Wizard's website
         :param url: URL to get
@@ -61,11 +59,7 @@ class WizardsProvider(AbstractProvider):
         # Get the comp rules from the website (as it changes often)
         # Also split up the regex find so we only have the URL
         self.magic_rules_url = str(re.findall(r"href=\".*\.txt\"", response)[0][6:-1])
-        response = (
-            self.download(self.magic_rules_url)
-            .content.decode("utf-8", "ignore")
-            .replace("â€™", "'")
-        )
+        response = self.download(self.magic_rules_url).content.decode("utf-8", "ignore").replace("â€™", "'")
 
         self.magic_rules = "\n".join(response.splitlines())
         return self.magic_rules

@@ -137,9 +137,7 @@ class TCGPlayerProvider(AbstractProvider):
         """
 
         if not MtgjsonConfig().has_section("TCGPlayer"):
-            LOGGER.warning(
-                "TCGPlayer config section not established. Skipping requests"
-            )
+            LOGGER.warning("TCGPlayer config section not established. Skipping requests")
             return ""
 
         if not (
@@ -164,11 +162,7 @@ class TCGPlayerProvider(AbstractProvider):
             return ""
 
         api_version = MtgjsonConfig().has_option("TCGPlayer", "api_version")
-        self.api_version = (
-            MtgjsonConfig().get("TCGPlayer", "api_version")
-            if api_version
-            else "v1.39.0"
-        )
+        self.api_version = MtgjsonConfig().get("TCGPlayer", "api_version") if api_version else "v1.39.0"
         request_as_json = json.loads(tcg_post.text)
 
         return str(request_as_json.get("access_token", ""))
@@ -180,9 +174,7 @@ class TCGPlayerProvider(AbstractProvider):
         :param url: URL to download from
         :param params: Options for URL download
         """
-        response = self.session.get(
-            url.replace("[API_VERSION]", self.api_version), params=params
-        )
+        response = self.session.get(url.replace("[API_VERSION]", self.api_version), params=params)
         self.log_download(response)
         return response.content.decode()
 
@@ -211,9 +203,7 @@ class TCGPlayerProvider(AbstractProvider):
 
         return magic_set_ids
 
-    def generate_today_price_dict(
-        self, all_printings_path: pathlib.Path
-    ) -> dict[str, MtgjsonPricesObject]:
+    def generate_today_price_dict(self, all_printings_path: pathlib.Path) -> dict[str, MtgjsonPricesObject]:
         """
         Download the TCGPlayer pricing API and collate into MTGJSON format
         :param all_printings_path Path to AllPrintings.json for pre-processing
@@ -226,17 +216,13 @@ class TCGPlayerProvider(AbstractProvider):
         # pylint: disable=cyclic-import
         from mtgjson5.v2.data import GLOBAL_CACHE
 
-        tcg_foil_and_non_foil_to_mtgjson_map: dict[str, str] | dict[str, set[Any]] = (
-            GLOBAL_CACHE.get_tcg_to_uuid_map()
-        )
+        tcg_foil_and_non_foil_to_mtgjson_map: dict[str, str] | dict[str, set[Any]] = GLOBAL_CACHE.get_tcg_to_uuid_map()
         if not tcg_foil_and_non_foil_to_mtgjson_map:
             tcg_foil_and_non_foil_to_mtgjson_map = generate_entity_mapping(
                 all_printings_path, ("identifiers", "tcgplayerProductId"), ("uuid",)
             )
 
-        tcg_etched_foil_to_mtgjson_map: dict[str, str] | dict[str, set[Any]] = (
-            GLOBAL_CACHE.get_tcg_etched_to_uuid_map()
-        )
+        tcg_etched_foil_to_mtgjson_map: dict[str, str] | dict[str, set[Any]] = GLOBAL_CACHE.get_tcg_etched_to_uuid_map()
         if not tcg_etched_foil_to_mtgjson_map:
             tcg_etched_foil_to_mtgjson_map = generate_entity_mapping(
                 all_printings_path,
@@ -269,7 +255,7 @@ class TCGPlayerProvider(AbstractProvider):
         # Deep dict merge doesn't catch this right now
         # As such, we will do the deep merge manually
         combined_listings = buylist_dict.copy()
-        for key, value in combined_listings.items():
+        for key, value in combined_listings.items():  # noqa: B007
             for retail_key, retail_value in retail_dict.get(key, {}).items():
                 if retail_value:
                     setattr(combined_listings[key], retail_key, retail_value)
@@ -288,15 +274,11 @@ class TCGPlayerProvider(AbstractProvider):
         """
         for sealed_product in sealed_products:
             if sealed_product.identifiers.tcgplayer_product_id:
-                sealed_product.raw_purchase_urls[
-                    "tcgplayer"
-                ] = TCGPlayerProvider().product_url.format(
+                sealed_product.raw_purchase_urls["tcgplayer"] = TCGPlayerProvider().product_url.format(
                     sealed_product.identifiers.tcgplayer_product_id
                 )
 
-    def get_tcgplayer_sku_data(
-        self, group_id_and_name: tuple[str, str]
-    ) -> list[dict[str, Any]]:
+    def get_tcgplayer_sku_data(self, group_id_and_name: tuple[str, str]) -> list[dict[str, Any]]:
         """
         Finds all sku data for a given group using the TCGPlayer API
         :param group_id_and_name: group id and name for the set to get data for
@@ -394,9 +376,7 @@ class TCGPlayerProvider(AbstractProvider):
 
         return tcgplayer_sku_map
 
-    def get_api_results(
-        self, tcg_api_url: str, params: dict[str, str | int] | None = None
-    ) -> list[dict[str, Any]]:
+    def get_api_results(self, tcg_api_url: str, params: dict[str, str | int] | None = None) -> list[dict[str, Any]]:
         """
         Get TCGPlayer API Results Object
         :param tcg_api_url: Url to get data from
@@ -437,9 +417,7 @@ class TCGPlayerProvider(AbstractProvider):
 
         return result_card_finish
 
-    def convert_sku_data_enum(
-        self, product: dict[str, Any]
-    ) -> list[dict[str, int | str]]:
+    def convert_sku_data_enum(self, product: dict[str, Any]) -> list[dict[str, int | str]]:
         """
         Converts a TCGPlayer Product's SKUs from IDs to components
         :param product: TCGPlayer Product
@@ -480,18 +458,12 @@ def get_tcgplayer_buylist_prices_map(
     """
     LOGGER.debug(f"Tcgplayer Building buylist data for {group_id_and_name[1]}")
 
-    results = TCGPlayerProvider().get_api_results(
-        f"https://api.tcgplayer.com/pricing/buy/group/{group_id_and_name[0]}"
-    )
+    results = TCGPlayerProvider().get_api_results(f"https://api.tcgplayer.com/pricing/buy/group/{group_id_and_name[0]}")
     if not results:
         return {}
 
     prices_map: dict[str, MtgjsonPricesObject] = defaultdict(
-        lambda: copy.copy(
-            MtgjsonPricesObject(
-                "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
-            )
-        )
+        lambda: copy.copy(MtgjsonPricesObject("paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"))
     )
 
     tcgplayer_sku_data = TCGPlayerProvider().get_tcgplayer_sku_data(group_id_and_name)
@@ -564,9 +536,7 @@ def get_tcgplayer_prices_map(
 
         for key in keys:
             if key not in prices_map:
-                prices_map[key] = MtgjsonPricesObject(
-                    "paper", "tcgplayer", TCGPlayerProvider().today_date, "USD"
-                )
+                prices_map[key] = MtgjsonPricesObject("paper", "tcgplayer", TCGPlayerProvider().today_date, "USD")
 
             if is_non_foil:
                 prices_map[key].sell_normal = card_price

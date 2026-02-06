@@ -67,10 +67,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "black==26.1.0",
-    "flake8==7.3.0",
-    "flake8-pyproject==1.2.4",
-    "isort==6.0.1",
+    "ruff==0.15.0",
     "mypy==1.17.1",
     "pylint==4.0.4",
     "pytest==8.4.1",
@@ -101,41 +98,51 @@ include = ["mtgjson5*"]
 [tool.setuptools.package-data]
 mtgjson5 = ["resources/*"]
 
-# --- Black ---
+# --- Ruff (replaces black, isort, flake8) ---
 
-[tool.black]
-line-length = 88
-target-version = [
-    "py311",
-    "py312",
-    "py313",
-    "py314",
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors (indentation, whitespace, syntax)
+    "F",     # pyflakes (unused imports, undefined names, redefined variables)
+    "W",     # pycodestyle warnings (whitespace, line breaks)
+    "I",     # isort (import sorting)
+    "UP",    # pyupgrade (modern Python syntax)
+    "B",     # flake8-bugbear (common bugs, mutable default args)
+    "SIM",   # flake8-simplify (unnecessary complexity)
+    "C4",    # flake8-comprehensions (optimize comprehensions)
+    "RUF",   # ruff-specific rules (unused noqa, mutable class defaults)
+    "PIE",   # flake8-pie (unnecessary pass, duplicate fields)
+    "T20",   # flake8-print (no print() in production code)
+    "PT",    # flake8-pytest-style (pytest best practices)
+    "PERF",  # perflint (performance anti-patterns)
+    "TCH",   # flake8-type-checking (TYPE_CHECKING imports)
+    "N",     # pep8-naming (naming conventions)
+]
+ignore = [
+    "E402",    # module level import not at top of file
+    "E501",    # line too long (ruff format handles wrappable code; this only catches long strings/comments)
+    "E712",    # allow == False comparisons (needed for Polars expressions)
+    "N815",    # mixedCase variables (Pydantic model fields like setCode are intentional)
+    "RUF001",  # ambiguous unicode characters (MTG card symbols are intentional)
+    "RUF012",  # mutable class variable without ClassVar (Pydantic models handle this)
+    "B008",    # function call in default args (singletons are intentional)
+    "B024",    # abstract class without abstract methods (base class pattern)
+    "PERF401", # use list comprehension (often less readable for complex appends)
+    "SIM108",  # use ternary operator (often less readable)
+    "SIM115",  # use context manager for open (can't always apply across branches)
+    "TC001",   # move import into TYPE_CHECKING (can break runtime)
+    "TC002",   # move third-party import into TYPE_CHECKING
+    "TC003",   # move stdlib import into TYPE_CHECKING
+    "TC004",   # move import out of TYPE_CHECKING (false positives)
+    "TC010",   # move typing import into TYPE_CHECKING
 ]
 
-# --- isort ---
-
-[tool.isort]
-profile = "black"
-
-# --- flake8 (requires flake8-pyproject) ---
-
-# 501 - line too long
-# E402 - module level import not at top of file
-# W503 - line break before binary operator
-# W293 - blank line contains whitespace
-# E302 - expected 2 blank lines, found N
-# W291 - trailing whitespace
-[tool.flake8]
-extend-ignore = [
-    "E501",
-    "E402",
-    "W503",
-    "W293",
-    "E302",
-    "W291",
-]
-# F401 in __init__.py - imported but unused
-per-file-ignores = ["__init__.py:F401"]
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # imported but unused (re-exports in __init__ are intentional)
 
 # --- mypy ---
 
@@ -232,27 +239,19 @@ dummy-variables-rgx = "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)"
 # --- tox ---
 
 [tool.tox]
-env_list = ["isort-inplace", "black-inplace", "mypy", "lint", "unit"]
+env_list = ["format", "lint", "mypy", "unit"]
 
 [tool.tox.env_run_base]
 set_env = { PYTHONPATH = "{toxinidir}" }
 extras = ["dev"]
 
-[tool.tox.env.isort-inplace]
-description = "Sort imports"
-commands = [["isort", "--profile", "black", "mtgjson5/"]]
+[tool.tox.env.format]
+description = "Format code and sort imports"
+commands = [["ruff", "format", "mtgjson5/"], ["ruff", "check", "--fix", "--select", "I", "mtgjson5/"]]
 
-[tool.tox.env.isort-check]
-description = "dry-run isort to see if imports need resorting"
-commands = [["isort", "--profile", "black", "--check-only", "mtgjson5/"]]
-
-[tool.tox.env.black-inplace]
-description = "Run black and edit all files in place"
-commands = [["black", "mtgjson5/"]]
-
-[tool.tox.env.black-check]
-description = "Run black and check formatting"
-commands = [["black", "--check", "mtgjson5/"]]
+[tool.tox.env.format-check]
+description = "Check formatting and import sorting"
+commands = [["ruff", "format", "--check", "mtgjson5/"], ["ruff", "check", "--select", "I", "mtgjson5/"]]
 
 [tool.tox.env.mypy]
 description = "mypy static type checking only"
@@ -260,12 +259,7 @@ commands = [["mypy", "{posargs:mtgjson5/}"]]
 
 [tool.tox.env.lint]
 description = "Run linting tools"
-commands = [["pylint", "mtgjson5/"]]
-
-[tool.tox.env.flake8]
-description = "Run flake8 style checks"
-deps = ["flake8", "flake8-pyproject", "{toxinidir}/flake8-style"]
-commands = [["flake8", "mtgjson5/"]]
+commands = [["ruff", "check", "mtgjson5/"], ["pylint", "mtgjson5/"]]
 
 [tool.tox.env.unit]
 description = "Run unit tests with coverage and mypy type checking"

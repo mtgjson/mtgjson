@@ -145,9 +145,7 @@ class CardKingdomPriceProcessor:
 
             for uuid in uuids:
                 if uuid not in result:
-                    result[uuid] = MtgjsonPricesObject(
-                        "paper", "cardkingdom", today_date, "USD"
-                    )
+                    result[uuid] = MtgjsonPricesObject("paper", "cardkingdom", today_date, "USD")
 
                 prices_obj = result[uuid]
 

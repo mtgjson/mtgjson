@@ -228,21 +228,14 @@ def parse_args() -> argparse.Namespace:
         parsed_args.pretty = bool(os.environ.get("PRETTY", False))
         parsed_args.polars = bool(os.environ.get("POLARS", False))
         parsed_args.bulk_files = bool(os.environ.get("USE_BULK", False))
-        parsed_args.skip_sets = list(
-            filter(None, os.environ.get("SKIP_SETS", "").split(","))
-        )
+        parsed_args.skip_sets = list(filter(None, os.environ.get("SKIP_SETS", "").split(",")))
         parsed_args.price_build = bool(os.environ.get("PRICE_BUILD", False))
         parsed_args.referrals = bool(os.environ.get("REFERRALS", False))
         parsed_args.no_alerts = bool(os.environ.get("NO_ALERTS", False))
         parsed_args.aws_ssm_download_config = os.environ.get("AWS_SSM_DOWNLOAD_CONFIG")
         parsed_args.aws_s3_upload_bucket = os.environ.get("AWS_S3_UPLOAD_BUCKET")
-        parsed_args.outputs = (
-            list(filter(None, os.environ.get("OUTPUTS", "").split(","))) or None
-        )
-        parsed_args.export_formats = (
-            list(filter(None, os.environ.get("EXPORT_FORMATS", "").lower().split(",")))
-            or None
-        )
+        parsed_args.outputs = list(filter(None, os.environ.get("OUTPUTS", "").split(","))) or None
+        parsed_args.export_formats = list(filter(None, os.environ.get("EXPORT_FORMATS", "").lower().split(","))) or None
         parsed_args.v2 = bool(os.environ.get("MTGJSON_V2", False))
         set_v2_flags(parsed_args)
 
