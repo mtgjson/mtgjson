@@ -18,9 +18,9 @@ import shutil
 import subprocess
 import threading
 import zipfile
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from types import TracebackType
-from collections.abc import Callable
 from typing import Any, BinaryIO
 
 from .compiled_classes import MtgjsonStructuresObject

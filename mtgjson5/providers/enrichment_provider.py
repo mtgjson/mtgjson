@@ -56,9 +56,7 @@ class EnrichmentProvider:
         """
         return card.number
 
-    def get_enrichment_for_set(
-        self, set_code: str
-    ) -> dict[str, dict[str, Any]] | None:
+    def get_enrichment_for_set(self, set_code: str) -> dict[str, dict[str, Any]] | None:
         """
         Get all enrichment data for a given set code.
         :param set_code: Set code to look up
@@ -96,9 +94,7 @@ class EnrichmentProvider:
         )
         return None
 
-    def get_enrichment_for_card(
-        self, card: MtgjsonCardObject
-    ) -> dict[str, Any] | None:
+    def get_enrichment_for_card(self, card: MtgjsonCardObject) -> dict[str, Any] | None:
         """
         Get enrichment data for a card using set-based lookup strategies.
         :param card: MTGJSON card object to enrich
