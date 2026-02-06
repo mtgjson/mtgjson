@@ -186,9 +186,7 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     # Join both strict and loose, prefer strict when available
     return (
-        lf_with_base.join(
-            all_strict, on=["setCode", "language", "faceName", "_num_base"], how="left"
-        )
+        lf_with_base.join(all_strict, on=["setCode", "language", "faceName", "_num_base"], how="left")
         .join(all_loose, on=["setCode", "language", "faceName", "_num_base"], how="left")
         .with_columns(
             pl.when(
