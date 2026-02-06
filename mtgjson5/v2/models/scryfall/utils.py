@@ -7,7 +7,8 @@ Schema generation from TypedDicts and vectorized DataFrame -> MTGJSON conversion
 from __future__ import annotations
 
 import sys
-from typing import TYPE_CHECKING, Any, Callable, Literal, get_args, get_origin
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Literal, get_args, get_origin
 
 if sys.version_info >= (3, 11):
     from typing import Required

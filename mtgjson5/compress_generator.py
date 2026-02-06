@@ -20,7 +20,8 @@ import threading
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from types import TracebackType
-from typing import Any, BinaryIO, Callable, Type
+from collections.abc import Callable
+from typing import Any, BinaryIO
 
 from .compiled_classes import MtgjsonStructuresObject
 from .v2.consts import (
@@ -187,7 +188,7 @@ class StreamingCompressor:
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:

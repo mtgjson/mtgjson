@@ -13,7 +13,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import polars as pl
 
@@ -312,7 +312,7 @@ class BulkDataSource:
         self,
         cache_path: Path | None = None,
         api_fallback: bool = True,
-        api_provider: Optional["ScryfallProvider"] = None,
+        api_provider: "ScryfallProvider | None" = None,
     ):
         """
         Initialize the bulk data source.

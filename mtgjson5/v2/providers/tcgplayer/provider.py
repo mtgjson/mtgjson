@@ -13,7 +13,6 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import aiohttp
 import polars as pl
@@ -45,7 +44,7 @@ class TcgPlayerConfig:
     api_version: str = "v1.39.0"
 
     @classmethod
-    def from_mtgjson_config(cls, suffix: str = "") -> Optional[TcgPlayerConfig]:
+    def from_mtgjson_config(cls, suffix: str = "") -> TcgPlayerConfig | None:
         """Load config from mtgjson.properties [TCGPlayer] section."""
         config = MtgjsonConfig()
         if not config.has_section("TCGPlayer"):
