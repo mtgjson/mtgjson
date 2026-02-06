@@ -4,7 +4,7 @@ MTGJSON Singular Card Object
 
 import json
 from collections.abc import Iterable
-from typing import Any, List, Optional
+from typing import Any
 
 from .. import constants
 from ..classes.mtgjson_foreign_data import MtgjsonForeignDataObject
@@ -31,11 +31,11 @@ class MtgjsonCardObject(JsonObject):
     availability: MtgjsonGameFormatsObject
     booster_types: list[str]
     border_color: str
-    card_parts: List[str]
-    color_identity: List[str]
-    color_indicator: Optional[List[str]]
-    colors: List[str]
-    produced_mana: Optional[List[str]]
+    card_parts: list[str]
+    color_identity: list[str]
+    color_indicator: list[str] | None
+    colors: list[str]
+    produced_mana: list[str] | None
     converted_mana_cost: float
     count: int
     defense: str | None

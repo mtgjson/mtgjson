@@ -6,7 +6,7 @@ import copy
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 from singleton_decorator import singleton
 
@@ -24,15 +24,15 @@ class EnrichmentProvider:
     Lookup key format: {SET}->{collector_number}
     """
 
-    _data: Dict[str, Any]
+    _data: dict[str, Any]
 
-    def __init__(self, resource_path: Optional[Path] = None) -> None:
+    def __init__(self, resource_path: Path | None = None) -> None:
         if resource_path is None:
             resource_path = RESOURCE_PATH
         resource = resource_path.joinpath("card_enrichment.json")
         try:
             with resource.open(encoding="utf-8") as fp:
-                self._data: Dict[str, Any] = json.load(fp)
+                self._data: dict[str, Any] = json.load(fp)
             set_count = len(self._data)
             card_count = sum(len(entries) for entries in self._data.values())
             LOGGER.info(
@@ -58,7 +58,7 @@ class EnrichmentProvider:
 
     def get_enrichment_for_set(
         self, set_code: str
-    ) -> Optional[Dict[str, Dict[str, Any]]]:
+    ) -> dict[str, dict[str, Any]] | None:
         """
         Get all enrichment data for a given set code.
         :param set_code: Set code to look up
@@ -67,8 +67,8 @@ class EnrichmentProvider:
         return self._data.get(set_code)
 
     def get_enrichment_from_set_data(
-        self, set_enrichment: Dict[str, Dict[str, Any]], card: MtgjsonCardObject
-    ) -> Optional[Dict[str, Any]]:
+        self, set_enrichment: dict[str, dict[str, Any]], card: MtgjsonCardObject
+    ) -> dict[str, Any] | None:
         """
         Get enrichment data for a card from already-fetched set enrichment data.
         :param set_enrichment: Set-level enrichment dictionary from get_enrichment_for_set()
@@ -98,7 +98,7 @@ class EnrichmentProvider:
 
     def get_enrichment_for_card(
         self, card: MtgjsonCardObject
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Get enrichment data for a card using set-based lookup strategies.
         :param card: MTGJSON card object to enrich

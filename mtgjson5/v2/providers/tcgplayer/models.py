@@ -1,7 +1,6 @@
 """TCGPlayer API data models."""
 
 from collections.abc import Callable
-from typing import Optional
 
 import polars as pl
 from pydantic import BaseModel, Field
@@ -58,7 +57,7 @@ class TcgPlayerConfig(BaseModel):
         return f"{self.base_url}/{endpoint}"
 
     @classmethod
-    def from_mtgjson_config(cls, suffix: str = "") -> Optional["TcgPlayerConfig"]:
+    def from_mtgjson_config(cls, suffix: str = "") -> "TcgPlayerConfig | None":
         """Load from mtgjson.properties."""
         config = MtgjsonConfig()
         if not config.has_section("TCGPlayer"):

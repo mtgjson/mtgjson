@@ -15,7 +15,7 @@ import re
 import time
 from argparse import Namespace
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
-from typing import Optional, cast, overload
+from typing import cast, overload
 
 import polars as pl
 
@@ -98,7 +98,7 @@ class GlobalCache:
     by time they are accessed.
     """
 
-    _instance: Optional["GlobalCache"] = None
+    _instance: "GlobalCache | None" = None
 
     def __new__(cls, args: Namespace | None = None) -> "GlobalCache":
         if cls._instance is None:

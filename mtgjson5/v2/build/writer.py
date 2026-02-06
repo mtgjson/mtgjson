@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, Union
+from typing import TYPE_CHECKING, Literal
 
 from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.utils import LOGGER
@@ -20,14 +20,14 @@ from .formats import (
 )
 
 # Type alias for all format builders
-FormatBuilder = Union[
-    JsonOutputBuilder,
-    SQLiteBuilder,
-    MySQLBuilder,
-    PostgresBuilder,
-    CSVBuilder,
-    ParquetBuilder,
-]
+FormatBuilder = (
+    JsonOutputBuilder
+    | SQLiteBuilder
+    | MySQLBuilder
+    | PostgresBuilder
+    | CSVBuilder
+    | ParquetBuilder
+)
 
 
 if TYPE_CHECKING:
