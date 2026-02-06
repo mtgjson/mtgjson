@@ -207,8 +207,8 @@ class TcgplayerSkus(TypedDict):
     finish: str
     language: str
     printing: str
-    productId: str
-    skuId: str
+    productId: int
+    skuId: int
 
 
 # =============================================================================

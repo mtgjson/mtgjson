@@ -102,8 +102,8 @@ class TcgplayerSkusFile(RecordFileBase):
 
     Maps card UUIDs to their TCGPlayer SKU information.
     Each SKU entry contains:
-    - skuId: TCGPlayer SKU ID (string)
-    - productId: TCGPlayer product ID (string)
+    - skuId: TCGPlayer SKU ID (integer)
+    - productId: TCGPlayer product ID (integer)
     - language: Language name (e.g., "ENGLISH")
     - printing: "FOIL" or "NON FOIL"
     - condition: e.g., "NEAR MINT", "LIGHTLY PLAYED"
