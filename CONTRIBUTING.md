@@ -42,10 +42,11 @@ The codebase is split up into different files based on functionality. While not 
 
 We follow the [black](https://pypi.org/project/black/) style guides, a stricter version of [PEP-8](https://www.python.org/dev/peps/pep-0008/) styling.
 
-To reformat your code and ensure compatibility with our system, simply run the Tox file found in the repo before you open up a pull request.
+To reformat your code and ensure compatibility with our system, run tox before you open up a pull request.
 
 - Ensure dev dependencies are installed: `uv sync --extra dev`
-- Run tox: `uvx --with tox-uv tox`
+- Run tox: `uv run tox`
+- In PyCharm, you can also create a **Run > Edit Configurations > + > tox** run configuration
 
 You will need to pass all Tox requirements, including the unit tests, for your pull request to be approved.
 
