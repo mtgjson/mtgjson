@@ -2594,9 +2594,7 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
             scryfall_df.write_parquet(scryfall_path)
             if ctx._cache is not None:
                 ctx._cache.scryfall_to_uuid_lf = scryfall_df.lazy()
-            LOGGER.info(
-                f"Built scryfall_to_uuid mapping: {len(scryfall_df):,} entries"
-            )
+            LOGGER.info(f"Built scryfall_to_uuid mapping: {len(scryfall_df):,} entries")
     except Exception as e:
         LOGGER.warning(f"Failed to build scryfall_to_uuid mapping: {e}")
 

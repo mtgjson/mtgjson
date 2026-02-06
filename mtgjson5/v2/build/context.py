@@ -104,9 +104,13 @@ class AssemblyContext:
             if card_path.exists():
                 card_df = pl.read_parquet(card_path / "*.parquet")
                 if "isRebalanced" in card_df.columns:
-                    total = card_df.filter(
+                    card_df = card_df.filter(
                         ~pl.col("isRebalanced").fill_null(False)
-                    ).height
+                    )
+                # Count unique collector numbers to avoid double-counting
+                # faces of split/transform/modal_dfc cards
+                if "number" in card_df.columns:
+                    total = card_df["number"].n_unique()
                 else:
                     total = card_df.height
                 meta["totalSetSize"] = total
