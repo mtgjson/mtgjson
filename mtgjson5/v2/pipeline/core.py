@@ -1656,7 +1656,43 @@ def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
         .list.sort()
         .fill_null([])
         .alias("reverseRelated")
-    ).drop("_all_parts")
+    )
+
+
+# 4.4: add token UUIDs to non-token cards
+def add_token_ids(lf: pl.LazyFrame, scryfall_to_uuids: dict[str, list[str]]) -> pl.LazyFrame:
+    """
+    Resolve token Scryfall IDs from _all_parts to MTGJSON UUIDs.
+
+    For each card, finds allParts entries with component == "token",
+    extracts their Scryfall IDs, and resolves to MTGJSON UUIDs using a
+    pre-built lookup dict (avoids memory-heavy self-joins).
+    """
+
+    def _resolve_token_uuids(scryfall_ids: list[str]) -> list[str]:
+        uuids: set[str] = set()
+        for sid in scryfall_ids:
+            uuids.update(scryfall_to_uuids.get(sid, []))
+        return sorted(uuids)
+
+    # Extract token Scryfall IDs from _all_parts where component == "token"
+    lf = lf.with_columns(
+        pl.col("_all_parts")
+        .list.eval(
+            pl.when(pl.element().struct.field("component") == "token")
+            .then(pl.element().struct.field("id"))
+            .otherwise(pl.lit(None))
+        )
+        .list.drop_nulls()
+        .alias("_token_scryfall_ids")
+    )
+
+    # Resolve Scryfall IDs to MTGJSON UUIDs via dict lookup
+    return lf.with_columns(
+        pl.col("_token_scryfall_ids")
+        .map_elements(_resolve_token_uuids, return_dtype=pl.List(pl.String))
+        .alias("_token_uuids")
+    ).drop(["_all_parts", "_token_scryfall_ids"], strict=False)
 
 
 # 4.5: add_alternative_deck_limit
@@ -3062,27 +3098,32 @@ def add_related_cards_from_context(
     # Tokens get reverseRelated
     has_reverse = pl.col("reverseRelated").is_not_null() & (pl.col("reverseRelated").list.len() > 0)
 
+    # Non-tokens get token UUIDs
+    has_tokens = pl.col("_token_uuids").is_not_null() & (pl.col("_token_uuids").list.len() > 0)
+
     # Build struct based on what data is present
-    # For tokens: include both spellbook and reverseRelated
-    # For non-tokens: include spellbook only (if alchemy set)
+    # For tokens: include reverseRelated and spellbook
+    # For non-tokens: include spellbook (if alchemy) and tokens (if any)
     return lf.with_columns(
         pl.when(is_token & (has_spellbook | has_reverse))
         .then(
             pl.struct(
                 spellbook=pl.col("_spellbook_list"),
                 reverseRelated=pl.col("reverseRelated"),
+                tokens=pl.lit(None).cast(pl.List(pl.String)),
             )
         )
-        .when(~is_token & has_spellbook)
+        .when(~is_token & (has_spellbook | has_tokens))
         .then(
             pl.struct(
                 spellbook=pl.col("_spellbook_list"),
                 reverseRelated=pl.lit(None).cast(pl.List(pl.String)),
+                tokens=pl.col("_token_uuids"),
             )
         )
         .otherwise(pl.lit(None))
         .alias("relatedCards")
-    ).drop("_spellbook_list", strict=False)
+    ).drop(["_spellbook_list", "_token_uuids"], strict=False)
 
 
 # 6.8:
@@ -3269,13 +3310,22 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
     lf = lf.pipe(partial(join_gatherer_data, ctx=ctx))
 
     LOGGER.info("Checkpoint: materializing before relationship operations...")
-    lf = lf.collect().lazy()
+    df = lf.collect()
+
+    # Build lightweight scryfallId → [uuid] lookup for token resolution
+    scryfall_to_uuids: dict[str, list[str]] = {}
+    for sid, uuid in df.select(["scryfallId", "uuid"]).iter_rows():
+        scryfall_to_uuids.setdefault(sid, []).append(uuid)
+
+    lf = df.lazy()
+    del df
     LOGGER.info("  Checkpoint complete")
 
     lf = (
         lf.pipe(partial(add_other_face_ids, ctx=ctx))
         .pipe(partial(add_leadership_skills_expr, ctx=ctx))
         .pipe(add_reverse_related)
+        .pipe(partial(add_token_ids, scryfall_to_uuids=scryfall_to_uuids))
         .pipe(propagate_salt_to_tokens)
         .pipe(partial(add_related_cards_from_context, _ctx=ctx))
         .pipe(partial(add_alternative_deck_limit, ctx=ctx))
