@@ -28,7 +28,8 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     2. Fall back to name-only matching for sets without variants
 
     Args:
-        lf: LazyFrame with cardParts, faceName, uuid, setCode, number, otherFaceIds columns
+        lf: LazyFrame with cardParts, faceName, uuid, setCode, number, language,
+            otherFaceIds columns
 
     Returns:
         LazyFrame with meld otherFaceIds updated
@@ -41,6 +42,7 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
         .select(
             [
                 "setCode",
+                "language",
                 "number",
                 "faceName",
                 "uuid",
@@ -68,12 +70,13 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
             result_cards.select(
                 [
                     "setCode",
+                    "language",
                     pl.col("faceName").alias("_result_faceName"),
                     pl.col("uuid").alias("_result_uuid"),
                     pl.col("_num_base").alias("_result_num_base"),
                 ]
             ),
-            on="setCode",
+            on=["setCode", "language"],
             how="left",
         )
         # Filter: result name matches AND number bases are close (within 1)
@@ -81,7 +84,7 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
             (pl.col("_result_faceName") == pl.col("_result_name"))
             & ((pl.col("_num_base") - pl.col("_result_num_base")).abs() <= 1)
         )
-        .group_by(["setCode", "faceName", "_num_base"])
+        .group_by(["setCode", "language", "faceName", "_num_base"])
         .agg(pl.col("_result_uuid").first().alias("_meld_other_uuid"))
         .with_columns(
             pl.when(pl.col("_meld_other_uuid").is_not_null())
@@ -89,7 +92,7 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
             .otherwise(pl.lit(None))
             .alias("_meld_other_uuids")
         )
-        .select(["setCode", "faceName", "_num_base", "_meld_other_uuids"])
+        .select(["setCode", "language", "faceName", "_num_base", "_meld_other_uuids"])
     )
 
     # For RESULT cards: find front cards with matching names AND adjacent number bases
@@ -98,6 +101,7 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
             front_cards.select(
                 [
                     "setCode",
+                    "language",
                     pl.col("faceName").alias("_front_faceName"),
                     pl.col("uuid").alias("_front_uuid"),
                     pl.col("_num_base").alias("_front_num_base"),
@@ -105,7 +109,7 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
                     "_front2_name",
                 ]
             ),
-            on="setCode",
+            on=["setCode", "language"],
             how="left",
         )
         .filter(
@@ -115,9 +119,9 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
             )
             & ((pl.col("_num_base") - pl.col("_front_num_base")).abs() <= 1)
         )
-        .group_by(["setCode", "faceName", "_num_base"])
+        .group_by(["setCode", "language", "faceName", "_num_base"])
         .agg(pl.col("_front_uuid").unique().alias("_meld_other_uuids"))
-        .select(["setCode", "faceName", "_num_base", "_meld_other_uuids"])
+        .select(["setCode", "language", "faceName", "_num_base", "_meld_other_uuids"])
     )
 
     # For FRONT faces: find ANY result card with matching name in the set
@@ -126,15 +130,16 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
             result_cards.select(
                 [
                     "setCode",
+                    "language",
                     pl.col("faceName").alias("_result_faceName"),
                     pl.col("uuid").alias("_result_uuid"),
                 ]
             ),
-            on="setCode",
+            on=["setCode", "language"],
             how="left",
         )
         .filter(pl.col("_result_faceName") == pl.col("_result_name"))
-        .group_by(["setCode", "faceName", "_num_base"])
+        .group_by(["setCode", "language", "faceName", "_num_base"])
         .agg(pl.col("_result_uuid").first().alias("_meld_other_uuid_loose"))
         .with_columns(
             pl.when(pl.col("_meld_other_uuid_loose").is_not_null())
@@ -142,7 +147,7 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
             .otherwise(pl.lit(None))
             .alias("_meld_other_uuids_loose")
         )
-        .select(["setCode", "faceName", "_num_base", "_meld_other_uuids_loose"])
+        .select(["setCode", "language", "faceName", "_num_base", "_meld_other_uuids_loose"])
     )
 
     # For RESULT cards: find ANY front cards with matching names in the set
@@ -151,22 +156,23 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
             front_cards.select(
                 [
                     "setCode",
+                    "language",
                     pl.col("faceName").alias("_front_faceName"),
                     pl.col("uuid").alias("_front_uuid"),
                     "_front1_name",
                     "_front2_name",
                 ]
             ),
-            on="setCode",
+            on=["setCode", "language"],
             how="left",
         )
         .filter(
             (pl.col("_front_faceName") == pl.col("_front1_name"))
             | (pl.col("_front_faceName") == pl.col("_front2_name"))
         )
-        .group_by(["setCode", "faceName", "_num_base"])
+        .group_by(["setCode", "language", "faceName", "_num_base"])
         .agg(pl.col("_front_uuid").unique().alias("_meld_other_uuids_loose"))
-        .select(["setCode", "faceName", "_num_base", "_meld_other_uuids_loose"])
+        .select(["setCode", "language", "faceName", "_num_base", "_meld_other_uuids_loose"])
     )
 
     # Combine strict matches
@@ -180,15 +186,24 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     # Join both strict and loose, prefer strict when available
     return (
-        lf_with_base.join(all_strict, on=["setCode", "faceName", "_num_base"], how="left")
-        .join(all_loose, on=["setCode", "faceName", "_num_base"], how="left")
+        lf_with_base.join(all_strict, on=["setCode", "language", "faceName", "_num_base"], how="left")
+        .join(all_loose, on=["setCode", "language", "faceName", "_num_base"], how="left")
         .with_columns(
-            # Prefer strict match, fall back to loose match, then existing otherFaceIds
-            pl.coalesce(
-                pl.col("_meld_other_uuids"),
-                pl.col("_meld_other_uuids_loose"),
-                pl.col("otherFaceIds"),
-            ).alias("otherFaceIds")
+            pl.when(
+                pl.col("_meld_other_uuids").is_not_null()
+                & ~(
+                    (pl.col("_meld_other_uuids").list.len() < pl.lit(2))
+                    & (
+                        pl.col("_meld_other_uuids").list.len()
+                        < pl.col("_meld_other_uuids_loose").list.len().fill_null(0)
+                    )
+                )
+            )
+            .then(pl.col("_meld_other_uuids"))
+            .when(pl.col("_meld_other_uuids_loose").is_not_null())
+            .then(pl.col("_meld_other_uuids_loose"))
+            .otherwise(pl.col("otherFaceIds"))
+            .alias("otherFaceIds")
         )
         .drop(["_meld_other_uuids", "_meld_other_uuids_loose", "_num_base"])
     )
