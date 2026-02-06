@@ -191,14 +191,6 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
         )
         .join(all_loose, on=["setCode", "language", "faceName", "_num_base"], how="left")
         .with_columns(
-            # Prefer strict match, but fall back to loose when strict is incomplete.
-            # Bug (#1449): strict can find only 1 of 2 front faces for a meld result
-            # when the fronts have non-adjacent collector numbers. In that case the
-            # strict list is non-null but incomplete, and coalesce would shadow the
-            # complete loose match.  We detect incompleteness by checking whether
-            # strict found fewer IDs than loose — but only override strict when strict
-            # has fewer than 2 results, so variant sets (FIN) where strict correctly
-            # finds 2 per variant aren't broken by a larger loose result.
             pl.when(
                 pl.col("_meld_other_uuids").is_not_null()
                 & ~(
