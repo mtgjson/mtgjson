@@ -78,7 +78,9 @@ MTGJSON is built on and tested against a wide range of Python3 versions. Current
 
 #### Install MTGJSON
 ##### Local Installation
-`python3 -m pip install /path/to/mtgjson5/`
+```bash
+uv sync
+```
 ##### PyPi Repository
 We intend to put MTGJSON5 on the pip package archive in the near future, once the first set of revisions takes place.
 

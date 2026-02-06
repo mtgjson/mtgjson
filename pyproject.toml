@@ -1,14 +1,123 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mtgjson5"
+dynamic = ["version"]
+description = "Magic: the Gathering compiled database generator"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Zach Halpern", email = "zach@mtgjson.com" },
+]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: Microsoft :: Windows :: Windows 11",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python",
+    "Topic :: Database",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+keywords = [
+    "Big Data",
+    "Card Games",
+    "Collectible",
+    "Database",
+    "JSON",
+    "MTG",
+    "MTGJSON",
+    "Trading Cards",
+    "Magic: The Gathering",
+]
+dependencies = [
+    "aiohttp==3.13.3",
+    "beautifulsoup4==4.14.3",
+    "boto3==1.42.43",
+    "botocore==1.42.43",
+    "gevent==25.9.1",
+    "GitPython==3.1.46",
+    "ijson==3.4.0.post0",
+    "mergedeep==1.3.4",
+    "mkmsdk==0.6.0",
+    "numpy==2.4.2",
+    "orjson==3.11.7",
+    "polars==1.38.0",
+    "polars-hash==0.5.6",
+    "pydantic==2.12.5",
+    "python-dateutil==2.9.0.post0",
+    "ratelimit==2.2.1",
+    "requests-cache==1.3.0",
+    "requests==2.32.5",
+    "singleton-decorator==1.0.0",
+    "typing_extensions==4.15.0",
+    "urllib3==2.6.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black==26.1.0",
+    "flake8",
+    "flake8-pyproject",
+    "isort==6.0.1",
+    "mypy==1.17.1",
+    "pylint==4.0.4",
+    "pytest==8.4.1",
+    "pytest-cov==6.2.1",
+    "pytest-mock==3.14.1",
+    "pytest-recording==0.13.2",
+    "tox==4.28.4",
+    "tox-uv",
+    "vcrpy==7.0.0",
+    "PyYAML~=6.0.2",
+    "requests-cache[yaml]~=1.3.0",
+    "types-PyYAML~=6.0.12",
+    "types-python-dateutil~=2.9.0",
+    "types-redis~=4.6.0",
+    "types-requests~=2.32.4",
+    "types-ujson~=5.10.0",
+]
+
+[tool.uv]
+environments = ["platform_python_implementation == 'CPython'"]
+
+[tool.setuptools.dynamic]
+version = { attr = "mtgjson5._version.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["mtgjson5*"]
+
+[tool.setuptools.package-data]
+mtgjson5 = ["resources/*"]
+
+# --- Black ---
+
 [tool.black]
 line-length = 88
 target-version = [
-"py311",
-"py312",
-"py313",
-"py314"]
+    "py311",
+    "py312",
+    "py313",
+    "py314",
+]
+
+# --- isort ---
 
 [tool.isort]
 profile = "black"
 
+# --- flake8 (requires flake8-pyproject) ---
 
 # 501 - line too long
 # E402 - module level import not at top of file
@@ -23,7 +132,142 @@ extend-ignore = [
     "W503",
     "W293",
     "E302",
-    "W291"
+    "W291",
 ]
 # F401 in __init__.py - imported but unused
 per-file-ignores = ["__init__.py:F401"]
+
+# --- mypy ---
+
+[tool.mypy]
+python_version = "3.11"
+exclude = "(cache|pipeline)\\.py$"
+check_untyped_defs = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_subclassing_any = true
+follow_imports = "normal"
+incremental = true
+ignore_missing_imports = true
+strict_optional = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "pkg.generated_code.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "concurrent.futures"
+ignore_errors = true
+
+# --- pytest ---
+
+[tool.pytest.ini_options]
+# -q (quiet mode): reduces output verbosity to show only test results, keeping CI logs clean
+addopts = "-q"
+# VCR cassette recording modes:
+# - Local development: use --record-mode=once to record new cassettes
+# - CI/offline: use --record-mode=none to ensure no network access (enforced in tox config)
+# The vcr_config fixture in tests/conftest.py also enforces 'none' mode when MTGJSON_OFFLINE_MODE is set
+
+# --- pylint ---
+
+[tool.pylint.master]
+persistent = true
+extension-pkg-allow-list = ["orjson", "numpy", "aiohttp"]
+
+[tool.pylint."messages control"]
+disable = [
+    "broad-except",
+    "cyclic-import",
+    "duplicate-code",
+    "global-statement",
+    "import-outside-toplevel",
+    "invalid-name",
+    "line-too-long",
+    "logging-format-interpolation",
+    "logging-fstring-interpolation",
+    "no-else-return",
+    "no-name-in-module",
+    "protected-access",
+    "redefined-builtin",
+    "redefined-outer-name",
+    "singleton-comparison",
+    "too-few-public-methods",
+    "too-many-arguments",
+    "too-many-branches",
+    "too-many-instance-attributes",
+    "too-many-lines",
+    "too-many-locals",
+    "too-many-nested-blocks",
+    "too-many-public-methods",
+    "too-many-return-statements",
+    "too-many-statements",
+    "unspecified-encoding",
+    "unsubscriptable-object",
+    "unused-argument",
+    "used-before-assignment",
+    "wrong-import-order",
+    "wrong-import-position",
+    "too-many-positional-arguments",
+    "unidiomatic-typecheck",
+]
+
+[tool.pylint.reports]
+output-format = "colorized"
+
+[tool.pylint.basic]
+good-names = ["f", "i", "j", "k", "_"]
+no-docstring-rgx = "__.*__|test_.*"
+
+[tool.pylint.miscellaneous]
+notes = ["FIXME", "TODO"]
+
+[tool.pylint.variables]
+dummy-variables-rgx = "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)"
+
+# --- tox ---
+
+[tool.tox]
+env_list = ["isort-inplace", "black-inplace", "mypy", "lint", "unit"]
+
+[tool.tox.env_run_base]
+set_env = { PYTHONPATH = "{toxinidir}" }
+deps = []
+
+[tool.tox.env.isort-inplace]
+description = "Sort imports"
+commands = [["isort", "--profile", "black", "mtgjson5/"]]
+
+[tool.tox.env.isort-check]
+description = "dry-run isort to see if imports need resorting"
+commands = [["isort", "--profile", "black", "--check-only", "mtgjson5/"]]
+
+[tool.tox.env.black-inplace]
+description = "Run black and edit all files in place"
+commands = [["black", "mtgjson5/"]]
+
+[tool.tox.env.black-check]
+description = "Run black and check formatting"
+commands = [["black", "--check", "mtgjson5/"]]
+
+[tool.tox.env.mypy]
+description = "mypy static type checking only"
+commands = [["mypy", "{posargs:mtgjson5/}"]]
+
+[tool.tox.env.lint]
+description = "Run linting tools"
+commands = [["pylint", "mtgjson5/"]]
+
+[tool.tox.env.flake8]
+description = "Run flake8 style checks"
+deps = ["flake8", "flake8-pyproject", "{toxinidir}/flake8-style"]
+commands = [["flake8", "mtgjson5/"]]
+
+[tool.tox.env.unit]
+description = "Run unit tests with coverage and mypy type checking"
+set_env = { PYTHONPATH = "{toxinidir}", MTGJSON_OFFLINE_MODE = "1" }
+commands = [["pytest", "tests/", "--record-mode=none"]]
