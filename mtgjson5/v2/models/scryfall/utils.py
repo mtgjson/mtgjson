@@ -8,12 +8,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Literal, get_args, get_origin
-
-if sys.version_info >= (3, 11):
-    from typing import Required
-else:
-    from typing_extensions import Required
+from typing import TYPE_CHECKING, Any, Literal, Required, get_args, get_origin
 
 import polars as pl
 
@@ -46,9 +41,7 @@ def python_to_polars(tp: Any) -> pl.DataType:
         return python_to_polars(args[0])
 
     # Unwrap Optional (Union with None)
-    if origin is type(None) or (
-        hasattr(origin, "__origin__") and origin.__origin__ is type(None)
-    ):
+    if origin is type(None) or (hasattr(origin, "__origin__") and origin.__origin__ is type(None)):
         return pl.Null  # type: ignore[return-value]
 
     # Union types (X | Y or Optional[X])
@@ -103,9 +96,7 @@ def _is_union(tp: Any) -> bool:
 
 def _is_typeddict(tp: Any) -> bool:
     """Check if type is a TypedDict."""
-    return (
-        isinstance(tp, type) and issubclass(tp, dict) and hasattr(tp, "__annotations__")
-    )
+    return isinstance(tp, type) and issubclass(tp, dict) and hasattr(tp, "__annotations__")
 
 
 def _get_typeddict_hints(td: type) -> dict[str, Any]:
@@ -119,9 +110,7 @@ def _get_typeddict_hints(td: type) -> dict[str, Any]:
     try:
         module = sys.modules.get(td.__module__, None)
         globalns = getattr(module, "__dict__", {}) if module else {}
-        return typing.get_type_hints(
-            td, globalns=globalns, localns={"Required": Required}
-        )
+        return typing.get_type_hints(td, globalns=globalns, localns={"Required": Required})
     except Exception:
         return annotations
 
@@ -179,11 +168,7 @@ def from_scryfall_dicts(cards: list[ScryfallCard]) -> DataFrame:
 
 def rename_to_mtgjson(df: DataFrame | LazyFrame) -> DataFrame | LazyFrame:
     """Rename Scryfall columns to MTGJSON convention."""
-    existing = (
-        set(df.collect_schema().names())
-        if isinstance(df, pl.LazyFrame)
-        else set(df.columns)
-    )
+    existing = set(df.collect_schema().names()) if isinstance(df, pl.LazyFrame) else set(df.columns)
     renames = {k: v for k, v in SCRYFALL_TO_MTGJSON_FIELDS.items() if k in existing}
     return df.rename(renames)
 
@@ -200,9 +185,7 @@ def extract_identifiers(lf: LazyFrame) -> LazyFrame:
             pl.col("mtgo_foil_id").cast(pl.String).alias("mtgoFoilId"),
             pl.col("arena_id").cast(pl.String).alias("mtgArenaId"),
             pl.col("tcgplayer_id").cast(pl.String).alias("tcgplayerProductId"),
-            pl.col("tcgplayer_etched_id")
-            .cast(pl.String)
-            .alias("tcgplayerEtchedProductId"),
+            pl.col("tcgplayer_etched_id").cast(pl.String).alias("tcgplayerEtchedProductId"),
             pl.col("cardmarket_id").cast(pl.String).alias("mcmId"),
             pl.col("multiverse_ids").list.first().cast(pl.String).alias("multiverseId"),
         ).alias("identifiers")
@@ -315,9 +298,7 @@ def df_to_card_dicts(df: DataFrame) -> list[dict[str, Any]]:
     return [{k: v for k, v in row.items() if v is not None} for row in df.to_dicts()]
 
 
-def df_to_cards_by_set(
-    df: DataFrame, set_col: str = "setCode"
-) -> dict[str, list[dict]]:
+def df_to_cards_by_set(df: DataFrame, set_col: str = "setCode") -> dict[str, list[dict]]:
     """
     Group cards by set code for AllPrintings structure.
 
@@ -328,9 +309,7 @@ def df_to_cards_by_set(
         set_code = row.get(set_col, "")
         if set_code not in result:
             result[set_code] = []
-        result[set_code].append(
-            {k: v for k, v in row.items() if v is not None and k != set_col}
-        )
+        result[set_code].append({k: v for k, v in row.items() if v is not None and k != set_col})
     return result
 
 
@@ -349,21 +328,13 @@ def partition_by_set(lf: LazyFrame, set_col: str = "setCode") -> dict[str, DataF
 def unnest_struct(df: DataFrame, col: str, prefix: str = "") -> DataFrame:
     """Unnest a struct column into separate columns."""
     return df.unnest(col).rename(
-        {
-            field: f"{prefix}{field}"
-            for field in df.select(pl.col(col)).to_series().struct.fields
-        }
-        if prefix
-        else {}
+        {field: f"{prefix}{field}" for field in df.select(pl.col(col)).to_series().struct.fields} if prefix else {}
     )
 
 
 def struct_to_dict(series: pl.Series) -> list[dict | None]:
     """Convert struct Series to list of dicts (with None filtering)."""
-    return [
-        {k: v for k, v in row.items() if v is not None} if row else None
-        for row in series.to_list()
-    ]
+    return [{k: v for k, v in row.items() if v is not None} if row else None for row in series.to_list()]
 
 
 def legalities_to_mtgjson(legalities_series: pl.Series) -> list[dict[str, str]]:

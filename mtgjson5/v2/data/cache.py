@@ -48,7 +48,7 @@ def load_resource_json(filename: str) -> dict | list:
         LOGGER.warning(f"Resource file not found: {file_path}")
         return {}
     with file_path.open("rb") as f:
-        return cast(dict | list, json.loads(f.read()))
+        return cast("dict | list", json.loads(f.read()))
 
 
 def _cache_fresh(path: pathlib.Path, max_age_hours: float = 290.0) -> bool:
@@ -457,11 +457,7 @@ class GlobalCache:
             return
 
         # Collect deck metadata
-        decks = (
-            self.decks_lf.collect()
-            if isinstance(self.decks_lf, pl.LazyFrame)
-            else self.decks_lf
-        )
+        decks = self.decks_lf.collect() if isinstance(self.decks_lf, pl.LazyFrame) else self.decks_lf
 
         # Filter by set codes if specified
         if self._set_filter:
@@ -610,9 +606,7 @@ class GlobalCache:
         self.languages_lf = default_lf.select(
             [
                 pl.col("id").alias("scryfallId"),
-                pl.col("lang")
-                .replace_strict(LANGUAGE_MAP, default=pl.col("lang"))
-                .alias("language"),
+                pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("language"),
             ]
         ).unique(["scryfallId", "language"])
 
@@ -650,20 +644,14 @@ class GlobalCache:
         """Load local JSON resource files."""
         LOGGER.info("Loading resource files...")
 
-        self.duel_deck_sides = cast(dict, load_resource_json("duel_deck_sides.json"))
+        self.duel_deck_sides = cast("dict", load_resource_json("duel_deck_sides.json"))
         self.meld_data = load_resource_json("meld_triplets.json")
-        self.meld_overrides = cast(dict, load_resource_json("meld_overrides.json"))
-        self.world_championship_signatures = cast(
-            dict, load_resource_json("world_championship_signatures.json")
-        )
-        self.manual_overrides = cast(dict, load_resource_json("manual_overrides.json"))
-        self.foreigndata_exceptions = cast(
-            dict, load_resource_json("foreigndata_exceptions.json")
-        )
-        self.set_code_watermarks = cast(
-            dict, load_resource_json("set_code_watermarks.json")
-        )
-        uuid_raw = cast(dict, load_resource_json("legacy_mtgjson_v5_uuid_mapping.json"))
+        self.meld_overrides = cast("dict", load_resource_json("meld_overrides.json"))
+        self.world_championship_signatures = cast("dict", load_resource_json("world_championship_signatures.json"))
+        self.manual_overrides = cast("dict", load_resource_json("manual_overrides.json"))
+        self.foreigndata_exceptions = cast("dict", load_resource_json("foreigndata_exceptions.json"))
+        self.set_code_watermarks = cast("dict", load_resource_json("set_code_watermarks.json"))
+        uuid_raw = cast("dict", load_resource_json("legacy_mtgjson_v5_uuid_mapping.json"))
         if uuid_raw:
             rows = [
                 {"scryfallId": sid, "side": side, "cachedUuid": uuid}
@@ -681,9 +669,7 @@ class GlobalCache:
 
         self.meld_triplets = meld_triplets_expanded
 
-        raw_translations = cast(
-            dict, load_resource_json("mkm_set_name_translations.json")
-        )
+        raw_translations = cast("dict", load_resource_json("mkm_set_name_translations.json"))
         for set_name, langs in raw_translations.items():
             self.set_translations[set_name] = {
                 "Chinese Simplified": langs.get("zhs"),
@@ -698,20 +684,14 @@ class GlobalCache:
                 "Spanish": langs.get("es"),
             }
 
-        self.tcgplayer_set_id_overrides = cast(
-            dict, load_resource_json("tcgplayer_set_id_overrides.json")
-        )
+        self.tcgplayer_set_id_overrides = cast("dict", load_resource_json("tcgplayer_set_id_overrides.json"))
 
-        self.keyrune_code_overrides = cast(
-            dict, load_resource_json("keyrune_code_overrides.json")
-        )
+        self.keyrune_code_overrides = cast("dict", load_resource_json("keyrune_code_overrides.json"))
 
-        self.base_set_sizes = cast(dict, load_resource_json("base_set_sizes.json"))
-        self.card_enrichment = cast(dict, load_resource_json("card_enrichment.json"))
+        self.base_set_sizes = cast("dict", load_resource_json("base_set_sizes.json"))
+        self.card_enrichment = cast("dict", load_resource_json("card_enrichment.json"))
 
-        multiverse_bridge_raw = cast(
-            dict, load_resource_json("multiverse_bridge_backup.json")
-        )
+        multiverse_bridge_raw = cast("dict", load_resource_json("multiverse_bridge_backup.json"))
         if multiverse_bridge_raw and "cards" in multiverse_bridge_raw:
             cards_data = multiverse_bridge_raw["cards"]
             rows = [
@@ -774,32 +754,18 @@ class GlobalCache:
         if self.sets_lf is None or self.cards_lf is None:
             return
 
-        sets_collected = (
-            self.sets_lf.collect()
-            if isinstance(self.sets_lf, pl.LazyFrame)
-            else self.sets_lf
-        )
+        sets_collected = self.sets_lf.collect() if isinstance(self.sets_lf, pl.LazyFrame) else self.sets_lf
 
-        cards_collected = (
-            self.cards_lf.collect()
-            if isinstance(self.cards_lf, pl.LazyFrame)
-            else self.cards_lf
-        )
-        bulk_sets = set(
-            cards_collected.select("set").unique()["set"].str.to_uppercase().to_list()
-        )
+        cards_collected = self.cards_lf.collect() if isinstance(self.cards_lf, pl.LazyFrame) else self.cards_lf
+        bulk_sets = set(cards_collected.select("set").unique()["set"].str.to_uppercase().to_list())
 
-        missing_sets = sets_collected.filter(
-            (pl.col("card_count") > 0) & (~pl.col("code").is_in(bulk_sets))
-        )
+        missing_sets = sets_collected.filter((pl.col("card_count") > 0) & (~pl.col("code").is_in(bulk_sets)))
 
         if missing_sets.height == 0:
             LOGGER.info("No missing set cards to fetch")
             return
 
-        LOGGER.info(
-            f"Fetching cards for {missing_sets.height} sets not in bulk data..."
-        )
+        LOGGER.info(f"Fetching cards for {missing_sets.height} sets not in bulk data...")
 
         all_new_cards = []
         for row in missing_sets.iter_rows(named=True):
@@ -822,9 +788,7 @@ class GlobalCache:
 
         if all_new_cards:
             new_cards_df = pl.DataFrame(all_new_cards)
-            LOGGER.info(
-                f"Adding {len(all_new_cards)} cards from {missing_sets.height} preview sets"
-            )
+            LOGGER.info(f"Adding {len(all_new_cards)} cards from {missing_sets.height} preview sets")
 
             if isinstance(self.cards_lf, pl.LazyFrame):
                 cards_df = self.cards_lf.collect()
@@ -837,9 +801,7 @@ class GlobalCache:
             for col in existing_cols - new_cols:
                 new_cards_df = new_cards_df.with_columns(pl.lit(None).alias(col))
 
-            new_cards_df = new_cards_df.select(
-                [c for c in cards_df.columns if c in new_cards_df.columns]
-            )
+            new_cards_df = new_cards_df.select([c for c in cards_df.columns if c in new_cards_df.columns])
 
             # Cast new_cards_df columns to match cards_df schema to avoid type errors
             cards_schema = cards_df.schema
@@ -901,10 +863,7 @@ class GlobalCache:
                 self.card_kingdom_lf = ck_data.lazy()
 
             # pylint: disable=protected-access
-            if (
-                self.card_kingdom._raw_df is not None
-                and len(self.card_kingdom._raw_df) > 0
-            ):
+            if self.card_kingdom._raw_df is not None and len(self.card_kingdom._raw_df) > 0:
                 self.card_kingdom._raw_df.write_parquet(raw_cache)
                 self.card_kingdom_raw_lf = self.card_kingdom._raw_df.lazy()
 
@@ -935,10 +894,7 @@ class GlobalCache:
         LOGGER.info("Fetching spellbook data from Scryfall...")
         spellbook_data = asyncio.run(ScryfallProvider().fetch_all_spellbooks())
         if spellbook_data:
-            records = [
-                {"name": parent, "spellbook": cards}
-                for parent, cards in spellbook_data.items()
-            ]
+            records = [{"name": parent, "spellbook": cards} for parent, cards in spellbook_data.items()]
             spellbook_df = pl.DataFrame(records)
             spellbook_df.write_parquet(cache_path)
             self.spellbook_lf = spellbook_df.lazy()
@@ -1019,21 +975,15 @@ class GlobalCache:
             LOGGER.info("Sealed loaded - transferring to GlobalCache...")
 
             if provider.card_to_products_df is not None:
-                provider.card_to_products_df.collect().write_parquet(
-                    card_to_products_cache
-                )
+                provider.card_to_products_df.collect().write_parquet(card_to_products_cache)
                 self.sealed_cards_lf = provider.card_to_products_df
 
             if provider.sealed_products_df is not None:
-                provider.sealed_products_df.collect().write_parquet(
-                    sealed_products_cache
-                )
+                provider.sealed_products_df.collect().write_parquet(sealed_products_cache)
                 self.sealed_products_lf = provider.sealed_products_df
 
             if provider.sealed_contents_df is not None:
-                provider.sealed_contents_df.collect().write_parquet(
-                    sealed_contents_cache
-                )
+                provider.sealed_contents_df.collect().write_parquet(sealed_contents_cache)
                 self.sealed_contents_lf = provider.sealed_contents_df
 
             if provider.decks_df is not None:
@@ -1062,14 +1012,8 @@ class GlobalCache:
         if sets_lf_raw is None:
             LOGGER.warning("Sets not loaded, skipping orientations")
             return
-        sets_df: pl.DataFrame = (
-            sets_lf_raw.collect()
-            if isinstance(sets_lf_raw, pl.LazyFrame)
-            else sets_lf_raw
-        )
-        art_series_sets = sets_df.filter(pl.col("name").str.contains("Art Series"))[
-            "code"
-        ].to_list()
+        sets_df: pl.DataFrame = sets_lf_raw.collect() if isinstance(sets_lf_raw, pl.LazyFrame) else sets_lf_raw
+        art_series_sets = sets_df.filter(pl.col("name").str.contains("Art Series"))["code"].to_list()
 
         rows = []
         for set_code in art_series_sets:
@@ -1092,9 +1036,7 @@ class GlobalCache:
 
         relation_map = self.secretlair.download()
         if relation_map:
-            rows = [
-                {"number": num, "subsets": [name]} for num, name in relation_map.items()
-            ]
+            rows = [{"number": num, "subsets": [name]} for num, name in relation_map.items()]
             sld_df = pl.DataFrame(rows)
             sld_df.write_parquet(cache_path)
             self.sld_subsets_lf = sld_df.lazy()
@@ -1153,9 +1095,7 @@ class GlobalCache:
             super_regex = re.compile(r".*The supertypes are (.*)\.")
             planar_regex = re.compile(r".*The planar types are (.*)\.")
             self.super_types = self._regex_str_to_list(super_regex.search(magic_rules))
-            self.planar_types = self._regex_str_to_list(
-                planar_regex.search(magic_rules)
-            )
+            self.planar_types = self._regex_str_to_list(planar_regex.search(magic_rules))
 
             with types_cache.open("w", encoding="utf-8") as f:
                 json.dump(
@@ -1213,9 +1153,7 @@ class GlobalCache:
 
         LOGGER.info("Downloading mkm_cards.parquet from S3...")
         if MtgjsonS3Handler().download_file(bucket_name, s3_path, str(raw_cache)):
-            LOGGER.info(
-                f"Downloaded mkm_cards.parquet ({raw_cache.stat().st_size / 1024 / 1024:.1f} MB)"
-            )
+            LOGGER.info(f"Downloaded mkm_cards.parquet ({raw_cache.stat().st_size / 1024 / 1024:.1f} MB)")
             return True
 
         LOGGER.warning("Failed to download mkm_cards.parquet from S3")
@@ -1283,15 +1221,9 @@ class GlobalCache:
         self.gatherer_lf = _normalize_columns(self.gatherer_lf)
         self.multiverse_bridge_lf = _normalize_columns(self.multiverse_bridge_lf)
         if self._github is not None:
-            self._github.card_to_products_df = _normalize_columns(
-                self._github.card_to_products_df
-            )
-            self._github.sealed_products_df = _normalize_columns(
-                self._github.sealed_products_df
-            )
-            self._github.sealed_contents_df = _normalize_columns(
-                self._github.sealed_contents_df
-            )
+            self._github.card_to_products_df = _normalize_columns(self._github.card_to_products_df)
+            self._github.sealed_products_df = _normalize_columns(self._github.sealed_products_df)
+            self._github.sealed_contents_df = _normalize_columns(self._github.sealed_contents_df)
             self._github.decks_df = _normalize_columns(self._github.decks_df)
             self._github.boosters_df = _normalize_columns(self._github.boosters_df)
 

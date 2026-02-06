@@ -28,16 +28,12 @@ class DeckSet(PolarsMixin, BaseModel):
     name: str
     type: str
     release_date: str | None = Field(default=None, alias="releaseDate")
-    sealed_product_uuids: list[str] | None = Field(
-        default=None, alias="sealedProductUuids"
-    )
+    sealed_product_uuids: list[str] | None = Field(default=None, alias="sealedProductUuids")
     main_board: list[CardSetDeck] = Field(default_factory=list, alias="mainBoard")
     side_board: list[CardSetDeck] = Field(default_factory=list, alias="sideBoard")
     commander: list[CardSetDeck] | None = None
     # Additional deck fields
-    display_commander: list[CardSetDeck] | None = Field(
-        default=None, alias="displayCommander"
-    )
+    display_commander: list[CardSetDeck] | None = Field(default=None, alias="displayCommander")
     tokens: list[CardSetDeck] | None = None
     planes: list[CardSetDeck] | None = None
     schemes: list[CardSetDeck] | None = None
@@ -90,9 +86,7 @@ class SetList(PolarsMixin, BaseModel):
 
     # Decks and sealed products (included in SetList.json)
     decks: list[DeckSet] | None = None
-    sealed_product: list[SealedProduct] | None = Field(
-        default=None, alias="sealedProduct"
-    )
+    sealed_product: list[SealedProduct] | None = Field(default=None, alias="sealedProduct")
 
 
 class MtgSet(SetList):

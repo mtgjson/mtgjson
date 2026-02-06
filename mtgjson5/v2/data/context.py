@@ -601,9 +601,7 @@ class PipelineContext:
                 LOGGER.info(f"identifiers: +multiverse_bridge ({mvb.height:,} rows)")
 
         self.identifiers_lf = result.lazy()
-        LOGGER.info(
-            f"identifiers_lf: {result.height:,} rows x {len(result.columns)} cols"
-        )
+        LOGGER.info(f"identifiers_lf: {result.height:,} rows x {len(result.columns)} cols")
 
     def _build_oracle_data_lookup(self) -> None:
         """
@@ -640,9 +638,7 @@ class PipelineContext:
                 rulings_agg = (
                     rulings.sort("publishedAt", descending=True)
                     .group_by("oracleId")
-                    .agg(
-                        pl.struct(["source", "publishedAt", "comment"]).alias("rulings")
-                    )
+                    .agg(pl.struct(["source", "publishedAt", "comment"]).alias("rulings"))
                 )
                 frames.append(("rulings", rulings_agg))
                 LOGGER.info(f"oracle_data: +rulings ({rulings_agg.height:,} rows)")
@@ -667,9 +663,7 @@ class PipelineContext:
                 .select(["_effectiveOracleId", "set"])
                 .filter(pl.col("_effectiveOracleId").is_not_null())
                 .group_by("_effectiveOracleId")
-                .agg(
-                    pl.col("set").str.to_uppercase().unique().sort().alias("printings")
-                )
+                .agg(pl.col("set").str.to_uppercase().unique().sort().alias("printings"))
                 .rename({"_effectiveOracleId": "oracleId"})
             )
 
@@ -686,9 +680,7 @@ class PipelineContext:
             result = result.join(df, on="oracleId", how="full", coalesce=True)
 
         self.oracle_data_lf = result.lazy()
-        LOGGER.info(
-            f"oracle_data_lf: {result.height:,} rows x {len(result.columns)} cols"
-        )
+        LOGGER.info(f"oracle_data_lf: {result.height:,} rows x {len(result.columns)} cols")
 
     def _build_set_number_lookup(self) -> None:
         """
@@ -722,9 +714,7 @@ class PipelineContext:
                     cards.with_columns(
                         [
                             pl.col("set").str.to_uppercase().alias("setCode"),
-                            pl.col("lang")
-                            .replace_strict(LANGUAGE_MAP, default=pl.col("lang"))
-                            .alias("_lang_full"),
+                            pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("_lang_full"),
                         ]
                     )
                     .join(
@@ -761,16 +751,12 @@ class PipelineContext:
             fd_exclude: set[tuple[str, str]] = set()
             foreigndata_exceptions = self.foreigndata_exceptions
             if foreigndata_exceptions:
-                for set_code, numbers in foreigndata_exceptions.get(
-                    "include", {}
-                ).items():
+                for set_code, numbers in foreigndata_exceptions.get("include", {}).items():
                     if not set_code.startswith("_"):
                         for number in numbers:
                             if not number.startswith("_"):
                                 fd_include.add((set_code, number))
-                for set_code, numbers in foreigndata_exceptions.get(
-                    "exclude", {}
-                ).items():
+                for set_code, numbers in foreigndata_exceptions.get("exclude", {}).items():
                     if not set_code.startswith("_"):
                         for number in numbers:
                             if not number.startswith("_"):
@@ -822,34 +808,22 @@ class PipelineContext:
                         pl.when(pl.col("cardFaces").list.len() > 1)
                         .then(
                             pl.coalesce(
-                                pl.col("cardFaces")
-                                .list.first()
-                                .struct.field("printed_name"),
+                                pl.col("cardFaces").list.first().struct.field("printed_name"),
                                 pl.col("cardFaces").list.first().struct.field("name"),
                             )
                         )
                         .otherwise(None)
                         .alias("_face_name"),
                         pl.when(pl.col("cardFaces").list.len() > 1)
-                        .then(
-                            pl.col("cardFaces").list.first().struct.field("flavor_text")
-                        )
+                        .then(pl.col("cardFaces").list.first().struct.field("flavor_text"))
                         .otherwise(pl.col("flavorText"))
                         .alias("_flavor_text"),
                         pl.when(pl.col("cardFaces").list.len() > 1)
-                        .then(
-                            pl.col("cardFaces")
-                            .list.first()
-                            .struct.field("printed_text")
-                        )
+                        .then(pl.col("cardFaces").list.first().struct.field("printed_text"))
                         .otherwise(pl.col("printedText"))
                         .alias("_foreign_text"),
                         pl.when(pl.col("cardFaces").list.len() > 1)
-                        .then(
-                            pl.col("cardFaces")
-                            .list.first()
-                            .struct.field("printed_type_line")
-                        )
+                        .then(pl.col("cardFaces").list.first().struct.field("printed_type_line"))
                         .otherwise(pl.col("printedTypeLine"))
                         .alias("_foreign_type"),
                         pl.concat_str(
@@ -867,9 +841,7 @@ class PipelineContext:
                 )
                 .with_columns(
                     pl.col("_uuid_source"),
-                    plh.col("_uuid_source")
-                    .uuidhash.uuid5(_DNS_NAMESPACE)
-                    .alias("_foreign_uuid"),
+                    plh.col("_uuid_source").uuidhash.uuid5(_DNS_NAMESPACE).alias("_foreign_uuid"),
                 )
                 .filter(pl.col("_foreign_name").is_not_null())
                 .sort("setCode", "collectorNumber", "language", nulls_last=True)
@@ -881,10 +853,7 @@ class PipelineContext:
                             pl.col("_flavor_text").alias("flavorText"),
                             pl.struct(
                                 [
-                                    pl.col("multiverseIds")
-                                    .list.first()
-                                    .cast(pl.String)
-                                    .alias("multiverseId"),
+                                    pl.col("multiverseIds").list.first().cast(pl.String).alias("multiverseId"),
                                     pl.col("id").alias("scryfallId"),
                                 ]
                             ).alias("identifiers"),
@@ -915,14 +884,10 @@ class PipelineContext:
 
         result: pl.DataFrame = frames[0][1]
         for _, df in frames[1:]:
-            result = result.join(
-                df, on=["setCode", "number"], how="full", coalesce=True
-            )
+            result = result.join(df, on=["setCode", "number"], how="full", coalesce=True)
 
         self.set_number_lf = result.lazy()
-        LOGGER.info(
-            f"set_number_lf: {result.height:,} rows x {len(result.columns)} cols"
-        )
+        LOGGER.info(f"set_number_lf: {result.height:,} rows x {len(result.columns)} cols")
 
     def _load_duel_deck_sides(self) -> pl.DataFrame | None:
         """Load duel deck sides from resource JSON."""
@@ -967,10 +932,7 @@ class PipelineContext:
 
         meld_triplets = self.meld_triplets
         if meld_triplets:
-            meld_records = [
-                {"name": name, "cardParts": parts}
-                for name, parts in meld_triplets.items()
-            ]
+            meld_records = [{"name": name, "cardParts": parts} for name, parts in meld_triplets.items()]
             meld_df = pl.DataFrame(meld_records)
             frames.append(("meld", meld_df))
             LOGGER.info(f"name: +meld ({meld_df.height:,} rows)")
@@ -1019,9 +981,7 @@ class PipelineContext:
 
         result = pl.DataFrame(records)
         self.signatures_lf = result.lazy()
-        LOGGER.info(
-            f"signatures_lf: {result.height:,} rows x {len(result.columns)} cols"
-        )
+        LOGGER.info(f"signatures_lf: {result.height:,} rows x {len(result.columns)} cols")
 
     def _build_watermark_overrides_lookup(self) -> None:
         """
@@ -1053,9 +1013,7 @@ class PipelineContext:
 
         result = pl.DataFrame(records)
         self.watermark_overrides_lf = result.lazy()
-        LOGGER.info(
-            f"watermark_overrides_lf: {result.height:,} rows x {len(result.columns)} cols"
-        )
+        LOGGER.info(f"watermark_overrides_lf: {result.height:,} rows x {len(result.columns)} cols")
 
     def _load_face_flavor_names(self) -> None:
         """
@@ -1143,9 +1101,7 @@ class PipelineContext:
                 (pl.col("name").str.to_lowercase() + ": extras").alias("_mcm_name"),
             ]
         )
-        set_mapping = pl.concat([base_mapping, extras_mapping]).unique(
-            subset=["_mcm_name"]
-        )
+        set_mapping = pl.concat([base_mapping, extras_mapping]).unique(subset=["_mcm_name"])
 
         def apply_mcm_fixes(exp_name: str) -> str:
             lower = exp_name.lower()
@@ -1153,9 +1109,7 @@ class PipelineContext:
 
         result = (
             mcm_df.with_columns(
-                pl.col("expansionName")
-                .map_elements(apply_mcm_fixes, return_dtype=pl.String)
-                .alias("_exp_name_fixed")
+                pl.col("expansionName").map_elements(apply_mcm_fixes, return_dtype=pl.String).alias("_exp_name_fixed")
             )
             .join(
                 set_mapping,
@@ -1164,10 +1118,7 @@ class PipelineContext:
                 how="inner",
             )
             .with_columns(
-                pl.col("name")
-                .str.to_lowercase()
-                .str.replace(r"\s*\(v\.\d+\)\s*$", "")
-                .alias("nameLower"),
+                pl.col("name").str.to_lowercase().str.replace(r"\s*\(v\.\d+\)\s*$", "").alias("nameLower"),
             )
             .select(
                 [
@@ -1208,9 +1159,7 @@ class PipelineContext:
             return
 
         expansions_df = (
-            mcm_df.select(["expansionId", "expansionName"])
-            .unique()
-            .filter(pl.col("expansionId").is_not_null())
+            mcm_df.select(["expansionId", "expansionName"]).unique().filter(pl.col("expansionId").is_not_null())
         )
 
         if expansions_df.is_empty():

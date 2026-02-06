@@ -1,4 +1,6 @@
+import functools
 import logging
+import operator
 
 import bs4
 from singleton_decorator import singleton
@@ -18,9 +20,7 @@ class MtgWikiProviderSecretLair(AbstractProvider):
     def _build_http_header(self) -> dict[str, str]:
         return {}
 
-    def download(
-        self, url: str = "", params: dict[str, str | int] | None = None
-    ) -> dict[str, str]:
+    def download(self, url: str = "", params: dict[str, str | int] | None = None) -> dict[str, str]:
         """
         Download MTG.Wiki Secret Lair page and parse it out
         for user consumption
@@ -56,16 +56,12 @@ class MtgWikiProviderSecretLair(AbstractProvider):
                 continue
 
             secret_lair_name = table_cols[1].text.strip()
-            card_numbers = self.__convert_range_to_page_style(
-                table_cols[2].text + extra_card_numbers
-            )
+            card_numbers = self.__convert_range_to_page_style(table_cols[2].text + extra_card_numbers)
 
             if not secret_lair_name or not card_numbers:
                 continue
 
-            results.update(
-                {str(card_num): secret_lair_name for card_num in card_numbers}
-            )
+            results.update({str(card_num): secret_lair_name for card_num in card_numbers})
 
         return results
 
@@ -75,21 +71,10 @@ class MtgWikiProviderSecretLair(AbstractProvider):
         if not range_string:
             return []
 
-        return sum(
+        return functools.reduce(
+            operator.iadd,
             (
-                (
-                    list(
-                        range(
-                            *[
-                                int(j) + k
-                                for k, j in enumerate(i.split("-"))
-                                if len(j) > 0
-                            ]
-                        )
-                    )
-                    if "-" in i
-                    else [int(i)]
-                )
+                (list(range(*[int(j) + k for k, j in enumerate(i.split("-")) if len(j) > 0])) if "-" in i else [int(i)])
                 for i in range_string.split(",")
             ),
             [],

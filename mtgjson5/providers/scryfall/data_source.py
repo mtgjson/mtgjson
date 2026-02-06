@@ -9,6 +9,7 @@ This module uses Polars SQL mode to translate Scryfall search syntax
 into SQL queries against the bulk data.
 """
 
+import contextlib
 import logging
 import re
 from dataclasses import dataclass, field
@@ -36,9 +37,7 @@ class ParsedQuery:
     lang_any: bool = False  # lang:any - include all languages
     oracle_regex: str | None = None
     oracle_contains: list[str] = field(default_factory=list)
-    oracle_or_groups: list[list[str]] = field(
-        default_factory=list
-    )  # For complex OR logic
+    oracle_or_groups: list[list[str]] = field(default_factory=list)  # For complex OR logic
     spellbook_name: str | None = None
     include_extras: bool = False
     include_variations: bool = False
@@ -176,9 +175,7 @@ def build_sql_query(query: ParsedQuery, table_name: str = "cards") -> str:
     if query.oracle_contains:
         for word in query.oracle_contains:
             escaped_word = word.replace("'", "''").lower()
-            conditions.append(
-                f"LOWER(COALESCE(oracle_text, '')) LIKE '%{escaped_word}%'"
-            )
+            conditions.append(f"LOWER(COALESCE(oracle_text, '')) LIKE '%{escaped_word}%'")
 
     # Oracle OR groups - complex (group1 AND words) OR (group2 AND words)
     if query.oracle_or_groups:
@@ -187,9 +184,7 @@ def build_sql_query(query: ParsedQuery, table_name: str = "cards") -> str:
             and_clauses = []
             for word in group:
                 escaped_word = word.replace("'", "''").lower()
-                and_clauses.append(
-                    f"LOWER(COALESCE(oracle_text, '')) LIKE '%{escaped_word}%'"
-                )
+                and_clauses.append(f"LOWER(COALESCE(oracle_text, '')) LIKE '%{escaped_word}%'")
             if and_clauses:
                 or_clauses.append(f"({' AND '.join(and_clauses)})")
         if or_clauses:
@@ -198,9 +193,7 @@ def build_sql_query(query: ParsedQuery, table_name: str = "cards") -> str:
     # Spellbook filter - requires join with spellbook data
     if query.spellbook_name:
         # This would need a subquery or join - log warning for now
-        LOGGER.warning(
-            f"Spellbook search '{query.spellbook_name}' requires spellbook table join"
-        )
+        LOGGER.warning(f"Spellbook search '{query.spellbook_name}' requires spellbook table join")
 
     # Build WHERE clause
     where_clause = " AND ".join(conditions) if conditions else "1=1"
@@ -255,15 +248,13 @@ def _coerce_types(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
             if field_name in card:
                 val = card[field_name]
                 if isinstance(val, str):
-                    try:
+                    with contextlib.suppress(ValueError, TypeError):
                         card[field_name] = float(val)
-                    except (ValueError, TypeError):
-                        pass
         for field_name in INT_FIELDS:
             if field_name in card:
                 val = card[field_name]
                 if isinstance(val, str):
-                    try:
+                    try:  # noqa: SIM105
                         card[field_name] = int(float(val))  # Handle "123.0" strings
                     except (ValueError, TypeError):
                         pass
@@ -368,10 +359,7 @@ class BulkDataSource:
 
         if not cards_path.exists():
             if self.api_fallback:
-                LOGGER.warning(
-                    f"Bulk cards file not found: {cards_path}. "
-                    "Will use API fallback for all queries."
-                )
+                LOGGER.warning(f"Bulk cards file not found: {cards_path}. Will use API fallback for all queries.")
                 self._loaded = True
                 self._bulk_available = False
                 return
@@ -431,13 +419,9 @@ class BulkDataSource:
                 self._oracle_id_cache[oracle_id].append(card)
 
         self._oracle_id_cache_built = True
-        LOGGER.info(
-            f"Oracle ID cache built: {len(self._oracle_id_cache)} unique oracle IDs"
-        )
+        LOGGER.info(f"Oracle ID cache built: {len(self._oracle_id_cache)} unique oracle IDs")
 
-    def _get_by_oracle_id(
-        self, oracle_id: str, lang_any: bool = False
-    ) -> list[dict[str, Any]]:
+    def _get_by_oracle_id(self, oracle_id: str, lang_any: bool = False) -> list[dict[str, Any]]:
         """
         Get all printings for a given oracle_id using the cache.
 
@@ -513,11 +497,7 @@ class BulkDataSource:
             # unique=prints is default - no deduplication
 
             # Collect and convert to dicts
-            collected = (
-                result_lf
-                if isinstance(result_lf, pl.DataFrame)
-                else result_lf.collect()
-            )
+            collected = result_lf if isinstance(result_lf, pl.DataFrame) else result_lf.collect()
             # If no results and fallback enabled, try API
             if collected.is_empty() and self.api_fallback:
                 LOGGER.info(f"No bulk results, falling back to API: {url}")
@@ -560,9 +540,7 @@ class BulkDataSource:
         if not self._bulk_available:
             if self.api_fallback:
                 LOGGER.debug(f"Using API fallback for card: {scryfall_id}")
-                result = self.api_provider.download(
-                    f"https://api.scryfall.com/cards/{scryfall_id}"
-                )
+                result = self.api_provider.download(f"https://api.scryfall.com/cards/{scryfall_id}")
                 return result if result else None
             return None
 
@@ -575,12 +553,8 @@ class BulkDataSource:
             if result.is_empty():
                 # Card not in bulk data - try API fallback
                 if self.api_fallback:
-                    LOGGER.info(
-                        f"Card {scryfall_id} not in bulk data, falling back to API"
-                    )
-                    api_result = self.api_provider.download(
-                        f"https://api.scryfall.com/cards/{scryfall_id}"
-                    )
+                    LOGGER.info(f"Card {scryfall_id} not in bulk data, falling back to API")
+                    api_result = self.api_provider.download(f"https://api.scryfall.com/cards/{scryfall_id}")
                     return api_result if api_result else None
                 return None
             dicts = result.to_dicts()
@@ -588,9 +562,7 @@ class BulkDataSource:
         except Exception as e:
             LOGGER.error(f"SQL query failed: {e}")
             if self.api_fallback:
-                api_result = self.api_provider.download(
-                    f"https://api.scryfall.com/cards/{scryfall_id}"
-                )
+                api_result = self.api_provider.download(f"https://api.scryfall.com/cards/{scryfall_id}")
                 return api_result if api_result else None
             return None
 
@@ -669,9 +641,7 @@ class BulkDataSource:
         """
         return self.search_sql(sql)
 
-    def get_foreign_cards(
-        self, set_code: str, collector_number: str
-    ) -> list[dict[str, Any]]:
+    def get_foreign_cards(self, set_code: str, collector_number: str) -> list[dict[str, Any]]:
         """
         Get non-English printings of a card.
 

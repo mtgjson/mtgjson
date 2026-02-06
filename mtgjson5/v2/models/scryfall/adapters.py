@@ -24,7 +24,7 @@ _sets_adapter: TypeAdapter | None = None
 
 def get_card_adapter() -> TypeAdapter:
     """Get or create card TypeAdapter."""
-    global _card_adapter  # noqa: PLW0603
+    global _card_adapter
     if _card_adapter is None:
         from .submodels import ScryfallCard
 
@@ -34,7 +34,7 @@ def get_card_adapter() -> TypeAdapter:
 
 def get_cards_adapter() -> TypeAdapter:
     """Get or create cards list TypeAdapter."""
-    global _cards_adapter  # noqa: PLW0603
+    global _cards_adapter
     if _cards_adapter is None:
         from .submodels import ScryfallCard
 
@@ -44,7 +44,7 @@ def get_cards_adapter() -> TypeAdapter:
 
 def get_set_adapter() -> TypeAdapter:
     """Get or create set TypeAdapter."""
-    global _set_adapter  # noqa: PLW0603
+    global _set_adapter
     if _set_adapter is None:
         from .submodels import ScryfallSet
 
@@ -54,7 +54,7 @@ def get_set_adapter() -> TypeAdapter:
 
 def get_sets_adapter() -> TypeAdapter:
     """Get or create sets list TypeAdapter."""
-    global _sets_adapter  # noqa: PLW0603
+    global _sets_adapter
     if _sets_adapter is None:
         from .submodels import ScryfallSet
 

@@ -50,8 +50,6 @@ def retryable_session(
     session.request = functools.partial(session.request, timeout=5)  # type: ignore
 
     session.headers.update(
-        {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0"
-        }
+        {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0"}
     )
     return session

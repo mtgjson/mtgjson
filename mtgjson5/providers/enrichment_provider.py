@@ -35,9 +35,7 @@ class EnrichmentProvider:
                 self._data: dict[str, Any] = json.load(fp)
             set_count = len(self._data)
             card_count = sum(len(entries) for entries in self._data.values())
-            LOGGER.info(
-                f"Loaded enrichment data: {card_count} cards across {set_count} sets"
-            )
+            LOGGER.info(f"Loaded enrichment data: {card_count} cards across {set_count} sets")
         except FileNotFoundError:
             LOGGER.warning("card_enrichment.json not found, card enrichment disabled")
             self._data = {}
@@ -80,9 +78,7 @@ class EnrichmentProvider:
 
         expected_name = entry.get("name")
         if not expected_name:
-            LOGGER.warning(
-                f"Enrichment entry for {card.set_code}:{card.number} missing 'name' field"
-            )
+            LOGGER.warning(f"Enrichment entry for {card.set_code}:{card.number} missing 'name' field")
             return None
 
         if card.name.lower() == expected_name.lower():

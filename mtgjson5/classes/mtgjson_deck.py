@@ -61,9 +61,7 @@ class MtgjsonDeckObject(JsonObject):
 
         self.file_name = f"{deck_name_sanitized}_{self.code}"
 
-    def add_sealed_product_uuids(
-        self, mtgjson_set_sealed_products: list[MtgjsonSealedProductObject]
-    ) -> None:
+    def add_sealed_product_uuids(self, mtgjson_set_sealed_products: list[MtgjsonSealedProductObject]) -> None:
         """
         Update the UUID for the deck to link back to sealed product, if able
         :param mtgjson_set_sealed_products MTGJSON Set Sealed Products for this Set

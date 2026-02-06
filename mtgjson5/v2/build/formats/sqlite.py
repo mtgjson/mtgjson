@@ -15,7 +15,6 @@ from mtgjson5.utils import LOGGER
 from ..assemble import TableAssembler
 from ..serializers import serialize_complex_types
 
-
 if TYPE_CHECKING:
     from ..context import AssemblyContext
 
@@ -91,13 +90,9 @@ class SQLiteBuilder:
                 "isForeignOnly": pl.Boolean,
                 "isPartialPreview": pl.Boolean,
             }
-            df = pl.DataFrame(
-                list(self.ctx.set_meta.values()), schema_overrides=schema_overrides
-            )
+            df = pl.DataFrame(list(self.ctx.set_meta.values()), schema_overrides=schema_overrides)
             if "type" in df.columns:
-                is_traditional_token = (
-                    (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
-                )
+                is_traditional_token = (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
                 df = df.filter(~is_traditional_token)
             return df
         return None
@@ -118,10 +113,7 @@ class SQLiteBuilder:
         serialized = serialize_complex_types(df)
 
         schema = serialized.schema
-        cols = ", ".join([
-            f'"{c}" {_polars_to_sqlite_type(schema[c])}'
-            for c in serialized.columns
-        ])
+        cols = ", ".join([f'"{c}" {_polars_to_sqlite_type(schema[c])}' for c in serialized.columns])
         cursor.execute(f'CREATE TABLE IF NOT EXISTS "{table_name}" ({cols})')
 
         # Batch insert rows
@@ -140,10 +132,7 @@ class SQLiteBuilder:
         if table_name in TABLE_INDEXES:
             for idx_name, col in TABLE_INDEXES[table_name]:
                 with contextlib.suppress(Exception):
-                    cursor.execute(
-                        f'CREATE INDEX "idx_{table_name}_{idx_name}" '
-                        f'ON "{table_name}" ("{col}")'
-                    )
+                    cursor.execute(f'CREATE INDEX "idx_{table_name}_{idx_name}" ON "{table_name}" ("{col}")')
 
         return len(serialized)
 
@@ -196,14 +185,10 @@ class SQLiteBuilder:
         conn.commit()
         conn.close()
 
-        LOGGER.info(
-            f"Wrote AllPrintings.sqlite ({table_count} tables, {total_rows:,} total rows)"
-        )
+        LOGGER.info(f"Wrote AllPrintings.sqlite ({table_count} tables, {total_rows:,} total rows)")
         return output_path
 
-    def write_text_dump(
-        self, output_path: pathlib.Path | None = None
-    ) -> pathlib.Path | None:
+    def write_text_dump(self, output_path: pathlib.Path | None = None) -> pathlib.Path | None:
         """Write SQLite text file (.sql)."""
         from datetime import datetime
 
@@ -229,10 +214,7 @@ class SQLiteBuilder:
         tables["meta"] = pl.DataFrame({"date": [meta.date], "version": [meta.version]})
 
         with open(output_path, "w", encoding="utf-8") as f:
-            f.write(
-                f"-- MTGJSON SQLite Dump\n"
-                f"-- Generated: {datetime.now().strftime('%Y-%m-%d')}\n"
-            )
+            f.write(f"-- MTGJSON SQLite Dump\n-- Generated: {datetime.now().strftime('%Y-%m-%d')}\n")
             f.write("BEGIN TRANSACTION;\n\n")
 
             for table_name, df in tables.items():
@@ -242,10 +224,7 @@ class SQLiteBuilder:
                 serialized = serialize_complex_types(df)
 
                 schema = serialized.schema
-                cols = ",\n    ".join([
-                    f'"{c}" {_polars_to_sqlite_type(schema[c])}'
-                    for c in serialized.columns
-                ])
+                cols = ",\n    ".join([f'"{c}" {_polars_to_sqlite_type(schema[c])}' for c in serialized.columns])
                 f.write(f'CREATE TABLE IF NOT EXISTS "{table_name}" (\n    {cols}\n);\n\n')
 
                 col_names = ", ".join([f'"{c}"' for c in serialized.columns])
@@ -256,8 +235,7 @@ class SQLiteBuilder:
                 if table_name in TABLE_INDEXES:
                     for idx_name, col in TABLE_INDEXES[table_name]:
                         f.write(
-                            f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_{idx_name}" '
-                            f'ON "{table_name}" ("{col}");\n'
+                            f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_{idx_name}" ON "{table_name}" ("{col}");\n'
                         )
                 f.write("\n")
             f.write("COMMIT;\n")

@@ -7,7 +7,6 @@ from .parquet import ParquetBuilder
 from .postgres import PostgresBuilder
 from .sqlite import SQLiteBuilder
 
-
 __all__ = [
     "CSVBuilder",
     "JsonOutputBuilder",

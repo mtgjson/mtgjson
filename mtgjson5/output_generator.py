@@ -57,9 +57,7 @@ def generate_compiled_prices_output(
     )
 
 
-def build_format_specific_files(
-    all_printings: MtgjsonAllPrintingsObject, pretty_print: bool
-) -> None:
+def build_format_specific_files(all_printings: MtgjsonAllPrintingsObject, pretty_print: bool) -> None:
     """
     Compile *Printings files based on AllPrintings
     :param all_printings: Holder of AllPrintings content
@@ -194,9 +192,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     # AllTcgplayerSkus.json
     create_compiled_output(
         MtgjsonStructuresObject().all_tcgplayer_skus,
-        MtgjsonTcgplayerSkusObject(
-            MtgjsonConfig().output_path.joinpath("AllPrintings.json")
-        ),
+        MtgjsonTcgplayerSkusObject(MtgjsonConfig().output_path.joinpath("AllPrintings.json")),
         pretty_print,
     )
 
@@ -232,9 +228,7 @@ def generate_compiled_output_files(pretty_print: bool) -> None:
     )
 
     # SetList.json
-    create_compiled_output(
-        MtgjsonStructuresObject().set_list, MtgjsonSetListObject(), pretty_print
-    )
+    create_compiled_output(MtgjsonStructuresObject().set_list, MtgjsonSetListObject(), pretty_print)
 
     # AtomicCards.json
     create_compiled_output(
@@ -301,9 +295,7 @@ def construct_format_map(
     :param normal_sets_only: Should we only handle normal sets
     :return: Format Map for future identifications
     """
-    format_map: dict[str, list[str]] = {
-        magic_format: [] for magic_format in constants.SUPPORTED_FORMAT_OUTPUTS
-    }
+    format_map: dict[str, list[str]] = {magic_format: [] for magic_format in constants.SUPPORTED_FORMAT_OUTPUTS}
 
     if not all_printings_path.is_file():
         LOGGER.warning(f"{all_printings_path} was not found, skipping format map")
@@ -313,10 +305,7 @@ def construct_format_map(
         content = json.load(file)
 
     for set_code_key, set_code_content in content.get("data", {}).items():
-        if (
-            normal_sets_only
-            and set_code_content.get("type") not in constants.SUPPORTED_SET_TYPES
-        ):
+        if normal_sets_only and set_code_content.get("type") not in constants.SUPPORTED_SET_TYPES:
             continue
 
         formats_set_legal_in = constants.SUPPORTED_FORMAT_OUTPUTS
@@ -363,9 +352,7 @@ def construct_atomic_cards_format_map(
         # Workaround for Dungeons so they can be included
         for token in set_contents.get("tokens", []):
             if token.get("type") == "Dungeon":
-                token["legalities"] = {
-                    t_format: "Legal" for t_format in format_card_map
-                }
+                token["legalities"] = dict.fromkeys(format_card_map, "Legal")
                 set_cards.append(token)
 
         for card in set_cards:
@@ -398,15 +385,11 @@ def generate_output_file_hashes(directory: pathlib.Path) -> None:
             continue
 
         hash_file_name = f"{file.name}.{constants.HASH_TO_GENERATE.name}"
-        with file.parent.joinpath(hash_file_name).open(
-            "w", encoding="utf-8"
-        ) as hash_file:
+        with file.parent.joinpath(hash_file_name).open("w", encoding="utf-8") as hash_file:
             hash_file.write(generated_hash)
 
 
-def write_to_file(
-    file_name: str, file_contents: Any, pretty_print: bool, sort_keys: bool = True
-) -> None:
+def write_to_file(file_name: str, file_contents: Any, pretty_print: bool, sort_keys: bool = True) -> None:
     """
     Dump content to a file in the outputs directory
     :param file_name: File to dump to
@@ -466,9 +449,7 @@ def write_set_from_dataframe(
     with write_file.open("w", encoding="utf-8") as file:
         # Write opening and meta
         file.write('{"meta": ')
-        json.dump(
-            MtgjsonMetaObject().to_json(), file, indent=indent, ensure_ascii=False
-        )
+        json.dump(MtgjsonMetaObject().to_json(), file, indent=indent, ensure_ascii=False)
         file.write(f'{sep}"data": {{')
 
         # Write set metadata fields (excluding cards/tokens)

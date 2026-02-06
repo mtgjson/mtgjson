@@ -31,8 +31,7 @@ CK_REFERRAL = constants.CARD_KINGDOM_REFERRAL
 
 # TCGPlayer affiliate link format (split for concatenation)
 TCG_REFERRAL_PREFIX = (
-    "https://partner.tcgplayer.com/c/4948039/1780961/21018?subId1=api&u="
-    "https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F"
+    "https://partner.tcgplayer.com/c/4948039/1780961/21018?subId1=api&u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F"
 )
 TCG_REFERRAL_SUFFIX = "%3Fpage%3D1"
 
@@ -101,20 +100,24 @@ def _build_ck_entries_from_identifiers(ctx: PipelineContext) -> pl.DataFrame | N
     if "cardKingdomUrl" in cols:
         ck_df = (
             id_lf.select(["cachedUuid", "cardKingdomUrl"])
-            .filter(
-                pl.col("cardKingdomUrl").is_not_null()
-                & pl.col("cachedUuid").is_not_null()
-            )
+            .filter(pl.col("cardKingdomUrl").is_not_null() & pl.col("cachedUuid").is_not_null())
             .with_columns(
                 [
                     # Hash: sha256(ck_base + url_path + uuid)[:16]
-                    plh.concat_str([pl.lit(CK_BASE), pl.col("cardKingdomUrl"), pl.col("cachedUuid")])
+                    plh.concat_str(
+                        [
+                            pl.lit(CK_BASE),
+                            pl.col("cardKingdomUrl"),
+                            pl.col("cachedUuid"),
+                        ]
+                    )
                     .chash.sha2_256()
                     .str.slice(0, 16)
                     .alias("hash"),
                     # Referral: ck_base + url_path + ck_referral
-                    plh.concat_str([pl.lit(CK_BASE), pl.col("cardKingdomUrl"), pl.lit(CK_REFERRAL)])
-                    .alias("referral_url"),
+                    plh.concat_str([pl.lit(CK_BASE), pl.col("cardKingdomUrl"), pl.lit(CK_REFERRAL)]).alias(
+                        "referral_url"
+                    ),
                 ]
             )
             .select(["hash", "referral_url"])
@@ -127,18 +130,26 @@ def _build_ck_entries_from_identifiers(ctx: PipelineContext) -> pl.DataFrame | N
     if "cardKingdomFoilUrl" in cols:
         ckf_df = (
             id_lf.select(["cachedUuid", "cardKingdomFoilUrl"])
-            .filter(
-                pl.col("cardKingdomFoilUrl").is_not_null()
-                & pl.col("cachedUuid").is_not_null()
-            )
+            .filter(pl.col("cardKingdomFoilUrl").is_not_null() & pl.col("cachedUuid").is_not_null())
             .with_columns(
                 [
-                    plh.concat_str([pl.lit(CK_BASE), pl.col("cardKingdomFoilUrl"), pl.col("cachedUuid")])
+                    plh.concat_str(
+                        [
+                            pl.lit(CK_BASE),
+                            pl.col("cardKingdomFoilUrl"),
+                            pl.col("cachedUuid"),
+                        ]
+                    )
                     .chash.sha2_256()
                     .str.slice(0, 16)
                     .alias("hash"),
-                    plh.concat_str([pl.lit(CK_BASE), pl.col("cardKingdomFoilUrl"), pl.lit(CK_REFERRAL)])
-                    .alias("referral_url"),
+                    plh.concat_str(
+                        [
+                            pl.lit(CK_BASE),
+                            pl.col("cardKingdomFoilUrl"),
+                            pl.lit(CK_REFERRAL),
+                        ]
+                    ).alias("referral_url"),
                 ]
             )
             .select(["hash", "referral_url"])
@@ -151,18 +162,26 @@ def _build_ck_entries_from_identifiers(ctx: PipelineContext) -> pl.DataFrame | N
     if "cardKingdomEtchedUrl" in cols:
         cke_df = (
             id_lf.select(["cachedUuid", "cardKingdomEtchedUrl"])
-            .filter(
-                pl.col("cardKingdomEtchedUrl").is_not_null()
-                & pl.col("cachedUuid").is_not_null()
-            )
+            .filter(pl.col("cardKingdomEtchedUrl").is_not_null() & pl.col("cachedUuid").is_not_null())
             .with_columns(
                 [
-                    plh.concat_str([pl.lit(CK_BASE), pl.col("cardKingdomEtchedUrl"), pl.col("cachedUuid")])
+                    plh.concat_str(
+                        [
+                            pl.lit(CK_BASE),
+                            pl.col("cardKingdomEtchedUrl"),
+                            pl.col("cachedUuid"),
+                        ]
+                    )
                     .chash.sha2_256()
                     .str.slice(0, 16)
                     .alias("hash"),
-                    plh.concat_str([pl.lit(CK_BASE), pl.col("cardKingdomEtchedUrl"), pl.lit(CK_REFERRAL)])
-                    .alias("referral_url"),
+                    plh.concat_str(
+                        [
+                            pl.lit(CK_BASE),
+                            pl.col("cardKingdomEtchedUrl"),
+                            pl.lit(CK_REFERRAL),
+                        ]
+                    ).alias("referral_url"),
                 ]
             )
             .select(["hash", "referral_url"])
@@ -221,11 +240,13 @@ def _build_tcg_entries_from_parquet(parquet_dir: Path | None) -> pl.DataFrame | 
                 ]
             )
             .with_columns(
-                plh.concat_str([
-                    pl.lit(TCG_REFERRAL_PREFIX),
-                    pl.col("_tcg_id"),
-                    pl.lit(TCG_REFERRAL_SUFFIX),
-                ]).alias("referral_url")
+                plh.concat_str(
+                    [
+                        pl.lit(TCG_REFERRAL_PREFIX),
+                        pl.col("_tcg_id"),
+                        pl.lit(TCG_REFERRAL_SUFFIX),
+                    ]
+                ).alias("referral_url")
             )
             .select(["hash", "referral_url"])
             .unique(subset=["hash"])
@@ -250,11 +271,13 @@ def _build_tcg_entries_from_parquet(parquet_dir: Path | None) -> pl.DataFrame | 
                 ]
             )
             .with_columns(
-                plh.concat_str([
-                    pl.lit(TCG_REFERRAL_PREFIX),
-                    pl.col("_tcg_id"),
-                    pl.lit(TCG_REFERRAL_SUFFIX),
-                ]).alias("referral_url")
+                plh.concat_str(
+                    [
+                        pl.lit(TCG_REFERRAL_PREFIX),
+                        pl.col("_tcg_id"),
+                        pl.lit(TCG_REFERRAL_SUFFIX),
+                    ]
+                ).alias("referral_url")
             )
             .select(["hash", "referral_url"])
             .unique(subset=["hash"])
@@ -303,14 +326,12 @@ def _build_cardmarket_entries_from_parquet(
 
     try:
         # Get cardmarket URLs from raw scryfall data
-        cm_urls_lf = (
-            ctx.cards_lf
-            .select([
+        cm_urls_lf = ctx.cards_lf.select(
+            [
                 pl.col("id").alias("_scryfall_id"),
                 pl.col("purchaseUris").struct.field("cardmarket").alias("_cm_url"),
-            ])
-            .filter(pl.col("_cm_url").is_not_null())
-        )
+            ]
+        ).filter(pl.col("_cm_url").is_not_null())
 
         # Get uuid and mcm IDs from parquet output
         cards_lf = pl.scan_parquet(parquet_dir / "**/*.parquet")
@@ -329,21 +350,18 @@ def _build_cardmarket_entries_from_parquet(
             return None
 
         # Extract needed fields from parquet
-        mcm_data_lf = (
-            cards_lf
-            .select([
+        mcm_data_lf = cards_lf.select(
+            [
                 pl.col("uuid"),
                 pl.col("identifiers").struct.field("scryfallId").alias("_scryfall_id"),
                 pl.col("identifiers").struct.field("mcmId"),
                 pl.col("identifiers").struct.field("mcmMetaId"),
-            ])
-            .filter(pl.col("mcmId").is_not_null())
-        )
+            ]
+        ).filter(pl.col("mcmId").is_not_null())
 
         # Join scryfall URLs with parquet data
         joined = (
-            mcm_data_lf
-            .join(cm_urls_lf, on="_scryfall_id", how="inner")
+            mcm_data_lf.join(cm_urls_lf, on="_scryfall_id", how="inner")
             .filter(pl.col("_cm_url").is_not_null())
             .with_columns(
                 [
@@ -360,9 +378,7 @@ def _build_cardmarket_entries_from_parquet(
                     .str.slice(0, 16)
                     .alias("hash"),
                     # Replace referrer=scryfall and utm_source=scryfall with mtgjson
-                    pl.col("_cm_url")
-                    .str.replace_all("scryfall", "mtgjson")
-                    .alias("referral_url"),
+                    pl.col("_cm_url").str.replace_all("scryfall", "mtgjson").alias("referral_url"),
                 ]
             )
             .select(["hash", "referral_url"])
@@ -405,15 +421,11 @@ def build_referral_map_from_sealed(sealed_df: pl.DataFrame | None) -> pl.DataFra
             .with_columns(
                 [
                     # Hash: sha256(ck_base + url + ck_referral)[:16]
-                    plh.concat_str(
-                        [pl.lit(CK_BASE), pl.col("_ck_url"), pl.lit(CK_REFERRAL)]
-                    )
+                    plh.concat_str([pl.lit(CK_BASE), pl.col("_ck_url"), pl.lit(CK_REFERRAL)])
                     .chash.sha2_256()
                     .str.slice(0, 16)
                     .alias("hash"),
-                    plh.concat_str(
-                        [pl.lit(CK_BASE), pl.col("_ck_url"), pl.lit(CK_REFERRAL)]
-                    ).alias("referral_url"),
+                    plh.concat_str([pl.lit(CK_BASE), pl.col("_ck_url"), pl.lit(CK_REFERRAL)]).alias("referral_url"),
                 ]
             )
             .select(["hash", "referral_url"])
@@ -441,11 +453,13 @@ def build_referral_map_from_sealed(sealed_df: pl.DataFrame | None) -> pl.DataFra
                         ]
                     )
                     .with_columns(
-                        plh.concat_str([
-                            pl.lit(TCG_REFERRAL_PREFIX),
-                            pl.col("_tcg_id"),
-                            pl.lit(TCG_REFERRAL_SUFFIX),
-                        ]).alias("referral_url")
+                        plh.concat_str(
+                            [
+                                pl.lit(TCG_REFERRAL_PREFIX),
+                                pl.col("_tcg_id"),
+                                pl.lit(TCG_REFERRAL_SUFFIX),
+                            ]
+                        ).alias("referral_url")
                     )
                     .select(["hash", "referral_url"])
                 )

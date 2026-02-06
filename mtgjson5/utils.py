@@ -30,17 +30,11 @@ def init_logger() -> None:
     start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
 
     logging.basicConfig(
-        level=(
-            logging.DEBUG
-            if os.environ.get("MTGJSON5_DEBUG", "").lower() in ["true", "1"]
-            else logging.INFO
-        ),
+        level=(logging.DEBUG if os.environ.get("MTGJSON5_DEBUG", "").lower() in ["true", "1"] else logging.INFO),
         format="[%(levelname)s] %(asctime)s: %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler(
-                str(constants.LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))
-            ),
+            logging.FileHandler(str(constants.LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))),
         ],
         force=True,
     )
@@ -74,14 +68,10 @@ def to_snake_case(camel_str: str) -> str:
     :param camel_str: Camel String
     :return: Snake String
     """
-    return "".join(
-        ["_" + char.lower() if char.isupper() else char for char in camel_str]
-    ).lstrip("_")
+    return "".join(["_" + char.lower() if char.isupper() else char for char in camel_str]).lstrip("_")
 
 
-def parse_magic_rules_subset(
-    magic_rules: str, start_header: str = "", end_header: str = ""
-) -> str:
+def parse_magic_rules_subset(magic_rules: str, start_header: str = "", end_header: str = "") -> str:
     """
     Split up the magic rules to get a smaller working subset for parsing
     :param magic_rules: Magic rules to split up
@@ -164,9 +154,7 @@ def send_push_notification(message: str) -> bool:
         return False
 
     pushover_app_token = MtgjsonConfig().get("Pushover", "app_token")
-    pushover_app_users = list(
-        filter(None, MtgjsonConfig().get("Pushover", "user_tokens").split(","))
-    )
+    pushover_app_users = list(filter(None, MtgjsonConfig().get("Pushover", "user_tokens").split(",")))
 
     if not (pushover_app_token and pushover_app_token):
         LOGGER.warning("Pushover keys values missing. Skipping alerts")
@@ -207,7 +195,7 @@ def get_all_entities_from_content(
             + value.get("tokens", [])
             + (value.get("sealedProduct", []) if include_sealed_product else [])
         ):
-            entities_with_set_code.append(entity)
+            entities_with_set_code.append(entity)  # noqa: PERF402
     return entities_with_set_code
 
 
@@ -273,9 +261,7 @@ def load_local_set_data() -> dict[str, dict[str, Any]]:
     """
     Loads the local set data
     """
-    with constants.RESOURCE_PATH.joinpath("additional_sets.json").open(
-        encoding="utf-8"
-    ) as f:
+    with constants.RESOURCE_PATH.joinpath("additional_sets.json").open(encoding="utf-8") as f:
         data: dict[str, dict[str, Any]] = json.load(f)
     return data
 
@@ -285,8 +271,7 @@ def recursive_sort(unsorted_dict: dict[str, Any]) -> dict[str, Any]:
     Recursively sort a dictionary's inner keys and values, as necessary
     """
     return {
-        key: recursive_sort(value) if isinstance(value, dict) else value
-        for key, value in sorted(unsorted_dict.items())
+        key: recursive_sort(value) if isinstance(value, dict) else value for key, value in sorted(unsorted_dict.items())
     }
 
 
@@ -318,8 +303,7 @@ def get_expanded_set_codes(
     sets_lf = (
         pl.DataFrame(data["data"])
         .filter(
-            ~pl.col("set_type").is_in(["memorabilia", "promo", "alchemy"])
-            & ~pl.col("name").str.contains("Art Series")
+            ~pl.col("set_type").is_in(["memorabilia", "promo", "alchemy"]) & ~pl.col("name").str.contains("Art Series")
         )
         .lazy()
     )
@@ -333,21 +317,14 @@ def get_expanded_set_codes(
 
     # Get release dates for requested sets
     release_dates = (
-        sets_lf.filter(pl.col("code").is_in(codes_list))
-        .select("released_at")
-        .unique()
-        .collect()
-        .to_series()
+        sets_lf.filter(pl.col("code").is_in(codes_list)).select("released_at").unique().collect().to_series()
     )
 
     # Find all sets with matching release dates, excluding unwanted types
     return (
         sets_lf.filter(
             pl.col("released_at").is_in(release_dates)
-            & (
-                pl.col("code").is_in(codes_list)
-                | pl.col("parent_set_code").is_in(codes_list)
-            )
+            & (pl.col("code").is_in(codes_list) | pl.col("parent_set_code").is_in(codes_list))
         )
         .select("code")
         .collect()

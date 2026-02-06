@@ -104,15 +104,7 @@ def discover_categoricals(
     for col, attr in list_col_mappings.items():
         if col in schema.names():
             # Explode, unique, then implode back to single-row list
-            list_agg_exprs.append(
-                pl.col(col)
-                .explode()
-                .drop_nulls()
-                .unique()
-                .sort()
-                .implode()
-                .alias(f"_cat_{attr}")
-            )
+            list_agg_exprs.append(pl.col(col).explode().drop_nulls().unique().sort().implode().alias(f"_cat_{attr}"))
             list_attrs.append(attr)
     scalar_col_mappings = {
         "rarity": "rarities",
@@ -129,9 +121,7 @@ def discover_categoricals(
     for col, attr in scalar_col_mappings.items():
         if col in schema.names():
             # Unique then implode to single-row list
-            scalar_agg_exprs.append(
-                pl.col(col).drop_nulls().unique().sort().implode().alias(f"_cat_{attr}")
-            )
+            scalar_agg_exprs.append(pl.col(col).drop_nulls().unique().sort().implode().alias(f"_cat_{attr}"))
             scalar_attrs.append(attr)
     all_exprs = list_agg_exprs + scalar_agg_exprs
     all_attrs = list_attrs + scalar_attrs
@@ -147,27 +137,15 @@ def discover_categoricals(
                 if values:
                     setattr(cats, attr, list(values))
     if sets_lf is not None:
-        schema = (
-            sets_lf.collect_schema()
-            if isinstance(sets_lf, pl.LazyFrame)
-            else sets_lf.schema
-        )
+        schema = sets_lf.collect_schema() if isinstance(sets_lf, pl.LazyFrame) else sets_lf.schema
         if "setType" in schema.names():
-            sets_df = (
-                sets_lf.collect() if isinstance(sets_lf, pl.LazyFrame) else sets_lf
-            )
-            set_types = (
-                sets_df.select(pl.col("setType").drop_nulls().unique())
-                .to_series()
-                .to_list()
-            )
+            sets_df = sets_lf.collect() if isinstance(sets_lf, pl.LazyFrame) else sets_lf
+            set_types = sets_df.select(pl.col("setType").drop_nulls().unique()).to_series().to_list()
             cats.set_types = sorted(set(cats.set_types) | set(set_types))
     if logger:
         summary = cats.summary()
         total = sum(summary.values())
-        logger.info(
-            f"  Discovered {total} categorical values across {len(summary)} categories"
-        )
+        logger.info(f"  Discovered {total} categorical values across {len(summary)} categories")
     return cats
 
 

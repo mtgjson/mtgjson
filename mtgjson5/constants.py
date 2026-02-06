@@ -10,11 +10,7 @@ import pathlib
 TOP_LEVEL_DIR: pathlib.Path = pathlib.Path(__file__).resolve().parent.parent
 RESOURCE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath("mtgjson5").joinpath("resources")
 CONFIG_PATH: pathlib.Path = RESOURCE_PATH.joinpath("mtgjson.properties")
-ENV_OUT_PATH: pathlib.Path = (
-    pathlib.Path(os.environ.get("MTGJSON5_OUTPUT_PATH", TOP_LEVEL_DIR))
-    .expanduser()
-    .resolve()
-)
+ENV_OUT_PATH: pathlib.Path = pathlib.Path(os.environ.get("MTGJSON5_OUTPUT_PATH", TOP_LEVEL_DIR)).expanduser().resolve()
 OUTPUT_PATH: pathlib.Path = ENV_OUT_PATH.joinpath("output")
 
 LOG_PATH: pathlib.Path = ENV_OUT_PATH.joinpath("mtgjson_logs")
@@ -26,9 +22,7 @@ CACHE_PATH: pathlib.Path = TOP_LEVEL_DIR.joinpath(".mtgjson5_cache")
 HASH_TO_GENERATE = hashlib.sha256()
 
 CARD_MARKET_BUFFER: str = "10101"
-CARD_KINGDOM_REFERRAL: str = (
-    "?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson"
-)
+CARD_KINGDOM_REFERRAL: str = "?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson"
 
 FOREIGN_SETS: set[str] = {
     "PMPS11",

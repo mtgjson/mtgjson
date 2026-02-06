@@ -9,6 +9,7 @@ Key differences from legacy:
 """
 
 import asyncio
+import contextlib
 import datetime
 import json
 import logging
@@ -58,9 +59,7 @@ class TCGPlayerPriceProvider:
     output_path: Path | None = None
     checkpoint_interval: int = 50
     on_progress: ProgressCallback | None = None
-    today_date: str = field(
-        default_factory=lambda: datetime.date.today().strftime("%Y-%m-%d")
-    )
+    today_date: str = field(default_factory=lambda: datetime.date.today().strftime("%Y-%m-%d"))
 
     # Internal state
     _config: TcgPlayerConfig | None = field(default=None, repr=False)
@@ -114,9 +113,7 @@ class TCGPlayerPriceProvider:
                     continue
 
                 # Fetch retail prices for this group
-                prices = await self._fetch_group_prices(
-                    client, group_id, tcg_to_uuid_map, tcg_etched_to_uuid_map
-                )
+                prices = await self._fetch_group_prices(client, group_id, tcg_to_uuid_map, tcg_etched_to_uuid_map)
                 self._buffer.extend(prices)
                 self._completed_groups.add(group_id)
 
@@ -127,9 +124,7 @@ class TCGPlayerPriceProvider:
                 # Periodic checkpoint
                 if idx % self.checkpoint_interval == 0:
                     self._save_checkpoint()
-                    LOGGER.info(
-                        f"TCGPlayer: {idx}/{total} sets ({idx * 100 // total}%)"
-                    )
+                    LOGGER.info(f"TCGPlayer: {idx}/{total} sets ({idx * 100 // total}%)")
 
         # Final save and cleanup
         result = self._finalize()
@@ -142,13 +137,9 @@ class TCGPlayerPriceProvider:
         tcg_etched_to_uuid_map: dict[str, set[str]],
     ) -> pl.DataFrame:
         """Sync wrapper for fetch_all_prices."""
-        return asyncio.run(
-            self.fetch_all_prices(tcg_to_uuid_map, tcg_etched_to_uuid_map)
-        )
+        return asyncio.run(self.fetch_all_prices(tcg_to_uuid_map, tcg_etched_to_uuid_map))
 
-    async def _get_magic_set_ids(
-        self, client: TcgPlayerClient
-    ) -> list[tuple[int, str]]:
+    async def _get_magic_set_ids(self, client: TcgPlayerClient) -> list[tuple[int, str]]:
         """
         Get all TCGPlayer Magic set IDs and names.
 
@@ -161,7 +152,7 @@ class TCGPlayerPriceProvider:
             endpoint = f"catalog/categories/1/groups?offset={offset}&limit=100"
             try:
                 resp = await client.get(endpoint, versioned=False)
-                results = cast(list[dict[str, Any]], resp.get("results", []))
+                results = cast("list[dict[str, Any]]", resp.get("results", []))
                 if not results:
                     break
 
@@ -176,9 +167,7 @@ class TCGPlayerPriceProvider:
                     break
 
             except Exception as e:
-                LOGGER.error(
-                    f"Failed to fetch TCGPlayer groups at offset {offset}: {e}"
-                )
+                LOGGER.error(f"Failed to fetch TCGPlayer groups at offset {offset}: {e}")
                 break
 
         LOGGER.info(f"Found {len(group_ids)} TCGPlayer Magic sets")
@@ -201,7 +190,7 @@ class TCGPlayerPriceProvider:
         try:
             endpoint = f"pricing/group/{group_id}"
             resp = await client.get(endpoint, versioned=True)
-            results = cast(list[dict[str, Any]], resp.get("results", []))
+            results = cast("list[dict[str, Any]]", resp.get("results", []))
 
             for price_obj in results:
                 if not isinstance(price_obj, dict):
@@ -259,9 +248,7 @@ class TCGPlayerPriceProvider:
                 with self._checkpoint_path.open() as f:
                     data = json.load(f)
                 self._completed_groups = set(data.get("completed_groups", []))
-                LOGGER.info(
-                    f"Resumed from checkpoint: {len(self._completed_groups)} groups done"
-                )
+                LOGGER.info(f"Resumed from checkpoint: {len(self._completed_groups)} groups done")
             except Exception as e:
                 LOGGER.warning(f"Could not load checkpoint: {e}")
                 self._completed_groups = set()
@@ -282,10 +269,8 @@ class TCGPlayerPriceProvider:
     def _cleanup_checkpoint(self) -> None:
         """Remove checkpoint file after successful completion."""
         if self._checkpoint_path and self._checkpoint_path.exists():
-            try:
+            with contextlib.suppress(Exception):
                 self._checkpoint_path.unlink()
-            except Exception:
-                pass
 
     def _finalize(self) -> pl.DataFrame:
         """Convert buffer to DataFrame and optionally save."""
@@ -297,9 +282,7 @@ class TCGPlayerPriceProvider:
         if self.output_path:
             self.output_path.parent.mkdir(parents=True, exist_ok=True)
             df.write_parquet(self.output_path, compression="zstd")
-            LOGGER.info(
-                f"Saved {len(df):,} TCGPlayer price records to {self.output_path}"
-            )
+            LOGGER.info(f"Saved {len(df):,} TCGPlayer price records to {self.output_path}")
 
         return df
 
@@ -316,9 +299,7 @@ class TCGPlayerPriceProvider:
         df = await self.fetch_all_prices(tcg_to_uuid_map, tcg_etched_to_uuid_map)
         return self._dataframe_to_price_dict(df)
 
-    def _dataframe_to_price_dict(
-        self, df: pl.DataFrame
-    ) -> dict[str, MtgjsonPricesObject]:
+    def _dataframe_to_price_dict(self, df: pl.DataFrame) -> dict[str, MtgjsonPricesObject]:
         """Convert DataFrame to MTGJSON price dict format."""
         result: dict[str, MtgjsonPricesObject] = {}
 
@@ -328,9 +309,7 @@ class TCGPlayerPriceProvider:
             price = row["price"]
 
             if uuid not in result:
-                result[uuid] = MtgjsonPricesObject(
-                    "paper", "tcgplayer", self.today_date, "USD"
-                )
+                result[uuid] = MtgjsonPricesObject("paper", "tcgplayer", self.today_date, "USD")
 
             prices_obj = result[uuid]
             # Only retail prices (no buylist in v2)
@@ -373,6 +352,4 @@ def get_tcgplayer_prices_sync(
     on_progress: ProgressCallback | None = None,
 ) -> pl.DataFrame:
     """Sync wrapper for get_tcgplayer_prices."""
-    return asyncio.run(
-        get_tcgplayer_prices(tcg_to_uuid_map, tcg_etched_to_uuid_map, on_progress)
-    )
+    return asyncio.run(get_tcgplayer_prices(tcg_to_uuid_map, tcg_etched_to_uuid_map, on_progress))

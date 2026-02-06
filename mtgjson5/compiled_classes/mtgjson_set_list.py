@@ -21,9 +21,7 @@ class MtgjsonSetListObject(JsonObject):
         """
         Initializer to build up the object
         """
-        self.set_list = self.get_all_set_list(
-            files_to_ignore=MtgjsonStructuresObject().get_all_compiled_file_names()
-        )
+        self.set_list = self.get_all_set_list(files_to_ignore=MtgjsonStructuresObject().get_all_compiled_file_names())
 
     @staticmethod
     def get_all_set_list(files_to_ignore: list[str]) -> list[dict[str, str]]:

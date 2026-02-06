@@ -47,9 +47,7 @@ class StageSchema:
 
     name: str
     required: list[ColumnSpec] = field(default_factory=list)
-    forbidden: set[str] = field(
-        default_factory=set
-    )  # Columns that should be dropped by now
+    forbidden: set[str] = field(default_factory=set)  # Columns that should be dropped by now
 
     def validate(self, lf: LazyFrame) -> list[str]:
         """
@@ -71,9 +69,7 @@ class StageSchema:
                 missing.add(spec.name)
             elif spec.dtype is not None:
                 actual = schema[spec.name]
-                if actual != spec.dtype and not self._types_compatible(
-                    actual, spec.dtype
-                ):
+                if actual != spec.dtype and not self._types_compatible(actual, spec.dtype):
                     type_mismatches[spec.name] = (spec.dtype, actual)
 
         if missing:
@@ -84,9 +80,7 @@ class StageSchema:
             )
 
         if type_mismatches:
-            msg = ", ".join(
-                f"{k}: expected {v[0]}, got {v[1]}" for k, v in type_mismatches.items()
-            )
+            msg = ", ".join(f"{k}: expected {v[0]}, got {v[1]}" for k, v in type_mismatches.items())
             raise PipelineValidationError(
                 self.name,
                 f"Type mismatches: {msg}",
@@ -96,9 +90,7 @@ class StageSchema:
         # Warn about forbidden columns still present
         still_present = self.forbidden & existing
         if still_present:
-            warnings.append(
-                f"Columns should be dropped by {self.name}: {still_present}"
-            )
+            warnings.append(f"Columns should be dropped by {self.name}: {still_present}")
 
         return warnings
 

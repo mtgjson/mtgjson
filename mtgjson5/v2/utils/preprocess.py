@@ -256,9 +256,7 @@ def normalize_card_faces(lf: LazyFrame) -> LazyFrame:
         new_name = CARD_FACE_FIELD_RENAMES.get(old_name, old_name)
         renamed_exprs.append(pl.element().struct.field(old_name).alias(new_name))
 
-    return lf.with_columns(
-        pl.col("cardFaces").list.eval(pl.struct(renamed_exprs)).alias("cardFaces")
-    )
+    return lf.with_columns(pl.col("cardFaces").list.eval(pl.struct(renamed_exprs)).alias("cardFaces"))
 
 
 def normalize_all_parts(lf: LazyFrame) -> LazyFrame:
@@ -292,9 +290,7 @@ def normalize_all_parts(lf: LazyFrame) -> LazyFrame:
         new_name = field_renames.get(old_name, old_name)
         renamed_exprs.append(pl.element().struct.field(old_name).alias(new_name))
 
-    return lf.with_columns(
-        pl.col("allParts").list.eval(pl.struct(renamed_exprs)).alias("allParts")
-    )
+    return lf.with_columns(pl.col("allParts").list.eval(pl.struct(renamed_exprs)).alias("allParts"))
 
 
 def add_computed_fields(lf: LazyFrame) -> LazyFrame:
@@ -306,9 +302,7 @@ def add_computed_fields(lf: LazyFrame) -> LazyFrame:
     """
     return lf.with_columns(
         # Uppercase set code (pipeline expects this)
-        pl.col("set")
-        .str.to_uppercase()
-        .alias("set"),
+        pl.col("set").str.to_uppercase().alias("set"),
     )
 
 

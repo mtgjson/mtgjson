@@ -82,10 +82,7 @@ class CardKingdomTransformer:
         return df.with_columns(
             [
                 (pl.col("is_foil").str.to_lowercase() == "true").alias("is_foil_bool"),
-                pl.col("variation")
-                .fill_null("")
-                .str.contains("Foil Etched")
-                .alias("is_etched"),
+                pl.col("variation").fill_null("").str.contains("Foil Etched").alias("is_etched"),
             ]
         )
 
@@ -118,10 +115,7 @@ class CardKingdomTransformer:
                     .last()
                     .cast(pl.String)
                     .alias("cardKingdomId"),
-                    pl.col("url")
-                    .filter(~pl.col("is_foil_bool") & ~pl.col("is_etched"))
-                    .last()
-                    .alias("cardKingdomUrl"),
+                    pl.col("url").filter(~pl.col("is_foil_bool") & ~pl.col("is_etched")).last().alias("cardKingdomUrl"),
                     pl.col("id")
                     .filter(pl.col("is_foil_bool") & ~pl.col("is_etched"))
                     .last()
@@ -131,15 +125,8 @@ class CardKingdomTransformer:
                     .filter(pl.col("is_foil_bool") & ~pl.col("is_etched"))
                     .last()
                     .alias("cardKingdomFoilUrl"),
-                    pl.col("id")
-                    .filter(pl.col("is_etched"))
-                    .last()
-                    .cast(pl.String)
-                    .alias("cardKingdomEtchedId"),
-                    pl.col("url")
-                    .filter(pl.col("is_etched"))
-                    .last()
-                    .alias("cardKingdomEtchedUrl"),
+                    pl.col("id").filter(pl.col("is_etched")).last().cast(pl.String).alias("cardKingdomEtchedId"),
+                    pl.col("url").filter(pl.col("is_etched")).last().alias("cardKingdomEtchedUrl"),
                 ]
             )
             .rename({"scryfall_id": "id"})

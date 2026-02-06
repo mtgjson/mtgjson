@@ -140,9 +140,7 @@ class TcgPlayerClient:
             try:
                 async with self._session.get(url, headers=headers) as resp:
                     if resp.status == 429:
-                        retry_after = float(
-                            resp.headers.get("Retry-After", RETRY_DELAY * (attempt + 1))
-                        )
+                        retry_after = float(resp.headers.get("Retry-After", RETRY_DELAY * (attempt + 1)))
                         LOGGER.warning(f"Rate limited, waiting {retry_after}s")
                         await asyncio.sleep(retry_after)
                         continue
@@ -153,9 +151,7 @@ class TcgPlayerClient:
                 last_error = e
                 if attempt < MAX_RETRIES - 1:
                     await asyncio.sleep(RETRY_DELAY * (attempt + 1))
-                    LOGGER.debug(
-                        f"Retry {attempt + 1}/{MAX_RETRIES} for {endpoint}: {e}"
-                    )
+                    LOGGER.debug(f"Retry {attempt + 1}/{MAX_RETRIES} for {endpoint}: {e}")
 
         raise last_error or aiohttp.ClientError(f"Failed after {MAX_RETRIES} retries")
 
@@ -168,7 +164,9 @@ class TcgPlayerClient:
         include_skus: bool = True,
     ) -> dict[str, object]:
         """Fetch a page of Magic card products."""
-        endpoint = f"catalog/products?categoryId={category_id}&productTypes={product_types}&limit={limit}&offset={offset}"
+        endpoint = (
+            f"catalog/products?categoryId={category_id}&productTypes={product_types}&limit={limit}&offset={offset}"
+        )
         if include_skus:
             endpoint += "&includeSkus=true"
         return await self._get(endpoint, versioned=False)
@@ -266,16 +264,12 @@ class TCGProvider:
                 offsets_per_client[i % len(clients)].append(offset)
 
             # Fetch with streaming to part files (pass authenticated clients)
-            part_files = await self._fetch_with_streaming_clients(
-                clients, offsets_per_client, total_pages
-            )
+            part_files = await self._fetch_with_streaming_clients(clients, offsets_per_client, total_pages)
 
             # Combine part files
             return await self._combine_part_files(part_files)
 
-    async def _fetch_with_streaming(
-        self, offsets_per_client: list[list[int]], total_pages: int
-    ) -> list[Path]:
+    async def _fetch_with_streaming(self, offsets_per_client: list[list[int]], total_pages: int) -> list[Path]:
         """Fetch products in parallel, streaming to part files."""
         part_files: list[Path] = []
         part_counter = 0
@@ -291,28 +285,20 @@ class TCGProvider:
             to_write = buffer
             buffer = []
 
-            part_path = (
-                self.output_path.parent / f".tcg_part_{part_counter:04d}.parquet"
-            )
+            part_path = self.output_path.parent / f".tcg_part_{part_counter:04d}.parquet"
             part_counter += 1
             pl.DataFrame(to_write).write_parquet(part_path)
             part_files.append(part_path)
             LOGGER.debug(f"Flushed {len(to_write)} products to {part_path}")
 
-        async def fetch_client_pages(
-            config: TcgPlayerConfig, client_offsets: list[int]
-        ) -> None:
+        async def fetch_client_pages(config: TcgPlayerConfig, client_offsets: list[int]) -> None:
             nonlocal completed, buffer
             async with TcgPlayerClient(config) as client:
                 for offset in client_offsets:
                     try:
-                        resp = await client.get_products_page(
-                            offset=offset, include_skus=True
-                        )
+                        resp = await client.get_products_page(offset=offset, include_skus=True)
                         products_raw = resp.get("results", [])
-                        products = (
-                            products_raw if isinstance(products_raw, list) else []
-                        )
+                        products = products_raw if isinstance(products_raw, list) else []
                         page_products = [
                             {
                                 "productId": product["productId"],
@@ -328,9 +314,7 @@ class TCGProvider:
                                         "conditionId": sku["conditionId"],
                                     }
                                     for sku in (
-                                        product.get("skus", [])
-                                        if isinstance(product.get("skus", []), list)
-                                        else []
+                                        product.get("skus", []) if isinstance(product.get("skus", []), list) else []
                                     )
                                 ],
                             }
@@ -343,9 +327,7 @@ class TCGProvider:
                             if len(buffer) >= self.flush_threshold:
                                 await flush_buffer()
                             if self.on_progress:
-                                self.on_progress(
-                                    completed, total_pages, f"offset={offset}"
-                                )
+                                self.on_progress(completed, total_pages, f"offset={offset}")
                     except Exception as e:
                         LOGGER.warning(f"Failed offset {offset}: {e}")
                         async with lock:
@@ -356,9 +338,7 @@ class TCGProvider:
             await asyncio.gather(
                 *[
                     fetch_client_pages(config, client_offsets)
-                    for config, client_offsets in zip(
-                        self.configs, offsets_per_client, strict=False
-                    )
+                    for config, client_offsets in zip(self.configs, offsets_per_client, strict=False)
                 ]
             )
 
@@ -399,9 +379,7 @@ class TCGProvider:
             to_write = buffer
             buffer = []
 
-            part_path = (
-                self.output_path.parent / f".tcg_part_{part_counter:04d}.parquet"
-            )
+            part_path = self.output_path.parent / f".tcg_part_{part_counter:04d}.parquet"
             part_counter += 1
             pl.DataFrame(to_write).write_parquet(part_path)
             part_files.append(part_path)
@@ -411,9 +389,7 @@ class TCGProvider:
             nonlocal completed, buffer
             async with semaphore:
                 try:
-                    resp = await client.get_products_page(
-                        offset=offset, include_skus=True
-                    )
+                    resp = await client.get_products_page(offset=offset, include_skus=True)
                     products_raw = resp.get("results", [])
                     products = products_raw if isinstance(products_raw, list) else []
                     page_products = [
@@ -431,9 +407,7 @@ class TCGProvider:
                                     "conditionId": sku["conditionId"],
                                 }
                                 for sku in (
-                                    product.get("skus", [])
-                                    if isinstance(product.get("skus", []), list)
-                                    else []
+                                    product.get("skus", []) if isinstance(product.get("skus", []), list) else []
                                 )
                             ],
                         }
@@ -455,9 +429,7 @@ class TCGProvider:
         try:
             # Create tasks for all pages across all clients
             tasks = []
-            for client, client_offsets in zip(
-                clients, offsets_per_client, strict=False
-            ):
+            for client, client_offsets in zip(clients, offsets_per_client, strict=False):
                 for offset in client_offsets:
                     tasks.append(fetch_single_page(client, offset))
 

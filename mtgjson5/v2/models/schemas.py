@@ -102,19 +102,13 @@ ALL_CARD_FIELDS: frozenset[str] = frozenset(
 )
 
 # Fields to EXCLUDE when creating atomic cards from set cards
-ATOMIC_EXCLUDE: frozenset[str] = frozenset(
-    _get_model_fields(CardSet) - _get_model_fields(CardAtomic)
-)
+ATOMIC_EXCLUDE: frozenset[str] = frozenset(_get_model_fields(CardSet) - _get_model_fields(CardAtomic))
 
 # Fields to EXCLUDE when creating deck cards from set cards
-CARD_DECK_EXCLUDE: frozenset[str] = frozenset(
-    _get_model_fields(CardSet) - _get_model_fields(CardDeck)
-)
+CARD_DECK_EXCLUDE: frozenset[str] = frozenset(_get_model_fields(CardSet) - _get_model_fields(CardDeck))
 
 # Fields to EXCLUDE when creating tokens from set cards
-TOKEN_EXCLUDE: frozenset[str] = frozenset(
-    _get_model_fields(CardSet) - _get_model_fields(CardToken)
-)
+TOKEN_EXCLUDE: frozenset[str] = frozenset(_get_model_fields(CardSet) - _get_model_fields(CardToken))
 
 # Required fields for deck list entries
 REQUIRED_DECK_LIST_FIELDS: frozenset[str] = frozenset(

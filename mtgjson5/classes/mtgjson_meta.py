@@ -24,9 +24,7 @@ class MtgjsonMetaObject(JsonObject):
         version: str | None = None,
     ) -> None:
         self.date = date if isinstance(date, str) else date.strftime("%Y-%m-%d")
-        self.version = (
-            version if version is not None else MtgjsonConfig().mtgjson_version
-        )
+        self.version = version if version is not None else MtgjsonConfig().mtgjson_version
 
     def to_json(self) -> dict[str, Any]:
         parent: dict[str, Any] = super().to_json()

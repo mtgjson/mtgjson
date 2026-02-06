@@ -54,9 +54,7 @@ class MtgjsonCardTypesObject(JsonObject):
             self.land = ScryfallProvider().get_catalog_entry("land-types")
             self.phenomenon = []
             self.plane = regex_str_to_list(planar_regex.search(magic_rules))
-            self.planeswalker = ScryfallProvider().get_catalog_entry(
-                "planeswalker-types"
-            )
+            self.planeswalker = ScryfallProvider().get_catalog_entry("planeswalker-types")
             self.scheme = []
             self.sorcery = self.instant
             self.tribal = []

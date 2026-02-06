@@ -15,7 +15,7 @@ from .base import ListFileBase, RecordFileBase
 from .submodels import PriceFormats
 
 if TYPE_CHECKING:
-    from .cards import CardAtomic, CardSet
+    from .cards import CardAtomic, CardSet  # noqa: F401 - used in docstrings
     from .decks import DeckList
     from .sets import MtgSet, SetList
 
@@ -37,9 +37,7 @@ class IndividualSetFile(RecordFileBase):
     data: dict[str, Any]
 
     @classmethod
-    def from_set_data(
-        cls, set_data: dict[str, Any], meta: dict[str, str] | None = None
-    ) -> IndividualSetFile:
+    def from_set_data(cls, set_data: dict[str, Any], meta: dict[str, str] | None = None) -> IndividualSetFile:
         """Create from set data dict."""
         return cls.with_meta(set_data, meta)  # type: ignore[return-value]
 
@@ -214,11 +212,7 @@ class FormatPrintingsFile(RecordFileBase):
                 set_dict = set_data
 
             # Filter to only legal cards
-            cards = [
-                c
-                for c in set_dict.get("cards", [])
-                if FormatFilter.is_legal(c, format_name)
-            ]
+            cards = [c for c in set_dict.get("cards", []) if FormatFilter.is_legal(c, format_name)]
             if cards:
                 filtered[set_code] = {**set_dict, "cards": cards}
         return cls(meta=all_printings.meta, data=filtered, format_name=format_name)

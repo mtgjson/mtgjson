@@ -28,12 +28,8 @@ class GitHubDecksProvider(AbstractProvider):
     GitHubDecksProvider container
     """
 
-    decks_api_url: str = (
-        "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks_v2.json?raw=true"
-    )
-    decks_uuid_api_url: str = (
-        "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/deck_map.json?raw=True"
-    )
+    decks_api_url: str = "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks_v2.json?raw=true"
+    decks_uuid_api_url: str = "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/deck_map.json?raw=True"
     all_printings_file: pathlib.Path
     all_printings_cards: dict[str, Any]
     decks_by_set: dict[str, list[MtgjsonDeckObject]]
@@ -83,18 +79,14 @@ class GitHubDecksProvider(AbstractProvider):
         if not self.decks_by_set:
             decks_uuid_content = self.download(self.decks_uuid_api_url)
             for deck in self.download(self.decks_api_url):
-                sealed_uuids = decks_uuid_content.get(deck["set_code"].lower(), {}).get(
-                    deck["name"]
-                )
+                sealed_uuids = decks_uuid_content.get(deck["set_code"].lower(), {}).get(deck["name"])
 
                 mtgjson_deck = MtgjsonDeckObject(deck["name"], sealed_uuids)
                 mtgjson_deck.code = deck["set_code"].upper()
                 mtgjson_deck.set_sanitized_name(mtgjson_deck.name)
                 mtgjson_deck.type = deck["type"]
                 mtgjson_deck.release_date = deck["release_date"]
-                mtgjson_deck.source_set_codes = list(
-                    map(str.upper, deck["sourceSetCodes"])
-                )
+                mtgjson_deck.source_set_codes = list(map(str.upper, deck["sourceSetCodes"]))
 
                 zip_list = [
                     ("cards", mtgjson_deck.main_board),
@@ -154,31 +146,15 @@ class GitHubDecksProvider(AbstractProvider):
             this_deck.source_set_codes = list(map(str.upper, deck["sourceSetCodes"]))
 
             try:
-                this_deck.main_board = parallel_call(
-                    build_single_card, deck["cards"], fold_list=True
-                )
-                this_deck.side_board = parallel_call(
-                    build_single_card, deck["sideboard"], fold_list=True
-                )
-                this_deck.display_commander = parallel_call(
-                    build_single_card, deck["displayCommander"], fold_list=True
-                )
-                this_deck.commander = parallel_call(
-                    build_single_card, deck["commander"], fold_list=True
-                )
-                this_deck.planes = parallel_call(
-                    build_single_card, deck["planarDeck"], fold_list=True
-                )
-                this_deck.schemes = parallel_call(
-                    build_single_card, deck["schemeDeck"], fold_list=True
-                )
-                this_deck.tokens = parallel_call(
-                    build_single_card, deck["tokens"], fold_list=True
-                )
+                this_deck.main_board = parallel_call(build_single_card, deck["cards"], fold_list=True)
+                this_deck.side_board = parallel_call(build_single_card, deck["sideboard"], fold_list=True)
+                this_deck.display_commander = parallel_call(build_single_card, deck["displayCommander"], fold_list=True)
+                this_deck.commander = parallel_call(build_single_card, deck["commander"], fold_list=True)
+                this_deck.planes = parallel_call(build_single_card, deck["planarDeck"], fold_list=True)
+                this_deck.schemes = parallel_call(build_single_card, deck["schemeDeck"], fold_list=True)
+                this_deck.tokens = parallel_call(build_single_card, deck["tokens"], fold_list=True)
             except KeyError as error:
-                LOGGER.warning(
-                    f'GitHub Deck "{this_deck.name}" failed to build -- Missing Set {error}'
-                )
+                LOGGER.warning(f'GitHub Deck "{this_deck.name}" failed to build -- Missing Set {error}')
                 continue
 
             yield this_deck
@@ -192,9 +168,7 @@ def build_single_card(card: dict[str, Any]) -> list[dict[str, Any]]:
     :return: List of enhanced cards in set
     """
     cards = []
-    set_to_build_from = GitHubDecksProvider().all_printings_cards.get(
-        card["set_code"].upper()
-    )
+    set_to_build_from = GitHubDecksProvider().all_printings_cards.get(card["set_code"].upper())
 
     if not set_to_build_from:
         LOGGER.warning(f"Set {card['set_code'].upper()} not found for {card['name']}")

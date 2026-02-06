@@ -41,9 +41,7 @@ class JsonOutputBuilder:
 
     def __init__(self, ctx: AssemblyContext):
         self.ctx = ctx
-        self._orjson_opts = orjson.OPT_SORT_KEYS | (
-            orjson.OPT_INDENT_2 if ctx.pretty else 0
-        )
+        self._orjson_opts = orjson.OPT_SORT_KEYS | (orjson.OPT_INDENT_2 if ctx.pretty else 0)
 
     def write_meta(self, output_path: pathlib.Path) -> MetaFile:
         """Build Meta.json."""
@@ -63,7 +61,7 @@ class JsonOutputBuilder:
 
         data: dict[str, dict[str, Any]] = {}
         for code, set_data in self.ctx.sets.iter_sets(set_codes=set_codes):
-            data[code] = set_data
+            data[code] = set_data  # noqa: PERF403
 
         file = AllPrintingsFile.with_meta(data, self.ctx.meta)
         file.write(output_path, pretty=self.ctx.pretty)
@@ -126,9 +124,7 @@ class JsonOutputBuilder:
         from ..assemble import compute_format_legal_sets
 
         format_legal_sets = compute_format_legal_sets(self.ctx, format_name)
-        file = FormatPrintingsFile.for_format(
-            format_name, all_printings, format_legal_sets
-        )
+        file = FormatPrintingsFile.for_format(format_name, all_printings, format_legal_sets)
         file.write(output_path, pretty=self.ctx.pretty)
         return file
 
@@ -171,9 +167,7 @@ class JsonOutputBuilder:
         decks_df = self.ctx.decks_df
         if set_codes:
             upper_codes = {s.upper() for s in set_codes}
-            decks_df = decks_df.filter(
-                pl.col("setCode").str.to_uppercase().is_in(upper_codes)
-            )
+            decks_df = decks_df.filter(pl.col("setCode").str.to_uppercase().is_in(upper_codes))
 
         if len(decks_df) == 0:
             return 0
@@ -212,8 +206,8 @@ class JsonOutputBuilder:
         Returns:
             Dict mapping file names to record counts.
         """
-        from mtgjson5.v2.build.price_builder import PolarsPriceBuilder
         from mtgjson5.utils import LOGGER
+        from mtgjson5.v2.build.price_builder import PolarsPriceBuilder
 
         builder = PolarsPriceBuilder()
         all_prices_path, today_prices_path = builder.build_prices()
@@ -232,10 +226,7 @@ class JsonOutputBuilder:
             today_size_mb = today_prices_path.stat().st_size / 1024 / 1024
             results["AllPricesToday"] = int(today_size_mb * 1000)
 
-        LOGGER.info(
-            f"Built AllPrices.json ({all_size_mb:.1f} MB) "
-            f"and AllPricesToday.json ({today_size_mb:.1f} MB)"
-        )
+        LOGGER.info(f"Built AllPrices.json ({all_size_mb:.1f} MB) and AllPricesToday.json ({today_size_mb:.1f} MB)")
 
         return results
 
@@ -426,9 +417,7 @@ class JsonOutputBuilder:
                 streaming=streaming,
             )
             results["AllPrintings"] = (
-                all_printings
-                if isinstance(all_printings, int)
-                else len(all_printings.data)  # pylint: disable=no-member
+                all_printings if isinstance(all_printings, int) else len(all_printings.data)  # pylint: disable=no-member
             )
 
         # Build AtomicCards
@@ -445,29 +434,23 @@ class JsonOutputBuilder:
             results["SetList"] = len(set_list.data)
 
         # Build format-specific files (require AllPrintings)
-        if not sets_only or (outputs and (_PRINTINGS_OUTPUTS & outputs)):
+        if not sets_only or (outputs and (_PRINTINGS_OUTPUTS & outputs)):  # noqa: SIM102
             if outputs is None or (_PRINTINGS_OUTPUTS & outputs):
                 LOGGER.info("Building format-specific files...")
-                if all_printings is None or (
-                    streaming and isinstance(all_printings, int)
-                ):
+                if all_printings is None or (streaming and isinstance(all_printings, int)):
                     all_printings = AllPrintingsFile.read(output_dir / "AllPrintings.json")  # type: ignore[assignment]
 
                 if isinstance(all_printings, AllPrintingsFile):
                     for fmt in _PRINTINGS_FORMATS:
                         if should_build(fmt.title()):
-                            fmt_file = self.write_format_file(
-                                all_printings, fmt, output_dir / f"{fmt.title()}.json"
-                            )
+                            fmt_file = self.write_format_file(all_printings, fmt, output_dir / f"{fmt.title()}.json")
                             results[fmt.title()] = len(fmt_file.data)
 
         # Format atomic files (require AtomicCards)
-        if not sets_only or (outputs and (_ATOMIC_OUTPUTS & outputs)):
+        if not sets_only or (outputs and (_ATOMIC_OUTPUTS & outputs)):  # noqa: SIM102
             if outputs is None or (_ATOMIC_OUTPUTS & outputs):
                 if atomic_cards is None:
-                    atomic_cards = self.write_atomic_cards(
-                        output_dir / "AtomicCards.json"
-                    )
+                    atomic_cards = self.write_atomic_cards(output_dir / "AtomicCards.json")
                 for fmt in _ATOMIC_FORMATS:
                     if should_build(f"{fmt.title()}Atomic"):
                         atomic_file = self.write_format_atomic(
@@ -512,9 +495,7 @@ class JsonOutputBuilder:
         # Build TcgplayerSkus.json
         if should_build("TcgplayerSkus"):
             LOGGER.info("Building TcgplayerSkus.json...")
-            tcgplayer_skus = self.write_tcgplayer_skus(
-                output_dir / "TcgplayerSkus.json"
-            )
+            tcgplayer_skus = self.write_tcgplayer_skus(output_dir / "TcgplayerSkus.json")
             results["TcgplayerSkus"] = len(tcgplayer_skus.data)
 
         # Build Keywords.json
@@ -534,16 +515,13 @@ class JsonOutputBuilder:
             LOGGER.info("Building EnumValues.json...")
             enum_values = self.write_enum_values(output_dir / "EnumValues.json")
             results["EnumValues"] = sum(
-                len(v) if isinstance(v, list) else sum(len(vv) for vv in v.values())
-                for v in enum_values.data.values()
+                len(v) if isinstance(v, list) else sum(len(vv) for vv in v.values()) for v in enum_values.data.values()
             )
 
         # Build AllIdentifiers.json
         if should_build("AllIdentifiers"):
             LOGGER.info("Building AllIdentifiers.json...")
-            all_identifiers_count = self.write_all_identifiers(
-                output_dir / "AllIdentifiers.json"
-            )
+            all_identifiers_count = self.write_all_identifiers(output_dir / "AllIdentifiers.json")
             results["AllIdentifiers"] = all_identifiers_count
 
         # Build CompiledList.json

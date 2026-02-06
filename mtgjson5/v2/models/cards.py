@@ -97,18 +97,10 @@ class CardBase(PolarsMixin, BaseModel):
         keep_empty_lists: bool = False,
     ) -> dict[str, Any]:
         """Convert to dict, preserving WUBRG color order for split/adventure layouts."""
-        result = super().to_polars_dict(
-            use_alias, sort_keys, sort_lists, exclude_none, keep_empty_lists
-        )
+        result = super().to_polars_dict(use_alias, sort_keys, sort_lists, exclude_none, keep_empty_lists)
 
-        if (
-            self.layout in _WUBRG_COLOR_LAYOUTS
-            and "colors" in result
-            and result["colors"]
-        ):
-            result["colors"] = sorted(
-                result["colors"], key=lambda c: _WUBRG_ORDER.get(c, 99)
-            )
+        if self.layout in _WUBRG_COLOR_LAYOUTS and "colors" in result and result["colors"]:
+            result["colors"] = sorted(result["colors"], key=lambda c: _WUBRG_ORDER.get(c, 99))
 
         return result
 
@@ -119,9 +111,7 @@ class CardAtomicBase(CardBase):
     # Mana values
     converted_mana_cost: float = Field(alias="convertedManaCost")
     mana_value: float = Field(alias="manaValue")
-    face_converted_mana_cost: float | None = Field(
-        default=None, alias="faceConvertedManaCost"
-    )
+    face_converted_mana_cost: float | None = Field(default=None, alias="faceConvertedManaCost")
     face_mana_value: float | None = Field(default=None, alias="faceManaValue")
 
     # Battle
@@ -139,15 +129,11 @@ class CardAtomicBase(CardBase):
 
     # Rules
     legalities: Legalities = Field(default_factory=dict)  # type: ignore[assignment]
-    leadership_skills: LeadershipSkills | None = Field(
-        default=None, alias="leadershipSkills"
-    )
+    leadership_skills: LeadershipSkills | None = Field(default=None, alias="leadershipSkills")
     rulings: list[Rulings] | None = Field(default=None)
 
     # Deck limits
-    has_alternative_deck_limit: bool | None = Field(
-        default=None, alias="hasAlternativeDeckLimit"
-    )
+    has_alternative_deck_limit: bool | None = Field(default=None, alias="hasAlternativeDeckLimit")
 
     # Reserved
     is_reserved: bool | None = Field(default=None, alias="isReserved")
@@ -293,12 +279,8 @@ class CardPrintingFull(CardPrintingBase, CardAtomicBase):
 
     # Rebalanced
     is_rebalanced: bool | None = Field(default=None, alias="isRebalanced")
-    original_printings: list[str] | None = Field(
-        default=None, alias="originalPrintings"
-    )
-    rebalanced_printings: list[str] | None = Field(
-        default=None, alias="rebalancedPrintings"
-    )
+    original_printings: list[str] | None = Field(default=None, alias="originalPrintings")
+    rebalanced_printings: list[str] | None = Field(default=None, alias="rebalancedPrintings")
     original_release_date: str | None = Field(default=None, alias="originalReleaseDate")
 
     # Flags

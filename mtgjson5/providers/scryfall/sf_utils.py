@@ -13,15 +13,11 @@ def build_http_header() -> dict[str, str]:
     :return: Authorization header
     """
     if not MtgjsonConfig().has_section("Scryfall"):
-        LOGGER.warning(
-            "Scryfall section not established. Defaulting to non-authorized mode"
-        )
+        LOGGER.warning("Scryfall section not established. Defaulting to non-authorized mode")
         return {}
 
     if not MtgjsonConfig().has_option("Scryfall", "client_secret"):
-        LOGGER.warning(
-            "Scryfall keys values missing. Defaulting to non-authorized mode"
-        )
+        LOGGER.warning("Scryfall keys values missing. Defaulting to non-authorized mode")
         return {}
 
     headers: dict[str, str] = {

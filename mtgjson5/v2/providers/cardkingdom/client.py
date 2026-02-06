@@ -61,21 +61,21 @@ class CardKingdomClient:
         Handles CK's quirk of returning JSON wrapped in HTML tags
         with incorrect Content-Type header.
         """
-        async with aiohttp.ClientSession(headers=self.headers) as session:
-            async with session.get(
+        async with (
+            aiohttp.ClientSession(headers=self.headers) as session,
+            session.get(
                 url,
                 timeout=aiohttp.ClientTimeout(total=self.timeout),
-            ) as response:
-                response.raise_for_status()
-                text = await response.text()
+            ) as response,
+        ):
+            response.raise_for_status()
+            text = await response.text()
 
-                # CK API sometimes wraps JSON in HTML tags
-                if text.startswith("<html>"):
-                    text = text.removeprefix("<html><head></head><body>").removesuffix(
-                        "</body></html>"
-                    )
-                data = json.loads(text)
-                return ApiResponse.model_validate(data)
+            # CK API sometimes wraps JSON in HTML tags
+            if text.startswith("<html>"):
+                text = text.removeprefix("<html><head></head><body>").removesuffix("</body></html>")
+            data = json.loads(text)
+            return ApiResponse.model_validate(data)
 
     async def fetch_all(
         self,
@@ -110,9 +110,7 @@ class CardKingdomClient:
             if isinstance(response, BaseException):
                 if isinstance(response, Exception):
                     LOGGER.warning(f"CK API error for {url}: {response}")
-                    results.append(
-                        FetchResult(endpoint=url, records=[], error=response)
-                    )
+                    results.append(FetchResult(endpoint=url, records=[], error=response))
                 continue
             # Check if response.data exists before accessing
             records = response.data if response.data is not None else []

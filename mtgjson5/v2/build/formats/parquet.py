@@ -12,7 +12,6 @@ from mtgjson5.utils import LOGGER
 
 from ..assemble import TableAssembler
 
-
 if TYPE_CHECKING:
     from ..context import AssemblyContext
 
@@ -53,13 +52,9 @@ class ParquetBuilder:
                 "isForeignOnly": pl.Boolean,
                 "isPartialPreview": pl.Boolean,
             }
-            df = pl.DataFrame(
-                list(self.ctx.set_meta.values()), schema_overrides=schema_overrides
-            )
+            df = pl.DataFrame(list(self.ctx.set_meta.values()), schema_overrides=schema_overrides)
             if "type" in df.columns:
-                is_traditional_token = (
-                    (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
-                )
+                is_traditional_token = (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
                 df = df.filter(~is_traditional_token)
             return df
         return None
@@ -97,9 +92,7 @@ class ParquetBuilder:
         # Write meta
         meta = MtgjsonMetaObject()
         meta_df = pl.DataFrame({"date": [meta.date], "version": [meta.version]})
-        meta_df.write_parquet(
-            output_dir / "meta.parquet", compression=compression, compression_level=9
-        )
+        meta_df.write_parquet(output_dir / "meta.parquet", compression=compression, compression_level=9)
         LOGGER.info("  meta.parquet: 1 row")
 
         # Build and write booster tables
@@ -108,9 +101,7 @@ class ParquetBuilder:
             for name, df in booster_tables.items():
                 if df is not None and len(df) > 0:
                     path = output_dir / f"{name}.parquet"
-                    df.write_parquet(
-                        path, compression=compression, compression_level=9
-                    )
+                    df.write_parquet(path, compression=compression, compression_level=9)
                     LOGGER.info(f"  {name}.parquet: {df.height:,} rows")
 
         LOGGER.info(f"Wrote Parquet files to {output_dir}")

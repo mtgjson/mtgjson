@@ -34,9 +34,7 @@ SetAdapter: TypeAdapter[MtgSet] = TypeAdapter(MtgSet)
 SetListAdapter: TypeAdapter[list[SetList]] = TypeAdapter(list[SetList])
 
 SealedProductAdapter: TypeAdapter[SealedProduct] = TypeAdapter(SealedProduct)
-SealedProductListAdapter: TypeAdapter[list[SealedProduct]] = TypeAdapter(
-    list[SealedProduct]
-)
+SealedProductListAdapter: TypeAdapter[list[SealedProduct]] = TypeAdapter(list[SealedProduct])
 
 DeckAdapter: TypeAdapter[Deck] = TypeAdapter(Deck)
 DeckListAdapter: TypeAdapter[list[DeckList]] = TypeAdapter(list[DeckList])
@@ -120,10 +118,7 @@ def parse_atomic_cards_file(
     data: dict[str, list[dict[str, Any]]],
 ) -> dict[str, list[CardAtomic]]:
     """Parse AtomicCards data section (name -> [CardAtomic, ...])."""
-    return {
-        name: CardAtomicListAdapter.validate_python(cards)
-        for name, cards in data.items()
-    }
+    return {name: CardAtomicListAdapter.validate_python(cards) for name, cards in data.items()}
 
 
 class Adapters:

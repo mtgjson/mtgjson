@@ -54,9 +54,7 @@ class PriceBuilder:
             ]
 
         self.all_printings_path = (
-            all_printings_path
-            if all_printings_path
-            else MtgjsonConfig().output_path.joinpath("AllPrintings.json")
+            all_printings_path if all_printings_path else MtgjsonConfig().output_path.joinpath("AllPrintings.json")
         )
 
     @staticmethod
@@ -66,9 +64,9 @@ class PriceBuilder:
         :param content: Dataset to modify
         :param months: How many months back should we keep (default = 3)
         """
-        prune_date_str = (
-            datetime.date.today() + dateutil.relativedelta.relativedelta(months=-months)
-        ).strftime("%Y-%m-%d")
+        prune_date_str = (datetime.date.today() + dateutil.relativedelta.relativedelta(months=-months)).strftime(
+            "%Y-%m-%d"
+        )
         keys_pruned = 0
 
         def prune_recursive(obj: dict[str, Any], depth: int = 0) -> None:
@@ -98,9 +96,7 @@ class PriceBuilder:
         :return: Today's prices (to be merged into archive)
         """
         if not self.all_printings_path.is_file():
-            LOGGER.error(
-                f"Unable to build prices. AllPrintings not found in {MtgjsonConfig().output_path}"
-            )
+            LOGGER.error(f"Unable to build prices. AllPrintings not found in {MtgjsonConfig().output_path}")
             return {}
 
         final_results: dict[str, Any] = {}
@@ -119,18 +115,12 @@ class PriceBuilder:
         :return Manageable data for MTGJSON prices
         """
         try:
-            preprocess_prices = provider.generate_today_price_dict(
-                self.all_printings_path
-            )
+            preprocess_prices = provider.generate_today_price_dict(self.all_printings_path)
 
-            final_prices: dict[str, Any] = json.loads(
-                json.dumps(preprocess_prices, default=lambda o: o.to_json())
-            )
+            final_prices: dict[str, Any] = json.loads(json.dumps(preprocess_prices, default=lambda o: o.to_json()))
             return final_prices
         except Exception as exception:
-            LOGGER.error(
-                f"Failed to compile for {type(provider).__name__} with error: {exception}"
-            )
+            LOGGER.error(f"Failed to compile for {type(provider).__name__} with error: {exception}")
             return {}
 
     @staticmethod
@@ -147,9 +137,7 @@ class PriceBuilder:
         constants.CACHE_PATH.mkdir(parents=True, exist_ok=True)
         temp_zip_file = constants.CACHE_PATH.joinpath("temp.tar.xz")
 
-        downloaded_successfully = MtgjsonS3Handler().download_file(
-            bucket_name, bucket_object_path, str(temp_zip_file)
-        )
+        downloaded_successfully = MtgjsonS3Handler().download_file(bucket_name, bucket_object_path, str(temp_zip_file))
         if not downloaded_successfully:
             LOGGER.warning("Download of current price data failed")
             return {}
@@ -161,9 +149,7 @@ class PriceBuilder:
         return contents
 
     @staticmethod
-    def write_price_archive_data(
-        local_save_path: pathlib.Path, price_data: dict[str, Any]
-    ) -> None:
+    def write_price_archive_data(local_save_path: pathlib.Path, price_data: dict[str, Any]) -> None:
         """
         Write price data to a compressed archive file
         :param local_save_path: Where to save compressed archive file
@@ -175,9 +161,7 @@ class PriceBuilder:
         LOGGER.info(f"Dumping price data to {tmp_save_path}")
         with tmp_save_path.open("w") as temp_file:
             json.dump(price_data, temp_file)
-        LOGGER.info(
-            f"Finished writing to {tmp_save_path} (Size = {tmp_save_path.stat().st_size} bytes)"
-        )
+        LOGGER.info(f"Finished writing to {tmp_save_path} (Size = {tmp_save_path.stat().st_size} bytes)")
 
         LOGGER.info(f"Compressing {tmp_save_path} for upload")
         subprocess.check_call(["xz", str(tmp_save_path)])
@@ -191,9 +175,7 @@ class PriceBuilder:
         for future consumption
         """
         file_bytes = b""
-        file_data = requests.get(
-            "https://mtgjson.com/api/v5/AllPrintings.json.xz", stream=True, timeout=60
-        )
+        file_data = requests.get("https://mtgjson.com/api/v5/AllPrintings.json.xz", stream=True, timeout=60)
         for chunk in file_data.iter_content(chunk_size=1024 * 36):
             if chunk:
                 file_bytes += chunk
@@ -244,9 +226,7 @@ class PriceBuilder:
 
         # Push changes to remote database
         LOGGER.info("Uploading price data")
-        MtgjsonS3Handler().upload_file(
-            str(local_zip_file), bucket_name, bucket_object_path
-        )
+        MtgjsonS3Handler().upload_file(str(local_zip_file), bucket_name, bucket_object_path)
         local_zip_file.unlink()
 
         return archive_prices, today_prices

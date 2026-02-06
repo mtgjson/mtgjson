@@ -18,11 +18,7 @@ class TypedDictUtils:
     @staticmethod
     def is_typeddict(tp: Any) -> bool:
         """Check if a type is a TypedDict."""
-        return (
-            isinstance(tp, type)
-            and issubclass(tp, dict)
-            and hasattr(tp, "__annotations__")
-        )
+        return isinstance(tp, type) and issubclass(tp, dict) and hasattr(tp, "__annotations__")
 
     @staticmethod
     def get_fields(td: type) -> dict[str, Any]:
@@ -154,9 +150,7 @@ class TypedDictUtils:
 def is_union_type(tp: Any) -> bool:
     """Check if type is a Union (including X | Y syntax)."""
     origin = get_origin(tp)
-    return origin is typing.Union or (
-        hasattr(types, "UnionType") and isinstance(tp, types.UnionType)
-    )
+    return origin is typing.Union or (hasattr(types, "UnionType") and isinstance(tp, types.UnionType))
 
 
 def unwrap_optional(tp: Any) -> tuple[Any, bool]:

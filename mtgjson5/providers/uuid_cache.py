@@ -24,9 +24,7 @@ class UuidCacheProvider(AbstractProvider):
 
     def __init__(self) -> None:
         super().__init__(self._build_http_header())
-        with constants.RESOURCE_PATH.joinpath(
-            "legacy_mtgjson_v5_uuid_mapping.json"
-        ).open(encoding="utf-8") as f:
+        with constants.RESOURCE_PATH.joinpath("legacy_mtgjson_v5_uuid_mapping.json").open(encoding="utf-8") as f:
             self.sf_to_mtgjson_cache = json.load(f)
 
     def _build_http_header(self) -> dict[str, str]:

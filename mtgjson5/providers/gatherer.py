@@ -19,7 +19,9 @@ class GathererProvider(AbstractProvider):
     Gatherer Container
     """
 
-    _GATHERER_ID_MAPPING_URL = "https://github.com/mtgjson/mtg-sealed-content/raw/main/outputs/gatherer_mapping.json?raw=True"
+    _GATHERER_ID_MAPPING_URL = (
+        "https://github.com/mtgjson/mtg-sealed-content/raw/main/outputs/gatherer_mapping.json?raw=True"
+    )
     _multiverse_id_to_data: dict[str, list[dict[str, str]]]
 
     def __init__(self) -> None:
@@ -44,9 +46,7 @@ class GathererProvider(AbstractProvider):
         if response.ok:
             return response.json()
 
-        LOGGER.error(
-            f"Error downloading GitHub Boosters: {response} --- {response.text}"
-        )
+        LOGGER.error(f"Error downloading GitHub Boosters: {response} --- {response.text}")
         return {}
 
     def get_cards(self, multiverse_id: str) -> list[dict[str, str]]:

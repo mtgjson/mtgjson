@@ -39,16 +39,12 @@ class CardHoarderProvider(AbstractProvider):
         headers: dict[str, str] = {}
 
         if not MtgjsonConfig().has_section("CardHoarder"):
-            LOGGER.warning(
-                "CardHoarder config section not established. Skipping requests"
-            )
+            LOGGER.warning("CardHoarder config section not established. Skipping requests")
             self.ch_api_url = ""
             return headers
 
         if MtgjsonConfig().has_option("CardHoarder", "token"):
-            self.ch_api_url = self.ch_api_url.format(
-                MtgjsonConfig().get("CardHoarder", "token")
-            )
+            self.ch_api_url = self.ch_api_url.format(MtgjsonConfig().get("CardHoarder", "token"))
         else:
             LOGGER.info("CardHoarder keys values missing. Skipping pricing")
             self.ch_api_url = ""
@@ -111,9 +107,7 @@ class CardHoarderProvider(AbstractProvider):
         LOGGER.info(f"Missing {invalid_entries}/{len(file_rows)} CardHoarder entries")
         return mtgjson_price_map
 
-    def generate_today_price_dict(
-        self, all_printings_path: Any
-    ) -> dict[str, MtgjsonPricesObject]:
+    def generate_today_price_dict(self, all_printings_path: Any) -> dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure for MTGO from CardHoarder
         :param all_printings_path: Path to AllPrintings.json for pre-processing
@@ -124,21 +118,14 @@ class CardHoarderProvider(AbstractProvider):
         # pylint: disable=cyclic-import
         from mtgjson5.v2.data import GLOBAL_CACHE
 
-        mtgo_to_mtgjson_map: dict[str, str] | dict[str, set[str]] = (
-            GLOBAL_CACHE.get_mtgo_to_uuid_map()
-        )
+        mtgo_to_mtgjson_map: dict[str, str] | dict[str, set[str]] = GLOBAL_CACHE.get_mtgo_to_uuid_map()
         if not mtgo_to_mtgjson_map:
             mtgo_to_mtgjson_map = self.get_mtgo_to_mtgjson_map(all_printings_path)
 
         # Cast to expected type - either source returns Set[str] values
-        mtgo_map: dict[str, set[str]] = {
-            k: (v if isinstance(v, set) else {v})
-            for k, v in mtgo_to_mtgjson_map.items()
-        }
+        mtgo_map: dict[str, set[str]] = {k: (v if isinstance(v, set) else {v}) for k, v in mtgo_to_mtgjson_map.items()}
         normal_cards = self.convert_cardhoarder_to_mtgjson(self.ch_api_url, mtgo_map)
-        foil_cards = self.convert_cardhoarder_to_mtgjson(
-            self.ch_api_url + "/foil", mtgo_map
-        )
+        foil_cards = self.convert_cardhoarder_to_mtgjson(self.ch_api_url + "/foil", mtgo_map)
 
         db_contents: dict[str, MtgjsonPricesObject] = {}
 
@@ -160,9 +147,7 @@ class CardHoarderProvider(AbstractProvider):
         """
         for key, value in cards.items():
             if key not in semi_completed_data:
-                semi_completed_data[key] = MtgjsonPricesObject(
-                    "mtgo", "cardhoarder", self.today_date, "USD"
-                )
+                semi_completed_data[key] = MtgjsonPricesObject("mtgo", "cardhoarder", self.today_date, "USD")
 
             if is_mtgo_normal:
                 semi_completed_data[key].sell_normal = float(value)

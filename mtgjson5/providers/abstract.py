@@ -80,11 +80,7 @@ class AbstractProvider(abc.ABC):
         Log how the URL was acquired
         :param response: Response from Server
         """
-        from_cache = (
-            getattr(response, "from_cache", False)
-            if MtgjsonConfig().use_cache
-            else False
-        )
+        from_cache = getattr(response, "from_cache", False) if MtgjsonConfig().use_cache else False
         LOGGER.debug(f"Downloaded {response.url} (Cache = {from_cache})")
 
     def generic_generate_today_price_dict(
@@ -116,9 +112,7 @@ class AbstractProvider(abc.ABC):
         :param etched_value: Optional value to find in etched_key to see if etched card or not
         :return Today's price setup in MTGJSON Price Format
         """
-        today_dict: dict[str, MtgjsonPricesObject] = defaultdict(
-            lambda: copy.copy(default_prices_object)
-        )
+        today_dict: dict[str, MtgjsonPricesObject] = defaultdict(lambda: copy.copy(default_prices_object))
 
         for data_row in price_data_rows:
             third_party_id = str(data_row[card_platform_id_key])
@@ -128,25 +122,15 @@ class AbstractProvider(abc.ABC):
             mtgjson_uuids = third_party_to_mtgjson[third_party_id]
             for mtgjson_uuid in mtgjson_uuids:
                 is_foil = str(data_row[foil_key]).lower() == "true"
-                is_etched = bool(
-                    etched_key and etched_value in data_row.get(etched_key, {})
-                )
+                is_etched = bool(etched_key and etched_value in data_row.get(etched_key, {}))
 
-                if retail_key and not (
-                    retail_quantity_key and data_row.get(retail_quantity_key, 0) == 0
-                ):
-                    price_field_name = self.get_price_field_name(
-                        is_foil, is_etched, True
-                    )
+                if retail_key and not (retail_quantity_key and data_row.get(retail_quantity_key, 0) == 0):
+                    price_field_name = self.get_price_field_name(is_foil, is_etched, True)
                     price = float(data_row[retail_key])
                     setattr(today_dict[mtgjson_uuid], price_field_name, price)
 
-                if buy_key and not (
-                    buy_quantity_key and data_row.get(buy_quantity_key, 0) == 0
-                ):
-                    price_field_name = self.get_price_field_name(
-                        is_foil, is_etched, False
-                    )
+                if buy_key and not (buy_quantity_key and data_row.get(buy_quantity_key, 0) == 0):
+                    price_field_name = self.get_price_field_name(is_foil, is_etched, False)
                     price = float(data_row[buy_key])
                     setattr(today_dict[mtgjson_uuid], price_field_name, price)
 

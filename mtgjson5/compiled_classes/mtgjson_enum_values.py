@@ -62,18 +62,14 @@ class MtgjsonEnumValuesObject(JsonObject):
         """
         self.attr_value_dict = {}
 
-        set_and_cards = self.construct_set_and_card_enums(
-            MtgjsonAllPrintingsObject().to_json()
-        )
+        set_and_cards = self.construct_set_and_card_enums(MtgjsonAllPrintingsObject().to_json())
         self.attr_value_dict.update(set_and_cards)
 
         decks = self.construct_deck_enums(MtgjsonConfig().output_path.joinpath("decks"))
         self.attr_value_dict.update(decks)
 
         # Load in pre-generated Keywords content
-        keywords = MtgjsonConfig().output_path.joinpath(
-            MtgjsonStructuresObject().key_words + ".json"
-        )
+        keywords = MtgjsonConfig().output_path.joinpath(MtgjsonStructuresObject().key_words + ".json")
         if not keywords.is_file():
             LOGGER.warning(f"Unable to find {keywords}")
         else:
@@ -115,9 +111,7 @@ class MtgjsonEnumValuesObject(JsonObject):
 
         return dict(sort_internal_lists(type_map))
 
-    def construct_set_and_card_enums(
-        self, all_printing_content: dict[str, Any]
-    ) -> dict[str, Any]:
+    def construct_set_and_card_enums(self, all_printing_content: dict[str, Any]) -> dict[str, Any]:
         """
         Given AllPrintings, compile enums based on the types found in the file
         :param all_printing_content: AllPrintings internally
@@ -138,9 +132,7 @@ class MtgjsonEnumValuesObject(JsonObject):
                     else:
                         type_map["set"][set_contents_key].add(value)
                 elif set_contents_key in self.set_key_struct["setInner"]:
-                    for set_inner_field in self.set_key_struct["setInner"][
-                        set_contents_key
-                    ]:
+                    for set_inner_field in self.set_key_struct["setInner"][set_contents_key]:
                         if set_inner_field not in type_map:
                             type_map[set_inner_field] = set()
 
@@ -152,9 +144,7 @@ class MtgjsonEnumValuesObject(JsonObject):
                             else:
                                 type_map[set_inner_field].add(value)
 
-            match_keys = set(self.set_key_struct["card"]).union(
-                set(self.set_key_struct.keys())
-            )
+            match_keys = set(self.set_key_struct["card"]).union(set(self.set_key_struct.keys()))
             for card in set_contents.get("cards", []) + set_contents.get("tokens", []):
                 for card_key in card:
                     if card_key not in match_keys:

@@ -141,9 +141,7 @@ class CardEntryModel(PolarsSchemaModel):
     uuid: str = Field(..., description="The UUID of the card.")
     count: int = Field(..., description="The count of the card.")
     isFoil: bool = Field(default=False, description="Indicates if the card is foil.")
-    isEtched: bool = Field(
-        default=False, description="Indicates if the card is etched foil."
-    )
+    isEtched: bool = Field(default=False, description="Indicates if the card is etched foil.")
 
 
 class CardToProductsModel(PolarsSchemaModel):
@@ -174,15 +172,9 @@ class SealedProductModel(PolarsSchemaModel):
         default_factory=dict,
         description="A dictionary of various identifiers for the product.",
     )
-    subtype: str | None = Field(
-        default=None, description="The subtype of the sealed product."
-    )
-    release_date: str | None = Field(
-        default=None, description="The release date of the sealed product."
-    )
-    language: str | None = Field(
-        default=None, description="The language of the sealed product."
-    )
+    subtype: str | None = Field(default=None, description="The subtype of the sealed product.")
+    release_date: str | None = Field(default=None, description="The release date of the sealed product.")
+    language: str | None = Field(default=None, description="The language of the sealed product.")
 
 
 class SealedContentModel(PolarsSchemaModel):
@@ -190,39 +182,19 @@ class SealedContentModel(PolarsSchemaModel):
 
     setCode: str = Field(..., description="The set code of the sealed content.")
     productName: str = Field(..., description="The name of the sealed product.")
-    productSize: int | None = Field(
-        default=None, description="The size of the product, if applicable."
-    )
-    cardCount: int | None = Field(
-        default=None, description="The number of cards in the sealed content."
-    )
-    contentType: str = Field(
-        ..., description="The type of content (e.g., booster, deck)."
-    )
-    set: str | None = Field(
-        default=None, description="The set associated with the content."
-    )
-    count: int | None = Field(
-        default=None, description="The count of this particular content item."
-    )
-    name: str | None = Field(
-        default=None, description="The name of the card in the sealed content."
-    )
-    uuid: str | None = Field(
-        default=None, description="The UUID of the card in the sealed content."
-    )
-    code: str | None = Field(
-        default=None, description="The code of the card in the sealed content."
-    )
+    productSize: int | None = Field(default=None, description="The size of the product, if applicable.")
+    cardCount: int | None = Field(default=None, description="The number of cards in the sealed content.")
+    contentType: str = Field(..., description="The type of content (e.g., booster, deck).")
+    set: str | None = Field(default=None, description="The set associated with the content.")
+    count: int | None = Field(default=None, description="The count of this particular content item.")
+    name: str | None = Field(default=None, description="The name of the card in the sealed content.")
+    uuid: str | None = Field(default=None, description="The UUID of the card in the sealed content.")
+    code: str | None = Field(default=None, description="The code of the card in the sealed content.")
     configs: list[ContentConfig] | None = Field(
         default=None, description="Configuration details for the sealed content."
     )
-    number: str | None = Field(
-        default=None, description="The collector number of the card."
-    )
-    foil: bool | None = Field(
-        default=None, description="Indicates if the card is foil."
-    )
+    number: str | None = Field(default=None, description="The collector number of the card.")
+    foil: bool | None = Field(default=None, description="Indicates if the card is foil.")
 
 
 class PreconModel(PolarsSchemaModel):
@@ -230,9 +202,7 @@ class PreconModel(PolarsSchemaModel):
 
     name: str = Field(..., description="The name of the deck.")
     setCode: str = Field(..., description="The set code associated with the deck.")
-    type: str = Field(
-        ..., description="The type of the deck (e.g., Commander, Standard)."
-    )
+    type: str = Field(..., description="The type of the deck (e.g., Commander, Standard).")
     releaseDate: str = Field(..., description="The release date of the deck.")
     sourceSetCodes: list[str] = Field(
         default_factory=list,
@@ -260,9 +230,7 @@ class TokenProductsModel(PolarsSchemaModel):
     """Mapping of token UUIDs to their product printings (JSON-encoded)."""
 
     uuid: str = Field(..., description="The UUID of the token.")
-    tokenProducts: str = Field(
-        ..., description="JSON-encoded list of product dicts for this token."
-    )
+    tokenProducts: str = Field(..., description="JSON-encoded list of product dicts for this token.")
 
 
 class BoosterModel(PolarsSchemaModel):

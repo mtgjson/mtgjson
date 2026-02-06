@@ -53,10 +53,7 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
             [
                 (pl.col("faceName") == pl.col("_result_name")).alias("_is_result"),
                 # Extract numeric base from collector number (e.g., "99a" -> 99)
-                pl.col("number")
-                .str.extract(r"^(\d+)", 1)
-                .cast(pl.Int32)
-                .alias("_num_base"),
+                pl.col("number").str.extract(r"^(\d+)", 1).cast(pl.Int32).alias("_num_base"),
             ]
         )
     )
@@ -179,15 +176,11 @@ def add_meld_other_face_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     all_loose = pl.concat([front_other_ids_loose, result_other_ids_loose])
 
     # Add number base to main frame for joining
-    lf_with_base = lf.with_columns(
-        pl.col("number").str.extract(r"^(\d+)", 1).cast(pl.Int32).alias("_num_base")
-    )
+    lf_with_base = lf.with_columns(pl.col("number").str.extract(r"^(\d+)", 1).cast(pl.Int32).alias("_num_base"))
 
     # Join both strict and loose, prefer strict when available
     return (
-        lf_with_base.join(
-            all_strict, on=["setCode", "faceName", "_num_base"], how="left"
-        )
+        lf_with_base.join(all_strict, on=["setCode", "faceName", "_num_base"], how="left")
         .join(all_loose, on=["setCode", "faceName", "_num_base"], how="left")
         .with_columns(
             # Prefer strict match, fall back to loose match, then existing otherFaceIds

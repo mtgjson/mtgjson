@@ -35,15 +35,11 @@ class Deck(PolarsMixin, BaseModel):
     name: str
     type: str
     release_date: str | None = Field(default=None, alias="releaseDate")
-    sealed_product_uuids: list[str] | None = Field(
-        default=None, alias="sealedProductUuids"
-    )
+    sealed_product_uuids: list[str] | None = Field(default=None, alias="sealedProductUuids")
     main_board: list[CardDeck] = Field(default_factory=list, alias="mainBoard")
     side_board: list[CardDeck] = Field(default_factory=list, alias="sideBoard")
     commander: list[CardDeck] | None = None
-    display_commander: list[CardDeck] | None = Field(
-        default=None, alias="displayCommander"
-    )
+    display_commander: list[CardDeck] | None = Field(default=None, alias="displayCommander")
     planes: list[CardDeck] | None = None
     schemes: list[CardDeck] | None = None
     tokens: list[CardToken] | None = None

@@ -131,9 +131,7 @@ class TcgPlayerClient:
                 ) as resp:
                     # Handle rate limiting
                     if resp.status == 429:
-                        retry_after = float(
-                            resp.headers.get("Retry-After", RETRY_DELAY * (attempt + 1))
-                        )
+                        retry_after = float(resp.headers.get("Retry-After", RETRY_DELAY * (attempt + 1)))
                         LOGGER.warning(f"Rate limited, waiting {retry_after:.1f}s")
                         await asyncio.sleep(retry_after)
                         continue
@@ -146,9 +144,7 @@ class TcgPlayerClient:
                 last_error = e
                 if attempt < MAX_RETRIES - 1:
                     delay = RETRY_DELAY * (attempt + 1)
-                    LOGGER.debug(
-                        f"Retry {attempt + 1}/{MAX_RETRIES} for {endpoint}: {e}"
-                    )
+                    LOGGER.debug(f"Retry {attempt + 1}/{MAX_RETRIES} for {endpoint}: {e}")
                     await asyncio.sleep(delay)
 
         raise last_error or aiohttp.ClientError(f"Failed after {MAX_RETRIES} retries")
@@ -176,11 +172,7 @@ class TcgPlayerClient:
             include_skus: Include nested SKU data
         """
         endpoint = (
-            f"catalog/products?"
-            f"categoryId={category_id}&"
-            f"productTypes={product_types}&"
-            f"limit={limit}&"
-            f"offset={offset}"
+            f"catalog/products?categoryId={category_id}&productTypes={product_types}&limit={limit}&offset={offset}"
         )
         if include_skus:
             endpoint += "&includeSkus=true"
@@ -191,9 +183,7 @@ class TcgPlayerClient:
             total_items = resp.get("totalItems", 0)
             return ProductsPage(
                 products=results if isinstance(results, list) else [],
-                total_items=(
-                    int(total_items) if isinstance(total_items, (int, float)) else 0
-                ),
+                total_items=(int(total_items) if isinstance(total_items, (int, float)) else 0),
                 offset=offset,
                 success=True,
             )

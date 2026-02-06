@@ -35,9 +35,7 @@ def parallel_call(
 
     if repeatable_args:
         extra_args_rep = [itertools.repeat(arg) for arg in repeatable_args]
-        results = pool.map(
-            lambda g_args: function(*g_args), zip(args, *extra_args_rep, strict=False)
-        )
+        results = pool.map(lambda g_args: function(*g_args), zip(args, *extra_args_rep, strict=False))
     elif force_starmap:
         results = pool.map(lambda g_args: function(*g_args), args)
     else:

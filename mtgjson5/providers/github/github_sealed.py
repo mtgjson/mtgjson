@@ -25,12 +25,8 @@ class GitHubSealedProvider(AbstractProvider):
     GitHubSealedProvider container
     """
 
-    sealed_contents_url: str = (
-        "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/contents.json?raw=true"
-    )
-    sealed_products_url: str = (
-        "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/products.json?raw=true"
-    )
+    sealed_contents_url: str = "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/contents.json?raw=true"
+    sealed_products_url: str = "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/products.json?raw=true"
     sealed_products: dict[str, Any]
     sealed_contents: dict[str, Any]
 
@@ -61,14 +57,10 @@ class GitHubSealedProvider(AbstractProvider):
         if response.ok:
             return response.json()
 
-        LOGGER.error(
-            f"Error downloading GitHub Boosters: {response} --- {response.text}"
-        )
+        LOGGER.error(f"Error downloading GitHub Boosters: {response} --- {response.text}")
         return {}
 
-    def get_sealed_products_data(
-        self, set_code: str
-    ) -> list[MtgjsonSealedProductObject]:
+    def get_sealed_products_data(self, set_code: str) -> list[MtgjsonSealedProductObject]:
         """
         Grab an individual set's additional sealed products, if it exists
         :param set_code: Set to pull data from
@@ -76,9 +68,7 @@ class GitHubSealedProvider(AbstractProvider):
         """
         LOGGER.info(f"Getting sealed product data for {set_code}")
         products_list = []
-        for sealed_product_name, sealed_product in self.sealed_products.get(
-            set_code.lower(), {}
-        ).items():
+        for sealed_product_name, sealed_product in self.sealed_products.get(set_code.lower(), {}).items():
             product_obj = MtgjsonSealedProductObject()
             product_obj.name = sealed_product_name
             product_obj.release_date = sealed_product.get("release_date")
@@ -103,15 +93,11 @@ class GitHubSealedProvider(AbstractProvider):
             products_list.append(product_obj)
 
             for location, identifier in sealed_product.get("identifiers", {}).items():
-                setattr(
-                    product_obj.identifiers, to_snake_case(location), str(identifier)
-                )
+                setattr(product_obj.identifiers, to_snake_case(location), str(identifier))
 
         return products_list
 
-    def apply_sealed_contents_data(
-        self, set_code: str, sealed_products: list[MtgjsonSealedProductObject]
-    ) -> None:
+    def apply_sealed_contents_data(self, set_code: str, sealed_products: list[MtgjsonSealedProductObject]) -> None:
         """
         Adds the sealed contents to each element of sealed_products.
         :param set_code: Code of set to update

@@ -14,9 +14,9 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 init_logger()
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
-from mtgjson5 import constants  # noqa: E402
-from mtgjson5.utils import load_local_set_data  # noqa: E402
-from mtgjson5.v2.data import GlobalCache  # noqa: E402
+from mtgjson5 import constants
+from mtgjson5.utils import load_local_set_data
+from mtgjson5.v2.data import GlobalCache
 
 
 def build_mtgjson_sets(
@@ -179,9 +179,7 @@ def dispatcher(args: argparse.Namespace) -> None:
 
     # --outputs or --export implies --full-build (unless only decks requested)
     # In sets-only mode, only export when explicit formats were requested
-    should_export = (
-        args.full_build or export_formats or (args.outputs and not decks_only)
-    )
+    should_export = args.full_build or export_formats or (args.outputs and not decks_only)
     if sets_only and not export_formats:
         should_export = False
     if should_export:
@@ -250,9 +248,7 @@ def main() -> None:
     args = parse_args()
     MtgjsonConfig()
 
-    LOGGER.info(
-        f"Starting {MtgjsonConfig().mtgjson_version} on {constants.MTGJSON_BUILD_DATE}"
-    )
+    LOGGER.info(f"Starting {MtgjsonConfig().mtgjson_version} on {constants.MTGJSON_BUILD_DATE}")
 
     try:
         if not args.no_alerts:

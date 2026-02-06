@@ -67,9 +67,7 @@ class ManapoolPriceProvider:
 
     output_path: Path | None = None
     on_progress: ProgressCallback | None = None
-    today_date: str = field(
-        default_factory=lambda: datetime.date.today().strftime("%Y-%m-%d")
-    )
+    today_date: str = field(default_factory=lambda: datetime.date.today().strftime("%Y-%m-%d"))
 
     def __post_init__(self) -> None:
         if self.output_path is None:
@@ -96,10 +94,8 @@ class ManapoolPriceProvider:
         records: list[dict[str, Any]] = []
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    MANAPOOL_API_URL, timeout=aiohttp.ClientTimeout(total=120)
-                ) as resp:
+            async with aiohttp.ClientSession() as session:  # noqa: SIM117
+                async with session.get(MANAPOOL_API_URL, timeout=aiohttp.ClientTimeout(total=120)) as resp:
                     resp.raise_for_status()
                     data = await resp.json()
 
@@ -189,9 +185,7 @@ class ManapoolPriceProvider:
         if self.output_path:
             self.output_path.parent.mkdir(parents=True, exist_ok=True)
             df.write_parquet(self.output_path, compression="zstd")
-            LOGGER.info(
-                f"Saved {len(df):,} Manapool price records to {self.output_path}"
-            )
+            LOGGER.info(f"Saved {len(df):,} Manapool price records to {self.output_path}")
 
         if self.on_progress:
             self.on_progress(1, 1, "Manapool complete")
@@ -218,9 +212,7 @@ class ManapoolPriceProvider:
         df = await self.fetch_prices(scryfall_to_uuid_map)
         return self._dataframe_to_price_dict(df)
 
-    def _dataframe_to_price_dict(
-        self, df: pl.DataFrame
-    ) -> dict[str, MtgjsonPricesObject]:
+    def _dataframe_to_price_dict(self, df: pl.DataFrame) -> dict[str, MtgjsonPricesObject]:
         """Convert DataFrame to MTGJSON price dict format."""
         result: dict[str, MtgjsonPricesObject] = {}
 
@@ -230,9 +222,7 @@ class ManapoolPriceProvider:
             price = row["price"]
 
             if uuid not in result:
-                result[uuid] = MtgjsonPricesObject(
-                    "paper", "manapool", self.today_date, "USD"
-                )
+                result[uuid] = MtgjsonPricesObject("paper", "manapool", self.today_date, "USD")
 
             prices_obj = result[uuid]
             if finish == "normal":

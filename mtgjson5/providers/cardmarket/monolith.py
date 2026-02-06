@@ -40,18 +40,14 @@ class CardMarketProvider(AbstractProvider):
         self.price_guide_url = ""
 
         if not MtgjsonConfig().has_section("CardMarket"):
-            LOGGER.warning(
-                "CardMarket config section not established. Skipping requests"
-            )
+            LOGGER.warning("CardMarket config section not established. Skipping requests")
             return
 
         self.price_guide_url = MtgjsonConfig().get("CardMarket", "prices_api_url")
 
         os.environ["MKM_APP_TOKEN"] = MtgjsonConfig().get("CardMarket", "app_token")
         os.environ["MKM_APP_SECRET"] = MtgjsonConfig().get("CardMarket", "app_secret")
-        os.environ["MKM_ACCESS_TOKEN"] = MtgjsonConfig().get(
-            "CardMarket", "mkm_access_token", fallback=""
-        )
+        os.environ["MKM_ACCESS_TOKEN"] = MtgjsonConfig().get("CardMarket", "mkm_access_token", fallback="")
         os.environ["MKM_ACCESS_TOKEN_SECRET"] = MtgjsonConfig().get(
             "CardMarket", "mkm_access_token_secret", fallback=""
         )
@@ -79,21 +75,13 @@ class CardMarketProvider(AbstractProvider):
         for mkm_entry in data:
             product_id = str(mkm_entry["idProduct"])
             price_data[product_id] = {
-                "trend": (
-                    float(mkm_entry["trend"]) if mkm_entry.get("trend") else None
-                ),
-                "trend-foil": (
-                    float(mkm_entry["trend-foil"])
-                    if mkm_entry.get("trend-foil")
-                    else None
-                ),
+                "trend": (float(mkm_entry["trend"]) if mkm_entry.get("trend") else None),
+                "trend-foil": (float(mkm_entry["trend-foil"]) if mkm_entry.get("trend-foil") else None),
             }
 
         return price_data
 
-    def generate_today_price_dict(
-        self, all_printings_path: pathlib.Path
-    ) -> dict[str, MtgjsonPricesObject]:
+    def generate_today_price_dict(self, all_printings_path: pathlib.Path) -> dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure from Card Market
         :param all_printings_path: Path to AllPrintings.json for pre-processing
@@ -104,13 +92,9 @@ class CardMarketProvider(AbstractProvider):
         # pylint: disable=cyclic-import
         from mtgjson5.v2.data import GLOBAL_CACHE
 
-        mtgjson_id_map: dict[str, str] | dict[str, set[Any]] = (
-            GLOBAL_CACHE.get_cardmarket_to_uuid_map()
-        )
+        mtgjson_id_map: dict[str, str] | dict[str, set[Any]] = GLOBAL_CACHE.get_cardmarket_to_uuid_map()
         if not mtgjson_id_map:
-            mtgjson_id_map = generate_entity_mapping(
-                all_printings_path, ("identifiers", "mcmId"), ("uuid",)
-            )
+            mtgjson_id_map = generate_entity_mapping(all_printings_path, ("identifiers", "mcmId"), ("uuid",))
 
         # Finish map still uses fallback since it requires finishes data not in cache
         mtgjson_finish_map = generate_entity_mapping(
@@ -135,9 +119,7 @@ class CardMarketProvider(AbstractProvider):
                         if not avg_sell_price and not avg_foil_price:
                             continue
 
-                        today_dict[mtgjson_uuid] = MtgjsonPricesObject(
-                            "paper", "cardmarket", self.today_date, "EUR"
-                        )
+                        today_dict[mtgjson_uuid] = MtgjsonPricesObject("paper", "cardmarket", self.today_date, "EUR")
 
                     if avg_sell_price:
                         today_dict[mtgjson_uuid].sell_normal = avg_sell_price
@@ -167,9 +149,7 @@ class CardMarketProvider(AbstractProvider):
         try:
             mkm_body_json = mkm_resp.json()
         except json.JSONDecodeError as exception:
-            LOGGER.error(
-                f"Unable to download MKM correctly: {exception} from {mkm_resp.text}"
-            )
+            LOGGER.error(f"Unable to download MKM correctly: {exception} from {mkm_resp.text}")
             return
 
         for set_content in mkm_body_json["expansion"]:
@@ -179,16 +159,12 @@ class CardMarketProvider(AbstractProvider):
             }
 
         # Update the set map with manual overrides
-        with constants.RESOURCE_PATH.joinpath("mkm_set_name_fixes.json").open(
-            encoding="utf-8"
-        ) as f:
+        with constants.RESOURCE_PATH.joinpath("mkm_set_name_fixes.json").open(encoding="utf-8") as f:
             mkm_set_name_fixes = json.load(f)
 
         for old_set_name, new_set_name in mkm_set_name_fixes.items():
             if old_set_name.lower() not in self.set_map:
-                LOGGER.warning(
-                    f"MKM Manual override {old_set_name} to {new_set_name} not found"
-                )
+                LOGGER.warning(f"MKM Manual override {old_set_name} to {new_set_name} not found")
                 continue
 
             self.set_map[new_set_name.lower()] = self.set_map[old_set_name.lower()]
@@ -253,9 +229,7 @@ class CardMarketProvider(AbstractProvider):
         if response.ok:
             return response.json()
 
-        LOGGER.error(
-            f"Error downloading CardMarket Data: {response} --- {response.text}"
-        )
+        LOGGER.error(f"Error downloading CardMarket Data: {response} --- {response.text}")
         return {}
 
     def get_mkm_cards(self, mcm_id: int | None) -> dict[str, list[dict[str, Any]]]:
@@ -269,14 +243,10 @@ class CardMarketProvider(AbstractProvider):
         mkm_resp = None
         for _ in range(5):
             try:
-                mkm_resp = self.connection.market_place.expansion_singles(
-                    1, expansion=mcm_id
-                )
+                mkm_resp = self.connection.market_place.expansion_singles(1, expansion=mcm_id)
                 break
             except mkmsdk.exceptions.ConnectionError as exception:
-                LOGGER.warning(
-                    f"MKM Had a connection error trying to build {mcm_id}: {exception}"
-                )
+                LOGGER.warning(f"MKM Had a connection error trying to build {mcm_id}: {exception}")
                 time.sleep(10)
 
         if mkm_resp is None:
@@ -300,10 +270,8 @@ class CardMarketProvider(AbstractProvider):
                         name_no_special_chars = name_no_special_chars.split(" (", 1)[0]
                     set_in_progress[name_no_special_chars].append(set_content)
         except json.JSONDecodeError as exception:
-            LOGGER.warning(
-                f"MKM had a parsing failure trying to build {mcm_id}: {exception}"
-            )
+            LOGGER.warning(f"MKM had a parsing failure trying to build {mcm_id}: {exception}")
 
-        for key in set_in_progress.keys():
+        for key in set_in_progress:
             set_in_progress[key].sort(key=lambda x: x.get("number"))
         return set_in_progress

@@ -12,7 +12,6 @@ from mtgjson5.utils import LOGGER
 
 from ..serializers import escape_postgres, serialize_complex_types
 
-
 if TYPE_CHECKING:
     from ..context import AssemblyContext
 
@@ -65,9 +64,7 @@ class PostgresBuilder:
             output_path = self.ctx.output_path / "AllPrintings.psql"
 
         with open(output_path, "w", encoding="utf-8") as f:
-            f.write(
-                f"-- MTGJSON PostgreSQL Dump\n-- Generated: {datetime.now().strftime('%Y-%m-%d')}\n"
-            )
+            f.write(f"-- MTGJSON PostgreSQL Dump\n-- Generated: {datetime.now().strftime('%Y-%m-%d')}\n")
             f.write("BEGIN;\n\n")
 
             cols = ",\n    ".join([f'"{c}" TEXT' for c in serialized.columns])
@@ -81,15 +78,9 @@ class PostgresBuilder:
                 f.write("\t".join(escaped) + "\n")
 
             f.write("\\.\n\n")
-            f.write(
-                'CREATE INDEX IF NOT EXISTS "idx_cards_uuid" ON "cards" ("uuid");\n'
-            )
-            f.write(
-                'CREATE INDEX IF NOT EXISTS "idx_cards_name" ON "cards" ("name");\n'
-            )
-            f.write(
-                'CREATE INDEX IF NOT EXISTS "idx_cards_setCode" ON "cards" ("setCode");\n'
-            )
+            f.write('CREATE INDEX IF NOT EXISTS "idx_cards_uuid" ON "cards" ("uuid");\n')
+            f.write('CREATE INDEX IF NOT EXISTS "idx_cards_name" ON "cards" ("name");\n')
+            f.write('CREATE INDEX IF NOT EXISTS "idx_cards_setCode" ON "cards" ("setCode");\n')
             f.write("\nCOMMIT;\n")
 
         LOGGER.info(f"Wrote AllPrintings.psql ({len(serialized):,} rows)")

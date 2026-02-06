@@ -20,14 +20,7 @@ from .formats import (
 )
 
 # Type alias for all format builders
-FormatBuilder = (
-    JsonOutputBuilder
-    | SQLiteBuilder
-    | MySQLBuilder
-    | PostgresBuilder
-    | CSVBuilder
-    | ParquetBuilder
-)
+FormatBuilder = JsonOutputBuilder | SQLiteBuilder | MySQLBuilder | PostgresBuilder | CSVBuilder | ParquetBuilder
 
 
 if TYPE_CHECKING:
@@ -130,17 +123,12 @@ def assemble_json_outputs(
     valid_codes = [c for c in codes_to_build if c in assembly_ctx.set_meta]
 
     if parallel and len(valid_codes) > 1:
-        results["sets"] = _write_sets_parallel(
-            assembly_ctx, valid_codes, output_path, max_workers
-        )
+        results["sets"] = _write_sets_parallel(assembly_ctx, valid_codes, output_path, max_workers)
     else:
         results["sets"] = _write_sets_sequential(assembly_ctx, valid_codes, output_path)
 
     if sets_only:
-        LOGGER.info(
-            f"Sets-only mode: built {results.get('sets', 0)} set files, "
-            "skipping compiled outputs"
-        )
+        LOGGER.info(f"Sets-only mode: built {results.get('sets', 0)} set files, skipping compiled outputs")
         return results
 
     json_builder = JsonOutputBuilder(assembly_ctx)
@@ -154,9 +142,7 @@ def assemble_json_outputs(
         streaming=True,
     )
     results["AllPrintings"] = (
-        count
-        if isinstance(count, int)
-        else len(count.data)  # pylint: disable=no-member
+        count if isinstance(count, int) else len(count.data)  # pylint: disable=no-member
     )
 
     # Build AtomicCards.json
@@ -319,9 +305,7 @@ class UnifiedOutputWriter:
             LOGGER.error(f"Failed to write {format_type}: {e}")
             return None
 
-    def write_all(
-        self, formats: list[FormatType] | None = None
-    ) -> dict[str, Path | None]:
+    def write_all(self, formats: list[FormatType] | None = None) -> dict[str, Path | None]:
         """
         Write output in multiple formats.
 

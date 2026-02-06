@@ -76,9 +76,7 @@ class CardKingdomProvider(AbstractProvider):
         name = re.sub(" +", " ", name)
         return name.lower()
 
-    def generate_today_price_dict(
-        self, all_printings_path: pathlib.Path
-    ) -> dict[str, MtgjsonPricesObject]:
+    def generate_today_price_dict(self, all_printings_path: pathlib.Path) -> dict[str, MtgjsonPricesObject]:
         """
         Generate a single-day price structure for MTGO from CardHoarder
         :return MTGJSON prices single day structure
@@ -93,21 +91,15 @@ class CardKingdomProvider(AbstractProvider):
 
         # Then add in foil IDs
         card_kingdom_id_to_mtgjson.update(
-            generate_entity_mapping(
-                all_printings_path, ("identifiers", "cardKingdomFoilId"), ("uuid",)
-            )
+            generate_entity_mapping(all_printings_path, ("identifiers", "cardKingdomFoilId"), ("uuid",))
         )
 
         # Finally add etched IDs
         card_kingdom_id_to_mtgjson.update(
-            generate_entity_mapping(
-                all_printings_path, ("identifiers", "cardKingdomEtchedId"), ("uuid",)
-            )
+            generate_entity_mapping(all_printings_path, ("identifiers", "cardKingdomEtchedId"), ("uuid",))
         )
 
-        default_prices_obj = MtgjsonPricesObject(
-            "paper", "cardkingdom", self.today_date, "USD"
-        )
+        default_prices_obj = MtgjsonPricesObject("paper", "cardkingdom", self.today_date, "USD")
 
         LOGGER.info("Building CardKingdom buylist & retail data")
         return super().generic_generate_today_price_dict(
@@ -124,9 +116,7 @@ class CardKingdomProvider(AbstractProvider):
             buy_quantity_key="qty_buying",
         )
 
-    def update_sealed_urls(
-        self, sealed_products: list[MtgjsonSealedProductObject]
-    ) -> None:
+    def update_sealed_urls(self, sealed_products: list[MtgjsonSealedProductObject]) -> None:
         """
         Queries the CK sealed product API to add URLs to any sealed product with a
         Card Kingdom ID.
@@ -146,8 +136,6 @@ class CardKingdomProvider(AbstractProvider):
             for remote_product in api_data["data"]:
                 if str(remote_product["id"]) == product.identifiers.card_kingdom_id:
                     product.raw_purchase_urls["cardKingdom"] = (
-                        api_data["meta"]["base_url"]
-                        + remote_product["url"]
-                        + constants.CARD_KINGDOM_REFERRAL
+                        api_data["meta"]["base_url"] + remote_product["url"] + constants.CARD_KINGDOM_REFERRAL
                     )
                     break

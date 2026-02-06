@@ -27,9 +27,7 @@ class MtgjsonAtomicCardsObject(JsonObject):
         Initializer to build up the object
         """
         self.atomic_cards_dict = defaultdict(list)
-        self.iterate_all_cards(
-            MtgjsonStructuresObject().get_all_compiled_file_names(), cards_to_parse
-        )
+        self.iterate_all_cards(MtgjsonStructuresObject().get_all_compiled_file_names(), cards_to_parse)
 
     def iterate_all_cards(
         self,
@@ -59,9 +57,7 @@ class MtgjsonAtomicCardsObject(JsonObject):
 
             # Workaround for Dungeons so they can be included
             dungeons = [
-                token
-                for token in file_content.get("data", {}).get("tokens", [])
-                if token.get("type") == "Dungeon"
+                token for token in file_content.get("data", {}).get("tokens", []) if token.get("type") == "Dungeon"
             ]
             for dungeon in dungeons:
                 dungeon.update(
@@ -74,13 +70,9 @@ class MtgjsonAtomicCardsObject(JsonObject):
 
             valid_cards.extend(dungeons)
 
-            self.update_global_card_list(
-                file_content.get("data", {}).get("cards", []), valid_keys
-            )
+            self.update_global_card_list(file_content.get("data", {}).get("cards", []), valid_keys)
 
-    def update_global_card_list(
-        self, card_list: list[dict[str, Any]], valid_keys: list[str]
-    ) -> None:
+    def update_global_card_list(self, card_list: list[dict[str, Any]], valid_keys: list[str]) -> None:
         """
         Update the global registrar for each card in the card list, using
         only the valid_key attributes
@@ -97,9 +89,7 @@ class MtgjsonAtomicCardsObject(JsonObject):
             # Strip out non-atomic keys from identifiers
             # Only the Oracle ID is atomic
             if "scryfallOracleId" in atomic_card.get("identifiers", []):
-                atomic_card["identifiers"] = {
-                    "scryfallOracleId": atomic_card["identifiers"]["scryfallOracleId"]
-                }
+                atomic_card["identifiers"] = {"scryfallOracleId": atomic_card["identifiers"]["scryfallOracleId"]}
 
             for foreign_data in atomic_card.get("foreignData", {}):
                 foreign_data.pop("multiverseId", None)

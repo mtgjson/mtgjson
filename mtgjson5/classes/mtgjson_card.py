@@ -230,9 +230,7 @@ class MtgjsonCardObject(JsonObject):
         :param other: Other card
         :return: Same object or not
         """
-        return bool(
-            self.number == other.number and (self.side or "") == (other.side or "")
-        )
+        return bool(self.number == other.number and (self.side or "") == (other.side or ""))
 
     def __lt__(self, other: Any) -> bool:
         """
@@ -336,9 +334,7 @@ class MtgjsonCardObject(JsonObject):
             return
 
         if not self.__watermark_resource:
-            with constants.RESOURCE_PATH.joinpath("set_code_watermarks.json").open(
-                encoding="utf-8"
-            ) as f:
+            with constants.RESOURCE_PATH.joinpath("set_code_watermarks.json").open(encoding="utf-8") as f:
                 self.__watermark_resource = json.load(f)
 
         if watermark == "set":

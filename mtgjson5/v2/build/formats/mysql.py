@@ -15,7 +15,6 @@ from ..assemble import TableAssembler
 from ..serializers import escape_mysql, serialize_complex_types
 from .sqlite import TABLE_INDEXES
 
-
 if TYPE_CHECKING:
     from ..context import AssemblyContext
 
@@ -71,20 +70,14 @@ class MySQLBuilder:
                 "isForeignOnly": pl.Boolean,
                 "isPartialPreview": pl.Boolean,
             }
-            df = pl.DataFrame(
-                list(self.ctx.set_meta.values()), schema_overrides=schema_overrides
-            )
+            df = pl.DataFrame(list(self.ctx.set_meta.values()), schema_overrides=schema_overrides)
             if "type" in df.columns:
-                is_traditional_token = (
-                    (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
-                )
+                is_traditional_token = (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
                 df = df.filter(~is_traditional_token)
             return df
         return None
 
-    def write(
-        self, output_path: pathlib.Path | None = None
-    ) -> pathlib.Path | None:
+    def write(self, output_path: pathlib.Path | None = None) -> pathlib.Path | None:
         """Write MySQL text file (.sql).
 
         Creates MySQL-compatible SQL with:
@@ -113,10 +106,7 @@ class MySQLBuilder:
         tables["meta"] = pl.DataFrame({"date": [meta.date], "version": [meta.version]})
 
         with open(output_path, "w", encoding="utf-8") as f:
-            f.write(
-                f"-- MTGSQLive Output File\n"
-                f"-- Generated: {datetime.now().strftime('%Y-%m-%d')}\n"
-            )
+            f.write(f"-- MTGSQLive Output File\n-- Generated: {datetime.now().strftime('%Y-%m-%d')}\n")
             f.write("SET names 'utf8mb4';\n")
             f.write("START TRANSACTION;\n\n")
 
@@ -141,16 +131,11 @@ class MySQLBuilder:
                 col_names = ", ".join([f"`{c}`" for c in serialized.columns])
                 for row in serialized.rows():
                     values = ", ".join(escape_mysql(v) for v in row)
-                    f.write(
-                        f"INSERT INTO `{table_name}` ({col_names}) VALUES ({values});\n"
-                    )
+                    f.write(f"INSERT INTO `{table_name}` ({col_names}) VALUES ({values});\n")
 
                 if table_name in TABLE_INDEXES:
                     for idx_name, col in TABLE_INDEXES[table_name]:
-                        f.write(
-                            f"CREATE INDEX `idx_{table_name}_{idx_name}` "
-                            f"ON `{table_name}` (`{col}`);\n"
-                        )
+                        f.write(f"CREATE INDEX `idx_{table_name}_{idx_name}` ON `{table_name}` (`{col}`);\n")
                 f.write("\n")
             f.write("COMMIT;\n")
 

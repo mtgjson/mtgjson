@@ -17,7 +17,6 @@ from mtgjson5.classes import MtgjsonMetaObject
 from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.utils import LOGGER
 
-
 if TYPE_CHECKING:
     from mtgjson5.v2.data import PipelineContext
 
@@ -51,9 +50,7 @@ class AssemblyContext:
     sealed_df: pl.DataFrame | None = None
     booster_configs: dict[str, dict[str, Any]] = field(default_factory=dict)
     token_products: dict[str, list] = field(default_factory=dict)
-    output_path: pathlib.Path = field(
-        default_factory=lambda: MtgjsonConfig().output_path
-    )
+    output_path: pathlib.Path = field(default_factory=lambda: MtgjsonConfig().output_path)
     pretty: bool = False
     # Scryfall catalog data (loaded in GlobalCache, passed through for assemblers)
     keyword_data: dict[str, list[str]] = field(default_factory=dict)
@@ -104,9 +101,7 @@ class AssemblyContext:
             if card_path.exists():
                 card_df = pl.read_parquet(card_path / "*.parquet")
                 if "isRebalanced" in card_df.columns:
-                    card_df = card_df.filter(
-                        ~pl.col("isRebalanced").fill_null(False)
-                    )
+                    card_df = card_df.filter(~pl.col("isRebalanced").fill_null(False))
                 # Count unique collector numbers to avoid double-counting
                 # faces of split/transform/modal_dfc cards
                 if "number" in card_df.columns:
@@ -121,11 +116,7 @@ class AssemblyContext:
             # S/F prefixes identify special token sets:
             # S = Substitute/special token sets (e.g., SBRO, SMKM)
             # F = Japanese promo token sets (e.g., F18, F20)
-            if (
-                parent_code
-                and (code.startswith("S") or code.startswith("F"))
-                and set_type in ("token", "memorabilia")
-            ):
+            if parent_code and (code.startswith(("S", "F"))) and set_type in ("token", "memorabilia"):
                 meta["tokenSetCode"] = code
             else:
                 safe_t_code = get_windows_safe_set_code(f"T{code}")
@@ -168,9 +159,7 @@ class AssemblyContext:
                 uuids = tp_df["uuid"].to_list()
                 raw_products = tp_df["tokenProducts"].to_list()
                 token_products = {
-                    uuid: json.loads(raw)
-                    for uuid, raw in zip(uuids, raw_products)
-                    if uuid and raw
+                    uuid: json.loads(raw) for uuid, raw in zip(uuids, raw_products, strict=False) if uuid and raw
                 }
 
         meta_obj = MtgjsonMetaObject()
@@ -206,9 +195,7 @@ class AssemblyContext:
         )
 
     @classmethod
-    def from_cache(
-        cls, cache_dir: pathlib.Path | None = None
-    ) -> AssemblyContext | None:
+    def from_cache(cls, cache_dir: pathlib.Path | None = None) -> AssemblyContext | None:
         """Load AssemblyContext from cached files (fast path).
 
         Returns None if cache files don't exist.
@@ -241,18 +228,14 @@ class AssemblyContext:
         if boosters_path.exists():
             booster_configs = orjson.loads(boosters_path.read_bytes())
         LOGGER.info("Loaded assembly cache.")
-        LOGGER.debug(
-            f"Loaded cached booster configurations for {len(booster_configs)} sets."
-        )
+        LOGGER.debug(f"Loaded cached booster configurations for {len(booster_configs)} sets.")
 
         # Load decks DataFrame
         decks_df: pl.DataFrame | None = None
         if decks_path.exists():
             decks_df = pl.read_parquet(decks_path)
         LOGGER.info("Loading cached deck data...")
-        LOGGER.debug(
-            f"Loaded cached decks DataFrame with {len(decks_df) if decks_df is not None else 0} rows."
-        )
+        LOGGER.debug(f"Loaded cached decks DataFrame with {len(decks_df) if decks_df is not None else 0} rows.")
 
         # Load sealed products DataFrame
         sealed_df: pl.DataFrame | None = None
@@ -323,50 +306,38 @@ class AssemblyContext:
         cleaned_meta: dict[str, Any] = {}
         for code, meta in self.set_meta.items():
             cleaned_meta[code] = {
-                k: v
-                for k, v in meta.items()
-                if v is not None and not isinstance(v, pl.DataFrame | pl.LazyFrame)
+                k: v for k, v in meta.items() if v is not None and not isinstance(v, pl.DataFrame | pl.LazyFrame)
             }
         set_meta_path.write_bytes(orjson.dumps(cleaned_meta))
         LOGGER.info("Saved set metadata to assembly cache.")
-        LOGGER.debug(
-            f"Saved cached set metadata for {len(cleaned_meta)} sets to {set_meta_path}"
-        )
+        LOGGER.debug(f"Saved cached set metadata for {len(cleaned_meta)} sets to {set_meta_path}")
 
         # Save booster configs
         boosters_path = cache_dir / CACHE_BOOSTER_CONFIGS
         boosters_path.write_bytes(orjson.dumps(self.booster_configs))
         LOGGER.info("Saved booster configurations to assembly cache.")
-        LOGGER.debug(
-            f"Saved cached booster configurations for {len(self.booster_configs)} sets to {boosters_path}"
-        )
+        LOGGER.debug(f"Saved cached booster configurations for {len(self.booster_configs)} sets to {boosters_path}")
 
         # Save decks DataFrame
         if self.decks_df is not None and len(self.decks_df) > 0:
             decks_path = cache_dir / CACHE_DECKS
             self.decks_df.write_parquet(decks_path)
             LOGGER.info("Saved decks DataFrame to assembly cache.")
-            LOGGER.debug(
-                f"Saved cached decks DataFrame with {len(self.decks_df)} rows to {decks_path}"
-            )
+            LOGGER.debug(f"Saved cached decks DataFrame with {len(self.decks_df)} rows to {decks_path}")
 
         # Save sealed products DataFrame
         if self.sealed_df is not None and len(self.sealed_df) > 0:
             sealed_path = cache_dir / CACHE_SEALED
             self.sealed_df.write_parquet(sealed_path)
             LOGGER.info("Saved sealed products DataFrame to assembly cache.")
-            LOGGER.debug(
-                f"Saved cached sealed products DataFrame with {len(self.sealed_df)} rows to {sealed_path}"
-            )
+            LOGGER.debug(f"Saved cached sealed products DataFrame with {len(self.sealed_df)} rows to {sealed_path}")
 
         # Save token products
         if self.token_products:
             token_products_path = cache_dir / CACHE_TOKEN_PRODUCTS
             token_products_path.write_bytes(orjson.dumps(self.token_products))
             LOGGER.info("Saved token products to assembly cache.")
-            LOGGER.debug(
-                f"Saved cached token products for {len(self.token_products)} tokens to {token_products_path}"
-            )
+            LOGGER.debug(f"Saved cached token products for {len(self.token_products)} tokens to {token_products_path}")
 
         LOGGER.info("Assembly cache saved successfully.")
 
