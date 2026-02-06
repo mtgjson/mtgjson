@@ -239,18 +239,19 @@ dummy-variables-rgx = "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)"
 # --- tox ---
 
 [tool.tox]
-env_list = ["format", "lint", "mypy", "unit"]
+env_list = ["format-check", "lint", "mypy", "unit"]  # default (CI)
+labels = { dev = ["format", "lint", "mypy", "unit"] }  # local development
 
 [tool.tox.env_run_base]
 set_env = { PYTHONPATH = "{toxinidir}" }
 extras = ["dev"]
 
 [tool.tox.env.format]
-description = "Format code and sort imports"
+description = "Format code and sort imports (auto-fix)"
 commands = [["ruff", "format", "mtgjson5/"], ["ruff", "check", "--fix", "--select", "I", "mtgjson5/"]]
 
 [tool.tox.env.format-check]
-description = "Check formatting and import sorting"
+description = "Check formatting and import sorting (fails if unformatted)"
 commands = [["ruff", "format", "--check", "mtgjson5/"], ["ruff", "check", "--select", "I", "mtgjson5/"]]
 
 [tool.tox.env.mypy]
