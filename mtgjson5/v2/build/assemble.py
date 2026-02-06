@@ -89,6 +89,9 @@ class Assembler:
         1. tokenSetCode from set metadata (if specified)
         2. T{code} (standard token set prefix)
         3. {code} itself (for sets like WC00 where tokens share the set code)
+
+        Remaps the token setCode to the parent set code so tokens
+        reference an actual MTGJSON set (e.g. TZNR -> ZNR).
         """
         from mtgjson5.v2.utils import get_windows_safe_set_code
 
@@ -106,7 +109,11 @@ class Assembler:
             safe_code = get_windows_safe_set_code(token_code)
             path = self.ctx.tokens_dir / f"setCode={safe_code}"
             if path.exists():
-                return pl.read_parquet(path / "*.parquet")
+                df = pl.read_parquet(path / "*.parquet")
+                # Remap token setCode to the parent set code
+                if "setCode" in df.columns and token_code != code:
+                    df = df.with_columns(pl.lit(code).alias("setCode"))
+                return df
 
         return pl.DataFrame()
 
