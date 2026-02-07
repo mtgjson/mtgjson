@@ -1660,23 +1660,16 @@ def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
 
 
 # 4.4: add token UUIDs to non-token cards
-def add_token_ids(lf: pl.LazyFrame, scryfall_to_uuids: dict[str, list[str]]) -> pl.LazyFrame:
+def add_token_ids(lf: pl.LazyFrame, scryfall_uuid_lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Resolve token Scryfall IDs from _all_parts to MTGJSON UUIDs.
 
-    For each card, finds allParts entries with component == "token",
-    extracts their Scryfall IDs, and resolves to MTGJSON UUIDs using a
-    pre-built lookup dict (avoids memory-heavy self-joins).
+    Uses explode-join-aggregate pattern: extracts token scryfall IDs,
+    explodes to one row per ID, joins with the scryfall->uuid mapping,
+    then aggregates back to a list per card.
     """
-
-    def _resolve_token_uuids(scryfall_ids: list[str]) -> list[str]:
-        uuids: set[str] = set()
-        for sid in scryfall_ids:
-            uuids.update(scryfall_to_uuids.get(sid, []))
-        return sorted(uuids)
-
     # Extract token Scryfall IDs from _all_parts where component == "token"
-    lf = lf.with_columns(
+    with_token_ids = lf.with_columns(
         pl.col("_all_parts")
         .list.eval(
             pl.when(pl.element().struct.field("component") == "token")
@@ -1687,12 +1680,29 @@ def add_token_ids(lf: pl.LazyFrame, scryfall_to_uuids: dict[str, list[str]]) -> 
         .alias("_token_scryfall_ids")
     )
 
-    # Resolve Scryfall IDs to MTGJSON UUIDs via dict lookup
-    return lf.with_columns(
-        pl.col("_token_scryfall_ids")
-        .map_elements(_resolve_token_uuids, return_dtype=pl.List(pl.String))
-        .alias("_token_uuids")
-    ).drop(["_all_parts", "_token_scryfall_ids"], strict=False)
+    # Explode to one row per token scryfall ID, join to resolve uuids, aggregate back
+    resolved = (
+        with_token_ids.select(["uuid", "_token_scryfall_ids"])
+        .explode("_token_scryfall_ids")
+        .filter(pl.col("_token_scryfall_ids").is_not_null())
+        .join(
+            scryfall_uuid_lf.select(
+                pl.col("scryfallId").alias("_token_scryfall_ids"),
+                pl.col("uuid").alias("_resolved_uuid"),
+            ),
+            on="_token_scryfall_ids",
+            how="inner",
+        )
+        .group_by("uuid")
+        .agg(pl.col("_resolved_uuid").sort().alias("_token_uuids"))
+    )
+
+    # Join resolved tokens back to main frame
+    return (
+        with_token_ids.join(resolved, on="uuid", how="left")
+        .with_columns(pl.col("_token_uuids").fill_null([]))
+        .drop(["_all_parts", "_token_scryfall_ids"], strict=False)
+    )
 
 
 # 4.5: add_alternative_deck_limit
@@ -3121,7 +3131,17 @@ def add_related_cards_from_context(
                 tokens=pl.col("_token_uuids"),
             )
         )
-        .otherwise(pl.lit(None))
+        .otherwise(
+            pl.lit(None).cast(
+                pl.Struct(
+                    {
+                        "spellbook": pl.List(pl.String),
+                        "reverseRelated": pl.List(pl.String),
+                        "tokens": pl.List(pl.String),
+                    }
+                )
+            )
+        )
         .alias("relatedCards")
     ).drop(["_spellbook_list", "_token_uuids"], strict=False)
 
@@ -3310,22 +3330,18 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
     lf = lf.pipe(partial(join_gatherer_data, ctx=ctx))
 
     LOGGER.info("Checkpoint: materializing before relationship operations...")
-    df = lf.collect()
+    lf = lf.collect().lazy()
 
-    # Build lightweight scryfallId → [uuid] lookup for token resolution
-    scryfall_to_uuids: dict[str, list[str]] = {}
-    for sid, uuid in df.select(["scryfallId", "uuid"]).iter_rows():
-        scryfall_to_uuids.setdefault(sid, []).append(uuid)
+    # Derive scryfallId → uuid mapping once for token resolution
+    scryfall_uuid_lf = lf.select(["scryfallId", "uuid"])
 
-    lf = df.lazy()
-    del df
     LOGGER.info("  Checkpoint complete")
 
     lf = (
         lf.pipe(partial(add_other_face_ids, ctx=ctx))
         .pipe(partial(add_leadership_skills_expr, ctx=ctx))
         .pipe(add_reverse_related)
-        .pipe(partial(add_token_ids, scryfall_to_uuids=scryfall_to_uuids))
+        .pipe(partial(add_token_ids, scryfall_uuid_lf=scryfall_uuid_lf))
         .pipe(propagate_salt_to_tokens)
         .pipe(partial(add_related_cards_from_context, _ctx=ctx))
         .pipe(partial(add_alternative_deck_limit, ctx=ctx))
