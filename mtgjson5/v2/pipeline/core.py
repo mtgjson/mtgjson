@@ -1649,14 +1649,26 @@ def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Compute reverseRelated for tokens from all_parts.
     """
-    return lf.with_columns(
-        pl.col("_all_parts")
-        .list.eval(pl.element().struct.field("name"))
-        .list.set_difference(pl.col("name").cast(pl.List(pl.String)))
-        .list.sort()
-        .fill_null([])
-        .alias("reverseRelated")
-    ).drop("_all_parts")
+    # Extract IDs and names from _all_parts into parallel lists
+    with_extracted = lf.with_columns(
+        pl.col("_all_parts").list.eval(pl.element().struct.field("id")).alias("_part_ids"),
+        pl.col("_all_parts").list.eval(pl.element().struct.field("name")).alias("_part_names"),
+    )
+
+    # Explode, filter out self, aggregate names back
+    exploded = (
+        with_extracted.select(["uuid", "scryfallId", "_part_ids", "_part_names"])
+        .explode(["_part_ids", "_part_names"])
+        .filter(pl.col("_part_ids").is_not_null() & (pl.col("_part_ids") != pl.col("scryfallId")))
+        .group_by("uuid")
+        .agg(pl.col("_part_names").unique().sort().alias("reverseRelated"))
+    )
+
+    return (
+        lf.join(exploded, on="uuid", how="left")
+        .with_columns(pl.col("reverseRelated").fill_null([]))
+        .drop("_all_parts", strict=False)
+    )
 
 
 # 4.5: add_alternative_deck_limit
