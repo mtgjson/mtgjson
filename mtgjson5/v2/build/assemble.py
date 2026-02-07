@@ -316,7 +316,7 @@ class AtomicCardsAssembler(Assembler):
         df = df.unique(
             subset=["name", "faceName", "colorIdentity", "manaCost", "type", "text"],
             keep="first",
-        ).sort("name")
+        ).sort(["name", "side"])
         if extra_cols:
             df = df.drop(extra_cols)
 
