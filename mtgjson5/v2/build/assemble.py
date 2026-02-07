@@ -835,6 +835,27 @@ class TcgplayerSkusAssembler(Assembler):
 
                 self._add_skus_to_result(etched_joined, result, is_etched=True)
 
+        # Join sealed product UUIDs
+        if self.ctx.sealed_df is not None and not self.ctx.sealed_df.is_empty():
+            sealed_df = self.ctx.sealed_df
+            if "identifiers" in sealed_df.columns:
+                sealed_tcg_map = (
+                    sealed_df.select(
+                        pl.col("uuid"),
+                        pl.col("identifiers").struct.field("tcgplayerProductId").alias("tcgplayerProductId"),
+                    )
+                    .filter(pl.col("tcgplayerProductId").is_not_null())
+                    .with_columns(pl.col("tcgplayerProductId").cast(pl.Int64).alias("productId_join"))
+                )
+                if len(sealed_tcg_map) > 0:
+                    sealed_joined = flattened.join(
+                        sealed_tcg_map.select(["productId_join", "uuid"]),
+                        left_on="productId",
+                        right_on="productId_join",
+                        how="inner",
+                    )
+                    self._add_skus_to_result(sealed_joined, result, is_etched=False)
+
         LOGGER.info(f"Built TcgplayerSkus with {len(result)} UUIDs")
         return result
 

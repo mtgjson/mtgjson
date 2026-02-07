@@ -31,6 +31,23 @@ ENGLISH_LANGUAGE = 1
 NON_FOIL_PRINTING = 1
 FOIL_PRINTING = 2
 
+SEALED_PRODUCT_TYPES = [
+    "Booster Box",
+    "Booster Pack",
+    "Sealed Products",
+    "Intro Pack",
+    "Fat Pack",
+    "Box Sets",
+    "Precon/Event Decks",
+    "Magic Deck Pack",
+    "Magic Booster Box Case",
+    "All 5 Intro Packs",
+    "Intro Pack Display",
+    "3x Magic Booster Packs",
+    "Booster Battle Pack",
+]
+ALL_PRODUCT_TYPES = ",".join(["Cards", *SEALED_PRODUCT_TYPES])
+
 ProgressCallback = Callable[[int, int, str], None]
 
 
@@ -171,9 +188,9 @@ class TcgPlayerClient:
             endpoint += "&includeSkus=true"
         return await self._get(endpoint, versioned=False)
 
-    async def get_total_products(self) -> int:
-        """Get total count of Magic card products."""
-        resp = await self.get_products_page(offset=0, limit=1, include_skus=False)
+    async def get_total_products(self, product_types: str = "Cards") -> int:
+        """Get total count of Magic products for the given product types."""
+        resp = await self.get_products_page(product_types=product_types, offset=0, limit=1, include_skus=False)
         total_items = resp.get("totalItems", 0)
         return int(total_items) if isinstance(total_items, (int, float)) else 0
 
@@ -195,12 +212,14 @@ class TCGProvider:
         configs: list[TcgPlayerConfig] | None = None,
         on_progress: ProgressCallback | None = None,
         flush_threshold: int = 50_000,
+        product_types: str | None = None,
     ):
         self.output_path = output_path or (constants.CACHE_PATH / "tcg_skus.parquet")
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         self.configs = configs or TcgPlayerConfig.load_all()
         self.on_progress = on_progress
         self.flush_threshold = flush_threshold
+        self.product_types = product_types or ALL_PRODUCT_TYPES
 
     async def fetch_all_products(self) -> pl.LazyFrame:
         """
@@ -246,7 +265,7 @@ class TCGProvider:
                 return pl.scan_parquet(self.output_path)
 
             # Get total count using first client
-            total_items = await clients[0].get_total_products()
+            total_items = await clients[0].get_total_products(product_types=self.product_types)
 
             if total_items == 0:
                 LOGGER.info("No TCGPlayer products found")
@@ -296,7 +315,11 @@ class TCGProvider:
             async with TcgPlayerClient(config) as client:
                 for offset in client_offsets:
                     try:
-                        resp = await client.get_products_page(offset=offset, include_skus=True)
+                        resp = await client.get_products_page(
+                            offset=offset,
+                            include_skus=True,
+                            product_types=self.product_types,
+                        )
                         products_raw = resp.get("results", [])
                         products = products_raw if isinstance(products_raw, list) else []
                         page_products = [
@@ -389,7 +412,11 @@ class TCGProvider:
             nonlocal completed, buffer
             async with semaphore:
                 try:
-                    resp = await client.get_products_page(offset=offset, include_skus=True)
+                    resp = await client.get_products_page(
+                        offset=offset,
+                        include_skus=True,
+                        product_types=self.product_types,
+                    )
                     products_raw = resp.get("results", [])
                     products = products_raw if isinstance(products_raw, list) else []
                     page_products = [
