@@ -338,12 +338,24 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
         return cls(meta=meta, data=data)  # type: ignore[call-arg]
 
     def write(self, path: pathlib.Path, pretty: bool = False) -> None:
-        """Write to JSON file."""
+        """Write to JSON file with meta before data."""
         if not POLARS_AVAILABLE or orjson is None:
             raise ImportError("orjson required")
-        opts = orjson.OPT_SORT_KEYS | (orjson.OPT_INDENT_2 if pretty else 0)
+        inner_opts = orjson.OPT_SORT_KEYS | (orjson.OPT_INDENT_2 if pretty else 0)
+        full = self.model_dump(by_alias=True, exclude_none=True)
+        meta = full.pop("meta", {})
+        data = full.pop("data", {})
         with path.open("wb") as f:
-            f.write(orjson.dumps(self.model_dump(by_alias=True, exclude_none=True), option=opts))
+            f.write(b'{"meta":')
+            f.write(orjson.dumps(meta, option=inner_opts))
+            f.write(b',"data":')
+            f.write(orjson.dumps(data, option=inner_opts))
+            for key in sorted(full.keys()):
+                f.write(b',"')
+                f.write(key.encode())
+                f.write(b'":')
+                f.write(orjson.dumps(full[key], option=inner_opts))
+            f.write(b'}')
 
     @classmethod
     def read(cls, path: pathlib.Path) -> MtgjsonFileBase:
