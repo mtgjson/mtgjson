@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 
 ATOMIC_IDENTIFIERS = frozenset({"scryfallOracleId"})
 
+EXTRA_SORT_COLS = ["isOversized", "isPromo", "isOnlineOnly"]
+
 
 def compute_format_legal_sets(
     ctx: AssemblyContext,
@@ -291,8 +293,7 @@ class AtomicCardsAssembler(Assembler):
             select_cols.append("name")
 
         # Temporarily include printing-level columns for sort preference
-        _EXTRA_SORT_COLS = ["isOversized", "isPromo", "isOnlineOnly"]
-        extra_cols = [c for c in _EXTRA_SORT_COLS if c in available and c not in select_cols]
+        extra_cols = [c for c in EXTRA_SORT_COLS if c in available and c not in select_cols]
         select_with_extras = select_cols + extra_cols
 
         # Build sort expressions: prefer non-oversized, non-funny, non-promo, side="a",
@@ -300,7 +301,7 @@ class AtomicCardsAssembler(Assembler):
         sort_exprs = []
         if "isFunny" in available:
             sort_exprs.append(pl.col("isFunny").fill_null(False))
-        for col_name in _EXTRA_SORT_COLS:
+        for col_name in EXTRA_SORT_COLS:
             if col_name in available:
                 sort_exprs.append(pl.col(col_name).fill_null(False))
         if "legalities" in available:
@@ -312,13 +313,10 @@ class AtomicCardsAssembler(Assembler):
         if sort_exprs:
             df = df.sort(sort_exprs)
 
-        df = (
-            df.unique(
-                subset=["name", "faceName", "colorIdentity", "manaCost", "type", "text"],
-                keep="first",
-            )
-            .sort("name")
-        )
+        df = df.unique(
+            subset=["name", "faceName", "colorIdentity", "manaCost", "type", "text"],
+            keep="first",
+        ).sort("name")
         if extra_cols:
             df = df.drop(extra_cols)
 
@@ -339,9 +337,7 @@ class AtomicCardsAssembler(Assembler):
             # Strip printing-specific identifiers
             identifiers = row.get("identifiers")
             if isinstance(identifiers, dict):
-                row["identifiers"] = {
-                    k: v for k, v in identifiers.items() if k in ATOMIC_IDENTIFIERS
-                }
+                row["identifiers"] = {k: v for k, v in identifiers.items() if k in ATOMIC_IDENTIFIERS}
 
             # Strip None values from nested structs before validation
             cleaned = self._strip_none_recursive(row)
