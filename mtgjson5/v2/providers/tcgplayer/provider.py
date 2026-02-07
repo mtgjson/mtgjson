@@ -46,7 +46,7 @@ SEALED_PRODUCT_TYPES = [
     "3x Magic Booster Packs",
     "Booster Battle Pack",
 ]
-ALL_PRODUCT_TYPES = ",".join(["Cards"] + SEALED_PRODUCT_TYPES)
+ALL_PRODUCT_TYPES = ",".join(["Cards", *SEALED_PRODUCT_TYPES])
 
 ProgressCallback = Callable[[int, int, str], None]
 
@@ -316,7 +316,9 @@ class TCGProvider:
                 for offset in client_offsets:
                     try:
                         resp = await client.get_products_page(
-                            offset=offset, include_skus=True, product_types=self.product_types
+                            offset=offset,
+                            include_skus=True,
+                            product_types=self.product_types,
                         )
                         products_raw = resp.get("results", [])
                         products = products_raw if isinstance(products_raw, list) else []
@@ -411,7 +413,9 @@ class TCGProvider:
             async with semaphore:
                 try:
                     resp = await client.get_products_page(
-                        offset=offset, include_skus=True, product_types=self.product_types
+                        offset=offset,
+                        include_skus=True,
+                        product_types=self.product_types,
                     )
                     products_raw = resp.get("results", [])
                     products = products_raw if isinstance(products_raw, list) else []

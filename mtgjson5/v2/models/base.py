@@ -355,7 +355,7 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
                 f.write(key.encode())
                 f.write(b'":')
                 f.write(orjson.dumps(full[key], option=inner_opts))
-            f.write(b'}')
+            f.write(b"}")
 
     @classmethod
     def read(cls, path: pathlib.Path) -> MtgjsonFileBase:
