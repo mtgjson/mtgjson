@@ -911,12 +911,15 @@ class TableAssembler:
         from .serializers import serialize_complex_types
 
         tables: dict[str, pl.DataFrame] = {}
+
+        # Deduplicate by UUID upfront so all normalized tables are consistent
+        cards_df = cards_df.unique(subset=["uuid"])
         schema = cards_df.schema
 
         # Select card columns, excluding normalized and non-CDN fields
         cards_cols = [c for c in cards_df.columns if c not in CARDS_TABLE_EXCLUDE and not c.startswith("_")]
 
-        cards_for_export = cards_df.select(cards_cols).unique(subset=["uuid"])
+        cards_for_export = cards_df.select(cards_cols)
         tables["cards"] = serialize_complex_types(cards_for_export)
 
         # cardIdentifiers - unnest struct
