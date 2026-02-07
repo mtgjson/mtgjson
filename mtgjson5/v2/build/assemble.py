@@ -18,6 +18,10 @@ from mtgjson5.v2.models.sets import SealedProduct
 if TYPE_CHECKING:
     from .context import AssemblyContext
 
+ATOMIC_IDENTIFIERS = frozenset({"scryfallOracleId"})
+
+EXTRA_SORT_COLS = ["isOversized", "isPromo", "isOnlineOnly"]
+
 
 def compute_format_legal_sets(
     ctx: AssemblyContext,
@@ -272,7 +276,12 @@ class AtomicCardsAssembler(Assembler):
         return obj
 
     def iter_atomic(self) -> Iterator[tuple[str, list[dict[str, Any]]]]:
-        """Iterate over atomic cards grouped by name."""
+        """Iterate over atomic cards grouped by name.
+
+        Sorts before dedup to prefer canonical printings (non-oversized,
+        non-funny, non-promo, side "a") and strips printing-specific
+        identifiers so only scryfallOracleId remains.
+        """
         atomic_schema = CardAtomic.polars_schema()
         atomic_fields = set(atomic_schema.keys())
 
@@ -283,17 +292,40 @@ class AtomicCardsAssembler(Assembler):
         if "name" not in select_cols:
             select_cols.append("name")
 
-        df = (
-            lf.select(select_cols)
-            .unique(subset=["name", "faceName", "colorIdentity", "manaCost", "type", "text"])
-            .sort("name")
-            .collect()
-        )
+        # Temporarily include printing-level columns for sort preference
+        extra_cols = [c for c in EXTRA_SORT_COLS if c in available and c not in select_cols]
+        select_with_extras = select_cols + extra_cols
+
+        # Build sort expressions: prefer non-oversized, non-funny, non-promo, side="a",
+        # and prefer printings that have actual legalities over those with all-null
+        sort_exprs = []
+        if "isFunny" in available:
+            sort_exprs.append(pl.col("isFunny").fill_null(False))
+        for col_name in EXTRA_SORT_COLS:
+            if col_name in available:
+                sort_exprs.append(pl.col(col_name).fill_null(False))
+        if "legalities" in available:
+            sort_exprs.append(pl.col("legalities").struct.field("vintage").is_null())
+        if "side" in available:
+            sort_exprs.append(pl.col("side").fill_null(""))
+
+        df = lf.select(select_with_extras)
+        if sort_exprs:
+            df = df.sort(sort_exprs)
+
+        df = df.unique(
+            subset=["name", "faceName", "colorIdentity", "manaCost", "type", "text"],
+            keep="first",
+        ).sort("name")
+        if extra_cols:
+            df = df.drop(extra_cols)
+
+        collected = df.collect()
 
         current_name: str | None = None
         current_cards: list[dict[str, Any]] = []
 
-        for row in df.to_dicts():
+        for row in collected.to_dicts():
             name = row.get("name", "")
 
             if name != current_name:
@@ -301,6 +333,11 @@ class AtomicCardsAssembler(Assembler):
                     yield current_name, current_cards
                 current_name = name
                 current_cards = []
+
+            # Strip printing-specific identifiers
+            identifiers = row.get("identifiers")
+            if isinstance(identifiers, dict):
+                row["identifiers"] = {k: v for k, v in identifiers.items() if k in ATOMIC_IDENTIFIERS}
 
             # Strip None values from nested structs before validation
             cleaned = self._strip_none_recursive(row)
