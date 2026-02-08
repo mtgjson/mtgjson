@@ -113,7 +113,10 @@ class Assembler:
 
     def load_all_cards(self) -> pl.LazyFrame:
         """Load all cards as LazyFrame."""
-        lf = pl.scan_parquet(self.ctx.parquet_dir / "**/*.parquet")
+        lf = pl.scan_parquet(
+            self.ctx.parquet_dir / "**/*.parquet",
+            cast_options=pl.ScanCastOptions(missing_struct_fields="insert"),
+        )
         return lf.unique(subset=["uuid"])
 
     def load_all_tokens(self) -> pl.LazyFrame:

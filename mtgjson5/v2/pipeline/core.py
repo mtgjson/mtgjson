@@ -1656,7 +1656,53 @@ def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
         .list.sort()
         .fill_null([])
         .alias("reverseRelated")
-    ).drop("_all_parts")
+    )
+
+
+# 4.4: add token UUIDs to non-token cards
+def add_token_ids(lf: pl.LazyFrame, scryfall_uuid_lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Resolve token Scryfall IDs from _all_parts to MTGJSON UUIDs.
+
+    Uses explode-join-aggregate pattern: extracts token scryfall IDs,
+    explodes to one row per ID, joins with the scryfall->uuid mapping,
+    then aggregates back to a list per card.
+    """
+    # Extract token Scryfall IDs from _all_parts where component == "token"
+    with_token_ids = lf.with_columns(
+        pl.col("_all_parts")
+        .list.eval(
+            pl.when(pl.element().struct.field("component") == "token")
+            .then(pl.element().struct.field("id"))
+            .otherwise(pl.lit(None))
+        )
+        .list.drop_nulls()
+        .alias("_token_scryfall_ids")
+    )
+
+    # Explode to one row per token scryfall ID, join to resolve uuids, aggregate back
+    resolved = (
+        with_token_ids.select(["uuid", "_token_scryfall_ids"])
+        .explode("_token_scryfall_ids")
+        .filter(pl.col("_token_scryfall_ids").is_not_null())
+        .join(
+            scryfall_uuid_lf.select(
+                pl.col("scryfallId").alias("_token_scryfall_ids"),
+                pl.col("uuid").alias("_resolved_uuid"),
+            ),
+            on="_token_scryfall_ids",
+            how="inner",
+        )
+        .group_by("uuid")
+        .agg(pl.col("_resolved_uuid").sort().alias("_token_uuids"))
+    )
+
+    # Join resolved tokens back to main frame
+    return (
+        with_token_ids.join(resolved, on="uuid", how="left")
+        .with_columns(pl.col("_token_uuids").fill_null([]))
+        .drop(["_all_parts", "_token_scryfall_ids"], strict=False)
+    )
 
 
 # 4.5: add_alternative_deck_limit
@@ -3062,27 +3108,42 @@ def add_related_cards_from_context(
     # Tokens get reverseRelated
     has_reverse = pl.col("reverseRelated").is_not_null() & (pl.col("reverseRelated").list.len() > 0)
 
+    # Non-tokens get token UUIDs
+    has_tokens = pl.col("_token_uuids").is_not_null() & (pl.col("_token_uuids").list.len() > 0)
+
     # Build struct based on what data is present
-    # For tokens: include both spellbook and reverseRelated
-    # For non-tokens: include spellbook only (if alchemy set)
+    # For tokens: include reverseRelated and spellbook
+    # For non-tokens: include spellbook (if alchemy) and tokens (if any)
     return lf.with_columns(
         pl.when(is_token & (has_spellbook | has_reverse))
         .then(
             pl.struct(
                 spellbook=pl.col("_spellbook_list"),
                 reverseRelated=pl.col("reverseRelated"),
+                tokens=pl.lit(None).cast(pl.List(pl.String)),
             )
         )
-        .when(~is_token & has_spellbook)
+        .when(~is_token & (has_spellbook | has_tokens))
         .then(
             pl.struct(
                 spellbook=pl.col("_spellbook_list"),
                 reverseRelated=pl.lit(None).cast(pl.List(pl.String)),
+                tokens=pl.col("_token_uuids"),
             )
         )
-        .otherwise(pl.lit(None))
+        .otherwise(
+            pl.lit(None).cast(
+                pl.Struct(
+                    {
+                        "spellbook": pl.List(pl.String),
+                        "reverseRelated": pl.List(pl.String),
+                        "tokens": pl.List(pl.String),
+                    }
+                )
+            )
+        )
         .alias("relatedCards")
-    ).drop("_spellbook_list", strict=False)
+    ).drop(["_spellbook_list", "_token_uuids"], strict=False)
 
 
 # 6.8:
@@ -3270,12 +3331,17 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
 
     LOGGER.info("Checkpoint: materializing before relationship operations...")
     lf = lf.collect().lazy()
+
+    # Derive scryfallId → uuid mapping once for token resolution
+    scryfall_uuid_lf = lf.select(["scryfallId", "uuid"])
+
     LOGGER.info("  Checkpoint complete")
 
     lf = (
         lf.pipe(partial(add_other_face_ids, ctx=ctx))
         .pipe(partial(add_leadership_skills_expr, ctx=ctx))
         .pipe(add_reverse_related)
+        .pipe(partial(add_token_ids, scryfall_uuid_lf=scryfall_uuid_lf))
         .pipe(propagate_salt_to_tokens)
         .pipe(partial(add_related_cards_from_context, _ctx=ctx))
         .pipe(partial(add_alternative_deck_limit, ctx=ctx))
