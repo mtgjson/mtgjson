@@ -1665,8 +1665,7 @@ def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
     )
 
     return (
-        lf.join(exploded, on="uuid", how="left")
-        .with_columns(pl.col("reverseRelated").fill_null([]))
+        lf.join(exploded, on="uuid", how="left").with_columns(pl.col("reverseRelated").fill_null([]))
         # Note: _all_parts is dropped by add_token_ids which runs after this
     )
 

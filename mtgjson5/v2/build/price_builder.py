@@ -1353,6 +1353,44 @@ class PolarsPriceBuilder:
 
         LOGGER.info(f"Wrote {path.name} ({len(prepared):,} rows)")
 
+    def write_prices_csv(self, df: pl.DataFrame, path: Path) -> None:
+        """Write price data as CSV matching v1 cardPrices.csv format.
+
+        Renames columns to match legacy format:
+        - finish -> cardFinish
+        - source -> gameAvailability
+        - provider -> priceProvider
+        - price_type -> providerListing
+        """
+        # Rename columns to match v1 format
+        column_renames = {
+            "finish": "cardFinish",
+            "source": "gameAvailability",
+            "provider": "priceProvider",
+            "price_type": "providerListing",
+        }
+
+        renamed = df.rename({k: v for k, v in column_renames.items() if k in df.columns})
+
+        # Reorder columns to match v1 format
+        v1_column_order = [
+            "cardFinish",
+            "currency",
+            "date",
+            "gameAvailability",
+            "price",
+            "priceProvider",
+            "providerListing",
+            "uuid",
+        ]
+
+        # Select columns in order, only including those that exist
+        available_cols = [c for c in v1_column_order if c in renamed.columns]
+        ordered = renamed.select(available_cols)
+
+        ordered.write_csv(path)
+        LOGGER.info(f"Wrote {path.name} ({len(ordered):,} rows)")
+
     def get_price_archive_from_s3(self) -> pl.LazyFrame:
         """
         Download price archive from S3 and convert to LazyFrame.
@@ -1614,6 +1652,12 @@ class PolarsPriceBuilder:
         self.write_prices_sqlite(today_df, output_path / "AllPricesToday.sqlite")
         self.write_prices_sql(today_df, output_path / "AllPricesToday.sql")
         self.write_prices_psql(today_df, output_path / "AllPricesToday.psql")
+
+        # Write CSV format for cardPrices (goes in csv/ directory with other CSVs)
+        csv_dir = output_path / "csv"
+        csv_dir.mkdir(parents=True, exist_ok=True)
+        LOGGER.info("Writing cardPrices.csv")
+        self.write_prices_csv(today_df, csv_dir / "cardPrices.csv")
 
         LOGGER.info("Price build complete")
         return all_prices_path, today_prices_path
