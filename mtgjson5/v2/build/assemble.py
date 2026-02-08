@@ -995,13 +995,25 @@ class TableAssembler:
 
             # setTranslations
             if "translations" in sets_schema and isinstance(sets_schema["translations"], pl.Struct):
-                trans_df = (
+                trans_wide = (
                     sets_df.select("code", "translations")
                     .filter(pl.col("translations").is_not_null())
                     .unnest("translations")
                 )
-                if len(trans_df) > 0:
-                    tables["setTranslations"] = trans_df
+                lang_cols = [c for c in trans_wide.columns if c != "code"]
+                if lang_cols:
+                    trans_df = (
+                        trans_wide.unpivot(
+                            index="code",
+                            on=lang_cols,
+                            variable_name="language",
+                            value_name="translation",
+                        )
+                        .filter(pl.col("translation").is_not_null())
+                        .sort("code", "language")
+                    )
+                    if len(trans_df) > 0:
+                        tables["setTranslations"] = trans_df
 
         return tables
 
