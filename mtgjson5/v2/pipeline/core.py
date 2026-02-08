@@ -29,6 +29,7 @@ from mtgjson5.v2.consts import (
     OTHER_OPTIONAL_FIELDS,
     REQUIRED_LIST_FIELDS,
     REQUIRED_SET_BOOL_FIELDS,
+    SCRYFALL_COLUMNS_TO_DROP,
     SORTED_LIST_FIELDS,
     SUPER_TYPES,
     TOKEN_LAYOUTS,
@@ -48,39 +49,6 @@ from mtgjson5.v2.pipeline.expressions import (
     sort_colors_wubrg_expr,
 )
 from mtgjson5.v2.pipeline.lookups import add_meld_other_face_ids, apply_meld_overrides
-
-# List of raw Scryfall columns to drop after transformation to MTGJSON format
-_SCRYFALL_COLUMNS_TO_DROP = [
-    "lang",  # -> language (via replace_strict)
-    "frame",  # -> frameVersion
-    "fullArt",  # -> isFullArt
-    "textless",  # -> isTextless
-    "oversized",  # -> isOversized
-    "promo",  # -> isPromo
-    "reprint",  # -> isReprint
-    "storySpotlight",  # -> isStorySpotlight
-    "reserved",  # -> isReserved
-    "digital",  # -> isOnlineOnly
-    "foil",  # dropped (finishes provides hasFoil)
-    "nonfoil",  # dropped (finishes provides hasNonFoil)
-    "cmc",  # -> manaValue
-    "typeLine",  # -> type (face-aware)
-    "oracleText",  # -> text (face-aware)
-    "printedTypeLine",  # -> printedType (face-aware)
-    "contentWarning",  # -> hasContentWarning
-    "handModifier",  # -> hand
-    "lifeModifier",  # -> life
-    "gameChanger",  # -> isGameChanger
-    "mcmId",  # intermediate column from CardMarket join
-    "mcmMetaId",  # intermediate column from CardMarket join
-    "illustrationId",  # -> identifiers.scryfallIllustrationId
-    "arenaId",  # -> identifiers.mtgArenaId
-    "mtgoId",  # -> identifiers.mtgoId
-    "mtgoFoilId",  # -> identifiers.mtgoFoilId
-    "tcgplayerId",  # -> identifiers.tcgplayerProductId
-    "tcgplayerEtchedId",  # -> identifiers.tcgplayerEtchedProductId
-    "_meld_face_name",  # temp column for meld card faceName assignment
-]
 
 _ASCII_REPLACEMENTS: dict[str, str] = {
     "Æ": "AE",
@@ -582,7 +550,7 @@ def drop_raw_scryfall_columns(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Drop all raw Scryfall columns after they've been transformed to MTGJSON format.
     """
-    return lf.drop(_SCRYFALL_COLUMNS_TO_DROP, strict=False)
+    return lf.drop(SCRYFALL_COLUMNS_TO_DROP, strict=False)
 
 
 def format_planeswalker_text(lf: pl.LazyFrame) -> pl.LazyFrame:
@@ -858,8 +826,6 @@ def add_card_attributes(lf: pl.LazyFrame) -> pl.LazyFrame:
         pl.col("artistIds").fill_null([]),
         pl.col("watermark"),
         order_finishes_expr("finishes").fill_null([]).alias("finishes"),
-        pl.col("finishes").list.contains("foil").fill_null(False).alias("hasFoil"),
-        pl.col("finishes").list.contains("nonfoil").fill_null(False).alias("hasNonFoil"),
         pl.col("contentWarning").alias("hasContentWarning"),
         (pl.col("setType") == "funny").alias("_is_funny_set"),
         pl.col("loyalty"),

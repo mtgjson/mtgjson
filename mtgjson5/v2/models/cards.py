@@ -242,8 +242,6 @@ class CardPrintingBase(CardBase):
     availability: list[str] = Field(default_factory=list)
     booster_types: list[str] | None = Field(default=None, alias="boosterTypes")
     finishes: list[str] = Field(default_factory=list)
-    has_foil: bool = Field(alias="hasFoil")
-    has_non_foil: bool = Field(alias="hasNonFoil")
     promo_types: list[str] | None = Field(default=None, alias="promoTypes")
 
     # Un-sets
