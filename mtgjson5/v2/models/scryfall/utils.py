@@ -223,14 +223,6 @@ def compute_availability(lf: LazyFrame) -> LazyFrame:
     return lf.with_columns(pl.col("games").alias("availability"))
 
 
-def compute_finishes_flags(lf: LazyFrame) -> LazyFrame:
-    """Compute hasFoil/hasNonFoil from finishes list."""
-    return lf.with_columns(
-        pl.col("finishes").list.contains("foil").alias("hasFoil"),
-        pl.col("finishes").list.contains("nonfoil").alias("hasNonFoil"),
-    )
-
-
 def parse_type_line(lf: LazyFrame) -> LazyFrame:
     """Parse type_line into supertypes, types, subtypes."""
     # Split on " — " for subtypes, then parse left side
@@ -268,7 +260,6 @@ def scryfall_to_mtgjson_pipeline(lf: LazyFrame) -> LazyFrame:
         # Boolean field renames
         .pipe(transform_boolean_fields)  # type: ignore[arg-type]
         # Computed fields
-        .pipe(compute_finishes_flags)
         .pipe(compute_availability)
         .pipe(compute_mana_value)
         .pipe(normalize_mana_cost)

@@ -155,8 +155,6 @@ ALLOW_IF_FALSEY: Final[frozenset[str]] = frozenset(
         "faceConvertedManaCost",
         "faceManaValue",
         "count",
-        "hasFoil",
-        "hasNonFoil",
         "isFoil",
         "isEtched",
     }
@@ -192,8 +190,8 @@ SCRYFALL_COLUMNS_TO_DROP = [
     "storySpotlight",  # -> isStorySpotlight
     "reserved",  # -> isReserved
     "digital",  # -> isOnlineOnly
-    "foil",  # dropped (finishes provides hasFoil)
-    "nonfoil",  # dropped (finishes provides hasNonFoil)
+    "foil",  # dropped (redundant with finishes)
+    "nonfoil",  # dropped (redundant with finishes)
     "cmc",  # -> manaValue
     "typeLine",  # -> type (face-aware)
     "oracleText",  # -> text (face-aware)
