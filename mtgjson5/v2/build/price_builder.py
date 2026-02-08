@@ -1317,10 +1317,8 @@ class PolarsPriceBuilder:
             f.write("SET names 'utf8mb4';\n")
             f.write("START TRANSACTION;\n\n")
 
-            cols = ",\n    ".join(
-                ["`id` INTEGER PRIMARY KEY AUTO_INCREMENT"] + list(self._PRICE_MYSQL_COLUMNS)
-            )
-            f.write(f"DROP TABLE IF EXISTS `prices`;\n")
+            cols = ",\n    ".join(["`id` INTEGER PRIMARY KEY AUTO_INCREMENT", *self._PRICE_MYSQL_COLUMNS])
+            f.write("DROP TABLE IF EXISTS `prices`;\n")
             f.write(f"CREATE TABLE `prices` (\n    {cols}\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n")
 
             col_names = ", ".join([f"`{c}`" for c in prepared.columns])
@@ -1340,7 +1338,9 @@ class PolarsPriceBuilder:
                 "    `version` TEXT\n"
                 ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n"
             )
-            f.write(f"INSERT INTO `meta` (`date`, `version`) VALUES ({escape_mysql(meta.date)}, {escape_mysql(meta.version)});\n")
+            f.write(
+                f"INSERT INTO `meta` (`date`, `version`) VALUES ({escape_mysql(meta.date)}, {escape_mysql(meta.version)});\n"
+            )
 
             f.write("\nCOMMIT;\n")
 
