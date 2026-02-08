@@ -44,7 +44,7 @@ def _polars_to_mysql_type(dtype: pl.DataType, table_name: str, col_name: str) ->
 
     if col_name in _MYSQL_BIGINT_COLUMNS:
         return "BIGINT"
-    
+
     if dtype.is_integer():
         return "INTEGER"
     if dtype.is_float():
