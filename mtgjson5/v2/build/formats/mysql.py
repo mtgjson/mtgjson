@@ -18,9 +18,33 @@ from .sqlite import TABLE_INDEXES
 if TYPE_CHECKING:
     from ..context import AssemblyContext
 
+# Indexed columns that need VARCHAR instead of TEXT for index creation
+_MYSQL_VARCHAR_OVERRIDES: dict[str, str] = {
+    "uuid": "VARCHAR(36) NOT NULL",
+    "cardUuid": "VARCHAR(36) NOT NULL",
+    "name": "VARCHAR(255) NOT NULL",
+    "setCode": "VARCHAR(6) NOT NULL",
+    "code": "VARCHAR(6) NOT NULL",
+    "language": "VARCHAR(25) NOT NULL",
+}
 
-def _polars_to_mysql_type(dtype: pl.DataType) -> str:
-    """Map Polars dtype to MySQL type."""
+# Integer columns that exceed MySQL INTEGER range and need BIGINT
+_MYSQL_BIGINT_COLUMNS: set[str] = {"sheetTotalWeight", "cardWeight"}
+
+
+def _polars_to_mysql_type(dtype: pl.DataType, table_name: str, col_name: str) -> str:
+    """Map Polars dtype to MySQL type, with compatibility overrides"""
+
+    table_indexes = TABLE_INDEXES.get(table_name, [])
+    indexed_cols = {col for _, col in table_indexes}
+    if col_name in indexed_cols:
+        override = _MYSQL_VARCHAR_OVERRIDES.get(col_name)
+        if override:
+            return override
+
+    if col_name in _MYSQL_BIGINT_COLUMNS:
+        return "BIGINT"
+    
     if dtype.is_integer():
         return "INTEGER"
     if dtype.is_float():
@@ -119,7 +143,7 @@ class MySQLBuilder:
                 schema = serialized.schema
                 col_defs = []
                 for c in serialized.columns:
-                    col_defs.append(f"    `{c}` {_polars_to_mysql_type(schema[c])}")
+                    col_defs.append(f"    `{c}` {_polars_to_mysql_type(schema[c], table_name, c)}")
 
                 cols_str = ",\n".join(col_defs)
                 f.write(
