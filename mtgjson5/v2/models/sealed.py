@@ -39,6 +39,7 @@ class SealedProduct(PolarsMixin, BaseModel):
     uuid: str
     name: str
     category: str | None = None
+    set_code: str | None = Field(default=None, alias="setCode")
     subtype: str | None = None
     language: str | None = None
     release_date: str | None = Field(default=None, alias="releaseDate")
