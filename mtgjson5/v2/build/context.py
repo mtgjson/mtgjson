@@ -78,13 +78,27 @@ class AssemblyContext:
             tcg_overrides = ctx._cache.tcgplayer_set_id_overrides
             keyrune_overrides = ctx._cache.keyrune_code_overrides
             base_set_sizes = ctx._cache.base_set_sizes
+            # Use a consistent schema for translations so Polars infers
+            # Struct fields even when the first sets have no translations.
+            empty_translations = {
+                "Chinese Simplified": None,
+                "Chinese Traditional": None,
+                "French": None,
+                "German": None,
+                "Italian": None,
+                "Japanese": None,
+                "Korean": None,
+                "Portuguese (Brazil)": None,
+                "Russian": None,
+                "Spanish": None,
+            }
             for code, meta in set_meta.items():
                 set_name = meta.get("name", "")
                 if set_name:
                     raw_translations = translations_by_name.get(set_name, {})
-                    meta["translations"] = raw_translations if raw_translations else {}
+                    meta["translations"] = raw_translations if raw_translations else empty_translations
                 else:
-                    meta["translations"] = {}
+                    meta["translations"] = empty_translations
                 if code in tcg_overrides:
                     meta["tcgplayerGroupId"] = tcg_overrides[code]
                 raw_keyrune = meta.get("keyruneCode", "")
