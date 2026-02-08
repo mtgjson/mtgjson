@@ -1237,6 +1237,17 @@ class PolarsPriceBuilder:
         '"currency" TEXT',
     )
 
+    _PRICE_MYSQL_COLUMNS = (
+        "`uuid` TEXT",
+        "`date` TEXT",
+        "`source` TEXT",
+        "`provider` TEXT",
+        "`priceType` TEXT",
+        "`finish` TEXT",
+        "`price` FLOAT",
+        "`currency` TEXT",
+    )
+
     _PRICE_INDEXES = (
         ("uuid", "uuid"),
         ("date", "date"),
@@ -1293,32 +1304,43 @@ class PolarsPriceBuilder:
         LOGGER.info(f"Wrote {path.name} ({len(prepared):,} rows)")
 
     def write_prices_sql(self, df: pl.DataFrame, path: Path) -> None:
-        """Write price data as a SQL text dump with INSERT statements."""
+        """Write price data as a MySQL text dump with INSERT statements."""
         from mtgjson5.classes import MtgjsonMetaObject
 
-        from .serializers import escape_sqlite
+        from .serializers import escape_mysql
 
         prepared = self._prepare_price_df_for_sql(df)
         meta = MtgjsonMetaObject()
 
         with open(path, "w", encoding="utf-8") as f:
             f.write(f"-- MTGJSON Price SQL Dump\n-- Generated: {datetime.date.today().isoformat()}\n")
-            f.write("BEGIN TRANSACTION;\n\n")
+            f.write("SET names 'utf8mb4';\n")
+            f.write("START TRANSACTION;\n\n")
 
-            cols = ",\n    ".join(self._PRICE_SQL_COLUMNS)
-            f.write(f'CREATE TABLE IF NOT EXISTS "prices" (\n    {cols}\n);\n\n')
+            cols = ",\n    ".join(["`id` INTEGER PRIMARY KEY AUTO_INCREMENT", *self._PRICE_MYSQL_COLUMNS])
+            f.write("DROP TABLE IF EXISTS `prices`;\n")
+            f.write(f"CREATE TABLE `prices` (\n    {cols}\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n\n")
 
-            col_names = ", ".join([f'"{c}"' for c in prepared.columns])
+            col_names = ", ".join([f"`{c}`" for c in prepared.columns])
             for row in prepared.rows():
-                values = ", ".join(escape_sqlite(v) for v in row)
-                f.write(f'INSERT INTO "prices" ({col_names}) VALUES ({values});\n')
+                values = ", ".join(escape_mysql(v) for v in row)
+                f.write(f"INSERT INTO `prices` ({col_names}) VALUES ({values});\n")
 
             for idx_name, col in self._PRICE_INDEXES:
-                f.write(f'CREATE INDEX IF NOT EXISTS "idx_prices_{idx_name}" ON "prices" ("{col}");\n')
+                f.write(f"CREATE INDEX `idx_prices_{idx_name}` ON `prices` (`{col}`);\n")
 
             f.write("\n")
-            f.write('CREATE TABLE IF NOT EXISTS "meta" ("date" TEXT, "version" TEXT);\n')
-            f.write(f'INSERT INTO "meta" VALUES ({escape_sqlite(meta.date)}, {escape_sqlite(meta.version)});\n')
+            f.write(
+                "DROP TABLE IF EXISTS `meta`;\n"
+                "CREATE TABLE `meta` (\n"
+                "    `id` INTEGER PRIMARY KEY AUTO_INCREMENT,\n"
+                "    `date` TEXT,\n"
+                "    `version` TEXT\n"
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n"
+            )
+            f.write(
+                f"INSERT INTO `meta` (`date`, `version`) VALUES ({escape_mysql(meta.date)}, {escape_mysql(meta.version)});\n"
+            )
 
             f.write("\nCOMMIT;\n")
 

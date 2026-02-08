@@ -141,7 +141,7 @@ class MySQLBuilder:
                 serialized = serialize_complex_types(df)
 
                 schema = serialized.schema
-                col_defs = []
+                col_defs = ["    `id` INTEGER PRIMARY KEY AUTO_INCREMENT"]
                 for c in serialized.columns:
                     col_defs.append(f"    `{c}` {_polars_to_mysql_type(schema[c], table_name, c)}")
 
