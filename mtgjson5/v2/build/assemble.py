@@ -206,7 +206,7 @@ class Assembler:
         set_sealed = self.ctx.sealed_df.filter(pl.col("setCode") == set_code)
         if len(set_sealed) == 0:
             return None
-        models = SealedProduct.from_dataframe(set_sealed.drop("setCode"))
+        models = SealedProduct.from_dataframe(set_sealed)
         return [m.to_polars_dict(exclude_none=True) for m in models]
 
     def iter_set_codes(self) -> list[str]:
