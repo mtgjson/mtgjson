@@ -119,10 +119,11 @@ class PurchaseUrls(TypedDict, total=False):
 
 
 class RelatedCards(TypedDict, total=False):
-    """Related cards (spellbook, reverse related)."""
+    """Related cards (spellbook, reverse related, tokens)."""
 
     reverseRelated: list[str]
     spellbook: list[str]
+    tokens: list[str]
 
 
 class Rulings(TypedDict):
