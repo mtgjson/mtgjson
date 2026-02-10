@@ -69,6 +69,26 @@ def dispatcher(args: argparse.Namespace) -> None:
     """
     MTGJSON Dispatcher
     """
+    # Generate types/docs only (no other build flags)
+    generate_types = getattr(args, "generate_types", None) is not None
+    generate_docs = getattr(args, "generate_docs", False)
+    if (generate_types or generate_docs) and not (args.sets or args.all_sets or args.full_build or args.price_build):
+        from mtgjson5.mtgjson_config import MtgjsonConfig
+        from mtgjson5.v2.models import write_doc_pages, write_typescript_interfaces
+
+        if generate_types:
+            output_path = args.generate_types or str(MtgjsonConfig().output_path / "AllMTGJSONTypes.ts")
+            write_typescript_interfaces(output_path)
+            LOGGER.info(f"TypeScript definitions written to {output_path}")
+
+        if generate_docs:
+            output_dir = str(MtgjsonConfig().output_path)
+            written = write_doc_pages(output_dir)
+            for p in written:
+                LOGGER.info(f"Doc page written to {p}")
+
+        return
+
     from mtgjson5.compress_generator import (
         compress_mtgjson_contents,
         compress_mtgjson_contents_parallel,
@@ -230,6 +250,20 @@ def dispatcher(args: argparse.Namespace) -> None:
             compress_mtgjson_contents(MtgjsonConfig().output_path)
 
     generate_output_file_hashes(MtgjsonConfig().output_path)
+
+    if generate_types:
+        from mtgjson5.v2.models import write_typescript_interfaces
+
+        output_path = args.generate_types or str(MtgjsonConfig().output_path / "AllMTGJSONTypes.ts")
+        write_typescript_interfaces(output_path)
+        LOGGER.info(f"TypeScript definitions written to {output_path}")
+
+    if generate_docs:
+        from mtgjson5.v2.models import write_doc_pages
+
+        written = write_doc_pages(str(MtgjsonConfig().output_path))
+        for p in written:
+            LOGGER.info(f"Doc page written to {p}")
 
     if args.aws_s3_upload_bucket:
         MtgjsonS3Handler().upload_directory(

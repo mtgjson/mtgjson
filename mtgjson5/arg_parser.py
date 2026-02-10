@@ -164,6 +164,20 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip CardMarket data fetching (speeds up builds when MCM data not needed).",
     )
+    pipeline_group.add_argument(
+        "--generate-types",
+        nargs="?",
+        const="",
+        default=None,
+        type=str,
+        metavar="OUTPUT_PATH",
+        help="Generate TypeScript type definitions and exit. Defaults to AllMTGJSONTypes.ts in the output directory.",
+    )
+    pipeline_group.add_argument(
+        "--generate-docs",
+        action="store_true",
+        help="Generate VitePress markdown documentation pages for enriched models. Use with --generate-types.",
+    )
 
     # MTGJSON maintainer arguments
     mtgjson_arg_group = parser.add_argument_group("mtgjson maintainer arguments")
