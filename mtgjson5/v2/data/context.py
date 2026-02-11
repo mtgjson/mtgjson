@@ -731,6 +731,7 @@ class PipelineContext:
                             pl.lit("a").alias("_default_side"),
                         ]
                     )
+                    .unique(subset=["setCode", "number"])
                 )
             else:
                 default_lang_lookup = (
@@ -744,6 +745,7 @@ class PipelineContext:
                             pl.lit("a").alias("_default_side"),
                         ]
                     )
+                    .unique(subset=["setCode", "number"])
                 )
 
             # Parse foreignData exceptions

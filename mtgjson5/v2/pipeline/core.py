@@ -1469,6 +1469,7 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
     # Explode variations to individual rows, join with number, sort within groups, re-aggregate
     variations_sorted = (
         lf.select(["uuid", "variations"])
+        .unique(subset=["uuid"])
         .explode("variations")
         .filter(pl.col("variations").is_not_null())
         .join(
@@ -2871,7 +2872,14 @@ def fix_foreigndata_for_faces(
             ).alias("foreignData")
         )
 
-    # Re-aggregate by card+side (deduplication happens naturally here)
+    # Deduplicate foreignData entries by foreign scryfallId before re-aggregating
+    fd_processed = fd_processed.with_columns(
+        pl.col("foreignData").struct.field("identifiers").struct.field("scryfallId").alias("_fd_scryfall_id")
+    ).unique(
+        subset=["scryfallId", "setCode", "number", "_side_key", "_fd_scryfall_id"]
+    ).drop("_fd_scryfall_id")
+
+    # Re-aggregate by card+side
     fd_final = fd_processed.group_by(["scryfallId", "setCode", "number", "_side_key"]).agg(
         pl.col("foreignData").alias("_foreignData_fixed")
     )
