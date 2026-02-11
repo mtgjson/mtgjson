@@ -1464,7 +1464,7 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
             .alias("_num_int"),
             pl.col("number").alias("_num_str"),
         ]
-    )
+    ).unique(subset=["uuid"])
 
     # Explode variations to individual rows, join with number, sort within groups, re-aggregate
     variations_sorted = (

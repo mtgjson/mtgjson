@@ -1204,14 +1204,14 @@ def add_variations_and_alternative_fields(mtgjson_set: MtgjsonSetObject) -> None
     distinct_card_printings_found: set[str] = set()
     for this_card in mtgjson_set.cards:
         # Adds variations
-        variations = [
+        variations = list(dict.fromkeys(
             item.uuid
             for item in mtgjson_set.cards
             if item.name.split(" (")[0] == this_card.name.split(" (")[0]
             and item.face_name == this_card.face_name
             and item.uuid != this_card.uuid
             and (item.number != this_card.number if item.number else True)
-        ]
+        ))
 
         if variations:
             this_card.variations = variations
