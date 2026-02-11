@@ -165,7 +165,7 @@ class SealedProductAssembler:
                         name=r["name"],
                         number=r["number"],
                         set=r["set"],
-                        foil=r.get("foil"),  # type: ignore[typeddict-item]
+                        foil=r.get("foil"),
                         finishes=["foil"] if r.get("foil") else ["nonfoil"],
                     )
                     for r in type_rows.to_dicts()
@@ -291,7 +291,7 @@ class BoosterAssembler:
         Returns:
             BoosterPack TypedDict
         """
-        return BoosterPack(contents=contents, weight=weight)
+        return {"contents": contents, "weight": weight}
 
     def build_config(
         self,

@@ -529,7 +529,7 @@ class CardPrintingBase(CardBase):
         description="The finishes of the card. These finishes are not mutually exclusive.",
         json_schema_extra={"introduced": "v5.2.0", "enum_key": "finishes"},
     )
-    
+
     promo_types: list[str] | None = Field(
         default=None,
         alias="promoTypes",

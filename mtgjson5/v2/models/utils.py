@@ -349,7 +349,7 @@ class MarkdownDocGenerator:
         )
 
         for name, info in sorted_fields:
-            extra = info.json_schema_extra or {}
+            extra = info.json_schema_extra if isinstance(info.json_schema_extra, dict) else {}
             output_name = info.alias or name
             field_ov = overrides.get(output_name, {})
 
@@ -372,7 +372,7 @@ class MarkdownDocGenerator:
             if type_override:
                 ts_type = type_override
             else:
-                ts_type = cls._field_ts_type(annotation, strip_null=is_optional)
+                ts_type = cls._field_ts_type(annotation, strip_null=bool(is_optional))
             example = field_ov.get("example", extra.get("example", ""))
 
             # Build badge string

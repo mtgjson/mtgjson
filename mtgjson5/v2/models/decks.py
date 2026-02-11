@@ -28,9 +28,7 @@ class DeckList(PolarsMixin, BaseModel):
         "**Parent file:** [DeckList](/downloads/all-files/#decklist)\n- **Parent property:** `data`"
     )
     __doc_enum__: ClassVar[str] = "deck"
-    __doc_keywords__: ClassVar[str] = (
-        "mtg, magic the gathering, mtgjson, json, deck list"
-    )
+    __doc_keywords__: ClassVar[str] = "mtg, magic the gathering, mtgjson, json, deck list"
 
     code: str = Field(
         description="The printing deck code for the deck.",
@@ -71,12 +69,8 @@ class Deck(PolarsMixin, BaseModel):
 
     # --- Doc generation metadata ---
     __doc_title__: ClassVar[str] = "Deck"
-    __doc_desc__: ClassVar[str] = (
-        "The Deck Data Model describes the properties of an individual Deck."
-    )
-    __doc_parent__: ClassVar[str] = (
-        "**Parent file:** [All Decks](/downloads/all-decks/)\n- **Parent property:** `data`"
-    )
+    __doc_desc__: ClassVar[str] = "The Deck Data Model describes the properties of an individual Deck."
+    __doc_parent__: ClassVar[str] = "**Parent file:** [All Decks](/downloads/all-decks/)\n- **Parent property:** `data`"
     __doc_enum__: ClassVar[str] = "deck"
     __doc_keywords__: ClassVar[str] = "mtg, magic the gathering, mtgjson, json, deck"
 
