@@ -302,7 +302,28 @@ def write_doc_pages(output_dir: str) -> list[str]:
         *FILE_MODEL_REGISTRY,
     ]
 
+    from .doc_indices import INDEX_PAGES
+
     written: list[str] = []
+
+    # Index pages
+    for page in INDEX_PAGES:
+        slug = page["slug"]
+        if slug:
+            doc_dir = os.path.join(output_dir, "data-models", slug)
+        else:
+            doc_dir = os.path.join(output_dir, "data-models")
+        os.makedirs(doc_dir, exist_ok=True)
+        doc_path = os.path.join(doc_dir, "index.md")
+        content = MarkdownDocGenerator.index_page(
+            title=page["title"],
+            description=page["description"],
+            keywords=page["keywords"],
+            body=page["body"],
+        )
+        with open(doc_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        written.append(doc_path)
 
     # Pydantic BaseModel pages
     for model in all_models:

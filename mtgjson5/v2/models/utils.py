@@ -275,6 +275,7 @@ class MarkdownDocGenerator:
         keywords = getattr(model, "__doc_keywords__", "")
         extra_sections = getattr(model, "__doc_extra__", "")
         ts_name = getattr(model, "__ts_name__", model.__name__)
+        slug = getattr(model, "__doc_slug__", None) or cls.slug_from_title(title)
 
         # Plain-text version for meta tags (strip markdown links)
         desc_plain = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", desc)
@@ -342,6 +343,9 @@ class MarkdownDocGenerator:
         # Per-model field overrides (for inherited fields with model-specific metadata)
         overrides: dict[str, dict[str, Any]] = getattr(model, "__doc_field_overrides__", {})
 
+        # OUTPUT_CONTRACT: fields marked "required" should strip null from their type
+        contract = TypeScriptGenerator._OUTPUT_CONTRACT.get(ts_name, {})
+
         # Sort fields by output name (alias); only emit fields with "introduced" metadata
         sorted_fields = sorted(
             model.model_fields.items(),
@@ -365,22 +369,31 @@ class MarkdownDocGenerator:
             is_deprecated = field_ov.get("deprecated", extra.get("deprecated", False))
             deprecated_msg = field_ov.get("deprecated_msg", extra.get("deprecated_msg", ""))
 
+            # Expand relative anchors to full doc paths
+            description = description.replace("](#", f"](/data-models/{slug}/#")
+            if deprecated_msg:
+                deprecated_msg = deprecated_msg.replace("](#", f"](/data-models/{slug}/#")
+
             # Get the TS type string.
             # When "optional" badge is shown, strip "| null" from type
             # (the badge conveys "may be absent"; | null is for "present but nullable")
+            # Also strip null for fields marked "required" in OUTPUT_CONTRACT
             type_override = field_ov.get("type_override", extra.get("type_override", ""))
+            contract_mode = contract.get(output_name)
+            should_strip_null = bool(is_optional) or contract_mode == "required"
             if type_override:
                 ts_type = type_override
             else:
-                ts_type = cls._field_ts_type(annotation, strip_null=bool(is_optional))
+                ts_type = cls._field_ts_type(annotation, strip_null=should_strip_null)
             example = field_ov.get("example", extra.get("example", ""))
 
             # Build badge string
-            badges = ""
+            badge_parts: list[str] = []
             if is_deprecated:
-                badges += ' <DocBadge type="danger" text="deprecated" />'
+                badge_parts.append('<DocBadge type="danger" text="deprecated" />')
             if is_optional:
-                badges += ' <DocBadge type="warning" text="optional" />'
+                badge_parts.append('<DocBadge type="warning" text="optional" />')
+            badges = (" " + "".join(badge_parts)) if badge_parts else ""
 
             lines.append(f"> ### {output_name}{badges}")
             lines.append(">")
@@ -396,6 +409,7 @@ class MarkdownDocGenerator:
                 lines.append(f"> - **Example:** `{example}`")
             if enum_key:
                 lines.append(f"> - <ExampleField type='{enum_key}'/>")
+
             lines.append(f"> - **Introduced:** `{introduced}`")
             lines.append("")
 
@@ -531,11 +545,12 @@ class MarkdownDocGenerator:
                 ts_type = "any"
 
             # Build badge string
-            badges = ""
+            badge_parts: list[str] = []
             if is_deprecated:
-                badges += ' <DocBadge type="danger" text="deprecated" />'
+                badge_parts.append('<DocBadge type="danger" text="deprecated" />')
             if is_optional:
-                badges += ' <DocBadge type="warning" text="optional" />'
+                badge_parts.append('<DocBadge type="warning" text="optional" />')
+            badges = (" " + "".join(badge_parts)) if badge_parts else ""
 
             lines.append(f"> ### {display_name}{badges}")
             lines.append(">")
@@ -551,8 +566,45 @@ class MarkdownDocGenerator:
                 lines.append(f"> - **Example:** `{example}`")
             if enum_key:
                 lines.append(f"> - <ExampleField type='{enum_key}'/>")
+
             lines.append(f"> - **Introduced:** `{introduced}`")
             lines.append("")
+
+        return "\n".join(lines)
+
+    @classmethod
+    def index_page(
+        cls,
+        title: str,
+        description: str,
+        keywords: str,
+        body: str,
+    ) -> str:
+        """Generate a VitePress index page (no model properties)."""
+        desc_plain = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", description)
+
+        lines: list[str] = []
+        lines.append("---")
+        lines.append(f"title: {title}")
+        lines.append("head:")
+        lines.append("  - - meta")
+        lines.append("    - property: og:title")
+        lines.append(f"      content: {title}")
+        lines.append("  - - meta")
+        lines.append("    - name: description")
+        lines.append(f"      content: {desc_plain}")
+        lines.append("  - - meta")
+        lines.append("    - property: og:description")
+        lines.append(f"      content: {desc_plain}")
+        if keywords:
+            lines.append("  - - meta")
+            lines.append("    - name: keywords")
+            lines.append(f"      content: {keywords}")
+        lines.append("---")
+        lines.append("")
+        lines.append(f"# {title}")
+        lines.append("")
+        lines.append(body)
 
         return "\n".join(lines)
 
