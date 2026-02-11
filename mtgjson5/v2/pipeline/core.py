@@ -2873,11 +2873,13 @@ def fix_foreigndata_for_faces(
         )
 
     # Deduplicate foreignData entries by foreign scryfallId before re-aggregating
-    fd_processed = fd_processed.with_columns(
-        pl.col("foreignData").struct.field("identifiers").struct.field("scryfallId").alias("_fd_scryfall_id")
-    ).unique(
-        subset=["scryfallId", "setCode", "number", "_side_key", "_fd_scryfall_id"]
-    ).drop("_fd_scryfall_id")
+    fd_processed = (
+        fd_processed.with_columns(
+            pl.col("foreignData").struct.field("identifiers").struct.field("scryfallId").alias("_fd_scryfall_id")
+        )
+        .unique(subset=["scryfallId", "setCode", "number", "_side_key", "_fd_scryfall_id"])
+        .drop("_fd_scryfall_id")
+    )
 
     # Re-aggregate by card+side
     fd_final = fd_processed.group_by(["scryfallId", "setCode", "number", "_side_key"]).agg(
