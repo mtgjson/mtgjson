@@ -72,7 +72,7 @@ class CardBase(PolarsMixin, BaseModel):
     )
     types: list[str] = Field(
         default_factory=list,
-        description="A list of all card types of the card, including Un\u2011sets and gameplay variants.",
+        description="A list of all card types of the card, including Un&#8209;sets and gameplay variants.",
         json_schema_extra={"introduced": "v4.0.0", "enum_key": "types"},
     )
     subtypes: list[str] = Field(
@@ -708,7 +708,7 @@ class CardPrintingFull(CardPrintingBase, CardAtomicBase):
     # Variations
     variations: list[str] | None = Field(
         default=None,
-        description="A list of card `uuid`'s of this card with alternate printings in the same set, excluding Un\u2011sets.",
+        description="A list of card `uuid`'s of this card with alternate printings in the same set, excluding Un&#8209;sets.",
         json_schema_extra={"introduced": "v4.1.2", "optional": True},
     )
 
