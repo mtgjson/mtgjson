@@ -135,6 +135,9 @@ from .schemas import (  # Field sets; Schema generators; Utility functions
     pydantic_model_to_struct,
     pydantic_type_to_polars,
 )
+from .sealed import (
+    SEALED_MODEL_REGISTRY,
+)
 from .sets import (
     SET_MODEL_REGISTRY,
     DeckSet,
@@ -173,6 +176,7 @@ from .submodels import (  # Registry; Booster; Compiled; Core card sub-models; M
     Translations,
 )
 from .utils import (
+    MarkdownDocGenerator,
     PolarsConverter,
     TypeScriptGenerator,
 )
@@ -184,6 +188,7 @@ from .utils import (
 for model in [
     *CARD_MODEL_REGISTRY,
     *SET_MODEL_REGISTRY,
+    *SEALED_MODEL_REGISTRY,
     *DECK_MODEL_REGISTRY,
     *COMPILED_MODEL_REGISTRY,
     *FILE_MODEL_REGISTRY,
@@ -224,27 +229,110 @@ def generate_typescript_interfaces(
         for model in SET_MODEL_REGISTRY:
             sections.append(TypeScriptGenerator.from_model(model))
             sections.append("")
+        for model in SEALED_MODEL_REGISTRY:
+            sections.append(TypeScriptGenerator.from_model(model))
+            sections.append("")
         for model in DECK_MODEL_REGISTRY:
             sections.append(TypeScriptGenerator.from_model(model))
             sections.append("")
 
     if include_file_models:
         sections.append("// === File Models ===\n")
+        file_lines: list[str] = []
         for model in COMPILED_MODEL_REGISTRY:
-            sections.append(TypeScriptGenerator.from_model(model))
-            sections.append("")
+            file_lines.append(TypeScriptGenerator.from_file_model(model))
         for model in FILE_MODEL_REGISTRY:
-            if hasattr(model, "__name__"):
-                sections.append(TypeScriptGenerator.from_model(model))
-                sections.append("")
+            file_lines.append(TypeScriptGenerator.from_file_model(model))
+        for name in ["StandardFile", "ModernFile", "PioneerFile", "VintageFile", "LegacyFile"]:
+            file_lines.append(f"export type {name} = {{ meta: Meta; data: Record<string, Set>; }};")
+        for name in [
+            "StandardAtomicFile",
+            "ModernAtomicFile",
+            "PauperAtomicFile",
+            "PioneerAtomicFile",
+            "VintageAtomicFile",
+            "LegacyAtomicFile",
+        ]:
+            file_lines.append(f"export type {name} = {{ meta: Meta; data: Record<string, CardAtomic>; }};")
+        file_lines.append("export type AllPricesTodayFile = { meta: Meta; data: Record<string, PriceFormats>; };")
+        sections.extend(sorted(file_lines))
 
     return "\n".join(sections)
 
 
 def write_typescript_interfaces(path: str, **kwargs: Any) -> None:
-    """Write TypeScript interfaces to file."""
+    """Write TypeScript interfaces to file, plus individual types/{Name}.ts files."""
+    import os
+    import re
+
+    content = generate_typescript_interfaces(**kwargs)
+
     with open(path, "w") as f:
-        f.write(generate_typescript_interfaces(**kwargs))
+        f.write(content)
+
+    # Split into individual per-model files in types/ subdirectory
+    types_dir = os.path.join(os.path.dirname(path), "types")
+    os.makedirs(types_dir, exist_ok=True)
+
+    # Split on "export type " at start of line
+    blocks = re.split(r"\n(?=export type )", content)
+    for block in blocks:
+        m = re.match(r"export type (\w+)", block)
+        if not m:
+            continue
+        type_name = m.group(1)
+        type_content = block.strip() + "\n"
+        with open(os.path.join(types_dir, f"{type_name}.ts"), "w") as f:
+            f.write(type_content)
+
+
+def write_doc_pages(output_dir: str) -> list[str]:
+    """Generate markdown doc pages for models that have __doc_title__ metadata.
+
+    Returns list of paths written.
+    """
+    import os
+
+    all_models = [
+        *CARD_MODEL_REGISTRY,
+        *SET_MODEL_REGISTRY,
+        *SEALED_MODEL_REGISTRY,
+        *DECK_MODEL_REGISTRY,
+        *COMPILED_MODEL_REGISTRY,
+        *FILE_MODEL_REGISTRY,
+    ]
+
+    written: list[str] = []
+
+    # Pydantic BaseModel pages
+    for model in all_models:
+        title = getattr(model, "__doc_title__", None)
+        if not title:
+            continue
+        slug = getattr(model, "__doc_slug__", None) or MarkdownDocGenerator.slug_from_title(title)
+        doc_dir = os.path.join(output_dir, "data-models", slug)
+        os.makedirs(doc_dir, exist_ok=True)
+        doc_path = os.path.join(doc_dir, "index.md")
+        content = MarkdownDocGenerator.from_model(model)
+        with open(doc_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        written.append(doc_path)
+
+    # TypedDict pages
+    for td in TYPEDDICT_REGISTRY:
+        title = getattr(td, "__doc_title__", None)
+        if not title:
+            continue
+        slug = getattr(td, "__doc_slug__", None) or MarkdownDocGenerator.slug_from_title(title)
+        doc_dir = os.path.join(output_dir, "data-models", slug)
+        os.makedirs(doc_dir, exist_ok=True)
+        doc_path = os.path.join(doc_dir, "index.md")
+        content = MarkdownDocGenerator.from_typeddict(td)
+        with open(doc_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        written.append(doc_path)
+
+    return written
 
 
 # =============================================================================
@@ -366,6 +454,7 @@ __all__ = [  # noqa: RUF022
     "parse_atomic_cards",
     "parse_atomic_cards_file",
     # Utilities
+    "MarkdownDocGenerator",
     "PolarsConverter",
     "TypeScriptGenerator",
     "TypedDictUtils",
@@ -387,6 +476,7 @@ __all__ = [  # noqa: RUF022
     # Generators
     "generate_typescript_interfaces",
     "write_typescript_interfaces",
+    "write_doc_pages",
     # Registries
     "TYPEDDICT_REGISTRY",
     "CARD_MODEL_REGISTRY",
@@ -394,4 +484,5 @@ __all__ = [  # noqa: RUF022
     "DECK_MODEL_REGISTRY",
     "COMPILED_MODEL_REGISTRY",
     "FILE_MODEL_REGISTRY",
+    "SEALED_MODEL_REGISTRY",
 ]

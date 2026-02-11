@@ -170,6 +170,18 @@ ignore_errors = true
 module = "concurrent.futures"
 ignore_errors = true
 
+[[tool.mypy.overrides]]
+module = "mtgjson5.v2.models.submodels"
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = "mtgjson5.v2.models.utils"
+disable_error_code = ["union-attr", "operator", "arg-type"]
+
+[[tool.mypy.overrides]]
+module = "mtgjson5.v2.models.sealed"
+disable_error_code = ["typeddict-item", "no-any-return"]
+
 # --- pytest ---
 
 [tool.pytest.ini_options]

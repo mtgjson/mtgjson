@@ -4,6 +4,8 @@ MTGJSON compiled data models (Keywords, CardTypes, EnumValues, etc.).
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from pydantic import BaseModel
 
 from .base import MtgjsonFileBase
@@ -30,6 +32,8 @@ class CardTypesFile(MtgjsonFileBase):
 
 class EnumValuesFile(MtgjsonFileBase):
     """EnumValues.json structure."""
+
+    __ts_name__: ClassVar[str] = "EnumValues"
 
     data: dict[str, dict[str, list[str]]]
 

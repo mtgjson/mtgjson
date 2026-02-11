@@ -308,9 +308,6 @@ FILE_MODEL_REGISTRY: list[type[BaseModel]] = [
     DeckListFile,
     IndividualSetFile,
     MetaFile,
-    KeywordsFile,
-    CardTypesFile,
-    CompiledListFile,
 ]
 
 __all__ = [
