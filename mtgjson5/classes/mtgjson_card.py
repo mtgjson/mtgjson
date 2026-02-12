@@ -57,8 +57,6 @@ class MtgjsonCardObject(JsonObject):
     hand: str | None
     has_alternative_deck_limit: bool | None
     has_content_warning: bool | None
-    has_foil: bool | None  # Deprecated - Remove in 5.3.0
-    has_non_foil: bool | None  # Deprecated - Remove in 5.3.0
     identifiers: MtgjsonIdentifiersObject
     is_alternative: bool | None
     is_foil: bool | None
@@ -133,8 +131,6 @@ class MtgjsonCardObject(JsonObject):
         "supertypes",
         "types",
         "subtypes",
-        "has_foil",
-        "has_non_foil",
         "color_identity",
         "colors",
         "converted_mana_cost",
