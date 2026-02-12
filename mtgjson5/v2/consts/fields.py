@@ -10,17 +10,25 @@ from typing import Final
 
 SORTED_LIST_FIELDS: Final[frozenset[str]] = frozenset(
     {
+        "artistIds",
         "attractionLights",
         "availability",
         "boosterTypes",
         "colorIdentity",
         "colorIndicator",
         "colors",
+        "finishes",
         "frameEffects",
         "games",
         "keywords",
+        "originalPrintings",
         "printings",
+        "promoTypes",
+        "rebalancedPrintings",
+        "reverseRelated",
+        "sourceProducts",
         "subsets",
+        "variations",
     }
 )
 
