@@ -901,8 +901,6 @@ def build_mtgjson_card(
     mtgjson_card.frame_effects = sorted(scryfall_object.get("frame_effects", []))
     mtgjson_card.frame_version = scryfall_object.get("frame", "")
     mtgjson_card.hand = scryfall_object.get("hand_modifier")
-    mtgjson_card.has_foil = any(finish in scryfall_object.get("finishes", []) for finish in ("foil", "glossy"))
-    mtgjson_card.has_non_foil = "nonfoil" in scryfall_object.get("finishes", [])
     mtgjson_card.has_content_warning = scryfall_object.get("content_warning")
     mtgjson_card.is_full_art = scryfall_object.get("full_art")
     mtgjson_card.is_game_changer = scryfall_object.get("game_changer")
