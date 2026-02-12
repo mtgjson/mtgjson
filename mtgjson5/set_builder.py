@@ -517,7 +517,6 @@ def build_mtgjson_set(set_code: str) -> MtgjsonSetObject | None:
     # Building cards is a process
     if mtgjson_set.code != "MB1":
         mtgjson_set.cards = build_base_mtgjson_cards(set_code, set_release_date=mtgjson_set.release_date)
-    add_is_starter_option(set_code, mtgjson_set.search_uri, mtgjson_set.cards)
     add_rebalanced_to_original_linkage(mtgjson_set)
     relocate_miscellaneous_tokens(mtgjson_set)
 
@@ -652,33 +651,6 @@ def build_base_mtgjson_cards(
 
     LOGGER.info(f"Finished building cards for {set_code}")
     return mtgjson_cards
-
-
-def add_is_starter_option(set_code: str, search_url: str, mtgjson_cards: list[MtgjsonCardObject]) -> None:
-    """
-    There are cards that may not exist in standard boosters. As such, we mark
-    those as starter cards.
-    :param set_code: Set to handle
-    :param search_url: URL to search for cards in
-    :param mtgjson_cards: Card Objects to modify
-    """
-    LOGGER.info(f"Add starter data to {set_code}")
-    starter_card_url = search_url.replace("&unique=", "++not:booster&unique=")
-    starter_cards = ScryfallProvider().download(starter_card_url)
-
-    if starter_cards["object"] == "error":
-        LOGGER.debug(f"All cards in {set_code} are available in boosters")
-        LOGGER.info(f"Finished adding starter data to {set_code}")
-        return
-
-    for scryfall_object in starter_cards["data"]:
-        mtgjson_cards_with_same_id = [
-            item for item in mtgjson_cards if item.identifiers.scryfall_id == scryfall_object["id"]
-        ]
-
-        for card in mtgjson_cards_with_same_id:
-            card.is_starter = True
-    LOGGER.info(f"Finished adding starter data to {set_code}")
 
 
 def add_leadership_skills(mtgjson_card: MtgjsonCardObject) -> None:
