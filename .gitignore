@@ -131,7 +131,6 @@ stacksampler.py
 *.json
 *.sh
 *.parquet
-docs/*
 benchmark*
 .run/
 *.bak
