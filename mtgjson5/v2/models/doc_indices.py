@@ -12,6 +12,8 @@ from typing import TypedDict
 
 
 class IndexPageDef(TypedDict):
+    """Definition for a VitePress parent index page."""
+
     slug: str
     title: str
     description: str
