@@ -72,7 +72,6 @@ class MtgjsonCardObject(JsonObject):
     is_rebalanced: bool | None
     is_reprint: bool | None
     is_reserved: bool | None
-    is_starter: bool | None  # Deprecated - Remove in 5.3.0
     is_story_spotlight: bool | None
     is_textless: bool | None
     is_timeshifted: bool | None

@@ -1007,7 +1007,7 @@ def filter_keywords_for_face(lf: pl.LazyFrame) -> pl.LazyFrame:
 
 def add_booster_types(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
-    Compute boosterTypes and isStarter based on Scryfall booster field and promoTypes.
+    Compute boosterTypes based on Scryfall booster field and promoTypes.
     """
     has_starter_promo = (
         pl.col("promoTypes").list.set_intersection(pl.lit(["starterdeck", "planeswalkerdeck"])).list.len() > 0
@@ -1021,10 +1021,6 @@ def add_booster_types(lf: pl.LazyFrame) -> pl.LazyFrame:
             .then(pl.when(has_starter_promo).then(pl.lit(["default", "deck"])).otherwise(pl.lit(["default"])))
             .otherwise(pl.when(has_starter_promo).then(pl.lit(["deck"])).otherwise(pl.lit([]).cast(pl.List(pl.String))))
             .alias("boosterTypes"),
-            pl.when(~pl.col("_in_booster").fill_null(True))
-            .then(pl.lit(True))
-            .otherwise(pl.lit(None))
-            .alias("isStarter"),
         ]
     ).drop("_in_booster")
 
@@ -3269,7 +3265,6 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
                 "gameChanger",
                 "_in_booster",
                 "_meld_face_name",
-                "isStarter",
             ],
             strict=False,
         )

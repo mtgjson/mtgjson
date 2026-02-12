@@ -85,7 +85,6 @@ OPTIONAL_BOOL_FIELDS: Final[frozenset[str]] = frozenset(
         "isRebalanced",
         "isReprint",
         "isReserved",
-        "isStarter",
         "isStorySpotlight",
         "isTextless",
         "isTimeshifted",
