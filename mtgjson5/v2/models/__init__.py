@@ -266,7 +266,7 @@ def write_typescript_interfaces(path: str, **kwargs: Any) -> None:
     import re
 
     content = generate_typescript_interfaces(**kwargs)
-    
+
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         f.write(content)
