@@ -78,13 +78,13 @@ class ForeignData(TypedDict, total=False):
 
     faceName: str
     flavorText: str
-    identifiers: Required[ForeignDataIdentifiers]
+    identifiers: ForeignDataIdentifiers
     language: Required[str]
     multiverseId: int  # Deprecated - top level multiverse ID
     name: Required[str]
     text: str
     type: str
-    uuid: Required[str]
+    uuid: str
 
 
 class Identifiers(TypedDict, total=False):
