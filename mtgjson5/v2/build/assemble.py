@@ -375,6 +375,8 @@ class AtomicCardsAssembler(Assembler):
                 sort_exprs.append(pl.col(col_name).fill_null(False))
         if "legalities" in available:
             sort_exprs.append(pl.col("legalities").struct.field("vintage").is_null())
+        if "foreignData" in available:
+            sort_exprs.append(pl.col("foreignData").list.len().cast(pl.Int32).neg())
         if "side" in available:
             sort_exprs.append(pl.col("side").fill_null(""))
 
