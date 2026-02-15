@@ -63,7 +63,7 @@ class JsonOutputBuilder:
         for code, set_data in self.ctx.sets.iter_sets(set_codes=set_codes):
             data[code] = set_data  # noqa: PERF403
 
-        file = AllPrintingsFile.with_meta(data, self.ctx.meta)
+        file = AllPrintingsFile.with_meta(data, self.ctx.meta, validate=False)
         file.write(output_path, pretty=self.ctx.pretty)
         return file  # type: ignore[return-value]
 
@@ -102,7 +102,7 @@ class JsonOutputBuilder:
         """Build AtomicCards.json."""
         data = self.ctx.atomic_cards.build()
 
-        file = AtomicCardsFile.with_meta(data, self.ctx.meta)
+        file = AtomicCardsFile.with_meta(data, self.ctx.meta, validate=False)
         file.write(output_path, pretty=self.ctx.pretty)
         return file  # type: ignore[return-value]
 
@@ -110,7 +110,7 @@ class JsonOutputBuilder:
         """Build SetList.json."""
         data = self.ctx.set_list.build()
 
-        file = SetListFile.with_meta(data, self.ctx.meta)
+        file = SetListFile.with_meta(data, self.ctx.meta, validate=False)
         file.write(output_path, pretty=self.ctx.pretty)
         return file  # type: ignore[return-value]
 

@@ -331,30 +331,47 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
         return {"date": date.today().isoformat(), "version": "5.3.0"}
 
     @classmethod
-    def with_meta(cls, data: Any, meta: dict[str, str] | None = None) -> MtgjsonFileBase:
-        """Create file with auto-generated meta if not provided."""
+    def with_meta(
+        cls, data: Any, meta: dict[str, str] | None = None, *, validate: bool = True
+    ) -> MtgjsonFileBase:
+        """Create file with auto-generated meta if not provided.
+
+        Args:
+            validate: If False, skips Pydantic validation.
+        """
         if meta is None:
             meta = cls.make_meta()
-        return cls(meta=meta, data=data)  # type: ignore[call-arg]
+        if validate:
+            return cls(meta=meta, data=data)  # type: ignore[call-arg]
+        instance = cls.model_construct(meta=meta, data=data)
+        object.__setattr__(instance, "_pre_validated", True)
+        return instance
 
     def write(self, path: pathlib.Path, pretty: bool = False) -> None:
         """Write to JSON file with meta before data."""
         if not POLARS_AVAILABLE or orjson is None:
             raise ImportError("orjson required")
         inner_opts = orjson.OPT_SORT_KEYS | (orjson.OPT_INDENT_2 if pretty else 0)
-        full = self.model_dump(by_alias=True, exclude_none=True)
-        meta = full.pop("meta", {})
-        data = full.pop("data", {})
+        if getattr(self, "_pre_validated", False):
+            # Data already serialized as dicts — skip model_dump() overhead
+            meta = self.meta
+            data = self.data  # type: ignore[assignment]
+            extra: dict[str, Any] = {}
+        else:
+            full = self.model_dump(by_alias=True, exclude_none=True)
+            meta = full.pop("meta", {})
+            data = full.pop("data", {})
+            extra = full
         with path.open("wb") as f:
             f.write(b'{"meta":')
             f.write(orjson.dumps(meta, option=inner_opts))
             f.write(b',"data":')
             f.write(orjson.dumps(data, option=inner_opts))
-            for key in sorted(full.keys()):
+            for key in sorted(extra.keys()):
                 f.write(b',"')
                 f.write(key.encode())
                 f.write(b'":')
-                f.write(orjson.dumps(full[key], option=inner_opts))
+                f.write(orjson.dumps(extra[key], option=inner_opts))
             f.write(b"}")
 
     @classmethod
