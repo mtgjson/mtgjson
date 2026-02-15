@@ -7,6 +7,11 @@ from typing import TYPE_CHECKING, Any
 
 import polars as pl
 
+from mtgjson5.v2.consts.fields import (
+    ATOMIC_FOREIGN_STRIP,
+    ATOMIC_IDENTIFIERS,
+    ORACLE_IDENTITY_COLS,
+)
 from mtgjson5.v2.models.cards import CardAtomic, CardDeck, CardSet, CardToken
 from mtgjson5.v2.models.schemas import (
     CARDS_TABLE_EXCLUDE,
@@ -17,8 +22,6 @@ from mtgjson5.v2.models.sets import SealedProduct
 
 if TYPE_CHECKING:
     from .context import AssemblyContext
-
-ATOMIC_IDENTIFIERS = frozenset({"scryfallOracleId"})
 
 EXTRA_SORT_COLS = ["isOversized", "isPromo", "isOnlineOnly"]
 
@@ -262,6 +265,20 @@ class Assembler:
         )
 
 
+def _oracle_key(row: dict[str, Any], cols: tuple[str, ...] = ORACLE_IDENTITY_COLS) -> tuple[Any, ...]:
+    """Build a hashable tuple key from a row dict for oracle identity matching.
+
+    Converts list values (like colorIdentity) to tuples for hashability.
+    """
+    parts: list[Any] = []
+    for c in cols:
+        v = row.get(c)
+        if isinstance(v, list):
+            v = tuple(v)
+        parts.append(v)
+    return tuple(parts)
+
+
 class AtomicCardsAssembler(Assembler):
     """Assembles AtomicCards grouped by name."""
 
@@ -278,13 +295,62 @@ class AtomicCardsAssembler(Assembler):
             return [AtomicCardsAssembler._strip_none_recursive(v) for v in obj if v is not None]
         return obj
 
-    def iter_atomic(self) -> Iterator[tuple[str, list[dict[str, Any]]]]:
-        """Iterate over atomic cards grouped by name.
+    @staticmethod
+    def _build_oracle_lookups(
+        rows: list[dict[str, Any]],
+    ) -> tuple[dict[tuple[Any, ...], list[dict[str, Any]]], dict[tuple[Any, ...], dict[str, str]]]:
+        """Build consolidated foreignData and legalities lookups across all printings.
 
-        Sorts before dedup to prefer canonical printings (non-oversized,
-        non-funny, non-promo, side "a") and strips printing-specific
-        identifiers so only scryfallOracleId remains.
+        Iterates all rows (pre-dedup) and builds:
+
+        foreign_lookup: best foreignData entry per oracle identity + language,
+            scored by completeness (non-null faceName, text, type count).
+        legalities_lookup: merged legalities keeping first non-null value per format
+            (rows are pre-sorted so preferred printings come first).
+
+        Returns:
+            (foreign_lookup, legalities_lookup)
         """
+        # {oracle_key: {language: (score, entry)}}
+        foreign_by_lang: dict[tuple[Any, ...], dict[str, tuple[int, dict[str, Any]]]] = {}
+        legalities_lookup: dict[tuple[Any, ...], dict[str, str]] = {}
+
+        for row in rows:
+            key = _oracle_key(row)
+
+            # --- foreignData ---
+            fd_list = row.get("foreignData")
+            if fd_list and isinstance(fd_list, list):
+                lang_map = foreign_by_lang.setdefault(key, {})
+                for entry in fd_list:
+                    if not isinstance(entry, dict):
+                        continue
+                    lang = entry.get("language")
+                    if not lang:
+                        continue
+                    score = sum(1 for f in ("faceName", "text", "type") if entry.get(f))
+                    existing = lang_map.get(lang)
+                    if existing is None or score > existing[0]:
+                        lang_map[lang] = (score, entry)
+
+            # --- legalities ---
+            leg = row.get("legalities")
+            if leg and isinstance(leg, dict):
+                merged = legalities_lookup.setdefault(key, {})
+                for fmt, val in leg.items():
+                    if fmt not in merged and val is not None:
+                        merged[fmt] = val
+
+        # Flatten foreign_by_lang to {key: [entries]}
+        foreign_lookup: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+        for key, lang_map in foreign_by_lang.items():
+            foreign_lookup[key] = [entry for _, entry in lang_map.values()]
+
+        return foreign_lookup, legalities_lookup
+
+    def iter_atomic(self) -> Iterator[tuple[str, list[dict[str, Any]]]]:
+        """Iterate over atomic cards grouped by name."""
+
         atomic_schema = CardAtomic.polars_schema()
         atomic_fields = set(atomic_schema.keys())
 
@@ -316,19 +382,26 @@ class AtomicCardsAssembler(Assembler):
         if sort_exprs:
             df = df.sort(sort_exprs)
 
-        df = df.unique(
-            subset=["name", "faceName", "colorIdentity", "manaCost", "type", "text"],
+        # Collect ALL printings before dedup so we can consolidate foreignData/legalities
+        all_rows_df = df.collect()
+        all_rows = all_rows_df.to_dicts()
+
+        # Build consolidated lookups from all printings
+        foreign_lookup, legalities_lookup = self._build_oracle_lookups(all_rows)
+        del all_rows
+
+        # Now dedup on the collected DataFrame
+        deduped = all_rows_df.unique(
+            subset=list(ORACLE_IDENTITY_COLS),
             keep="first",
         ).sort(["name", "side"])
         if extra_cols:
-            df = df.drop(extra_cols)
-
-        collected = df.collect()
+            deduped = deduped.drop(extra_cols)
 
         current_name: str | None = None
         current_cards: list[dict[str, Any]] = []
 
-        for row in collected.to_dicts():
+        for row in deduped.to_dicts():
             name = row.get("name", "")
 
             if name != current_name:
@@ -336,6 +409,20 @@ class AtomicCardsAssembler(Assembler):
                     yield current_name, current_cards
                 current_name = name
                 current_cards = []
+
+            key = _oracle_key(row)
+
+            consolidated_fd = foreign_lookup.get(key)
+            if consolidated_fd:
+                row["foreignData"] = [
+                    {k: v for k, v in entry.items() if k not in ATOMIC_FOREIGN_STRIP}
+                    for entry in consolidated_fd
+                    if isinstance(entry, dict)
+                ]
+
+            merged_leg = legalities_lookup.get(key)
+            if merged_leg:
+                row["legalities"] = merged_leg
 
             # Strip printing-specific identifiers
             identifiers = row.get("identifiers")
