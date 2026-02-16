@@ -76,27 +76,21 @@ from .outputs import (
 
 __all__ = [
     "ALLOW_IF_FALSEY",
-    # Output directories
     "ALL_CSVS_DIRECTORY",
     "ALL_DECKS_DIRECTORY",
     "ALL_PARQUETS_DIRECTORY",
     "ALL_SETS_DIRECTORY",
     "ATOMIC_FOREIGN_STRIP",
     "ATOMIC_IDENTIFIERS",
-    # Cards
     "BASIC_LAND_NAMES",
     "CARD_MARKET_BUFFER",
     "EXCLUDE_FROM_OUTPUT",
     "FACE_MANA_VALUE_LAYOUTS",
     "FACE_NAME_LAYOUTS",
-    # Finishes
     "FINISH_ORDER",
     "FUNNY_SETS_WITH_ACORN",
     "IDENTIFIERS_FIELD_SOURCES",
-    # Languages
     "LANGUAGE_MAP",
-    # Layouts
-    "LayoutVariant",
     "MULTIFACE_LAYOUTS",
     "MULTI_WORD_SUB_TYPES",
     "OMIT_EMPTY_LIST_FIELDS",
@@ -108,7 +102,6 @@ __all__ = [
     "REQUIRED_DECK_LIST_FIELDS",
     "REQUIRED_LIST_FIELDS",
     "REQUIRED_SET_BOOL_FIELDS",
-    # Fields
     "SCRYFALL_COLUMNS_TO_DROP",
     "SORTED_LIST_FIELDS",
     "SPLIT_COLOR_LAYOUTS",
@@ -116,8 +109,8 @@ __all__ = [
     "SUPER_TYPES",
     "SUPPORTED_SET_TYPES",
     "TOKEN_LAYOUTS",
-    # Mappings
     "TYPEDDICT_FIELD_ALIASES",
+    "LayoutVariant",
     "is_multiface",
     "is_token_layout",
 ]

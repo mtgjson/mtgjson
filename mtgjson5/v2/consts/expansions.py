@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from typing import Final
 
-
 # Set-specific behaviors
 
 FUNNY_SETS_WITH_ACORN: Final[frozenset[str]] = frozenset(
