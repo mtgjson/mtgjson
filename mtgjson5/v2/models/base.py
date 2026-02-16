@@ -331,9 +331,7 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
         return {"date": date.today().isoformat(), "version": "5.3.0"}
 
     @classmethod
-    def with_meta(
-        cls, data: Any, meta: dict[str, str] | None = None, *, validate: bool = True
-    ) -> MtgjsonFileBase:
+    def with_meta(cls, data: Any, meta: dict[str, str] | None = None, *, validate: bool = True) -> MtgjsonFileBase:
         """Create file with auto-generated meta if not provided.
 
         Args:
@@ -355,7 +353,7 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
         if getattr(self, "_pre_validated", False):
             # Data already serialized as dicts — skip model_dump() overhead
             meta = self.meta
-            data = self.data  # type: ignore[assignment]
+            data = self.data  # type: ignore[attr-defined]
             extra: dict[str, Any] = {}
         else:
             full = self.model_dump(by_alias=True, exclude_none=True)
