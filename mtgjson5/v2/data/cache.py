@@ -366,7 +366,7 @@ class GlobalCache:
                 LOGGER.warning(f"Failed to fetch TCGPlayer SKUs: {e}")
                 from mtgjson5.v2.providers.tcgplayer.models import PRODUCT_SCHEMA
 
-                self.tcg_skus_lf = pl.DataFrame(schema=PRODUCT_SCHEMA).lazy()
+                self.tcg_skus_lf = pl.DataFrame(schema=cast("dict", PRODUCT_SCHEMA)).lazy()
             finally:
                 self._tcg_skus_future = None
 

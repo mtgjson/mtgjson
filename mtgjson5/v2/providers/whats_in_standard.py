@@ -14,18 +14,14 @@ API_ENDPOINT = "https://whatsinstandard.com/api/v6/standard.json"
 
 
 def _make_session() -> requests.Session:
+    """Create a requests session with retry logic."""
     session = requests.Session()
-    retry = urllib3.util.retry.Retry(
-        total=8, backoff_factor=0.3, status_forcelist=(500, 502, 504)
-    )
+    retry = urllib3.util.retry.Retry(total=8, backoff_factor=0.3, status_forcelist=(500, 502, 504))
     adapter = requests.adapters.HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
     session.headers.update(
-        {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) "
-            "Gecko/20100101 Firefox/120.0"
-        }
+        {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0"}
     )
     return session
 
@@ -55,12 +51,8 @@ class WhatsInStandardProvider:
             str(set_obj.get("code")).upper()
             for set_obj in api_response.get("sets", [])
             if (
-                dateutil.parser.parse(
-                    set_obj["enterDate"]["exact"] or "9999"
-                )
+                dateutil.parser.parse(set_obj["enterDate"]["exact"] or "9999")
                 <= now
-                <= dateutil.parser.parse(
-                    set_obj["exitDate"]["exact"] or "9999"
-                )
+                <= dateutil.parser.parse(set_obj["exitDate"]["exact"] or "9999")
             )
         }

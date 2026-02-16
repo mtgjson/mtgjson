@@ -15,24 +15,20 @@ SET_PAGE_URL = "https://scryfall.com/sets/{}"
 
 
 def _make_session() -> requests.Session:
+    """Create a requests session with retry logic and Scryfall auth."""
     session = requests.Session()
-    retry = urllib3.util.retry.Retry(
-        total=8, backoff_factor=0.3, status_forcelist=(500, 502, 504)
-    )
+    retry = urllib3.util.retry.Retry(total=8, backoff_factor=0.3, status_forcelist=(500, 502, 504))
     adapter = requests.adapters.HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
 
     headers: dict[str, str] = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) "
-        "Gecko/20100101 Firefox/120.0"
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0"
     }
 
     try:
         if MtgjsonConfig().has_option("Scryfall", "client_secret"):
-            headers["Authorization"] = (
-                f"Bearer {MtgjsonConfig().get('Scryfall', 'client_secret')}"
-            )
+            headers["Authorization"] = f"Bearer {MtgjsonConfig().get('Scryfall', 'client_secret')}"
     except Exception:
         pass
 
@@ -49,18 +45,14 @@ class OrientationDetector:
     def get_uuid_to_orientation_map(self, set_code: str) -> dict[str, str]:
         """Build a mapping of Scryfall card IDs to their orientation for a set."""
         try:
-            response = self._session.get(
-                SET_PAGE_URL.format(set_code), timeout=15
-            )
+            response = self._session.get(SET_PAGE_URL.format(set_code), timeout=15)
             response.raise_for_status()
         except requests.RequestException as e:
             LOGGER.warning(f"Failed to fetch orientation for {set_code}: {e}")
             return {}
 
         soup = bs4.BeautifulSoup(response.text, "html.parser")
-        orientation_headers = soup.find_all(
-            "span", class_="card-grid-header-content"
-        )
+        orientation_headers = soup.find_all("span", class_="card-grid-header-content")
         card_grids = soup.find_all("div", class_="card-grid-inner")
 
         result: dict[str, str] = {}

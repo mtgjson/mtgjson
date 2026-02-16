@@ -15,18 +15,14 @@ SECRET_LAIR_PAGE_URL = "https://mtg.wiki/page/Secret_Lair/Drop_Series"
 
 
 def _make_session() -> requests.Session:
+    """Create a requests session with retry logic."""
     session = requests.Session()
-    retry = urllib3.util.retry.Retry(
-        total=8, backoff_factor=0.3, status_forcelist=(500, 502, 504)
-    )
+    retry = urllib3.util.retry.Retry(total=8, backoff_factor=0.3, status_forcelist=(500, 502, 504))
     adapter = requests.adapters.HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
     session.headers.update(
-        {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) "
-            "Gecko/20100101 Firefox/120.0"
-        }
+        {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0"}
     )
     return session
 
@@ -44,9 +40,7 @@ class SecretLairProvider:
             Mapping of card number string -> Secret Lair drop name.
         """
         try:
-            response = self._session.get(
-                url or SECRET_LAIR_PAGE_URL, timeout=30
-            )
+            response = self._session.get(url or SECRET_LAIR_PAGE_URL, timeout=30)
             response.raise_for_status()
         except requests.RequestException as e:
             LOGGER.error(f"Failed to fetch Secret Lair data: {e}")
@@ -79,44 +73,26 @@ class SecretLairProvider:
                 continue
 
             secret_lair_name = table_cols[1].text.strip()
-            card_numbers = _convert_range_to_page_style(
-                table_cols[2].text + extra_card_numbers
-            )
+            card_numbers = _convert_range_to_page_style(table_cols[2].text + extra_card_numbers)
 
             if not secret_lair_name or not card_numbers:
                 continue
 
-            results.update(
-                {str(card_num): secret_lair_name for card_num in card_numbers}
-            )
+            results.update({str(card_num): secret_lair_name for card_num in card_numbers})
 
         return results
 
 
 def _convert_range_to_page_style(range_string: str) -> list[int]:
     """Convert a range string like '1-5,7,10-12' to a flat list of ints."""
-    range_string = "".join(
-        filter("0123456789-,".__contains__, range_string)
-    )
+    range_string = "".join(filter("0123456789-,".__contains__, range_string))
     if not range_string:
         return []
 
     return functools.reduce(
         operator.iadd,
         (
-            (
-                list(
-                    range(
-                        *[
-                            int(j) + k
-                            for k, j in enumerate(i.split("-"))
-                            if len(j) > 0
-                        ]
-                    )
-                )
-                if "-" in i
-                else [int(i)]
-            )
+            (list(range(*[int(j) + k for k, j in enumerate(i.split("-")) if len(j) > 0])) if "-" in i else [int(i)])
             for i in range_string.split(",")
         ),
         [],

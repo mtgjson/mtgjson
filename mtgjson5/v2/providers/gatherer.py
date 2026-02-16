@@ -10,25 +10,18 @@ from mtgjson5.mtgjson_config import MtgjsonConfig
 
 LOGGER = logging.getLogger(__name__)
 
-GATHERER_MAPPING_URL = (
-    "https://github.com/mtgjson/mtg-sealed-content/raw/main/"
-    "outputs/gatherer_mapping.json?raw=True"
-)
+GATHERER_MAPPING_URL = "https://github.com/mtgjson/mtg-sealed-content/raw/main/outputs/gatherer_mapping.json?raw=True"
 
 
 def _make_session(headers: dict[str, str] | None = None) -> requests.Session:
+    """Create a requests session with retry logic."""
     session = requests.Session()
-    retry = urllib3.util.retry.Retry(
-        total=8, backoff_factor=0.3, status_forcelist=(500, 502, 504)
-    )
+    retry = urllib3.util.retry.Retry(total=8, backoff_factor=0.3, status_forcelist=(500, 502, 504))
     adapter = requests.adapters.HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
     session.headers.update(
-        {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) "
-            "Gecko/20100101 Firefox/120.0"
-        }
+        {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0"}
     )
     if headers:
         session.headers.update(headers)
@@ -47,6 +40,7 @@ class GathererProvider:
 
     @staticmethod
     def _build_http_header() -> dict[str, str]:
+        """Build GitHub authorization header."""
         try:
             token = MtgjsonConfig().get("GitHub", "api_token")
             return {"Authorization": f"Bearer {token}"}
@@ -59,10 +53,9 @@ class GathererProvider:
         try:
             response = self._session.get(GATHERER_MAPPING_URL, timeout=30)
             if response.ok:
-                return response.json()
-            LOGGER.error(
-                f"Error downloading Gatherer mapping: {response.status_code}"
-            )
+                data: dict[str, list[dict[str, str]]] = response.json()
+                return data
+            LOGGER.error(f"Error downloading Gatherer mapping: {response.status_code}")
         except requests.RequestException as e:
             LOGGER.error(f"Failed to download Gatherer mapping: {e}")
         return {}

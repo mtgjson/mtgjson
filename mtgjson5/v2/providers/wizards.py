@@ -13,18 +13,14 @@ MAGIC_RULES_URL = "https://magic.wizards.com/en/rules"
 
 
 def _make_session() -> requests.Session:
+    """Create a requests session with retry logic."""
     session = requests.Session()
-    retry = urllib3.util.retry.Retry(
-        total=8, backoff_factor=0.3, status_forcelist=(500, 502, 504)
-    )
+    retry = urllib3.util.retry.Retry(total=8, backoff_factor=0.3, status_forcelist=(500, 502, 504))
     adapter = requests.adapters.HTTPAdapter(max_retries=retry)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
     session.headers.update(
-        {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) "
-            "Gecko/20100101 Firefox/120.0"
-        }
+        {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; +https://www.mtgjson.com) Gecko/20100101 Firefox/120.0"}
     )
     return session
 
@@ -62,9 +58,7 @@ class WizardsProvider:
             # Download the actual rules text
             response = self._session.get(rules_url, timeout=60)
             response.raise_for_status()
-            rules_text = response.content.decode("utf-8", "ignore").replace(
-                "\u2019", "'"
-            )
+            rules_text = response.content.decode("utf-8", "ignore").replace("\u2019", "'")
 
             self._magic_rules = "\n".join(rules_text.splitlines())
         except requests.RequestException as e:
