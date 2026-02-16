@@ -80,13 +80,13 @@ from .outputs import (
 
 __all__ = [
     "ALLOW_IF_FALSEY",
-    "ATOMIC_FOREIGN_STRIP",
-    "ATOMIC_IDENTIFIERS",
     # Output directories
     "ALL_CSVS_DIRECTORY",
     "ALL_DECKS_DIRECTORY",
     "ALL_PARQUETS_DIRECTORY",
     "ALL_SETS_DIRECTORY",
+    "ATOMIC_FOREIGN_STRIP",
+    "ATOMIC_IDENTIFIERS",
     # Cards
     "BASIC_LAND_NAMES",
     "CARD_MARKET_BUFFER",
