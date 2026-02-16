@@ -1684,63 +1684,6 @@ class PolarsPriceBuilder:
         LOGGER.info("Price build complete")
         return all_prices_path, today_prices_path
 
-    def build_prices_legacy(self) -> tuple[dict[str, Any], dict[str, Any]]:
-        """
-        Legacy price build operation returning dicts.
-
-        Downloads AllPrintings.json if missing, fetches today's prices from
-        v2 providers, merges with archive (from S3 if configured), prunes
-        old entries, and uploads the updated archive back to S3.
-
-        Note: This method is kept for backwards compatibility but uses more
-        memory than build_prices(). Prefer build_prices() for new code.
-
-        Returns:
-            Tuple of (all_prices_dict, today_prices_dict)
-        """
-        LOGGER.info("Polars Price Builder - Building Prices (V2 Legacy)")
-
-        # Auto-download AllPrintings if needed
-        if not self.all_printings_path.is_file():
-            LOGGER.info("AllPrintings not found, attempting to download")
-            self.download_old_all_printings()
-
-        if not self.all_printings_path.is_file():
-            LOGGER.error("Failed to get AllPrintings")
-            return {}, {}
-
-        # Fetch today's prices
-        LOGGER.info("Fetching today's prices from V2 providers")
-        today_df = self.build_today_prices()
-
-        if len(today_df) == 0:
-            LOGGER.warning("No price data generated")
-            return {}, {}
-
-        today_prices = self.to_nested_dict(today_df.lazy())
-
-        # Load archive (try S3 first, then local)
-        LOGGER.info("Loading price archive")
-        archive_lf = self.get_price_archive_from_s3()
-
-        # Merge and prune
-        LOGGER.info("Merging archive with today's prices")
-        merged_lf = self.merge_prices(archive_lf, today_df.lazy())
-
-        LOGGER.info("Pruning old price data")
-        pruned_lf = self.prune_prices(merged_lf)
-
-        # Save locally as parquet
-        LOGGER.info("Saving updated archive")
-        self.save_archive(pruned_lf)
-
-        self.upload_archive_to_s3(pruned_lf)
-
-        LOGGER.info("Converting to nested dict for JSON output...")
-        all_prices = self.to_nested_dict(pruned_lf)
-
-        return all_prices, today_prices
-
     def build_prices_parquet(self) -> tuple[pl.DataFrame, pl.DataFrame]:
         """
         Build prices returning DataFrames instead of dicts.

@@ -166,13 +166,6 @@ class PipelineContext:
         return self._cache.multiverse_bridge_lf if self._cache else None
 
     @property
-    def foreign_data_lf(self) -> pl.LazyFrame | None:
-        """Foreign data from cache."""
-        if "_foreign_data_lf" in self._test_data:
-            return self._test_data["_foreign_data_lf"]  # type: ignore[no-any-return]
-        return self._cache.foreign_data_lf if self._cache else None
-
-    @property
     def sealed_cards_lf(self) -> pl.LazyFrame | None:
         """Sealed cards from cache."""
         if "_sealed_cards_lf" in self._test_data:
@@ -264,13 +257,6 @@ class PipelineContext:
                 "_cardmarket_to_uuid_lf"
             ]
         return self._cache.cardmarket_to_uuid_lf if self._cache else None
-
-    @property
-    def uuid_to_oracle_lf(self) -> pl.LazyFrame | None:
-        """UUID to oracle mapping from cache."""
-        if "_uuid_to_oracle_lf" in self._test_data:
-            return self._test_data["_uuid_to_oracle_lf"]  # type: ignore[no-any-return]
-        return self._cache.uuid_to_oracle_lf if self._cache else None
 
     @property
     def languages_lf(self) -> pl.LazyFrame | None:

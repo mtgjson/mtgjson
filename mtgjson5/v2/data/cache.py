@@ -117,8 +117,6 @@ class GlobalCache:
         self.sets_lf: pl.LazyFrame | None = None
 
         # Pre-computed Aggregation LFs
-        self.oracle_lookup_lf: pl.LazyFrame | None = None
-        self.foreign_data_lf: pl.LazyFrame | None = None
         self.uuid_cache_lf: pl.LazyFrame | None = None
 
         # Provider Data lFs
@@ -127,7 +125,6 @@ class GlobalCache:
         self.mcm_lookup_lf: pl.LazyFrame | None = None
         self.salt_lf: pl.LazyFrame | None = None
         self.spellbook_lf: pl.LazyFrame | None = None
-        self.meld_lookup_lf: pl.LazyFrame | None = None
         self.sld_subsets_lf: pl.LazyFrame | None = None
         self.orientation_lf: pl.LazyFrame | None = None
         self.gatherer_lf: pl.LazyFrame | None = None
@@ -149,7 +146,6 @@ class GlobalCache:
         self.mtgo_to_uuid_lf: pl.LazyFrame | None = None
         self.scryfall_to_uuid_lf: pl.LazyFrame | None = None
         self.cardmarket_to_uuid_lf: pl.LazyFrame | None = None
-        self.uuid_to_oracle_lf: pl.LazyFrame | None = None
 
         self.languages_lf: pl.LazyFrame | None = None
 
@@ -224,17 +220,13 @@ class GlobalCache:
         self.release(
             "cards_lf",
             "rulings_lf",
-            "oracle_lookup_lf",
             "sets_lf",
-            "rulings_lf",
-            "foreign_data_lf",
             "uuid_cache_lf",
             "card_kingdom_lf",
             "card_kingdom_raw_lf",
             "mcm_lookup_lf",
             "salt_lf",
             "spellbook_lf",
-            "meld_lookup_lf",
             "sld_subsets_lf",
             "orientation_lf",
             "gatherer_lf",
@@ -252,7 +244,6 @@ class GlobalCache:
             "mtgo_to_uuid_lf",
             "scryfall_to_uuid_lf",
             "cardmarket_to_uuid_lf",
-            "uuid_to_oracle_lf",
             "languages_lf",
             "final_cards_lf",
         )
@@ -389,13 +380,11 @@ class GlobalCache:
             "mcm_lookup_lf": "mcm_lookup.parquet",
             "salt_lf": "salt.parquet",
             "spellbook_lf": "spellbook.parquet",
-            "meld_lookup_lf": "meld_lookup.parquet",
             "sld_subsets_lf": "sld_subsets.parquet",
             "orientation_lf": "orientations.parquet",
             "gatherer_lf": "gatherer.parquet",
             "multiverse_bridge_lf": "multiverse_bridge.parquet",
             "uuid_cache_lf": "uuid_cache.parquet",
-            "foreign_data_lf": "foreign_data.parquet",
             "sealed_cards_lf": "sealed_cards.parquet",
             "sealed_products_lf": "sealed_products.parquet",
             "sealed_contents_lf": "sealed_contents.parquet",
@@ -409,7 +398,6 @@ class GlobalCache:
             "mtgo_to_uuid_lf": "mtgo_to_uuid.parquet",
             "scryfall_to_uuid_lf": "scryfall_to_uuid.parquet",
             "cardmarket_to_uuid_lf": "cardmarket_to_uuid.parquet",
-            "uuid_to_oracle_lf": "uuid_to_oracle.parquet",
             "languages_lf": "languages.parquet",
         }
 
@@ -1207,13 +1195,11 @@ class GlobalCache:
         self.rulings_lf = _normalize_columns(self.rulings_lf)
         self.sets_lf = _normalize_columns(self.sets_lf)
         self.rulings_lf = _normalize_columns(self.rulings_lf)
-        self.foreign_data_lf = _normalize_columns(self.foreign_data_lf)
         self.uuid_cache_lf = _normalize_columns(self.uuid_cache_lf)
         self.card_kingdom_lf = _normalize_columns(self.card_kingdom_lf)
         self.mcm_lookup_lf = _normalize_columns(self.mcm_lookup_lf)
         self.salt_lf = _normalize_columns(self.salt_lf)
         self.spellbook_lf = _normalize_columns(self.spellbook_lf)
-        self.meld_lookup_lf = _normalize_columns(self.meld_lookup_lf)
         self.sld_subsets_lf = _normalize_columns(self.sld_subsets_lf)
         self.orientation_lf = _normalize_columns(self.orientation_lf)
         self.gatherer_lf = _normalize_columns(self.gatherer_lf)

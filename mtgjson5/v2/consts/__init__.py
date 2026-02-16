@@ -20,12 +20,8 @@ from .cards import (
 
 # Expansion/Set constants
 from .expansions import (
-    DUEL_DECK_SETS,
-    FOIL_NONFOIL_LINK_SETS,
     FUNNY_SETS_WITH_ACORN,
     SUPPORTED_SET_TYPES,
-    Expansion,
-    SetType,
 )
 
 # Field constants
@@ -90,17 +86,17 @@ __all__ = [
     # Cards
     "BASIC_LAND_NAMES",
     "CARD_MARKET_BUFFER",
-    "DUEL_DECK_SETS",
     "EXCLUDE_FROM_OUTPUT",
     "FACE_MANA_VALUE_LAYOUTS",
     "FACE_NAME_LAYOUTS",
     # Finishes
     "FINISH_ORDER",
-    "FOIL_NONFOIL_LINK_SETS",
     "FUNNY_SETS_WITH_ACORN",
     "IDENTIFIERS_FIELD_SOURCES",
     # Languages
     "LANGUAGE_MAP",
+    # Layouts
+    "LayoutVariant",
     "MULTIFACE_LAYOUTS",
     "MULTI_WORD_SUB_TYPES",
     "OMIT_EMPTY_LIST_FIELDS",
@@ -122,11 +118,6 @@ __all__ = [
     "TOKEN_LAYOUTS",
     # Mappings
     "TYPEDDICT_FIELD_ALIASES",
-    # Expansions
-    "Expansion",
-    # Layouts
-    "LayoutVariant",
-    "SetType",
     "is_multiface",
     "is_token_layout",
 ]
