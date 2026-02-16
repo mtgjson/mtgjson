@@ -20,24 +20,22 @@ from typing import cast, overload
 import polars as pl
 
 from mtgjson5 import constants
-from mtgjson5.providers.gatherer import GathererProvider
-from mtgjson5.providers.manapool.manapool_prices import ManapoolPricesProvider
-from mtgjson5.providers.mtgwiki.secret_lair import MtgWikiProviderSecretLair
-from mtgjson5.providers.scryfall.orientation_detector import (
-    ScryfallProviderOrientationDetector,
-)
-from mtgjson5.providers.whats_in_standard import WhatsInStandardProvider
-from mtgjson5.providers.wizards import WizardsProvider
 from mtgjson5.utils import LOGGER
 from mtgjson5.v2.providers import CardHoarderPriceProvider as CardHoarderProvider
 from mtgjson5.v2.providers import (
     CardMarketProvider,
     CKProvider,
     EdhrecSaltProvider,
+    ManapoolPriceProvider,
     ScryfallProvider,
     SealedDataProvider,
     TCGProvider,
 )
+from mtgjson5.v2.providers.gatherer import GathererProvider
+from mtgjson5.v2.providers.mtgwiki import SecretLairProvider
+from mtgjson5.v2.providers.scryfall.orientation import OrientationDetector
+from mtgjson5.v2.providers.whats_in_standard import WhatsInStandardProvider
+from mtgjson5.v2.providers.wizards import WizardsProvider
 from mtgjson5.v2.utils import DynamicCategoricals, discover_categoricals
 
 
@@ -195,11 +193,11 @@ class GlobalCache:
         self._github: SealedDataProvider | None = None
         self._edhrec: EdhrecSaltProvider | None = None
         self._standard: WhatsInStandardProvider | None = None
-        self._manapool: ManapoolPricesProvider | None = None
+        self._manapool: ManapoolPriceProvider | None = None
         self._cardhoarder: CardHoarderProvider | None = None
         self._tcgplayer: TCGProvider | None = None
-        self._secretlair: MtgWikiProviderSecretLair | None = None
-        self._orientations: ScryfallProviderOrientationDetector | None = None
+        self._secretlair: SecretLairProvider | None = None
+        self._orientations: OrientationDetector | None = None
         self._wizards: WizardsProvider | None = None
 
         # State
@@ -368,7 +366,7 @@ class GlobalCache:
                 LOGGER.warning(f"Failed to fetch TCGPlayer SKUs: {e}")
                 from mtgjson5.v2.providers.tcgplayer.models import PRODUCT_SCHEMA
 
-                self.tcg_skus_lf = pl.DataFrame(schema=PRODUCT_SCHEMA).lazy()
+                self.tcg_skus_lf = pl.DataFrame(schema=cast("dict", PRODUCT_SCHEMA)).lazy()
             finally:
                 self._tcg_skus_future = None
 
@@ -1007,7 +1005,7 @@ class GlobalCache:
             self.orientation_lf = pl.read_parquet(cache_path).lazy()
             return
 
-        detector = ScryfallProviderOrientationDetector()
+        detector = OrientationDetector()
         sets_lf_raw = self.sets_lf
         if sets_lf_raw is None:
             LOGGER.warning("Sets not loaded, skipping orientations")
@@ -1277,10 +1275,10 @@ class GlobalCache:
         return self._edhrec
 
     @property
-    def manapool(self) -> ManapoolPricesProvider:
+    def manapool(self) -> ManapoolPriceProvider:
         """Get or create the Manapool prices provider instance."""
         if self._manapool is None:
-            self._manapool = ManapoolPricesProvider()
+            self._manapool = ManapoolPriceProvider()
         return self._manapool
 
     @property
@@ -1298,10 +1296,10 @@ class GlobalCache:
         return self._tcgplayer
 
     @property
-    def secretlair(self) -> MtgWikiProviderSecretLair:
+    def secretlair(self) -> SecretLairProvider:
         """Get or create the Secret Lair provider instance."""
         if self._secretlair is None:
-            self._secretlair = MtgWikiProviderSecretLair()
+            self._secretlair = SecretLairProvider()
         return self._secretlair
 
     @property
