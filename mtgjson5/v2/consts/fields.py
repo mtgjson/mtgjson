@@ -186,6 +186,15 @@ IDENTIFIERS_FIELD_SOURCES: Final[dict[str, str | tuple[str, ...]]] = {
     "cardKingdomEtchedId": "cardKingdomEtchedId",
 }
 
+# Fields to strip from foreignData in atomic context (printing-specific)
+ATOMIC_FOREIGN_STRIP: Final[frozenset[str]] = frozenset({"flavorText", "identifiers", "multiverseId", "uuid"})
+
+# Only scryfallOracleId is kept in atomic identifiers
+ATOMIC_IDENTIFIERS: Final[frozenset[str]] = frozenset({"scryfallOracleId"})
+
+# Columns that define oracle identity for atomic dedup
+ORACLE_IDENTITY_COLS: Final[tuple[str, ...]] = ("name", "faceName", "colorIdentity", "manaCost", "type", "text")
+
 SCRYFALL_COLUMNS_TO_DROP = [
     "lang",  # -> language (via replace_strict)
     "frame",  # -> frameVersion
