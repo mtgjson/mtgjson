@@ -5,8 +5,6 @@ from collections.abc import Callable
 import polars as pl
 from pydantic import BaseModel, Field
 
-from mtgjson5.mtgjson_config import MtgjsonConfig
-
 
 class Sku(BaseModel):
     """Single SKU from TCGPlayer API."""
@@ -33,67 +31,6 @@ class ProductsResponse(BaseModel):
 
     totalItems: int = 0
     results: list[Product] = Field(default_factory=list)
-
-
-class TcgPlayerConfig(BaseModel):
-    """TCGPlayer API credentials and settings."""
-
-    public_key: str
-    private_key: str
-    base_url: str = "https://api.tcgplayer.com"
-    api_version: str = "v1.39.0"
-
-    model_config = {"frozen": True}
-
-    @property
-    def token_url(self) -> str:
-        """Return TCGPlayer token endpoint URL."""
-        return f"{self.base_url}/token"
-
-    def endpoint_url(self, endpoint: str, versioned: bool = True) -> str:
-        """Return full URL for API endpoint."""
-        if versioned:
-            return f"{self.base_url}/{self.api_version}/{endpoint}"
-        return f"{self.base_url}/{endpoint}"
-
-    @classmethod
-    def from_mtgjson_config(cls, suffix: str = "") -> "TcgPlayerConfig | None":
-        """Load from mtgjson.properties."""
-        config = MtgjsonConfig()
-        if not config.has_section("TCGPlayer"):
-            return None
-
-        key_suffix = f"_{suffix}" if suffix else ""
-        try:
-            public_key = config.get("TCGPlayer", f"client_id{key_suffix}")
-            private_key = config.get("TCGPlayer", f"client_secret{key_suffix}")
-
-            # Skip if keys are empty or missing
-            if not public_key or not private_key:
-                return None
-
-            return cls(
-                public_key=public_key,
-                private_key=private_key,
-                api_version=config.get("TCGPlayer", "api_version", fallback="v1.39.0"),
-            )
-        except Exception:
-            return None
-
-    @classmethod
-    def load_all(cls) -> list["TcgPlayerConfig"]:
-        """Load all available API key configs."""
-        configs = []
-        primary = cls.from_mtgjson_config("")
-        if primary:
-            configs.append(primary)
-        for i in range(2, 10):
-            alt = cls.from_mtgjson_config(str(i))
-            if alt:
-                configs.append(alt)
-            else:
-                break
-        return configs
 
 
 class FetchResult(BaseModel):
