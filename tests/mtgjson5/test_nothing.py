@@ -2,4 +2,4 @@
 
 
 def test_nothing() -> None:
-	"""Test nothing."""
+    """Test nothing."""

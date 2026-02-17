@@ -13,3 +13,38 @@ ALL_SETS_DIRECTORY: Final[str] = "AllSetFiles"
 ALL_DECKS_DIRECTORY: Final[str] = "AllDeckFiles"
 ALL_CSVS_DIRECTORY: Final[str] = "AllPrintingsCSVFiles"
 ALL_PARQUETS_DIRECTORY: Final[str] = "AllPrintingsParquetFiles"
+
+# All compiled output file names (used by compression to distinguish set files from compiled files)
+COMPILED_OUTPUT_NAMES: Final[frozenset[str]] = frozenset(
+    {
+        "AllPrintings",
+        "AtomicCards",
+        "AllPrices",
+        "AllPricesToday",
+        "AllPrintingsCSVFiles",
+        "AllPrintingsParquetFiles",
+        "AllDeckFiles",
+        "AllSetFiles",
+        "CardTypes",
+        "CompiledList",
+        "DeckList",
+        "Keywords",
+        "EnumValues",
+        "SetList",
+        "ReferralMap",
+        "Meta",
+        "AllIdentifiers",
+        "TcgplayerSkus",
+        "Standard",
+        "Pioneer",
+        "Modern",
+        "Legacy",
+        "Vintage",
+        "StandardAtomic",
+        "PioneerAtomic",
+        "ModernAtomic",
+        "LegacyAtomic",
+        "VintageAtomic",
+        "PauperAtomic",
+    }
+)

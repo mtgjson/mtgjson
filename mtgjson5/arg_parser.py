@@ -23,7 +23,6 @@ def set_v2_flags(parsed_args: argparse.Namespace) -> None:
     """
     if parsed_args.v2:
         parsed_args.use_models = True
-        parsed_args.polars = True
         if not parsed_args.sets:
             # Full build: all sets, compiled outputs, and exports
             parsed_args.all_sets = True
@@ -115,7 +114,8 @@ def parse_args() -> argparse.Namespace:
     pipeline_group.add_argument(
         "--polars",
         action="store_true",
-        help="Enables Polars-based pipeline.",
+        default=True,
+        help="Accepted for backward compatibility. Polars pipeline is now the only path.",
     )
     pipeline_group.add_argument(
         "--bulk-files",

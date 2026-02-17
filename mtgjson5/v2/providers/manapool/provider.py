@@ -17,7 +17,7 @@ import aiohttp
 import polars as pl
 
 from mtgjson5 import constants
-from mtgjson5.classes import MtgjsonPricesObject
+from mtgjson5.v2.models.containers import MtgjsonPriceEntry
 
 LOGGER = logging.getLogger(__name__)
 
@@ -203,18 +203,18 @@ class ManapoolPriceProvider:
     async def generate_today_price_dict(
         self,
         scryfall_to_uuid_map: dict[str, set[str]],
-    ) -> dict[str, MtgjsonPricesObject]:
+    ) -> dict[str, MtgjsonPriceEntry]:
         """
         Generate MTGJSON-format price dict for compatibility with legacy code.
 
-        Returns dict mapping UUID -> MtgjsonPricesObject.
+        Returns dict mapping UUID -> MtgjsonPriceEntry.
         """
         df = await self.fetch_prices(scryfall_to_uuid_map)
         return self._dataframe_to_price_dict(df)
 
-    def _dataframe_to_price_dict(self, df: pl.DataFrame) -> dict[str, MtgjsonPricesObject]:
+    def _dataframe_to_price_dict(self, df: pl.DataFrame) -> dict[str, MtgjsonPriceEntry]:
         """Convert DataFrame to MTGJSON price dict format."""
-        result: dict[str, MtgjsonPricesObject] = {}
+        result: dict[str, MtgjsonPriceEntry] = {}
 
         for row in df.iter_rows(named=True):
             uuid = row["uuid"]
@@ -222,7 +222,7 @@ class ManapoolPriceProvider:
             price = row["price"]
 
             if uuid not in result:
-                result[uuid] = MtgjsonPricesObject("paper", "manapool", self.today_date, "USD")
+                result[uuid] = MtgjsonPriceEntry("paper", "manapool", self.today_date, "USD")
 
             prices_obj = result[uuid]
             if finish == "normal":

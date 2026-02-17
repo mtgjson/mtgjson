@@ -128,6 +128,41 @@ def get_file_hash(file_to_hash: pathlib.Path, block_size: int = 65536) -> str:
     return hash_operation.hexdigest()
 
 
+def generate_output_file_hashes(directory: pathlib.Path) -> None:
+    """
+    Given a directory, hash each file within it and write that hash
+    out to the file "FILENAME.HASH_NAME"
+    :param directory: Directory to hash
+    """
+    # Don't hash documentation or types output directories
+    excluded_dirs = {"data-models", "types"}
+
+    for file in directory.glob("**/*"):
+        if file.is_dir():
+            continue
+
+        # Skip documentation and types output directories
+        relative = file.relative_to(directory)
+        if relative.parts[0] in excluded_dirs:
+            continue
+
+        # Skip the root TypeScript bundle
+        if file.name == "AllMTGJSONTypes.ts":
+            continue
+
+        # Don't hash the hash file...
+        if file.name.endswith(constants.HASH_TO_GENERATE.name):
+            continue
+
+        generated_hash = get_file_hash(file)
+        if not generated_hash:
+            continue
+
+        hash_file_name = f"{file.name}.{constants.HASH_TO_GENERATE.name}"
+        with file.parent.joinpath(hash_file_name).open("w", encoding="utf-8") as hash_file:
+            hash_file.write(generated_hash)
+
+
 def get_str_or_none(value: Any) -> str | None:
     """
     Given a value, get its string representation

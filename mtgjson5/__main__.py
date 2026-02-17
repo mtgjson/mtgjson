@@ -6,6 +6,7 @@ import argparse
 import logging
 import traceback
 
+import requests
 import urllib3.exceptions
 
 from mtgjson5.utils import init_logger
@@ -18,51 +19,37 @@ from mtgjson5 import constants
 from mtgjson5.utils import load_local_set_data
 from mtgjson5.v2.data import GlobalCache
 
+SCRYFALL_SETS_URL = "https://api.scryfall.com/sets/"
 
-def build_mtgjson_sets(
-    sets_to_build: set[str] | list[str],
-    output_pretty: bool,
-    include_referrals: bool,
-) -> None:
+
+def get_sets_to_build(args: argparse.Namespace) -> list[str]:
     """
-    Build each set one-by-one and output them to a file
-    :param sets_to_build: Sets to construct
-    :param output_pretty: Should we dump minified
-    :param include_referrals: Should we include referrals
+    Determine which sets to build based on CLI args.
+    Fetches set codes from Scryfall when building all sets.
+    :param args: CLI args
+    :return: List of set codes to build, alphabetically sorted
     """
-    from mtgjson5.output_generator import write_to_file
-    from mtgjson5.providers import GathererProvider, WhatsInStandardProvider
-    from mtgjson5.referral_builder import (
-        build_and_write_referral_map,
-        fixup_referral_map,
-    )
-    from mtgjson5.set_builder import build_mtgjson_set
+    if args.resume_build:
+        from mtgjson5.mtgjson_config import MtgjsonConfig
 
-    LOGGER.info(f"Building {len(sets_to_build)} Sets: {', '.join(sets_to_build)}")
+        # Exclude sets already built
+        json_files = list(MtgjsonConfig().output_path.glob("**/*.json"))
+        already_built = [f.stem[:-1] if f.stem[:-1] in constants.BAD_FILE_NAMES else f.stem for f in json_files]
+        args.skip_sets.extend(already_built)
 
-    # Prime lookups
-    _ = WhatsInStandardProvider()
-    _ = GathererProvider()
+    if not args.all_sets:
+        return sorted(set(args.sets) - set(args.skip_sets))
 
-    for set_to_build in sets_to_build:
-        # Build the full set
-        mtgjson_set = build_mtgjson_set(set_to_build)
-        if not mtgjson_set:
-            continue
+    # Fetch all set codes from Scryfall
+    response = requests.get(SCRYFALL_SETS_URL, timeout=30)
+    response.raise_for_status()
+    scryfall_sets = [s["code"].upper() for s in response.json().get("data", [])]
 
-        # Handle referral components
-        if include_referrals:
-            build_and_write_referral_map(mtgjson_set)
+    # Remove token sets (Txxx where xxx is also a set)
+    scryfall_set_codes = set(scryfall_sets)
+    non_token_sets = {s for s in scryfall_set_codes if not (s.startswith("T") and s[1:] in scryfall_set_codes)}
 
-        # Dump set out to file
-        write_to_file(
-            file_name=mtgjson_set.get_windows_safe_set_code(),
-            file_contents=mtgjson_set,
-            pretty_print=output_pretty,
-        )
-
-    if sets_to_build and include_referrals:
-        fixup_referral_map()
+    return sorted(non_token_sets - set(args.skip_sets))
 
 
 def dispatcher(args: argparse.Namespace) -> None:
@@ -95,27 +82,12 @@ def dispatcher(args: argparse.Namespace) -> None:
     )
     from mtgjson5.mtgjson_config import MtgjsonConfig
     from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
-    from mtgjson5.output_generator import (
-        generate_compiled_output_files,
-        generate_compiled_prices_output,
-        generate_output_file_hashes,
-    )
-    from mtgjson5.price_builder import PriceBuilder
-    from mtgjson5.providers import GitHubMTGSqliteProvider, ScryfallProvider
+    from mtgjson5.utils import generate_output_file_hashes
     from mtgjson5.v2.build.writer import assemble_json_outputs, assemble_with_models
     from mtgjson5.v2.data import PipelineContext
     from mtgjson5.v2.pipeline.core import build_cards
 
-    # Legacy price-only build (non-v2) - build prices and exit
-    if args.price_build and not args.polars:
-        all_prices, today_prices = PriceBuilder().build_prices()
-        generate_compiled_prices_output(all_prices, today_prices, args.pretty)
-        if args.compress:
-            compress_mtgjson_contents(MtgjsonConfig().output_path)
-        generate_output_file_hashes(MtgjsonConfig().output_path)
-        return
-
-    sets_to_build = ScryfallProvider().get_sets_to_build(args)
+    sets_to_build = get_sets_to_build(args)
 
     # Check if only specific outputs or formats requested
     outputs_requested = {o.lower() for o in (args.outputs or [])}
@@ -126,23 +98,23 @@ def dispatcher(args: argparse.Namespace) -> None:
     # Override with --outputs, --export, or --full-build to include more
     sets_only = bool(args.sets) and not args.all_sets and not args.full_build
 
-    # Load global cache only when using Polars pipeline
+    # Load global cache
     # Pass set_codes to filter aggregation computations to only requested sets
-    if args.polars:
-        set_filter = None
-        if sets_to_build and not args.all_sets:
-            # Include token sets (T{code}) for each requested set
-            set_filter = []
-            for code in sets_to_build:
-                set_filter.append(code.upper())
-                set_filter.append(f"T{code.upper()}")
-            set_filter = sorted(set(set_filter))
-        GlobalCache().load_all(
-            set_codes=set_filter,
-            output_types=outputs_requested,
-            export_formats=export_formats,
-            skip_mcm=args.skip_mcm,
-        )
+    set_filter = None
+    if sets_to_build and not args.all_sets:
+        # Include token sets (T{code}) for each requested set
+        set_filter = []
+        for code in sets_to_build:
+            set_filter.append(code.upper())
+            set_filter.append(f"T{code.upper()}")
+        set_filter = sorted(set(set_filter))
+    GlobalCache().load_all(
+        set_codes=set_filter,
+        output_types=outputs_requested,
+        export_formats=export_formats,
+        skip_mcm=args.skip_mcm,
+    )
+
     if args.all_sets:
         additional_set_keys = set(load_local_set_data().keys())
         additional_set_keys -= set(args.skip_sets)
@@ -151,51 +123,42 @@ def dispatcher(args: argparse.Namespace) -> None:
 
     decks_only = outputs_requested == {"decks"}
 
-    # Create context for Polars pipeline (needed for builds and/or exports)
-    ctx = None
-    if args.polars:
-        ctx = PipelineContext.from_global_cache(args=args)
-        ctx.consolidate_lookups()
+    # Create pipeline context
+    ctx = PipelineContext.from_global_cache(args=args)
+    ctx.consolidate_lookups()
 
     if sets_to_build or decks_only:
-        if args.polars:
-            if ctx is None:
-                raise ValueError("PipelineContext not initialized")
+        build_cards(ctx)
 
-            build_cards(ctx)
+        if decks_only:
+            # Only build deck files, skip set JSON assembly
+            from mtgjson5.v2.pipeline import build_expanded_decks_df
 
-            if decks_only:
-                # Only build deck files, skip set JSON assembly
-                from mtgjson5.v2.pipeline import build_expanded_decks_df
-
-                decks_df = build_expanded_decks_df(ctx)
-                LOGGER.info(f"Built expanded decks DataFrame: {len(decks_df)} rows")
-            elif args.use_models:
-                # Model-based assembly with Pydantic types
-                # Pass outputs if specified (use original case from args.outputs)
-                outputs_set = set(args.outputs) if args.outputs else None
-                set_codes = sets_to_build if sets_only else None
-                results = assemble_with_models(
-                    ctx,
-                    streaming=True,
-                    set_codes=set_codes,
-                    outputs=outputs_set,
-                    pretty=args.pretty,
-                    sets_only=sets_only,
-                )
-                LOGGER.info(f"Model assembly results: {results}")
-            else:
-                set_codes = sets_to_build if sets_only else None
-                assemble_json_outputs(
-                    ctx,
-                    parallel=True,
-                    max_workers=30,
-                    set_codes=set_codes,
-                    pretty=args.pretty,
-                    sets_only=sets_only,
-                )
+            decks_df = build_expanded_decks_df(ctx)
+            LOGGER.info(f"Built expanded decks DataFrame: {len(decks_df)} rows")
+        elif args.use_models:
+            # Model-based assembly with Pydantic types
+            outputs_set = set(args.outputs) if args.outputs else None
+            set_codes = sets_to_build if sets_only else None
+            results = assemble_with_models(
+                ctx,
+                streaming=True,
+                set_codes=set_codes,
+                outputs=outputs_set,
+                pretty=args.pretty,
+                sets_only=sets_only,
+            )
+            LOGGER.info(f"Model assembly results: {results}")
         else:
-            build_mtgjson_sets(sorted(sets_to_build), args.pretty, args.referrals)
+            set_codes = sets_to_build if sets_only else None
+            assemble_json_outputs(
+                ctx,
+                parallel=True,
+                max_workers=30,
+                set_codes=set_codes,
+                pretty=args.pretty,
+                sets_only=sets_only,
+            )
 
     # --outputs or --export implies --full-build (unless only decks requested)
     # In sets-only mode, only export when explicit formats were requested
@@ -203,22 +166,12 @@ def dispatcher(args: argparse.Namespace) -> None:
     if sets_only and not export_formats:
         should_export = False
     if should_export:
-        if args.polars:
-            if ctx is None:
-                raise ValueError("PipelineContext not initialized")
+        from mtgjson5.v2.build.writer import OutputWriter
 
-            from mtgjson5.v2.build.writer import OutputWriter
+        OutputWriter.from_args(ctx).write_all()
 
-            OutputWriter.from_args(ctx).write_all()
-        else:
-            generate_compiled_output_files(args.pretty)
-            GitHubMTGSqliteProvider().build_alternative_formats()
-
-    # V2 referral map build (runs after card/export build if --referrals specified)
-    if args.referrals and args.polars:
-        if ctx is None:
-            raise ValueError("PipelineContext not initialized for referral build")
-
+    # Referral map build (runs after card/export build if --referrals specified)
+    if args.referrals:
         from mtgjson5.v2.build.context import AssemblyContext
         from mtgjson5.v2.build.referral_builder import build_and_write_referral_map
 
@@ -232,8 +185,8 @@ def dispatcher(args: argparse.Namespace) -> None:
         )
         LOGGER.info(f"Referral map written: {referral_count:,} entries")
 
-    # V2 price build (runs after card build if --price-build specified)
-    if args.price_build and args.polars:
+    # Price build (runs after card build if --price-build specified)
+    if args.price_build:
         from mtgjson5.v2.build.price_builder import PolarsPriceBuilder
 
         LOGGER.info("Building prices...")
@@ -244,7 +197,7 @@ def dispatcher(args: argparse.Namespace) -> None:
             LOGGER.info(f"Price files written: {all_prices_path}, {today_prices_path}")
 
     if args.compress:
-        if args.parallel | args.polars:
+        if args.parallel:
             compress_mtgjson_contents_parallel(MtgjsonConfig().output_path)
         else:
             compress_mtgjson_contents(MtgjsonConfig().output_path)

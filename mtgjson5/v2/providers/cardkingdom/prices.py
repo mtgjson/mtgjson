@@ -123,12 +123,12 @@ class CardKingdomPriceProcessor:
             ck_id_to_uuid: Mapping from CK product ID to MTGJSON UUID(s)
 
         Returns:
-            Dict mapping UUID -> MtgjsonPricesObject
+            Dict mapping UUID -> MtgjsonPriceEntry
         """
-        from mtgjson5.classes import MtgjsonPricesObject
+        from mtgjson5.v2.models.containers import MtgjsonPriceEntry
 
         today_date = datetime.datetime.today().strftime("%Y-%m-%d")
-        result: dict[str, MtgjsonPricesObject] = {}
+        result: dict[str, MtgjsonPriceEntry] = {}
 
         for row in self._pricing_df.iter_rows(named=True):
             ck_id = row["ck_id"]
@@ -145,7 +145,7 @@ class CardKingdomPriceProcessor:
 
             for uuid in uuids:
                 if uuid not in result:
-                    result[uuid] = MtgjsonPricesObject("paper", "cardkingdom", today_date, "USD")
+                    result[uuid] = MtgjsonPriceEntry("paper", "cardkingdom", today_date, "USD")
 
                 prices_obj = result[uuid]
 
