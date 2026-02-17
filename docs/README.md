@@ -1,25 +1,25 @@
 # Polars Pipeline Reference
 
-This documentation covers the modern Polars-based pipeline for building MTGJSON data. This path is triggered by the `--v2` flag (or `--polars` directly).
+This documentation covers the Polars-based pipeline for building MTGJSON data.
 
 ## For Contributors
 
-New to the v2 pipeline? Start with the **[Contributor Guide](contributing.md)** — it covers where to put code, performance rules, testing patterns, runtime flags, and a PR checklist.
+Start with the **[Contributor Guide](contributing.md)** — it covers where to put code, performance rules, testing patterns, runtime flags, and a PR checklist.
 
 ## Quick Start
 
 ```bash
-# Full v2 build (all sets, all outputs, model-based assembly)
-python -m mtgjson5 --v2
+# Full build (all sets, all outputs, model-based assembly)
+python -m mtgjson5 --build-all
 
 # Equivalent explicit flags
-python -m mtgjson5 --polars --use-models --all-sets --full-build
+python -m mtgjson5 --use-models --all-sets --full-build
 
 # Specific sets only
-python -m mtgjson5 --polars -s MH3 BLB
+python -m mtgjson5 -s MH3 BLB
 
 # Decks only
-python -m mtgjson5 --polars --outputs Decks
+python -m mtgjson5 --outputs Decks
 ```
 
 ## Architecture Overview
@@ -29,7 +29,7 @@ The Polars pipeline consists of four main layers:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    1. DATA LAYER                            │
-│  GlobalCache (v2/data/cache.py)                             │
+│  GlobalCache (data/cache.py)                             │
 │  - Downloads and caches provider data                       │
 │  - Stores as LazyFrames for memory efficiency               │
 │  - 10 parallel threads for provider loading                 │
@@ -38,7 +38,7 @@ The Polars pipeline consists of four main layers:
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                 2. TRANSFORMATION CONTEXT                   │
-│  PipelineContext (v2/data/context.py)                       │
+│  PipelineContext (data/context.py)                       │
 │  - Wraps GlobalCache                                        │
 │  - consolidate_lookups() builds derived tables              │
 │  - Provides property-based access for testability           │
@@ -47,16 +47,16 @@ The Polars pipeline consists of four main layers:
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    3. PIPELINE                              │
-│  build_cards() (v2/pipeline/core.py)                        │
-│  - Strategic checkpoints for memory efficiency              │
-│  - Outputs partitioned parquet files                        │
+│  build_cards() (pipeline/core.py → stages/)              │
+│  - Thin orchestrator delegates to 9 stage modules           │
+│  - Strategic checkpoints, partitioned parquet output        │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                 4. ASSEMBLY & OUTPUT                        │
-│  AssemblyContext (v2/build/context.py)                      │
-│  JsonOutputBuilder (v2/build/formats/json.py)               │
+│  AssemblyContext (build/context.py)                      │
+│  JsonOutputBuilder (build/formats/json.py)               │
 │  SQLiteBuilder, CSVBuilder, etc.                            │
 │  - Reads from parquet cache                                 │
 │  - Writes JSON, SQLite, CSV, Parquet, PostgreSQL            │
@@ -64,7 +64,8 @@ The Polars pipeline consists of four main layers:
 
 ┌─────────────────────────────────────────────────────────────┐
 │              5. PRICE ENGINE (separate ETL)                 │
-│  PolarsPriceBuilder (v2/build/price_builder.py)             │
+│  PolarsPriceBuilder (build/price_builder.py)             │
+│  + price_archive.py, price_writers.py, price_s3.py         │
 │  - Fetches daily prices from 5 providers                    │
 │  - Date-partitioned parquet data lake with S3 sync          │
 │  - Streams AllPrices.json, AllPricesToday.json + SQL        │
@@ -87,7 +88,7 @@ The Polars pipeline consists of four main layers:
 ## Data Flow
 
 ```
-Command Line (--v2 or --polars)
+Command Line (--build-all or explicit flags)
         │
         ▼
 ┌───────────────────┐
@@ -157,16 +158,21 @@ All paths relative to `mtgjson5/`:
 
 | File | Purpose |
 |------|---------|
-| `v2/pipeline/core.py` | Main transformation pipeline |
-| `v2/data/cache.py` | Data layer, provider loading |
-| `v2/data/context.py` | Transformation context |
-| `v2/build/assemble.py` | Assembly utilities |
-| `v2/build/context.py` | Assembly configuration |
-| `v2/build/writer.py` | Format dispatch |
-| `v2/pipeline/expressions.py` | Vectorized expressions |
-| `v2/models/cards.py` | Card Pydantic models |
-| `v2/models/sets.py` | Set Pydantic models |
-| `v2/models/submodels.py` | TypedDict sub-models |
-| `v2/models/base.py` | PolarsMixin, file base classes |
-| `v2/build/price_builder.py` | Price engine: ETL, data lake, S3 sync |
+| `pipeline/core.py` | Pipeline orchestrator (delegates to stages/) |
+| `pipeline/stages/` | Stage modules: explode, basic_fields, identifiers, legalities, relationships, derived, signatures, metadata, output |
+| `pipeline/expressions.py` | Vectorized Polars expressions |
+| `data/cache.py` | Data layer, provider loading |
+| `data/context.py` | Transformation context |
+| `build/assemble.py` | Assembly utilities |
+| `build/context.py` | Assembly configuration |
+| `build/writer.py` | Format dispatch |
+| `build/price_builder.py` | Price engine orchestrator + context |
+| `build/price_archive.py` | Price archive: load, save, merge, prune, partition |
+| `build/price_writers.py` | Price output: JSON streaming, SQLite, SQL, CSV |
+| `build/price_s3.py` | Price S3: sync operations |
+| `build/referral_builder.py` | Referral map generation for purchase URLs |
+| `models/cards.py` | Card Pydantic models |
+| `models/sets.py` | Set Pydantic models |
+| `models/submodels.py` | TypedDict sub-models |
+| `models/base.py` | PolarsMixin, file base classes |
 | `compress_generator.py` | Output compression (gzip, xz, bz2, zip) |

@@ -1,6 +1,6 @@
 # Pipeline-Driven Documentation & Types
 
-**Directory**: `mtgjson5/v2/models/`
+**Directory**: `mtgjson5/models/`
 
 The pipeline generates TypeScript type definitions and VitePress documentation pages directly from Pydantic model metadata. This makes the pipeline the single source of truth — types AND documentation live in the models, eliminating dual-maintenance between the pipeline and the [mtgjson-website](https://github.com/mtgjson/mtgjson-website).
 
@@ -47,7 +47,7 @@ The `types/` and `data-models/` directories mirror the website's expected layout
 
 ### Combined file
 
-`write_typescript_interfaces()` in `v2/models/__init__.py` generates `AllMTGJSONTypes.ts` with all TypedDict and Pydantic models grouped by category (sub-models, cards, sets, files).
+`write_typescript_interfaces()` in `models/__init__.py` generates `AllMTGJSONTypes.ts` with all TypedDict and Pydantic models grouped by category (sub-models, cards, sets, files).
 
 ### Per-model splitting
 
@@ -163,7 +163,7 @@ This matches the website's existing convention:
 
 ### MarkdownDocGenerator
 
-`MarkdownDocGenerator` in `v2/models/utils.py` handles page generation:
+`MarkdownDocGenerator` in `models/utils.py` handles page generation:
 
 ```python
 class MarkdownDocGenerator:

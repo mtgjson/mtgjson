@@ -1,13 +1,13 @@
 # GlobalCache - Data Layer
 
-**File**: `mtgjson5/v2/data/cache.py`
+**File**: `mtgjson5/data/cache.py`
 
 The GlobalCache is a singleton that downloads, caches, and stores all provider data as Polars LazyFrames. It serves as the foundation for the entire Polars pipeline.
 
 ## Overview
 
 ```python
-from mtgjson5.v2.data.cache import GlobalCache
+from mtgjson5.data.cache import GlobalCache
 
 # Singleton access
 cache = GlobalCache()
@@ -275,7 +275,7 @@ To integrate a new external data source into the pipeline:
 ### 1. Create the provider module
 
 ```
-mtgjson5/v2/providers/{name}/
+mtgjson5/providers/{name}/
 ├── __init__.py
 └── provider.py     # class {Name}Provider with static fetch methods
 ```
@@ -304,6 +304,6 @@ In `context.py`, add:
 
 ### 4. Use in the pipeline
 
-In `core.py`, add a join step in the appropriate stage (typically Stage 4 for lookup joins). If the data joins by `oracleId`, consider adding it to `_build_oracle_data_lookup()` in the context instead.
+In `pipeline/stages/identifiers.py` (for lookup joins) or the appropriate stage module, add a join step and wire it into the `core.py` orchestrator. If the data joins by `oracleId`, consider adding it to `_build_oracle_data_lookup()` in the context instead.
 
 See the [Contributor Guide](contributing.md#new-external-data-source) for the complete decision tree.

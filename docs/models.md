@@ -1,13 +1,13 @@
 # MTGJSON Pydantic Models
 
-**Directory**: `mtgjson5/v2/models/`
+**Directory**: `mtgjson5/models/`
 
 The models directory contains a comprehensive Pydantic-based data model system for representing Magic: The Gathering card data. The architecture uses a sophisticated inheritance hierarchy with both BaseModel and TypedDict structures for optimal performance and serialization.
 
 ## Overview
 
 ```
-v2/models/
+models/
 ├── base.py          # PolarsMixin, MtgjsonFileBase
 ├── cards.py         # Card models (CardSet, CardAtomic, CardDeck, CardToken)
 ├── sets.py          # Set models (MtgSet, SetList, DeckSet)
@@ -27,7 +27,7 @@ v2/models/
 
 ## Base Classes
 
-### PolarsMixin (`v2/models/base.py`)
+### PolarsMixin (`models/base.py`)
 
 Foundation mixin providing Polars DataFrame integration and TypeScript generation.
 
@@ -73,7 +73,7 @@ class PolarsMixin:
 - Recursive dict conversion with alias application
 - Polars struct/list handling for nested types
 
-### MtgjsonFileBase (`v2/models/base.py`)
+### MtgjsonFileBase (`models/base.py`)
 
 Base class for all MTGJSON file structures (JSON files with meta + data).
 
@@ -93,7 +93,7 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
     def read(cls, path: Path) -> Self
 ```
 
-### RecordFileBase & ListFileBase (`v2/models/base.py`)
+### RecordFileBase & ListFileBase (`models/base.py`)
 
 ```python
 # For files with data: Record<string, T>
@@ -107,7 +107,7 @@ class ListFileBase(MtgjsonFileBase):
     def from_items(cls, items: list) -> Self
 ```
 
-## Card Models (`v2/models/cards.py`)
+## Card Models (`models/cards.py`)
 
 ### Inheritance Hierarchy
 
@@ -277,7 +277,7 @@ class CardSetDeck(PolarsMixin, BaseModel):
     uuid: str  # Required
 ```
 
-## Set Models (`v2/models/sets.py`)
+## Set Models (`models/sets.py`)
 
 ### SetList
 
@@ -345,7 +345,7 @@ class DeckSet(PolarsMixin, BaseModel):
     source_set_codes: list[str] = Field(default_factory=list, alias="sourceSetCodes")
 ```
 
-## Deck Models (`v2/models/decks.py`)
+## Deck Models (`models/decks.py`)
 
 ### DeckList
 
@@ -384,7 +384,7 @@ class Deck(PolarsMixin, BaseModel):
     source_set_codes: list[str] = Field(default_factory=list, alias="sourceSetCodes")
 ```
 
-## Sealed Product Models (`v2/models/sealed.py`)
+## Sealed Product Models (`models/sealed.py`)
 
 ### SealedProduct
 
@@ -450,7 +450,7 @@ class BoosterAssembler:
     def from_json(data: dict) -> BoosterConfig
 ```
 
-## File Models (`v2/models/files.py`)
+## File Models (`models/files.py`)
 
 ### Record-Based Files
 
@@ -526,7 +526,7 @@ class FormatFilter:
         # Returns True if legalities[format] in ("Legal", "Restricted")
 ```
 
-## Compiled Data Models (`v2/models/compiled.py`)
+## Compiled Data Models (`models/compiled.py`)
 
 ```python
 class CompiledListFile(MtgjsonFileBase):
@@ -542,7 +542,7 @@ class EnumValuesFile(MtgjsonFileBase):
     data: dict[str, dict[str, list[str]]]
 ```
 
-## TypedDict Sub-Models (`v2/models/submodels.py`)
+## TypedDict Sub-Models (`models/submodels.py`)
 
 Lightweight dict-based types for nested structures (~2.5x faster parsing than BaseModel).
 
@@ -681,7 +681,7 @@ class Translations(TypedDict, total=False):
 
 ## Utilities
 
-### PolarsConverter (`v2/models/utils.py`)
+### PolarsConverter (`models/utils.py`)
 
 Convert Python/Pydantic types to Polars types:
 
@@ -697,7 +697,7 @@ class PolarsConverter:
     def model_to_struct(model: type[BaseModel]) -> pl.Struct
 ```
 
-### TypeScriptGenerator (`v2/models/utils.py`)
+### TypeScriptGenerator (`models/utils.py`)
 
 Generate TypeScript interfaces from Python types:
 
@@ -713,7 +713,7 @@ class TypeScriptGenerator:
     def from_model(model: type[BaseModel]) -> str
 ```
 
-### TypedDictUtils (`v2/models/_typing.py`)
+### TypedDictUtils (`models/_typing.py`)
 
 Utilities for working with TypedDicts:
 
@@ -725,7 +725,7 @@ def filter_none(d: dict) -> dict
 def apply_aliases(d: dict, model: type) -> dict
 ```
 
-## Adapters (`v2/models/adapters.py`)
+## Adapters (`models/adapters.py`)
 
 Module-level TypeAdapters for efficient parsing:
 
@@ -798,7 +798,7 @@ FILE_MODEL_REGISTRY = [AllPrintingsFile, AtomicCardsFile, ...]
 ### 6. WUBRG Color Ordering
 Special handling in `to_polars_dict()` preserves W-U-B-R-G order for split/adventure layouts instead of alphabetical.
 
-## Scryfall Models (`v2/models/scryfall/`)
+## Scryfall Models (`models/scryfall/`)
 
 Separate models for Scryfall API data with strong typing:
 

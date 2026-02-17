@@ -1,13 +1,14 @@
 # Pipeline Core - Main Transformation
 
-**File**: `mtgjson5/v2/pipeline/core.py`
+**Orchestrator**: `mtgjson5/pipeline/core.py`
+**Stage modules**: `mtgjson5/pipeline/stages/`
 
-The `build_cards()` function is the heart of the Polars pipeline. It transforms raw Scryfall data into MTGJSON format through a series of lazy transformations with strategic materialization checkpoints.
+The `build_cards()` function is the heart of the Polars pipeline. It transforms raw Scryfall data into MTGJSON format through a series of lazy transformations with strategic materialization checkpoints. The orchestrator in `core.py` is a thin coordinator — all transform logic lives in nine stage modules under `pipeline/stages/`.
 
 ## Entry Point
 
 ```python
-from mtgjson5.v2.pipeline.core import build_cards
+from mtgjson5.pipeline.core import build_cards
 
 # After loading cache and building context
 build_cards(ctx)
@@ -17,28 +18,43 @@ build_cards(ctx)
 
 ## Pipeline Stages Overview
 
-The pipeline consists of 12 major stages:
+The pipeline consists of 12 major stages, each backed by one or more stage modules:
 
 ```
-1.  Load + Filter          → Filter to requested sets and languages
-2.  Per-Card Transforms    → Streaming-safe transformations (face explosion, fields, types, mana, legalities)
-3.  Multi-Row Joins        → Join derived lookup tables (identifiers, oracle, set/number, name, MCM)
-4.  CHECKPOINT 1           → Materialize and reset lazy plan (after joins)
-5.  Struct Assembly         → Build identifier/UUID structs
-6.  Duel Deck + Gatherer   → Duel deck detection, Gatherer data join
-7.  CHECKPOINT 2           → Materialize and reset lazy plan (before relationship ops)
-8.  Relationship Ops       → Self-joins: otherFaceIds, leadershipSkills, reverseRelated, tokenIds, purchaseUrls
-9.  CHECKPOINT 3           → Materialize and reset lazy plan (before final enrichment)
-10. Final Enrichment       → Manual overrides, rebalanced linkage, secret lair subsets, source products
-11. Signatures + Cleanup   → Signature data, drop raw Scryfall columns
-12. Sink to Parquet        → Partitioned output
+1.  Load + Filter          → core.py (inline filtering logic)
+2.  Per-Card Transforms    → stages/explode.py, stages/basic_fields.py
+3.  Legalities + Avail     → stages/legalities.py
+4.  Multi-Row Joins        → stages/identifiers.py
+5.  CHECKPOINT 1           → core.py (materialize and reset lazy plan)
+6.  Struct Assembly + UUIDs → stages/identifiers.py
+7.  Duel Deck + Gatherer   → stages/derived.py, stages/identifiers.py
+8.  CHECKPOINT 2           → core.py (materialize before relationship ops)
+9.  Relationship Ops       → stages/relationships.py, stages/signatures.py, stages/derived.py
+10. CHECKPOINT 3           → core.py (materialize before final enrichment)
+11. Final Enrichment       → stages/derived.py
+12. Signatures + Cleanup   → stages/signatures.py, stages/output.py
+13. Sink to Parquet        → stages/output.py
 ```
+
+## Stage Module Reference
+
+| Module | Purpose | Key Functions |
+|--------|---------|---------------|
+| `stages/explode.py` | Face explosion, meld handling, layout detection | `explode_card_faces`, `assign_meld_sides`, `update_meld_names`, `detect_aftermath_layout` |
+| `stages/basic_fields.py` | Field mapping, type parsing, mana, attributes | `add_basic_fields`, `parse_type_line_expr`, `add_mana_info`, `add_card_attributes`, `add_booster_types`, `fix_promo_types` |
+| `stages/identifiers.py` | External data joins, struct assembly, UUIDs | `join_identifiers`, `join_oracle_data`, `join_set_number_data`, `add_identifiers_struct`, `add_uuid_from_cache` |
+| `stages/legalities.py` | Format legalities, platform availability | `add_legalities_struct`, `add_availability_struct`, `remap_availability_values`, `fix_availability_from_ids` |
+| `stages/relationships.py` | Cross-card links, variations, tokens | `add_other_face_ids`, `add_leadership_skills_expr`, `add_reverse_related`, `add_token_ids`, `propagate_salt_to_tokens` |
+| `stages/derived.py` | Boolean flags, purchase URLs, enrichment, overrides | `add_is_funny`, `add_is_timeshifted`, `add_purchase_urls_struct`, `apply_manual_overrides`, `add_rebalanced_linkage` |
+| `stages/signatures.py` | Signature data, related cards from context | `join_signatures`, `add_signatures_combined`, `add_related_cards_from_context` |
+| `stages/metadata.py` | Set metadata, decks, sealed products (standalone builders) | `build_set_metadata_df`, `build_expanded_decks_df`, `build_sealed_products_lf` |
+| `stages/output.py` | Column cleanup, renaming, parquet sink | `drop_raw_scryfall_columns`, `sink_cards`, `prepare_cards_for_json`, `rename_all_the_things` |
 
 ## Stage 1: Load and Filter
 
 ```python
-def build_cards(ctx: PipelineContext) -> None:
-    set_codes = ctx.set_codes
+def build_cards(ctx: PipelineContext) -> PipelineContext:
+    set_codes = ctx.sets_to_build
 
     # Start with raw Scryfall cards
     lf = ctx.cards_lf
@@ -46,20 +62,19 @@ def build_cards(ctx: PipelineContext) -> None:
     # Filter to requested sets
     lf = lf.filter(pl.col("set").is_in(set_codes))
 
-    # Language filtering is done inline via a join pattern
-    # (not a standalone function) — filters to English cards
-    # or non-English cards without an English equivalent
+    # Language filtering: keep English cards, or non-English cards
+    # without an English equivalent (inline join pattern)
 
     # Optional: filter to deck-only scryfallIds
-    if ctx.deck_scryfall_ids:
-        lf = lf.filter(pl.col("id").is_in(ctx.deck_scryfall_ids))
+    if ctx.scryfall_id_filter:
+        lf = lf.filter(pl.col("id").is_in(ctx.scryfall_id_filter))
 ```
 
 ## Stage 2: Per-Card Transformations
 
-These transformations can stream row-by-row without collecting:
+These transformations can stream row-by-row without collecting. The orchestrator chains them using `.pipe()`:
 
-### Face Explosion and Meld Handling
+### Face Explosion and Meld Handling (`stages/explode.py`)
 
 ```python
 lf = explode_card_faces(lf)
@@ -70,7 +85,7 @@ lf = detect_aftermath_layout(lf)
 
 Multi-face cards (split, transform, adventure, meld) are exploded into separate rows. Meld cards get special side assignment (parts = "a", result = "b").
 
-### Field Extraction and Enrichment
+### Field Extraction and Enrichment (`stages/basic_fields.py`)
 
 ```python
 lf = add_basic_fields(lf)
@@ -82,12 +97,12 @@ lf = propagate_watermark_to_faces(lf)
 lf = apply_watermark_overrides(lf, ctx)
 lf = format_planeswalker_text(lf)
 lf = add_original_release_date(lf)
-lf = join_face_flavor_names(lf, ctx)
+lf = join_face_flavor_names(lf, ctx)       # stages/identifiers.py
 ```
 
 Extracts and normalizes card fields (name, manaCost, colors, type, text, power/toughness, loyalty), adds booster types, fixes promo types, enriches card data, and handles watermarks.
 
-### Type Line Parsing and Mana
+### Type Line Parsing and Mana (`stages/basic_fields.py`)
 
 ```python
 lf = parse_type_line_expr(lf)
@@ -97,7 +112,7 @@ lf = fix_manavalue_for_multiface(lf)
 
 Parses type lines into supertypes/types/subtypes. Computes manaValue, colorIdentity, and colors.
 
-### Card Attributes
+### Card Attributes (`stages/basic_fields.py`)
 
 ```python
 lf = add_card_attributes(lf)
@@ -106,7 +121,7 @@ lf = filter_keywords_for_face(lf)
 
 Adds keywords, isReserved, isReprint, and filters keywords to face-specific ones.
 
-### Legalities and Availability
+### Legalities and Availability (`stages/legalities.py`)
 
 ```python
 lf = add_legalities_struct(lf, ctx)
@@ -127,7 +142,7 @@ lf = lf.collect().lazy()
 - Collecting resets the plan before joins
 - Prevents query optimizer explosion
 
-## Stage 4: Multi-Row Joins
+## Stage 4: Multi-Row Joins (`stages/identifiers.py`)
 
 Join operations that bring in data from derived lookup tables:
 
@@ -183,7 +198,7 @@ lf = join_cardmarket_ids(lf, ctx)
 
 Adds CardMarket identifiers if available.
 
-### Availability Fix from IDs
+### Availability Fix from IDs (`stages/legalities.py`)
 
 ```python
 lf = fix_availability_from_ids(lf)
@@ -199,7 +214,7 @@ lf = lf.collect().lazy()
 
 Resets query plan after join operations.
 
-## Stage 6: Struct Assembly and UUIDs
+## Stage 6: Struct Assembly and UUIDs (`stages/identifiers.py`)
 
 ### Identifiers Struct
 
@@ -239,13 +254,13 @@ UUID assignment priority:
 ## Stage 6b: Duel Deck and Gatherer
 
 ```python
-lf = calculate_duel_deck(lf, ctx)
-lf = join_gatherer_data(lf, ctx)
+lf = calculate_duel_deck(lf)    # stages/derived.py
+lf = join_gatherer_data(lf, ctx) # stages/identifiers.py
 ```
 
 Determines duel deck sides and joins Gatherer page data.
 
-## Stage 7: Checkpoint 2
+## Stage 7: Checkpoint 3
 
 ```python
 lf = lf.collect().lazy()
@@ -260,12 +275,17 @@ lf = lf.collect().lazy()
 These operations require self-joins or cross-row lookups:
 
 ```python
+# stages/relationships.py
 lf = add_other_face_ids(lf, ctx)
 lf = add_leadership_skills_expr(lf, ctx)
 lf = add_reverse_related(lf)
 lf = add_token_ids(lf, scryfall_uuid_lf)
 lf = propagate_salt_to_tokens(lf)
+
+# stages/signatures.py
 lf = add_related_cards_from_context(lf, ctx)
+
+# stages/derived.py
 lf = add_alternative_deck_limit(lf, ctx)
 lf = add_is_funny(lf, ctx)
 lf = add_is_timeshifted(lf)
@@ -283,7 +303,7 @@ lf = add_purchase_urls_struct(lf)
 - `add_is_timeshifted` — timeshifted card detection
 - `add_purchase_urls_struct` — builds purchase URL struct
 
-## Stage 9: Checkpoint 3
+## Stage 9: Checkpoint 4
 
 ```python
 lf = lf.collect().lazy()
@@ -291,7 +311,7 @@ lf = lf.collect().lazy()
 
 Resets before final enrichment.
 
-## Stage 10: Final Enrichment
+## Stage 10: Final Enrichment (`stages/derived.py`)
 
 ```python
 lf = apply_manual_overrides(lf, ctx)
@@ -305,17 +325,17 @@ lf = add_source_products(lf, ctx)
 - Adds Secret Lair subset information
 - Links cards to sealed products they appear in
 
-### Signatures and Cleanup
+### Signatures and Cleanup (`stages/signatures.py`, `stages/output.py`)
 
 ```python
-lf = join_signatures(lf, ctx)
-lf = add_signatures_combined(lf, ctx)
-lf = drop_raw_scryfall_columns(lf)
+lf = join_signatures(lf, ctx)           # stages/signatures.py
+lf = add_signatures_combined(lf, ctx)   # stages/signatures.py
+lf = drop_raw_scryfall_columns(lf)      # stages/output.py
 ```
 
 Adds signature data for signed cards, then removes intermediate Scryfall columns not needed in output.
 
-## Stage 12: Sink to Parquet
+## Stage 12: Sink to Parquet (`stages/output.py`)
 
 ```python
 sink_cards(ctx)
@@ -349,7 +369,7 @@ CACHE_PATH/
 
 ## Key Helper Functions
 
-### `face_field()`
+### `face_field()` (`stages/basic_fields.py`)
 
 Extracts field from face data or falls back to card level:
 
@@ -361,7 +381,7 @@ def face_field(field_name: str) -> pl.Expr:
     )
 ```
 
-### `sort_colors_wubrg_expr()`
+### `sort_colors_wubrg_expr()` (`pipeline/expressions.py`)
 
 Sorts color arrays in WUBRG order:
 
@@ -375,7 +395,7 @@ def sort_colors_wubrg_expr(col: str = "colors") -> pl.Expr:
     )
 ```
 
-### `calculate_cmc_expr()`
+### `calculate_cmc_expr()` (`pipeline/expressions.py`)
 
 Pure Polars CMC calculation without Python UDFs:
 
@@ -390,7 +410,7 @@ def calculate_cmc_expr(col: str = "manaCost") -> pl.Expr:
 
 ## Expressions Module
 
-**File**: `mtgjson5/v2/pipeline/expressions.py`
+**File**: `mtgjson5/pipeline/expressions.py`
 
 Pure Polars expressions for performance:
 
@@ -410,6 +430,24 @@ extract_colors_from_mana_expr("manaCost")
 # WUBRG sorting
 sort_colors_wubrg_expr("colors")
 ```
+
+## Orchestrator Pattern
+
+The `core.py` orchestrator uses Polars `.pipe()` chains with `functools.partial` for context injection:
+
+```python
+# Actual orchestrator pattern in core.py
+lf = (
+    lf.pipe(explode_card_faces)
+    .pipe(partial(assign_meld_sides, ctx=ctx))
+    .pipe(partial(update_meld_names, ctx=ctx))
+    .pipe(detect_aftermath_layout)
+    .pipe(add_basic_fields)
+    # ... more stages
+)
+```
+
+Functions that need the `PipelineContext` are wrapped with `partial(fn, ctx=ctx)`. Functions that operate on the LazyFrame alone are passed directly.
 
 ## Memory and Performance
 
@@ -480,19 +518,25 @@ print(f"After explode: {lf.select(pl.len()).collect().item()}")
 
 ## Adding a New Transformation
 
-### Choosing the right stage
+### Choosing the right stage module
 
 | If your transform... | Place it in... |
 |----------------------|----------------|
-| Operates per-card, no joins needed | **Stage 2** (Per-Card Transforms) |
-| Needs data from a lookup table (context join) | **Stage 3** (Multi-Row Joins) |
-| Needs struct assembly or UUID data | **Stage 5** (Struct Assembly) |
-| Needs self-joins (otherFaceIds, variations) | **Stage 8** (Relationship Operations) |
-| Applies overrides or final enrichment | **Stage 10** (Final Enrichment) |
+| Operates per-card, no joins needed | `stages/basic_fields.py` |
+| Needs face explosion or layout changes | `stages/explode.py` |
+| Needs data from a lookup table (context join) | `stages/identifiers.py` |
+| Affects legalities or availability | `stages/legalities.py` |
+| Needs self-joins (otherFaceIds, variations) | `stages/relationships.py` |
+| Adds boolean flags, derived attributes, or purchase data | `stages/derived.py` |
+| Involves signatures or related card context | `stages/signatures.py` |
+| Is a standalone builder (decks, sealed, set metadata) | `stages/metadata.py` |
+| Relates to output cleanup, renaming, or sinking | `stages/output.py` |
 
 ### Template
 
 ```python
+# In the appropriate stages/ module:
+
 def add_my_field(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
     """Add myField to the pipeline."""
     return lf.with_columns(
@@ -501,17 +545,17 @@ def add_my_field(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
     )
 ```
 
-Then call it from `build_cards()` in the appropriate stage:
+Then wire it into the orchestrator in `core.py`:
 
 ```python
-# In the relevant stage section of build_cards()
-lf = add_my_field(lf, ctx)
+# In core.py, add to the appropriate pipe chain:
+lf = lf.pipe(partial(add_my_field, ctx=ctx))
 ```
 
 ### Checklist
 
 - Use Polars-native expressions (no `map_elements` or `.apply()`)
 - If adding a join, consider whether a new checkpoint is needed (>3 joins since last checkpoint)
-- Add the corresponding model field to `v2/models/cards.py`
+- Add the corresponding model field to `models/cards.py`
 - Write a test using `make_card_lf()` and `PipelineContext.for_testing()`
-- If the transform uses a new expression, add it to `v2/pipeline/expressions.py` with its own unit test
+- If the transform uses a new expression, add it to `pipeline/expressions.py` with its own unit test

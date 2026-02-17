@@ -1,6 +1,6 @@
-# V2 Polars Pipeline — Contributor Guide
+# Polars Pipeline — Contributor Guide
 
-This guide helps developers contribute to the v2 Polars pipeline. It covers where to put code, how to maintain performance, how to test, and what runtime flags exist.
+This guide helps developers contribute to the Polars pipeline. It covers where to put code, how to maintain performance, how to test, and what runtime flags exist.
 
 For environment setup (uv, credentials, tox), see the root [`CONTRIBUTING.md`](../CONTRIBUTING.md). For detailed reference on each subsystem, see the other documents in this directory ([README](README.md)).
 
@@ -9,25 +9,25 @@ For environment setup (uv, credentials, tox), see the root [`CONTRIBUTING.md`](.
 ```
 ┌──────────────────────────┐
 │  1. GlobalCache          │  Downloads provider data → LazyFrames
-│  v2/data/cache.py        │  (Scryfall, TCGPlayer, CardMarket, etc.)
+│  data/cache.py        │  (Scryfall, TCGPlayer, CardMarket, etc.)
 └────────────┬─────────────┘
              │
              ▼
 ┌──────────────────────────┐
 │  2. PipelineContext      │  Wraps cache, builds derived lookup tables
-│  v2/data/context.py      │  consolidate_lookups() → 9 derived tables
+│  data/context.py      │  consolidate_lookups() → 9 derived tables
 └────────────┬─────────────┘
              │
              ▼
 ┌──────────────────────────┐
-│  3. build_cards()        │  10-stage transformation pipeline
-│  v2/pipeline/core.py     │  Strategic checkpoints, partitioned parquet output
+│  3. build_cards()        │  Thin orchestrator delegating to stage modules
+│  pipeline/core.py     │  9 stage modules in pipeline/stages/
 └────────────┬─────────────┘
              │
              ▼
 ┌──────────────────────────┐
 │  4. Assembly & Output    │  Reads parquet → Pydantic models → JSON/SQLite/CSV/etc.
-│  v2/build/assemble.py    │  AssemblyContext, UnifiedOutputWriter
+│  build/assemble.py    │  AssemblyContext, UnifiedOutputWriter
 └──────────────────────────┘
 ```
 
@@ -40,54 +40,57 @@ Most contributions touch one of three areas:
 
 ### New external data source
 
-1. **Provider**: Create `v2/providers/{name}/provider.py`
-2. **Loading**: Add `{name}_lf` attribute + load method to `v2/data/cache.py`
+1. **Provider**: Create `providers/{name}/provider.py`
+2. **Loading**: Add `{name}_lf` attribute + load method to `data/cache.py`
 3. **Dump/reload**: Register in `_dump_and_reload_as_lazy()` so LazyFrame survives the memory optimization step
-4. **Context**: Add property to `v2/data/context.py` (with `_test_data` fallback) + `for_testing()` parameter
-5. **Pipeline**: Add join step in appropriate stage of `v2/pipeline/core.py`
+4. **Context**: Add property to `data/context.py` (with `_test_data` fallback) + `for_testing()` parameter
+5. **Pipeline**: Add join step in the appropriate stage module under `pipeline/stages/` (see [stage module reference](pipeline-core.md#stage-module-reference))
 
 See also: [Adding a New Provider](global-cache.md#adding-a-new-provider) in the GlobalCache reference.
 
 ### New card field from existing data
 
-1. **Expression** (if purely vectorized): `v2/pipeline/expressions.py`
-2. **Transform**: `v2/pipeline/core.py` — add function in appropriate stage
-3. **Model field**: `v2/models/cards.py` on `CardBase`, `CardAtomicBase`, or `CardPrintingBase`
-4. **Sub-model** (if struct/TypedDict): `v2/models/submodels.py`
+1. **Expression** (if purely vectorized): `pipeline/expressions.py`
+2. **Transform**: `pipeline/stages/{module}.py` — add function in the relevant [stage module](pipeline-core.md#stage-module-reference), then wire into `pipeline/core.py` orchestrator
+3. **Model field**: `models/cards.py` on `CardBase`, `CardAtomicBase`, or `CardPrintingBase`
+4. **Sub-model** (if struct/TypedDict): `models/submodels.py`
 
 ### Fixing output format or ordering
 
-1. **Assembly logic**: `v2/build/assemble.py`
-2. **Serialization**: `v2/build/serializers.py`
-3. **Model key ordering**: `v2/models/base.py` (`PolarsMixin.to_polars_dict`)
+1. **Assembly logic**: `build/assemble.py`
+2. **Serialization**: `build/serializers.py`
+3. **Model key ordering**: `models/base.py` (`PolarsMixin.to_polars_dict`)
 
 ### New constant, enum, or mapping
 
-→ `v2/consts/` (field definitions, layout types, finish orderings, language codes)
+→ `consts/` (field definitions, layout types, finish orderings, language codes)
 
 ### New output format
 
-→ `v2/build/formats/` (new builder), `v2/build/writer.py` (register), `v2/models/files.py` (file model)
+→ `build/formats/` (new builder), `build/writer.py` (register), `models/files.py` (file model)
 
 ### Price data or new price provider
 
 The price engine is a separate ETL pipeline from the card builder. See [prices.md](prices.md) for the full architecture.
 
-- **New price provider**: `v2/providers/{name}/`, then integrate in `v2/build/price_builder.py` (`build_today_prices_async`)
-- **Price ID mapping**: `PriceBuilderContext` in `v2/build/price_builder.py`
-- **Price output format**: `write_prices_*` methods in `v2/build/price_builder.py`
+- **New price provider**: `providers/{name}/`, then integrate in `build/price_builder.py` (`build_today_prices_async`)
+- **Price ID mapping**: `PriceBuilderContext` in `build/price_builder.py`
+- **Price output format**: `build/price_writers.py` (standalone writer functions)
+- **Price archive/partition**: `build/price_archive.py`
+- **Price S3 sync**: `build/price_s3.py`
+- **Referral map**: `build/referral_builder.py`
 
 ### Worked example: EDHREC salt score integration
 
 This traces the salt score feature through all layers:
 
 ```
-v2/providers/salt.py          ← Provider fetches salt data from EDHREC
-v2/data/cache.py              ← salt_lf attribute, loaded in load_all()
-v2/data/context.py            ← salt_lf property, for_testing(salt_lf=...) param
-v2/data/context.py            ← _build_oracle_data_lookup() joins salt by oracleId
-v2/pipeline/core.py           ← join_oracle_data() brings edhrecSaltiness into pipeline
-v2/models/cards.py            ← CardBase.edhrecSaltiness field
+providers/salt.py          ← Provider fetches salt data from EDHREC
+data/cache.py              ← salt_lf attribute, loaded in load_all()
+data/context.py            ← salt_lf property, for_testing(salt_lf=...) param
+data/context.py            ← _build_oracle_data_lookup() joins salt by oracleId
+pipeline/stages/identifiers.py ← join_oracle_data() brings edhrecSaltiness into pipeline
+models/cards.py            ← CardBase.edhrecSaltiness field
 ```
 
 ## Performance Considerations
@@ -154,10 +157,10 @@ To avoid this, we utilize strategically placed collect statements to reset the q
 lf = lf.collect().lazy()
 ```
 
-The pipeline has 3 checkpoints in `core.py`:
-- **Checkpoint 1** (line ~3288): Resets after multi-row joins (identifiers, oracle, set/number, name, cardmarket)
-- **Checkpoint 2** (line ~3315): Resets before relationship operations (otherFaceIds, leadershipSkills, reverseRelated, tokenIds)
-- **Checkpoint 3** (line ~3337): Resets before final enrichment (manual overrides, rebalanced linkage, secret lair subsets, source products)
+The pipeline has 3 checkpoints placed in `core.py` between stage groups:
+- **Checkpoint 1**: After multi-row joins (identifiers, oracle, set/number, name, cardmarket)
+- **Checkpoint 2**: Before relationship operations (otherFaceIds, leadershipSkills, reverseRelated, tokenIds)
+- **Checkpoint 3**: Before final enrichment (manual overrides, rebalanced linkage, secret lair subsets, source products)
 
 If your contribution is 'join-heavy', consider adding a checkpoint.
 
@@ -173,10 +176,10 @@ df = df.sort("isPromo", "isOnlineOnly").unique(subset=["name"], keep="first")
 
 ### Prefer `safe_ops` for defensive operations
 
-The `v2/pipeline/safe_ops.py` module provides null-safe and schema-safe utilities:
+The `pipeline/safe_ops.py` module provides null-safe and schema-safe utilities:
 
 ```python
-from mtgjson5.v2.pipeline.safe_ops import safe_drop, safe_rename, safe_struct_field
+from mtgjson5.pipeline.safe_ops import safe_drop, safe_rename, safe_struct_field
 
 # Drop columns that may or may not exist (no crash)
 lf = safe_drop(lf, ["temp_col_1", "temp_col_2"])
@@ -192,12 +195,12 @@ expr = safe_struct_field("identifiers", "tcgplayerProductId", default=pl.lit(Non
 
 This breaks the expected `{"meta": ..., "data": ...}` ordering in output files. Use streaming JSON writes for structured files instead of whole-file `orjson.dumps()` with `OPT_SORT_KEYS`.
 
-## Testing the v2 Pipeline
+## Testing the Pipeline
 
 ### Overview
 
-- Tests live in `tests/mtgjson5/v2/` — run with `pytest tests/mtgjson5/v2/ -v`
-- No VCR cassettes needed — v2 tests use `PipelineContext.for_testing()` to bypass GlobalCache
+- Tests live in `tests/mtgjson5/` — run with `pytest tests/mtgjson5/ -v`
+- No VCR cassettes needed — tests use `PipelineContext.for_testing()` to bypass GlobalCache
 - Legacy tests (`tests/`) are separate and use VCR cassettes
 
 ### `PipelineContext.for_testing()` pattern
@@ -233,7 +236,7 @@ PipelineContext.for_testing(
 )
 ```
 
-### Shared fixtures (`tests/mtgjson5/v2/conftest.py`)
+### Shared fixtures (`tests/mtgjson5/conftest.py`)
 
 | Fixture / Helper | Description |
 |------------------|-------------|
@@ -265,7 +268,7 @@ def test_my_expression():
 
 ### Testing assembly/output
 
-Use mock `AssemblyContext` patterns from the existing tests in `tests/mtgjson5/v2/test_assembly.py`. Use `make_full_card_df()` for cross-format type coverage.
+Use mock `AssemblyContext` patterns from the existing tests in `tests/mtgjson5/test_assembly.py`. Use `make_full_card_df()` for cross-format type coverage.
 
 ### Extending `for_testing()` when adding new data
 
@@ -278,13 +281,12 @@ See: [Extending for_testing()](pipeline-context.md#extending-for_testing) in the
 
 ## Runtime Flags Reference
 
-### V2 Pipeline Flags
+### Pipeline Flags
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--v2` | | Shorthand for `--polars --use-models --all-sets --full-build --export all` |
-| `--polars` | | Enable the Polars-based pipeline |
-| `--use-models` | `-M` | Use Pydantic model-based assembly (requires `--polars`) |
+| `--build-all` | | Shorthand for `--use-models --all-sets --full-build --export all` |
+| `--use-models` | `-M` | Use Pydantic model-based assembly |
 | `--from-cache` | | Skip pipeline, assemble from cached parquet (requires prior `--use-models` run) |
 
 ### Set Selection
@@ -316,27 +318,27 @@ See: [Extending for_testing()](pipeline-context.md#extending-for_testing) in the
 ### Common Usage Patterns
 
 ```bash
-# Full v2 build — all sets, all outputs, all export formats
-python -m mtgjson5 --v2
+# Full build — all sets, all outputs, all export formats
+python -m mtgjson5 --build-all
 
 # Single set, individual set file only
-python -m mtgjson5 --polars -s MH3
+python -m mtgjson5 -s MH3
 
 # Single set with compiled outputs
-python -m mtgjson5 --v2 -s MH3
+python -m mtgjson5 --build-all -s MH3
 
 # Reassemble from cached parquet (no provider calls)
-python -m mtgjson5 --polars --from-cache
+python -m mtgjson5 --from-cache
 
 # Full build, skip slow CardMarket API, pretty JSON
-python -m mtgjson5 --v2 --skip-mcm -p
+python -m mtgjson5 --build-all --skip-mcm -p
 ```
 
-### `--v2` behavior with `--sets`
+### `--build-all` behavior with `--sets`
 
-- `--v2` alone → full build (all sets, all compiled outputs, all export formats)
-- `--v2 -s MH3` → individual set file + compiled outputs + all exports
-- `--polars -s MH3` → individual set file only (no compiled outputs, no exports)
+- `--build-all` alone → full build (all sets, all compiled outputs, all export formats)
+- `--build-all -s MH3` → individual set file + compiled outputs + all exports
+- `-s MH3` → individual set file only (no compiled outputs, no exports)
 
 ### Environment Variables
 
@@ -364,14 +366,3 @@ python -m mtgjson5 --v2 --skip-mcm -p
 
 8. **Sealed product UUID joins** — sealed products don't have a top-level `tcgplayerProductId`. Access it via `identifiers.struct.field("tcgplayerProductId")`.
 
-## Pull Request Checklist
-
-- [ ] Formatting passes: `tox -e format-check`
-- [ ] Linting passes: `tox -e lint`
-- [ ] Type checking passes: `tox -e mypy`
-- [ ] V2 tests pass: `pytest tests/mtgjson5/v2/ -v`
-- [ ] Legacy tests pass: `pytest tests/ --record-mode=none`
-- [ ] No `map_elements`, `.apply()`, or Python `for` loops on DataFrame rows
-- [ ] New LazyFrame in `cache.py` has corresponding property in `context.py` and param in `for_testing()`
-- [ ] New model fields have tests
-- [ ] Strategic checkpoint added if >3 new joins introduced
