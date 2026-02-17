@@ -45,7 +45,7 @@ def _polars_to_sqlite_type(dtype: pl.DataType) -> str:
     if dtype.is_float():
         return "REAL"
     if dtype == pl.Boolean:
-        return "INTEGER"
+        return "BOOLEAN"
     if dtype == pl.Date:
         return "DATE"
     if dtype == pl.Datetime:
