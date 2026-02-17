@@ -24,7 +24,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from types import TracebackType
 from typing import Any, BinaryIO
 
-from .v2.consts import (
+from .consts import (
     ALL_CSVS_DIRECTORY,
     ALL_DECKS_DIRECTORY,
     ALL_PARQUETS_DIRECTORY,

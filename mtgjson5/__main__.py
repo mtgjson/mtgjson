@@ -16,8 +16,8 @@ init_logger()
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
 from mtgjson5 import constants
+from mtgjson5.data import GlobalCache
 from mtgjson5.utils import load_local_set_data
-from mtgjson5.v2.data import GlobalCache
 
 SCRYFALL_SETS_URL = "https://api.scryfall.com/sets/"
 
@@ -60,8 +60,8 @@ def dispatcher(args: argparse.Namespace) -> None:
     generate_types = getattr(args, "generate_types", None) is not None
     generate_docs = getattr(args, "generate_docs", False)
     if (generate_types or generate_docs) and not (args.sets or args.all_sets or args.full_build or args.price_build):
+        from mtgjson5.models import write_doc_pages, write_typescript_interfaces
         from mtgjson5.mtgjson_config import MtgjsonConfig
-        from mtgjson5.v2.models import write_doc_pages, write_typescript_interfaces
 
         if generate_types:
             output_path = args.generate_types or str(MtgjsonConfig().output_path / "AllMTGJSONTypes.ts")
@@ -76,16 +76,16 @@ def dispatcher(args: argparse.Namespace) -> None:
 
         return
 
+    from mtgjson5.build.writer import assemble_json_outputs, assemble_with_models
     from mtgjson5.compress_generator import (
         compress_mtgjson_contents,
         compress_mtgjson_contents_parallel,
     )
+    from mtgjson5.data import PipelineContext
     from mtgjson5.mtgjson_config import MtgjsonConfig
     from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
+    from mtgjson5.pipeline.core import build_cards
     from mtgjson5.utils import generate_output_file_hashes
-    from mtgjson5.v2.build.writer import assemble_json_outputs, assemble_with_models
-    from mtgjson5.v2.data import PipelineContext
-    from mtgjson5.v2.pipeline.core import build_cards
 
     sets_to_build = get_sets_to_build(args)
 
@@ -132,7 +132,7 @@ def dispatcher(args: argparse.Namespace) -> None:
 
         if decks_only:
             # Only build deck files, skip set JSON assembly
-            from mtgjson5.v2.pipeline import build_expanded_decks_df
+            from mtgjson5.pipeline import build_expanded_decks_df
 
             decks_df = build_expanded_decks_df(ctx)
             LOGGER.info(f"Built expanded decks DataFrame: {len(decks_df)} rows")
@@ -166,14 +166,14 @@ def dispatcher(args: argparse.Namespace) -> None:
     if sets_only and not export_formats:
         should_export = False
     if should_export:
-        from mtgjson5.v2.build.writer import OutputWriter
+        from mtgjson5.build.writer import OutputWriter
 
         OutputWriter.from_args(ctx).write_all()
 
     # Referral map build (runs after card/export build if --referrals specified)
     if args.referrals:
-        from mtgjson5.v2.build.context import AssemblyContext
-        from mtgjson5.v2.build.referral_builder import build_and_write_referral_map
+        from mtgjson5.build.context import AssemblyContext
+        from mtgjson5.build.referral_builder import build_and_write_referral_map
 
         LOGGER.info("Building referral map...")
         assembly_ctx = AssemblyContext.from_pipeline(ctx)
@@ -187,7 +187,7 @@ def dispatcher(args: argparse.Namespace) -> None:
 
     # Price build (runs after card build if --price-build specified)
     if args.price_build:
-        from mtgjson5.v2.build.price_builder import PolarsPriceBuilder
+        from mtgjson5.build.price_builder import PolarsPriceBuilder
 
         LOGGER.info("Building prices...")
         all_prices_path, today_prices_path = PolarsPriceBuilder().build_prices()
@@ -205,14 +205,14 @@ def dispatcher(args: argparse.Namespace) -> None:
     generate_output_file_hashes(MtgjsonConfig().output_path)
 
     if generate_types:
-        from mtgjson5.v2.models import write_typescript_interfaces
+        from mtgjson5.models import write_typescript_interfaces
 
         output_path = args.generate_types or str(MtgjsonConfig().output_path / "AllMTGJSONTypes.ts")
         write_typescript_interfaces(output_path)
         LOGGER.info(f"TypeScript definitions written to {output_path}")
 
     if generate_docs:
-        from mtgjson5.v2.models import write_doc_pages
+        from mtgjson5.models import write_doc_pages
 
         written = write_doc_pages(str(MtgjsonConfig().output_path))
         for p in written:
