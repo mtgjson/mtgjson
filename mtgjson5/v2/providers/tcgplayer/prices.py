@@ -23,7 +23,8 @@ from mtgjson5 import constants
 from mtgjson5.v2.models.containers import MtgjsonPriceEntry
 
 from .client import TcgPlayerClient
-from .models import ProgressCallback, TcgPlayerConfig
+from .models import ProgressCallback
+from .provider import TcgPlayerConfig
 
 LOGGER = logging.getLogger(__name__)
 

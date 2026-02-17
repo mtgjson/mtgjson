@@ -38,6 +38,105 @@ CACHE_SEALED = "_assembly_sealed.parquet"
 CACHE_TOKEN_PRODUCTS = "_assembly_token_products.json"
 
 
+def _enrich_set_metadata(
+    ctx: PipelineContext,
+    set_meta: dict[str, dict[str, Any]],
+    parquet_dir: pathlib.Path,
+    tokens_dir: pathlib.Path,
+) -> None:
+    """Enrich set metadata with translations, overrides, sizes, and token set codes."""
+    from mtgjson5.v2.utils import get_windows_safe_set_code
+
+    if ctx._cache is not None:
+        translations_by_name = ctx._cache.set_translations
+        tcg_overrides = ctx._cache.tcgplayer_set_id_overrides
+        keyrune_overrides = ctx._cache.keyrune_code_overrides
+        base_set_sizes = ctx._cache.base_set_sizes
+        # Use a consistent schema for translations so Polars infers
+        # Struct fields even when the first sets have no translations.
+        empty_translations = {
+            "Chinese Simplified": None,
+            "Chinese Traditional": None,
+            "French": None,
+            "German": None,
+            "Italian": None,
+            "Japanese": None,
+            "Korean": None,
+            "Portuguese (Brazil)": None,
+            "Russian": None,
+            "Spanish": None,
+        }
+        for code, meta in set_meta.items():
+            set_name = meta.get("name", "")
+            if set_name:
+                raw_translations = translations_by_name.get(set_name, {})
+                meta["translations"] = raw_translations if raw_translations else empty_translations
+            else:
+                meta["translations"] = empty_translations
+            if code in tcg_overrides:
+                meta["tcgplayerGroupId"] = tcg_overrides[code]
+            raw_keyrune = meta.get("keyruneCode", "")
+            if raw_keyrune in keyrune_overrides:
+                meta["keyruneCode"] = keyrune_overrides[raw_keyrune]
+            if code in base_set_sizes:
+                meta["baseSetSize"] = base_set_sizes[code]
+
+    for code, meta in set_meta.items():
+        safe_code = get_windows_safe_set_code(code)
+        card_path = parquet_dir / f"setCode={safe_code}"
+        if card_path.exists():
+            card_df = pl.read_parquet(card_path / "*.parquet")
+            if "isRebalanced" in card_df.columns:
+                card_df = card_df.filter(~pl.col("isRebalanced").fill_null(False))
+            # Count unique collector numbers to avoid double-counting
+            # faces of split/transform/modal_dfc cards
+            if "number" in card_df.columns:
+                total = card_df["number"].n_unique()
+            else:
+                total = card_df.height
+            meta["totalSetSize"] = total
+
+    for code, meta in set_meta.items():
+        set_type = meta.get("type", "")
+        parent_code = meta.get("parentCode")
+        # S/F prefixes identify special token sets:
+        # S = Substitute/special token sets (e.g., SBRO, SMKM)
+        # F = Japanese promo token sets (e.g., F18, F20)
+        if parent_code and (code.startswith(("S", "F"))) and set_type in ("token", "memorabilia"):
+            meta["tokenSetCode"] = code
+        else:
+            safe_t_code = get_windows_safe_set_code(f"T{code}")
+            safe_code = get_windows_safe_set_code(code)
+            t_code_path = tokens_dir / f"setCode={safe_t_code}"
+            code_path = tokens_dir / f"setCode={safe_code}"
+            if t_code_path.exists():
+                meta["tokenSetCode"] = f"T{code}"
+            elif code_path.exists():
+                meta["tokenSetCode"] = code
+            else:
+                meta["tokenSetCode"] = None
+
+
+def _load_scryfall_catalogs(
+    ctx: PipelineContext,
+) -> tuple[dict[str, list[str]], dict[str, list[str]], list[str], list[str]]:
+    """Load Scryfall keyword and card type catalog data from cache."""
+    keyword_data: dict[str, list[str]] = {}
+    card_type_data: dict[str, list[str]] = {}
+    super_types: list[str] = []
+    planar_types: list[str] = []
+    if ctx._cache is not None:
+        keyword_data = {
+            "abilityWords": sorted(ctx._cache.ability_words),
+            "keywordAbilities": sorted(ctx._cache.keyword_abilities),
+            "keywordActions": sorted(ctx._cache.keyword_actions),
+        }
+        card_type_data = ctx._cache.card_type_subtypes
+        super_types = ctx._cache.super_types
+        planar_types = ctx._cache.planar_types
+    return keyword_data, card_type_data, super_types, planar_types
+
+
 @dataclass
 class AssemblyContext:
     """Shared context for all output format builders."""
@@ -73,76 +172,7 @@ class AssemblyContext:
             set_meta_df = set_meta_df.collect()
         set_meta = {row["code"]: row for row in set_meta_df.to_dicts()}
 
-        if ctx._cache is not None:
-            translations_by_name = ctx._cache.set_translations
-            tcg_overrides = ctx._cache.tcgplayer_set_id_overrides
-            keyrune_overrides = ctx._cache.keyrune_code_overrides
-            base_set_sizes = ctx._cache.base_set_sizes
-            # Use a consistent schema for translations so Polars infers
-            # Struct fields even when the first sets have no translations.
-            empty_translations = {
-                "Chinese Simplified": None,
-                "Chinese Traditional": None,
-                "French": None,
-                "German": None,
-                "Italian": None,
-                "Japanese": None,
-                "Korean": None,
-                "Portuguese (Brazil)": None,
-                "Russian": None,
-                "Spanish": None,
-            }
-            for code, meta in set_meta.items():
-                set_name = meta.get("name", "")
-                if set_name:
-                    raw_translations = translations_by_name.get(set_name, {})
-                    meta["translations"] = raw_translations if raw_translations else empty_translations
-                else:
-                    meta["translations"] = empty_translations
-                if code in tcg_overrides:
-                    meta["tcgplayerGroupId"] = tcg_overrides[code]
-                raw_keyrune = meta.get("keyruneCode", "")
-                if raw_keyrune in keyrune_overrides:
-                    meta["keyruneCode"] = keyrune_overrides[raw_keyrune]
-                if code in base_set_sizes:
-                    meta["baseSetSize"] = base_set_sizes[code]
-
-        from mtgjson5.v2.utils import get_windows_safe_set_code
-
-        for code, meta in set_meta.items():
-            safe_code = get_windows_safe_set_code(code)
-            card_path = parquet_dir / f"setCode={safe_code}"
-            if card_path.exists():
-                card_df = pl.read_parquet(card_path / "*.parquet")
-                if "isRebalanced" in card_df.columns:
-                    card_df = card_df.filter(~pl.col("isRebalanced").fill_null(False))
-                # Count unique collector numbers to avoid double-counting
-                # faces of split/transform/modal_dfc cards
-                if "number" in card_df.columns:
-                    total = card_df["number"].n_unique()
-                else:
-                    total = card_df.height
-                meta["totalSetSize"] = total
-
-        for code, meta in set_meta.items():
-            set_type = meta.get("type", "")
-            parent_code = meta.get("parentCode")
-            # S/F prefixes identify special token sets:
-            # S = Substitute/special token sets (e.g., SBRO, SMKM)
-            # F = Japanese promo token sets (e.g., F18, F20)
-            if parent_code and (code.startswith(("S", "F"))) and set_type in ("token", "memorabilia"):
-                meta["tokenSetCode"] = code
-            else:
-                safe_t_code = get_windows_safe_set_code(f"T{code}")
-                safe_code = get_windows_safe_set_code(code)
-                t_code_path = tokens_dir / f"setCode={safe_t_code}"
-                code_path = tokens_dir / f"setCode={safe_code}"
-                if t_code_path.exists():
-                    meta["tokenSetCode"] = f"T{code}"
-                elif code_path.exists():
-                    meta["tokenSetCode"] = code
-                else:
-                    meta["tokenSetCode"] = None
+        _enrich_set_metadata(ctx, set_meta, parquet_dir, tokens_dir)
 
         LOGGER.info("Loading deck data...")
         decks_df = ctx.decks_lf
@@ -179,19 +209,7 @@ class AssemblyContext:
         meta_obj = MtgjsonMeta()
         meta_dict = {"date": meta_obj.date, "version": meta_obj.version}
 
-        keyword_data: dict[str, list[str]] = {}
-        card_type_data: dict[str, list[str]] = {}
-        super_types: list[str] = []
-        planar_types: list[str] = []
-        if ctx._cache is not None:
-            keyword_data = {
-                "abilityWords": sorted(ctx._cache.ability_words),
-                "keywordAbilities": sorted(ctx._cache.keyword_abilities),
-                "keywordActions": sorted(ctx._cache.keyword_actions),
-            }
-            card_type_data = ctx._cache.card_type_subtypes
-            super_types = ctx._cache.super_types
-            planar_types = ctx._cache.planar_types
+        keyword_data, card_type_data, super_types, planar_types = _load_scryfall_catalogs(ctx)
 
         return cls(
             parquet_dir=parquet_dir,

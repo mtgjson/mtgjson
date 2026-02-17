@@ -60,6 +60,17 @@ class TcgPlayerConfig:
     base_url: str = "https://api.tcgplayer.com"
     api_version: str = "v1.39.0"
 
+    @property
+    def token_url(self) -> str:
+        """Return TCGPlayer token endpoint URL."""
+        return f"{self.base_url}/token"
+
+    def endpoint_url(self, endpoint: str, versioned: bool = True) -> str:
+        """Return full URL for API endpoint."""
+        if versioned:
+            return f"{self.base_url}/{self.api_version}/{endpoint}"
+        return f"{self.base_url}/{endpoint}"
+
     @classmethod
     def from_mtgjson_config(cls, suffix: str = "") -> TcgPlayerConfig | None:
         """Load config from mtgjson.properties [TCGPlayer] section."""

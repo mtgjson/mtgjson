@@ -7,7 +7,7 @@ from typing import Any
 
 import aiohttp
 
-from .models import TcgPlayerConfig
+from .provider import TcgPlayerConfig
 
 LOGGER = logging.getLogger(__name__)
 

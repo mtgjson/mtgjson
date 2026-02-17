@@ -71,6 +71,7 @@ class PipelineContext:
     _test_data: dict[str, Any] = field(default_factory=dict, repr=False)
 
     mcm_set_map: dict[str, dict[str, Any]] = field(default_factory=dict, repr=False)
+    _mcm_lookup_enriched: pl.LazyFrame | None = field(default=None, repr=False)
 
     @property
     def cards_lf(self) -> pl.LazyFrame | None:
@@ -111,7 +112,9 @@ class PipelineContext:
 
     @property
     def mcm_lookup_lf(self) -> pl.LazyFrame | None:
-        """MCM lookup from cache."""
+        """MCM lookup from cache (enriched with setCode after consolidate_lookups)."""
+        if self._mcm_lookup_enriched is not None:
+            return self._mcm_lookup_enriched
         if "_mcm_lookup_lf" in self._test_data:
             return self._test_data["_mcm_lookup_lf"]  # type: ignore[no-any-return]
         return self._cache.mcm_lookup_lf if self._cache else None
@@ -669,15 +672,10 @@ class PipelineContext:
         LOGGER.info(f"oracle_data_lf: {result.height:,} rows x {len(result.columns)} cols")
 
     def _build_set_number_lookup(self) -> None:
-        """
-        If you're reading this function... don't.
-        Just know that it do what it do and it do it good.
-        Builds consolidated lookup by setCode + number...
-        Also aggregates foreign data...
-        Also applies foreign data exceptions...
-        Also generated UUIDs for foreign cards...
-        Also duel-deck stuff...
-        I'm sorry.
+        """Build consolidated lookup by setCode + number.
+
+        Aggregates foreign data, applies exceptions, generates foreign UUIDs,
+        and includes duel-deck side data.
         """
         frames: list[tuple[str, pl.DataFrame]] = []
 
@@ -689,172 +687,9 @@ class PipelineContext:
             else:
                 cards = cards_raw
 
-            # Build default language card lookup for UUID generation
-            languages_raw = self.languages_lf
-            if languages_raw is not None:
-                default_lang_df = languages_raw
-                if isinstance(default_lang_df, pl.LazyFrame):
-                    default_lang_df = default_lang_df.collect()  # type: ignore[assignment]
-
-                default_lang_lookup = (
-                    cards.with_columns(
-                        [
-                            pl.col("set").str.to_uppercase().alias("setCode"),
-                            pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("_lang_full"),
-                        ]
-                    )
-                    .join(
-                        default_lang_df,  # type: ignore[arg-type]
-                        left_on=["id", "_lang_full"],
-                        right_on=["scryfallId", "language"],
-                        how="semi",
-                    )
-                    .select(
-                        [
-                            "setCode",
-                            pl.col("collectorNumber").alias("number"),
-                            pl.col("id").alias("_default_scryfall_id"),
-                            pl.lit("a").alias("_default_side"),
-                        ]
-                    )
-                    .unique(subset=["setCode", "number"])
-                )
-            else:
-                default_lang_lookup = (
-                    cards.filter(pl.col("lang") == "en")
-                    .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
-                    .select(
-                        [
-                            "setCode",
-                            pl.col("collectorNumber").alias("number"),
-                            pl.col("id").alias("_default_scryfall_id"),
-                            pl.lit("a").alias("_default_side"),
-                        ]
-                    )
-                    .unique(subset=["setCode", "number"])
-                )
-
-            # Parse foreignData exceptions
-            fd_include: set[tuple[str, str]] = set()
-            fd_exclude: set[tuple[str, str]] = set()
-            foreigndata_exceptions = self.foreigndata_exceptions
-            if foreigndata_exceptions:
-                for set_code, numbers in foreigndata_exceptions.get("include", {}).items():
-                    if not set_code.startswith("_"):
-                        for number in numbers:
-                            if not number.startswith("_"):
-                                fd_include.add((set_code, number))
-                for set_code, numbers in foreigndata_exceptions.get("exclude", {}).items():
-                    if not set_code.startswith("_"):
-                        for number in numbers:
-                            if not number.startswith("_"):
-                                fd_exclude.add((set_code, number))
-
-            foreign_df = (
-                cards.filter(pl.col("lang") != "en")
-                .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
-                .filter(
-                    ~pl.col("collectorNumber").str.contains(r"[sd†]$")
-                    | pl.struct(["setCode", "collectorNumber"]).is_in(
-                        [{"setCode": s, "collectorNumber": n} for s, n in fd_include]
-                    )
-                )
-                .filter(
-                    ~pl.struct(["setCode", "collectorNumber"]).is_in(
-                        [{"setCode": s, "collectorNumber": n} for s, n in fd_exclude]
-                    )
-                    if fd_exclude
-                    else pl.lit(True)
-                )
-                .join(
-                    default_lang_lookup,
-                    left_on=["setCode", "collectorNumber"],
-                    right_on=["setCode", "number"],
-                    how="left",
-                )
-                .with_columns(
-                    [
-                        pl.col("lang")
-                        .replace_strict(
-                            LANGUAGE_MAP,
-                            default=pl.col("lang"),
-                        )
-                        .alias("language"),
-                        pl.when(pl.col("cardFaces").list.len() > 1)
-                        .then(
-                            pl.col("cardFaces")
-                            .list.eval(
-                                pl.coalesce(
-                                    pl.element().struct.field("printed_name"),
-                                    pl.element().struct.field("name"),
-                                )
-                            )
-                            .list.join(" // ")
-                        )
-                        .otherwise(pl.col("printedName"))
-                        .alias("_foreign_name"),
-                        pl.when(pl.col("cardFaces").list.len() > 1)
-                        .then(
-                            pl.coalesce(
-                                pl.col("cardFaces").list.first().struct.field("printed_name"),
-                                pl.col("cardFaces").list.first().struct.field("name"),
-                            )
-                        )
-                        .otherwise(None)
-                        .alias("_face_name"),
-                        pl.when(pl.col("cardFaces").list.len() > 1)
-                        .then(pl.col("cardFaces").list.first().struct.field("flavor_text"))
-                        .otherwise(pl.col("flavorText"))
-                        .alias("_flavor_text"),
-                        pl.when(pl.col("cardFaces").list.len() > 1)
-                        .then(pl.col("cardFaces").list.first().struct.field("printed_text"))
-                        .otherwise(pl.col("printedText"))
-                        .alias("_foreign_text"),
-                        pl.when(pl.col("cardFaces").list.len() > 1)
-                        .then(pl.col("cardFaces").list.first().struct.field("printed_type_line"))
-                        .otherwise(pl.col("printedTypeLine"))
-                        .alias("_foreign_type"),
-                        pl.concat_str(
-                            [
-                                pl.col("_default_scryfall_id"),
-                                pl.col("_default_side"),
-                                pl.lit("_"),
-                                pl.col("lang").replace_strict(
-                                    LANGUAGE_MAP,
-                                    default=pl.col("lang"),
-                                ),
-                            ]
-                        ).alias("_uuid_source"),
-                    ]
-                )
-                .with_columns(
-                    pl.col("_uuid_source"),
-                    plh.col("_uuid_source").uuidhash.uuid5(_DNS_NAMESPACE).alias("_foreign_uuid"),
-                )
-                .filter(pl.col("_foreign_name").is_not_null())
-                .sort("setCode", "collectorNumber", "language", nulls_last=True)
-                .group_by(["setCode", pl.col("collectorNumber").alias("number")])
-                .agg(
-                    pl.struct(
-                        [
-                            pl.col("_face_name").alias("faceName"),
-                            pl.col("_flavor_text").alias("flavorText"),
-                            pl.struct(
-                                [
-                                    pl.col("multiverseIds").list.first().cast(pl.String).alias("multiverseId"),
-                                    pl.col("id").alias("scryfallId"),
-                                ]
-                            ).alias("identifiers"),
-                            pl.col("language"),
-                            pl.col("multiverseIds").list.first().alias("multiverseId"),
-                            pl.col("_foreign_name").alias("name"),
-                            pl.col("_foreign_text").alias("text"),
-                            pl.col("_foreign_type").alias("type"),
-                            pl.col("_foreign_uuid").alias("uuid"),
-                        ]
-                    ).alias("foreignData")
-                )
-            )
+            default_lang_lookup = self._build_default_language_lookup(cards)
+            fd_include, fd_exclude = self._parse_foreign_data_exceptions()
+            foreign_df = self._build_foreign_data_df(cards, default_lang_lookup, fd_include, fd_exclude)
 
             if foreign_df.height > 0:
                 frames.append(("foreign", foreign_df))
@@ -876,6 +711,184 @@ class PipelineContext:
 
         self.set_number_lf = result.lazy()
         LOGGER.info(f"set_number_lf: {result.height:,} rows x {len(result.columns)} cols")
+
+    def _build_default_language_lookup(self, cards: pl.DataFrame) -> pl.DataFrame:
+        """Build default language card lookup for foreign UUID generation."""
+        languages_raw = self.languages_lf
+        if languages_raw is not None:
+            default_lang_df = languages_raw
+            if isinstance(default_lang_df, pl.LazyFrame):
+                default_lang_df = default_lang_df.collect()  # type: ignore[assignment]
+
+            return (
+                cards.with_columns(
+                    [
+                        pl.col("set").str.to_uppercase().alias("setCode"),
+                        pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("_lang_full"),
+                    ]
+                )
+                .join(
+                    default_lang_df,  # type: ignore[arg-type]
+                    left_on=["id", "_lang_full"],
+                    right_on=["scryfallId", "language"],
+                    how="semi",
+                )
+                .select(
+                    [
+                        "setCode",
+                        pl.col("collectorNumber").alias("number"),
+                        pl.col("id").alias("_default_scryfall_id"),
+                        pl.lit("a").alias("_default_side"),
+                    ]
+                )
+                .unique(subset=["setCode", "number"])
+            )
+
+        return (
+            cards.filter(pl.col("lang") == "en")
+            .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
+            .select(
+                [
+                    "setCode",
+                    pl.col("collectorNumber").alias("number"),
+                    pl.col("id").alias("_default_scryfall_id"),
+                    pl.lit("a").alias("_default_side"),
+                ]
+            )
+            .unique(subset=["setCode", "number"])
+        )
+
+    def _parse_foreign_data_exceptions(self) -> tuple[set[tuple[str, str]], set[tuple[str, str]]]:
+        """Parse foreignData exceptions into include/exclude sets."""
+        fd_include: set[tuple[str, str]] = set()
+        fd_exclude: set[tuple[str, str]] = set()
+        foreigndata_exceptions = self.foreigndata_exceptions
+        if foreigndata_exceptions:
+            for set_code, numbers in foreigndata_exceptions.get("include", {}).items():
+                if not set_code.startswith("_"):
+                    for number in numbers:
+                        if not number.startswith("_"):
+                            fd_include.add((set_code, number))
+            for set_code, numbers in foreigndata_exceptions.get("exclude", {}).items():
+                if not set_code.startswith("_"):
+                    for number in numbers:
+                        if not number.startswith("_"):
+                            fd_exclude.add((set_code, number))
+        return fd_include, fd_exclude
+
+    def _build_foreign_data_df(
+        self,
+        cards: pl.DataFrame,
+        default_lang_lookup: pl.DataFrame,
+        fd_include: set[tuple[str, str]],
+        fd_exclude: set[tuple[str, str]],
+    ) -> pl.DataFrame:
+        """Build aggregated foreign data DataFrame by setCode + number."""
+        return (
+            cards.filter(pl.col("lang") != "en")
+            .with_columns(pl.col("set").str.to_uppercase().alias("setCode"))
+            .filter(
+                ~pl.col("collectorNumber").str.contains(r"[sd†]$")
+                | pl.struct(["setCode", "collectorNumber"]).is_in(
+                    [{"setCode": s, "collectorNumber": n} for s, n in fd_include]
+                )
+            )
+            .filter(
+                ~pl.struct(["setCode", "collectorNumber"]).is_in(
+                    [{"setCode": s, "collectorNumber": n} for s, n in fd_exclude]
+                )
+                if fd_exclude
+                else pl.lit(True)
+            )
+            .join(
+                default_lang_lookup,
+                left_on=["setCode", "collectorNumber"],
+                right_on=["setCode", "number"],
+                how="left",
+            )
+            .with_columns(
+                [
+                    pl.col("lang")
+                    .replace_strict(
+                        LANGUAGE_MAP,
+                        default=pl.col("lang"),
+                    )
+                    .alias("language"),
+                    pl.when(pl.col("cardFaces").list.len() > 1)
+                    .then(
+                        pl.col("cardFaces")
+                        .list.eval(
+                            pl.coalesce(
+                                pl.element().struct.field("printed_name"),
+                                pl.element().struct.field("name"),
+                            )
+                        )
+                        .list.join(" // ")
+                    )
+                    .otherwise(pl.col("printedName"))
+                    .alias("_foreign_name"),
+                    pl.when(pl.col("cardFaces").list.len() > 1)
+                    .then(
+                        pl.coalesce(
+                            pl.col("cardFaces").list.first().struct.field("printed_name"),
+                            pl.col("cardFaces").list.first().struct.field("name"),
+                        )
+                    )
+                    .otherwise(None)
+                    .alias("_face_name"),
+                    pl.when(pl.col("cardFaces").list.len() > 1)
+                    .then(pl.col("cardFaces").list.first().struct.field("flavor_text"))
+                    .otherwise(pl.col("flavorText"))
+                    .alias("_flavor_text"),
+                    pl.when(pl.col("cardFaces").list.len() > 1)
+                    .then(pl.col("cardFaces").list.first().struct.field("printed_text"))
+                    .otherwise(pl.col("printedText"))
+                    .alias("_foreign_text"),
+                    pl.when(pl.col("cardFaces").list.len() > 1)
+                    .then(pl.col("cardFaces").list.first().struct.field("printed_type_line"))
+                    .otherwise(pl.col("printedTypeLine"))
+                    .alias("_foreign_type"),
+                    pl.concat_str(
+                        [
+                            pl.col("_default_scryfall_id"),
+                            pl.col("_default_side"),
+                            pl.lit("_"),
+                            pl.col("lang").replace_strict(
+                                LANGUAGE_MAP,
+                                default=pl.col("lang"),
+                            ),
+                        ]
+                    ).alias("_uuid_source"),
+                ]
+            )
+            .with_columns(
+                pl.col("_uuid_source"),
+                plh.col("_uuid_source").uuidhash.uuid5(_DNS_NAMESPACE).alias("_foreign_uuid"),
+            )
+            .filter(pl.col("_foreign_name").is_not_null())
+            .sort("setCode", "collectorNumber", "language", nulls_last=True)
+            .group_by(["setCode", pl.col("collectorNumber").alias("number")])
+            .agg(
+                pl.struct(
+                    [
+                        pl.col("_face_name").alias("faceName"),
+                        pl.col("_flavor_text").alias("flavorText"),
+                        pl.struct(
+                            [
+                                pl.col("multiverseIds").list.first().cast(pl.String).alias("multiverseId"),
+                                pl.col("id").alias("scryfallId"),
+                            ]
+                        ).alias("identifiers"),
+                        pl.col("language"),
+                        pl.col("multiverseIds").list.first().alias("multiverseId"),
+                        pl.col("_foreign_name").alias("name"),
+                        pl.col("_foreign_text").alias("text"),
+                        pl.col("_foreign_type").alias("type"),
+                        pl.col("_foreign_uuid").alias("uuid"),
+                    ]
+                ).alias("foreignData")
+            )
+        )
 
     def _load_duel_deck_sides(self) -> pl.DataFrame | None:
         """Load duel deck sides from resource JSON."""
@@ -1119,7 +1132,7 @@ class PipelineContext:
             )
             .unique(subset=["setCode", "nameLower", "number"], keep="first")
         )
-        self._test_data["_mcm_lookup_lf"] = result.lazy()
+        self._mcm_lookup_enriched = result.lazy()
 
     def _build_mcm_set_map(self) -> None:
         """

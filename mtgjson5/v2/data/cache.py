@@ -1307,56 +1307,33 @@ class GlobalCache:
         """Get the DynamicCategoricals instance (set during load_all)."""
         return self._categoricals
 
-    def get_tcg_to_uuid_map(self) -> dict[str, set[str]]:
-        """Get mapping from TCGPlayer product ID to MTGJSON UUID(s)."""
-        if self.tcg_to_uuid_lf is None:
+    @staticmethod
+    def _get_id_to_uuid_map(lf: pl.LazyFrame | None, id_col: str) -> dict[str, set[str]]:
+        """Generic ID->UUID set mapping from a LazyFrame."""
+        if lf is None:
             return {}
-        df = self.tcg_to_uuid_lf.collect()
+        df = lf.collect()
         if df.is_empty():
             return {}
         result: dict[str, set[str]] = {}
         for row in df.iter_rows(named=True):
-            tcg_id = str(row.get("tcgplayerProductId", ""))
-            uuid = row.get("uuid")
-            if tcg_id and uuid:
-                if tcg_id not in result:
-                    result[tcg_id] = set()
-                result[tcg_id].add(uuid)
+            id_val = str(row[id_col])
+            uuid = row["uuid"]
+            if id_val and uuid:
+                result.setdefault(id_val, set()).add(uuid)
         return result
+
+    def get_tcg_to_uuid_map(self) -> dict[str, set[str]]:
+        """Get mapping from TCGPlayer product ID to MTGJSON UUID(s)."""
+        return self._get_id_to_uuid_map(self.tcg_to_uuid_lf, "tcgplayerProductId")
 
     def get_tcg_etched_to_uuid_map(self) -> dict[str, set[str]]:
         """Get mapping from TCGPlayer etched product ID to MTGJSON UUID(s)."""
-        if self.tcg_etched_to_uuid_lf is None:
-            return {}
-        df = self.tcg_etched_to_uuid_lf.collect()
-        if df.is_empty():
-            return {}
-        result: dict[str, set[str]] = {}
-        for row in df.iter_rows(named=True):
-            tcg_id = str(row.get("tcgplayerEtchedProductId", ""))
-            uuid = row.get("uuid")
-            if tcg_id and uuid:
-                if tcg_id not in result:
-                    result[tcg_id] = set()
-                result[tcg_id].add(uuid)
-        return result
+        return self._get_id_to_uuid_map(self.tcg_etched_to_uuid_lf, "tcgplayerEtchedProductId")
 
     def get_mtgo_to_uuid_map(self) -> dict[str, set[str]]:
         """Get mapping from MTGO ID to MTGJSON UUID(s)."""
-        if self.mtgo_to_uuid_lf is None:
-            return {}
-        df = self.mtgo_to_uuid_lf.collect()
-        if df.is_empty():
-            return {}
-        result: dict[str, set[str]] = {}
-        for row in df.iter_rows(named=True):
-            mtgo_id = str(row.get("mtgoId", ""))
-            uuid = row.get("uuid")
-            if mtgo_id and uuid:
-                if mtgo_id not in result:
-                    result[mtgo_id] = set()
-                result[mtgo_id].add(uuid)
-        return result
+        return self._get_id_to_uuid_map(self.mtgo_to_uuid_lf, "mtgoId")
 
     def get_cardmarket_to_uuid_map(self) -> dict[str, str]:
         """Get mapping from CardMarket (MCM) ID to MTGJSON UUID."""
