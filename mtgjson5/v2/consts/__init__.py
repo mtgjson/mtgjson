@@ -20,12 +20,8 @@ from .cards import (
 
 # Expansion/Set constants
 from .expansions import (
-    DUEL_DECK_SETS,
-    FOIL_NONFOIL_LINK_SETS,
     FUNNY_SETS_WITH_ACORN,
     SUPPORTED_SET_TYPES,
-    Expansion,
-    SetType,
 )
 
 # Field constants
@@ -80,26 +76,20 @@ from .outputs import (
 
 __all__ = [
     "ALLOW_IF_FALSEY",
-    # Output directories
     "ALL_CSVS_DIRECTORY",
     "ALL_DECKS_DIRECTORY",
     "ALL_PARQUETS_DIRECTORY",
     "ALL_SETS_DIRECTORY",
     "ATOMIC_FOREIGN_STRIP",
     "ATOMIC_IDENTIFIERS",
-    # Cards
     "BASIC_LAND_NAMES",
     "CARD_MARKET_BUFFER",
-    "DUEL_DECK_SETS",
     "EXCLUDE_FROM_OUTPUT",
     "FACE_MANA_VALUE_LAYOUTS",
     "FACE_NAME_LAYOUTS",
-    # Finishes
     "FINISH_ORDER",
-    "FOIL_NONFOIL_LINK_SETS",
     "FUNNY_SETS_WITH_ACORN",
     "IDENTIFIERS_FIELD_SOURCES",
-    # Languages
     "LANGUAGE_MAP",
     "MULTIFACE_LAYOUTS",
     "MULTI_WORD_SUB_TYPES",
@@ -112,7 +102,6 @@ __all__ = [
     "REQUIRED_DECK_LIST_FIELDS",
     "REQUIRED_LIST_FIELDS",
     "REQUIRED_SET_BOOL_FIELDS",
-    # Fields
     "SCRYFALL_COLUMNS_TO_DROP",
     "SORTED_LIST_FIELDS",
     "SPLIT_COLOR_LAYOUTS",
@@ -120,13 +109,8 @@ __all__ = [
     "SUPER_TYPES",
     "SUPPORTED_SET_TYPES",
     "TOKEN_LAYOUTS",
-    # Mappings
     "TYPEDDICT_FIELD_ALIASES",
-    # Expansions
-    "Expansion",
-    # Layouts
     "LayoutVariant",
-    "SetType",
     "is_multiface",
     "is_token_layout",
 ]
