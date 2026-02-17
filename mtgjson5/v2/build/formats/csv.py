@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 
 import polars as pl
 
-from mtgjson5.classes import MtgjsonMetaObject
 from mtgjson5.utils import LOGGER
+from mtgjson5.v2.models.containers import MtgjsonMeta
 
 from ..assemble import TableAssembler
 
@@ -111,7 +111,7 @@ class CSVBuilder:
                 LOGGER.info(f"  {name}.csv: {flat_df.height:,} rows")
 
         # Write meta
-        meta = MtgjsonMetaObject()
+        meta = MtgjsonMeta()
         meta_df = pl.DataFrame({"date": [meta.date], "version": [meta.version]})
         meta_df.write_csv(output_dir / "meta.csv")
         LOGGER.info("  meta.csv: 1 row")

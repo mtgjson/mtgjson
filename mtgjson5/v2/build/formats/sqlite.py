@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 
 import polars as pl
 
-from mtgjson5.classes import MtgjsonMetaObject
 from mtgjson5.utils import LOGGER
+from mtgjson5.v2.models.containers import MtgjsonMeta
 
 from ..assemble import TableAssembler
 from ..serializers import serialize_complex_types
@@ -165,7 +165,7 @@ class SQLiteBuilder:
             booster_tables = TableAssembler.build_boosters(self.ctx.booster_configs)
             tables.update(booster_tables)
 
-        meta = MtgjsonMetaObject()
+        meta = MtgjsonMeta()
         tables["meta"] = pl.DataFrame({"date": [meta.date], "version": [meta.version]})
 
         conn = sqlite3.connect(str(output_path))
@@ -210,7 +210,7 @@ class SQLiteBuilder:
             booster_tables = TableAssembler.build_boosters(self.ctx.booster_configs)
             tables.update(booster_tables)
 
-        meta = MtgjsonMetaObject()
+        meta = MtgjsonMeta()
         tables["meta"] = pl.DataFrame({"date": [meta.date], "version": [meta.version]})
 
         with open(output_path, "w", encoding="utf-8") as f:

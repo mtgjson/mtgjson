@@ -13,9 +13,9 @@ import orjson
 import polars as pl
 
 from mtgjson5 import constants
-from mtgjson5.classes import MtgjsonMetaObject
 from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.utils import LOGGER
+from mtgjson5.v2.models.containers import MtgjsonMeta
 
 if TYPE_CHECKING:
     from mtgjson5.v2.data import PipelineContext
@@ -176,7 +176,7 @@ class AssemblyContext:
                     uuid: json.loads(raw) for uuid, raw in zip(uuids, raw_products, strict=False) if uuid and raw
                 }
 
-        meta_obj = MtgjsonMetaObject()
+        meta_obj = MtgjsonMeta()
         meta_dict = {"date": meta_obj.date, "version": meta_obj.version}
 
         keyword_data: dict[str, list[str]] = {}
@@ -288,7 +288,7 @@ class AssemblyContext:
             planar_types = data.get("planar_types", [])
 
         # Create meta dict
-        meta_obj = MtgjsonMetaObject()
+        meta_obj = MtgjsonMeta()
         meta_dict = {"date": meta_obj.date, "version": meta_obj.version}
         LOGGER.info("Loading meta information...")
         LOGGER.debug(f"Loaded meta: {meta_dict}")

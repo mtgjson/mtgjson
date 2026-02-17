@@ -24,12 +24,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from types import TracebackType
 from typing import Any, BinaryIO
 
-from .compiled_classes import MtgjsonStructuresObject
 from .v2.consts import (
     ALL_CSVS_DIRECTORY,
     ALL_DECKS_DIRECTORY,
     ALL_PARQUETS_DIRECTORY,
     ALL_SETS_DIRECTORY,
+    COMPILED_OUTPUT_NAMES,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -432,11 +432,7 @@ def compress_mtgjson_contents(directory: pathlib.Path, use_python: bool = True, 
         else _compress_mtgjson_directory
     )
 
-    single_set_files = [
-        file
-        for file in directory.glob("*.json")
-        if file.stem not in MtgjsonStructuresObject().get_all_compiled_file_names()
-    ]
+    single_set_files = [file for file in directory.glob("*.json") if file.stem not in COMPILED_OUTPUT_NAMES]
     for set_file in single_set_files:
         LOGGER.info(f"Compressing {set_file.name}")
         compress_file(set_file)
@@ -461,11 +457,7 @@ def compress_mtgjson_contents(directory: pathlib.Path, use_python: bool = True, 
         LOGGER.info(f"Compressing {parquet_file.name}")
         compress_file(parquet_file)
 
-    compiled_files = [
-        file
-        for file in directory.glob("*.json")
-        if file.stem in MtgjsonStructuresObject().get_all_compiled_file_names()
-    ]
+    compiled_files = [file for file in directory.glob("*.json") if file.stem in COMPILED_OUTPUT_NAMES]
     for compiled_file in compiled_files:
         LOGGER.info(f"Compressing {compiled_file.name}")
         compress_file(compiled_file)
@@ -548,7 +540,7 @@ def compress_mtgjson_contents_parallel(
     workers = max_workers or _get_compression_workers()
     LOGGER.info(f"Starting parallel compression on {directory.name} ({workers} workers)")
 
-    compiled_names = MtgjsonStructuresObject().get_all_compiled_file_names()
+    compiled_names = COMPILED_OUTPUT_NAMES
 
     set_files = [f for f in directory.glob("*.json") if f.stem not in compiled_names and f.stem.isupper()]
     deck_files = list(directory.joinpath("decks").glob("*.json"))

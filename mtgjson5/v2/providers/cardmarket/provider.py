@@ -19,10 +19,10 @@ import polars as pl
 from mkmsdk.api_map import _API_MAP
 from mkmsdk.mkm import Mkm
 
-from mtgjson5.classes import MtgjsonPricesObject
 from mtgjson5.constants import RESOURCE_PATH
 from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.utils import generate_entity_mapping
+from mtgjson5.v2.models.containers import MtgjsonPriceEntry
 
 LOGGER = logging.getLogger(__name__)
 
@@ -372,12 +372,12 @@ class CardMarketProvider:
     async def generate_today_price_dict(
         self,
         all_printings_path: Path,
-    ) -> dict[str, MtgjsonPricesObject]:
+    ) -> dict[str, MtgjsonPriceEntry]:
         """
         Generate MTGJSON price structure from CardMarket data.
 
         :param all_printings_path: Path to AllPrintings.json for ID mapping
-        :return: {uuid: MtgjsonPricesObject, ...}
+        :return: {uuid: MtgjsonPriceEntry, ...}
         """
         # Try cache first, fall back to parsing AllPrintings
         from mtgjson5.v2.data import GLOBAL_CACHE
@@ -398,7 +398,7 @@ class CardMarketProvider:
         if not price_data:
             return {}
 
-        today_dict: dict[str, MtgjsonPricesObject] = {}
+        today_dict: dict[str, MtgjsonPriceEntry] = {}
 
         for product_id, prices in price_data.items():
             avg_sell = prices.get("trend")
@@ -412,7 +412,7 @@ class CardMarketProvider:
 
             for uuid in mtgjson_id_map[product_id]:
                 if uuid not in today_dict:
-                    today_dict[uuid] = MtgjsonPricesObject("paper", "cardmarket", self.today_date, "EUR")
+                    today_dict[uuid] = MtgjsonPriceEntry("paper", "cardmarket", self.today_date, "EUR")
 
                 if avg_sell:
                     today_dict[uuid].sell_normal = avg_sell
@@ -433,7 +433,7 @@ class CardMarketProvider:
 
 async def get_cardmarket_prices(
     all_printings_path: Path,
-) -> dict[str, MtgjsonPricesObject]:
+) -> dict[str, MtgjsonPriceEntry]:
     """Fetch today's CardMarket prices."""
     provider = CardMarketProvider()
     try:

@@ -101,6 +101,10 @@ from .compiled import (
     EnumValuesFile,
     KeywordsFile,
 )
+from .containers import (
+    MtgjsonMeta,
+    MtgjsonPriceEntry,
+)
 from .decks import (
     DECK_MODEL_REGISTRY,
     Deck,
@@ -366,6 +370,9 @@ __version__ = "1.0.0"
 __all__ = [  # noqa: RUF022
     # Version
     "__version__",
+    # Containers
+    "MtgjsonMeta",
+    "MtgjsonPriceEntry",
     # Submodels
     "ForeignData",
     "Identifiers",

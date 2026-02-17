@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Literal
 
 import polars as pl
 
-from mtgjson5.classes import MtgjsonMetaObject
 from mtgjson5.utils import LOGGER
+from mtgjson5.v2.models.containers import MtgjsonMeta
 
 from ..assemble import TableAssembler
 
@@ -90,7 +90,7 @@ class ParquetBuilder:
         LOGGER.info(f"  AllPrintings.parquet: {cards_df.height:,} rows")
 
         # Write meta
-        meta = MtgjsonMetaObject()
+        meta = MtgjsonMeta()
         meta_df = pl.DataFrame({"date": [meta.date], "version": [meta.version]})
         meta_df.write_parquet(output_dir / "meta.parquet", compression=compression, compression_level=9)
         LOGGER.info("  meta.parquet: 1 row")

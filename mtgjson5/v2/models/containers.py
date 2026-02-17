@@ -1,61 +1,54 @@
 """
-MTGJSON Singular Prices.Card Object
+Lightweight data containers used across the v2 pipeline.
+
+These are simple dataclasses (not Pydantic models or TypedDicts) for
+cross-cutting concerns shared between providers and build code.
 """
 
+from __future__ import annotations
+
+import datetime
 from collections import defaultdict
+from dataclasses import dataclass, field
 from typing import Any
 
-from mtgjson5.classes.json_object import JsonObject
+from mtgjson5 import constants
+from mtgjson5.mtgjson_config import MtgjsonConfig
 
 
-class MtgjsonPricesObject(JsonObject):
-    """
-    MTGJSON Singular Prices.Card Object
-    """
+@dataclass
+class MtgjsonMeta:
+    """Build metadata (date + version)."""
+
+    date: str = field(default_factory=lambda: constants.MTGJSON_BUILD_DATE)
+    version: str = field(default_factory=lambda: MtgjsonConfig().mtgjson_version)
+
+    def to_json(self) -> dict[str, Any]:
+        """convert to JSON format."""
+        result: dict[str, Any] = {"date": self.date, "version": self.version}
+        for key, value in result.items():
+            if isinstance(value, datetime.datetime):
+                result[key] = value.strftime("%Y-%m-%d")
+        return result
+
+
+@dataclass
+class MtgjsonPriceEntry:
+    """Single-provider price entry for one card UUID."""
 
     source: str
     provider: str
     date: str
     currency: str
-    buy_normal: float | None
-    buy_foil: float | None
-    buy_etched: float | None
-    sell_normal: float | None
-    sell_foil: float | None
-    sell_etched: float | None
-
-    def __init__(
-        self,
-        source: str,
-        provider: str,
-        date: str,
-        currency: str,
-        buy_normal: float | None = None,
-        buy_foil: float | None = None,
-        buy_etched: float | None = None,
-        sell_normal: float | None = None,
-        sell_foil: float | None = None,
-        sell_etched: float | None = None,
-    ) -> None:
-        """
-        Initializer for Pricing Container
-        """
-        self.source = source
-        self.provider = provider
-        self.date = date
-        self.currency = currency
-        self.buy_normal = buy_normal
-        self.buy_foil = buy_foil
-        self.buy_etched = buy_etched
-        self.sell_normal = sell_normal
-        self.sell_foil = sell_foil
-        self.sell_etched = sell_etched
+    buy_normal: float | None = None
+    buy_foil: float | None = None
+    buy_etched: float | None = None
+    sell_normal: float | None = None
+    sell_foil: float | None = None
+    sell_etched: float | None = None
 
     def items(self) -> list[tuple[str, float | None]]:
-        """
-        Override dict iterator
-        :return: List of entities
-        """
+        """Iterate over all fields as (key, value) pairs."""
         return [
             (key, value)
             for key, value in vars(self).items()
@@ -63,10 +56,7 @@ class MtgjsonPricesObject(JsonObject):
         ]
 
     def to_json(self) -> dict[str, Any]:
-        """
-        Support json.dump()
-        :return: JSON serialized object
-        """
+        """Convert to nested MTGJSON price format."""
         buy_sell_option: dict[str, Any] = {
             "buylist": defaultdict(dict),
             "retail": defaultdict(dict),

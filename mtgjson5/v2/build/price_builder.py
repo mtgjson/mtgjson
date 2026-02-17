@@ -414,10 +414,10 @@ class PolarsPriceBuilder:
 
     def _prices_dict_to_dataframe(self, prices: dict[str, Any]) -> pl.DataFrame:
         """
-        Convert provider's MtgjsonPricesObject dict to flat DataFrame.
+        Convert provider's MtgjsonPriceEntry dict to flat DataFrame.
 
         Args:
-            prices: Dict mapping uuid -> MtgjsonPricesObject
+            prices: Dict mapping uuid -> MtgjsonPriceEntry
 
         Returns:
             Flat DataFrame with one row per price point
@@ -1267,7 +1267,7 @@ class PolarsPriceBuilder:
         Creates a ``prices`` table and a ``meta`` table with indexes
         on uuid, date, and provider.
         """
-        from mtgjson5.classes import MtgjsonMetaObject
+        from mtgjson5.v2.models.containers import MtgjsonMeta
 
         prepared = self._prepare_price_df_for_sql(df)
 
@@ -1295,7 +1295,7 @@ class PolarsPriceBuilder:
             with contextlib.suppress(Exception):
                 cursor.execute(f'CREATE INDEX "idx_prices_{idx_name}" ON "prices" ("{col}")')
 
-        meta = MtgjsonMetaObject()
+        meta = MtgjsonMeta()
         cursor.execute('CREATE TABLE "meta" ("date" TEXT, "version" TEXT)')
         cursor.execute('INSERT INTO "meta" VALUES (?, ?)', (meta.date, meta.version))
 
@@ -1305,12 +1305,12 @@ class PolarsPriceBuilder:
 
     def write_prices_sql(self, df: pl.DataFrame, path: Path) -> None:
         """Write price data as a MySQL text dump with INSERT statements."""
-        from mtgjson5.classes import MtgjsonMetaObject
+        from mtgjson5.v2.models.containers import MtgjsonMeta
 
         from .serializers import escape_mysql
 
         prepared = self._prepare_price_df_for_sql(df)
-        meta = MtgjsonMetaObject()
+        meta = MtgjsonMeta()
 
         with open(path, "w", encoding="utf-8") as f:
             f.write(f"-- MTGJSON Price SQL Dump\n-- Generated: {datetime.date.today().isoformat()}\n")
