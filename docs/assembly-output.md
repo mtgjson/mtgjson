@@ -31,14 +31,14 @@ Pipeline Output (parquet)
 
 ## AssemblyContext
 
-**File**: `mtgjson5/v2/build/context.py`
+**File**: `mtgjson5/build/context.py`
 
 Holds configuration and data needed for all output builders.
 
 ### Creation
 
 ```python
-from mtgjson5.v2.build.context import AssemblyContext
+from mtgjson5.build.context import AssemblyContext
 
 # From pipeline (after build_cards)
 assembly_ctx = AssemblyContext.from_pipeline(pipeline_ctx)
@@ -149,7 +149,7 @@ def assemble_json_outputs(
 
 ## Assembler Classes
 
-**File**: `mtgjson5/v2/build/assemble.py`
+**File**: `mtgjson5/build/assemble.py`
 
 ### Base Assembler
 
@@ -333,7 +333,7 @@ class CompiledListAssembler:
 
 ## Output Writer
 
-**File**: `mtgjson5/v2/build/writer.py`
+**File**: `mtgjson5/build/writer.py`
 
 ### UnifiedOutputWriter
 
@@ -361,7 +361,7 @@ class UnifiedOutputWriter:
 
 ## Format Builders
 
-### JSON (`v2/build/formats/json.py`)
+### JSON (`build/formats/json.py`)
 
 ```python
 class JsonOutputBuilder:
@@ -418,7 +418,7 @@ class JsonOutputBuilder:
         """Write all JSON outputs."""
 ```
 
-### SQLite (`v2/build/formats/sqlite.py`)
+### SQLite (`build/formats/sqlite.py`)
 
 ```python
 class SQLiteBuilder:
@@ -451,7 +451,7 @@ class SQLiteBuilder:
 - `legalities.standard` → `legalities_standard`
 - `foreignData[0].name` → separate `foreign_data` table
 
-### CSV (`v2/build/formats/csv.py`)
+### CSV (`build/formats/csv.py`)
 
 ```python
 class CSVBuilder:
@@ -471,7 +471,7 @@ class CSVBuilder:
         """
 ```
 
-### Parquet (`v2/build/formats/parquet.py`)
+### Parquet (`build/formats/parquet.py`)
 
 ```python
 class ParquetBuilder:
@@ -494,7 +494,7 @@ class ParquetBuilder:
         """
 ```
 
-### PostgreSQL (`v2/build/formats/postgres.py`)
+### PostgreSQL (`build/formats/postgres.py`)
 
 ```python
 class PostgresBuilder:
@@ -511,7 +511,7 @@ class PostgresBuilder:
         """
 ```
 
-### MySQL (`v2/build/formats/mysql.py`)
+### MySQL (`build/formats/mysql.py`)
 
 ```python
 class MySQLBuilder:

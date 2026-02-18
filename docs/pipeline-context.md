@@ -1,13 +1,13 @@
 # PipelineContext - Transformation Context
 
-**File**: `mtgjson5/v2/data/context.py`
+**File**: `mtgjson5/data/context.py`
 
 PipelineContext wraps GlobalCache and builds derived lookup tables used throughout the transformation pipeline. It acts as a bridge between raw cached data and the `build_cards()` function.
 
 ## Overview
 
 ```python
-from mtgjson5.v2.data.context import PipelineContext
+from mtgjson5.data.context import PipelineContext
 
 # Production: create from GlobalCache
 ctx = PipelineContext.from_global_cache(args)
@@ -101,8 +101,8 @@ Production factory that creates context from the loaded GlobalCache singleton.
 ```python
 @classmethod
 def from_global_cache(cls, args: Namespace | None = None) -> PipelineContext:
-    from mtgjson5.v2.data.cache import GLOBAL_CACHE
-    from mtgjson5.v2.utils import discover_categoricals
+    from mtgjson5.data.cache import GLOBAL_CACHE
+    from mtgjson5.utils import discover_categoricals
 
     # Discover categoricals from the raw cards data
     categoricals = None
@@ -312,7 +312,7 @@ Builds CardMarket identifier lookups for card-level MCM ID joins.
 The derived lookups are used in `build_cards()` join operations:
 
 ```python
-# In pipeline/core.py
+# In pipeline/stages/identifiers.py
 
 def join_identifiers(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
     return lf.join(
@@ -436,7 +436,7 @@ When you add a new LazyFrame to GlobalCache, you must also update `for_testing()
    ```
    Store it in the `_test_data` dict with the key `"new_data_lf"`.
 
-3. **Update test fixtures** — if the data has useful defaults (e.g., an empty LazyFrame with the correct schema), update `simple_ctx` and `meld_ctx` in `tests/mtgjson5/v2/conftest.py`.
+3. **Update test fixtures** — if the data has useful defaults (e.g., an empty LazyFrame with the correct schema), update `simple_ctx` and `meld_ctx` in `tests/mtgjson5/conftest.py`.
 
 ### Why this matters
 
