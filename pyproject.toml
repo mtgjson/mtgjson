@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mtgjson5"
-dynamic = ["version"]
+version = "5.3.0"
 description = "Magic: the Gathering compiled database generator"
 readme = "README.md"
 license = "MIT"
@@ -89,9 +89,6 @@ dev = [
 [tool.uv]
 environments = ["platform_python_implementation == 'CPython'"]
 
-[tool.setuptools.dynamic]
-version = { attr = "mtgjson5.v2._version.__version__" }
-
 [tool.setuptools.packages.find]
 include = ["mtgjson5*"]
 
@@ -171,15 +168,15 @@ module = "concurrent.futures"
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = "mtgjson5.v2.models.submodels"
+module = "mtgjson5.models.submodels"
 disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
-module = "mtgjson5.v2.models.utils"
+module = "mtgjson5.models.utils"
 disable_error_code = ["union-attr", "operator", "arg-type"]
 
 [[tool.mypy.overrides]]
-module = "mtgjson5.v2.models.sealed"
+module = "mtgjson5.models.sealed"
 disable_error_code = ["typeddict-item", "no-any-return"]
 
 # --- pytest ---

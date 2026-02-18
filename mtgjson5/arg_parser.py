@@ -10,9 +10,9 @@ import sys
 LOGGER = logging.getLogger(__name__)
 
 
-def set_v2_flags(parsed_args: argparse.Namespace) -> None:
+def set_build_all_flags(parsed_args: argparse.Namespace) -> None:
     """
-    Expand the macro "--v2" into the full set of flags.
+    Expand the macro "--build-all" into the full set of flags.
 
     Args:
         parsed_args (argparse.Namespace): The namespace object containing the parsed
@@ -21,7 +21,7 @@ def set_v2_flags(parsed_args: argparse.Namespace) -> None:
     Returns:
         None
     """
-    if parsed_args.v2:
+    if parsed_args.build_all:
         parsed_args.use_models = True
         if not parsed_args.sets:
             # Full build: all sets, compiled outputs, and exports
@@ -112,12 +112,6 @@ def parse_args() -> argparse.Namespace:
     # Pipeline arguments - controls pipeline and selective output
     pipeline_group = parser.add_argument_group("pipeline arguments")
     pipeline_group.add_argument(
-        "--polars",
-        action="store_true",
-        default=True,
-        help="Accepted for backward compatibility. Polars pipeline is now the only path.",
-    )
-    pipeline_group.add_argument(
         "--bulk-files",
         "-B",
         action="store_true",
@@ -155,9 +149,9 @@ def parse_args() -> argparse.Namespace:
         help="Fast path: assemble from cached parquet/metadata (skips pipeline). Requires prior --use-models run.",
     )
     pipeline_group.add_argument(
-        "--v2",
+        "--build-all",
         action="store_true",
-        help="Shorthand for --use-models --polars --all-sets --full-build --export all. When combined with --sets, only builds individual set files (skipping compiled outputs and exports unless --outputs/--export/--full-build are specified).",
+        help="Shorthand for --use-models --all-sets --full-build --export all. When combined with --sets, only builds individual set files (skipping compiled outputs and exports unless --outputs/--export/--full-build are specified).",
     )
     pipeline_group.add_argument(
         "--skip-mcm",
@@ -219,8 +213,8 @@ def parse_args() -> argparse.Namespace:
 
     parsed_args = parser.parse_args()
 
-    # Expand --v2 shorthand
-    set_v2_flags(parsed_args)
+    # Expand --build-all shorthand
+    set_build_all_flags(parsed_args)
 
     if parsed_args.sets:
         flattened_sets = []
@@ -240,7 +234,6 @@ def parse_args() -> argparse.Namespace:
         parsed_args.compress = bool(os.environ.get("COMPRESS", False))
         parsed_args.parallel = bool(os.environ.get("PARALLEL", False))
         parsed_args.pretty = bool(os.environ.get("PRETTY", False))
-        parsed_args.polars = bool(os.environ.get("POLARS", False))
         parsed_args.bulk_files = bool(os.environ.get("USE_BULK", False))
         parsed_args.skip_sets = list(filter(None, os.environ.get("SKIP_SETS", "").split(",")))
         parsed_args.price_build = bool(os.environ.get("PRICE_BUILD", False))
@@ -250,7 +243,7 @@ def parse_args() -> argparse.Namespace:
         parsed_args.aws_s3_upload_bucket = os.environ.get("AWS_S3_UPLOAD_BUCKET")
         parsed_args.outputs = list(filter(None, os.environ.get("OUTPUTS", "").split(","))) or None
         parsed_args.export_formats = list(filter(None, os.environ.get("EXPORT_FORMATS", "").lower().split(","))) or None
-        parsed_args.v2 = bool(os.environ.get("MTGJSON_V2", False))
-        set_v2_flags(parsed_args)
+        parsed_args.build_all = bool(os.environ.get("MTGJSON_BUILD_ALL", False))
+        set_build_all_flags(parsed_args)
 
     return parsed_args
