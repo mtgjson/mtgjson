@@ -455,6 +455,33 @@ class DeckAssembler(Assembler):
         self._uuid_index: dict[str, dict[str, Any]] | None = None
         self._token_uuids: set[str] | None = None
 
+    def _collect_deck_uuids(self) -> set[str]:
+        """Scan all deck boards to collect the set of referenced UUIDs."""
+        if self.ctx.decks_df is None or self.ctx.decks_df.is_empty():
+            return set()
+
+        board_cols = ["mainBoard", "sideBoard", "commander", "displayCommander", "tokens", "planes", "schemes"]
+        available = [c for c in board_cols if c in self.ctx.decks_df.columns]
+        if not available:
+            return set()
+
+        uuids: set[str] = set()
+        for col in available:
+            try:
+                col_uuids = (
+                    self.ctx.decks_df.select(col)
+                    .filter(pl.col(col).list.len() > 0)
+                    .explode(col)
+                    .select(pl.col(col).struct.field("uuid"))
+                    .filter(pl.col("uuid").is_not_null())
+                    .to_series()
+                    .to_list()
+                )
+                uuids.update(col_uuids)
+            except Exception:
+                pass
+        return uuids
+
     @property
     def uuid_index(self) -> dict[str, dict[str, Any]]:
         """Lazy-build UUID -> card/token dict index.
@@ -462,16 +489,27 @@ class DeckAssembler(Assembler):
         Uses CardSet for cards and CardToken for tokens.
         Deck-specific fields (count, isFoil, isEtched) are added in expand_card_list().
 
+        Only loads cards/tokens that are actually referenced by decks to avoid
+        converting all ~100k+ cards through Pydantic.
+
         Note: After building the index, source DataFrames are deleted to free memory.
         """
         if self._uuid_index is None:
             self._token_uuids = set()
-            cards_df = self.load_all_cards().collect()
+            needed_uuids = self._collect_deck_uuids()
+
+            cards_lf = self.load_all_cards()
+            if needed_uuids:
+                cards_lf = cards_lf.filter(pl.col("uuid").is_in(needed_uuids))
+            cards_df = cards_lf.collect()
             models = CardSet.from_dataframe(cards_df)
             self._uuid_index = {m.uuid: m.to_polars_dict(exclude_none=True) for m in models}
             del cards_df
 
-            tokens_df = self.load_all_tokens().collect()
+            tokens_lf = self.load_all_tokens()
+            if needed_uuids:
+                tokens_lf = tokens_lf.filter(pl.col("uuid").is_in(needed_uuids))
+            tokens_df = tokens_lf.collect()
             if not tokens_df.is_empty():
                 token_models = CardToken.from_dataframe(tokens_df)
                 for m in token_models:
