@@ -157,6 +157,21 @@ class AssemblyContext:
     super_types: list[str] = field(default_factory=list)
     planar_types: list[str] = field(default_factory=list)
 
+    @cached_property
+    def all_cards_df(self) -> pl.DataFrame | None:
+        """Load all cards from parquet cache (shared across format builders)."""
+        if not self.parquet_dir.exists():
+            LOGGER.error("No parquet cache found. Run build_cards() first.")
+            return None
+        return pl.read_parquet(self.parquet_dir / "**/*.parquet")
+
+    @cached_property
+    def all_tokens_df(self) -> pl.DataFrame | None:
+        """Load all tokens from parquet cache (shared across format builders)."""
+        if not self.tokens_dir.exists():
+            return None
+        return pl.read_parquet(self.tokens_dir / "**/*.parquet")
+
     @classmethod
     def from_pipeline(cls, ctx: PipelineContext) -> AssemblyContext:
         """Build AssemblyContext from PipelineContext."""
