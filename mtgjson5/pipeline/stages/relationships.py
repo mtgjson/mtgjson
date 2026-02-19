@@ -26,27 +26,26 @@ def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
         .agg(pl.col("_face_struct").alias("_all_faces"))
     )
 
-    def _filter_self_from_faces(row: dict) -> list[str]:
-        """Filter out current uuid from faces list while preserving side order."""
-        all_faces = row["all_faces"]
-        self_uuid = row["self_uuid"]
-        if all_faces is None:
-            return []
-        return [f["uuid"] for f in all_faces if f["uuid"] != self_uuid]
-
     lf = (
         lf.join(face_links, on="scryfallId", how="left")
-        .with_columns(
-            pl.struct(
-                [
-                    pl.col("uuid").alias("self_uuid"),
-                    pl.col("_all_faces").alias("all_faces"),
-                ]
-            )
-            .map_elements(_filter_self_from_faces, return_dtype=pl.List(pl.String))
-            .alias("otherFaceIds")
-        )
-        .drop("_all_faces")
+        .with_columns(pl.col("_all_faces").list.eval(pl.element().struct.field("uuid")).alias("_face_uuids"))
+        .with_row_index("_face_row_idx")
+    )
+
+    # Explode, filter out self uuid, reaggregate (preserves side-sorted order)
+    face_filtered = (
+        lf.select(["_face_row_idx", "uuid", "_face_uuids"])
+        .explode("_face_uuids")
+        .filter(pl.col("_face_uuids") != pl.col("uuid"))
+        .group_by("_face_row_idx")
+        .agg(pl.col("_face_uuids").alias("otherFaceIds"))
+    )
+
+    lf = (
+        lf.drop(["_all_faces", "_face_uuids"])
+        .join(face_filtered, on="_face_row_idx", how="left")
+        .with_columns(pl.col("otherFaceIds").fill_null(pl.lit([]).cast(pl.List(pl.String))))
+        .drop("_face_row_idx")
     )
 
     lf = add_meld_other_face_ids(lf)
