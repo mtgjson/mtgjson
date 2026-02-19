@@ -606,23 +606,30 @@ class PolarsPriceBuilder:
     def download_old_all_printings(self) -> None:
         """
         Download the hosted version of AllPrintings from MTGJSON for consumption.
+
+        Uses streaming decompression to avoid holding the full compressed +
+        decompressed file in memory simultaneously.
         """
+        import lzma
+
         LOGGER.info("Downloading AllPrintings.json from MTGJSON")
-        file_bytes = b""
-        file_data = requests.get(
+        MtgjsonConfig().output_path.mkdir(parents=True, exist_ok=True)
+        response = requests.get(
             "https://mtgjson.com/api/v5/AllPrintings.json.xz",
             stream=True,
             timeout=60,
         )
-        for chunk in file_data.iter_content(chunk_size=1024 * 36):
-            if chunk:
-                file_bytes += chunk
-
-        import lzma
-
-        MtgjsonConfig().output_path.mkdir(parents=True, exist_ok=True)
-        with self.all_printings_path.open("w", encoding="utf8") as f:
-            f.write(lzma.decompress(file_bytes).decode())
+        response.raise_for_status()
+        decompressor = lzma.LZMADecompressor()
+        with self.all_printings_path.open("wb") as f:
+            for chunk in response.iter_content(chunk_size=1024 * 64):
+                if chunk:
+                    try:
+                        decompressed = decompressor.decompress(chunk)
+                        if decompressed:
+                            f.write(decompressed)
+                    except lzma.LZMAError:
+                        break
 
         LOGGER.info(f"Downloaded AllPrintings.json to {self.all_printings_path}")
 
