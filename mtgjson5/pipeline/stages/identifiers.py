@@ -360,11 +360,16 @@ def fix_foreigndata_for_faces(
     # Build per-face lookup for non-primary faces
     face_lookup = None
     if ctx.cards_lf is not None:
-        cards_df = ctx.cards_lf.collect() if isinstance(ctx.cards_lf, pl.LazyFrame) else ctx.cards_lf
+        cards_df = (
+            ctx.cards_lf.filter((pl.col("lang") != "en") & (pl.col("cardFaces").list.len() > 1))
+            .select(["lang", "cardFaces", "set", "collectorNumber"])
+            .collect()
+            if isinstance(ctx.cards_lf, pl.LazyFrame)
+            else ctx.cards_lf.filter((pl.col("lang") != "en") & (pl.col("cardFaces").list.len() > 1))
+        )
 
         face_lookup = (
-            cards_df.filter((pl.col("lang") != "en") & (pl.col("cardFaces").list.len() > 1))
-            .with_columns(
+            cards_df.with_columns(
                 [
                     pl.col("set").str.to_uppercase().alias("setCode"),
                     pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("language"),
