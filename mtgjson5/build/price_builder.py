@@ -606,75 +606,32 @@ class PolarsPriceBuilder:
     def download_old_all_printings(self) -> None:
         """
         Download the hosted version of AllPrintings from MTGJSON for consumption.
+
+        Uses streaming decompression to avoid holding the full compressed +
+        decompressed file in memory simultaneously.
         """
+        import lzma
+
         LOGGER.info("Downloading AllPrintings.json from MTGJSON")
-        file_bytes = b""
-        file_data = requests.get(
+        MtgjsonConfig().output_path.mkdir(parents=True, exist_ok=True)
+        response = requests.get(
             "https://mtgjson.com/api/v5/AllPrintings.json.xz",
             stream=True,
             timeout=60,
         )
-        for chunk in file_data.iter_content(chunk_size=1024 * 36):
-            if chunk:
-                file_bytes += chunk
-
-        import lzma
-
-        MtgjsonConfig().output_path.mkdir(parents=True, exist_ok=True)
-        with self.all_printings_path.open("w", encoding="utf8") as f:
-            f.write(lzma.decompress(file_bytes).decode())
+        response.raise_for_status()
+        decompressor = lzma.LZMADecompressor()
+        with self.all_printings_path.open("wb") as f:
+            for chunk in response.iter_content(chunk_size=1024 * 64):
+                if chunk:
+                    try:
+                        decompressed = decompressor.decompress(chunk)
+                        if decompressed:
+                            f.write(decompressed)
+                    except lzma.LZMAError:
+                        break
 
         LOGGER.info(f"Downloaded AllPrintings.json to {self.all_printings_path}")
-
-    def to_nested_dict(self, df: pl.LazyFrame) -> dict[str, Any]:
-        """
-        Convert flat DataFrame back to nested MTGJSON price format.
-
-        Output structure:
-            {uuid: {source: {provider: {buylist: {finish: {date: price}}, retail: {...}, currency: str}}}}
-
-        Args:
-            df: LazyFrame with flat price data
-
-        Returns:
-            Nested dict matching MTGJSON AllPrices.json format
-        """
-
-        aggregated = (
-            df.group_by(["uuid", "source", "provider", "currency", "price_type", "finish"])
-            .agg([pl.struct(["date", "price"]).alias("prices")])
-            .collect()
-        )
-
-        if len(aggregated) == 0:
-            return {}
-
-        result: dict[str, Any] = {}
-
-        for row in aggregated.iter_rows(named=True):
-            uuid = row["uuid"]
-            source = row["source"]
-            provider = row["provider"]
-            currency = row["currency"]
-            price_type = row["price_type"]
-            finish = row["finish"]
-            prices = row["prices"]  # List of {date, price} structs
-
-            if uuid not in result:
-                result[uuid] = {}
-            if source not in result[uuid]:
-                result[uuid][source] = {}
-            if provider not in result[uuid][source]:
-                result[uuid][source][provider] = {
-                    "buylist": {},
-                    "retail": {},
-                    "currency": currency,
-                }
-
-            date_prices = {p["date"]: p["price"] for p in prices}
-            result[uuid][source][provider][price_type][finish] = date_prices
-
-        return result
 
     def build_prices(self) -> tuple[Path | None, Path | None]:
         """

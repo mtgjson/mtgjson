@@ -500,13 +500,20 @@ class DeckAssembler(Assembler):
         if self._uuid_index is None:
             self._token_uuids = set()
             needed_uuids = self._collect_deck_uuids()
+            self._uuid_index = {}
+
+            chunk_size = 1000
 
             cards_lf = self.load_all_cards()
             if needed_uuids:
                 cards_lf = cards_lf.filter(pl.col("uuid").is_in(needed_uuids))
             cards_df = cards_lf.collect()
-            models = CardSet.from_dataframe(cards_df)
-            self._uuid_index = {m.uuid: m.to_polars_dict(exclude_none=True) for m in models}
+            for start in range(0, len(cards_df), chunk_size):
+                chunk = cards_df.slice(start, chunk_size)
+                card_models = CardSet.from_dataframe(chunk)
+                for card in card_models:
+                    self._uuid_index[card.uuid] = card.to_polars_dict(exclude_none=True)
+                del card_models, chunk
             del cards_df
 
             tokens_lf = self.load_all_tokens()
@@ -514,10 +521,13 @@ class DeckAssembler(Assembler):
                 tokens_lf = tokens_lf.filter(pl.col("uuid").is_in(needed_uuids))
             tokens_df = tokens_lf.collect()
             if not tokens_df.is_empty():
-                token_models = CardToken.from_dataframe(tokens_df)
-                for m in token_models:
-                    self._uuid_index[m.uuid] = m.to_polars_dict(exclude_none=True)
-                    self._token_uuids.add(m.uuid)
+                for start in range(0, len(tokens_df), chunk_size):
+                    chunk = tokens_df.slice(start, chunk_size)
+                    token_models = CardToken.from_dataframe(chunk)
+                    for token in token_models:
+                        self._uuid_index[token.uuid] = token.to_polars_dict(exclude_none=True)
+                        self._token_uuids.add(token.uuid)
+                    del token_models, chunk
             del tokens_df
 
         return self._uuid_index

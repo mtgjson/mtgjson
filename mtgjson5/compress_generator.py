@@ -22,7 +22,7 @@ import zipfile
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from types import TracebackType
-from typing import Any, BinaryIO
+from typing import IO, Any, BinaryIO
 
 from .consts import (
     ALL_CSVS_DIRECTORY,
@@ -157,9 +157,9 @@ class StreamingCompressor:
         self.output_path = output_path
         self.fmt = fmt
         self.original_filename = original_filename
-        self._file: BinaryIO | io.BufferedIOBase | None = None
+        self._file: BinaryIO | IO[bytes] | io.BufferedIOBase | None = None
+        self._zipfile: zipfile.ZipFile | None = None
         self._lock = threading.Lock()
-        self._buffer = io.BytesIO()
 
     def __enter__(self) -> "StreamingCompressor":
         if self.fmt == "gz":
@@ -169,7 +169,8 @@ class StreamingCompressor:
         elif self.fmt == "xz":
             self._file = lzma.open(self.output_path, "wb", preset=6)
         elif self.fmt == "zip":
-            self._file = self._buffer
+            self._zipfile = zipfile.ZipFile(self.output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6)
+            self._file = self._zipfile.open(self.original_filename, "w")
         else:
             raise ValueError(f"Unknown format: {self.fmt}")
         return self
@@ -187,14 +188,11 @@ class StreamingCompressor:
         exc_tb: TracebackType | None,
     ) -> None:
         if self._file is not None:
-            if self.fmt == "zip":
-                self._buffer.seek(0)
-                with zipfile.ZipFile(self.output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
-                    zf.writestr(self.original_filename, self._buffer.read())
-                self._buffer.close()
-            else:
-                self._file.close()
+            self._file.close()
             self._file = None
+        if self._zipfile is not None:
+            self._zipfile.close()
+            self._zipfile = None
 
 
 def _compress_file_streaming(
@@ -274,24 +272,24 @@ def _compress_file_streaming_parallel(
     def compress_worker(fmt: str, output_path: pathlib.Path, q: queue.Queue) -> None:
         """Worker thread that compresses chunks from queue."""
         try:
+            if fmt == "zip":
+                with (
+                    zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf,
+                    zf.open(file.name, "w") as zf_entry,
+                ):
+                    while True:
+                        chunk = q.get()
+                        if chunk is None:
+                            break
+                        zf_entry.write(chunk)
+                return
+
             if fmt == "gz":
                 f_out: BinaryIO | io.BufferedIOBase = gzip.open(output_path, "wb", compresslevel=6)
             elif fmt == "bz2":
                 f_out = bz2.open(output_path, "wb", compresslevel=9)
             elif fmt == "xz":
                 f_out = lzma.open(output_path, "wb", preset=6)
-            elif fmt == "zip":
-                buffer = io.BytesIO()
-                while True:
-                    chunk = q.get()
-                    if chunk is None:
-                        break
-                    buffer.write(chunk)
-                buffer.seek(0)
-                with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
-                    zf.writestr(file.name, buffer.read())
-                buffer.close()
-                return
             else:
                 results[fmt] = False
                 return

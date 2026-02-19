@@ -390,97 +390,42 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
     - mtgo_to_uuid: MTGO ID -> UUID
     - scryfall_to_uuid: Scryfall ID -> UUID
 
-    These mappings are used by PriceBuilderContext to map provider IDs to UUIDs.
+    Uses a single .collect() to extract all 4 ID fields at once,
+    then splits into per-mapping DataFrames.
     """
     cache_path = constants.CACHE_PATH
 
-    # TCGPlayer product ID -> UUID
-    try:
-        tcg_df = (
-            lf.select(
-                [
-                    pl.col("uuid"),
-                    pl.col("identifiers").struct.field("tcgplayerProductId").alias("tcgplayerProductId"),
-                ]
-            )
-            .filter(pl.col("tcgplayerProductId").is_not_null())
-            .unique()
-            .collect()
-        )
-        if len(tcg_df) > 0:
-            tcg_path = cache_path / "tcg_to_uuid.parquet"
-            tcg_df.write_parquet(tcg_path)
-            if ctx._cache is not None:
-                ctx._cache.tcg_to_uuid_lf = tcg_df.lazy()
-            LOGGER.info(f"Built tcg_to_uuid mapping: {len(tcg_df):,} entries")
-    except Exception as e:
-        LOGGER.warning(f"Failed to build tcg_to_uuid mapping: {e}")
+    mapping_configs = [
+        ("tcgplayerProductId", "tcg_to_uuid", "tcg_to_uuid_lf"),
+        ("tcgplayerEtchedProductId", "tcg_etched_to_uuid", "tcg_etched_to_uuid_lf"),
+        ("mtgoId", "mtgo_to_uuid", "mtgo_to_uuid_lf"),
+        ("scryfallId", "scryfall_to_uuid", "scryfall_to_uuid_lf"),
+    ]
 
-    # TCGPlayer etched product ID -> UUID
     try:
-        tcg_etched_df = (
-            lf.select(
-                [
-                    pl.col("uuid"),
-                    pl.col("identifiers").struct.field("tcgplayerEtchedProductId").alias("tcgplayerEtchedProductId"),
-                ]
-            )
-            .filter(pl.col("tcgplayerEtchedProductId").is_not_null())
-            .unique()
-            .collect()
-        )
-        if len(tcg_etched_df) > 0:
-            tcg_etched_path = cache_path / "tcg_etched_to_uuid.parquet"
-            tcg_etched_df.write_parquet(tcg_etched_path)
-            if ctx._cache is not None:
-                ctx._cache.tcg_etched_to_uuid_lf = tcg_etched_df.lazy()
-            LOGGER.info(f"Built tcg_etched_to_uuid mapping: {len(tcg_etched_df):,} entries")
+        combined_df = lf.select(
+            [
+                pl.col("uuid"),
+                *[pl.col("identifiers").struct.field(cfg[0]).alias(cfg[0]) for cfg in mapping_configs],
+            ]
+        ).collect()
     except Exception as e:
-        LOGGER.warning(f"Failed to build tcg_etched_to_uuid mapping: {e}")
+        LOGGER.warning(f"Failed to collect ID mappings: {e}")
+        return
 
-    # MTGO ID -> UUID
-    try:
-        mtgo_df = (
-            lf.select(
-                [
-                    pl.col("uuid"),
-                    pl.col("identifiers").struct.field("mtgoId").alias("mtgoId"),
-                ]
-            )
-            .filter(pl.col("mtgoId").is_not_null())
-            .unique()
-            .collect()
-        )
-        if len(mtgo_df) > 0:
-            mtgo_path = cache_path / "mtgo_to_uuid.parquet"
-            mtgo_df.write_parquet(mtgo_path)
-            if ctx._cache is not None:
-                ctx._cache.mtgo_to_uuid_lf = mtgo_df.lazy()
-            LOGGER.info(f"Built mtgo_to_uuid mapping: {len(mtgo_df):,} entries")
-    except Exception as e:
-        LOGGER.warning(f"Failed to build mtgo_to_uuid mapping: {e}")
+    for id_col, parquet_name, cache_attr in mapping_configs:
+        try:
+            mapping_df = combined_df.select(["uuid", id_col]).filter(pl.col(id_col).is_not_null()).unique()
+            if len(mapping_df) > 0:
+                path = cache_path / f"{parquet_name}.parquet"
+                mapping_df.write_parquet(path)
+                if ctx._cache is not None:
+                    setattr(ctx._cache, cache_attr, mapping_df.lazy())
+                LOGGER.info(f"Built {parquet_name} mapping: {len(mapping_df):,} entries")
+        except Exception as e:
+            LOGGER.warning(f"Failed to build {parquet_name} mapping: {e}")
 
-    # Scryfall ID -> UUID
-    try:
-        scryfall_df = (
-            lf.select(
-                [
-                    pl.col("uuid"),
-                    pl.col("identifiers").struct.field("scryfallId").alias("scryfallId"),
-                ]
-            )
-            .filter(pl.col("scryfallId").is_not_null())
-            .unique()
-            .collect()
-        )
-        if len(scryfall_df) > 0:
-            scryfall_path = cache_path / "scryfall_to_uuid.parquet"
-            scryfall_df.write_parquet(scryfall_path)
-            if ctx._cache is not None:
-                ctx._cache.scryfall_to_uuid_lf = scryfall_df.lazy()
-            LOGGER.info(f"Built scryfall_to_uuid mapping: {len(scryfall_df):,} entries")
-    except Exception as e:
-        LOGGER.warning(f"Failed to build scryfall_to_uuid mapping: {e}")
+    del combined_df
 
 
 def sink_cards(ctx: PipelineContext) -> None:
