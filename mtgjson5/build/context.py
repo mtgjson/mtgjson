@@ -81,20 +81,36 @@ def _enrich_set_metadata(
             if code in base_set_sizes:
                 meta["baseSetSize"] = base_set_sizes[code]
 
-    for code, meta in set_meta.items():
-        safe_code = get_windows_safe_set_code(code)
-        card_path = parquet_dir / f"setCode={safe_code}"
-        if card_path.exists():
-            card_df = pl.read_parquet(card_path / "*.parquet")
-            if "isRebalanced" in card_df.columns:
-                card_df = card_df.filter(~pl.col("isRebalanced").fill_null(False))
-            # Count unique collector numbers to avoid double-counting
-            # faces of split/transform/modal_dfc cards
-            if "number" in card_df.columns:
-                total = card_df["number"].n_unique()
-            else:
-                total = card_df.height
-            meta["totalSetSize"] = total
+    if parquet_dir.exists() and any(parquet_dir.iterdir()):
+        try:
+            sizes_df = (
+                pl.scan_parquet(
+                    parquet_dir / "**/*.parquet",
+                    cast_options=pl.ScanCastOptions(missing_struct_fields="insert"),
+                )
+                .select(["setCode", "number", "isRebalanced"])
+                .filter(~pl.col("isRebalanced").fill_null(False))
+                .group_by("setCode")
+                .agg(pl.col("number").n_unique().alias("totalSetSize"))
+                .collect()
+            )
+            size_map = {r["setCode"]: r["totalSetSize"] for r in sizes_df.iter_rows(named=True)}
+            for code, meta in set_meta.items():
+                if code.upper() in size_map:
+                    meta["totalSetSize"] = size_map[code.upper()]
+        except Exception as e:
+            LOGGER.warning(f"Batch set size computation failed, falling back to per-set: {e}")
+            for code, meta in set_meta.items():
+                safe_code = get_windows_safe_set_code(code)
+                card_path = parquet_dir / f"setCode={safe_code}"
+                if card_path.exists():
+                    card_df = pl.read_parquet(card_path / "*.parquet", columns=["number", "isRebalanced"])
+                    if "isRebalanced" in card_df.columns:
+                        card_df = card_df.filter(~pl.col("isRebalanced").fill_null(False))
+                    if "number" in card_df.columns:
+                        meta["totalSetSize"] = card_df["number"].n_unique()
+                    else:
+                        meta["totalSetSize"] = card_df.height
 
     for code, meta in set_meta.items():
         set_type = meta.get("type", "")
