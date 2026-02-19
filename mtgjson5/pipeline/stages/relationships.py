@@ -28,11 +28,7 @@ def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
 
     lf = (
         lf.join(face_links, on="scryfallId", how="left")
-        .with_columns(
-            pl.col("_all_faces")
-            .list.eval(pl.element().struct.field("uuid"))
-            .alias("_face_uuids")
-        )
+        .with_columns(pl.col("_all_faces").list.eval(pl.element().struct.field("uuid")).alias("_face_uuids"))
         .with_row_index("_face_row_idx")
     )
 
