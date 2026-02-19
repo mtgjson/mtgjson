@@ -188,6 +188,47 @@ class AssemblyContext:
             return None
         return pl.read_parquet(self.tokens_dir / "**/*.parquet")
 
+    @cached_property
+    def sets_df(self) -> pl.DataFrame | None:
+        """Sets metadata as DataFrame (shared across format builders).
+
+        Filters out traditional token sets (type='token' AND code starts with 'T')
+        to match CDN reference.
+        """
+        if not self.set_meta:
+            return None
+        schema_overrides = {
+            "isOnlineOnly": pl.Boolean,
+            "isFoilOnly": pl.Boolean,
+            "isNonFoilOnly": pl.Boolean,
+            "isForeignOnly": pl.Boolean,
+            "isPartialPreview": pl.Boolean,
+        }
+        df = pl.DataFrame(list(self.set_meta.values()), schema_overrides=schema_overrides)
+        if "type" in df.columns:
+            is_traditional_token = (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
+            df = df.filter(~is_traditional_token)
+        return df
+
+    @cached_property
+    def normalized_tables(self) -> dict[str, pl.DataFrame]:
+        """Normalized relational tables shared across sqlite/csv/parquet/mysql builders."""
+        from .assemble import TableAssembler
+
+        cards_df = self.all_cards_df
+        if cards_df is None:
+            return {}
+        return TableAssembler.build_all(cards_df, self.all_tokens_df, self.sets_df)
+
+    @cached_property
+    def normalized_boosters(self) -> dict[str, pl.DataFrame]:
+        """Booster tables shared across format builders."""
+        from .assemble import TableAssembler
+
+        if self.booster_configs:
+            return TableAssembler.build_boosters(self.booster_configs)
+        return {}
+
     @classmethod
     def from_pipeline(cls, ctx: PipelineContext) -> AssemblyContext:
         """Build AssemblyContext from PipelineContext."""
