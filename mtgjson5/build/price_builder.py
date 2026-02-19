@@ -626,56 +626,6 @@ class PolarsPriceBuilder:
 
         LOGGER.info(f"Downloaded AllPrintings.json to {self.all_printings_path}")
 
-    def to_nested_dict(self, df: pl.LazyFrame) -> dict[str, Any]:
-        """
-        Convert flat DataFrame back to nested MTGJSON price format.
-
-        Output structure:
-            {uuid: {source: {provider: {buylist: {finish: {date: price}}, retail: {...}, currency: str}}}}
-
-        Args:
-            df: LazyFrame with flat price data
-
-        Returns:
-            Nested dict matching MTGJSON AllPrices.json format
-        """
-
-        aggregated = (
-            df.group_by(["uuid", "source", "provider", "currency", "price_type", "finish"])
-            .agg([pl.struct(["date", "price"]).alias("prices")])
-            .collect()
-        )
-
-        if len(aggregated) == 0:
-            return {}
-
-        result: dict[str, Any] = {}
-
-        for row in aggregated.iter_rows(named=True):
-            uuid = row["uuid"]
-            source = row["source"]
-            provider = row["provider"]
-            currency = row["currency"]
-            price_type = row["price_type"]
-            finish = row["finish"]
-            prices = row["prices"]  # List of {date, price} structs
-
-            if uuid not in result:
-                result[uuid] = {}
-            if source not in result[uuid]:
-                result[uuid][source] = {}
-            if provider not in result[uuid][source]:
-                result[uuid][source][provider] = {
-                    "buylist": {},
-                    "retail": {},
-                    "currency": currency,
-                }
-
-            date_prices = {p["date"]: p["price"] for p in prices}
-            result[uuid][source][provider][price_type][finish] = date_prices
-
-        return result
-
     def build_prices(self) -> tuple[Path | None, Path | None]:
         """
         Full price build with partitioned storage and streaming output.
