@@ -24,18 +24,11 @@ class ParquetBuilder:
 
     def _load_cards(self) -> pl.DataFrame | None:
         """Load cards from parquet cache."""
-        parquet_dir = self.ctx.parquet_dir
-        if not parquet_dir.exists():
-            LOGGER.error("No parquet cache found")
-            return None
-        return pl.read_parquet(parquet_dir / "*/*.parquet")
+        return self.ctx.all_cards_df
 
     def _load_tokens(self) -> pl.DataFrame | None:
         """Load tokens from parquet cache (separate tokens_dir)."""
-        tokens_dir = self.ctx.tokens_dir
-        if not tokens_dir.exists():
-            return None
-        return pl.read_parquet(tokens_dir / "*/*.parquet")
+        return self.ctx.all_tokens_df
 
     def _load_sets(self) -> pl.DataFrame | None:
         """Load sets metadata as DataFrame.

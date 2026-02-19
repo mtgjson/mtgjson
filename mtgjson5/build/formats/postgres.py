@@ -24,11 +24,7 @@ class PostgresBuilder:
 
     def _load_cards(self) -> pl.DataFrame | None:
         """Load cards from parquet cache."""
-        parquet_dir = self.ctx.parquet_dir
-        if not parquet_dir.exists():
-            LOGGER.error("No parquet cache found. Run build_cards() first.")
-            return None
-        return pl.read_parquet(parquet_dir / "**/*.parquet")
+        return self.ctx.all_cards_df
 
     def _flatten_for_sql(self, df: pl.DataFrame) -> pl.DataFrame:
         """Flatten cards for SQL table (exclude nested columns)."""
