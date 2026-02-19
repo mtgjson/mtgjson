@@ -1105,9 +1105,7 @@ class PipelineContext:
         set_mapping = pl.concat([base_mapping, extras_mapping]).unique(subset=["_mcm_name"])
 
         result = (
-            mcm_df.with_columns(
-                pl.col("expansionName").str.to_lowercase().alias("_exp_lower")
-            )
+            mcm_df.with_columns(pl.col("expansionName").str.to_lowercase().alias("_exp_lower"))
             .with_columns(
                 pl.col("_exp_lower")
                 .replace_strict(mcm_fixes, default=pl.col("_exp_lower"), return_dtype=pl.String)
