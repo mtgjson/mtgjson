@@ -583,9 +583,10 @@ def calculate_duel_deck(lf: pl.LazyFrame) -> pl.LazyFrame:
             pl.when(pl.col("_is_token"))
             .then(pl.lit(None).cast(pl.String))
             .otherwise(
-                # 0 -> 'a', 1 -> 'b', etc.
-                pl.lit("a").str.replace("a", "")
-                + pl.col("_deck_num").map_elements(lambda n: chr(ord("a") + n), return_dtype=pl.String)
+                pl.col("_deck_num").replace_strict(
+                    {i: chr(ord("a") + i) for i in range(26)},
+                    return_dtype=pl.String,
+                )
             )
             .alias("_calc_duelDeck"),
         )
