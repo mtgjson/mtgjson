@@ -461,17 +461,28 @@ def filter_keywords_for_face(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Filter keywords to only those present in the face's text.
     """
+    lf = lf.with_row_index("_kw_idx")
 
-    def _filter_logic(s: pl.Series) -> pl.Series:
-        out = []
-        for row in s:
-            txt = (row["text"] or "").lower()
-            kws = row["_all_keywords"] or []
-            out.append([k for k in kws if k.lower() in txt])
-        return pl.Series(out, dtype=pl.List(pl.String))
+    # Explode keywords, filter by text match, reaggregate
+    kw_filtered = (
+        lf.select(["_kw_idx", "text", "_all_keywords"])
+        .explode("_all_keywords")
+        .filter(
+            pl.col("_all_keywords").is_not_null()
+            & pl.col("text")
+            .fill_null("")
+            .str.to_lowercase()
+            .str.contains(pl.col("_all_keywords").str.to_lowercase(), literal=True)
+        )
+        .group_by("_kw_idx")
+        .agg(pl.col("_all_keywords").alias("keywords"))
+    )
 
-    return lf.with_columns(pl.struct(["text", "_all_keywords"]).map_batches(_filter_logic).alias("keywords")).drop(
-        "_all_keywords"
+    return (
+        lf.drop("_all_keywords")
+        .join(kw_filtered, on="_kw_idx", how="left")
+        .with_columns(pl.col("keywords").fill_null(pl.lit([]).cast(pl.List(pl.String))))
+        .drop("_kw_idx")
     )
 
 
