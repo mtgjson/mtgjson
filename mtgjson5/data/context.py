@@ -1104,14 +1104,16 @@ class PipelineContext:
         )
         set_mapping = pl.concat([base_mapping, extras_mapping]).unique(subset=["_mcm_name"])
 
-        def apply_mcm_fixes(exp_name: str) -> str:
-            lower = exp_name.lower()
-            return mcm_fixes.get(lower, lower)
-
         result = (
             mcm_df.with_columns(
-                pl.col("expansionName").map_elements(apply_mcm_fixes, return_dtype=pl.String).alias("_exp_name_fixed")
+                pl.col("expansionName").str.to_lowercase().alias("_exp_lower")
             )
+            .with_columns(
+                pl.col("_exp_lower")
+                .replace_strict(mcm_fixes, default=pl.col("_exp_lower"), return_dtype=pl.String)
+                .alias("_exp_name_fixed")
+            )
+            .drop("_exp_lower")
             .join(
                 set_mapping,
                 left_on="_exp_name_fixed",
