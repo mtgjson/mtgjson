@@ -180,4 +180,3 @@ class SQLiteBuilder:
 
         LOGGER.info(f"Wrote AllPrintings.sqlite ({table_count} tables, {total_rows:,} total rows)")
         return output_path
-
