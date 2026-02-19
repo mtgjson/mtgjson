@@ -369,8 +369,7 @@ def fix_foreigndata_for_faces(
         )
 
         face_lookup = (
-            cards_df
-            .with_columns(
+            cards_df.with_columns(
                 [
                     pl.col("set").str.to_uppercase().alias("setCode"),
                     pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("language"),
