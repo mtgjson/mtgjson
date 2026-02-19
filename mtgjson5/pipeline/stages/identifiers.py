@@ -514,9 +514,13 @@ def fix_foreigndata_for_faces(
         .drop("_fd_scryfall_id")
     )
 
-    # Re-aggregate by card+side
-    fd_final = fd_processed.group_by(["scryfallId", "setCode", "number", "_side_key"]).agg(
-        pl.col("foreignData").alias("_foreignData_fixed")
+    # Re-aggregate by card+side, sorted by language
+    fd_final = (
+        fd_processed.group_by(["scryfallId", "setCode", "number", "_side_key"])
+        .agg(pl.col("foreignData").alias("_foreignData_fixed"))
+        .with_columns(
+            pl.col("_foreignData_fixed").list.eval(pl.element().sort_by(pl.element().struct.field("language")))
+        )
     )
 
     # Join back

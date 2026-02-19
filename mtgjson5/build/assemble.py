@@ -344,7 +344,10 @@ class AtomicCardsAssembler(Assembler):
         # Flatten foreign_by_lang to {key: [entries]}
         foreign_lookup: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
         for key, lang_map in foreign_by_lang.items():
-            foreign_lookup[key] = [entry for _, entry in lang_map.values()]
+            foreign_lookup[key] = sorted(
+                (entry for _, entry in lang_map.values()),
+                key=lambda e: e.get("language", ""),
+            )
 
         return foreign_lookup, legalities_lookup
 
