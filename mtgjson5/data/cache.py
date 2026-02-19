@@ -742,8 +742,7 @@ class GlobalCache:
 
         sets_collected = self.sets_lf.collect() if isinstance(self.sets_lf, pl.LazyFrame) else self.sets_lf
 
-        cards_collected = self.cards_lf.collect() if isinstance(self.cards_lf, pl.LazyFrame) else self.cards_lf
-        bulk_sets = set(cards_collected.select("set").unique()["set"].str.to_uppercase().to_list())
+        bulk_sets = set(self.cards_lf.select(pl.col("set").str.to_uppercase()).unique().collect().to_series().to_list())
 
         missing_sets = sets_collected.filter((pl.col("card_count") > 0) & (~pl.col("code").is_in(bulk_sets)))
 
