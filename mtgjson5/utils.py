@@ -10,6 +10,7 @@ import os
 import pathlib
 import time
 from collections.abc import Iterator
+from functools import lru_cache
 from typing import Any
 
 import polars as pl
@@ -321,6 +322,22 @@ def deep_sort_keys(obj: Any) -> Any:
     return obj
 
 
+@lru_cache(maxsize=1)
+def _fetch_scryfall_sets() -> pl.LazyFrame:
+    """Fetch and cache the Scryfall sets list (one HTTP request per build)."""
+    response = requests.get("https://api.scryfall.com/sets", timeout=30)
+    response.raise_for_status()
+    data = response.json()
+
+    return (
+        pl.DataFrame(data["data"])
+        .filter(
+            ~pl.col("set_type").is_in(["memorabilia", "promo", "alchemy"]) & ~pl.col("name").str.contains("Art Series")
+        )
+        .lazy()
+    )
+
+
 def get_expanded_set_codes(
     set_codes: str | list[str] | None = None,
 ) -> list[str]:
@@ -330,18 +347,7 @@ def get_expanded_set_codes(
     Returns:
         List of uppercase set codes (original + expanded by release date).
     """
-    response = requests.get("https://api.scryfall.com/sets", timeout=30)
-    response.raise_for_status()
-    data = response.json()
-
-    # filter out unwanted set types
-    sets_lf = (
-        pl.DataFrame(data["data"])
-        .filter(
-            ~pl.col("set_type").is_in(["memorabilia", "promo", "alchemy"]) & ~pl.col("name").str.contains("Art Series")
-        )
-        .lazy()
-    )
+    sets_lf = _fetch_scryfall_sets()
 
     # return all sets if None
     if set_codes is None:
