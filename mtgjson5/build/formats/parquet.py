@@ -10,8 +10,6 @@ import polars as pl
 from mtgjson5.models.containers import MtgjsonMeta
 from mtgjson5.utils import LOGGER
 
-from ..assemble import TableAssembler
-
 if TYPE_CHECKING:
     from ..context import AssemblyContext
 
@@ -22,36 +20,6 @@ class ParquetBuilder:
     def __init__(self, ctx: AssemblyContext):
         self.ctx = ctx
 
-    def _load_cards(self) -> pl.DataFrame | None:
-        """Load cards from parquet cache."""
-        return self.ctx.all_cards_df
-
-    def _load_tokens(self) -> pl.DataFrame | None:
-        """Load tokens from parquet cache (separate tokens_dir)."""
-        return self.ctx.all_tokens_df
-
-    def _load_sets(self) -> pl.DataFrame | None:
-        """Load sets metadata as DataFrame.
-
-        Filters out traditional token sets (type='token' AND code starts with 'T')
-        to match CDN reference. Keeps special token sets like L14, SBRO, WMOM.
-        """
-        if self.ctx.set_meta:
-            # Explicit schema to avoid type inference issues with mixed None/bool values
-            schema_overrides = {
-                "isOnlineOnly": pl.Boolean,
-                "isFoilOnly": pl.Boolean,
-                "isNonFoilOnly": pl.Boolean,
-                "isForeignOnly": pl.Boolean,
-                "isPartialPreview": pl.Boolean,
-            }
-            df = pl.DataFrame(list(self.ctx.set_meta.values()), schema_overrides=schema_overrides)
-            if "type" in df.columns:
-                is_traditional_token = (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
-                df = df.filter(~is_traditional_token)
-            return df
-        return None
-
     def write(self, output_dir: pathlib.Path | None = None) -> pathlib.Path | None:
         """Write Parquet files to output directory."""
         if output_dir is None:
@@ -60,15 +28,9 @@ class ParquetBuilder:
         output_dir.mkdir(parents=True, exist_ok=True)
         compression: Literal["zstd"] = "zstd"
 
-        cards_df = self._load_cards()
-        if cards_df is None:
+        tables = self.ctx.normalized_tables
+        if not tables:
             return None
-
-        tokens_df = self._load_tokens()
-        sets_df = self._load_sets()
-
-        # Build normalized tables
-        tables = TableAssembler.build_all(cards_df, tokens_df, sets_df)
 
         # Write each table
         for name, df in tables.items():
@@ -78,9 +40,11 @@ class ParquetBuilder:
                 LOGGER.info(f"  {name}.parquet: {df.height:,} rows")
 
         # Write AllPrintings (full cards with nested structures)
-        path = output_dir / "AllPrintings.parquet"
-        cards_df.write_parquet(path, compression=compression, compression_level=9)
-        LOGGER.info(f"  AllPrintings.parquet: {cards_df.height:,} rows")
+        cards_df = self.ctx.all_cards_df
+        if cards_df is not None:
+            path = output_dir / "AllPrintings.parquet"
+            cards_df.write_parquet(path, compression=compression, compression_level=9)
+            LOGGER.info(f"  AllPrintings.parquet: {cards_df.height:,} rows")
 
         # Write meta
         meta = MtgjsonMeta()
@@ -88,14 +52,12 @@ class ParquetBuilder:
         meta_df.write_parquet(output_dir / "meta.parquet", compression=compression, compression_level=9)
         LOGGER.info("  meta.parquet: 1 row")
 
-        # Build and write booster tables
-        if self.ctx.booster_configs:
-            booster_tables = TableAssembler.build_boosters(self.ctx.booster_configs)
-            for name, df in booster_tables.items():
-                if df is not None and len(df) > 0:
-                    path = output_dir / f"{name}.parquet"
-                    df.write_parquet(path, compression=compression, compression_level=9)
-                    LOGGER.info(f"  {name}.parquet: {df.height:,} rows")
+        # Write booster tables
+        for name, df in self.ctx.normalized_boosters.items():
+            if df is not None and len(df) > 0:
+                path = output_dir / f"{name}.parquet"
+                df.write_parquet(path, compression=compression, compression_level=9)
+                LOGGER.info(f"  {name}.parquet: {df.height:,} rows")
 
         LOGGER.info(f"Wrote Parquet files to {output_dir}")
         return output_dir

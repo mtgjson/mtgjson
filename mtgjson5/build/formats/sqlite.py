@@ -12,7 +12,6 @@ import polars as pl
 from mtgjson5.models.containers import MtgjsonMeta
 from mtgjson5.utils import LOGGER
 
-from ..assemble import TableAssembler
 from ..serializers import serialize_complex_types
 
 if TYPE_CHECKING:
@@ -59,36 +58,6 @@ class SQLiteBuilder:
 
     def __init__(self, ctx: AssemblyContext):
         self.ctx = ctx
-
-    def _load_cards(self) -> pl.DataFrame | None:
-        """Load cards from parquet cache."""
-        return self.ctx.all_cards_df
-
-    def _load_tokens(self) -> pl.DataFrame | None:
-        """Load tokens from parquet cache (separate tokens_dir)."""
-        return self.ctx.all_tokens_df
-
-    def _load_sets(self) -> pl.DataFrame | None:
-        """Load sets metadata as DataFrame.
-
-        Filters out traditional token sets (type='token' AND code starts with 'T')
-        to match CDN reference. Keeps special token sets like L14, SBRO, WMOM.
-        """
-        if self.ctx.set_meta:
-            # Explicit schema to avoid type inference issues with mixed None/bool values
-            schema_overrides = {
-                "isOnlineOnly": pl.Boolean,
-                "isFoilOnly": pl.Boolean,
-                "isNonFoilOnly": pl.Boolean,
-                "isForeignOnly": pl.Boolean,
-                "isPartialPreview": pl.Boolean,
-            }
-            df = pl.DataFrame(list(self.ctx.set_meta.values()), schema_overrides=schema_overrides)
-            if "type" in df.columns:
-                is_traditional_token = (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
-                df = df.filter(~is_traditional_token)
-            return df
-        return None
 
     def _write_table(
         self,
@@ -139,8 +108,8 @@ class SQLiteBuilder:
         - setBoosterSheets, setBoosterSheetCards, setBoosterContents, setBoosterContentWeights
         - meta
         """
-        cards_df = self._load_cards()
-        if cards_df is None:
+        tables = self.ctx.normalized_tables
+        if not tables:
             return None
 
         if output_path is None:
@@ -149,14 +118,8 @@ class SQLiteBuilder:
         if output_path.exists():
             output_path.unlink()
 
-        tokens_df = self._load_tokens()
-        sets_df = self._load_sets()
-
-        tables = TableAssembler.build_all(cards_df, tokens_df, sets_df)
-
-        if self.ctx.booster_configs:
-            booster_tables = TableAssembler.build_boosters(self.ctx.booster_configs)
-            tables.update(booster_tables)
+        tables = dict(tables)  # shallow copy for adding meta/boosters
+        tables.update(self.ctx.normalized_boosters)
 
         meta = MtgjsonMeta()
         tables["meta"] = pl.DataFrame({"date": [meta.date], "version": [meta.version]})
@@ -187,21 +150,15 @@ class SQLiteBuilder:
 
         from ..serializers import escape_sqlite
 
-        cards_df = self._load_cards()
-        if cards_df is None:
+        tables = self.ctx.normalized_tables
+        if not tables:
             return None
 
         if output_path is None:
             output_path = self.ctx.output_path / "AllPrintings.sql"
 
-        tokens_df = self._load_tokens()
-        sets_df = self._load_sets()
-
-        tables = TableAssembler.build_all(cards_df, tokens_df, sets_df)
-
-        if self.ctx.booster_configs:
-            booster_tables = TableAssembler.build_boosters(self.ctx.booster_configs)
-            tables.update(booster_tables)
+        tables = dict(tables)  # shallow copy for adding meta/boosters
+        tables.update(self.ctx.normalized_boosters)
 
         meta = MtgjsonMeta()
         tables["meta"] = pl.DataFrame({"date": [meta.date], "version": [meta.version]})
