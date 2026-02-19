@@ -272,15 +272,24 @@ def _compress_file_streaming_parallel(
     def compress_worker(fmt: str, output_path: pathlib.Path, q: queue.Queue) -> None:
         """Worker thread that compresses chunks from queue."""
         try:
+            if fmt == "zip":
+                with (
+                    zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf,
+                    zf.open(file.name, "w") as zf_entry,
+                ):
+                    while True:
+                        chunk = q.get()
+                        if chunk is None:
+                            break
+                        zf_entry.write(chunk)
+                return
+
             if fmt == "gz":
                 f_out: BinaryIO | io.BufferedIOBase = gzip.open(output_path, "wb", compresslevel=6)
             elif fmt == "bz2":
                 f_out = bz2.open(output_path, "wb", compresslevel=9)
             elif fmt == "xz":
                 f_out = lzma.open(output_path, "wb", preset=6)
-            elif fmt == "zip":
-                zf = zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6)
-                f_out = zf.open(file.name, "w")
             else:
                 results[fmt] = False
                 return
@@ -291,8 +300,6 @@ def _compress_file_streaming_parallel(
                     break
                 f_out.write(chunk)
             f_out.close()
-            if fmt == "zip":
-                zf.close()
 
         except Exception as e:
             LOGGER.error(f"{fmt} compression failed for {file.name}: {e}")
