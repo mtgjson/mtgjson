@@ -503,11 +503,24 @@ class PipelineContext:
         This is where PipelineContext does actual work - building derived
         lookups from the raw cached data.
         """
+        import gc
+
         LOGGER.info("Consolidating lookup tables...")
 
+        # Collect cards_lf once for the two sub-methods that need it,
+        # instead of re-scanning from disk twice.
+        cards_df: pl.DataFrame | None = None
+        cards_raw = self.cards_lf
+        if cards_raw is not None:
+            cards_df = cards_raw.collect() if isinstance(cards_raw, pl.LazyFrame) else cards_raw
+
         self._build_identifiers_lookup()
-        self._build_oracle_data_lookup()
-        self._build_set_number_lookup()
+        self._build_oracle_data_lookup(cards_df=cards_df)
+        self._build_set_number_lookup(cards_df=cards_df)
+
+        del cards_df
+        gc.collect()
+
         self._build_name_lookup()
         self._build_signatures_lookup()
         self._build_watermark_overrides_lookup()
@@ -592,9 +605,12 @@ class PipelineContext:
         self.identifiers_lf = result.lazy()
         LOGGER.info(f"identifiers_lf: {result.height:,} rows x {len(result.columns)} cols")
 
-    def _build_oracle_data_lookup(self) -> None:
+    def _build_oracle_data_lookup(self, cards_df: pl.DataFrame | None = None) -> None:
         """
         Build consolidated oracle data lookup (by oracleId).
+
+        Args:
+            cards_df: Pre-collected cards DataFrame (avoids redundant collect).
         """
         frames: list[tuple[str, pl.DataFrame]] = []
 
@@ -633,13 +649,13 @@ class PipelineContext:
                 LOGGER.info(f"oracle_data: +rulings ({rulings_agg.height:,} rows)")
 
         # Printings + originalReleaseDate (computed from cards_lf)
-        cards_raw = self.cards_lf
-        if cards_raw is not None:
-            if isinstance(cards_raw, pl.LazyFrame):
-                cards: pl.DataFrame = cards_raw.collect()
-            else:
-                cards = cards_raw
+        cards: pl.DataFrame | None = cards_df
+        if cards is None:
+            cards_raw = self.cards_lf
+            if cards_raw is not None:
+                cards = cards_raw.collect() if isinstance(cards_raw, pl.LazyFrame) else cards_raw
 
+        if cards is not None:
             # For multi-face cards, oracle_id may be null at card level but present in card_faces
             # Coalesce from first face's oracle_id if available
             printings = (
@@ -671,22 +687,25 @@ class PipelineContext:
         self.oracle_data_lf = result.lazy()
         LOGGER.info(f"oracle_data_lf: {result.height:,} rows x {len(result.columns)} cols")
 
-    def _build_set_number_lookup(self) -> None:
+    def _build_set_number_lookup(self, cards_df: pl.DataFrame | None = None) -> None:
         """Build consolidated lookup by setCode + number.
 
         Aggregates foreign data, applies exceptions, generates foreign UUIDs,
         and includes duel-deck side data.
+
+        Args:
+            cards_df: Pre-collected cards DataFrame (avoids redundant collect).
         """
         frames: list[tuple[str, pl.DataFrame]] = []
 
         # Foreign data: aggregate non-English cards by set+number
-        cards_raw = self.cards_lf
-        if cards_raw is not None:
-            if isinstance(cards_raw, pl.LazyFrame):
-                cards: pl.DataFrame = cards_raw.collect()
-            else:
-                cards = cards_raw
+        cards: pl.DataFrame | None = cards_df
+        if cards is None:
+            cards_raw = self.cards_lf
+            if cards_raw is not None:
+                cards = cards_raw.collect() if isinstance(cards_raw, pl.LazyFrame) else cards_raw
 
+        if cards is not None:
             default_lang_lookup = self._build_default_language_lookup(cards)
             fd_include, fd_exclude = self._parse_foreign_data_exceptions()
             foreign_df = self._build_foreign_data_df(cards, default_lang_lookup, fd_include, fd_exclude)
