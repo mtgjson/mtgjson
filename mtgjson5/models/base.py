@@ -199,6 +199,11 @@ class PolarsMixin:
                             sorted_list,
                             key=lambda r: (r.get("date", ""), r.get("text", "")),
                         )
+                    elif key == "foreignData":
+                        sorted_list = sorted(
+                            sorted_list,
+                            key=lambda r: r.get("language", ""),
+                        )
                     result[key] = sorted_list
                 else:
                     result[key] = cls._sort_list(key, value) if sort_lists else list(value)

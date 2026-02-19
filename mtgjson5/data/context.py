@@ -888,6 +888,7 @@ class PipelineContext:
                     ]
                 ).alias("foreignData")
             )
+            .with_columns(pl.col("foreignData").list.eval(pl.element().sort_by(pl.element().struct.field("language"))))
         )
 
     def _load_duel_deck_sides(self) -> pl.DataFrame | None:
