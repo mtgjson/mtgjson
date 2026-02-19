@@ -778,9 +778,18 @@ class SetListAssembler(Assembler):
         }
 
         # Languages from foreign data
-        if not df.is_empty():
-            cards = [m.to_polars_dict(exclude_none=True) for m in CardSet.from_dataframe(df)]
-            entry["languages"] = self.build_languages(cards)
+        if not df.is_empty() and "foreignData" in df.columns:
+            fd_langs = (
+                df.select("foreignData")
+                .filter(pl.col("foreignData").list.len() > 0)
+                .explode("foreignData")
+                .select(pl.col("foreignData").struct.field("language"))
+                .filter(pl.col("language").is_not_null() & (pl.col("language") != ""))
+                .unique()
+                .to_series()
+                .to_list()
+            )
+            entry["languages"] = sorted({"English", *fd_langs})
         else:
             entry["languages"] = ["English"]
 
