@@ -569,10 +569,6 @@ def compress_mtgjson_contents_parallel(
 
     stats = compress_files_parallel(all_files, workers, streaming=streaming)
 
-    if all_files:
-        LOGGER.info(f"Compressing {len(all_files)} files")
-        stats = compress_files_parallel(all_files, workers)
-
     # Directory archives
     if set_files:
         LOGGER.info(f"Creating archive: {ALL_SETS_DIRECTORY}")
