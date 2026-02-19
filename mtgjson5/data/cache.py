@@ -331,7 +331,7 @@ class GlobalCache:
         cache_path = self.cache_path / "tcg_skus.parquet"
 
         if _cache_fresh(cache_path):
-            self.tcg_skus_lf = pl.read_parquet(cache_path).lazy()
+            self.tcg_skus_lf = pl.scan_parquet(cache_path)
             LOGGER.info("Using cached TCG SKUs data")
             return
 
@@ -700,7 +700,7 @@ class GlobalCache:
         cache_path = self.cache_path / "sets.parquet"
 
         if _cache_fresh(cache_path):
-            self.sets_lf = pl.read_parquet(cache_path).lazy()
+            self.sets_lf = pl.scan_parquet(cache_path)
             return
 
         sets_response = self.scryfall.download(self.scryfall.ALL_SETS_URL)
@@ -812,8 +812,8 @@ class GlobalCache:
         raw_cache = self.cache_path / "ck_raw.parquet"
 
         if _cache_fresh(pivoted_cache) and _cache_fresh(raw_cache):
-            self.card_kingdom_lf = pl.read_parquet(pivoted_cache).lazy()
-            self.card_kingdom_raw_lf = pl.read_parquet(raw_cache).lazy()
+            self.card_kingdom_lf = pl.scan_parquet(pivoted_cache)
+            self.card_kingdom_raw_lf = pl.scan_parquet(raw_cache)
             return
 
         # Initialize empty DataFrames
@@ -861,7 +861,7 @@ class GlobalCache:
         cache_path = self.cache_path / "edhrec_salt.parquet"
 
         if _cache_fresh(cache_path):
-            self.salt_lf = pl.read_parquet(cache_path).lazy()
+            self.salt_lf = pl.scan_parquet(cache_path)
             return
 
         salt_df = self.edhrec.get_data_frame()
@@ -874,7 +874,7 @@ class GlobalCache:
         cache_path = self.cache_path / "spellbook.parquet"
 
         if _cache_fresh(cache_path):
-            self.spellbook_lf = pl.read_parquet(cache_path).lazy()
+            self.spellbook_lf = pl.scan_parquet(cache_path)
             return
 
         LOGGER.info("Fetching spellbook data from Scryfall...")
@@ -948,12 +948,12 @@ class GlobalCache:
         )
 
         if all_cached:
-            self.sealed_cards_lf = pl.read_parquet(card_to_products_cache).lazy()
-            self.sealed_products_lf = pl.read_parquet(sealed_products_cache).lazy()
-            self.sealed_contents_lf = pl.read_parquet(sealed_contents_cache).lazy()
-            self.decks_lf = pl.read_parquet(decks_cache).lazy()
-            self.boosters_lf = pl.read_parquet(booster_cache).lazy()
-            self.token_products_lf = pl.read_parquet(token_products_cache).lazy()
+            self.sealed_cards_lf = pl.scan_parquet(card_to_products_cache)
+            self.sealed_products_lf = pl.scan_parquet(sealed_products_cache)
+            self.sealed_contents_lf = pl.scan_parquet(sealed_contents_cache)
+            self.decks_lf = pl.scan_parquet(decks_cache)
+            self.boosters_lf = pl.scan_parquet(booster_cache)
+            self.token_products_lf = pl.scan_parquet(token_products_cache)
             return
 
         def on_github_complete(provider: SealedDataProvider) -> None:
@@ -990,7 +990,7 @@ class GlobalCache:
         """Load orientation data for Art Series cards from Scryfall."""
         cache_path = self.cache_path / "orientations.parquet"
         if _cache_fresh(cache_path):
-            self.orientation_lf = pl.read_parquet(cache_path).lazy()
+            self.orientation_lf = pl.scan_parquet(cache_path)
             return
 
         detector = OrientationDetector()
@@ -1017,7 +1017,7 @@ class GlobalCache:
         cache_path = self.cache_path / "sld_subsets.parquet"
 
         if _cache_fresh(cache_path):
-            self.sld_subsets_lf = pl.read_parquet(cache_path).lazy()
+            self.sld_subsets_lf = pl.scan_parquet(cache_path)
             return
 
         relation_map = self.secretlair.download()
@@ -1154,7 +1154,7 @@ class GlobalCache:
         cache_path = self.cache_path / "mcm_lookup.parquet"
 
         if _cache_fresh(cache_path):
-            self.mcm_lookup_lf = pl.read_parquet(cache_path).lazy()
+            self.mcm_lookup_lf = pl.scan_parquet(cache_path)
             return
 
         # Try to download from S3 if not present
