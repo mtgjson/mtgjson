@@ -136,7 +136,6 @@ CARDS_TABLE_EXCLUDE: frozenset[str] = frozenset(
         "convertedManaCost",
         "orientation",
         "originalType",
-        "reverseRelated",
     }
 )
 

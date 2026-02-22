@@ -146,4 +146,4 @@ def add_related_cards_from_context(
             )
         )
         .alias("relatedCards")
-    ).drop(["_spellbook_list", "_token_uuids"], strict=False)
+    ).drop(["_spellbook_list", "_token_uuids", "reverseRelated"], strict=False)

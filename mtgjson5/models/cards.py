@@ -867,17 +867,6 @@ class CardToken(CardPrintingBase):
         description="The layout direction of the card. Used on [Art cards](https://mtg.wiki/page/Art_card).",
         json_schema_extra={"introduced": "v5.2.1", "optional": True},
     )
-    reverse_related: list[str] | None = Field(
-        default=None,
-        alias="reverseRelated",
-        description="The names of the cards that produce this card.",
-        json_schema_extra={
-            "introduced": "v4.0.0",
-            "optional": True,
-            "deprecated": True,
-            "deprecated_msg": "This property is deprecated. Use the [relatedCards](#relatedcards) property instead.",
-        },
-    )
     related_cards: RelatedCards | None = Field(
         default=None,
         alias="relatedCards",

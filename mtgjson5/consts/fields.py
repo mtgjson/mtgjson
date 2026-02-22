@@ -25,7 +25,6 @@ SORTED_LIST_FIELDS: Final[frozenset[str]] = frozenset(
         "printings",
         "promoTypes",
         "rebalancedPrintings",
-        "reverseRelated",
         "sourceProducts",
         "subsets",
         "variations",
