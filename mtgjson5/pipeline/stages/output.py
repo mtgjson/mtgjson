@@ -387,10 +387,11 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
     Builds parquet files for:
     - tcg_to_uuid: TCGPlayer product ID -> UUID
     - tcg_etched_to_uuid: TCGPlayer etched product ID -> UUID
+    - tcg_alt_foil_to_uuid: TCGPlayer alt-foil product IDs -> UUID (from JSON dict)
     - mtgo_to_uuid: MTGO ID -> UUID
     - scryfall_to_uuid: Scryfall ID -> UUID
 
-    Uses a single .collect() to extract all 4 ID fields at once,
+    Uses a single .collect() to extract all ID fields at once,
     then splits into per-mapping DataFrames.
     """
     cache_path = constants.CACHE_PATH
@@ -402,11 +403,15 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
         ("scryfallId", "scryfall_to_uuid", "scryfall_to_uuid_lf"),
     ]
 
+    # Also extract the JSON dict field for alt-foil mappings
+    json_dict_field = "tcgplayerAlternativeFoilIds"
+
     try:
         combined_df = lf.select(
             [
                 pl.col("uuid"),
                 *[pl.col("identifiers").struct.field(cfg[0]).alias(cfg[0]) for cfg in mapping_configs],
+                pl.col("identifiers").struct.field(json_dict_field).alias(json_dict_field),
             ]
         ).collect()
     except Exception as e:
@@ -425,7 +430,55 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
         except Exception as e:
             LOGGER.warning(f"Failed to build {parquet_name} mapping: {e}")
 
+    # Build alt-foil-to-uuid mapping by parsing JSON dict values
+    _build_alt_foil_id_mapping(ctx, combined_df, json_dict_field, cache_path)
+
     del combined_df
+
+
+def _build_alt_foil_id_mapping(
+    ctx: PipelineContext,
+    combined_df: pl.DataFrame,
+    json_dict_field: str,
+    cache_path: Any,
+) -> None:
+    """
+    Parse tcgplayerAlternativeFoilIds JSON dicts and build a flat
+    (tcgplayerProductId, foilType, uuid) mapping for the price builder.
+    """
+    import orjson
+
+    alt_df = combined_df.select(["uuid", json_dict_field]).filter(
+        pl.col(json_dict_field).is_not_null()
+        & (pl.col(json_dict_field) != "")
+    )
+    if alt_df.is_empty():
+        return
+
+    rows: list[dict[str, str]] = []
+    for row in alt_df.iter_rows(named=True):
+        uuid_val = row["uuid"]
+        json_str = row[json_dict_field]
+        try:
+            parsed = orjson.loads(json_str) if isinstance(json_str, str) else json_str
+            if isinstance(parsed, dict):
+                for foil_type, product_id in parsed.items():
+                    if product_id:
+                        rows.append(
+                            {"tcgplayerProductId": str(product_id), "foilType": foil_type, "uuid": uuid_val}
+                        )
+        except Exception:
+            continue
+
+    if not rows:
+        return
+
+    mapping_df = pl.DataFrame(rows).unique()
+    path = cache_path / "tcg_alt_foil_to_uuid.parquet"
+    mapping_df.write_parquet(path)
+    if ctx._cache is not None:
+        ctx._cache.tcg_alt_foil_to_uuid_lf = mapping_df.lazy()
+    LOGGER.info(f"Built tcg_alt_foil_to_uuid mapping: {len(mapping_df):,} entries")
 
 
 def sink_cards(ctx: PipelineContext) -> None:
