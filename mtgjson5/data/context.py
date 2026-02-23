@@ -1322,8 +1322,7 @@ class PipelineContext:
             .group_by("_baseProductId")
             .agg(pl.col("_kv_pair").str.join(",").alias("_json_inner"))
             .with_columns(
-                pl.concat_str([pl.lit("{"), pl.col("_json_inner"), pl.lit("}")])
-                .alias("tcgplayerAlternativeFoilIds")
+                pl.concat_str([pl.lit("{"), pl.col("_json_inner"), pl.lit("}")]).alias("tcgplayerAlternativeFoilIds")
             )
             .select(["_baseProductId", "tcgplayerAlternativeFoilIds"])
         )
@@ -1351,8 +1350,7 @@ class PipelineContext:
             .group_by("_baseProductId")
             .agg(pl.col("_kv_pair").str.join(",").alias("_json_inner"))
             .with_columns(
-                pl.concat_str([pl.lit("{"), pl.col("_json_inner"), pl.lit("}")])
-                .alias("tcgplayerAlternativeFoilUrls")
+                pl.concat_str([pl.lit("{"), pl.col("_json_inner"), pl.lit("}")]).alias("tcgplayerAlternativeFoilUrls")
             )
             .select(["_baseProductId", "tcgplayerAlternativeFoilUrls"])
         )

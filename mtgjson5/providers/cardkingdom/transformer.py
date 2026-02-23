@@ -71,10 +71,7 @@ def _build_alt_foil_json(
         )
         .group_by("scryfall_id")
         .agg(pl.col("_kv_pair").str.join(",").alias("_json_inner"))
-        .with_columns(
-            pl.concat_str([pl.lit("{"), pl.col("_json_inner"), pl.lit("}")])
-            .alias(out_col)
-        )
+        .with_columns(pl.concat_str([pl.lit("{"), pl.col("_json_inner"), pl.lit("}")]).alias(out_col))
         .select(["scryfall_id", out_col])
     )
     return exploded

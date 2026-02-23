@@ -302,12 +302,16 @@ def join_tcg_alt_foil_lookup(
         )
 
     # tcgplayerId is i64 in pipeline, tcgplayerProductId is str in lookup
-    lf = lf.with_columns(pl.col("tcgplayerId").cast(pl.String).alias("_tcg_id_str")).join(
-        ctx.tcg_alt_foil_lf,
-        left_on="_tcg_id_str",
-        right_on="tcgplayerProductId",
-        how="left",
-    ).drop("_tcg_id_str")
+    lf = (
+        lf.with_columns(pl.col("tcgplayerId").cast(pl.String).alias("_tcg_id_str"))
+        .join(
+            ctx.tcg_alt_foil_lf,
+            left_on="_tcg_id_str",
+            right_on="tcgplayerProductId",
+            how="left",
+        )
+        .drop("_tcg_id_str")
+    )
 
     return lf
 

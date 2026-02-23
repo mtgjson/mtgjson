@@ -34,11 +34,6 @@ except ImportError:
     POLARS_AVAILABLE = False
     pl = None  # type: ignore
 
-try:
-    import orjson
-except ImportError:
-    orjson = None  # type: ignore
-
 
 class PolarsMixin:
     """Mixin providing Polars DataFrame serialization for Pydantic models."""

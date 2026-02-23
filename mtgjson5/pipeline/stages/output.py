@@ -449,8 +449,7 @@ def _build_alt_foil_id_mapping(
     import orjson
 
     alt_df = combined_df.select(["uuid", json_dict_field]).filter(
-        pl.col(json_dict_field).is_not_null()
-        & (pl.col(json_dict_field) != "")
+        pl.col(json_dict_field).is_not_null() & (pl.col(json_dict_field) != "")
     )
     if alt_df.is_empty():
         return
@@ -464,9 +463,7 @@ def _build_alt_foil_id_mapping(
             if isinstance(parsed, dict):
                 for foil_type, product_id in parsed.items():
                     if product_id:
-                        rows.append(
-                            {"tcgplayerProductId": str(product_id), "foilType": foil_type, "uuid": uuid_val}
-                        )
+                        rows.append({"tcgplayerProductId": str(product_id), "foilType": foil_type, "uuid": uuid_val})
         except Exception:
             continue
 
