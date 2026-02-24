@@ -119,6 +119,23 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
         .otherwise(pl.lit(None).cast(pl.String)),
     )
 
+    # Backfill tcgplayerEtchedProductId: prefer Scryfall's value, then try
+    # the "etched" key from TCG alt-foil, then grab the first value in the
+    # dict as a last resort (there should only be etched + one other, or just one).
+    tcg_etched_backfill = pl.coalesce(
+        pl.col("tcgplayerEtchedId").cast(pl.String),
+        pl.col("tcgplayerAlternativeFoilIds").str.extract(r'"etched"\s*:\s*"(\d+)"', 1),
+        pl.col("tcgplayerAlternativeFoilIds").str.extract(r':\s*"(\d+)"', 1),
+    )
+
+    # Backfill cardKingdomEtchedId: prefer CK pivot value, then try
+    # the "etched" key from CK alt-foil, then grab the first value.
+    ck_etched_backfill = pl.coalesce(
+        pl.col("cardKingdomEtchedId"),
+        pl.col("cardKingdomAlternativeFoilIds").str.extract(r'"etched"\s*:\s*"(\d+)"', 1),
+        pl.col("cardKingdomAlternativeFoilIds").str.extract(r':\s*"(\d+)"', 1),
+    )
+
     return lf.with_columns(
         pl.struct(
             scryfallId=pl.col("scryfallId"),
@@ -147,11 +164,11 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
             .cast(pl.String),
             tcgplayerProductId=pl.col("tcgplayerId").cast(pl.String),
             tcgplayerAlternativeFoilIds=tcg_alt_foil,
-            tcgplayerEtchedProductId=pl.col("tcgplayerEtchedId").cast(pl.String),
+            tcgplayerEtchedProductId=tcg_etched_backfill,
             cardKingdomId=pl.col("cardKingdomId"),
             cardKingdomFoilId=pl.col("cardKingdomFoilId"),
             cardKingdomAlternativeFoilIds=pl.col("cardKingdomAlternativeFoilIds"),
-            cardKingdomEtchedId=pl.col("cardKingdomEtchedId"),
+            cardKingdomEtchedId=ck_etched_backfill,
             cardsphereId=pl.col("cardsphereId"),
             cardsphereFoilId=pl.col("cardsphereFoilId"),
             deckboxId=pl.col("deckboxId"),
