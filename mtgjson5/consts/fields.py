@@ -179,11 +179,9 @@ IDENTIFIERS_FIELD_SOURCES: Final[dict[str, str | tuple[str, ...]]] = {
     "mtgoFoilId": "mtgoFoilId",
     "multiverseId": "multiverseIds[faceId]",
     "tcgplayerProductId": "tcgplayerId",
-    "tcgplayerAlternativeFoilIds": "tcgplayerAlternativeFoilIds",
     "tcgplayerEtchedProductId": "tcgplayerEtchedId",
     "cardKingdomId": "cardKingdomId",
     "cardKingdomFoilId": "cardKingdomFoilId",
-    "cardKingdomAlternativeFoilIds": "cardKingdomAlternativeFoilIds",
     "cardKingdomEtchedId": "cardKingdomEtchedId",
 }
 

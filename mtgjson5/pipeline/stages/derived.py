@@ -155,15 +155,14 @@ def add_purchase_urls_struct(
                     .then(pl.lit(redirect_base) + pl.col("_ck_hash"))
                     .otherwise(None)
                     .alias("cardKingdom"),
-                    pl.col("cardKingdomAlternativeFoilUrls"),
-                    pl.when(cke_url.is_not_null())
-                    .then(pl.lit(redirect_base) + pl.col("_cke_hash"))
-                    .otherwise(None)
-                    .alias("cardKingdomEtched"),
                     pl.when(ckf_url.is_not_null())
                     .then(pl.lit(redirect_base) + pl.col("_ckf_hash"))
                     .otherwise(None)
                     .alias("cardKingdomFoil"),
+                    pl.when(cke_url.is_not_null())
+                    .then(pl.lit(redirect_base) + pl.col("_cke_hash"))
+                    .otherwise(None)
+                    .alias("cardKingdomEtched"),
                     pl.when(mcm_id.is_not_null())
                     .then(pl.lit(redirect_base) + pl.col("_cm_hash"))
                     .otherwise(None)
@@ -172,7 +171,6 @@ def add_purchase_urls_struct(
                     .then(pl.lit(redirect_base) + pl.col("_tcg_hash"))
                     .otherwise(None)
                     .alias("tcgplayer"),
-                    pl.col("tcgplayerAlternativeFoilUrls"),
                     pl.when(tcge_id.is_not_null())
                     .then(pl.lit(redirect_base) + pl.col("_tcge_hash"))
                     .otherwise(None)
