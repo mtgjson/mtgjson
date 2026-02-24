@@ -46,19 +46,15 @@ class ParquetBuilder:
             _write(pl.DataFrame(rows), output_dir / "Keywords.parquet")
 
     def _write_card_types(self, output_dir: pathlib.Path) -> None:
-        """Write CardTypes.parquet (type, superTypes, subTypes as list columns)."""
+        """Write CardTypes.parquet (type, kind, value) — one row per sub/super type."""
         from ..assemble import CardTypesAssembler
 
         data = CardTypesAssembler(self.ctx).build()
-        rows: list[dict[str, Any]] = []
+        rows: list[dict[str, str]] = []
         for card_type, info in data.items():
-            rows.append(
-                {
-                    "type": card_type,
-                    "subTypes": info.get("subTypes", []),
-                    "superTypes": info.get("superTypes", []),
-                }
-            )
+            for kind in ("subTypes", "superTypes"):
+                for val in info.get(kind, []):
+                    rows.append({"type": card_type, "kind": kind, "value": val})
         if rows:
             _write(pl.DataFrame(rows), output_dir / "CardTypes.parquet")
 
