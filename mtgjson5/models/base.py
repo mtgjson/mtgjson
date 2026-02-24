@@ -7,6 +7,7 @@ from __future__ import annotations
 import pathlib
 from typing import TYPE_CHECKING, Any, ClassVar, Self, get_args, get_origin
 
+import orjson
 from pydantic import BaseModel
 
 from mtgjson5.consts import (
@@ -32,11 +33,6 @@ try:
 except ImportError:
     POLARS_AVAILABLE = False
     pl = None  # type: ignore
-
-try:
-    import orjson
-except ImportError:
-    orjson = None  # type: ignore
 
 
 class PolarsMixin:
@@ -176,7 +172,18 @@ class PolarsMixin:
                 if key in ("legalities", "purchaseUrls") and not value:
                     result[key] = {}
                 elif value or field_name in cls._allow_if_falsey or not exclude_none:
-                    result[key] = dict(sorted(value.items())) if sort_keys else value
+                    # Parse JSON-encoded dict strings (e.g. alternative foil IDs
+                    # stored as '{"etched":"12345"}' in Polars structs)
+                    resolved = {}
+                    for dk, dv in value.items():
+                        if isinstance(dv, str) and dv.startswith("{") and dv.endswith("}"):
+                            try:
+                                resolved[dk] = orjson.loads(dv)
+                            except Exception:
+                                resolved[dk] = dv
+                        else:
+                            resolved[dk] = dv
+                    result[key] = dict(sorted(resolved.items())) if sort_keys else resolved
             elif isinstance(value, list):
                 if not value and exclude_none and key in OMIT_EMPTY_LIST_FIELDS and not keep_empty_lists:
                     continue
@@ -275,11 +282,12 @@ class PolarsMixin:
                 if isinstance(annotation, type) and issubclass(annotation, BaseModel):
                     result[field_name] = cls._from_row_recursive(value, annotation)
                 elif TypedDictUtils.is_typeddict(annotation):
-                    result[field_name] = TypedDictUtils.apply_aliases(
+                    processed = TypedDictUtils.apply_aliases(
                         annotation,  # type: ignore[arg-type]
                         value,
                         TYPEDDICT_FIELD_ALIASES,
                     )
+                    result[field_name] = processed
                 else:
                     result[field_name] = value
             elif isinstance(value, list) and value and isinstance(value[0], dict):

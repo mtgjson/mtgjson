@@ -102,6 +102,40 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
     """
     Build the identifiers struct
     """
+    # Build tcgplayerAlternativeFoilIds: coalesce TCG name-match lookup with
+    # Scryfall etched fallback ({"etched": "<id>"} when only etched ID exists)
+    tcg_alt_foil = pl.coalesce(
+        pl.col("tcgplayerAlternativeFoilIds"),
+        pl.when(pl.col("tcgplayerEtchedId").is_not_null())
+        .then(
+            pl.concat_str(
+                [
+                    pl.lit('{"etched":"'),
+                    pl.col("tcgplayerEtchedId").cast(pl.String),
+                    pl.lit('"}'),
+                ]
+            )
+        )
+        .otherwise(pl.lit(None).cast(pl.String)),
+    )
+
+    # Backfill tcgplayerEtchedProductId: prefer Scryfall's value, then try
+    # the "etched" key from TCG alt-foil, then grab the first value in the
+    # dict as a last resort (there should only be etched + one other, or just one).
+    tcg_etched_backfill = pl.coalesce(
+        pl.col("tcgplayerEtchedId").cast(pl.String),
+        pl.col("tcgplayerAlternativeFoilIds").str.extract(r'"etched"\s*:\s*"(\d+)"', 1),
+        pl.col("tcgplayerAlternativeFoilIds").str.extract(r':\s*"(\d+)"', 1),
+    )
+
+    # Backfill cardKingdomEtchedId: prefer CK pivot value, then try
+    # the "etched" key from CK alt-foil, then grab the first value.
+    ck_etched_backfill = pl.coalesce(
+        pl.col("cardKingdomEtchedId"),
+        pl.col("cardKingdomAlternativeFoilIds").str.extract(r'"etched"\s*:\s*"(\d+)"', 1),
+        pl.col("cardKingdomAlternativeFoilIds").str.extract(r':\s*"(\d+)"', 1),
+    )
+
     return lf.with_columns(
         pl.struct(
             scryfallId=pl.col("scryfallId"),
@@ -129,10 +163,12 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
             )
             .cast(pl.String),
             tcgplayerProductId=pl.col("tcgplayerId").cast(pl.String),
-            tcgplayerEtchedProductId=pl.col("tcgplayerEtchedId").cast(pl.String),
+            tcgplayerAlternativeFoilIds=tcg_alt_foil,
+            tcgplayerEtchedProductId=tcg_etched_backfill,
             cardKingdomId=pl.col("cardKingdomId"),
             cardKingdomFoilId=pl.col("cardKingdomFoilId"),
-            cardKingdomEtchedId=pl.col("cardKingdomEtchedId"),
+            cardKingdomAlternativeFoilIds=pl.col("cardKingdomAlternativeFoilIds"),
+            cardKingdomEtchedId=ck_etched_backfill,
             cardsphereId=pl.col("cardsphereId"),
             cardsphereFoilId=pl.col("cardsphereFoilId"),
             deckboxId=pl.col("deckboxId"),
@@ -235,6 +271,8 @@ def join_identifiers(
             pl.lit(None).cast(pl.String).alias("cardKingdomUrl"),
             pl.lit(None).cast(pl.String).alias("cardKingdomFoilUrl"),
             pl.lit(None).cast(pl.String).alias("cardKingdomEtchedUrl"),
+            pl.lit(None).cast(pl.String).alias("cardKingdomAlternativeFoilIds"),
+            pl.lit(None).cast(pl.String).alias("cardKingdomAlternativeFoilUrls"),
             pl.lit(None).cast(pl.String).alias("cardsphereId"),
             pl.lit(None).cast(pl.String).alias("cardsphereFoilId"),
             pl.lit(None).cast(pl.String).alias("deckboxId"),
@@ -253,7 +291,46 @@ def join_identifiers(
         how="left",
     )
 
-    return lf.drop("_side_for_join", strict=False)
+    lf = lf.drop("_side_for_join", strict=False)
+
+    # Ensure alt-foil columns exist even when CK data was cached before they were added
+    schema = lf.collect_schema().names()
+    for col_name in ("cardKingdomAlternativeFoilIds", "cardKingdomAlternativeFoilUrls"):
+        if col_name not in schema:
+            lf = lf.with_columns(pl.lit(None).cast(pl.String).alias(col_name))
+
+    return lf
+
+
+def join_tcg_alt_foil_lookup(
+    lf: pl.LazyFrame,
+    ctx: PipelineContext,
+) -> pl.LazyFrame:
+    """
+    Join TCGPlayer alternative foil IDs and URLs from name-based matching.
+
+    Maps base tcgplayerId → JSON dict of alt-foil product IDs and purchase URLs.
+    Falls back to null if no TCG alt-foil lookup is available.
+    """
+    if ctx.tcg_alt_foil_lf is None:
+        return lf.with_columns(
+            pl.lit(None).cast(pl.String).alias("tcgplayerAlternativeFoilIds"),
+            pl.lit(None).cast(pl.String).alias("tcgplayerAlternativeFoilUrls"),
+        )
+
+    # tcgplayerId is i64 in pipeline, tcgplayerProductId is str in lookup
+    lf = (
+        lf.with_columns(pl.col("tcgplayerId").cast(pl.String).alias("_tcg_id_str"))
+        .join(
+            ctx.tcg_alt_foil_lf,
+            left_on="_tcg_id_str",
+            right_on="tcgplayerProductId",
+            how="left",
+        )
+        .drop("_tcg_id_str")
+    )
+
+    return lf
 
 
 def join_oracle_data(

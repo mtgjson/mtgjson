@@ -49,6 +49,7 @@ class PipelineContext:
     scryfall_id_filter: set[str] | None = None
 
     identifiers_lf: pl.LazyFrame | None = None
+    tcg_alt_foil_lf: pl.LazyFrame | None = None
     oracle_data_lf: pl.LazyFrame | None = None
     set_number_lf: pl.LazyFrame | None = None
     name_lf: pl.LazyFrame | None = None
@@ -527,6 +528,7 @@ class PipelineContext:
         self._load_face_flavor_names()
         self._build_mcm_set_map()
         self._build_mcm_lookup()
+        self._build_tcg_alt_foil_lookup()
 
         return self
 
@@ -562,17 +564,21 @@ class PipelineContext:
             else:
                 ck = ck_raw
             if ck.height > 0:
-                ck = ck.rename({"id": "scryfallId"}).select(
-                    [
-                        "scryfallId",
-                        "cardKingdomId",
-                        "cardKingdomFoilId",
-                        "cardKingdomEtchedId",
-                        "cardKingdomUrl",
-                        "cardKingdomFoilUrl",
-                        "cardKingdomEtchedUrl",
-                    ]
-                )
+                ck = ck.rename({"id": "scryfallId"})
+                ck_cols = [
+                    "scryfallId",
+                    "cardKingdomId",
+                    "cardKingdomFoilId",
+                    "cardKingdomEtchedId",
+                    "cardKingdomUrl",
+                    "cardKingdomFoilUrl",
+                    "cardKingdomEtchedUrl",
+                    "cardKingdomAlternativeFoilIds",
+                    "cardKingdomAlternativeFoilUrls",
+                ]
+                # Only select columns that exist (alt-foil cols may be absent in older data)
+                ck_cols = [c for c in ck_cols if c in ck.columns]
+                ck = ck.select(ck_cols)
                 # Full join: keep all uuid_cache cards AND all CK-only cards
                 result = result.join(ck, on="scryfallId", how="full", coalesce=True)
                 LOGGER.info(f"identifiers: +card_kingdom ({ck.height:,} rows)")
@@ -1209,3 +1215,151 @@ class PipelineContext:
                 self.mcm_set_map[new_name.lower()] = raw_map.pop(old_key)
 
         self.mcm_set_map.update(raw_map)
+
+    def _build_tcg_alt_foil_lookup(self) -> None:
+        """
+        Build TCGPlayer alternative foil product ID mapping.
+
+        Matches alt-foil products (e.g. "Card Name (Surge Foil)")
+        to base products by stripping the foil suffix and matching
+        within the same TCGPlayer group (set).
+
+        Result: tcg_alt_foil_lf with columns:
+            - tcgplayerProductId (base product, string)
+            - tcgplayerAlternativeFoilIds (JSON string: {"surge": "12345", ...})
+        """
+        # Await background TCG fetch if still running
+        if self._cache is not None:
+            self._cache._await_tcg_skus()
+
+        tcg_skus = self.tcg_skus_lf
+        if tcg_skus is None:
+            LOGGER.info("tcg_alt_foil: No TCG SKU data available, skipping")
+            return
+
+        try:
+            schema = tcg_skus.collect_schema()
+        except Exception:
+            LOGGER.info("tcg_alt_foil: Cannot read TCG schema, skipping")
+            return
+
+        required = {"productId", "name", "groupId"}
+        if not required.issubset(set(schema.names())):
+            LOGGER.info(f"tcg_alt_foil: Missing columns {required - set(schema.names())}, skipping")
+            return
+
+        products = tcg_skus.select(["productId", "name", "groupId"]).collect()
+
+        if products.is_empty():
+            LOGGER.info("tcg_alt_foil: TCG products empty, skipping")
+            return
+
+        # Heuristic: detect trailing parenthetical containing "Foil" or "Etched"
+        # e.g. "Card Name (Surge Foil)" or "Card Name (Etched)"
+        foil_suffix_expr = pl.col("name").str.extract(r"\(([^)]*(?:Foil|Etched)[^)]*)\)\s*$", 1)
+
+        products = products.with_columns(
+            [
+                foil_suffix_expr.alias("_foil_suffix"),
+                # Strip trailing parenthetical to get the base product name
+                pl.col("name").str.replace(r"\s*\([^)]*(?:Foil|Etched)[^)]*\)\s*$", "").alias("_baseName"),
+            ]
+        )
+
+        # Split into alt-foil products (have suffix) and base products (no suffix)
+        alt_products = products.filter(pl.col("_foil_suffix").is_not_null())
+
+        if alt_products.is_empty():
+            LOGGER.info("tcg_alt_foil: No alternative foil products found")
+            return
+
+        # Normalize foil type: "Surge Foil" → "surge", "Foil Etched" → "etched", "Etched" → "etched"
+        alt_products = alt_products.with_columns(
+            pl.col("_foil_suffix")
+            .str.replace(r"(?i)\bFoil\b", "")  # remove "Foil"
+            .str.strip_chars()  # trim whitespace
+            .str.to_lowercase()
+            .alias("_foilType")
+        )
+
+        base_products = products.filter(pl.col("_foil_suffix").is_null()).select(
+            [
+                pl.col("productId").alias("_baseProductId"),
+                pl.col("name").alias("_baseProductName"),
+                pl.col("groupId").alias("_baseGroupId"),
+            ]
+        )
+
+        # Join alt-foil products to base products by (groupId, baseName == base name)
+        matched = alt_products.join(
+            base_products,
+            left_on=["groupId", "_baseName"],
+            right_on=["_baseGroupId", "_baseProductName"],
+            how="inner",
+        )
+
+        if matched.is_empty():
+            LOGGER.info("tcg_alt_foil: No alt-foil products matched to base products")
+            return
+
+        # Build JSON dicts per base product: {"surge": "alt_id", ...}
+        # Vectorized: build key-value pair strings, then aggregate
+        deduped = matched.unique(subset=["_baseProductId", "_foilType"], keep="last")
+
+        # Build IDs JSON dict
+        ids_df = (
+            deduped.with_columns(
+                pl.concat_str(
+                    [
+                        pl.lit('"'),
+                        pl.col("_foilType"),
+                        pl.lit('":"'),
+                        pl.col("productId").cast(pl.String),
+                        pl.lit('"'),
+                    ]
+                ).alias("_kv_pair")
+            )
+            .group_by("_baseProductId")
+            .agg(pl.col("_kv_pair").str.join(",").alias("_json_inner"))
+            .with_columns(
+                pl.concat_str([pl.lit("{"), pl.col("_json_inner"), pl.lit("}")]).alias("tcgplayerAlternativeFoilIds")
+            )
+            .select(["_baseProductId", "tcgplayerAlternativeFoilIds"])
+        )
+
+        # Build purchase URLs JSON dict (TCG affiliate format)
+        tcg_url_prefix = (
+            "https://partner.tcgplayer.com/c/4948039/1780961/21018"
+            "?subId1=api&u=https%3A%2F%2Fwww.tcgplayer.com%2Fproduct%2F"
+        )
+        tcg_url_suffix = "%3Fpage%3D1"
+        urls_df = (
+            deduped.with_columns(
+                pl.concat_str(
+                    [
+                        pl.lit('"'),
+                        pl.col("_foilType"),
+                        pl.lit('":"'),
+                        pl.lit(tcg_url_prefix),
+                        pl.col("productId").cast(pl.String),
+                        pl.lit(tcg_url_suffix),
+                        pl.lit('"'),
+                    ]
+                ).alias("_kv_pair")
+            )
+            .group_by("_baseProductId")
+            .agg(pl.col("_kv_pair").str.join(",").alias("_json_inner"))
+            .with_columns(
+                pl.concat_str([pl.lit("{"), pl.col("_json_inner"), pl.lit("}")]).alias("tcgplayerAlternativeFoilUrls")
+            )
+            .select(["_baseProductId", "tcgplayerAlternativeFoilUrls"])
+        )
+
+        result = (
+            ids_df.join(urls_df, on="_baseProductId", how="left")
+            .with_columns(pl.col("_baseProductId").cast(pl.String).alias("tcgplayerProductId"))
+            .select(["tcgplayerProductId", "tcgplayerAlternativeFoilIds", "tcgplayerAlternativeFoilUrls"])
+        )
+
+        self.tcg_alt_foil_lf = result.lazy()
+        LOGGER.info(f"tcg_alt_foil: Built mapping for {result.height:,} base products")

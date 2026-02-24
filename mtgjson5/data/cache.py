@@ -143,6 +143,7 @@ class GlobalCache:
         self.tcg_sku_map_lf: pl.LazyFrame | None = None
         self.tcg_to_uuid_lf: pl.LazyFrame | None = None
         self.tcg_etched_to_uuid_lf: pl.LazyFrame | None = None
+        self.tcg_alt_foil_to_uuid_lf: pl.LazyFrame | None = None
         self.mtgo_to_uuid_lf: pl.LazyFrame | None = None
         self.scryfall_to_uuid_lf: pl.LazyFrame | None = None
         self.cardmarket_to_uuid_lf: pl.LazyFrame | None = None
@@ -241,6 +242,7 @@ class GlobalCache:
             "tcg_sku_map_lf",
             "tcg_to_uuid_lf",
             "tcg_etched_to_uuid_lf",
+            "tcg_alt_foil_to_uuid_lf",
             "mtgo_to_uuid_lf",
             "scryfall_to_uuid_lf",
             "cardmarket_to_uuid_lf",
@@ -395,6 +397,7 @@ class GlobalCache:
             "tcg_sku_map_lf": "tcg_sku_map.parquet",
             "tcg_to_uuid_lf": "tcg_to_uuid.parquet",
             "tcg_etched_to_uuid_lf": "tcg_etched_to_uuid.parquet",
+            "tcg_alt_foil_to_uuid_lf": "tcg_alt_foil_to_uuid.parquet",
             "mtgo_to_uuid_lf": "mtgo_to_uuid.parquet",
             "scryfall_to_uuid_lf": "scryfall_to_uuid.parquet",
             "cardmarket_to_uuid_lf": "cardmarket_to_uuid.parquet",
@@ -615,6 +618,11 @@ class GlobalCache:
         if tcg_etched_path.exists():
             self.tcg_etched_to_uuid_lf = pl.scan_parquet(tcg_etched_path)
             LOGGER.info("Loaded tcg_etched_to_uuid mapping from cache")
+
+        tcg_alt_foil_path = self.cache_path / "tcg_alt_foil_to_uuid.parquet"
+        if tcg_alt_foil_path.exists():
+            self.tcg_alt_foil_to_uuid_lf = pl.scan_parquet(tcg_alt_foil_path)
+            LOGGER.info("Loaded tcg_alt_foil_to_uuid mapping from cache")
 
         mtgo_path = self.cache_path / "mtgo_to_uuid.parquet"
         if mtgo_path.exists():
