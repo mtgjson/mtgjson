@@ -106,16 +106,9 @@ class Identifiers(TypedDict, total=False):
             "introduced": "v5.2.2",
             "optional": True,
         },
-        "cardKingdomAlternativeFoilIds": {
-            "description": "A mapping of alternative foil types to their [Card Kingdom](https://www.cardkingdom.com/?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson) identifiers. Keys are foil type names (e.g. `etched`, `surge`, `rainbow`).",
-            "introduced": "v5.3.0",
-            "optional": True,
-            "type_override": "Record<string, string>",
-        },
         "cardKingdomEtchedId": {
             "description": "The [Card Kingdom](https://www.cardkingdom.com/?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson) etched card identifier.",
             "introduced": "v5.2.0",
-            "deprecated": "v5.4.0",
             "optional": True,
         },
         "cardKingdomFoilId": {
@@ -228,16 +221,9 @@ class Identifiers(TypedDict, total=False):
             "introduced": "v4.2.1",
             "optional": True,
         },
-        "tcgplayerAlternativeFoilIds": {
-            "description": "A mapping of alternative foil types to their [TCGplayer](https://www.tcgplayer.com?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson) product identifiers. Keys are foil type names (e.g. `etched`, `surge`, `rainbow`).",
-            "introduced": "v5.3.0",
-            "optional": True,
-            "type_override": "Record<string, string>",
-        },
         "tcgplayerEtchedProductId": {
             "description": "The [TCGplayer](https://www.tcgplayer.com?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson) etched card identifier.",
             "introduced": "v5.2.0",
-            "deprecated": "v5.4.0",
             "optional": True,
         },
         "tntId": {
@@ -256,8 +242,7 @@ class Identifiers(TypedDict, total=False):
     scgId: str
     tntId: str
     # Card identifiers
-    cardKingdomAlternativeFoilIds: str | dict[str, str]  # {"etched": "abc", "surge": "def"}
-    cardKingdomEtchedId: str  # Deprecated v5.4.0 — use cardKingdomAlternativeFoilIds
+    cardKingdomEtchedId: str
     cardKingdomFoilId: str
     cardKingdomId: str
     cardsphereId: str
@@ -276,8 +261,7 @@ class Identifiers(TypedDict, total=False):
     scryfallCardBackId: str
     scryfallIllustrationId: str
     scryfallOracleId: str
-    tcgplayerAlternativeFoilIds: str | dict[str, str]  # {"etched": "12345", "surge": "67890"}
-    tcgplayerEtchedProductId: str  # Deprecated v5.4.0 — use tcgplayerAlternativeFoilIds
+    tcgplayerEtchedProductId: str
     tcgplayerProductId: str
 
 
@@ -491,16 +475,9 @@ class PurchaseUrls(TypedDict, total=False):
             "introduced": "v5.0.0",
             "optional": True,
         },
-        "cardKingdomAlternativeFoilUrls": {
-            "description": "A mapping of alternative foil types to their purchase URLs on [Card Kingdom](https://www.cardkingdom.com?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson). Keys are foil type names (e.g. `etched`, `surge`, `rainbow`).",
-            "introduced": "v5.3.0",
-            "optional": True,
-            "type_override": "Record<string, string>",
-        },
         "cardKingdomEtched": {
             "description": "The URL to purchase an etched product on [Card Kingdom](https://www.cardkingdom.com?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson).",
             "introduced": "v5.2.0",
-            "deprecated": "v5.4.0",
             "optional": True,
         },
         "cardKingdomFoil": {
@@ -518,28 +495,19 @@ class PurchaseUrls(TypedDict, total=False):
             "introduced": "v4.4.0",
             "optional": True,
         },
-        "tcgplayerAlternativeFoilUrls": {
-            "description": "A mapping of alternative foil types to their purchase URLs on [TCGplayer](https://www.tcgplayer.com?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson). Keys are foil type names (e.g. `etched`, `surge`, `rainbow`).",
-            "introduced": "v5.3.0",
-            "optional": True,
-            "type_override": "Record<string, string>",
-        },
         "tcgplayerEtched": {
             "description": "The URL to purchase an etched product on [TCGplayer](https://www.tcgplayer.com?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson).",
             "introduced": "v5.2.0",
-            "deprecated": "v5.4.0",
             "optional": True,
         },
     }
 
     cardKingdom: str
-    cardKingdomAlternativeFoilUrls: str | dict[str, str]  # redirect URLs per foil type
-    cardKingdomEtched: str  # Deprecated v5.4.0 — use cardKingdomAlternativeFoilUrls
+    cardKingdomEtched: str
     cardKingdomFoil: str
     cardmarket: str
     tcgplayer: str
-    tcgplayerAlternativeFoilUrls: str | dict[str, str]  # redirect URLs per foil type
-    tcgplayerEtched: str  # Deprecated v5.4.0 — use tcgplayerAlternativeFoilUrls
+    tcgplayerEtched: str
 
 
 class RelatedCards(TypedDict, total=False):

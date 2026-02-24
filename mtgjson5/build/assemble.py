@@ -869,7 +869,6 @@ class TcgplayerSkusAssembler(Assembler):
         self._tcg_skus_lf: pl.LazyFrame | None = None
         self._tcg_to_uuid_lf: pl.LazyFrame | None = None
         self._tcg_etched_to_uuid_lf: pl.LazyFrame | None = None
-        self._tcg_alt_foil_to_uuid_lf: pl.LazyFrame | None = None
 
     def _load_tcg_data(self) -> None:
         """Load TCGPlayer SKU data, awaiting background fetch if needed."""
@@ -898,12 +897,6 @@ class TcgplayerSkusAssembler(Assembler):
         if tcg_etched_path.exists():
             self._tcg_etched_to_uuid_lf = pl.scan_parquet(tcg_etched_path)
 
-        tcg_alt_foil_path = lazy_cache / "tcg_alt_foil_to_uuid.parquet"
-        if not tcg_alt_foil_path.exists():
-            tcg_alt_foil_path = constants.CACHE_PATH / "tcg_alt_foil_to_uuid.parquet"
-        if tcg_alt_foil_path.exists():
-            self._tcg_alt_foil_to_uuid_lf = pl.scan_parquet(tcg_alt_foil_path)
-
     def build(self) -> dict[str, list[dict[str, Any]]]:
         """Build TcgplayerSkus data dict.
 
@@ -929,11 +922,7 @@ class TcgplayerSkusAssembler(Assembler):
             )
             return {}
 
-        if (
-            self._tcg_to_uuid_lf is None
-            and self._tcg_etched_to_uuid_lf is None
-            and self._tcg_alt_foil_to_uuid_lf is None
-        ):
+        if self._tcg_to_uuid_lf is None and self._tcg_etched_to_uuid_lf is None:
             LOGGER.warning("TCG to UUID mappings not found, TcgplayerSkus.json will be empty")
             return {}
 
@@ -998,23 +987,6 @@ class TcgplayerSkusAssembler(Assembler):
 
                 self._add_skus_to_result(etched_joined, result, is_etched=True)
 
-        # Alt-foil products (surge, ripple, textured, etc.)
-        if self._tcg_alt_foil_to_uuid_lf is not None:
-            tcg_alt_foil_df = self._tcg_alt_foil_to_uuid_lf.collect()
-            if "tcgplayerProductId" in tcg_alt_foil_df.columns and "uuid" in tcg_alt_foil_df.columns:
-                tcg_alt_foil_df = tcg_alt_foil_df.with_columns(
-                    pl.col("tcgplayerProductId").cast(pl.Int64).alias("productId_join")
-                )
-
-                alt_joined = flattened.join(
-                    tcg_alt_foil_df.select(["productId_join", "uuid", "foilType"]),
-                    left_on="productId",
-                    right_on="productId_join",
-                    how="inner",
-                )
-
-                self._add_skus_to_result(alt_joined, result, finish_col="foilType")
-
         # Join sealed product UUIDs
         if self.ctx.sealed_df is not None and not self.ctx.sealed_df.is_empty():
             sealed_df = self.ctx.sealed_df
@@ -1043,16 +1015,14 @@ class TcgplayerSkusAssembler(Assembler):
         self,
         joined_df: pl.DataFrame,
         result: dict[str, list[dict[str, Any]]],
-        is_etched: bool = False,
-        finish_col: str | None = None,
+        is_etched: bool,
     ) -> None:
         """Add SKUs from joined DataFrame to result dict.
 
         Args:
             joined_df: DataFrame with SKU data joined to UUIDs
             result: Result dict to populate
-            is_etched: Whether these are etched products (adds finish="ETCHED")
-            finish_col: Column name containing per-row finish type (e.g. "foilType")
+            is_etched: Whether these are etched products (adds finish field)
         """
         for row in joined_df.iter_rows(named=True):
             uuid = row.get("uuid")
@@ -1067,9 +1037,7 @@ class TcgplayerSkusAssembler(Assembler):
                 "skuId": row.get("skuId"),
             }
 
-            if finish_col and row.get(finish_col):
-                sku_entry["finish"] = row[finish_col].upper()
-            elif is_etched:
+            if is_etched:
                 sku_entry["finish"] = "ETCHED"
 
             if uuid not in result:

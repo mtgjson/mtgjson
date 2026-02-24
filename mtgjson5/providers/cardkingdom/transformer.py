@@ -19,64 +19,6 @@ def parse_price(price_str: str | None) -> float | None:
         return None
 
 
-# Polars expression to dynamically extract alternative foil type from CK variation.
-# Handles two patterns:
-#   "Foil Etched" → "etched"  (Foil {Type})
-#   "Surge Foil"  → "surge"   ({Type} Foil)
-# Returns null for plain foil/non-foil.
-_ALT_FOIL_TYPE_EXPR = (
-    pl.coalesce(
-        pl.col("variation").str.extract(r"Foil\s+(\w+)", 1),  # "Foil Etched" → "Etched"
-        pl.col("variation").str.extract(r"(\w+)\s+Foil", 1),  # "Surge Foil" → "Surge"
-    )
-    .str.to_lowercase()
-    .alias("altFoilType")
-)
-
-
-def _build_alt_foil_json(
-    df: pl.DataFrame,
-    value_col: str,
-    out_col: str,
-    value_prefix: str = "",
-    value_suffix: str = "",
-) -> pl.DataFrame:
-    """
-    Build JSON dict strings from altFoilType + value column, grouped by scryfall_id.
-
-    E.g., {"etched": "12345", "surge": "67890"}
-
-    Args:
-        value_prefix: Prepended to each value (e.g. URL base for purchase URLs)
-        value_suffix: Appended to each value (e.g. referral code)
-
-    Pure vectorized Polars — no map_elements.
-    """
-    exploded = (
-        df.filter(pl.col("scryfall_id").is_not_null() & pl.col("altFoilType").is_not_null())
-        .sort("id")
-        .unique(subset=["scryfall_id", "altFoilType"], keep="last")
-        .with_columns(
-            pl.concat_str(
-                [
-                    pl.lit('"'),
-                    pl.col("altFoilType"),
-                    pl.lit('":"'),
-                    pl.lit(value_prefix),
-                    pl.col(value_col).cast(pl.String),
-                    pl.lit(value_suffix),
-                    pl.lit('"'),
-                ]
-            ).alias("_kv_pair")
-        )
-        .group_by("scryfall_id")
-        .agg(pl.col("_kv_pair").str.join(",").alias("_json_inner"))
-        .with_columns(pl.concat_str([pl.lit("{"), pl.col("_json_inner"), pl.lit("}")]).alias(out_col))
-        .select(["scryfall_id", out_col])
-    )
-    return exploded
-
-
 class CardKingdomTransformer:
     """
     Transforms raw CK API records into normalized DataFrames.
@@ -132,39 +74,37 @@ class CardKingdomTransformer:
     @staticmethod
     def add_derived_columns(df: pl.DataFrame) -> pl.DataFrame:
         """
-        Add derived columns for foil/etched/alt-foil detection.
+        Add derived columns for foil/etched detection.
 
-        - is_foil_bool: True if is_foil == 'true'
-        - is_etched: True if variation contains 'Foil Etched' (backward compat)
-        - altFoilType: Dynamically detected foil type (e.g. "etched", "surge", "rainbow")
+        - is_foil_bool: True if is_foil == 'true' (don't use SKU - set codes like FDN start with F)
+        - is_etched: True if variation contains 'Foil Etched'
         """
         return df.with_columns(
             [
                 (pl.col("is_foil").str.to_lowercase() == "true").alias("is_foil_bool"),
                 pl.col("variation").fill_null("").str.contains("Foil Etched").alias("is_etched"),
-                _ALT_FOIL_TYPE_EXPR,
             ]
         )
 
     @staticmethod
     def pivot_by_scryfall_id(df: pl.DataFrame) -> pl.DataFrame:
         """
-        Pivot to one row per scryfall_id with foil/non-foil/etched/alt-foil columns.
+        Pivot to one row per scryfall_id with foil/non-foil/etched columns.
 
         Output columns:
         - id (scryfall_id renamed for joins)
-        - cardKingdomId, cardKingdomUrl (non-foil)
-        - cardKingdomFoilId, cardKingdomFoilUrl (standard foil)
-        - cardKingdomEtchedId, cardKingdomEtchedUrl (deprecated, backfilled)
-        - cardKingdomAlternativeFoilIds (JSON dict)
-        - cardKingdomAlternativeFoilUrls (JSON dict)
+        - cardKingdomId (non-foil CK product ID)
+        - cardKingdomUrl (non-foil URL path)
+        - cardKingdomFoilId (foil CK product ID)
+        - cardKingdomFoilUrl (foil URL path)
+        - cardKingdomEtchedId (etched CK product ID)
+        - cardKingdomEtchedUrl (etched URL path)
 
         Cards without scryfall_id are excluded.
         """
         df_with_flags = CardKingdomTransformer.add_derived_columns(df)
 
-        # Standard pivot for non-foil, foil, etched (backward compat)
-        pivoted = (
+        return (
             df_with_flags.filter(pl.col("scryfall_id").is_not_null())
             .sort("id")
             .group_by("scryfall_id")
@@ -189,22 +129,8 @@ class CardKingdomTransformer:
                     pl.col("url").filter(pl.col("is_etched")).last().alias("cardKingdomEtchedUrl"),
                 ]
             )
+            .rename({"scryfall_id": "id"})
         )
-
-        # Build alternative foil JSON dicts (vectorized, no map_elements)
-        alt_ids_df = _build_alt_foil_json(df_with_flags, "id", "cardKingdomAlternativeFoilIds")
-        alt_urls_df = _build_alt_foil_json(
-            df_with_flags,
-            "url",
-            "cardKingdomAlternativeFoilUrls",
-            value_prefix="https://www.cardkingdom.com/",
-            value_suffix="?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson",
-        )
-
-        pivoted = pivoted.join(alt_ids_df, on="scryfall_id", how="left")
-        pivoted = pivoted.join(alt_urls_df, on="scryfall_id", how="left")
-
-        return pivoted.rename({"scryfall_id": "id"})
 
     @staticmethod
     def to_pricing_df(df: pl.DataFrame) -> pl.DataFrame:
