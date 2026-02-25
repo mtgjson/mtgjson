@@ -49,6 +49,7 @@ class PipelineContext:
     scryfall_id_filter: set[str] | None = None
 
     identifiers_lf: pl.LazyFrame | None = None
+    tcg_alt_foil_lf: pl.LazyFrame | None = None
     oracle_data_lf: pl.LazyFrame | None = None
     set_number_lf: pl.LazyFrame | None = None
     name_lf: pl.LazyFrame | None = None
@@ -244,6 +245,15 @@ class PipelineContext:
                 "_tcg_etched_to_uuid_lf"
             ]
         return self._cache.tcg_etched_to_uuid_lf if self._cache else None
+
+    @property
+    def tcg_alt_foil_to_uuid_lf(self) -> pl.LazyFrame | None:
+        """TCG alt foil to UUID mapping from cache."""
+        if "_tcg_alt_foil_to_uuid_lf" in self._test_data:
+            return self._test_data[  # type: ignore[no-any-return]
+                "_tcg_alt_foil_to_uuid_lf"
+            ]
+        return self._cache.tcg_alt_foil_to_uuid_lf if self._cache else None
 
     @property
     def mtgo_to_uuid_lf(self) -> pl.LazyFrame | None:
@@ -527,6 +537,7 @@ class PipelineContext:
         self._load_face_flavor_names()
         self._build_mcm_set_map()
         self._build_mcm_lookup()
+        self._build_tcg_alt_foil_lookup()
 
         return self
 
@@ -1209,3 +1220,122 @@ class PipelineContext:
                 self.mcm_set_map[new_name.lower()] = raw_map.pop(old_key)
 
         self.mcm_set_map.update(raw_map)
+
+    def _build_tcg_alt_foil_lookup(self) -> None:
+        """
+        Build lookup mapping base TCGPlayer productId -> alternative foil productId.
+
+        Detects alternative foil products (e.g. Rainbow Foil, Surge Foil) by
+        matching parenthesized suffixes in TCGPlayer product names, then deduplicates
+        against existing tcgplayerId and tcgplayerEtchedId values.
+        """
+        if self._cache is not None:
+            self._cache._await_tcg_skus()
+
+        tcg_skus = self.tcg_skus_lf
+        if tcg_skus is None:
+            LOGGER.info("tcg_alt_foil: No TCG SKUs data, skipping")
+            return
+
+        uuid_cache = self.uuid_cache_lf
+        if uuid_cache is None:
+            LOGGER.info("tcg_alt_foil: No uuid_cache_lf, skipping")
+            return
+
+        # Load products: productId, name, groupId
+        products = tcg_skus.select(["productId", "name", "groupId"]).unique(subset=["productId"])
+
+        # Detect alt-foil suffix via regex: e.g. "(Rainbow Foil)" at end of name
+        suffix_pattern = r"\(([^)]*(?:Foil|Etched)[^)]*)\)\s*$"
+        products = products.with_columns(
+            pl.col("name").str.extract(suffix_pattern, 1).alias("_foilSuffix"),
+        )
+
+        # Split: alt-foil products have a suffix, base products do not
+        alt_foil = products.filter(pl.col("_foilSuffix").is_not_null())
+        base = products.filter(pl.col("_foilSuffix").is_null())
+
+        if isinstance(alt_foil, pl.LazyFrame):
+            alt_count = alt_foil.select(pl.len()).collect().item()
+        else:
+            alt_count = len(alt_foil)
+        if alt_count == 0:
+            LOGGER.info("tcg_alt_foil: No alt-foil products found")
+            return
+
+        # Strip suffix from alt-foil names to get base name for matching
+        alt_foil = alt_foil.with_columns(
+            pl.col("name").str.replace(suffix_pattern, "").str.strip_chars().alias("_baseName"),
+            pl.col("_foilSuffix")
+            .str.replace(r"(?i)\bFoil\b", "")
+            .str.to_lowercase()
+            .str.strip_chars()
+            .alias("_foilType"),
+        )
+
+        base = base.with_columns(
+            pl.col("name").str.strip_chars().alias("_baseName"),
+        )
+
+        # Inner join alt-foil -> base by (groupId, baseName)
+        joined = alt_foil.join(
+            base.select(["productId", "groupId", "_baseName"]).rename({"productId": "_baseProductId"}),
+            on=["groupId", "_baseName"],
+            how="inner",
+        )
+
+        # Dedup filter: remove alt-foil productIds that already appear as any
+        # card's tcgplayerProductId or tcgplayerEtchedProductId. We gather known
+        # IDs from both uuid_cache (prior build) and Scryfall cards (current data).
+        known_ids: set[str] = set()
+
+        # From uuid_cache (prior build's IDs)
+        uuid_cache_df = uuid_cache.collect() if isinstance(uuid_cache, pl.LazyFrame) else uuid_cache
+        for col in ("tcgplayerId", "tcgplayerEtchedId"):
+            if col in uuid_cache_df.columns:
+                known_ids.update(uuid_cache_df.select(col).drop_nulls().get_column(col).cast(pl.String).to_list())
+
+        # From Scryfall cards (current source data — covers IDs not in uuid_cache)
+        cards_raw = self.cards_lf
+        if cards_raw is not None:
+            cards_ids = cards_raw.select(
+                [c for c in ["tcgplayerId", "tcgplayerEtchedId"] if c in cards_raw.collect_schema().names()]
+            ).collect()
+            for col in cards_ids.columns:
+                known_ids.update(cards_ids.select(col).drop_nulls().get_column(col).cast(pl.String).to_list())
+
+        LOGGER.info(f"tcg_alt_foil: {len(known_ids):,} known tcgplayer IDs for dedup")
+
+        if known_ids:
+            known_ids_series = pl.Series("_known", list(known_ids), dtype=pl.String)
+            joined = (
+                joined.with_columns(
+                    pl.col("productId").cast(pl.String).alias("_altIdStr"),
+                )
+                .filter(~pl.col("_altIdStr").is_in(known_ids_series))
+                .drop("_altIdStr")
+            )
+
+        # Pick single value per base product: prefer non-etched types, then first
+        joined = joined.sort(
+            [
+                pl.col("_foilType").str.contains("(?i)etched").cast(pl.Int8),
+                "productId",
+            ]
+        )
+
+        joined_df: pl.DataFrame = joined.collect() if isinstance(joined, pl.LazyFrame) else joined
+
+        result = joined_df.unique(subset=["_baseProductId"], keep="first").select(
+            [
+                pl.col("_baseProductId").cast(pl.String).alias("tcgplayerProductId"),
+                pl.col("productId").cast(pl.String).alias("tcgplayerAlternativeFoilProductId"),
+            ]
+        )
+
+        if result.height == 0:
+            LOGGER.info("tcg_alt_foil: No alt-foil mappings after dedup")
+            return
+
+        self.tcg_alt_foil_lf = result.lazy()
+        LOGGER.info(f"tcg_alt_foil_lf: {result.height:,} rows")

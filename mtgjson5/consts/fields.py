@@ -180,6 +180,7 @@ IDENTIFIERS_FIELD_SOURCES: Final[dict[str, str | tuple[str, ...]]] = {
     "multiverseId": "multiverseIds[faceId]",
     "tcgplayerProductId": "tcgplayerId",
     "tcgplayerEtchedProductId": "tcgplayerEtchedId",
+    "tcgplayerAlternativeFoilProductId": "tcgplayerAlternativeFoilProductId",
     "cardKingdomId": "cardKingdomId",
     "cardKingdomFoilId": "cardKingdomFoilId",
     "cardKingdomEtchedId": "cardKingdomEtchedId",
@@ -223,5 +224,6 @@ SCRYFALL_COLUMNS_TO_DROP = [
     "mtgoFoilId",  # -> identifiers.mtgoFoilId
     "tcgplayerId",  # -> identifiers.tcgplayerProductId
     "tcgplayerEtchedId",  # -> identifiers.tcgplayerEtchedProductId
+    "tcgplayerAlternativeFoilProductId",  # -> identifiers.tcgplayerAlternativeFoilProductId
     "_meld_face_name",  # temp column for meld card faceName assignment
 ]

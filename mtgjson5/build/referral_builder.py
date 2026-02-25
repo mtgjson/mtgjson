@@ -286,6 +286,37 @@ def _build_tcg_entries_from_parquet(parquet_dir: Path | None) -> pl.DataFrame | 
         if len(tcge_df) > 0:
             entries.append(tcge_df)
 
+    # TCGPlayer alternative foil entries
+    if "tcgplayerAlternativeFoilProductId" in id_fields:
+        tcga_id = pl.col("identifiers").struct.field("tcgplayerAlternativeFoilProductId")
+        tcga_df = (
+            cards_lf.select(["uuid", "identifiers"])
+            .filter(tcga_id.is_not_null())
+            .with_columns(
+                [
+                    plh.concat_str([tcga_id.cast(pl.String), pl.col("uuid")])
+                    .chash.sha2_256()
+                    .str.slice(0, 16)
+                    .alias("hash"),
+                    tcga_id.cast(pl.String).alias("_tcg_id"),
+                ]
+            )
+            .with_columns(
+                plh.concat_str(
+                    [
+                        pl.lit(TCG_REFERRAL_PREFIX),
+                        pl.col("_tcg_id"),
+                        pl.lit(TCG_REFERRAL_SUFFIX),
+                    ]
+                ).alias("referral_url")
+            )
+            .select(["hash", "referral_url"])
+            .unique(subset=["hash"])
+            .collect()
+        )
+        if len(tcga_df) > 0:
+            entries.append(tcga_df)
+
     if not entries:
         return None
 

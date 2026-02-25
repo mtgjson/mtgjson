@@ -130,6 +130,7 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
             .cast(pl.String),
             tcgplayerProductId=pl.col("tcgplayerId").cast(pl.String),
             tcgplayerEtchedProductId=pl.col("tcgplayerEtchedId").cast(pl.String),
+            tcgplayerAlternativeFoilProductId=pl.col("tcgplayerAlternativeFoilProductId"),
             cardKingdomId=pl.col("cardKingdomId"),
             cardKingdomFoilId=pl.col("cardKingdomFoilId"),
             cardKingdomEtchedId=pl.col("cardKingdomEtchedId"),
@@ -254,6 +255,26 @@ def join_identifiers(
     )
 
     return lf.drop("_side_for_join", strict=False)
+
+
+def join_tcg_alt_foil_lookup(
+    lf: pl.LazyFrame,
+    ctx: PipelineContext,
+) -> pl.LazyFrame:
+    """
+    Join alternative foil TCGPlayer product IDs by base tcgplayerId.
+    """
+    if ctx.tcg_alt_foil_lf is None:
+        return lf.with_columns(
+            pl.lit(None).cast(pl.String).alias("tcgplayerAlternativeFoilProductId"),
+        )
+
+    lf = (
+        lf.with_columns(pl.col("tcgplayerId").cast(pl.String).alias("_tcg_id_str"))
+        .join(ctx.tcg_alt_foil_lf, left_on="_tcg_id_str", right_on="tcgplayerProductId", how="left")
+        .drop("_tcg_id_str")
+    )
+    return lf
 
 
 def join_oracle_data(

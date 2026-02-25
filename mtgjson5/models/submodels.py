@@ -226,6 +226,11 @@ class Identifiers(TypedDict, total=False):
             "introduced": "v5.2.0",
             "optional": True,
         },
+        "tcgplayerAlternativeFoilProductId": {
+            "description": "The [TCGplayer](https://www.tcgplayer.com?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson) alternative foil card identifier.",
+            "introduced": "v5.3.0",
+            "optional": True,
+        },
         "tntId": {
             "description": "The [Troll and Toad](https://www.trollandtoad.com/) identifier.",
             "introduced": "v5.2.2",
@@ -261,6 +266,7 @@ class Identifiers(TypedDict, total=False):
     scryfallCardBackId: str
     scryfallIllustrationId: str
     scryfallOracleId: str
+    tcgplayerAlternativeFoilProductId: str
     tcgplayerEtchedProductId: str
     tcgplayerProductId: str
 
@@ -500,6 +506,11 @@ class PurchaseUrls(TypedDict, total=False):
             "introduced": "v5.2.0",
             "optional": True,
         },
+        "tcgplayerAlternativeFoil": {
+            "description": "The URL to purchase an alternative foil product on [TCGplayer](https://www.tcgplayer.com?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson).",
+            "introduced": "v5.3.0",
+            "optional": True,
+        },
     }
 
     cardKingdom: str
@@ -508,6 +519,7 @@ class PurchaseUrls(TypedDict, total=False):
     cardmarket: str
     tcgplayer: str
     tcgplayerEtched: str
+    tcgplayerAlternativeFoil: str
 
 
 class RelatedCards(TypedDict, total=False):

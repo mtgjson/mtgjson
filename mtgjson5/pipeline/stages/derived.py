@@ -98,6 +98,7 @@ def add_purchase_urls_struct(
     mcm_id = pl.col("identifiers").struct.field("mcmId")
     tcg_id = pl.col("identifiers").struct.field("tcgplayerProductId")
     tcge_id = pl.col("identifiers").struct.field("tcgplayerEtchedProductId")
+    tcga_id = pl.col("identifiers").struct.field("tcgplayerAlternativeFoilProductId")
 
     return (
         lf.with_columns(
@@ -134,6 +135,12 @@ def add_purchase_urls_struct(
                 .chash.sha2_256()
                 .str.slice(0, 16)
                 .alias("_tcge_hash"),
+                plh.concat_str(  # pylint: disable=no-member
+                    [tcga_id.cast(pl.String), pl.col("uuid")]
+                )
+                .chash.sha2_256()
+                .str.slice(0, 16)
+                .alias("_tcga_hash"),
                 # Cardmarket: hash(mcm_id + uuid + BUFFER + mcm_meta_id)
                 plh.concat_str(  # pylint: disable=no-member
                     [
@@ -175,6 +182,10 @@ def add_purchase_urls_struct(
                     .then(pl.lit(redirect_base) + pl.col("_tcge_hash"))
                     .otherwise(None)
                     .alias("tcgplayerEtched"),
+                    pl.when(tcga_id.is_not_null())
+                    .then(pl.lit(redirect_base) + pl.col("_tcga_hash"))
+                    .otherwise(None)
+                    .alias("tcgplayerAlternativeFoil"),
                 ]
             ).alias("purchaseUrls")
         )
@@ -186,6 +197,7 @@ def add_purchase_urls_struct(
                 "_cm_hash",
                 "_tcg_hash",
                 "_tcge_hash",
+                "_tcga_hash",
             ]
         )
     )
