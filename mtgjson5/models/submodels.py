@@ -226,7 +226,7 @@ class Identifiers(TypedDict, total=False):
             "introduced": "v5.2.0",
             "optional": True,
         },
-        "tcgplayerAlternativeFoilId": {
+        "tcgplayerAlternativeFoilProductId": {
             "description": "The [TCGplayer](https://www.tcgplayer.com?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson) alternative foil card identifier.",
             "introduced": "v5.3.0",
             "optional": True,
@@ -266,7 +266,7 @@ class Identifiers(TypedDict, total=False):
     scryfallCardBackId: str
     scryfallIllustrationId: str
     scryfallOracleId: str
-    tcgplayerAlternativeFoilId: str
+    tcgplayerAlternativeFoilProductId: str
     tcgplayerEtchedProductId: str
     tcgplayerProductId: str
 

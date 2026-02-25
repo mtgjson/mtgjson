@@ -1338,7 +1338,7 @@ class PipelineContext:
         result = joined.unique(subset=["_baseProductId"], keep="first").select(
             [
                 pl.col("_baseProductId").cast(pl.String).alias("tcgplayerProductId"),
-                pl.col("productId").cast(pl.String).alias("tcgplayerAlternativeFoilId"),
+                pl.col("productId").cast(pl.String).alias("tcgplayerAlternativeFoilProductId"),
             ]
         )
 

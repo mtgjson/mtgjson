@@ -130,7 +130,7 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
             .cast(pl.String),
             tcgplayerProductId=pl.col("tcgplayerId").cast(pl.String),
             tcgplayerEtchedProductId=pl.col("tcgplayerEtchedId").cast(pl.String),
-            tcgplayerAlternativeFoilId=pl.col("tcgplayerAlternativeFoilId"),
+            tcgplayerAlternativeFoilProductId=pl.col("tcgplayerAlternativeFoilProductId"),
             cardKingdomId=pl.col("cardKingdomId"),
             cardKingdomFoilId=pl.col("cardKingdomFoilId"),
             cardKingdomEtchedId=pl.col("cardKingdomEtchedId"),
@@ -266,7 +266,7 @@ def join_tcg_alt_foil_lookup(
     """
     if ctx.tcg_alt_foil_lf is None:
         return lf.with_columns(
-            pl.lit(None).cast(pl.String).alias("tcgplayerAlternativeFoilId"),
+            pl.lit(None).cast(pl.String).alias("tcgplayerAlternativeFoilProductId"),
         )
 
     lf = (

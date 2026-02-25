@@ -287,8 +287,8 @@ def _build_tcg_entries_from_parquet(parquet_dir: Path | None) -> pl.DataFrame | 
             entries.append(tcge_df)
 
     # TCGPlayer alternative foil entries
-    if "tcgplayerAlternativeFoilId" in id_fields:
-        tcga_id = pl.col("identifiers").struct.field("tcgplayerAlternativeFoilId")
+    if "tcgplayerAlternativeFoilProductId" in id_fields:
+        tcga_id = pl.col("identifiers").struct.field("tcgplayerAlternativeFoilProductId")
         tcga_df = (
             cards_lf.select(["uuid", "identifiers"])
             .filter(tcga_id.is_not_null())

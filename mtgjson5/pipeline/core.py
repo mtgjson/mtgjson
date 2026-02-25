@@ -266,7 +266,7 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
                 "mtgoFoilId",
                 "tcgplayerId",
                 "tcgplayerEtchedId",
-                "tcgplayerAlternativeFoilId",
+                "tcgplayerAlternativeFoilProductId",
                 "illustrationId",
                 "cardBackId",
             ],

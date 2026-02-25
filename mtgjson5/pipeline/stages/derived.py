@@ -98,7 +98,7 @@ def add_purchase_urls_struct(
     mcm_id = pl.col("identifiers").struct.field("mcmId")
     tcg_id = pl.col("identifiers").struct.field("tcgplayerProductId")
     tcge_id = pl.col("identifiers").struct.field("tcgplayerEtchedProductId")
-    tcga_id = pl.col("identifiers").struct.field("tcgplayerAlternativeFoilId")
+    tcga_id = pl.col("identifiers").struct.field("tcgplayerAlternativeFoilProductId")
 
     return (
         lf.with_columns(

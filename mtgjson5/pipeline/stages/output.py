@@ -398,7 +398,7 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
     mapping_configs = [
         ("tcgplayerProductId", "tcg_to_uuid", "tcg_to_uuid_lf"),
         ("tcgplayerEtchedProductId", "tcg_etched_to_uuid", "tcg_etched_to_uuid_lf"),
-        ("tcgplayerAlternativeFoilId", "tcg_alt_foil_to_uuid", "tcg_alt_foil_to_uuid_lf"),
+        ("tcgplayerAlternativeFoilProductId", "tcg_alt_foil_to_uuid", "tcg_alt_foil_to_uuid_lf"),
         ("mtgoId", "mtgo_to_uuid", "mtgo_to_uuid_lf"),
         ("scryfallId", "scryfall_to_uuid", "scryfall_to_uuid_lf"),
     ]
