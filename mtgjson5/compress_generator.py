@@ -450,11 +450,6 @@ def compress_mtgjson_contents(directory: pathlib.Path, use_python: bool = True, 
         LOGGER.info(f"Compressing {csv_file.name}")
         compress_file(csv_file)
 
-    parquet_files = list(directory.joinpath("parquet").glob("*.parquet"))
-    for parquet_file in parquet_files:
-        LOGGER.info(f"Compressing {parquet_file.name}")
-        compress_file(parquet_file)
-
     compiled_files = [file for file in directory.glob("*.json") if file.stem in COMPILED_OUTPUT_NAMES]
     for compiled_file in compiled_files:
         LOGGER.info(f"Compressing {compiled_file.name}")
@@ -472,9 +467,13 @@ def compress_mtgjson_contents(directory: pathlib.Path, use_python: bool = True, 
         LOGGER.info(f"Creating archive: {ALL_CSVS_DIRECTORY}")
         compress_dir(csv_files, directory, ALL_CSVS_DIRECTORY)
 
+    parquet_files = list(directory.joinpath("parquet").glob("*.parquet"))
     if parquet_files:
-        LOGGER.info(f"Creating archive: {ALL_PARQUETS_DIRECTORY}")
-        compress_dir(parquet_files, directory, ALL_PARQUETS_DIRECTORY)
+        LOGGER.info(f"Creating zip archive: {ALL_PARQUETS_DIRECTORY}")
+        output_base = directory.joinpath(ALL_PARQUETS_DIRECTORY)
+        with zipfile.ZipFile(f"{output_base}.zip", "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+            for f in parquet_files:
+                zf.write(f, f"{ALL_PARQUETS_DIRECTORY}/{f.name}")
 
     LOGGER.info(f"Finished compression on {directory.name}")
 
@@ -553,9 +552,6 @@ def compress_mtgjson_contents_parallel(
     # CSV files
     csv_files = list(directory.joinpath("csv").glob("*.csv"))
 
-    # Parquet files
-    parquet_files = list(directory.joinpath("parquet").glob("*.parquet"))
-
     # Compiled files
     compiled_dir = directory.joinpath("Compiled")
     if compiled_dir.exists():
@@ -563,7 +559,7 @@ def compress_mtgjson_contents_parallel(
     else:
         compiled_files = [f for f in directory.glob("*.json") if f.stem in compiled_names]
 
-    all_files = set_files + deck_files + sql_files + csv_files + parquet_files + compiled_files
+    all_files = set_files + deck_files + sql_files + csv_files + compiled_files
 
     stats = compress_files_parallel(all_files, workers, streaming=streaming)
 
@@ -589,12 +585,13 @@ def compress_mtgjson_contents_parallel(
             directory.joinpath(ALL_CSVS_DIRECTORY),
         )
 
+    parquet_files = list(directory.joinpath("parquet").glob("*.parquet"))
     if parquet_files:
-        LOGGER.info(f"Creating archive: {ALL_PARQUETS_DIRECTORY}")
-        _compress_directory_python(
-            parquet_files,
-            directory.joinpath(ALL_PARQUETS_DIRECTORY),
-        )
+        LOGGER.info(f"Creating zip archive: {ALL_PARQUETS_DIRECTORY}")
+        output_base = directory.joinpath(ALL_PARQUETS_DIRECTORY)
+        with zipfile.ZipFile(f"{output_base}.zip", "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+            for f in parquet_files:
+                zf.write(f, f"{ALL_PARQUETS_DIRECTORY}/{f.name}")
 
     LOGGER.info(f"Finished parallel compression: {stats['success']}/{stats['total']} files")
     return stats
