@@ -1293,13 +1293,7 @@ class PipelineContext:
         uuid_cache_df = uuid_cache.collect() if isinstance(uuid_cache, pl.LazyFrame) else uuid_cache
         for col in ("tcgplayerId", "tcgplayerEtchedId"):
             if col in uuid_cache_df.columns:
-                known_ids.update(
-                    uuid_cache_df.select(col)
-                    .drop_nulls()
-                    .get_column(col)
-                    .cast(pl.String)
-                    .to_list()
-                )
+                known_ids.update(uuid_cache_df.select(col).drop_nulls().get_column(col).cast(pl.String).to_list())
 
         # From Scryfall cards (current source data — covers IDs not in uuid_cache)
         cards_raw = self.cards_lf
@@ -1308,21 +1302,19 @@ class PipelineContext:
                 [c for c in ["tcgplayerId", "tcgplayerEtchedId"] if c in cards_raw.collect_schema().names()]
             ).collect()
             for col in cards_ids.columns:
-                known_ids.update(
-                    cards_ids.select(col)
-                    .drop_nulls()
-                    .get_column(col)
-                    .cast(pl.String)
-                    .to_list()
-                )
+                known_ids.update(cards_ids.select(col).drop_nulls().get_column(col).cast(pl.String).to_list())
 
         LOGGER.info(f"tcg_alt_foil: {len(known_ids):,} known tcgplayer IDs for dedup")
 
         if known_ids:
             known_ids_series = pl.Series("_known", list(known_ids), dtype=pl.String)
-            joined = joined.with_columns(
-                pl.col("productId").cast(pl.String).alias("_altIdStr"),
-            ).filter(~pl.col("_altIdStr").is_in(known_ids_series)).drop("_altIdStr")
+            joined = (
+                joined.with_columns(
+                    pl.col("productId").cast(pl.String).alias("_altIdStr"),
+                )
+                .filter(~pl.col("_altIdStr").is_in(known_ids_series))
+                .drop("_altIdStr")
+            )
 
         # Pick single value per base product: prefer non-etched types, then first
         joined = joined.sort(
@@ -1332,10 +1324,9 @@ class PipelineContext:
             ]
         )
 
-        if isinstance(joined, pl.LazyFrame):
-            joined = joined.collect()
+        joined_df: pl.DataFrame = joined.collect() if isinstance(joined, pl.LazyFrame) else joined
 
-        result = joined.unique(subset=["_baseProductId"], keep="first").select(
+        result = joined_df.unique(subset=["_baseProductId"], keep="first").select(
             [
                 pl.col("_baseProductId").cast(pl.String).alias("tcgplayerProductId"),
                 pl.col("productId").cast(pl.String).alias("tcgplayerAlternativeFoilProductId"),
