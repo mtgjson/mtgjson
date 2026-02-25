@@ -56,6 +56,7 @@ from mtgjson5.pipeline.stages.identifiers import (
     join_name_data,
     join_oracle_data,
     join_set_number_data,
+    join_tcg_alt_foil_lookup,
 )
 from mtgjson5.pipeline.stages.legalities import (
     add_availability_struct,
@@ -245,6 +246,7 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
         .pipe(fix_foreigndata_for_faces, ctx=ctx)
         .pipe(partial(join_name_data, ctx=ctx))
         .pipe(partial(join_cardmarket_ids, ctx=ctx))
+        .pipe(partial(join_tcg_alt_foil_lookup, ctx=ctx))
         .pipe(fix_availability_from_ids)
     )
 
@@ -264,6 +266,7 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
                 "mtgoFoilId",
                 "tcgplayerId",
                 "tcgplayerEtchedId",
+                "tcgplayerAlternativeFoilId",
                 "illustrationId",
                 "cardBackId",
             ],
