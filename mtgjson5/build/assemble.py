@@ -869,33 +869,18 @@ class TcgplayerSkusAssembler(Assembler):
         self._tcg_skus_lf: pl.LazyFrame | None = None
         self._tcg_to_uuid_lf: pl.LazyFrame | None = None
         self._tcg_etched_to_uuid_lf: pl.LazyFrame | None = None
+        self._tcg_alt_foil_to_uuid_lf: pl.LazyFrame | None = None
 
     def _load_tcg_data(self) -> None:
-        """Load TCGPlayer SKU data, awaiting background fetch if needed."""
-        from mtgjson5 import constants
+        """Load TCGPlayer SKU data from GLOBAL_CACHE, awaiting background fetch if needed."""
         from mtgjson5.data import GLOBAL_CACHE
 
         GLOBAL_CACHE._await_tcg_skus()
 
-        lazy_cache = constants.CACHE_PATH / "lazy"
-
-        tcg_skus_path = lazy_cache / "tcg_skus.parquet"
-        if not tcg_skus_path.exists():
-            tcg_skus_path = constants.CACHE_PATH / "tcg_skus.parquet"
-        if tcg_skus_path.exists():
-            self._tcg_skus_lf = pl.scan_parquet(tcg_skus_path)
-
-        tcg_to_uuid_path = lazy_cache / "tcg_to_uuid.parquet"
-        if not tcg_to_uuid_path.exists():
-            tcg_to_uuid_path = constants.CACHE_PATH / "tcg_to_uuid.parquet"
-        if tcg_to_uuid_path.exists():
-            self._tcg_to_uuid_lf = pl.scan_parquet(tcg_to_uuid_path)
-
-        tcg_etched_path = lazy_cache / "tcg_etched_to_uuid.parquet"
-        if not tcg_etched_path.exists():
-            tcg_etched_path = constants.CACHE_PATH / "tcg_etched_to_uuid.parquet"
-        if tcg_etched_path.exists():
-            self._tcg_etched_to_uuid_lf = pl.scan_parquet(tcg_etched_path)
+        self._tcg_skus_lf = GLOBAL_CACHE.tcg_skus_lf
+        self._tcg_to_uuid_lf = GLOBAL_CACHE.tcg_to_uuid_lf
+        self._tcg_etched_to_uuid_lf = GLOBAL_CACHE.tcg_etched_to_uuid_lf
+        self._tcg_alt_foil_to_uuid_lf = GLOBAL_CACHE.tcg_alt_foil_to_uuid_lf
 
     def build(self) -> dict[str, list[dict[str, Any]]]:
         """Build TcgplayerSkus data dict.
@@ -922,7 +907,11 @@ class TcgplayerSkusAssembler(Assembler):
             )
             return {}
 
-        if self._tcg_to_uuid_lf is None and self._tcg_etched_to_uuid_lf is None:
+        if (
+            self._tcg_to_uuid_lf is None
+            and self._tcg_etched_to_uuid_lf is None
+            and self._tcg_alt_foil_to_uuid_lf is None
+        ):
             LOGGER.warning("TCG to UUID mappings not found, TcgplayerSkus.json will be empty")
             return {}
 
@@ -986,6 +975,22 @@ class TcgplayerSkusAssembler(Assembler):
                 )
 
                 self._add_skus_to_result(etched_joined, result, is_etched=True)
+
+        if self._tcg_alt_foil_to_uuid_lf is not None:
+            tcg_alt_foil_df = self._tcg_alt_foil_to_uuid_lf.collect()
+            if "tcgplayerAlternativeFoilProductId" in tcg_alt_foil_df.columns and "uuid" in tcg_alt_foil_df.columns:
+                tcg_alt_foil_df = tcg_alt_foil_df.with_columns(
+                    pl.col("tcgplayerAlternativeFoilProductId").cast(pl.Int64).alias("productId_join")
+                )
+
+                alt_foil_joined = flattened.join(
+                    tcg_alt_foil_df.select(["productId_join", "uuid"]),
+                    left_on="productId",
+                    right_on="productId_join",
+                    how="inner",
+                )
+
+                self._add_skus_to_result(alt_foil_joined, result, is_etched=False)
 
         # Join sealed product UUIDs
         if self.ctx.sealed_df is not None and not self.ctx.sealed_df.is_empty():
