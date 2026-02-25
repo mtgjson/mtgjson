@@ -506,6 +506,11 @@ class PurchaseUrls(TypedDict, total=False):
             "introduced": "v5.2.0",
             "optional": True,
         },
+        "tcgplayerAlternativeFoil": {
+            "description": "The URL to purchase an alternative foil product on [TCGplayer](https://www.tcgplayer.com?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson).",
+            "introduced": "v5.3.0",
+            "optional": True,
+        },
     }
 
     cardKingdom: str
@@ -514,6 +519,7 @@ class PurchaseUrls(TypedDict, total=False):
     cardmarket: str
     tcgplayer: str
     tcgplayerEtched: str
+    tcgplayerAlternativeFoil: str
 
 
 class RelatedCards(TypedDict, total=False):
