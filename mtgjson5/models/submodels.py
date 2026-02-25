@@ -965,7 +965,7 @@ class PriceList(TypedDict, total=False):
     )
     __doc_parent__ = (
         "**Parent model:** [Price Formats](/data-models/price/price-formats/)\n"
-        "- **Parent property:** `cardhoarder`, `cardkingdom`, `cardmarket`, `cardsphere`, `tcgplayer`"
+        "- **Parent property:** `cardhoarder`, `cardkingdom`, `cardmarket`, `cardsphere`, `tcgplayer`, `manapool`"
     )
     __doc_slug__ = "price/price-list"
     __doc_keywords__ = "mtg, magic the gathering, mtgjson, json, price provider"
