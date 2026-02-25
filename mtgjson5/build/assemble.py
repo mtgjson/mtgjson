@@ -1013,6 +1013,24 @@ class TcgplayerSkusAssembler(Assembler):
                     )
                     self._add_skus_to_result(sealed_joined, result, is_etched=False)
 
+        # Join token product UUIDs
+        if self.ctx.token_products:
+            token_rows = []
+            for token_uuid, products in self.ctx.token_products.items():
+                for product in products:
+                    pid = product.get("identifiers", {}).get("tcgplayerProductId")
+                    if pid:
+                        token_rows.append({"uuid": token_uuid, "productId_join": int(pid)})
+            if token_rows:
+                token_tcg_map = pl.DataFrame(token_rows)
+                token_joined = flattened.join(
+                    token_tcg_map,
+                    left_on="productId",
+                    right_on="productId_join",
+                    how="inner",
+                )
+                self._add_skus_to_result(token_joined, result, is_etched=False)
+
         LOGGER.info(f"Built TcgplayerSkus with {len(result)} UUIDs")
         return result
 
