@@ -768,9 +768,10 @@ class PolarsPriceBuilder:
         pruned_lf = self.prune_prices(merged_lf)
 
         LOGGER.info("Saving updated archive")
-        self.save_archive(pruned_lf)
+        all_prices_df = pruned_lf.collect()
+        self.save_archive(all_prices_df.lazy())
 
-        return pruned_lf.collect(), today_df
+        return all_prices_df, today_df
 
     def load_archive_only(self) -> pl.LazyFrame:
         """Load existing archive without building new prices."""
