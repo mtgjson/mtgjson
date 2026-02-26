@@ -1083,7 +1083,7 @@ class TableAssembler:
         Returns:
             Dict mapping table name to DataFrame
         """
-        from .serializers import serialize_complex_types
+        from .serializers import normalize_optional_fields, serialize_complex_types
 
         tables: dict[str, pl.DataFrame] = {}
 
@@ -1095,6 +1095,7 @@ class TableAssembler:
         cards_cols = [c for c in cards_df.columns if c not in CARDS_TABLE_EXCLUDE and not c.startswith("_")]
 
         cards_for_export = cards_df.select(cards_cols)
+        cards_for_export = normalize_optional_fields(cards_for_export)
         tables["cards"] = serialize_complex_types(cards_for_export)
 
         # cardIdentifiers - unnest struct
@@ -1149,6 +1150,7 @@ class TableAssembler:
             token_schema = tokens_df.schema
             token_cols = [c for c in tokens_df.columns if c not in TOKENS_TABLE_EXCLUDE and not c.startswith("_")]
             tokens_for_export = tokens_df.select(token_cols)
+            tokens_for_export = normalize_optional_fields(tokens_for_export)
             tables["tokens"] = serialize_complex_types(tokens_for_export)
 
             if "identifiers" in token_schema and isinstance(token_schema["identifiers"], pl.Struct):
