@@ -19,6 +19,36 @@ import polars as pl
 # =============================================================================
 
 
+def normalize_optional_fields(df: pl.DataFrame) -> pl.DataFrame:
+    """Nullify optional fields for SQL/CSV/Parquet output.
+
+    Applies the same MTGJSON conventions as prepare_cards_for_json:
+    - Optional bool fields that are False become NULL
+    - Empty lists in omit-empty-list fields become NULL
+    """
+    from mtgjson5.consts import OMIT_EMPTY_LIST_FIELDS, OPTIONAL_BOOL_FIELDS
+
+    expressions: list[pl.Expr] = []
+    schema = df.schema
+
+    for field in OPTIONAL_BOOL_FIELDS:
+        if field in schema and schema[field] == pl.Boolean:
+            expressions.append(
+                pl.when(pl.col(field) == True).then(True).otherwise(None).alias(field)  # pylint: disable=singleton-comparison
+            )
+
+    for field in OMIT_EMPTY_LIST_FIELDS:
+        if field in schema and isinstance(schema[field], pl.List):
+            expressions.append(
+                pl.when(pl.col(field).list.len() == 0).then(None).otherwise(pl.col(field)).alias(field)
+            )
+
+    if expressions:
+        df = df.with_columns(expressions)
+
+    return df
+
+
 def serialize_complex_types(df: pl.DataFrame) -> pl.DataFrame:
     """Convert List and Struct columns to SQL-compatible strings.
 
