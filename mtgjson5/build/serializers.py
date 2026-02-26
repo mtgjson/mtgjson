@@ -39,9 +39,7 @@ def normalize_optional_fields(df: pl.DataFrame) -> pl.DataFrame:
 
     for field in OMIT_EMPTY_LIST_FIELDS:
         if field in schema and isinstance(schema[field], pl.List):
-            expressions.append(
-                pl.when(pl.col(field).list.len() == 0).then(None).otherwise(pl.col(field)).alias(field)
-            )
+            expressions.append(pl.when(pl.col(field).list.len() == 0).then(None).otherwise(pl.col(field)).alias(field))
 
     if expressions:
         df = df.with_columns(expressions)
