@@ -75,13 +75,13 @@ class ManapoolPriceProvider:
 
     async def fetch_prices(
         self,
-        scryfall_to_uuid_map: dict[str, set[str]],
+        scryfall_to_uuid_map: dict[str, str],
     ) -> pl.DataFrame:
         """
         Fetch paper prices from Manapool API.
 
         Args:
-            scryfall_to_uuid_map: Scryfall ID -> MTGJSON UUIDs mapping
+            scryfall_to_uuid_map: Scryfall ID -> single MTGJSON UUID mapping
 
         Returns:
             DataFrame with flat price records
@@ -111,8 +111,8 @@ class ManapoolPriceProvider:
                 if not scryfall_id:
                     continue
 
-                uuids = scryfall_to_uuid_map.get(scryfall_id)
-                if not uuids:
+                uuid = scryfall_to_uuid_map.get(scryfall_id)
+                if not uuid:
                     unmapped_count += 1
                     continue
 
@@ -121,49 +121,47 @@ class ManapoolPriceProvider:
                 foil_cents = card.get("price_cents_foil")
                 etched_cents = card.get("price_cents_etched")
 
-                # Create records for each UUID and each finish with a price
-                for uuid in uuids:
-                    if normal_cents:
-                        records.append(
-                            {
-                                "uuid": uuid,
-                                "date": self.today_date,
-                                "source": "paper",
-                                "provider": "manapool",
-                                "price_type": "retail",
-                                "finish": "normal",
-                                "price": normal_cents / 100.0,
-                                "currency": "USD",
-                            }
-                        )
+                if normal_cents:
+                    records.append(
+                        {
+                            "uuid": uuid,
+                            "date": self.today_date,
+                            "source": "paper",
+                            "provider": "manapool",
+                            "price_type": "retail",
+                            "finish": "normal",
+                            "price": normal_cents / 100.0,
+                            "currency": "USD",
+                        }
+                    )
 
-                    if foil_cents:
-                        records.append(
-                            {
-                                "uuid": uuid,
-                                "date": self.today_date,
-                                "source": "paper",
-                                "provider": "manapool",
-                                "price_type": "retail",
-                                "finish": "foil",
-                                "price": foil_cents / 100.0,
-                                "currency": "USD",
-                            }
-                        )
+                if foil_cents:
+                    records.append(
+                        {
+                            "uuid": uuid,
+                            "date": self.today_date,
+                            "source": "paper",
+                            "provider": "manapool",
+                            "price_type": "retail",
+                            "finish": "foil",
+                            "price": foil_cents / 100.0,
+                            "currency": "USD",
+                        }
+                    )
 
-                    if etched_cents:
-                        records.append(
-                            {
-                                "uuid": uuid,
-                                "date": self.today_date,
-                                "source": "paper",
-                                "provider": "manapool",
-                                "price_type": "retail",
-                                "finish": "etched",
-                                "price": etched_cents / 100.0,
-                                "currency": "USD",
-                            }
-                        )
+                if etched_cents:
+                    records.append(
+                        {
+                            "uuid": uuid,
+                            "date": self.today_date,
+                            "source": "paper",
+                            "provider": "manapool",
+                            "price_type": "retail",
+                            "finish": "etched",
+                            "price": etched_cents / 100.0,
+                            "currency": "USD",
+                        }
+                    )
 
             if unmapped_count > 0:
                 LOGGER.debug(f"Manapool: {unmapped_count} scryfall IDs not mapped")
@@ -195,14 +193,14 @@ class ManapoolPriceProvider:
 
     def fetch_prices_sync(
         self,
-        scryfall_to_uuid_map: dict[str, set[str]],
+        scryfall_to_uuid_map: dict[str, str],
     ) -> pl.DataFrame:
         """Sync wrapper for fetch_prices."""
         return asyncio.run(self.fetch_prices(scryfall_to_uuid_map))
 
     async def generate_today_price_dict(
         self,
-        scryfall_to_uuid_map: dict[str, set[str]],
+        scryfall_to_uuid_map: dict[str, str],
     ) -> dict[str, MtgjsonPriceEntry]:
         """
         Generate MTGJSON-format price dict for compatibility with legacy code.
@@ -239,7 +237,7 @@ class ManapoolPriceProvider:
 
 
 async def get_manapool_prices(
-    scryfall_to_uuid_map: dict[str, set[str]],
+    scryfall_to_uuid_map: dict[str, str],
     on_progress: ProgressCallback | None = None,
 ) -> pl.DataFrame:
     """
@@ -257,7 +255,7 @@ async def get_manapool_prices(
 
 
 def get_manapool_prices_sync(
-    scryfall_to_uuid_map: dict[str, set[str]],
+    scryfall_to_uuid_map: dict[str, str],
     on_progress: ProgressCallback | None = None,
 ) -> pl.DataFrame:
     """Sync wrapper for get_manapool_prices."""

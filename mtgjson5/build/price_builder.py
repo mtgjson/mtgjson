@@ -68,7 +68,7 @@ class PriceBuilderContext:
     - tcg_to_uuid: TCGPlayer product ID -> MTGJSON UUIDs
     - tcg_etched_to_uuid: TCGPlayer etched product ID -> MTGJSON UUIDs
     - mtgo_to_uuid: MTGO ID -> MTGJSON UUIDs
-    - scryfall_to_uuid: Scryfall ID -> MTGJSON UUIDs
+    - scryfall_to_uuid: Scryfall ID -> single MTGJSON UUID
 
     Mappings are built lazily on first access from GlobalCache LazyFrames.
     """
@@ -79,7 +79,7 @@ class PriceBuilderContext:
     _tcg_to_uuid: dict[str, set[str]] | None = field(default=None, repr=False)
     _tcg_etched_to_uuid: dict[str, set[str]] | None = field(default=None, repr=False)
     _mtgo_to_uuid: dict[str, set[str]] | None = field(default=None, repr=False)
-    _scryfall_to_uuid: dict[str, set[str]] | None = field(default=None, repr=False)
+    _scryfall_to_uuid: dict[str, str] | None = field(default=None, repr=False)
 
     @classmethod
     def from_cache(cls) -> "PriceBuilderContext":
@@ -119,8 +119,8 @@ class PriceBuilderContext:
         return self._mtgo_to_uuid
 
     @property
-    def scryfall_to_uuid(self) -> dict[str, set[str]]:
-        """Scryfall ID -> MTGJSON UUID(s) mapping."""
+    def scryfall_to_uuid(self) -> dict[str, str]:
+        """Scryfall ID -> single MTGJSON UUID mapping."""
         if self._scryfall_to_uuid is None:
             self._scryfall_to_uuid = self._build_scryfall_to_uuid()
         return self._scryfall_to_uuid
@@ -176,36 +176,40 @@ class PriceBuilderContext:
                 result[mtgo_id].add(uuid)
         return result
 
-    def _build_scryfall_to_uuid(self) -> dict[str, set[str]]:
-        """Build Scryfall ID -> UUID mapping from pipeline-derived cache."""
+    def _build_scryfall_to_uuid(self) -> dict[str, str]:
+        """Build Scryfall ID -> single UUID mapping from pipeline-derived cache.
+
+        Picks one UUID per scryfallId to avoid duplicating prices across
+        card faces (e.g. both sides of a double-faced card).
+        """
         if self._cache is None:
             return {}
 
         if self._cache.scryfall_to_uuid_lf is not None:
-            df = self._cache.scryfall_to_uuid_lf.collect()
+            df = self._cache.scryfall_to_uuid_lf.unique(subset=["scryfallId"], keep="first").collect()
             if not df.is_empty():
-                result: dict[str, set[str]] = {}
-                for row in df.iter_rows(named=True):
-                    scryfall_id = row.get("scryfallId")
-                    uuid = row.get("uuid")
-                    if scryfall_id and uuid:
-                        if scryfall_id not in result:
-                            result[scryfall_id] = set()
-                        result[scryfall_id].add(uuid)
-                return result
+                return dict(
+                    zip(
+                        df.get_column("scryfallId").to_list(),
+                        df.get_column("uuid").to_list(),
+                        strict=False,
+                    )
+                )
 
         if self._cache.uuid_cache_lf is not None:
-            df = self._cache.uuid_cache_lf.collect()
+            df = (
+                self._cache.uuid_cache_lf.filter(pl.col("side") == "a")
+                .unique(subset=["scryfallId"], keep="first")
+                .collect()
+            )
             if not df.is_empty():
-                result = {}
-                for row in df.iter_rows(named=True):
-                    scryfall_id = row.get("scryfallId")
-                    uuid = row.get("cachedUuid")
-                    if scryfall_id and uuid:
-                        if scryfall_id not in result:
-                            result[scryfall_id] = set()
-                        result[scryfall_id].add(uuid)
-                return result
+                return dict(
+                    zip(
+                        df.get_column("scryfallId").to_list(),
+                        df.get_column("cachedUuid").to_list(),
+                        strict=False,
+                    )
+                )
 
         return {}
 
@@ -317,10 +321,8 @@ class PolarsPriceBuilder:
             await self._ck_provider.load_or_fetch_async(constants.CACHE_PATH / "ck_raw.parquet")
             ck_pricing_df = self._ck_provider.get_pricing_df()
             if len(ck_pricing_df) > 0:
-                # Convert CK pricing df to flat price schema
-                ck_records = self._convert_ck_pricing(ck_pricing_df, scryfall_to_uuid or {})
-                if ck_records:
-                    ck_df = pl.DataFrame(ck_records, schema=PRICE_SCHEMA)
+                ck_df = self._convert_ck_pricing(ck_pricing_df, scryfall_to_uuid or {})
+                if len(ck_df) > 0:
                     frames.append(ck_df)
                     LOGGER.info(f"  CKProvider: {len(ck_df):,} price points")
         except Exception as e:
@@ -339,74 +341,64 @@ class PolarsPriceBuilder:
     def _convert_ck_pricing(
         self,
         ck_df: pl.DataFrame,
-        scryfall_to_uuid: dict[str, set[str]],
-    ) -> list[dict[str, Any]]:
+        scryfall_to_uuid: dict[str, str],
+    ) -> pl.DataFrame:
         """
         Convert CardKingdom pricing DataFrame to flat price records.
 
+        Uses vectorized Polars join/filter/select instead of row iteration.
+
         Args:
             ck_df: CK pricing DataFrame with columns:
-                   ck_id, scryfall_id, is_foil, is_etched, price_retail, price_buy
-            scryfall_to_uuid: Scryfall ID -> MTGJSON UUIDs mapping
+                   ck_id, scryfall_id, is_foil, is_etched,
+                   price_retail, price_buy, qty_retail, qty_buying
+            scryfall_to_uuid: Scryfall ID -> single MTGJSON UUID mapping
 
         Returns:
-            List of price record dicts
+            DataFrame matching PRICE_SCHEMA
         """
-        records: list[dict[str, Any]] = []
+        if not scryfall_to_uuid:
+            return pl.DataFrame(schema=PRICE_SCHEMA)
 
-        for row in ck_df.iter_rows(named=True):
-            scryfall_id = row.get("scryfall_id")
-            if not scryfall_id:
-                continue
+        uuid_df = pl.DataFrame(
+            {
+                "scryfall_id": list(scryfall_to_uuid.keys()),
+                "uuid": list(scryfall_to_uuid.values()),
+            }
+        )
 
-            uuids = scryfall_to_uuid.get(scryfall_id)
-            if not uuids:
-                continue
+        base = ck_df.join(uuid_df, on="scryfall_id", how="inner").with_columns(
+            pl.when(pl.col("is_etched"))
+            .then(pl.lit("etched"))
+            .when(pl.col("is_foil"))
+            .then(pl.lit("foil"))
+            .otherwise(pl.lit("normal"))
+            .alias("finish")
+        )
 
-            is_foil = row.get("is_foil", False)
-            is_etched = row.get("is_etched", False)
-            price_retail = row.get("price_retail")
-            price_buy = row.get("price_buy")
+        retail = base.filter(pl.col("price_retail").is_not_null() & (pl.col("qty_retail") > 0)).select(
+            pl.col("uuid"),
+            pl.lit(self.today_date).alias("date"),
+            pl.lit("paper").alias("source"),
+            pl.lit("cardkingdom").alias("provider"),
+            pl.lit("retail").alias("price_type"),
+            pl.col("finish"),
+            pl.col("price_retail").cast(pl.Float64).alias("price"),
+            pl.lit("USD").alias("currency"),
+        )
 
-            if is_etched:
-                finish = "etched"
-            elif is_foil:
-                finish = "foil"
-            else:
-                finish = "normal"
+        buylist = base.filter(pl.col("price_buy").is_not_null() & (pl.col("qty_buying") > 0)).select(
+            pl.col("uuid"),
+            pl.lit(self.today_date).alias("date"),
+            pl.lit("paper").alias("source"),
+            pl.lit("cardkingdom").alias("provider"),
+            pl.lit("buylist").alias("price_type"),
+            pl.col("finish"),
+            pl.col("price_buy").cast(pl.Float64).alias("price"),
+            pl.lit("USD").alias("currency"),
+        )
 
-            for uuid in uuids:
-                # Retail price
-                if price_retail is not None:
-                    records.append(
-                        {
-                            "uuid": uuid,
-                            "date": self.today_date,
-                            "source": "paper",
-                            "provider": "cardkingdom",
-                            "price_type": "retail",
-                            "finish": finish,
-                            "price": float(price_retail),
-                            "currency": "USD",
-                        }
-                    )
-
-                # Buylist price
-                if price_buy is not None:
-                    records.append(
-                        {
-                            "uuid": uuid,
-                            "date": self.today_date,
-                            "source": "paper",
-                            "provider": "cardkingdom",
-                            "price_type": "buylist",
-                            "finish": finish,
-                            "price": float(price_buy),
-                            "currency": "USD",
-                        }
-                    )
-
-        return records
+        return pl.concat([retail, buylist])
 
     def _prices_dict_to_dataframe(self, prices: dict[str, Any]) -> pl.DataFrame:
         """
