@@ -143,15 +143,19 @@ class CardKingdomTransformer:
         """
         df_with_flags = CardKingdomTransformer.add_derived_columns(df)
 
-        return df_with_flags.filter(pl.col("scryfall_id").is_not_null()).select(
-            [
-                pl.col("id").cast(pl.String).alias("ck_id"),
-                "scryfall_id",
-                pl.col("is_foil_bool").alias("is_foil"),
-                "is_etched",
-                "price_retail",
-                "price_buy",
-                "qty_retail",
-                "qty_buying",
-            ]
+        return (
+            df_with_flags.filter(pl.col("scryfall_id").is_not_null())
+            .select(
+                [
+                    pl.col("id").cast(pl.String).alias("ck_id"),
+                    "scryfall_id",
+                    pl.col("is_foil_bool").alias("is_foil"),
+                    "is_etched",
+                    "price_retail",
+                    "price_buy",
+                    "qty_retail",
+                    "qty_buying",
+                ]
+            )
+            .unique(subset=["ck_id"], keep="first")
         )
