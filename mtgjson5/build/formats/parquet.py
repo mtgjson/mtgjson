@@ -95,8 +95,13 @@ class ParquetBuilder:
 
         meta_cols = [c for c in ("code", "name", "type", "releaseDate") if c in decks_df.columns]
         board_cols = [
-            "mainBoard", "sideBoard", "commander",
-            "displayCommander", "tokens", "planes", "schemes",
+            "mainBoard",
+            "sideBoard",
+            "commander",
+            "displayCommander",
+            "tokens",
+            "planes",
+            "schemes",
         ]
         available = [c for c in board_cols if c in decks_df.columns]
 
