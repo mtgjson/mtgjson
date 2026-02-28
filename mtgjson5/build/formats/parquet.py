@@ -78,6 +78,43 @@ class ParquetBuilder:
         if data:
             _write(pl.DataFrame(data), output_dir / "DeckList.parquet")
 
+    def _write_all_decks(self, output_dir: pathlib.Path) -> None:
+        """Write AllDecks.parquet — one row per card-in-deck.
+
+        Explodes each board's List[Struct{uuid, count, isFoil, isEtched}]
+        into flat rows with a ``board`` column. Join with cards.parquet on
+        ``uuid`` to get full card data.
+        """
+        decks_df = self.ctx.decks_df
+        if decks_df is None or decks_df.is_empty():
+            return
+
+        # Normalise column name
+        if "setCode" in decks_df.columns and "code" not in decks_df.columns:
+            decks_df = decks_df.rename({"setCode": "code"})
+
+        meta_cols = [c for c in ("code", "name", "type", "releaseDate") if c in decks_df.columns]
+        board_cols = [
+            "mainBoard", "sideBoard", "commander",
+            "displayCommander", "tokens", "planes", "schemes",
+        ]
+        available = [c for c in board_cols if c in decks_df.columns]
+
+        dfs: list[pl.DataFrame] = []
+        for board in available:
+            board_df = (
+                decks_df.select([*meta_cols, board])
+                .filter(pl.col(board).list.len() > 0)
+                .explode(board)
+                .unnest(board)
+                .with_columns(pl.lit(board).alias("board"))
+            )
+            dfs.append(board_df)
+
+        if dfs:
+            result = pl.concat(dfs, how="diagonal")
+            _write(result, output_dir / "AllDecks.parquet")
+
     def _write_tcgplayer_skus(self, output_dir: pathlib.Path) -> None:
         """Write TcgplayerSkus.parquet (uuid + flattened SKU fields)."""
         data = self.ctx.tcgplayer_skus.build()
@@ -142,6 +179,7 @@ class ParquetBuilder:
         self._write_card_types(output_dir)
         self._write_enum_values(output_dir)
         self._write_deck_list(output_dir)
+        self._write_all_decks(output_dir)
         self._write_tcgplayer_skus(output_dir)
         self._write_prices(output_dir)
 
