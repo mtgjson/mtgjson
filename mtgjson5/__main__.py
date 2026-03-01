@@ -85,7 +85,14 @@ def dispatcher(args: argparse.Namespace) -> None:
     from mtgjson5.mtgjson_config import MtgjsonConfig
     from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
     from mtgjson5.pipeline.core import build_cards
+    from mtgjson5.profiler import get_profiler, init_profiler
     from mtgjson5.utils import generate_output_file_hashes
+
+    use_tracemalloc = getattr(args, "profile_tracemalloc", False)
+    profiler = init_profiler(
+        enabled=getattr(args, "profile", False) or use_tracemalloc,
+        use_tracemalloc=use_tracemalloc,
+    )
 
     sets_to_build = get_sets_to_build(args)
 
@@ -114,6 +121,7 @@ def dispatcher(args: argparse.Namespace) -> None:
         export_formats=export_formats,
         skip_mcm=args.skip_mcm,
     )
+    profiler.checkpoint("cache_loaded", top_n=10)
 
     if args.all_sets:
         additional_set_keys = set(load_local_set_data().keys())
@@ -125,10 +133,20 @@ def dispatcher(args: argparse.Namespace) -> None:
 
     # Create pipeline context
     ctx = PipelineContext.from_global_cache(args=args)
+    profiler.checkpoint("context_created")
     ctx.consolidate_lookups()
+    profiler.checkpoint("lookups_consolidated")
 
     if sets_to_build or decks_only:
         build_cards(ctx)
+        profiler.checkpoint("pipeline_complete", top_n=10)
+
+        # Phase A: release pipeline-only frames before assembly
+        # Data is now on disk as partitioned parquet — free the in-memory
+        # LazyFrames/DataFrames that were only needed for the card pipeline.
+        ctx.release_pipeline_data()
+        GlobalCache().release_pipeline_frames()
+        profiler.checkpoint("pipeline_frames_released")
 
         if decks_only:
             # Only build deck files, skip set JSON assembly
@@ -159,6 +177,7 @@ def dispatcher(args: argparse.Namespace) -> None:
                 pretty=args.pretty,
                 sets_only=sets_only,
             )
+        profiler.checkpoint("assembly_complete")
 
     # --outputs or --export implies --full-build (unless only decks requested)
     # In sets-only mode, only export when explicit formats were requested
@@ -169,6 +188,7 @@ def dispatcher(args: argparse.Namespace) -> None:
         from mtgjson5.build.writer import OutputWriter
 
         OutputWriter.from_args(ctx).write_all()
+        profiler.checkpoint("exports_complete")
 
     # Referral map build (runs after card/export build if --referrals specified)
     if args.referrals:
@@ -184,6 +204,10 @@ def dispatcher(args: argparse.Namespace) -> None:
             output_path=MtgjsonConfig().output_path,
         )
         LOGGER.info(f"Referral map written: {referral_count:,} entries")
+
+    # All assembly/export/referral work is done — release remaining cache frames
+    GlobalCache().release_assembly_frames()
+    profiler.checkpoint("assembly_frames_released")
 
     # Price build (runs after card build if --price-build specified)
     if args.price_build:
@@ -201,8 +225,10 @@ def dispatcher(args: argparse.Namespace) -> None:
             compress_mtgjson_contents_parallel(MtgjsonConfig().output_path)
         else:
             compress_mtgjson_contents(MtgjsonConfig().output_path)
+        profiler.checkpoint("compression_complete")
 
     generate_output_file_hashes(MtgjsonConfig().output_path)
+    profiler.checkpoint("hashes_complete")
 
     if generate_types:
         from mtgjson5.models import write_typescript_interfaces
@@ -222,6 +248,9 @@ def dispatcher(args: argparse.Namespace) -> None:
         MtgjsonS3Handler().upload_directory(
             MtgjsonConfig().output_path, args.aws_s3_upload_bucket, {"Prunable": "true"}
         )
+
+    profiler.finish()
+    profiler.write_report(MtgjsonConfig().output_path)
 
 
 def main() -> None:

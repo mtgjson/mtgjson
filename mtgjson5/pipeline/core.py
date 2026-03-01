@@ -85,6 +85,7 @@ from mtgjson5.pipeline.stages.signatures import (
     add_signatures_combined,
     join_signatures,
 )
+from mtgjson5.profiler import get_profiler
 from mtgjson5.utils import LOGGER
 
 # Re-export standalone builders for backwards compatibility
@@ -105,6 +106,8 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     LOGGER.info("Executing card pipeline...")
+    prof = get_profiler()
+    prof.checkpoint("pipeline_start")
     if ctx.sets_lf is None:
         raise ValueError("sets_df is not available in context")
     sets_raw = ctx.sets_lf.rename({"code": "set"})
@@ -238,6 +241,7 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
         .pipe(partial(add_availability_struct, ctx=ctx))
         .pipe(remap_availability_values)
     )
+    prof.checkpoint("stage1_transforms")
 
     lf = (
         lf.pipe(partial(join_identifiers, ctx=ctx))
@@ -249,11 +253,13 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
         .pipe(partial(join_tcg_alt_foil_lookup, ctx=ctx))
         .pipe(fix_availability_from_ids)
     )
+    prof.checkpoint("stage2_joins")
 
     # Collects are placed strategically to prevent crashing Polars from lazy plan complexity
     LOGGER.info("Checkpoint: materializing after joins...")
     lf = lf.collect().lazy()
     LOGGER.info("  Checkpoint complete")
+    prof.checkpoint("collect_1_after_joins", top_n=10)
 
     lf = (
         lf.pipe(add_identifiers_struct)
@@ -275,6 +281,7 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
         .pipe(add_uuid_from_cache)
         .pipe(add_identifiers_v4_uuid)
     )
+    prof.checkpoint("stage3_uuids")
 
     lf = lf.pipe(calculate_duel_deck)
     lf = lf.pipe(partial(join_gatherer_data, ctx=ctx))
@@ -286,6 +293,7 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
     scryfall_uuid_lf = lf.select(["scryfallId", "uuid"])
 
     LOGGER.info("  Checkpoint complete")
+    prof.checkpoint("collect_2_before_relationships", top_n=10)
 
     lf = (
         lf.pipe(partial(add_other_face_ids, ctx=ctx))
@@ -300,10 +308,12 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
         .pipe(add_is_timeshifted)
         .pipe(add_purchase_urls_struct)
     )
+    prof.checkpoint("stage4_relationships")
 
     LOGGER.info("Checkpoint: materializing before final enrichment...")
     lf = lf.collect().lazy()
     LOGGER.info("  Checkpoint complete")
+    prof.checkpoint("collect_3_before_enrichment", top_n=10)
 
     lf = (
         lf.pipe(partial(apply_manual_overrides, ctx=ctx))
@@ -311,16 +321,19 @@ def build_cards(ctx: PipelineContext) -> PipelineContext:
         .pipe(partial(add_secret_lair_subsets, ctx=ctx))
         .pipe(partial(add_source_products, ctx=ctx))
     )
+    prof.checkpoint("stage5_enrichment")
 
     lf = (
         lf.pipe(partial(join_signatures, ctx=ctx))
         .pipe(partial(add_signatures_combined, _ctx=ctx))
         .pipe(drop_raw_scryfall_columns)
     )
+    prof.checkpoint("stage6_signatures")
 
     ctx.final_cards_lf = lf
 
     # Sink for build module
     sink_cards(ctx)
+    prof.checkpoint("sink_complete")
 
     return ctx

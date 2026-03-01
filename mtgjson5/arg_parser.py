@@ -159,6 +159,16 @@ def parse_args() -> argparse.Namespace:
         help="Skip CardMarket data fetching (speeds up builds when MCM data not needed).",
     )
     pipeline_group.add_argument(
+        "--profile",
+        action="store_true",
+        help="Enable memory and timing profiling (psutil RSS + wall-clock). Writes profile_report.json and profile_summary.log to the output directory.",
+    )
+    pipeline_group.add_argument(
+        "--profile-tracemalloc",
+        action="store_true",
+        help="Also enable tracemalloc for Python allocation tracking (adds significant overhead). Implies --profile.",
+    )
+    pipeline_group.add_argument(
         "--generate-types",
         nargs="?",
         const="",

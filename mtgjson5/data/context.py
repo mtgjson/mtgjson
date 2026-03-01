@@ -515,6 +515,10 @@ class PipelineContext:
         """
         import gc
 
+        from mtgjson5.profiler import get_profiler
+
+        prof = get_profiler()
+
         LOGGER.info("Consolidating lookup tables...")
 
         # Collect cards_lf once for the two sub-methods that need it,
@@ -525,8 +529,11 @@ class PipelineContext:
             cards_df = cards_raw.collect() if isinstance(cards_raw, pl.LazyFrame) else cards_raw
 
         self._build_identifiers_lookup()
+        prof.checkpoint("lookup_identifiers")
         self._build_oracle_data_lookup(cards_df=cards_df)
+        prof.checkpoint("lookup_oracle")
         self._build_set_number_lookup(cards_df=cards_df)
+        prof.checkpoint("lookup_set_number")
 
         del cards_df
         gc.collect()
@@ -538,6 +545,7 @@ class PipelineContext:
         self._build_mcm_set_map()
         self._build_mcm_lookup()
         self._build_tcg_alt_foil_lookup()
+        prof.checkpoint("lookup_remaining")
 
         return self
 
