@@ -911,7 +911,7 @@ class GlobalCache:
                     entry = entries[0]
                     rows.append(
                         {
-                            "multiverse_id": str(mv_id),
+                            "multiverseId": str(mv_id),
                             "originalText": entry.get("original_text"),
                             "originalType": entry.get("original_types"),
                         }

@@ -1551,6 +1551,7 @@ class CompiledListAssembler:
     """Assembles CompiledList.json - sorted list of compiled output files."""
 
     COMPILED_FILES = [
+        "AllDecks",
         "AllIdentifiers",
         "AllPrices",
         "AllPricesToday",

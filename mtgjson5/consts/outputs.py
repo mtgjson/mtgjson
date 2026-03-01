@@ -17,6 +17,7 @@ ALL_PARQUETS_DIRECTORY: Final[str] = "AllPrintingsParquetFiles"
 # All compiled output file names (used by compression to distinguish set files from compiled files)
 COMPILED_OUTPUT_NAMES: Final[frozenset[str]] = frozenset(
     {
+        "AllDecks",
         "AllPrintings",
         "AtomicCards",
         "AllPrices",
