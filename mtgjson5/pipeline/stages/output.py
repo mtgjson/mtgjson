@@ -492,6 +492,13 @@ def sink_cards(ctx: PipelineContext) -> None:
             set_path.mkdir(exist_ok=True)
             set_df.write_parquet(set_path / "0.parquet")
 
+        del df, partitions
         LOGGER.info(f"  {label} complete")
 
+    # Data is on disk — release the in-memory pipeline DataFrame
+    ctx.final_cards_lf = None
+
+    import gc
+
+    gc.collect()
     LOGGER.info("All parquet sinks complete.")
