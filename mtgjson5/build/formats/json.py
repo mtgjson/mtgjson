@@ -5,6 +5,7 @@ Writers handle file I/O
 
 from __future__ import annotations
 
+import gc
 import pathlib
 from typing import TYPE_CHECKING, Any
 
@@ -98,13 +99,44 @@ class JsonOutputBuilder:
 
         return count
 
-    def write_atomic_cards(self, output_path: pathlib.Path) -> AtomicCardsFile:
-        """Build AtomicCards.json."""
+    def write_atomic_cards(
+        self,
+        output_path: pathlib.Path,
+        streaming: bool = True,
+    ) -> AtomicCardsFile | int:
+        """Build AtomicCards.json. Returns count if streaming, else full file."""
+        if streaming:
+            return self._write_atomic_cards_streaming(output_path)
+
         data = self.ctx.atomic_cards.build()
 
         file = AtomicCardsFile.with_meta(data, self.ctx.meta, validate=False)
         file.write(output_path, pretty=self.ctx.pretty)
         return file  # type: ignore[return-value]
+
+    def _write_atomic_cards_streaming(self, output_path: pathlib.Path) -> int:
+        """Stream AtomicCards.json to disk one name-group at a time."""
+        with output_path.open("wb") as f:
+            f.write(b'{"meta":')
+            f.write(orjson.dumps(self.ctx.meta, option=self._orjson_opts))
+            f.write(b',"data":{')
+
+            first = True
+            count = 0
+
+            for name, cards in self.ctx.atomic_cards.iter_atomic():
+                if not first:
+                    f.write(b",")
+                first = False
+
+                f.write(orjson.dumps(name))
+                f.write(b":")
+                f.write(orjson.dumps(cards, option=self._orjson_opts))
+                count += 1
+
+            f.write(b"}}")
+
+        return count
 
     def write_set_list(self, output_path: pathlib.Path) -> SetListFile:
         """Build SetList.json."""
@@ -146,6 +178,10 @@ class JsonOutputBuilder:
     ) -> int:
         """Write individual deck JSON files with expanded cards.
 
+        Uses a single DeckAssembler (builds the uuid_index once from
+        parquet) and iterates all decks. The uuid_index only contains
+        cards/tokens actually referenced by decks.
+
         Args:
             output_dir: Output directory (defaults to ctx.output_path/decks)
             set_codes: Optional filter for specific set codes
@@ -172,9 +208,8 @@ class JsonOutputBuilder:
         if len(decks_df) == 0:
             return 0
 
-        assembler = self.ctx.deck_assembler()
-
         meta_dict = self.ctx.meta
+        assembler = self.ctx.deck_assembler()
         count = 0
 
         for deck_raw in decks_df.to_dicts():
@@ -195,6 +230,8 @@ class JsonOutputBuilder:
             count += 1
 
         del assembler
+        gc.collect()
+
         return count
 
     def write_prices(self, output_dir: pathlib.Path) -> dict[str, int]:
@@ -230,19 +267,43 @@ class JsonOutputBuilder:
 
         return results
 
-    def write_tcgplayer_skus(self, output_path: pathlib.Path) -> TcgplayerSkusFile:
-        """Build TcgplayerSkus.json.
+    def write_tcgplayer_skus(
+        self,
+        output_path: pathlib.Path,
+        streaming: bool = True,
+    ) -> TcgplayerSkusFile | int:
+        """Build TcgplayerSkus.json. Returns count if streaming, else full file."""
+        if streaming:
+            return self._write_tcgplayer_skus_streaming(output_path)
 
-        Args:
-            output_path: Output file path
-
-        Returns:
-            TcgplayerSkusFile with UUID to SKU mappings
-        """
         data = self.ctx.tcgplayer_skus.build()
         file = TcgplayerSkusFile.with_meta(data, self.ctx.meta)
         file.write(output_path)
         return file  # type: ignore[return-value]
+
+    def _write_tcgplayer_skus_streaming(self, output_path: pathlib.Path) -> int:
+        """Stream TcgplayerSkus.json to disk one UUID at a time."""
+        with output_path.open("wb") as f:
+            f.write(b'{"meta":')
+            f.write(orjson.dumps(self.ctx.meta, option=self._orjson_opts))
+            f.write(b',"data":{')
+
+            first = True
+            count = 0
+
+            for uuid, skus in self.ctx.tcgplayer_skus.iter_skus():
+                if not first:
+                    f.write(b",")
+                first = False
+
+                f.write(orjson.dumps(uuid))
+                f.write(b":")
+                f.write(orjson.dumps(skus, option=self._orjson_opts))
+                count += 1
+
+            f.write(b"}}")
+
+        return count
 
     def write_keywords(self, output_path: pathlib.Path) -> KeywordsFile:
         """Build Keywords.json.
@@ -307,8 +368,6 @@ class JsonOutputBuilder:
         Returns:
             Number of entries written
         """
-        import gc
-
         from mtgjson5.utils import LOGGER
 
         count = 0
@@ -330,10 +389,6 @@ class JsonOutputBuilder:
                 f.write(b": ")
                 f.write(orjson.dumps(entry))
                 count += 1
-
-                if count % 5000 == 0:
-                    gc.collect()
-                    LOGGER.debug(f"AllIdentifiers: streamed {count} entries")
 
             f.write(b"\n}}")
 
@@ -381,7 +436,10 @@ class JsonOutputBuilder:
         Returns:
             Dict mapping file names to record counts.
         """
+        from mtgjson5.profiler import get_profiler
         from mtgjson5.utils import LOGGER
+
+        profiler = get_profiler()
 
         if output_dir is None:
             output_dir = self.ctx.output_path
@@ -406,6 +464,7 @@ class JsonOutputBuilder:
             LOGGER.info("Building Meta.json...")
             self.write_meta(output_dir / "Meta.json")
             results["Meta"] = 1
+        profiler.checkpoint("assembly/meta")
 
         # Build AllPrintings
         all_printings = None
@@ -420,19 +479,6 @@ class JsonOutputBuilder:
                 all_printings if isinstance(all_printings, int) else len(all_printings.data)  # pylint: disable=no-member
             )
 
-        # Build AtomicCards
-        atomic_cards = None
-        if should_build("AtomicCards"):
-            LOGGER.info("Building AtomicCards.json...")
-            atomic_cards = self.write_atomic_cards(output_dir / "AtomicCards.json")
-            results["AtomicCards"] = len(atomic_cards.data)
-
-        # Build SetList
-        if should_build("SetList"):
-            LOGGER.info("Building SetList.json...")
-            set_list = self.write_set_list(output_dir / "SetList.json")
-            results["SetList"] = len(set_list.data)
-
         # Build format-specific files (require AllPrintings)
         if not sets_only or (outputs and (_PRINTINGS_OUTPUTS & outputs)):  # noqa: SIM102
             if outputs is None or (_PRINTINGS_OUTPUTS & outputs):
@@ -446,17 +492,51 @@ class JsonOutputBuilder:
                             fmt_file = self.write_format_file(all_printings, fmt, output_dir / f"{fmt.title()}.json")
                             results[fmt.title()] = len(fmt_file.data)
 
-        # Format atomic files (require AtomicCards)
+        del all_printings
+        gc.collect()
+        profiler.checkpoint("assembly/all_printings")
+
+        # Build AtomicCards (streaming to disk)
+        atomic_cards_count = None
+        if should_build("AtomicCards"):
+            LOGGER.info("Building AtomicCards.json...")
+            atomic_result = self.write_atomic_cards(
+                output_dir / "AtomicCards.json",
+                streaming=streaming,
+            )
+            if isinstance(atomic_result, int):
+                atomic_cards_count = atomic_result
+                results["AtomicCards"] = atomic_cards_count
+            else:
+                results["AtomicCards"] = len(atomic_result.data)
+        profiler.checkpoint("assembly/atomic_cards")
+
+        # Format atomic files (re-read AtomicCards from disk)
         if not sets_only or (outputs and (_ATOMIC_OUTPUTS & outputs)):  # noqa: SIM102
             if outputs is None or (_ATOMIC_OUTPUTS & outputs):
-                if atomic_cards is None:
-                    atomic_cards = self.write_atomic_cards(output_dir / "AtomicCards.json")
+                # Ensure AtomicCards.json exists on disk
+                atomic_path = output_dir / "AtomicCards.json"
+                if not atomic_path.exists():
+                    self.write_atomic_cards(atomic_path, streaming=streaming)
+
+                # Read from disk for format filtering
+                atomic_cards_file = AtomicCardsFile.read(atomic_path)
                 for fmt in _ATOMIC_FORMATS:
                     if should_build(f"{fmt.title()}Atomic"):
                         atomic_file = self.write_format_atomic(
-                            atomic_cards, fmt, output_dir / f"{fmt.title()}Atomic.json"
+                            atomic_cards_file, fmt, output_dir / f"{fmt.title()}Atomic.json"
                         )
                         results[f"{fmt.title()}Atomic"] = len(atomic_file.data)
+                del atomic_cards_file
+
+        gc.collect()
+        profiler.checkpoint("assembly/format_files")
+
+        # Build SetList
+        if should_build("SetList"):
+            LOGGER.info("Building SetList.json...")
+            set_list = self.write_set_list(output_dir / "SetList.json")
+            results["SetList"] = len(set_list.data)
 
         # Build individual set files
         if outputs is None or not outputs or sets_only:
@@ -470,6 +550,7 @@ class JsonOutputBuilder:
                 single.write(output_dir / f"{safe_code}.json", pretty=self.ctx.pretty)
                 set_count += 1
             results["sets"] = set_count
+        profiler.checkpoint("assembly/set_files")
 
         # Build deck files
         if (
@@ -486,6 +567,15 @@ class JsonOutputBuilder:
             deck_list_file.write(output_dir / "DeckList.json", pretty=self.ctx.pretty)
             results["DeckList"] = len(deck_list)
 
+        gc.collect()
+        profiler.checkpoint("assembly/deck_files")
+
+        # All card-dependent stages are done. Release assembler caches
+        # (sets, atomic_cards, etc.) so GC can reclaim their internal state.
+        # Remaining stages use GLOBAL_CACHE data or direct parquet reads.
+        self.ctx.release_card_data()
+        profiler.checkpoint("assembly/card_data_released")
+
         # Use --price-build flag for dedicated price builds, or --outputs AllPrices
         if outputs and ("AllPrices" in outputs or "AllPricesToday" in outputs):
             LOGGER.info("Building price files...")
@@ -495,8 +585,15 @@ class JsonOutputBuilder:
         # Build TcgplayerSkus.json
         if should_build("TcgplayerSkus"):
             LOGGER.info("Building TcgplayerSkus.json...")
-            tcgplayer_skus = self.write_tcgplayer_skus(output_dir / "TcgplayerSkus.json")
-            results["TcgplayerSkus"] = len(tcgplayer_skus.data)
+            tcgplayer_result = self.write_tcgplayer_skus(output_dir / "TcgplayerSkus.json")
+            results["TcgplayerSkus"] = (
+                tcgplayer_result if isinstance(tcgplayer_result, int) else len(tcgplayer_result.data)
+            )
+
+        # Evict the heavy SKU assembler cache before AllIdentifiers
+        self.ctx.__dict__.pop("tcgplayer_skus", None)
+        gc.collect()
+        profiler.checkpoint("assembly/tcgplayer_skus")
 
         # Build Keywords.json
         if should_build("Keywords"):
@@ -523,6 +620,9 @@ class JsonOutputBuilder:
             LOGGER.info("Building AllIdentifiers.json...")
             all_identifiers_count = self.write_all_identifiers(output_dir / "AllIdentifiers.json")
             results["AllIdentifiers"] = all_identifiers_count
+
+        gc.collect()
+        profiler.checkpoint("assembly/all_identifiers")
 
         # Build CompiledList.json
         if should_build("CompiledList"):

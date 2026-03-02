@@ -8,9 +8,12 @@ from typing import TYPE_CHECKING, Any
 import polars as pl
 
 from mtgjson5.consts.fields import (
+    ALLOW_IF_FALSEY,
     ATOMIC_FOREIGN_STRIP,
     ATOMIC_IDENTIFIERS,
+    OMIT_EMPTY_LIST_FIELDS,
     ORACLE_IDENTITY_COLS,
+    SORTED_LIST_FIELDS,
 )
 from mtgjson5.models.cards import CardAtomic, CardDeck, CardSet, CardToken
 from mtgjson5.models.schemas import (
@@ -389,11 +392,16 @@ class AtomicCardsAssembler(Assembler):
 
         # Collect ALL printings before dedup so we can consolidate foreignData/legalities
         all_rows_df = df.collect()
-        all_rows = all_rows_df.to_dicts()
+
+        # Narrow: only oracle identity + the 2 data columns needed for lookups
+        lookup_cols = [
+            c for c in list(ORACLE_IDENTITY_COLS) + ["foreignData", "legalities"] if c in all_rows_df.columns
+        ]
+        lookup_rows = all_rows_df.select(lookup_cols).to_dicts()
 
         # Build consolidated lookups from all printings
-        foreign_lookup, legalities_lookup = self._build_oracle_lookups(all_rows)
-        del all_rows
+        foreign_lookup, legalities_lookup = self._build_oracle_lookups(lookup_rows)
+        del lookup_rows
 
         # Now dedup on the collected DataFrame
         deduped = all_rows_df.unique(
@@ -512,7 +520,7 @@ class DeckAssembler(Assembler):
                 chunk = cards_df.slice(start, chunk_size)
                 card_models = CardSet.from_dataframe(chunk)
                 for card in card_models:
-                    self._uuid_index[card.uuid] = card.to_polars_dict(exclude_none=True)
+                    self._uuid_index[card.uuid] = card.to_output_dict()
                 del card_models, chunk
             del cards_df
 
@@ -525,7 +533,7 @@ class DeckAssembler(Assembler):
                     chunk = tokens_df.slice(start, chunk_size)
                     token_models = CardToken.from_dataframe(chunk)
                     for token in token_models:
-                        self._uuid_index[token.uuid] = token.to_polars_dict(exclude_none=True)
+                        self._uuid_index[token.uuid] = token.to_output_dict()
                         self._token_uuids.add(token.uuid)
                     del token_models, chunk
             del tokens_df
@@ -872,8 +880,14 @@ class TcgplayerSkusAssembler(Assembler):
         self._tcg_alt_foil_to_uuid_lf: pl.LazyFrame | None = None
 
     def _load_tcg_data(self) -> None:
-        """Load TCGPlayer SKU data from GLOBAL_CACHE, awaiting background fetch if needed."""
+        """Load TCGPlayer SKU data from GLOBAL_CACHE, awaiting background fetch if needed.
+
+        Falls back to loading directly from parquet files on disk when
+        GLOBAL_CACHE is empty (i.e. in a subprocess).
+        """
+        from mtgjson5 import constants
         from mtgjson5.data import GLOBAL_CACHE
+        from mtgjson5.utils import LOGGER
 
         GLOBAL_CACHE._await_tcg_skus()
 
@@ -882,47 +896,43 @@ class TcgplayerSkusAssembler(Assembler):
         self._tcg_etched_to_uuid_lf = GLOBAL_CACHE.tcg_etched_to_uuid_lf
         self._tcg_alt_foil_to_uuid_lf = GLOBAL_CACHE.tcg_alt_foil_to_uuid_lf
 
-    def build(self) -> dict[str, list[dict[str, Any]]]:
-        """Build TcgplayerSkus data dict.
+        # Fallback: load from disk if GLOBAL_CACHE is empty (subprocess)
+        cache_dir = constants.CACHE_PATH
+        fallback_map = {
+            "_tcg_skus_lf": "tcg_skus.parquet",
+            "_tcg_to_uuid_lf": "tcg_to_uuid.parquet",
+            "_tcg_etched_to_uuid_lf": "tcg_etched_to_uuid.parquet",
+            "_tcg_alt_foil_to_uuid_lf": "tcg_alt_foil_to_uuid.parquet",
+        }
+        for attr, filename in fallback_map.items():
+            if getattr(self, attr) is None:
+                path = cache_dir / filename
+                if path.exists():
+                    setattr(self, attr, pl.scan_parquet(path))
+                    LOGGER.info(f"Loaded {filename} from disk (subprocess fallback)")
+
+    def _flatten_skus_lazy(self) -> pl.LazyFrame | None:
+        """Build lazy flattened SKU pipeline (no materialization).
 
         Returns:
-            Dict mapping UUID to list of SKU entries.
-            Each SKU entry contains: skuId, productId, language, printing, condition,
-            and optionally finish (for etched products).
+            LazyFrame with columns: productId, skuId, condition, language, printing.
+            None if data is unavailable.
         """
         from mtgjson5.providers.tcgplayer.models import (
             CONDITION_MAP,
             LANGUAGE_MAP,
             PRINTING_MAP,
         )
-        from mtgjson5.utils import LOGGER
-
-        self._load_tcg_data()
 
         if self._tcg_skus_lf is None:
-            LOGGER.warning(
-                "TCG SKUs data not found (tcg_skus.parquet missing). "
-                "TcgplayerSkus.json will be empty. "
-                "Run TCGProvider.fetch_all_products() to fetch SKU data."
-            )
-            return {}
+            return None
 
-        if (
-            self._tcg_to_uuid_lf is None
-            and self._tcg_etched_to_uuid_lf is None
-            and self._tcg_alt_foil_to_uuid_lf is None
-        ):
-            LOGGER.warning("TCG to UUID mappings not found, TcgplayerSkus.json will be empty")
-            return {}
+        schema = self._tcg_skus_lf.collect_schema()
+        if "skus" not in schema:
+            return None
 
-        tcg_skus_df = self._tcg_skus_lf.collect()
-
-        if "skus" not in tcg_skus_df.columns:
-            LOGGER.warning("No 'skus' column in TCG data, TcgplayerSkus.json will be empty")
-            return {}
-
-        flattened = (
-            tcg_skus_df.explode("skus")
+        return (
+            self._tcg_skus_lf.explode("skus")
             .unnest("skus")
             .with_columns(
                 [
@@ -942,130 +952,149 @@ class TcgplayerSkusAssembler(Assembler):
             )
         )
 
-        result: dict[str, list[dict[str, Any]]] = {}
+    def _join_all_lazy(self, flattened_lf: pl.LazyFrame) -> list[pl.LazyFrame]:
+        """Build lazy join results against all UUID mappings.
 
+        Returns:
+            List of LazyFrames, each with columns: uuid, condition, language,
+            printing, productId, skuId, finish.
+        """
+        sku_fields = ["condition", "language", "printing", "productId", "skuId"]
+        out_cols = ["uuid"] + sku_fields + ["finish"]
+        parts: list[pl.LazyFrame] = []
+
+        def _lazy_join(
+            uuid_lf: pl.LazyFrame,
+            id_col: str,
+            is_etched: bool = False,
+        ) -> None:
+            uuid_lf = uuid_lf.with_columns(pl.col(id_col).cast(pl.Int64).alias("_pid")).select(["_pid", "uuid"])
+            joined = flattened_lf.join(uuid_lf, left_on="productId", right_on="_pid", how="inner")
+            finish_col = pl.lit("ETCHED") if is_etched else pl.lit(None, dtype=pl.String)
+            parts.append(joined.select(["uuid"] + sku_fields).with_columns(finish_col.alias("finish")))
+
+        # Normal products
         if self._tcg_to_uuid_lf is not None:
-            tcg_to_uuid_df = self._tcg_to_uuid_lf.collect()
-            if "tcgplayerProductId" in tcg_to_uuid_df.columns and "uuid" in tcg_to_uuid_df.columns:
-                tcg_to_uuid_df = tcg_to_uuid_df.with_columns(
-                    pl.col("tcgplayerProductId").cast(pl.Int64).alias("productId_join")
-                )
+            schema = self._tcg_to_uuid_lf.collect_schema()
+            if "tcgplayerProductId" in schema and "uuid" in schema:
+                _lazy_join(self._tcg_to_uuid_lf, "tcgplayerProductId")
 
-                normal_joined = flattened.join(
-                    tcg_to_uuid_df.select(["productId_join", "uuid"]),
-                    left_on="productId",
-                    right_on="productId_join",
-                    how="inner",
-                )
-
-                self._add_skus_to_result(normal_joined, result, is_etched=False)
-
+        # Etched products
         if self._tcg_etched_to_uuid_lf is not None:
-            tcg_etched_df = self._tcg_etched_to_uuid_lf.collect()
-            if "tcgplayerEtchedProductId" in tcg_etched_df.columns and "uuid" in tcg_etched_df.columns:
-                tcg_etched_df = tcg_etched_df.with_columns(
-                    pl.col("tcgplayerEtchedProductId").cast(pl.Int64).alias("productId_join")
-                )
+            schema = self._tcg_etched_to_uuid_lf.collect_schema()
+            if "tcgplayerEtchedProductId" in schema and "uuid" in schema:
+                _lazy_join(self._tcg_etched_to_uuid_lf, "tcgplayerEtchedProductId", is_etched=True)
 
-                etched_joined = flattened.join(
-                    tcg_etched_df.select(["productId_join", "uuid"]),
-                    left_on="productId",
-                    right_on="productId_join",
-                    how="inner",
-                )
-
-                self._add_skus_to_result(etched_joined, result, is_etched=True)
-
+        # Alt foil products
         if self._tcg_alt_foil_to_uuid_lf is not None:
-            tcg_alt_foil_df = self._tcg_alt_foil_to_uuid_lf.collect()
-            if "tcgplayerAlternativeFoilProductId" in tcg_alt_foil_df.columns and "uuid" in tcg_alt_foil_df.columns:
-                tcg_alt_foil_df = tcg_alt_foil_df.with_columns(
-                    pl.col("tcgplayerAlternativeFoilProductId").cast(pl.Int64).alias("productId_join")
-                )
+            schema = self._tcg_alt_foil_to_uuid_lf.collect_schema()
+            if "tcgplayerAlternativeFoilProductId" in schema and "uuid" in schema:
+                _lazy_join(self._tcg_alt_foil_to_uuid_lf, "tcgplayerAlternativeFoilProductId")
 
-                alt_foil_joined = flattened.join(
-                    tcg_alt_foil_df.select(["productId_join", "uuid"]),
-                    left_on="productId",
-                    right_on="productId_join",
-                    how="inner",
-                )
-
-                self._add_skus_to_result(alt_foil_joined, result, is_etched=False)
-
-        # Join sealed product UUIDs
+        # Sealed products (convert materialized DF → LazyFrame)
         if self.ctx.sealed_df is not None and not self.ctx.sealed_df.is_empty():
             sealed_df = self.ctx.sealed_df
             if "identifiers" in sealed_df.columns:
-                sealed_tcg_map = (
+                sealed_lf = (
                     sealed_df.select(
                         pl.col("uuid"),
-                        pl.col("identifiers").struct.field("tcgplayerProductId").alias("tcgplayerProductId"),
+                        pl.col("identifiers").struct.field("tcgplayerProductId").cast(pl.Int64).alias("_pid"),
                     )
-                    .filter(pl.col("tcgplayerProductId").is_not_null())
-                    .with_columns(pl.col("tcgplayerProductId").cast(pl.Int64).alias("productId_join"))
+                    .filter(pl.col("_pid").is_not_null())
+                    .lazy()
                 )
-                if len(sealed_tcg_map) > 0:
-                    sealed_joined = flattened.join(
-                        sealed_tcg_map.select(["productId_join", "uuid"]),
-                        left_on="productId",
-                        right_on="productId_join",
-                        how="inner",
-                    )
-                    self._add_skus_to_result(sealed_joined, result, is_etched=False)
+                joined = flattened_lf.join(sealed_lf, left_on="productId", right_on="_pid", how="inner")
+                parts.append(
+                    joined.select(["uuid"] + sku_fields).with_columns(pl.lit(None, dtype=pl.String).alias("finish"))
+                )
 
-        # Join token product UUIDs
+        # Token products (build small DF from Python dict → LazyFrame)
         if self.ctx.token_products:
             token_rows = []
             for token_uuid, products in self.ctx.token_products.items():
                 for product in products:
                     pid = product.get("identifiers", {}).get("tcgplayerProductId")
                     if pid:
-                        token_rows.append({"uuid": token_uuid, "productId_join": int(pid)})
+                        token_rows.append({"uuid": token_uuid, "_pid": int(pid)})
             if token_rows:
-                token_tcg_map = pl.DataFrame(token_rows)
-                token_joined = flattened.join(
-                    token_tcg_map,
-                    left_on="productId",
-                    right_on="productId_join",
-                    how="inner",
+                token_lf = pl.DataFrame(token_rows).lazy()
+                joined = flattened_lf.join(token_lf, left_on="productId", right_on="_pid", how="inner")
+                parts.append(
+                    joined.select(["uuid"] + sku_fields).with_columns(pl.lit(None, dtype=pl.String).alias("finish"))
                 )
-                self._add_skus_to_result(token_joined, result, is_etched=False)
 
-        LOGGER.info(f"Built TcgplayerSkus with {len(result)} UUIDs")
-        return result
+        return parts
 
-    def _add_skus_to_result(
-        self,
-        joined_df: pl.DataFrame,
-        result: dict[str, list[dict[str, Any]]],
-        is_etched: bool,
-    ) -> None:
-        """Add SKUs from joined DataFrame to result dict.
+    def iter_skus(self) -> Iterator[tuple[str, list[dict[str, Any]]]]:
+        """Yield (uuid, sku_entries) pairs using a partitioned pipeline.
 
-        Args:
-            joined_df: DataFrame with SKU data joined to UUIDs
-            result: Result dict to populate
-            is_etched: Whether these are etched products (adds finish field)
+        Collects the flat joined result first, then
+        processes in 16 UUID-prefix partitions so that the sort+group
+        intermediates stay small.
         """
-        for row in joined_df.iter_rows(named=True):
-            uuid = row.get("uuid")
-            if not uuid:
+        import gc
+
+        from mtgjson5.utils import LOGGER
+
+        self._load_tcg_data()
+
+        if self._tcg_skus_lf is None:
+            LOGGER.warning("TCG SKUs data not found (tcg_skus.parquet missing). TcgplayerSkus.json will be empty.")
+            return
+
+        if (
+            self._tcg_to_uuid_lf is None
+            and self._tcg_etched_to_uuid_lf is None
+            and self._tcg_alt_foil_to_uuid_lf is None
+        ):
+            LOGGER.warning("TCG to UUID mappings not found, TcgplayerSkus.json will be empty")
+            return
+
+        flattened_lf = self._flatten_skus_lazy()
+        if flattened_lf is None:
+            LOGGER.warning("No 'skus' column in TCG data, TcgplayerSkus.json will be empty")
+            return
+
+        parts = self._join_all_lazy(flattened_lf)
+        if not parts:
+            return
+
+        flat_df = pl.concat(parts).collect()
+        n_rows = len(flat_df)
+        del parts, flattened_lf
+        gc.collect()
+        LOGGER.info(f"TcgplayerSkus: collected {n_rows:,} flat rows, grouping by partition...")
+
+        sku_fields = ["condition", "language", "printing", "productId", "skuId", "finish"]
+        count = 0
+        for prefix in "0123456789abcdef":
+            chunk = flat_df.filter(pl.col("uuid").str.starts_with(prefix))
+            if chunk.is_empty():
                 continue
+            grouped = chunk.sort("skuId").group_by("uuid", maintain_order=True).agg(pl.struct(sku_fields).alias("skus"))
+            del chunk
+            for row in grouped.iter_rows(named=True):
+                uuid = row["uuid"]
+                skus = row["skus"]
+                # Strip null finish from non-etched entries
+                for sku in skus:
+                    if sku.get("finish") is None:
+                        sku.pop("finish", None)
+                yield uuid, skus
+                count += 1
+            del grouped
 
-            sku_entry: dict[str, Any] = {
-                "condition": row.get("condition", "UNKNOWN"),
-                "language": row.get("language", "UNKNOWN"),
-                "printing": row.get("printing", "UNKNOWN"),
-                "productId": row.get("productId"),
-                "skuId": row.get("skuId"),
-            }
+        del flat_df
+        gc.collect()
+        LOGGER.info(f"Built TcgplayerSkus with {count} UUIDs")
 
-            if is_etched:
-                sku_entry["finish"] = "ETCHED"
+    def build(self) -> dict[str, list[dict[str, Any]]]:
+        """Build TcgplayerSkus data dict.
 
-            if uuid not in result:
-                result[uuid] = []
-            result[uuid].append(sku_entry)
+        Returns:
+            Dict mapping UUID to list of SKU entries.
+        """
+        return dict(self.iter_skus())
 
 
 class TableAssembler:
@@ -1341,59 +1370,170 @@ class CardTypesAssembler(Assembler):
 
 
 class AllIdentifiersAssembler(Assembler):
-    """Assembles AllIdentifiers.json - UUID to card/token mapping.
-
-    Uses chunked processing to minimize memory usage when building
-    the UUID -> card/token mapping.
-    """
-
-    CHUNK_SIZE = 5000
+    """Assembles AllIdentifiers.json - UUID to card/token mapping."""
 
     def iter_entries(self) -> Iterator[tuple[str, dict[str, Any]]]:
         """Yield (uuid, data) pairs for all cards and tokens.
 
-        Memory-efficient iterator that processes data in chunks.
+        Reads all parquet partitions in one shot, deduplicates by uuid, then iterates rows through
+        the lightweight ``_clean_row()`` cleanup.
         """
+        import gc
+
         from mtgjson5.utils import LOGGER
 
-        seen_uuids: set[str] = set()
+        count = 0
 
-        LOGGER.info("Loading all cards for AllIdentifiers...")
-        cards_lf = self.load_all_cards()
-        cards_df = cards_lf.collect()
-
-        for start in range(0, len(cards_df), self.CHUNK_SIZE):
-            chunk = cards_df.slice(start, self.CHUNK_SIZE)
-            models = CardSet.from_dataframe(chunk)
-            for model in models:
-                uuid = model.uuid
-                if uuid in seen_uuids:
+        for label, pq_dir in (
+            ("cards", self.ctx.parquet_dir),
+            ("tokens", self.ctx.tokens_dir),
+        ):
+            if not pq_dir.exists():
+                continue
+            LOGGER.info(f"Loading {label} for AllIdentifiers...")
+            try:
+                df = pl.read_parquet(pq_dir / "**/*.parquet")
+            except Exception:
+                continue
+            if "uuid" in df.columns:
+                df = df.unique(subset=["uuid"], keep="first")
+            LOGGER.info(f"  {label}: {len(df)} rows loaded, iterating...")
+            for row in df.iter_rows(named=True):
+                uuid = row.get("uuid")
+                if not uuid:
                     continue
-                seen_uuids.add(uuid)
-                yield uuid, model.to_polars_dict(exclude_none=True)
-            del models, chunk
+                yield uuid, _clean_row(row)
+                count += 1
+                if count % 20000 == 0:
+                    LOGGER.info(f"AllIdentifiers: streamed {count} entries")
+            del df
+            gc.collect()
 
-        del cards_df
+        LOGGER.info(f"Built AllIdentifiers with {count} entries")
 
-        LOGGER.info("Loading all tokens for AllIdentifiers...")
-        tokens_lf = self.load_all_tokens()
-        tokens_df = tokens_lf.collect()
 
-        if not tokens_df.is_empty():
-            for start in range(0, len(tokens_df), self.CHUNK_SIZE):
-                chunk = tokens_df.slice(start, self.CHUNK_SIZE)
-                token_models = CardToken.from_dataframe(chunk)
-                for token in token_models:
-                    uuid = token.uuid
-                    if uuid in seen_uuids:
-                        continue
-                    seen_uuids.add(uuid)
-                    yield uuid, token.to_polars_dict(exclude_none=True)
-                del token_models, chunk
+_WUBRG_ORDER = {"W": 0, "U": 1, "B": 2, "R": 3, "G": 4}
+_WUBRG_COLOR_LAYOUTS = frozenset({"split", "adventure"})
 
-        del tokens_df
 
-        LOGGER.info(f"Built AllIdentifiers with {len(seen_uuids)} entries")
+def _clean_row(row: dict[str, Any]) -> dict[str, Any]:
+    """Clean a parquet row dict for JSON output.
+
+    Parquet columns are already camelCase-aliased so no field renaming
+    is needed.  This applies the same rules as PolarsMixin.to_output_dict()
+    but without the Pydantic round-trip:
+    - Drop None values
+    - Ensure legalities/purchaseUrls are at least ``{}``
+    - Omit empty lists in OMIT_EMPTY_LIST_FIELDS
+    - Sort lists in SORTED_LIST_FIELDS
+    - Remap rulings: publishedAt→date, comment→text, drop source
+    - Sort rulings by (date, text); foreignData by language
+    - Drop falsey scalars outside ALLOW_IF_FALSEY
+    - Convert struct dicts: recursively drop None from nested dicts/lists
+    """
+    result: dict[str, Any] = {}
+
+    for key, value in row.items():
+        if value is None:
+            # legalities/purchaseUrls must exist as empty dicts
+            if key in ("legalities", "purchaseUrls"):
+                result[key] = {}
+            continue
+
+        if isinstance(value, dict):
+            cleaned = _clean_struct(value)
+            if key in ("legalities", "purchaseUrls"):
+                result[key] = cleaned if cleaned else {}
+            elif cleaned or key in ALLOW_IF_FALSEY:
+                result[key] = cleaned
+            continue
+
+        if isinstance(value, list):
+            if not value:
+                if key not in OMIT_EMPTY_LIST_FIELDS:
+                    result[key] = value
+                continue
+            # Clean nested structs in lists
+            if isinstance(value[0], dict):
+                if key == "rulings":
+                    # Remap Scryfall field names → MTGJSON aliases
+                    cleaned_list = _remap_rulings(value)
+                    result[key] = sorted(
+                        cleaned_list,
+                        key=lambda r: (r.get("date", ""), r.get("text", "")),
+                    )
+                elif key == "foreignData":
+                    cleaned_list = [_clean_struct(v) for v in value]
+                    result[key] = sorted(cleaned_list, key=lambda r: r.get("language", ""))
+                else:
+                    result[key] = [_clean_struct(v) for v in value]
+            elif key in SORTED_LIST_FIELDS:
+                try:
+                    result[key] = sorted(value)
+                except TypeError:
+                    result[key] = value
+            else:
+                result[key] = value
+            continue
+
+        # Scalars: drop falsey values outside allow-list
+        if key not in ALLOW_IF_FALSEY:
+            if value is False or value == "":
+                continue
+        result[key] = value
+
+    # Preserve WUBRG color order for split/adventure layouts
+    layout = result.get("layout")
+    if layout in _WUBRG_COLOR_LAYOUTS and "colors" in result and result["colors"]:
+        result["colors"] = sorted(result["colors"], key=lambda c: _WUBRG_ORDER.get(c, 99))
+
+    return result
+
+
+def _remap_rulings(rulings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Remap Scryfall ruling fields to MTGJSON output names.
+
+    Scryfall stores: source, publishedAt, comment
+    MTGJSON outputs: date, text
+    """
+    result = []
+    for r in rulings:
+        out: dict[str, Any] = {}
+        for k, v in r.items():
+            if v is None:
+                continue
+            if k == "publishedAt":
+                out["date"] = v
+            elif k == "comment":
+                out["text"] = v
+            elif k == "source":
+                # Dropped from output
+                continue
+            else:
+                out[k] = v
+        if out:
+            result.append(out)
+    return result
+
+
+def _clean_struct(d: dict[str, Any]) -> dict[str, Any]:
+    """Recursively drop None values from a nested struct dict."""
+    result: dict[str, Any] = {}
+    for k, v in d.items():
+        if v is None:
+            continue
+        if isinstance(v, dict):
+            cleaned = _clean_struct(v)
+            if cleaned:
+                result[k] = cleaned
+        elif isinstance(v, list):
+            if v and isinstance(v[0], dict):
+                result[k] = [_clean_struct(item) for item in v]
+            elif v:
+                result[k] = v
+        else:
+            result[k] = v
+    return result
 
     def build(self) -> dict[str, dict[str, Any]]:
         """Build AllIdentifiers data dict.

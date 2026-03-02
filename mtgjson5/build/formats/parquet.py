@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import pathlib
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -137,10 +138,22 @@ class ParquetBuilder:
         from mtgjson5.build.price_builder import PolarsPriceBuilder
 
         builder = PolarsPriceBuilder()
-        all_prices_df, today_df = builder.build_prices_parquet()
+        all_prices_lf, today_df = builder.build_prices_parquet()
 
-        if len(all_prices_df) > 0:
-            _write(all_prices_df, output_dir / "AllPrices.parquet")
+        # Stream archive → output parquet via sink
+        output_all = output_dir / "AllPrices.parquet"
+        try:
+            all_prices_lf.sink_parquet(output_all, compression=_COMPRESSION, compression_level=_COMPRESSION_LEVEL)
+            LOGGER.info(f"  {output_all.name}: written via streaming sink")
+        except Exception:
+            # Fallback: collect + write if sink fails
+            df = all_prices_lf.collect()
+            _write(df, output_all)
+            del df
+
+        del all_prices_lf
+        gc.collect()
+
         if len(today_df) > 0:
             _write(today_df, output_dir / "AllPricesToday.parquet")
 
@@ -168,6 +181,7 @@ class ParquetBuilder:
         cards_df = self.ctx.all_cards_df
         if cards_df is not None:
             _write(cards_df, output_dir / "AllPrintings.parquet")
+            del cards_df
 
         # Write meta
         meta = MtgjsonMeta()
@@ -186,6 +200,10 @@ class ParquetBuilder:
         self._write_deck_list(output_dir)
         self._write_all_decks(output_dir)
         self._write_tcgplayer_skus(output_dir)
+
+        # Release card data before prices — frees all_cards_df
+        # so it doesn't overlap with price builder memory.
+        self.ctx.release_card_data()
         self._write_prices(output_dir)
 
         LOGGER.info(f"Wrote Parquet files to {output_dir}")

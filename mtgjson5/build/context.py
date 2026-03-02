@@ -496,3 +496,26 @@ class AssemblyContext:
         from .assemble import AllIdentifiersAssembler
 
         return AllIdentifiersAssembler(self)
+
+    def release_card_data(self) -> None:
+        """Free card/token DataFrames and assembler caches.
+
+        Evicts heavy ``@cached_property`` values so the GC can reclaim them.
+        Does NOT evict ``normalized_tables`` or ``normalized_boosters`` which
+        may still be needed by export format builders.
+        """
+        import gc
+
+        for attr in (
+            "all_cards_df",
+            "all_tokens_df",
+            "sets_df",
+            "sets",
+            "atomic_cards",
+            "set_list",
+            "tcgplayer_skus",
+            "all_identifiers",
+        ):
+            self.__dict__.pop(attr, None)
+        gc.collect()
+        LOGGER.info("Released card data caches from AssemblyContext")
