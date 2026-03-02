@@ -169,6 +169,13 @@ def parse_args() -> argparse.Namespace:
         help="Also enable tracemalloc for Python allocation tracking (adds significant overhead). Implies --profile.",
     )
     pipeline_group.add_argument(
+        "--batch-size",
+        type=lambda s: s if s.lower() == "auto" else int(s),
+        default="auto",
+        metavar="N",
+        help="Sets per pipeline batch. Defaults to 'auto' (~50 sets/batch). Use an integer for custom batch size.",
+    )
+    pipeline_group.add_argument(
         "--generate-types",
         nargs="?",
         const="",
@@ -254,6 +261,8 @@ def parse_args() -> argparse.Namespace:
         parsed_args.outputs = list(filter(None, os.environ.get("OUTPUTS", "").split(","))) or None
         parsed_args.export_formats = list(filter(None, os.environ.get("EXPORT_FORMATS", "").lower().split(","))) or None
         parsed_args.build_all = bool(os.environ.get("MTGJSON_BUILD_ALL", False))
+        batch_env = os.environ.get("MTGJSON_BATCH_SIZE", "auto")
+        parsed_args.batch_size = (batch_env if batch_env.lower() == "auto" else int(batch_env)) if batch_env else "auto"
         set_build_all_flags(parsed_args)
 
     return parsed_args

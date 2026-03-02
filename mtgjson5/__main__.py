@@ -3,6 +3,7 @@ MTGJSON Main Executor
 """
 
 import argparse
+import gc
 import logging
 import traceback
 
@@ -20,6 +21,47 @@ from mtgjson5.data import GlobalCache
 from mtgjson5.utils import load_local_set_data
 
 SCRYFALL_SETS_URL = "https://api.scryfall.com/sets/"
+
+
+def _run_exports_subprocess(
+    export_formats: list[str] | None = None,
+    price_build: bool = False,
+    profile: bool = False,
+) -> None:
+    """Run exports and/or price build in an isolated subprocess.
+
+    Polars' memory allocator never returns memory to the OS within a process.
+    By running exports + prices in a child process, all Polars allocations are
+    fully reclaimed when the child exits.
+
+    Uses the ``spawn`` start method explicitly so Linux doesn't default to
+    ``fork`` (which would COW-copy the parent's address space, defeating
+    the purpose of isolation).
+    """
+    import multiprocessing
+
+    from mtgjson5._subprocess_exports import run_exports
+
+    mp_ctx = multiprocessing.get_context("spawn")
+    error_queue: multiprocessing.Queue[str] = mp_ctx.Queue()
+
+    LOGGER.info("Launching exports/prices subprocess...")
+    proc = mp_ctx.Process(
+        target=run_exports,
+        args=(export_formats, price_build, error_queue),
+    )
+    proc.start()
+    proc.join()
+
+    # Propagate child errors to parent
+    if not error_queue.empty():
+        error_msg = error_queue.get_nowait()
+        raise RuntimeError(f"Exports subprocess failed:\n{error_msg}")
+
+    if proc.exitcode != 0:
+        raise RuntimeError(f"Exports subprocess exited with code {proc.exitcode}")
+
+    LOGGER.info("Exports/prices subprocess completed successfully")
 
 
 def get_sets_to_build(args: argparse.Namespace) -> list[str]:
@@ -85,7 +127,7 @@ def dispatcher(args: argparse.Namespace) -> None:
     from mtgjson5.mtgjson_config import MtgjsonConfig
     from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
     from mtgjson5.pipeline.core import build_cards
-    from mtgjson5.profiler import get_profiler, init_profiler
+    from mtgjson5.profiler import init_profiler
     from mtgjson5.utils import generate_output_file_hashes
 
     use_tracemalloc = getattr(args, "profile_tracemalloc", False)
@@ -137,11 +179,14 @@ def dispatcher(args: argparse.Namespace) -> None:
     ctx.consolidate_lookups()
     profiler.checkpoint("lookups_consolidated")
 
+    assembly_ctx = None  # Shared across assembly, exports, and referrals
+
     if sets_to_build or decks_only:
-        build_cards(ctx)
+        batch_size = getattr(args, "batch_size", "auto")
+        build_cards(ctx, batch_size=batch_size)
         profiler.checkpoint("pipeline_complete", top_n=10)
 
-        # Phase A: release pipeline-only frames before assembly
+        # Release pipeline-only frames before assembly
         # Data is now on disk as partitioned parquet — free the in-memory
         # LazyFrames/DataFrames that were only needed for the card pipeline.
         ctx.release_pipeline_data()
@@ -158,7 +203,7 @@ def dispatcher(args: argparse.Namespace) -> None:
             # Model-based assembly with Pydantic types
             outputs_set = set(args.outputs) if args.outputs else None
             set_codes = sets_to_build if sets_only else None
-            results = assemble_with_models(
+            results, assembly_ctx = assemble_with_models(
                 ctx,
                 streaming=True,
                 set_codes=set_codes,
@@ -169,7 +214,7 @@ def dispatcher(args: argparse.Namespace) -> None:
             LOGGER.info(f"Model assembly results: {results}")
         else:
             set_codes = sets_to_build if sets_only else None
-            assemble_json_outputs(
+            _, assembly_ctx = assemble_json_outputs(
                 ctx,
                 parallel=True,
                 max_workers=30,
@@ -184,19 +229,16 @@ def dispatcher(args: argparse.Namespace) -> None:
     should_export = args.full_build or export_formats or (args.outputs and not decks_only)
     if sets_only and not export_formats:
         should_export = False
-    if should_export:
-        from mtgjson5.build.writer import OutputWriter
 
-        OutputWriter.from_args(ctx).write_all()
-        profiler.checkpoint("exports_complete")
-
-    # Referral map build (runs after card/export build if --referrals specified)
+    # Referral map build
     if args.referrals:
-        from mtgjson5.build.context import AssemblyContext
         from mtgjson5.build.referral_builder import build_and_write_referral_map
 
         LOGGER.info("Building referral map...")
-        assembly_ctx = AssemblyContext.from_pipeline(ctx)
+        if assembly_ctx is None:
+            from mtgjson5.build.context import AssemblyContext
+
+            assembly_ctx = AssemblyContext.from_cache() or AssemblyContext.from_pipeline(ctx)
         referral_count = build_and_write_referral_map(
             ctx=ctx,
             parquet_dir=assembly_ctx.parquet_dir,
@@ -205,20 +247,26 @@ def dispatcher(args: argparse.Namespace) -> None:
         )
         LOGGER.info(f"Referral map written: {referral_count:,} entries")
 
-    # All assembly/export/referral work is done — release remaining cache frames
-    GlobalCache().release_assembly_frames()
-    profiler.checkpoint("assembly_frames_released")
+    if should_export or args.price_build:
+        # Release parent memory before subprocess
+        if assembly_ctx is not None:
+            del assembly_ctx
+        gc.collect()
+        GlobalCache().release_assembly_frames()
+        profiler.checkpoint("assembly_frames_released")
 
-    # Price build (runs after card build if --price-build specified)
-    if args.price_build:
-        from mtgjson5.build.price_builder import PolarsPriceBuilder
-
-        LOGGER.info("Building prices...")
-        all_prices_path, today_prices_path = PolarsPriceBuilder().build_prices()
-        if all_prices_path is None:
-            LOGGER.error("Price build failed")
-        else:
-            LOGGER.info(f"Price files written: {all_prices_path}, {today_prices_path}")
+        _run_exports_subprocess(
+            export_formats=list(export_formats) if export_formats else None,
+            price_build=args.price_build,
+            profile=args.profile,
+        )
+        profiler.checkpoint("subprocess_complete")
+    else:
+        if assembly_ctx is not None:
+            del assembly_ctx
+        gc.collect()
+        GlobalCache().release_assembly_frames()
+        profiler.checkpoint("assembly_frames_released")
 
     if args.compress:
         if args.parallel:
