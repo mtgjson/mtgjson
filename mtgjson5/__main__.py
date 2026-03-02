@@ -41,6 +41,7 @@ def _run_exports_subprocess(
     import multiprocessing
 
     from mtgjson5._subprocess_exports import run_exports
+    from mtgjson5.utils import get_log_file
 
     mp_ctx = multiprocessing.get_context("spawn")
     error_queue: multiprocessing.Queue[str] = mp_ctx.Queue()
@@ -48,7 +49,7 @@ def _run_exports_subprocess(
     LOGGER.info("Launching exports/prices subprocess...")
     proc = mp_ctx.Process(
         target=run_exports,
-        args=(export_formats, price_build, error_queue),
+        args=(export_formats, price_build, error_queue, get_log_file()),
     )
     proc.start()
     proc.join()
