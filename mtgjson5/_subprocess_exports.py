@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import traceback
 from multiprocessing import Queue
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from mtgjson5.build.writer import FormatType, UnifiedOutputWriter
@@ -25,6 +25,8 @@ def _run_price_build(
     do_json_prices: bool,
     error_queue: Queue[str],
     log_file: str | None = None,
+    profile: bool = False,
+    profile_queue: Queue[dict[str, Any]] | None = None,
 ) -> None:
     """Subprocess target for price builds (parquet + JSON).
 
@@ -38,6 +40,11 @@ def _run_price_build(
         init_logger(log_file)
         _log = logging.getLogger(__name__)
 
+        from mtgjson5.profiler import SubprocessProfiler
+
+        sp = SubprocessProfiler(label="prices", enabled=profile)
+        sp.start()
+
         if parquet_output_dir:
             import pathlib
 
@@ -45,6 +52,7 @@ def _run_price_build(
             from mtgjson5.build.formats.parquet import write_price_parquet
 
             write_price_parquet(pathlib.Path(parquet_output_dir))
+            sp.checkpoint("price_parquet_complete")
             _log.info("Price subprocess: price parquet complete")
 
         if do_json_prices:
@@ -52,7 +60,12 @@ def _run_price_build(
             from mtgjson5.build.price_builder import PolarsPriceBuilder
 
             PolarsPriceBuilder().build_prices()
+            sp.checkpoint("price_json_complete")
             _log.info("Price subprocess: JSON price build complete")
+
+        sp.checkpoint("finish")
+        if profile_queue is not None:
+            profile_queue.put(sp.to_dict())
     except Exception as exc:
         error_queue.put(f"price build: {exc}\n{traceback.format_exc()}")
 
@@ -67,6 +80,8 @@ def run_exports(
     do_prices: bool,
     error_queue: Queue[str],
     log_file: str | None = None,
+    profile: bool = False,
+    profile_queue: Queue[dict[str, Any]] | None = None,
 ) -> None:
     """Entry point for the exports/prices subprocess.
 
@@ -86,6 +101,11 @@ def run_exports(
         init_logger(log_file)
         _log = logging.getLogger(__name__)
 
+        from mtgjson5.profiler import SubprocessProfiler
+
+        sp = SubprocessProfiler(label="exports", enabled=profile)
+        sp.start()
+
         # Early exit: nothing to do
         if not formats and not do_prices:
             return
@@ -96,6 +116,7 @@ def run_exports(
             from mtgjson5.build.writer import UnifiedOutputWriter
 
             writer = UnifiedOutputWriter.from_cache()
+            sp.checkpoint("cache_loaded")
             if writer is None:
                 _log.warning("Subprocess: no assembly cache found, skipping exports")
                 formats = None
@@ -107,19 +128,25 @@ def run_exports(
         # Parallel path: price subprocess || remaining format exports
         if needs_prices and remaining and writer is not None:
             _log.info("Exports: parallel mode (prices subprocess + format exports)")
-            _run_parallel(writer, formats, remaining, has_parquet, do_prices, _log)
+            _run_parallel(writer, formats, remaining, has_parquet, do_prices, _log, sp)
         else:
             # Sequential path — no parallelism opportunity
             _log.info("Exports: sequential mode")
             if formats and writer is not None:
                 writer.write_all(cast("list[FormatType]", formats))
+                sp.checkpoint("formats_complete")
                 _log.info("Subprocess: exports complete")
             if do_prices:
                 _log.info("Subprocess: running price build")
                 from mtgjson5.build.price_builder import PolarsPriceBuilder
 
                 PolarsPriceBuilder().build_prices()
+                sp.checkpoint("prices_complete")
                 _log.info("Subprocess: price build complete")
+
+        sp.checkpoint("finish")
+        if profile_queue is not None:
+            profile_queue.put(sp.to_dict())
     except Exception as exc:
         error_queue.put(f"{exc}\n{traceback.format_exc()}")
 
@@ -131,6 +158,7 @@ def _run_parallel(
     has_parquet: bool,
     do_prices: bool,
     _log: logging.Logger,
+    sp: Any = None,
 ) -> None:
     """Parallel export path: prices in subprocess, formats in-process.
 
@@ -149,12 +177,16 @@ def _run_parallel(
 
         parquet_builder = ParquetBuilder(writer.ctx)
         parquet_builder.write(include_prices=False)
+        if sp:
+            sp.checkpoint("parquet_data_complete")
         _log.info("Exports: parquet data writes complete (prices deferred)")
 
     # Build normalized_tables while card data is still cached,
     # then release heavy card DataFrames.
     _ = writer.ctx.normalized_tables
     writer.ctx.release_card_data()
+    if sp:
+        sp.checkpoint("normalized_tables_built")
     _log.info("Exports: normalized_tables built, card data released")
 
     # Phase 2a: Spawn price subprocess
@@ -162,11 +194,14 @@ def _run_parallel(
 
     from mtgjson5.utils import get_log_file
 
+    profile_enabled = sp.enabled if sp else False
     mp_ctx = multiprocessing.get_context("spawn")
     price_error_queue: Queue[str] = mp_ctx.Queue()
+    price_profile_queue: Queue[dict[str, Any]] | None = mp_ctx.Queue() if profile_enabled else None
     price_proc = mp_ctx.Process(
         target=_run_price_build,
-        args=(parquet_dir, do_prices, price_error_queue, get_log_file()),
+        args=(parquet_dir, do_prices, price_error_queue, get_log_file(),
+              profile_enabled, price_profile_queue),
     )
     price_proc.start()
     _log.info("Exports: price subprocess spawned")
@@ -174,6 +209,8 @@ def _run_parallel(
     # Phase 2b: Run remaining formats in-process (only need normalized_tables)
     for fmt in remaining:
         writer.write(cast("FormatType", fmt))
+    if sp:
+        sp.checkpoint("formats_complete")
     _log.info("Exports: remaining formats complete")
 
     # Phase 3: Wait for price subprocess
@@ -188,5 +225,11 @@ def _run_parallel(
     if not price_error_queue.empty():
         err = price_error_queue.get_nowait()
         _log.error(f"Price subprocess error: {err}")
+
+    # Collect nested price subprocess profile
+    if price_profile_queue is not None and not price_profile_queue.empty():
+        price_profile = price_profile_queue.get_nowait()
+        if sp:
+            sp.add_nested_profile(price_profile)
 
     _log.info("Exports: all complete (parallel)")

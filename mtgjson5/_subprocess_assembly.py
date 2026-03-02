@@ -25,9 +25,11 @@ def run_assembly_group(
     set_codes: list[str] | None,
     sets_only: bool,
     include_decks: bool,
-    results_queue: Queue[dict[str, int]],
+    results_queue: Queue[dict[str, Any]],
     error_queue: Queue[str],
     log_file: str | None = None,
+    profile: bool = False,
+    group_label: str = "",
 ) -> None:
     """Execute a list of assembly tasks in an isolated subprocess.
 
@@ -41,6 +43,8 @@ def run_assembly_group(
         results_queue: Queue to put results dict on completion
         error_queue: Queue to put error strings on failure
         log_file: Parent's log file path (all subprocesses share one log)
+        profile: Whether to collect RSS checkpoints
+        group_label: Group identifier for profiler label (e.g. "A")
     """
     try:
         from mtgjson5.utils import init_logger
@@ -48,10 +52,17 @@ def run_assembly_group(
         init_logger(log_file)
         _log = logging.getLogger(__name__)
 
+        from mtgjson5.profiler import SubprocessProfiler
+
+        sp = SubprocessProfiler(label=f"assembly_{group_label}", enabled=profile)
+        sp.start()
+
         from mtgjson5.build.context import AssemblyContext
         from mtgjson5.build.formats.json import JsonOutputBuilder
 
         ctx = AssemblyContext.from_cache()
+        sp.checkpoint("cache_loaded")
+
         if ctx is None:
             error_queue.put("AssemblyContext cache not found")
             return
@@ -60,13 +71,16 @@ def run_assembly_group(
         builder = JsonOutputBuilder(ctx)
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
-        results: dict[str, int] = {}
+        results: dict[str, Any] = {}
 
         for task in tasks:
             _log.info(f"Subprocess: building {task}")
             _run_task(task, builder, ctx, out, set_codes, sets_only, include_decks, results)
+            sp.checkpoint(f"task_{task}")
             _log.info(f"Subprocess: {task} complete")
 
+        sp.checkpoint("finish")
+        results["_profile"] = sp.to_dict()
         results_queue.put(results)
     except Exception as exc:
         error_queue.put(f"assembly group {tasks}: {exc}\n{traceback.format_exc()}")

@@ -64,6 +64,8 @@ def _spawn_assembly_group(
     set_codes: list[str] | None,
     sets_only: bool,
     include_decks: bool,
+    profile: bool = False,
+    group_label: str = "",
 ) -> tuple[multiprocessing.process.BaseProcess, multiprocessing.Queue, multiprocessing.Queue]:
     """Spawn a subprocess for an assembly task group.
 
@@ -89,6 +91,8 @@ def _spawn_assembly_group(
             results_queue,
             error_queue,
             get_log_file(),
+            profile,
+            group_label,
         ),
     )
     proc.start()
@@ -538,6 +542,7 @@ class JsonOutputBuilder:
         )
 
         # Scheduler: run groups with limited concurrency.
+        is_profiling = profiler.enabled
         results: dict[str, int] = {}
         active: list[tuple[str, multiprocessing.process.BaseProcess, multiprocessing.Queue, multiprocessing.Queue]] = []
         group_queue = list(groups_to_run)
@@ -549,6 +554,7 @@ class JsonOutputBuilder:
             while group_queue and len(active) < max_concurrent:
                 label, tasks = group_queue.pop(0)
                 LOGGER.info(f"Assembly: spawning group {label} {tasks}")
+                profiler.checkpoint_with_children(f"assembly/spawn_{label}")
                 proc, rq, eq = _spawn_assembly_group(
                     tasks,
                     output_dir_str,
@@ -556,6 +562,8 @@ class JsonOutputBuilder:
                     valid_codes,
                     sets_only,
                     include_decks,
+                    profile=is_profiling,
+                    group_label=label,
                 )
                 active.append((label, proc, rq, eq))
 
@@ -576,7 +584,11 @@ class JsonOutputBuilder:
                         LOGGER.error(f"Assembly subprocess {label} error: {err}")
                     while not rq.empty():
                         group_results = rq.get_nowait()
+                        sp_profile = group_results.pop("_profile", None)
+                        if sp_profile:
+                            profiler.add_subprocess_profile(sp_profile)
                         results.update(group_results)
+                    profiler.checkpoint_with_children(f"assembly/joined_{label}")
                     LOGGER.info(f"Assembly: group {label} complete (exit code {proc.exitcode})")
 
         # Handle AllPrices if explicitly requested (via --outputs AllPrices).
@@ -587,7 +599,7 @@ class JsonOutputBuilder:
             price_results = self.write_prices(output_dir)
             results.update(price_results)
 
-        profiler.checkpoint("assembly/subprocess_complete")
+        profiler.checkpoint_with_children("assembly/subprocess_complete")
         LOGGER.info(f"Assembly complete (subprocess): {sum(results.values())} total records")
         return results
 

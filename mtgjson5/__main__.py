@@ -45,14 +45,23 @@ def _run_exports_subprocess(
 
     mp_ctx = multiprocessing.get_context("spawn")
     error_queue: multiprocessing.Queue[str] = mp_ctx.Queue()
+    profile_queue: multiprocessing.Queue[dict] | None = mp_ctx.Queue() if profile else None
 
     LOGGER.info("Launching exports/prices subprocess...")
     proc = mp_ctx.Process(
         target=run_exports,
-        args=(export_formats, price_build, error_queue, get_log_file()),
+        args=(export_formats, price_build, error_queue, get_log_file(),
+              profile, profile_queue),
     )
     proc.start()
     proc.join()
+
+    # Collect subprocess profile before error check
+    if profile_queue is not None and not profile_queue.empty():
+        from mtgjson5.profiler import get_profiler
+
+        sp_profile = profile_queue.get_nowait()
+        get_profiler().add_subprocess_profile(sp_profile)
 
     # Propagate child errors to parent
     if not error_queue.empty():
@@ -256,12 +265,13 @@ def dispatcher(args: argparse.Namespace) -> None:
         GlobalCache().release_assembly_frames()
         profiler.checkpoint("assembly_frames_released")
 
+        profiler.checkpoint_with_children("pre_exports_subprocess")
         _run_exports_subprocess(
             export_formats=list(export_formats) if export_formats else None,
             price_build=args.price_build,
             profile=args.profile,
         )
-        profiler.checkpoint("subprocess_complete")
+        profiler.checkpoint_with_children("post_exports_subprocess")
     else:
         if assembly_ctx is not None:
             del assembly_ctx
