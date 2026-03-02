@@ -4,6 +4,7 @@ Polars-based Price Builder for MTGJSON v2.
 
 import asyncio
 import datetime
+import gc
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -176,6 +177,14 @@ class PriceBuilderContext:
                 result[mtgo_id].add(uuid)
         return result
 
+    def release(self) -> None:
+        """Free ID-mapping dicts (no longer needed after fetch)."""
+        self._tcg_to_uuid = None
+        self._tcg_etched_to_uuid = None
+        self._mtgo_to_uuid = None
+        self._scryfall_to_uuid = None
+        self._cache = None
+
     def _build_scryfall_to_uuid(self) -> dict[str, str]:
         """Build Scryfall ID -> single UUID mapping from pipeline-derived cache.
 
@@ -288,6 +297,7 @@ class PolarsPriceBuilder:
             if len(tcg_df) > 0:
                 frames.append(tcg_df)
                 LOGGER.info(f"  TCGPlayerPriceProvider: {len(tcg_df):,} price points")
+            del tcg_df
 
         # Fetch CardHoarder (MTGO) - simple bulk
         LOGGER.info("Fetching CardHoarder prices")
@@ -296,6 +306,7 @@ class PolarsPriceBuilder:
             if len(ch_df) > 0:
                 frames.append(ch_df)
                 LOGGER.info(f"  CardHoarderPriceProvider: {len(ch_df):,} price points")
+            del ch_df
 
         # Fetch Manapool - simple bulk
         LOGGER.info("Fetching Manapool prices")
@@ -304,15 +315,18 @@ class PolarsPriceBuilder:
             if len(manapool_df) > 0:
                 frames.append(manapool_df)
                 LOGGER.info(f"  ManapoolPriceProvider: {len(manapool_df):,} price points")
+            del manapool_df
 
         # Fetch CardMarket - bulk API
         LOGGER.info("Fetching CardMarket prices")
         mcm_dict = await self._mcm_provider.generate_today_price_dict(self.all_printings_path)
         if mcm_dict:
             mcm_df = self._prices_dict_to_dataframe(mcm_dict)
+            del mcm_dict
             if len(mcm_df) > 0:
                 frames.append(mcm_df)
                 LOGGER.info(f"  CardMarketProvider: {len(mcm_df):,} price points")
+            del mcm_df
         await self._mcm_provider.close()
 
         # Fetch CardKingdom - async fetch, convert to DataFrame
@@ -322,9 +336,11 @@ class PolarsPriceBuilder:
             ck_pricing_df = self._ck_provider.get_pricing_df()
             if len(ck_pricing_df) > 0:
                 ck_df = self._convert_ck_pricing(ck_pricing_df, scryfall_to_uuid or {})
+                del ck_pricing_df
                 if len(ck_df) > 0:
                     frames.append(ck_df)
                     LOGGER.info(f"  CKProvider: {len(ck_df):,} price points")
+                del ck_df
         except Exception as e:
             LOGGER.warning(f"Failed to fetch CardKingdom prices: {e}")
 
@@ -332,7 +348,15 @@ class PolarsPriceBuilder:
             LOGGER.warning("No price data collected from providers")
             return pl.DataFrame(schema=PRICE_SCHEMA)
 
-        return pl.concat(frames)
+        result = pl.concat(frames)
+        del frames
+        self._tcg_provider = None
+        self._ch_provider = None
+        self._manapool_provider = None
+        self._mcm_provider = None
+        self._ck_provider = None
+        gc.collect()
+        return result
 
     def build_today_prices(self, ctx: PriceBuilderContext | None = None) -> pl.DataFrame:
         """Sync wrapper for build_today_prices_async."""
@@ -669,7 +693,11 @@ class PolarsPriceBuilder:
 
         # Fetch today's prices from providers
         LOGGER.info("Fetching today's prices from V2 providers")
-        today_df = self.build_today_prices()
+        ctx = PriceBuilderContext.from_cache()
+        today_df = self.build_today_prices(ctx)
+        ctx.release()
+        del ctx
+        gc.collect()
 
         if len(today_df) == 0:
             LOGGER.warning("No price data generated")
@@ -708,10 +736,13 @@ class PolarsPriceBuilder:
         all_prices_path = output_path / "AllPrices.json"
         LOGGER.info(f"Streaming AllPrices.json to {all_prices_path}")
         self.stream_write_all_prices_json(archive_lf, all_prices_path)
+        del archive_lf
+        gc.collect()
 
         today_prices_path = output_path / "AllPricesToday.json"
         LOGGER.info(f"Streaming AllPricesToday.json to {today_prices_path}")
         self.stream_write_today_prices_json(today_df, today_prices_path)
+        gc.collect()
 
         # Write SQL formats for AllPricesToday
         LOGGER.info("Writing AllPricesToday SQL formats")
@@ -728,27 +759,37 @@ class PolarsPriceBuilder:
         LOGGER.info("Price build complete")
         return all_prices_path, today_prices_path
 
-    def build_prices_parquet(self) -> tuple[pl.DataFrame, pl.DataFrame]:
+    def build_prices_parquet(self) -> tuple[pl.LazyFrame, pl.DataFrame]:
         """
-        Build prices returning DataFrames instead of dicts.
+        Build prices, save archive, return lazy scan + today DataFrame.
 
         Returns:
-            Tuple of (all_prices_df, today_prices_df)
+            Tuple of (archive_lazy_frame, today_prices_df).
+            The archive LazyFrame is a scan of the saved parquet file.
         """
+        from mtgjson5.profiler import get_profiler
+
+        profiler = get_profiler()
         LOGGER.info("Polars Price Builder - Building Prices (Parquet mode, V2)")
 
         if not self.all_printings_path.is_file():
             LOGGER.info("AllPrintings not found, cannot build prices")
             empty = pl.DataFrame(schema=PRICE_SCHEMA)
-            return empty, empty
+            return empty.lazy(), empty
 
+        profiler.checkpoint("prices/fetch_start")
+        ctx = PriceBuilderContext.from_cache()
         LOGGER.info("Fetching today's prices from V2 providers")
-        today_df = self.build_today_prices()
+        today_df = self.build_today_prices(ctx)
+        ctx.release()
+        del ctx
+        gc.collect()
+        profiler.checkpoint("prices/fetch_complete")
 
         if len(today_df) == 0:
             LOGGER.warning("No price data generated")
             empty = pl.DataFrame(schema=PRICE_SCHEMA)
-            return empty, empty
+            return empty.lazy(), empty
 
         LOGGER.info("Loading price archive")
         archive_lf = self.load_archive()
@@ -760,10 +801,12 @@ class PolarsPriceBuilder:
         pruned_lf = self.prune_prices(merged_lf)
 
         LOGGER.info("Saving updated archive")
-        all_prices_df = pruned_lf.collect()
-        self.save_archive(all_prices_df.lazy())
+        archive_path = self.save_archive(pruned_lf)
+        gc.collect()
+        profiler.checkpoint("prices/archive_saved")
 
-        return all_prices_df, today_df
+        # Return lazy scan of saved archive — no full DF held in memory
+        return pl.scan_parquet(archive_path), today_df
 
     def load_archive_only(self) -> pl.LazyFrame:
         """Load existing archive without building new prices."""
