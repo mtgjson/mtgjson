@@ -428,13 +428,37 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
 
     del combined_df
 
+    # Cache mcmId → finishes for CardMarket price builder (subprocess)
+    _build_mcm_finishes_cache(lf)
+
+
+def _build_mcm_finishes_cache(lf: pl.LazyFrame) -> None:
+    """Cache mcmId → finishes mapping so the subprocess can skip AllPrintings.json parsing."""
+    cache_path = constants.CACHE_PATH
+    try:
+        finishes_df = (
+            lf.select(
+                pl.col("identifiers").struct.field("mcmId").alias("mcmId"),
+                pl.col("finishes"),
+            )
+            .filter(pl.col("mcmId").is_not_null())
+            .unique(subset=["mcmId"])
+            .collect()
+        )
+        if len(finishes_df) > 0:
+            path = cache_path / "mcm_finishes.parquet"
+            finishes_df.write_parquet(path)
+            LOGGER.info(f"Built mcm_finishes cache: {len(finishes_df):,} entries")
+    except Exception as e:
+        LOGGER.warning(f"Failed to build mcm_finishes cache: {e}")
+
 
 def build_id_mappings_from_parquet(ctx: PipelineContext) -> None:
     """Build ID -> UUID mappings by scanning all partitioned parquet files."""
     cards_dir = constants.CACHE_PATH / "_parquet"
     tokens_dir = constants.CACHE_PATH / "_parquet_tokens"
 
-    id_cols = ["uuid", "identifiers"]
+    id_cols = ["uuid", "identifiers", "finishes"]
 
     frames: list[pl.LazyFrame] = []
     for parquet_dir in [cards_dir, tokens_dir]:
