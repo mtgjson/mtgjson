@@ -143,7 +143,7 @@ def assemble_json_outputs(
     # Build AtomicCards.json
     LOGGER.info("Building AtomicCards.json...")
     atomic = json_builder.write_atomic_cards(output_path / "AtomicCards.json")
-    results["AtomicCards"] = len(atomic.data)
+    results["AtomicCards"] = atomic if isinstance(atomic, int) else len(atomic.data)
 
     # Build SetList.json
     LOGGER.info("Building SetList.json...")
@@ -321,7 +321,8 @@ class UnifiedOutputWriter:
         # Eagerly build normalized_tables (used by sqlite/csv/psql) while
         # all_cards_df is still cached, then free the heavy card DataFrames.
         _ = self.ctx.normalized_tables  # force build / cache hit
-        self.ctx.release_card_data()
+        if "parquet" not in formats:
+            self.ctx.release_card_data()
         LOGGER.info("Exports: released card data after parquet + normalized_tables")
 
         # Remaining formats only need normalized_tables (already cached)

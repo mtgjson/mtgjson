@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -29,7 +30,7 @@ def _get_rss_mb() -> float:
     try:
         import psutil
 
-        return psutil.Process(os.getpid()).memory_info().rss / _MB
+        return float(psutil.Process(os.getpid()).memory_info().rss / _MB)
     except ImportError:
         return -1.0
 
@@ -181,7 +182,7 @@ class PipelineProfiler:
         LOGGER.info("[profile] Summary written to %s", log_path)
 
     @contextmanager
-    def stage(self, name: str):
+    def stage(self, name: str) -> Iterator[None]:
         """Context manager that checkpoints before and after a named stage."""
         if not self.enabled:
             yield

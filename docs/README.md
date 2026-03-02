@@ -81,6 +81,7 @@ The Polars pipeline consists of four main layers:
 | [pipeline-context.md](pipeline-context.md) | PipelineContext class, consolidate_lookups(), derived tables |
 | [pipeline-core.md](pipeline-core.md) | Main build_cards() function, transformation stages, checkpoints |
 | [assembly-output.md](assembly-output.md) | AssemblyContext, format builders, output generation |
+| [subprocess-isolation.md](subprocess-isolation.md) | Subprocess isolation: memory management, task groups, scheduling |
 | [models.md](models.md) | Pydantic models: CardSet, CardAtomic, MtgSet, TypedDicts, adapters |
 | [prices.md](prices.md) | Price engine: provider fetching, date-partitioned data lake, S3 sync, output |
 | [documentation.md](documentation.md) | Pipeline-driven TypeScript types and VitePress documentation generation |

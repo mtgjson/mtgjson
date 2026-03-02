@@ -487,6 +487,7 @@ def _prepare_batch_lf(
     set_select_exprs: list[pl.Expr],
 ) -> pl.LazyFrame:
     """Filter cards_lf to a batch of set codes and join set metadata."""
+    assert ctx.cards_lf is not None, "cards_lf must be loaded before building"
     base_lf = ctx.cards_lf.with_columns(pl.col("set").str.to_uppercase().alias("_set_upper"))
     base_lf = base_lf.filter(pl.col("_set_upper").is_in(batch_codes))
 
@@ -504,4 +505,5 @@ def _prepare_batch_lf(
 
 def _get_all_set_codes(ctx: PipelineContext) -> list[str]:
     """Get all unique set codes from cards_lf."""
+    assert ctx.cards_lf is not None, "cards_lf must be loaded before building"
     return ctx.cards_lf.select(pl.col("set").str.to_uppercase().unique()).collect().to_series().sort().to_list()

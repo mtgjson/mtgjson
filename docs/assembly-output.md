@@ -359,6 +359,12 @@ class UnifiedOutputWriter:
         """Write multiple formats."""
 ```
 
+## Subprocess Isolation
+
+By default, `JsonOutputBuilder.write_all()` runs each assembly task group in a separate subprocess to control jemalloc memory retention. This reduces peak RSS from ~5.9 GB to ~3.5 GB. See [subprocess-isolation.md](subprocess-isolation.md) for full details on task groups, scheduling, configuration, and how to add new tasks.
+
+Set `MTGJSON_NO_SUBPROCESS=1` to disable subprocess isolation and run all assembly in-process (useful for debugging).
+
 ## Format Builders
 
 ### JSON (`build/formats/json.py`)

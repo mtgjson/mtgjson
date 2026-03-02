@@ -347,6 +347,8 @@ python -m mtgjson5 --build-all --skip-mcm -p
 | `MTGJSON5_DEBUG=1` | Enable debug logging |
 | `MTGJSON5_OUTPUT_PATH=/path` | Override output directory |
 | `MTGJSON_OFFLINE_MODE=1` | Force offline testing mode |
+| `MTGJSON_NO_SUBPROCESS=1` | Disable subprocess isolation for assembly (run all in-process) |
+| `MTGJSON_MAX_ASSEMBLY_PROCS=N` | Max concurrent assembly subprocesses (default: 2). See [subprocess-isolation.md](subprocess-isolation.md) |
 
 ## Common Pitfalls
 

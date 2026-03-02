@@ -39,7 +39,7 @@ class IndividualSetFile(RecordFileBase):
     @classmethod
     def from_set_data(cls, set_data: dict[str, Any], meta: dict[str, str] | None = None) -> IndividualSetFile:
         """Create from set data dict."""
-        return cls.with_meta(set_data, meta)  # type: ignore[return-value]
+        return cls.with_meta(set_data, meta)
 
 
 class AllPrintingsFile(RecordFileBase):

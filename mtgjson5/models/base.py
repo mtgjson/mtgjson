@@ -4,6 +4,7 @@ MTGJSON base classes and mixins.
 
 from __future__ import annotations
 
+import contextlib
 import pathlib
 from typing import TYPE_CHECKING, Any, ClassVar, Self, get_args, get_origin
 
@@ -138,7 +139,10 @@ class PolarsMixin:
         time, so keys are NOT sorted in the returned dict.
         """
         # Rust-backed serialization (automatically drops None deeply)
-        d = self.model_dump(by_alias=True, exclude_none=True, mode="python")
+        # PolarsMixin is always used with BaseModel (via MRO)
+        d: dict[str, Any] = getattr(self, "model_dump")(  # noqa: B009
+            by_alias=True, exclude_none=True, mode="python"
+        )
 
         # MTGJSON Schema enforcement: These must exist as empty dicts if missing
         for req_dict in ("legalities", "purchaseUrls"):
@@ -160,10 +164,8 @@ class PolarsMixin:
                 else:
                     # Sort specific lists
                     if key in SORTED_LIST_FIELDS:
-                        try:
+                        with contextlib.suppress(TypeError):
                             d[key] = sorted(value)
-                        except TypeError:
-                            pass
                     # Sort rulings by date/text
                     elif key == "rulings" and isinstance(value[0], dict):
                         d[key] = sorted(value, key=lambda r: (r.get("date", ""), r.get("text", "")))
@@ -178,9 +180,8 @@ class PolarsMixin:
                 continue
 
             # Omit falsey scalars outside allow-list
-            if key not in self._allow_if_falsey:
-                if value is False or value == "":
-                    keys_to_drop.append(key)
+            if key not in self._allow_if_falsey and (value is False or value == ""):
+                keys_to_drop.append(key)
 
         # Apply deletions
         for key in keys_to_drop:
@@ -394,7 +395,7 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
         return {"date": date.today().isoformat(), "version": "5.3.0"}
 
     @classmethod
-    def with_meta(cls, data: Any, meta: dict[str, str] | None = None, *, validate: bool = True) -> MtgjsonFileBase:
+    def with_meta(cls, data: Any, meta: dict[str, str] | None = None, *, validate: bool = True) -> Self:
         """Create file with auto-generated meta if not provided.
 
         Args:
@@ -436,7 +437,7 @@ class MtgjsonFileBase(PolarsMixin, BaseModel):
             f.write(b"}")
 
     @classmethod
-    def read(cls, path: pathlib.Path) -> MtgjsonFileBase:
+    def read(cls, path: pathlib.Path) -> Self:
         """Read from JSON file."""
         if orjson is None:
             raise ImportError("orjson required")
@@ -494,7 +495,7 @@ class RecordFileBase(MtgjsonFileBase):
     @classmethod
     def from_items(cls, items: dict[str, Any], meta: dict[str, str] | None = None) -> RecordFileBase:
         """Create file from dictionary items."""
-        return cls.with_meta(items, meta)  # type: ignore[return-value]
+        return cls.with_meta(items, meta)
 
 
 class ListFileBase(MtgjsonFileBase):
@@ -503,4 +504,4 @@ class ListFileBase(MtgjsonFileBase):
     @classmethod
     def from_items(cls, items: list[Any], meta: dict[str, str] | None = None) -> ListFileBase:
         """Create file from list items."""
-        return cls.with_meta(items, meta)  # type: ignore[return-value]
+        return cls.with_meta(items, meta)
