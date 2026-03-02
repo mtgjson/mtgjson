@@ -395,7 +395,7 @@ class AtomicCardsAssembler(Assembler):
 
         # Narrow: only oracle identity + the 2 data columns needed for lookups
         lookup_cols = [
-            c for c in list(ORACLE_IDENTITY_COLS) + ["foreignData", "legalities"] if c in all_rows_df.columns
+            c for c in [*list(ORACLE_IDENTITY_COLS), "foreignData", "legalities"] if c in all_rows_df.columns
         ]
         lookup_rows = all_rows_df.select(lookup_cols).to_dicts()
 
@@ -960,7 +960,6 @@ class TcgplayerSkusAssembler(Assembler):
             printing, productId, skuId, finish.
         """
         sku_fields = ["condition", "language", "printing", "productId", "skuId"]
-        out_cols = ["uuid"] + sku_fields + ["finish"]
         parts: list[pl.LazyFrame] = []
 
         def _lazy_join(
@@ -971,7 +970,7 @@ class TcgplayerSkusAssembler(Assembler):
             uuid_lf = uuid_lf.with_columns(pl.col(id_col).cast(pl.Int64).alias("_pid")).select(["_pid", "uuid"])
             joined = flattened_lf.join(uuid_lf, left_on="productId", right_on="_pid", how="inner")
             finish_col = pl.lit("ETCHED") if is_etched else pl.lit(None, dtype=pl.String)
-            parts.append(joined.select(["uuid"] + sku_fields).with_columns(finish_col.alias("finish")))
+            parts.append(joined.select(["uuid", *sku_fields]).with_columns(finish_col.alias("finish")))
 
         # Normal products
         if self._tcg_to_uuid_lf is not None:
@@ -1005,7 +1004,7 @@ class TcgplayerSkusAssembler(Assembler):
                 )
                 joined = flattened_lf.join(sealed_lf, left_on="productId", right_on="_pid", how="inner")
                 parts.append(
-                    joined.select(["uuid"] + sku_fields).with_columns(pl.lit(None, dtype=pl.String).alias("finish"))
+                    joined.select(["uuid", *sku_fields]).with_columns(pl.lit(None, dtype=pl.String).alias("finish"))
                 )
 
         # Token products (build small DF from Python dict → LazyFrame)
@@ -1020,7 +1019,7 @@ class TcgplayerSkusAssembler(Assembler):
                 token_lf = pl.DataFrame(token_rows).lazy()
                 joined = flattened_lf.join(token_lf, left_on="productId", right_on="_pid", how="inner")
                 parts.append(
-                    joined.select(["uuid"] + sku_fields).with_columns(pl.lit(None, dtype=pl.String).alias("finish"))
+                    joined.select(["uuid", *sku_fields]).with_columns(pl.lit(None, dtype=pl.String).alias("finish"))
                 )
 
         return parts
@@ -1064,6 +1063,13 @@ class TcgplayerSkusAssembler(Assembler):
         del parts, flattened_lf
         gc.collect()
         LOGGER.info(f"TcgplayerSkus: collected {n_rows:,} flat rows, grouping by partition...")
+
+        # Cache flat result so subprocess parquet export can skip recomputation
+        from mtgjson5 import constants
+
+        cache_path = constants.CACHE_PATH / "_tcgplayer_skus_flat.parquet"
+        flat_df.write_parquet(cache_path, compression="zstd", compression_level=3)
+        LOGGER.info(f"TcgplayerSkus: cached flat result to {cache_path.name}")
 
         sku_fields = ["condition", "language", "printing", "productId", "skuId", "finish"]
         count = 0
@@ -1477,9 +1483,8 @@ def _clean_row(row: dict[str, Any]) -> dict[str, Any]:
             continue
 
         # Scalars: drop falsey values outside allow-list
-        if key not in ALLOW_IF_FALSEY:
-            if value is False or value == "":
-                continue
+        if key not in ALLOW_IF_FALSEY and (value is False or value == ""):
+            continue
         result[key] = value
 
     # Preserve WUBRG color order for split/adventure layouts
@@ -1534,14 +1539,6 @@ def _clean_struct(d: dict[str, Any]) -> dict[str, Any]:
         else:
             result[k] = v
     return result
-
-    def build(self) -> dict[str, dict[str, Any]]:
-        """Build AllIdentifiers data dict.
-
-        Returns:
-            Dict mapping UUID to full card/token data.
-        """
-        return dict(self.iter_entries())
 
 
 class EnumValuesAssembler(Assembler):
