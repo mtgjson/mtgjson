@@ -358,17 +358,24 @@ class SubprocessProfiler:
         prev_rss = self.snapshots[-1]["rss_mb"] if self.snapshots else rss_mb
         rss_delta = rss_mb - prev_rss
 
-        self.snapshots.append({
-            "name": name,
-            "wall_seconds": round(wall, 3),
-            "delta_seconds": round(delta, 3),
-            "rss_mb": round(rss_mb, 1),
-            "rss_delta_mb": round(rss_delta, 1),
-        })
+        self.snapshots.append(
+            {
+                "name": name,
+                "wall_seconds": round(wall, 3),
+                "delta_seconds": round(delta, 3),
+                "rss_mb": round(rss_mb, 1),
+                "rss_delta_mb": round(rss_delta, 1),
+            }
+        )
 
         LOGGER.info(
             "[profile:%s] %-40s  %7.1fs (+%.1fs)  RSS %7.1f MB (%+.1f)",
-            self.label, name, wall, delta, rss_mb, rss_delta,
+            self.label,
+            name,
+            wall,
+            delta,
+            rss_mb,
+            rss_delta,
         )
 
     def add_nested_profile(self, profile_dict: dict[str, Any]) -> None:
