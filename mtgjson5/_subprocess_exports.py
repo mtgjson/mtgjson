@@ -45,13 +45,15 @@ def _run_price_build(
         sp = SubprocessProfiler(label="prices", enabled=profile)
         sp.start()
 
+        today_df = None
+
         if parquet_output_dir:
             import pathlib
 
             _log.info("Price subprocess: writing price parquet files")
             from mtgjson5.build.formats.parquet import write_price_parquet
 
-            write_price_parquet(pathlib.Path(parquet_output_dir))
+            today_df = write_price_parquet(pathlib.Path(parquet_output_dir))
             sp.checkpoint("price_parquet_complete")
             _log.info("Price subprocess: price parquet complete")
 
@@ -59,7 +61,7 @@ def _run_price_build(
             _log.info("Price subprocess: running JSON price build")
             from mtgjson5.build.price_builder import PolarsPriceBuilder
 
-            PolarsPriceBuilder().build_prices()
+            PolarsPriceBuilder().build_prices(today_df=today_df)
             sp.checkpoint("price_json_complete")
             _log.info("Price subprocess: JSON price build complete")
 
@@ -200,8 +202,7 @@ def _run_parallel(
     price_profile_queue: Queue[dict[str, Any]] | None = mp_ctx.Queue() if profile_enabled else None
     price_proc = mp_ctx.Process(
         target=_run_price_build,
-        args=(parquet_dir, do_prices, price_error_queue, get_log_file(),
-              profile_enabled, price_profile_queue),
+        args=(parquet_dir, do_prices, price_error_queue, get_log_file(), profile_enabled, price_profile_queue),
     )
     price_proc.start()
     _log.info("Exports: price subprocess spawned")

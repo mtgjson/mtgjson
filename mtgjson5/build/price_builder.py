@@ -649,7 +649,10 @@ class PolarsPriceBuilder:
 
         LOGGER.info(f"Downloaded AllPrintings.json to {self.all_printings_path}")
 
-    def build_prices(self) -> tuple[Path | None, Path | None]:
+    def build_prices(
+        self,
+        today_df: pl.DataFrame | None = None,
+    ) -> tuple[Path | None, Path | None]:
         """
         Full price build with partitioned storage and streaming output.
 
@@ -660,6 +663,9 @@ class PolarsPriceBuilder:
         4. Uploads today's partition to S3 (append-only historical archive)
         5. Prunes old LOCAL partitions only (S3 keeps full history)
         6. Stream-writes JSON outputs filtered to 90 days
+
+        Args:
+            today_df: Pre-fetched today prices (skips provider fetch if given).
 
         Returns:
             Tuple of (all_prices_path, today_prices_path) or (None, None) on failure
@@ -691,13 +697,16 @@ class PolarsPriceBuilder:
         if downloaded > 0:
             LOGGER.info(f"Downloaded {downloaded} partitions from S3")
 
-        # Fetch today's prices from providers
-        LOGGER.info("Fetching today's prices from V2 providers")
-        ctx = PriceBuilderContext.from_cache()
-        today_df = self.build_today_prices(ctx)
-        ctx.release()
-        del ctx
-        gc.collect()
+        # Fetch today's prices from providers (skip if pre-fetched)
+        if today_df is None:
+            LOGGER.info("Fetching today's prices from V2 providers")
+            ctx = PriceBuilderContext.from_cache()
+            today_df = self.build_today_prices(ctx)
+            ctx.release()
+            del ctx
+            gc.collect()
+        else:
+            LOGGER.info("Using pre-fetched today prices (%s rows)", f"{len(today_df):,}")
 
         if len(today_df) == 0:
             LOGGER.warning("No price data generated")

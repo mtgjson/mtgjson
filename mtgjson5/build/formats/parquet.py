@@ -24,11 +24,13 @@ def _write(df: pl.DataFrame, path: pathlib.Path) -> None:
     LOGGER.info(f"  {path.name}: {df.height:,} rows")
 
 
-def write_price_parquet(output_dir: pathlib.Path) -> None:
+def write_price_parquet(output_dir: pathlib.Path) -> "pl.DataFrame":
     """Write AllPrices.parquet and AllPricesToday.parquet.
 
     Standalone function (no AssemblyContext needed) so it can be called
     from both ParquetBuilder and the price subprocess.
+
+    Returns the today_df so callers can reuse it (avoids re-fetching prices).
     """
     from mtgjson5.build.price_builder import PolarsPriceBuilder
 
@@ -51,6 +53,8 @@ def write_price_parquet(output_dir: pathlib.Path) -> None:
 
     if len(today_df) > 0:
         _write(today_df, output_dir / "AllPricesToday.parquet")
+
+    return today_df
 
 
 class ParquetBuilder:
