@@ -24,7 +24,7 @@ def _write(df: pl.DataFrame, path: pathlib.Path) -> None:
     LOGGER.info(f"  {path.name}: {df.height:,} rows")
 
 
-def write_price_parquet(output_dir: pathlib.Path) -> "pl.DataFrame":
+def write_price_parquet(output_dir: pathlib.Path) -> pl.DataFrame:
     """Write AllPrices.parquet and AllPricesToday.parquet.
 
     Standalone function (no AssemblyContext needed) so it can be called
