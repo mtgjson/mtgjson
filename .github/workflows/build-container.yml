@@ -45,8 +45,8 @@ jobs:
         with:
           image: "${{ steps.generate-tag.outputs.release_tag }}"
 
-      - name: Upload Image to Amazon ECR
-        if: ${{ steps.branch-name.outputs.current_branch == 'master' }}
+      - name: Upload Image to Amazon ECR (master)
+        if: ${{ github.event_name == 'push' && steps.branch-name.outputs.current_branch == 'master' }}
         id: upload-ecr
         uses: jwalton/gh-ecr-push@v2
         with:
@@ -55,3 +55,14 @@ jobs:
           region: us-east-1
           local-image: ${{ steps.generate-tag.outputs.release_tag }}
           image: ${{ steps.generate-tag.outputs.release_tag }}, mtgjson:${{ steps.commit.outputs.short }}, mtgjson:latest
+
+      - name: Upload Image to Amazon ECR (PR)
+        if: ${{ github.event_name == 'pull_request' }}
+        id: upload-ecr-pr
+        uses: jwalton/gh-ecr-push@v2
+        with:
+          access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_ECR_UPLOADER }}
+          secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ECR_UPLOADER }}
+          region: us-east-1
+          local-image: ${{ steps.generate-tag.outputs.release_tag }}
+          image: mtgjson-pull-requests:pr-${{ github.event.pull_request.number }}-${{ steps.commit.outputs.short }}, mtgjson-pull-requests:pr-${{ github.event.pull_request.number }}
