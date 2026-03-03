@@ -50,8 +50,7 @@ def _run_exports_subprocess(
     LOGGER.info("Launching exports/prices subprocess...")
     proc = mp_ctx.Process(
         target=run_exports,
-        args=(export_formats, price_build, error_queue, get_log_file(),
-              profile, profile_queue),
+        args=(export_formats, price_build, error_queue, get_log_file(), profile, profile_queue),
     )
     proc.start()
     proc.join()
@@ -129,10 +128,7 @@ def dispatcher(args: argparse.Namespace) -> None:
         return
 
     from mtgjson5.build.writer import assemble_json_outputs, assemble_with_models
-    from mtgjson5.compress_generator import (
-        compress_mtgjson_contents,
-        compress_mtgjson_contents_parallel,
-    )
+    from mtgjson5.compress_generator import compress_mtgjson_contents
     from mtgjson5.data import PipelineContext
     from mtgjson5.mtgjson_config import MtgjsonConfig
     from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
@@ -280,10 +276,7 @@ def dispatcher(args: argparse.Namespace) -> None:
         profiler.checkpoint("assembly_frames_released")
 
     if args.compress:
-        if args.parallel:
-            compress_mtgjson_contents_parallel(MtgjsonConfig().output_path)
-        else:
-            compress_mtgjson_contents(MtgjsonConfig().output_path)
+        compress_mtgjson_contents(MtgjsonConfig().output_path)
         profiler.checkpoint("compression_complete")
 
     generate_output_file_hashes(MtgjsonConfig().output_path)
