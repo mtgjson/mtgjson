@@ -198,7 +198,6 @@ def dispatcher(args: argparse.Namespace) -> None:
 
         # Write parquet price files
         from mtgjson5.build.formats.parquet import ParquetBuilder
-        from mtgjson5.mtgjson_config import MtgjsonConfig
 
         parquet_dir = MtgjsonConfig().output_path / "parquet"
         parquet_dir.mkdir(parents=True, exist_ok=True)
