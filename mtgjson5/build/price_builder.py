@@ -730,49 +730,26 @@ class PolarsPriceBuilder:
 
     def build_prices_parquet(self) -> tuple[pl.DataFrame, pl.DataFrame]:
         """
-        Build prices returning DataFrames instead of dicts.
+        Build parquet price DataFrames from existing partitions.
+
+        Expects build_prices() to have already run (fetching, partitioning,
+        and S3 sync). This just loads the archive and splits out today.
 
         Returns:
             Tuple of (all_prices_df, today_prices_df)
         """
-        LOGGER.info("Polars Price Builder - Building Prices (Parquet mode, V2)")
+        LOGGER.info("Polars Price Builder - Loading prices for parquet export")
 
-        if not self.all_printings_path.is_file():
-            LOGGER.info("AllPrintings not found, cannot build prices")
-            empty = pl.DataFrame(schema=PRICE_SCHEMA)
-            return empty, empty
-
-        LOGGER.info("Fetching today's prices from V2 providers")
-        today_df = self.build_today_prices()
-
-        if len(today_df) == 0:
-            LOGGER.warning("No price data generated")
-            empty = pl.DataFrame(schema=PRICE_SCHEMA)
-            return empty, empty
-
-        # Save today's prices to partition
-        LOGGER.info("Saving today's prices to partition")
-        self.save_prices_partitioned(today_df)
-
-        # Sync partitions with S3 to get historical data
-        LOGGER.info("Syncing partitions with S3")
-        downloaded = self.sync_missing_partitions_from_s3(days=90)
-        if downloaded > 0:
-            LOGGER.info(f"Downloaded {downloaded} partitions from S3")
-
-        # Upload today's partition to S3
-        try:
-            LOGGER.info("Uploading today's partition to S3")
-            if self.sync_partition_to_s3(self.today_date):
-                LOGGER.info("S3 upload complete")
-            else:
-                LOGGER.warning("S3 upload failed (continuing)")
-        except Exception as e:
-            LOGGER.error(f"S3 upload failed (continuing): {e}")
-
-        # Load archive from partitions, filtered to 90 days for output
+        # Load archive from partitions, filtered to 90 days
         LOGGER.info("Loading archive from partitions (90 day window)")
         archive_df = self.load_partitioned_archive(days=90).collect()
+
+        if len(archive_df) == 0:
+            LOGGER.warning("No price data in partitions")
+            empty = pl.DataFrame(schema=PRICE_SCHEMA)
+            return empty, empty
+
+        today_df = archive_df.filter(pl.col("date") == self.today_date)
 
         return archive_df, today_df
 
