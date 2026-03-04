@@ -750,20 +750,31 @@ class PolarsPriceBuilder:
             empty = pl.DataFrame(schema=PRICE_SCHEMA)
             return empty, empty
 
-        LOGGER.info("Loading price archive")
-        archive_lf = self.load_archive()
+        # Save today's prices to partition
+        LOGGER.info("Saving today's prices to partition")
+        self.save_prices_partitioned(today_df)
 
-        LOGGER.info("Merging archive with today's prices")
-        merged_lf = self.merge_prices(archive_lf, today_df.lazy())
+        # Sync partitions with S3 to get historical data
+        LOGGER.info("Syncing partitions with S3")
+        downloaded = self.sync_missing_partitions_from_s3(days=90)
+        if downloaded > 0:
+            LOGGER.info(f"Downloaded {downloaded} partitions from S3")
 
-        LOGGER.info("Pruning old price data")
-        pruned_lf = self.prune_prices(merged_lf)
+        # Upload today's partition to S3
+        try:
+            LOGGER.info("Uploading today's partition to S3")
+            if self.sync_partition_to_s3(self.today_date):
+                LOGGER.info("S3 upload complete")
+            else:
+                LOGGER.warning("S3 upload failed (continuing)")
+        except Exception as e:
+            LOGGER.error(f"S3 upload failed (continuing): {e}")
 
-        LOGGER.info("Saving updated archive")
-        all_prices_df = pruned_lf.collect()
-        self.save_archive(all_prices_df.lazy())
+        # Load archive from partitions, filtered to 90 days for output
+        LOGGER.info("Loading archive from partitions (90 day window)")
+        archive_df = self.load_partitioned_archive(days=90).collect()
 
-        return all_prices_df, today_df
+        return archive_df, today_df
 
     def load_archive_only(self) -> pl.LazyFrame:
         """Load existing archive without building new prices."""
