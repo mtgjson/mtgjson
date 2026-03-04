@@ -132,7 +132,8 @@ class ParquetBuilder:
         if rows:
             _write(pl.DataFrame(rows), output_dir / "TcgplayerSkus.parquet")
 
-    def _write_prices(self, output_dir: pathlib.Path) -> None:
+    @staticmethod
+    def write_prices(output_dir: pathlib.Path) -> None:
         """Write AllPrices.parquet and AllPricesToday.parquet."""
         from mtgjson5.build.price_builder import PolarsPriceBuilder
 
@@ -186,7 +187,6 @@ class ParquetBuilder:
         self._write_deck_list(output_dir)
         self._write_all_decks(output_dir)
         self._write_tcgplayer_skus(output_dir)
-        self._write_prices(output_dir)
 
         LOGGER.info(f"Wrote Parquet files to {output_dir}")
         return output_dir
