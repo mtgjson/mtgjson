@@ -196,14 +196,6 @@ def dispatcher(args: argparse.Namespace) -> None:
         else:
             LOGGER.info(f"Price files written: {all_prices_path}, {today_prices_path}")
 
-        # Write parquet price files
-        from mtgjson5.build.formats.parquet import ParquetBuilder
-
-        parquet_dir = MtgjsonConfig().output_path / "parquet"
-        parquet_dir.mkdir(parents=True, exist_ok=True)
-        LOGGER.info("Writing price parquet files...")
-        ParquetBuilder.write_prices(parquet_dir)
-
     if args.compress:
         if args.parallel:
             compress_mtgjson_contents_parallel(MtgjsonConfig().output_path)

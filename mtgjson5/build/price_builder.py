@@ -730,28 +730,40 @@ class PolarsPriceBuilder:
 
     def build_prices_parquet(self) -> tuple[pl.DataFrame, pl.DataFrame]:
         """
-        Build parquet price DataFrames from existing partitions.
-
-        Expects build_prices() to have already run (fetching, partitioning,
-        and S3 sync). This just loads the archive and splits out today.
+        Build prices returning DataFrames instead of dicts.
 
         Returns:
             Tuple of (all_prices_df, today_prices_df)
         """
-        LOGGER.info("Polars Price Builder - Loading prices for parquet export")
+        LOGGER.info("Polars Price Builder - Building Prices (Parquet mode, V2)")
 
-        # Load archive from partitions, filtered to 90 days
-        LOGGER.info("Loading archive from partitions (90 day window)")
-        archive_df = self.load_partitioned_archive(days=90).collect()
-
-        if len(archive_df) == 0:
-            LOGGER.warning("No price data in partitions")
+        if not self.all_printings_path.is_file():
+            LOGGER.info("AllPrintings not found, cannot build prices")
             empty = pl.DataFrame(schema=PRICE_SCHEMA)
             return empty, empty
 
-        today_df = archive_df.filter(pl.col("date") == self.today_date)
+        LOGGER.info("Fetching today's prices from V2 providers")
+        today_df = self.build_today_prices()
 
-        return archive_df, today_df
+        if len(today_df) == 0:
+            LOGGER.warning("No price data generated")
+            empty = pl.DataFrame(schema=PRICE_SCHEMA)
+            return empty, empty
+
+        LOGGER.info("Loading price archive")
+        archive_lf = self.load_archive()
+
+        LOGGER.info("Merging archive with today's prices")
+        merged_lf = self.merge_prices(archive_lf, today_df.lazy())
+
+        LOGGER.info("Pruning old price data")
+        pruned_lf = self.prune_prices(merged_lf)
+
+        LOGGER.info("Saving updated archive")
+        all_prices_df = pruned_lf.collect()
+        self.save_archive(all_prices_df.lazy())
+
+        return all_prices_df, today_df
 
     def load_archive_only(self) -> pl.LazyFrame:
         """Load existing archive without building new prices."""
