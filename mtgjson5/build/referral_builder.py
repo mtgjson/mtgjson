@@ -43,20 +43,20 @@ def build_referral_map_from_context(
     """
     Build referral map entries from pipeline context.
 
-    Uses the identifiers_lf which has Card Kingdom URLs joined with scryfall IDs,
-    and the parquet cache for TCGPlayer identifiers.
+    All providers read from on-disk parquet files so this works even after
+    ``ctx.release_pipeline_data()`` has freed in-memory LazyFrames.
 
     Args:
         ctx: PipelineContext with identifier data
-        parquet_dir: Path to parquet cache (for TCGPlayer entries)
+        parquet_dir: Path to assembled card parquet output
 
     Returns:
         DataFrame with columns [hash, referral_url]
     """
     entries = []
 
-    # Build Card Kingdom entries from identifiers_lf
-    ck_entries = _build_ck_entries_from_identifiers(ctx)
+    # Build Card Kingdom entries from CK cache + output parquet
+    ck_entries = _build_ck_entries_from_parquet(parquet_dir)
     if ck_entries is not None and len(ck_entries) > 0:
         entries.append(ck_entries)
         LOGGER.info(f"  Card Kingdom: {len(ck_entries):,} entries")
@@ -79,38 +79,76 @@ def build_referral_map_from_context(
     return pl.concat(entries).unique(subset=["hash"])
 
 
-def _build_ck_entries_from_identifiers(ctx: PipelineContext) -> pl.DataFrame | None:
-    """Build Card Kingdom referral entries from identifiers_lf."""
-    if ctx.identifiers_lf is None:
+def _build_ck_entries_from_parquet(parquet_dir: Path | None) -> pl.DataFrame | None:
+    """Build Card Kingdom referral entries from CK cache + output parquet.
+
+    Joins the CK pivoted cache (which has URL paths keyed by scryfallId)
+    with the output parquet (which has uuid + identifiers.scryfallId)
+    to produce referral entries.  This avoids depending on identifiers_lf
+    which is released before the referral builder runs.
+    """
+    ck_cache = constants.CACHE_PATH / "ck_pivoted.parquet"
+    if not ck_cache.exists():
+        LOGGER.debug("No ck_pivoted.parquet cache found")
         return None
 
-    id_lf = ctx.identifiers_lf
-    schema = id_lf.collect_schema()
-    cols = set(schema.names())
-
-    # Need cachedUuid (becomes uuid in pipeline) and CK URL columns
-    required = {"cachedUuid", "cardKingdomUrl"}
-    if not required.issubset(cols):
-        LOGGER.debug(f"Missing CK columns, have: {cols}")
+    if parquet_dir is None or not parquet_dir.exists():
+        LOGGER.debug("No parquet output dir for CK referrals")
         return None
+
+    try:
+        ck_lf = pl.scan_parquet(ck_cache)
+        ck_cols = set(ck_lf.collect_schema().names())
+    except Exception as e:
+        LOGGER.debug(f"Failed to scan CK cache: {e}")
+        return None
+
+    # CK cache has columns: id (scryfallId), cardKingdomUrl, cardKingdomFoilUrl, etc.
+    if "id" not in ck_cols or "cardKingdomUrl" not in ck_cols:
+        LOGGER.debug(f"CK cache missing required columns, have: {ck_cols}")
+        return None
+
+    try:
+        cards_lf = pl.scan_parquet(parquet_dir / "**/*.parquet")
+        parquet_schema = cards_lf.collect_schema()
+    except Exception as e:
+        LOGGER.debug(f"Failed to scan output parquet for CK: {e}")
+        return None
+
+    if "identifiers" not in parquet_schema.names() or "uuid" not in parquet_schema.names():
+        return None
+
+    id_schema = parquet_schema.get("identifiers")
+    if not isinstance(id_schema, pl.Struct):
+        return None
+    id_fields = {f.name for f in id_schema.fields}
+    if "scryfallId" not in id_fields:
+        return None
+
+    # Get uuid + scryfallId from output parquet
+    uuid_lf = cards_lf.select(
+        [
+            pl.col("uuid"),
+            pl.col("identifiers").struct.field("scryfallId").alias("_scryfall_id"),
+        ]
+    ).filter(pl.col("_scryfall_id").is_not_null())
+
+    # Join CK cache (keyed by id=scryfallId) with uuid mapping
+    joined_lf = uuid_lf.join(
+        ck_lf.rename({"id": "_scryfall_id"}),
+        on="_scryfall_id",
+        how="inner",
+    )
 
     entries = []
 
     # Regular Card Kingdom entries
-    if "cardKingdomUrl" in cols:
+    if "cardKingdomUrl" in ck_cols:
         ck_df = (
-            id_lf.select(["cachedUuid", "cardKingdomUrl"])
-            .filter(pl.col("cardKingdomUrl").is_not_null() & pl.col("cachedUuid").is_not_null())
+            joined_lf.filter(pl.col("cardKingdomUrl").is_not_null())
             .with_columns(
                 [
-                    # Hash: sha256(ck_base + url_path + uuid)[:16]
-                    plh.concat_str(
-                        [
-                            pl.lit(CK_BASE),
-                            pl.col("cardKingdomUrl"),
-                            pl.col("cachedUuid"),
-                        ]
-                    )
+                    plh.concat_str([pl.lit(CK_BASE), pl.col("cardKingdomUrl"), pl.col("uuid")])
                     .chash.sha2_256()
                     .str.slice(0, 16)
                     .alias("hash"),
@@ -127,29 +165,18 @@ def _build_ck_entries_from_identifiers(ctx: PipelineContext) -> pl.DataFrame | N
             entries.append(ck_df)
 
     # Foil Card Kingdom entries
-    if "cardKingdomFoilUrl" in cols:
+    if "cardKingdomFoilUrl" in ck_cols:
         ckf_df = (
-            id_lf.select(["cachedUuid", "cardKingdomFoilUrl"])
-            .filter(pl.col("cardKingdomFoilUrl").is_not_null() & pl.col("cachedUuid").is_not_null())
+            joined_lf.filter(pl.col("cardKingdomFoilUrl").is_not_null())
             .with_columns(
                 [
-                    plh.concat_str(
-                        [
-                            pl.lit(CK_BASE),
-                            pl.col("cardKingdomFoilUrl"),
-                            pl.col("cachedUuid"),
-                        ]
-                    )
+                    plh.concat_str([pl.lit(CK_BASE), pl.col("cardKingdomFoilUrl"), pl.col("uuid")])
                     .chash.sha2_256()
                     .str.slice(0, 16)
                     .alias("hash"),
-                    plh.concat_str(
-                        [
-                            pl.lit(CK_BASE),
-                            pl.col("cardKingdomFoilUrl"),
-                            pl.lit(CK_REFERRAL),
-                        ]
-                    ).alias("referral_url"),
+                    plh.concat_str([pl.lit(CK_BASE), pl.col("cardKingdomFoilUrl"), pl.lit(CK_REFERRAL)]).alias(
+                        "referral_url"
+                    ),
                 ]
             )
             .select(["hash", "referral_url"])
@@ -159,29 +186,18 @@ def _build_ck_entries_from_identifiers(ctx: PipelineContext) -> pl.DataFrame | N
             entries.append(ckf_df)
 
     # Etched Card Kingdom entries
-    if "cardKingdomEtchedUrl" in cols:
+    if "cardKingdomEtchedUrl" in ck_cols:
         cke_df = (
-            id_lf.select(["cachedUuid", "cardKingdomEtchedUrl"])
-            .filter(pl.col("cardKingdomEtchedUrl").is_not_null() & pl.col("cachedUuid").is_not_null())
+            joined_lf.filter(pl.col("cardKingdomEtchedUrl").is_not_null())
             .with_columns(
                 [
-                    plh.concat_str(
-                        [
-                            pl.lit(CK_BASE),
-                            pl.col("cardKingdomEtchedUrl"),
-                            pl.col("cachedUuid"),
-                        ]
-                    )
+                    plh.concat_str([pl.lit(CK_BASE), pl.col("cardKingdomEtchedUrl"), pl.col("uuid")])
                     .chash.sha2_256()
                     .str.slice(0, 16)
                     .alias("hash"),
-                    plh.concat_str(
-                        [
-                            pl.lit(CK_BASE),
-                            pl.col("cardKingdomEtchedUrl"),
-                            pl.lit(CK_REFERRAL),
-                        ]
-                    ).alias("referral_url"),
+                    plh.concat_str([pl.lit(CK_BASE), pl.col("cardKingdomEtchedUrl"), pl.lit(CK_REFERRAL)]).alias(
+                        "referral_url"
+                    ),
                 ]
             )
             .select(["hash", "referral_url"])
