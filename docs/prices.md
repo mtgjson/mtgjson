@@ -1,10 +1,10 @@
 # Price Engine
 
 **Files**:
-- `mtgjson5/build/price_builder.py` — Orchestrator (`PriceBuilderContext`, `PolarsPriceBuilder`)
-- `mtgjson5/build/price_archive.py` — Archive management (load, save, merge, prune, partition, migrate)
-- `mtgjson5/build/price_writers.py` — Output writers (JSON streaming, SQLite, SQL, PostgreSQL, CSV)
-- `mtgjson5/build/price_s3.py` — S3 sync operations
+- `mtgjson5/build/prices/price_builder.py` — Orchestrator (`PriceBuilderContext`, `PolarsPriceBuilder`)
+- `mtgjson5/build/prices/price_archive.py` — Archive management (load, save, merge, prune, partition, migrate)
+- `mtgjson5/build/prices/price_writers.py` — Output writers (JSON streaming, SQLite, SQL, PostgreSQL, CSV)
+- `mtgjson5/build/prices/price_s3.py` — S3 sync operations
 - `mtgjson5/build/referral_builder.py` — Referral map generation for purchase URL rewrites
 
 The price engine is a distinct ETL pipeline from the card builder. It fetches daily prices from five providers, stores them in a date-partitioned parquet data lake, syncs to/from S3, and streams JSON and SQL outputs — all without loading the full history into memory.

@@ -30,7 +30,7 @@ def write_price_parquet(output_dir: pathlib.Path) -> None:
     and JSON/SQL output disabled.  Uses the memory-efficient partitioned
     archive (never materializes the full 90-day dataset).
     """
-    from mtgjson5.build.price_builder import PolarsPriceBuilder
+    from mtgjson5.build.prices.price_builder import PolarsPriceBuilder
 
     PolarsPriceBuilder().build_prices(parquet_output_dir=output_dir, write_json=False)
 

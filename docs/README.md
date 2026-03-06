@@ -64,7 +64,7 @@ The Polars pipeline consists of four main layers:
 
 ┌─────────────────────────────────────────────────────────────┐
 │              5. PRICE ENGINE (separate ETL)                 │
-│  PolarsPriceBuilder (build/price_builder.py)             │
+│  PolarsPriceBuilder (build/prices/price_builder.py)      │
 │  + price_archive.py, price_writers.py, price_s3.py         │
 │  - Fetches daily prices from 5 providers                    │
 │  - Date-partitioned parquet data lake with S3 sync          │
@@ -167,10 +167,10 @@ All paths relative to `mtgjson5/`:
 | `build/assemble.py` | Assembly utilities |
 | `build/context.py` | Assembly configuration |
 | `build/writer.py` | Format dispatch |
-| `build/price_builder.py` | Price engine orchestrator + context |
-| `build/price_archive.py` | Price archive: load, save, merge, prune, partition |
-| `build/price_writers.py` | Price output: JSON streaming, SQLite, SQL, CSV |
-| `build/price_s3.py` | Price S3: sync operations |
+| `build/prices/price_builder.py` | Price engine orchestrator + context |
+| `build/prices/price_archive.py` | Price archive: load, save, merge, prune, partition |
+| `build/prices/price_writers.py` | Price output: JSON streaming, SQLite, SQL, CSV |
+| `build/prices/price_s3.py` | Price S3: sync operations |
 | `build/referral_builder.py` | Referral map generation for purchase URLs |
 | `models/cards.py` | Card Pydantic models |
 | `models/sets.py` | Set Pydantic models |

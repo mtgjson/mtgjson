@@ -49,7 +49,7 @@ def _run_price_build(
         import pathlib
 
         from mtgjson5 import constants
-        from mtgjson5.build.price_builder import PolarsPriceBuilder
+        from mtgjson5.build.prices.price_builder import PolarsPriceBuilder
 
         parquet_dir = pathlib.Path(parquet_output_dir) if parquet_output_dir else None
         raw_cache = constants.CACHE_PATH if raw_prices_ready else None

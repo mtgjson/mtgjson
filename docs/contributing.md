@@ -73,11 +73,11 @@ See also: [Adding a New Provider](global-cache.md#adding-a-new-provider) in the 
 
 The price engine is a separate ETL pipeline from the card builder. See [prices.md](prices.md) for the full architecture.
 
-- **New price provider**: `providers/{name}/`, then integrate in `build/price_builder.py` (`build_today_prices_async`)
-- **Price ID mapping**: `PriceBuilderContext` in `build/price_builder.py`
-- **Price output format**: `build/price_writers.py` (standalone writer functions)
-- **Price archive/partition**: `build/price_archive.py`
-- **Price S3 sync**: `build/price_s3.py`
+- **New price provider**: `providers/{name}/`, then integrate in `build/prices/price_builder.py` (`build_today_prices_async`)
+- **Price ID mapping**: `PriceBuilderContext` in `build/prices/price_builder.py`
+- **Price output format**: `build/prices/price_writers.py` (standalone writer functions)
+- **Price archive/partition**: `build/prices/price_archive.py`
+- **Price S3 sync**: `build/prices/price_s3.py`
 - **Referral map**: `build/referral_builder.py`
 
 ### Worked example: EDHREC salt score integration

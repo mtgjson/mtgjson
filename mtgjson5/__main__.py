@@ -174,7 +174,7 @@ def dispatcher(args: argparse.Namespace) -> None:
     # Start background price fetch (overlaps with pipeline + assembly)
     raw_fetcher = None
     if args.price_build or (export_formats and "parquet" in export_formats) or args.full_build:
-        from mtgjson5.build.price_fetcher import PriceFetcher
+        from mtgjson5.build.prices.price_fetcher import PriceFetcher
 
         raw_fetcher = PriceFetcher.start_background()
         LOGGER.info("Background price raw fetch started")

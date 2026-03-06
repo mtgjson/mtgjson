@@ -14,7 +14,7 @@ import polars as pl
 import requests
 
 from mtgjson5 import constants
-from mtgjson5.build.price_archive import (
+from mtgjson5.build.prices.price_archive import (
     PRICE_SCHEMA,
     load_archive,
     load_partitioned_archive,
@@ -22,14 +22,14 @@ from mtgjson5.build.price_archive import (
     prune_partitions,
     save_prices_partitioned,
 )
-from mtgjson5.build.price_s3 import (
+from mtgjson5.build.prices.price_s3 import (
     get_price_archive_from_s3,
     sync_local_partitions_to_s3,
     sync_missing_partitions_from_s3,
     sync_partition_to_s3,
     upload_archive_to_s3,
 )
-from mtgjson5.build.price_writers import (
+from mtgjson5.build.prices.price_writers import (
     stream_write_all_prices_json,
     stream_write_today_prices_json,
     write_prices_csv,
@@ -829,7 +829,7 @@ class PolarsPriceBuilder:
 
     def list_local_partitions(self) -> list[str]:
         """List available date partitions locally."""
-        from mtgjson5.build.price_archive import list_local_partitions as _list_local
+        from mtgjson5.build.prices.price_archive import list_local_partitions as _list_local
 
         return _list_local()
 
@@ -839,13 +839,13 @@ class PolarsPriceBuilder:
 
     def sync_partition_from_s3(self, date: str) -> bool:
         """Download a single date partition from S3."""
-        from mtgjson5.build.price_s3 import sync_partition_from_s3 as _sync
+        from mtgjson5.build.prices.price_s3 import sync_partition_from_s3 as _sync
 
         return _sync(date)
 
     def list_s3_partitions(self) -> list[str]:
         """List available date partitions on S3."""
-        from mtgjson5.build.price_s3 import list_s3_partitions as _list_s3
+        from mtgjson5.build.prices.price_s3 import list_s3_partitions as _list_s3
 
         return _list_s3()
 
@@ -855,7 +855,7 @@ class PolarsPriceBuilder:
 
     def sync_partition_to_s3_with_retry(self, date: str, max_retries: int = 3, base_delay: float = 1.0) -> bool:
         """Upload a single date partition to S3 with retry logic."""
-        from mtgjson5.build.price_s3 import sync_partition_to_s3_with_retry as _sync
+        from mtgjson5.build.prices.price_s3 import sync_partition_to_s3_with_retry as _sync
 
         return _sync(date, max_retries, base_delay)
 

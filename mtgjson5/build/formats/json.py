@@ -305,7 +305,7 @@ class JsonOutputBuilder:
         Returns:
             Dict mapping file names to record counts.
         """
-        from mtgjson5.build.price_builder import PolarsPriceBuilder
+        from mtgjson5.build.prices.price_builder import PolarsPriceBuilder
         from mtgjson5.utils import LOGGER
 
         builder = PolarsPriceBuilder()
