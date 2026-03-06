@@ -46,21 +46,22 @@ Both follow the same design pattern:
 
 1. **No top-level side effects** — `multiprocessing.spawn` re-imports the module in the child; heavy init code in `__main__.py` (logger setup, urllib3 warnings) must not re-execute.
 2. **Disk-backed only** — children load all data from the parquet/JSON cache via `AssemblyContext.from_cache()`. No in-memory state is transferred from parent to child.
-3. **Error propagation via Queue** — exceptions are serialized as strings and put on an error `Queue`. The parent checks the queue after `proc.join()`.
-4. **Results via Queue** — assembly results (`{"AllPrintings": 109008, ...}`) are communicated back through a results `Queue`.
+3. **Selective cache loading** — `from_cache(skip=...)` accepts a frozenset of field names to skip (e.g. `"decks"`, `"sealed"`, `"token_products"`, `"boosters"`). Each subprocess group only loads the data it actually needs, avoiding unnecessary memory use.
+4. **Error propagation via Queue** — exceptions are serialized as strings and put on an error `Queue`. The parent checks the queue after `proc.join()`.
+5. **Results via Queue** — assembly results (`{"AllPrintings": 109008, ...}`) are communicated back through a results `Queue`.
 
 ### Assembly Groups
 
-Tasks are grouped to keep intra-group dependencies internal and minimize per-group peak memory:
+Tasks are grouped to keep intra-group dependencies internal and minimize per-group peak memory. Each group specifies which optional data fields to skip via `_GROUP_SKIP` in `_subprocess_assembly.py`:
 
-| Group | Tasks | Peak Memory | Data Accessed |
-|-------|-------|-------------|---------------|
-| **A** | AllPrintings, FormatPrintings | ~2 GB | `all_cards_df` (via `sets.iter_sets()`), then re-reads AllPrintings.json for format filtering |
-| **B** | AtomicCards, FormatAtomics | ~1.5 GB | `all_cards_df` (via `atomic_cards.iter_atomic()`), then re-reads AtomicCards.json for format filtering |
-| **C** | SetFiles, SetList, Meta, CompiledList | ~1.5 GB | `all_cards_df` (via `sets.iter_sets()`), set metadata |
-| **D** | DeckFiles, DeckList | ~0.6 GB | `decks_df` + uuid_index from parquet |
-| **E** | TcgplayerSkus | ~1.2 GB | TCG SKU data from GLOBAL_CACHE / parquet |
-| **F** | AllIdentifiers, EnumValues, Keywords, CardTypes | ~0.3 GB | Parquet LazyFrame reads + scryfall catalog cache |
+| Group | Tasks | Skips | Data Accessed |
+|-------|-------|-------|---------------|
+| **A** | AllPrintings, FormatPrintings | _(none)_ | `all_cards_df`, `decks_df`, `sealed_df`, `token_products`, `booster_configs` |
+| **B** | AtomicCards, FormatAtomics | decks, sealed, token_products, boosters | `all_cards_df` only |
+| **C** | SetFiles, SetList, Meta, CompiledList | _(none)_ | `all_cards_df`, `decks_df`, `sealed_df`, `token_products`, `booster_configs` |
+| **D** | DeckFiles, DeckList | sealed, token_products, boosters | `decks_df` + uuid_index from parquet |
+| **E** | TcgplayerSkus | decks, boosters | `sealed_df`, `token_products`, TCG SKU parquets |
+| **F** | AllIdentifiers, EnumValues, Keywords, CardTypes | token_products, boosters | Parquet reads, `decks_df`/`sealed_df` (EnumValues), scryfall catalogs |
 
 **Dependencies:** FormatPrintings reads AllPrintings.json from disk (stays in Group A). FormatAtomics reads AtomicCards.json from disk (stays in Group B). No cross-group dependencies.
 
@@ -93,36 +94,49 @@ Time 525:   [E: TcgSkus 50s ≤1.2GB]       | [C: still running]
 Time 744:   done
 ```
 
-### Export Subprocess
+### Export and Price Subprocesses
 
-The export subprocess (`_subprocess_exports.py`) handles non-JSON format exports and prices. It runs **after** JSON assembly is complete and the parent has released all assembly data:
+Format exports and price builds run in **separate subprocesses** to avoid jemalloc memory accumulation. If they shared a single process, the format export phase (~2.3GB) would leave retained jemalloc pages that the price build (~4.3GB) would stack on top of, reaching ~6GB total.
 
 ```python
 # In __main__.py:
-results, assembly_ctx = assemble_with_models(pipeline_ctx, ...)
-del assembly_ctx
+del assembly_ctx, ctx, raw_fetcher
+GlobalCache().clear()  # release all frames + provider instances
 gc.collect()
-_run_exports_subprocess(export_formats, do_prices, profile)
+
+# Phase 1: Format exports (exits → jemalloc freed)
+_run_subprocess(target=run_exports, args=(fmt_list,), label="exports")
+
+# Phase 2: Price build (clean jemalloc heap)
+_run_subprocess(target=_run_price_build, args=(parquet_dir, True, raw_prices_ready), label="prices")
 ```
 
-This subprocess uses `UnifiedOutputWriter.from_cache()` to load `AssemblyContext` from disk and dispatches to SQLiteBuilder, CSVBuilder, ParquetBuilder, etc.
-
-When both price work and remaining format exports are needed, the export subprocess automatically parallelizes by spawning a nested price subprocess:
+**Export subprocess** uses `UnifiedOutputWriter.from_cache(skip={"decks", "sealed", "token_products", "boosters"})` to load only card parquets + normalized tables:
 
 ```
-Export subprocess (orchestrator)
+Export subprocess (format writes only, ~2.3 GB peak)
   │
-  ├─ Phase 1: Parquet data writes (without prices)     ~95s
+  ├─ Parquet data writes (without prices)
   │   └─ builds normalized_tables, releases card_data
   │
-  ├─ Phase 2 (parallel):
-  │   ├─ spawn → price subprocess (price parquet + JSON)  ~285s (network-bound)
-  │   └─ in-process: sqlite, csv, psql, sql               ~162s (uses normalized_tables)
-  │
-  └─ Phase 3: join price subprocess
+  └─ Format writes (sqlite, csv, psql, sql)
+      └─ uses normalized_tables
 ```
 
-This overlaps the ~285s network-bound price build with the ~162s format writes, reducing total export time by ~30%.
+**Price subprocess** starts fresh with no jemalloc baggage:
+
+```
+Price subprocess (clean heap, ~4.3 GB peak)
+  │
+  ├─ Sync partitions from S3
+  ├─ Map today's prices from raw cache (pre-fetched in background thread)
+  ├─ Sink AllPrices.parquet (streaming, 86 partitions → 1 file)
+  ├─ Stream AllPrices.json (per-prefix scans from consolidated parquet)
+  ├─ AllPricesToday.json
+  └─ SQL/CSV formats
+```
+
+Price network fetches are overlapped with the card pipeline via a background thread (see `docs/price_pipeline_architecture.md`), so by the time the price subprocess runs, all raw data is already cached on disk.
 
 ## Configuration
 
@@ -154,23 +168,33 @@ JsonOutputBuilder.write_all()      │
     │                              │
     ├─ release_card_data()         │   (parent drops cached properties)
     │                              │
-    ├─ spawn Group A ──────────────┤── from_cache() → build AllPrintings → exit
-    ├─ spawn Group D ──────────────┤── from_cache() → build DeckFiles → exit
-    ├─ spawn Group F ──────────────┤── from_cache() → build AllIdentifiers → exit
+    ├─ spawn Group A ──────────────┤── from_cache()                     → build AllPrintings → exit
+    ├─ spawn Group D ──────────────┤── from_cache(skip={sealed,tokens}) → build DeckFiles → exit
+    ├─ spawn Group F ──────────────┤── from_cache(skip={tokens,boost})  → build AllIdentifiers → exit
     │  (wait for A)                │
-    ├─ spawn Group B ──────────────┤── from_cache() → build AtomicCards → exit
-    ├─ spawn Group C ──────────────┤── from_cache() → build SetFiles → exit
+    ├─ spawn Group B ──────────────┤── from_cache(skip={decks,sealed,tokens,boost}) → build AtomicCards → exit
+    ├─ spawn Group C ──────────────┤── from_cache()                     → build SetFiles → exit
     │  (wait for B)                │
-    ├─ spawn Group E ──────────────┤── from_cache() → build TcgplayerSkus → exit
+    ├─ spawn Group E ──────────────┤── from_cache(skip={decks,boost})   → build TcgplayerSkus → exit
     │                              │
     ▼                              │
 Aggregate results from queues      │
     │                              │
     ▼                              │
-_run_exports_subprocess() ─────────┤── from_cache() → Parquet data → release card_data
-    │                              │   ├─ spawn → price subprocess (price parquet + JSON)
-    │                              │   ├─ in-process: SQLite/CSV/PostgreSQL/MySQL
-    │                              │   └─ join price subprocess → exit
+del ctx, GlobalCache().clear()     │   (parent releases all frames + provider instances)
+    │                              │
+    ▼                              │
+spawn exports ─────────────────────┤── from_cache(skip={decks,sealed,tokens,boost})
+    │                              │   ├─ Parquet data → release card_data
+    │                              │   └─ SQLite/CSV/PostgreSQL/MySQL (uses normalized_tables)
+    │                              │   (exits → jemalloc freed)
+    ▼                              │
+spawn prices ──────────────────────┤── clean jemalloc heap
+                                   │   ├─ Sync S3 partitions
+                                   │   ├─ Map today's prices from raw cache
+                                   │   ├─ Sink AllPrices.parquet (streaming)
+                                   │   ├─ Stream AllPrices.json (per-prefix from consolidated parquet)
+                                   │   └─ AllPricesToday.json + SQL/CSV formats
 ```
 
 ## Adding New Assembly Tasks
@@ -187,7 +211,8 @@ To add a new output to the subprocess system:
 3. **Add the task to a group** in `_ASSEMBLY_GROUPS` in `json.py`:
    - If it loads `all_cards_df` (heavy): create a new group or add to an existing heavy group
    - If it's light: add to Group F
-4. **Update the `should_build` filter** if the task name doesn't match a standard output name
+4. **Update `_GROUP_SKIP`** in `_subprocess_assembly.py` if the new task changes what data a group needs (e.g. if it accesses `decks_df`, remove `"decks"` from that group's skip set)
+5. **Update the `should_build` filter** if the task name doesn't match a standard output name
 
 ## Debugging
 

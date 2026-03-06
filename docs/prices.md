@@ -122,14 +122,13 @@ The main orchestrator class that coordinates provider fetching and delegates to 
 |--------|---------|
 | `build_today_prices_async()` | Async fetch from 5 providers, returns flat DataFrame |
 | `build_today_prices()` | Sync wrapper around `build_today_prices_async()` |
-| `build_prices()` | Full pipeline: migrate → S3 sync → fetch → save → upload → prune |
-| `build_prices_parquet()` | Returns DataFrames instead of writing dicts |
+| `build_prices()` | Full pipeline: migrate → S3 sync → fetch → save → upload → prune → output (parquet + JSON) |
 | `to_nested_dict()` | Converts flat DataFrame to nested MTGJSON JSON format |
 
 The `build_prices()` method orchestrates the full pipeline by calling functions from the other modules:
 
 ```python
-def build_prices(self):
+def build_prices(self, parquet_output_dir=None, write_json=True):
     migrate_legacy_archive()                    # price_archive.py
     sync_missing_partitions_from_s3(days=90)    # price_s3.py
     today_df = self.build_today_prices()        # provider fetch
@@ -137,7 +136,8 @@ def build_prices(self):
     sync_partition_to_s3(today)                 # price_s3.py
     prune_partitions(days=90)                   # price_archive.py
     lf = load_partitioned_archive(days=90)      # price_archive.py
-    stream_write_all_prices_json(lf, path, today)  # price_writers.py
+    lf.sink_parquet(AllPrices.parquet)           # optional parquet output
+    stream_write_all_prices_json(lf, path, today)  # optional JSON output
 ```
 
 ## Providers
