@@ -6,6 +6,7 @@ import argparse
 import gc
 import logging
 import traceback
+from typing import Any
 
 import requests
 import urllib3.exceptions
@@ -23,34 +24,33 @@ from mtgjson5.utils import load_local_set_data
 SCRYFALL_SETS_URL = "https://api.scryfall.com/sets/"
 
 
-def _run_exports_subprocess(
-    export_formats: list[str] | None = None,
-    price_build: bool = False,
+def _run_subprocess(
+    target: Any,
+    args: tuple[Any, ...],
+    label: str,
     profile: bool = False,
 ) -> None:
-    """Run exports and/or price build in an isolated subprocess.
+    """Run a function in an isolated subprocess with error/profile handling.
 
-    Polars' memory allocator never returns memory to the OS within a process.
-    By running exports + prices in a child process, all Polars allocations are
+    Polars' memory allocator (jemalloc) never returns memory to the OS within
+    a process. By running each phase in its own child, all allocations are
     fully reclaimed when the child exits.
 
     Uses the ``spawn`` start method explicitly so Linux doesn't default to
-    ``fork`` (which would COW-copy the parent's address space, defeating
-    the purpose of isolation).
+    ``fork`` (which would COW-copy the parent's address space).
     """
     import multiprocessing
 
-    from mtgjson5._subprocess_exports import run_exports
     from mtgjson5.utils import get_log_file
 
     mp_ctx = multiprocessing.get_context("spawn")
     error_queue: multiprocessing.Queue[str] = mp_ctx.Queue()
     profile_queue: multiprocessing.Queue[dict] | None = mp_ctx.Queue() if profile else None
 
-    LOGGER.info("Launching exports/prices subprocess...")
+    LOGGER.info("Launching %s subprocess...", label)
     proc = mp_ctx.Process(
-        target=run_exports,
-        args=(export_formats, price_build, error_queue, get_log_file(), profile, profile_queue),
+        target=target,
+        args=(*args, error_queue, get_log_file(), profile, profile_queue),
     )
     proc.start()
     proc.join()
@@ -65,12 +65,12 @@ def _run_exports_subprocess(
     # Propagate child errors to parent
     if not error_queue.empty():
         error_msg = error_queue.get_nowait()
-        raise RuntimeError(f"Exports subprocess failed:\n{error_msg}")
+        raise RuntimeError(f"{label} subprocess failed:\n{error_msg}")
 
     if proc.exitcode != 0:
-        raise RuntimeError(f"Exports subprocess exited with code {proc.exitcode}")
+        raise RuntimeError(f"{label} subprocess exited with code {proc.exitcode}")
 
-    LOGGER.info("Exports/prices subprocess completed successfully")
+    LOGGER.info("%s subprocess completed successfully", label)
 
 
 def get_sets_to_build(args: argparse.Namespace) -> list[str]:
@@ -171,6 +171,14 @@ def dispatcher(args: argparse.Namespace) -> None:
     )
     profiler.checkpoint("cache_loaded", top_n=10)
 
+    # Start background price fetch (overlaps with pipeline + assembly)
+    raw_fetcher = None
+    if args.price_build or (export_formats and "parquet" in export_formats) or args.full_build:
+        from mtgjson5.build.price_fetcher import PriceFetcher
+
+        raw_fetcher = PriceFetcher.start_background()
+        LOGGER.info("Background price raw fetch started")
+
     if args.all_sets:
         additional_set_keys = set(load_local_set_data().keys())
         additional_set_keys -= set(args.skip_sets)
@@ -254,26 +262,64 @@ def dispatcher(args: argparse.Namespace) -> None:
         LOGGER.info(f"Referral map written: {referral_count:,} entries")
 
     if should_export or args.price_build:
+        # Wait for background price fetch to complete
+        raw_prices_ready = False
+        if raw_fetcher is not None:
+            LOGGER.info("Waiting for background price fetch to complete...")
+            raw_fetcher.wait()
+            raw_fetcher.raise_if_error()
+            if raw_fetcher.timings:
+                LOGGER.info("Background fetch timings: %s", raw_fetcher.timings)
+            raw_prices_ready = True
+            profiler.checkpoint("raw_price_fetch_complete")
+
         # Release parent memory before subprocess
         if assembly_ctx is not None:
             del assembly_ctx
+        del ctx
+        if raw_fetcher is not None:
+            del raw_fetcher
+        GlobalCache().clear()
         gc.collect()
-        GlobalCache().release_assembly_frames()
-        profiler.checkpoint("assembly_frames_released")
+        profiler.checkpoint("pre_export_cleanup")
 
-        profiler.checkpoint_with_children("pre_exports_subprocess")
-        _run_exports_subprocess(
-            export_formats=list(export_formats) if export_formats else None,
-            price_build=args.price_build,
-            profile=args.profile,
-        )
-        profiler.checkpoint_with_children("post_exports_subprocess")
+        from mtgjson5._subprocess_exports import _run_price_build, run_exports
+
+        has_parquet = bool(export_formats and "parquet" in export_formats)
+        fmt_list = list(export_formats) if export_formats else None
+
+        # Phase 1: Format exports subprocess (parquet data, sqlite, csv, etc.)
+        if fmt_list:
+            profiler.checkpoint_with_children("pre_exports_subprocess")
+            _run_subprocess(
+                target=run_exports,
+                args=(fmt_list,),
+                label="exports",
+                profile=args.profile,
+            )
+            profiler.checkpoint_with_children("post_exports_subprocess")
+
+        # Phase 2: Price build subprocess (separate process = clean jemalloc heap)
+        if args.price_build:
+            parquet_dir = str(MtgjsonConfig().output_path / "parquet") if has_parquet else None
+            profiler.checkpoint_with_children("pre_price_subprocess")
+            _run_subprocess(
+                target=_run_price_build,
+                args=(parquet_dir, True, raw_prices_ready),
+                label="prices",
+                profile=args.profile,
+            )
+            profiler.checkpoint_with_children("post_price_subprocess")
     else:
+        if raw_fetcher is not None:
+            raw_fetcher.wait()
+            del raw_fetcher
         if assembly_ctx is not None:
             del assembly_ctx
+        del ctx
+        GlobalCache().clear()
         gc.collect()
-        GlobalCache().release_assembly_frames()
-        profiler.checkpoint("assembly_frames_released")
+        profiler.checkpoint("pre_export_cleanup")
 
     if args.compress:
         compress_mtgjson_contents(MtgjsonConfig().output_path)
