@@ -2,8 +2,8 @@
 MTGJSON Compression Operations
 
 Provides parallel compression of MTGJSON output files into multiple formats.
-Uses ThreadPoolExecutor for true parallel compression across files and formats.
-Supports both native Python compression and external tools.
+Uses ProcessPoolExecutor to bypass the GIL for CPU-bound compression work.
+Large files are split into per-format tasks for optimal core utilization.
 """
 
 import bz2
@@ -20,7 +20,7 @@ import subprocess
 import threading
 import zipfile
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from types import TracebackType
 from typing import IO, Any, BinaryIO
 
@@ -34,7 +34,22 @@ from .consts import (
 
 LOGGER = logging.getLogger(__name__)
 
-COMPRESSION_CHUNK_SIZE = 1024 * 1024
+COMPRESSION_CHUNK_SIZE = 4 * 1024 * 1024
+
+_LARGE_FILE_THRESHOLD = 10 * 1024 * 1024
+
+_FORMATS = ("gz", "bz2", "xz", "zip")
+_DIR_FORMATS = ("tar.gz", "tar.bz2", "tar.xz", "zip")
+
+_FORMAT_WEIGHTS: dict[str, int] = {
+    "xz": 10,
+    "bz2": 5,
+    "gz": 1,
+    "zip": 1,
+    "tar.xz": 10,
+    "tar.bz2": 5,
+    "tar.gz": 1,
+}
 
 
 def _compress_mtgjson_directory(files: list[pathlib.Path], directory: pathlib.Path, output_file: str) -> None:
@@ -399,132 +414,79 @@ def _compress_directory_python(
     return results
 
 
+def _compress_single_format(file: pathlib.Path, fmt: str) -> tuple[bool, str]:
+    """Compress a single file into a single format."""
+    try:
+        output_path = pathlib.Path(f"{file}.{fmt}")
+        if fmt == "gz":
+            with open(file, "rb") as f_in, gzip.open(output_path, "wb", compresslevel=6) as f_out:
+                shutil.copyfileobj(f_in, f_out, COMPRESSION_CHUNK_SIZE)
+        elif fmt == "bz2":
+            with open(file, "rb") as f_in, bz2.open(output_path, "wb", compresslevel=9) as f_out:
+                shutil.copyfileobj(f_in, f_out, COMPRESSION_CHUNK_SIZE)
+        elif fmt == "xz":
+            with open(file, "rb") as f_in, lzma.open(output_path, "wb", preset=6) as f_out:
+                shutil.copyfileobj(f_in, f_out, COMPRESSION_CHUNK_SIZE)
+        elif fmt == "zip":
+            with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+                zf.write(file, file.name)
+        else:
+            return (False, fmt)
+        return (True, fmt)
+    except Exception as e:
+        logging.getLogger(__name__).error(f"{fmt} failed for {file.name}: {e}")
+        return (False, fmt)
+
+
+def _compress_directory_single_format(
+    files: list[pathlib.Path],
+    output_base: pathlib.Path,
+    fmt: str,
+) -> tuple[bool, str]:
+    """Create a directory archive in a single format."""
+    import tarfile
+
+    dir_name = output_base.name
+    try:
+        if fmt == "tar.gz":
+            with tarfile.open(f"{output_base}.tar.gz", "w:gz", compresslevel=6) as tar:
+                for f in files:
+                    tar.add(f, arcname=f"{dir_name}/{f.name}")
+        elif fmt == "tar.bz2":
+            with tarfile.open(f"{output_base}.tar.bz2", "w:bz2", compresslevel=9) as tar:
+                for f in files:
+                    tar.add(f, arcname=f"{dir_name}/{f.name}")
+        elif fmt == "tar.xz":
+            with tarfile.open(f"{output_base}.tar.xz", "w:xz", preset=6) as tar:
+                for f in files:
+                    tar.add(f, arcname=f"{dir_name}/{f.name}")
+        elif fmt == "zip":
+            with zipfile.ZipFile(f"{output_base}.zip", "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+                for f in files:
+                    zf.write(f, f"{dir_name}/{f.name}")
+        else:
+            return (False, fmt)
+        return (True, fmt)
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Directory {fmt} archive failed: {e}")
+        return (False, fmt)
+
+
 def _get_compression_workers() -> int:
     """Get optimal number of compression workers based on CPU count."""
     cpu_count = os.cpu_count() or 4
-    # Use 75% of cores for compression, minimum 2, maximum 16
-    return max(2, min(16, int(cpu_count * 0.75)))
+    return max(2, min(16, cpu_count))
 
 
-def compress_mtgjson_contents(directory: pathlib.Path, use_python: bool = True, streaming: bool = True) -> None:
-    """
-    Compress all files within the MTGJSON output directory.
-
-    Args:
-        directory: Directory to compress
-        use_python: Use Python's built-in compression (cross-platform, default True)
-        streaming: use streaming compression
-    """
-    LOGGER.info(f"Starting compression on {directory.name}")
-
-    if use_python and streaming:
-        compress_file: Callable[[pathlib.Path], Any] = _compress_file_streaming_parallel
-    elif use_python:
-        compress_file = _compress_file_python
-    else:
-        compress_file = _compress_mtgjson_file
-
-    compress_dir = (
-        (lambda files, d, name: _compress_directory_python(files, d.joinpath(name)))
-        if use_python
-        else _compress_mtgjson_directory
-    )
-
-    single_set_files = [file for file in directory.glob("*.json") if file.stem not in COMPILED_OUTPUT_NAMES]
-    for set_file in single_set_files:
-        LOGGER.info(f"Compressing {set_file.name}")
-        compress_file(set_file)
-
-    deck_files = list(directory.joinpath("decks").glob("*.json"))
-    for deck_file in deck_files:
-        LOGGER.info(f"Compressing {deck_file.name}")
-        compress_file(deck_file)
-
-    sql_files = list(directory.glob("*.sql")) + list(directory.glob("*.sqlite")) + list(directory.glob("*.psql"))
-    for sql_file in sql_files:
-        LOGGER.info(f"Compressing {sql_file.name}")
-        compress_file(sql_file)
-
-    csv_files = list(directory.joinpath("csv").glob("*.csv"))
-    for csv_file in csv_files:
-        LOGGER.info(f"Compressing {csv_file.name}")
-        compress_file(csv_file)
-
-    compiled_files = [file for file in directory.glob("*.json") if file.stem in COMPILED_OUTPUT_NAMES]
-    for compiled_file in compiled_files:
-        LOGGER.info(f"Compressing {compiled_file.name}")
-        compress_file(compiled_file)
-
-    if single_set_files:
-        LOGGER.info(f"Creating archive: {ALL_SETS_DIRECTORY}")
-        compress_dir(single_set_files, directory, ALL_SETS_DIRECTORY)
-
-    if deck_files:
-        LOGGER.info(f"Creating archive: {ALL_DECKS_DIRECTORY}")
-        compress_dir(deck_files, directory, ALL_DECKS_DIRECTORY)
-
-    if csv_files:
-        LOGGER.info(f"Creating archive: {ALL_CSVS_DIRECTORY}")
-        compress_dir(csv_files, directory, ALL_CSVS_DIRECTORY)
-
-    parquet_files = list(directory.joinpath("parquet").glob("*.parquet"))
-    if parquet_files:
-        LOGGER.info(f"Creating zip archive: {ALL_PARQUETS_DIRECTORY}")
-        output_base = directory.joinpath(ALL_PARQUETS_DIRECTORY)
-        with zipfile.ZipFile(f"{output_base}.zip", "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
-            for f in parquet_files:
-                zf.write(f, f"{ALL_PARQUETS_DIRECTORY}/{f.name}")
-
-    LOGGER.info(f"Finished compression on {directory.name}")
-
-
-def compress_files_parallel(
-    files: list[pathlib.Path], max_workers: int | None = None, streaming: bool = True
-) -> dict[str, int]:
-    """
-    Compress multiple files in parallel using ThreadPoolExecutor.
-
-    Args:
-        files: List of files to compress
-        max_workers: Maximum parallel workers (default: based on CPU count)
-        streaming: use streaming compression
-
-    Returns:
-        Dict with compression statistics
-    """
-    workers = max_workers or _get_compression_workers()
-    stats = {"total": len(files), "success": 0, "failed": 0}
-
-    if streaming:
-        compress_fn: Callable[[pathlib.Path], Any] = _compress_file_streaming_parallel
-    else:
-        compress_fn = _compress_file_python
-
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = {executor.submit(compress_fn, f): f for f in files}
-
-        for future in as_completed(futures):
-            file = futures[future]
-            try:
-                results = future.result()
-                if all(success for success, _ in results):
-                    stats["success"] += 1
-                    LOGGER.info(f"Compressed {file.name}")
-                else:
-                    stats["failed"] += 1
-                    failed_formats = [fmt for success, fmt in results if not success]
-                    LOGGER.warning(f"Failed formats for {file.name}: {failed_formats}")
-            except Exception as e:
-                stats["failed"] += 1
-                LOGGER.error(f"Compression failed for {file.name}: {e}")
-    return stats
-
-
-def compress_mtgjson_contents_parallel(
+def compress_mtgjson_contents(
     directory: pathlib.Path, max_workers: int | None = None, streaming: bool = True
 ) -> dict[str, int]:
     """
     Compress all files within the MTGJSON output directory using parallel processing.
+
+    Uses ProcessPoolExecutor to bypass the GIL for CPU-bound compression.
+    Large files are split into per-format tasks so all cores stay busy;
+    small files are compressed as a single task (all 4 formats sequentially).
 
     Args:
         directory: Directory containing files to compress
@@ -542,17 +504,14 @@ def compress_mtgjson_contents_parallel(
     set_files = [f for f in directory.glob("*.json") if f.stem not in compiled_names and f.stem.isupper()]
     deck_files = list(directory.joinpath("decks").glob("*.json"))
 
-    # SQL files
     sql_dir = directory.joinpath("sql")
     if sql_dir.exists():
         sql_files = list(sql_dir.glob("*.sql")) + list(sql_dir.glob("*.sqlite")) + list(sql_dir.glob("*.psql"))
     else:
         sql_files = list(directory.glob("*.sql")) + list(directory.glob("*.sqlite")) + list(directory.glob("*.psql"))
 
-    # CSV files
     csv_files = list(directory.joinpath("csv").glob("*.csv"))
 
-    # Compiled files
     compiled_dir = directory.joinpath("Compiled")
     if compiled_dir.exists():
         compiled_files = list(compiled_dir.glob("*.json"))
@@ -561,29 +520,71 @@ def compress_mtgjson_contents_parallel(
 
     all_files = set_files + deck_files + sql_files + csv_files + compiled_files
 
-    stats = compress_files_parallel(all_files, workers, streaming=streaming)
+    tasks: list[tuple[Callable[..., Any], tuple[Any, ...], float]] = []
 
-    # Directory archives
+    for f in all_files:
+        size = f.stat().st_size
+        if size >= _LARGE_FILE_THRESHOLD:
+            # Large files: one task per format
+            for fmt in _FORMATS:
+                cost = size * _FORMAT_WEIGHTS.get(fmt, 1)
+                tasks.append((_compress_single_format, (f, fmt), cost))
+        else:
+            # Small files: all 4 formats in one task
+            tasks.append((_compress_file_python, (f,), size))
+
+    # Directory archives: one task per format
+    dir_archives: list[tuple[list[pathlib.Path], pathlib.Path]] = []
     if set_files:
-        LOGGER.info(f"Creating archive: {ALL_SETS_DIRECTORY}")
-        _compress_directory_python(
-            set_files,
-            directory.joinpath(ALL_SETS_DIRECTORY),
-        )
-
+        dir_archives.append((set_files, directory.joinpath(ALL_SETS_DIRECTORY)))
     if deck_files:
-        LOGGER.info(f"Creating archive: {ALL_DECKS_DIRECTORY}")
-        _compress_directory_python(
-            deck_files,
-            directory.joinpath(ALL_DECKS_DIRECTORY),
-        )
-
+        dir_archives.append((deck_files, directory.joinpath(ALL_DECKS_DIRECTORY)))
     if csv_files:
-        LOGGER.info(f"Creating archive: {ALL_CSVS_DIRECTORY}")
-        _compress_directory_python(
-            csv_files,
-            directory.joinpath(ALL_CSVS_DIRECTORY),
-        )
+        dir_archives.append((csv_files, directory.joinpath(ALL_CSVS_DIRECTORY)))
+
+    for files, output_base in dir_archives:
+        total_size = sum(f.stat().st_size for f in files)
+        for fmt in _DIR_FORMATS:
+            cost = total_size * _FORMAT_WEIGHTS.get(fmt, 1)
+            tasks.append((_compress_directory_single_format, (files, output_base, fmt), cost))
+
+    tasks.sort(key=lambda t: t[2], reverse=True)
+
+    stats = {"total": len(all_files), "success": 0, "failed": 0}
+    file_results: dict[str, list[bool]] = {}
+
+    LOGGER.info(f"Submitting {len(tasks)} compression tasks to {workers} processes")
+
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        future_to_info = {}
+        for fn, args, _cost in tasks:
+            future = executor.submit(fn, *args)
+            file_key = str(args[0]) if args else ""
+            future_to_info[future] = file_key
+
+        for future in as_completed(future_to_info):
+            file_key = future_to_info[future]
+            try:
+                result = future.result()
+                if isinstance(result, list):
+                    all_ok = all(ok for ok, _ in result)
+                    file_results.setdefault(file_key, []).append(all_ok)
+                else:
+                    ok, fmt = result
+                    file_results.setdefault(file_key, []).append(ok)
+                    if not ok:
+                        LOGGER.warning(f"Failed: {pathlib.Path(file_key).name} {fmt}")
+            except Exception as e:
+                file_results.setdefault(file_key, []).append(False)
+                LOGGER.error(f"Compression task failed for {file_key}: {e}")
+
+    for f in all_files:
+        key = str(f)
+        results_list = file_results.get(key, [])
+        if results_list and all(results_list):
+            stats["success"] += 1
+        else:
+            stats["failed"] += 1
 
     parquet_files = list(directory.joinpath("parquet").glob("*.parquet"))
     if parquet_files:

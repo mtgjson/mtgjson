@@ -14,13 +14,25 @@ if TYPE_CHECKING:
     from ..context import AssemblyContext
 
 _COMPRESSION: Literal["zstd"] = "zstd"
-_COMPRESSION_LEVEL = 9
+_COMPRESSION_LEVEL = 3
 
 
 def _write(df: pl.DataFrame, path: pathlib.Path) -> None:
     """Write a DataFrame to parquet with standard compression."""
     df.write_parquet(path, compression=_COMPRESSION, compression_level=_COMPRESSION_LEVEL)
     LOGGER.info(f"  {path.name}: {df.height:,} rows")
+
+
+def write_price_parquet(output_dir: pathlib.Path) -> None:
+    """Write AllPrices.parquet and AllPricesToday.parquet.
+
+    Delegates to the unified build_prices() with parquet output enabled
+    and JSON/SQL output disabled.  Uses the memory-efficient partitioned
+    archive (never materializes the full 90-day dataset).
+    """
+    from mtgjson5.build.prices.price_builder import PolarsPriceBuilder
+
+    PolarsPriceBuilder().build_prices(parquet_output_dir=output_dir, write_json=False)
 
 
 class ParquetBuilder:
@@ -121,7 +133,22 @@ class ParquetBuilder:
             _write(result, output_dir / "AllDecks.parquet")
 
     def _write_tcgplayer_skus(self, output_dir: pathlib.Path) -> None:
-        """Write TcgplayerSkus.parquet (uuid + flattened SKU fields)."""
+        """Write TcgplayerSkus.parquet (uuid + flattened SKU fields).
+
+        Reads the cached flat parquet written by TcgplayerSkusAssembler
+        during JSON assembly.
+        """
+        from mtgjson5 import constants
+
+        cache_path = constants.CACHE_PATH / "_tcgplayer_skus_flat.parquet"
+        if cache_path.exists():
+            df = pl.read_parquet(cache_path)
+            if len(df) > 0:
+                _write(df, output_dir / "TcgplayerSkus.parquet")
+                LOGGER.info(f"TcgplayerSkus.parquet: read from cached flat result ({len(df):,} rows)")
+            return
+
+        # Fallback: build from scratch if cache missing
         data = self.ctx.tcgplayer_skus.build()
         rows: list[dict[str, Any]] = []
         for uuid, skus in data.items():
@@ -134,22 +161,25 @@ class ParquetBuilder:
 
     def _write_prices(self, output_dir: pathlib.Path) -> None:
         """Write AllPrices.parquet and AllPricesToday.parquet."""
-        from mtgjson5.build.price_builder import PolarsPriceBuilder
-
-        builder = PolarsPriceBuilder()
-        all_prices_df, today_df = builder.build_prices_parquet()
-
-        if len(all_prices_df) > 0:
-            _write(all_prices_df, output_dir / "AllPrices.parquet")
-        if len(today_df) > 0:
-            _write(today_df, output_dir / "AllPricesToday.parquet")
+        write_price_parquet(output_dir)
 
     # ------------------------------------------------------------------
     # Main entry point
     # ------------------------------------------------------------------
 
-    def write(self, output_dir: pathlib.Path | None = None) -> pathlib.Path | None:
-        """Write Parquet files to output directory."""
+    def write(
+        self,
+        output_dir: pathlib.Path | None = None,
+        include_prices: bool = True,
+    ) -> pathlib.Path | None:
+        """Write Parquet files to output directory.
+
+        Args:
+            output_dir: Output directory. Defaults to ``ctx.output_path / "parquet"``.
+            include_prices: When False, skip price parquet writes.  The caller
+                is responsible for running ``write_price_parquet()`` separately
+                (e.g. in a subprocess for parallelism).
+        """
         if output_dir is None:
             output_dir = self.ctx.output_path / "parquet"
 
@@ -168,6 +198,7 @@ class ParquetBuilder:
         cards_df = self.ctx.all_cards_df
         if cards_df is not None:
             _write(cards_df, output_dir / "AllPrintings.parquet")
+            del cards_df
 
         # Write meta
         meta = MtgjsonMeta()
@@ -186,7 +217,13 @@ class ParquetBuilder:
         self._write_deck_list(output_dir)
         self._write_all_decks(output_dir)
         self._write_tcgplayer_skus(output_dir)
-        self._write_prices(output_dir)
+
+        # Release card data — frees all_cards_df
+        # so it doesn't overlap with price builder memory.
+        self.ctx.release_card_data()
+
+        if include_prices:
+            self._write_prices(output_dir)
 
         LOGGER.info(f"Wrote Parquet files to {output_dir}")
         return output_dir

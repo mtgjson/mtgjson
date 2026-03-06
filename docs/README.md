@@ -64,7 +64,7 @@ The Polars pipeline consists of four main layers:
 
 ┌─────────────────────────────────────────────────────────────┐
 │              5. PRICE ENGINE (separate ETL)                 │
-│  PolarsPriceBuilder (build/price_builder.py)             │
+│  PolarsPriceBuilder (build/prices/price_builder.py)      │
 │  + price_archive.py, price_writers.py, price_s3.py         │
 │  - Fetches daily prices from 5 providers                    │
 │  - Date-partitioned parquet data lake with S3 sync          │
@@ -81,6 +81,7 @@ The Polars pipeline consists of four main layers:
 | [pipeline-context.md](pipeline-context.md) | PipelineContext class, consolidate_lookups(), derived tables |
 | [pipeline-core.md](pipeline-core.md) | Main build_cards() function, transformation stages, checkpoints |
 | [assembly-output.md](assembly-output.md) | AssemblyContext, format builders, output generation |
+| [subprocess-isolation.md](subprocess-isolation.md) | Subprocess isolation: memory management, task groups, scheduling |
 | [models.md](models.md) | Pydantic models: CardSet, CardAtomic, MtgSet, TypedDicts, adapters |
 | [prices.md](prices.md) | Price engine: provider fetching, date-partitioned data lake, S3 sync, output |
 | [documentation.md](documentation.md) | Pipeline-driven TypeScript types and VitePress documentation generation |
@@ -166,10 +167,10 @@ All paths relative to `mtgjson5/`:
 | `build/assemble.py` | Assembly utilities |
 | `build/context.py` | Assembly configuration |
 | `build/writer.py` | Format dispatch |
-| `build/price_builder.py` | Price engine orchestrator + context |
-| `build/price_archive.py` | Price archive: load, save, merge, prune, partition |
-| `build/price_writers.py` | Price output: JSON streaming, SQLite, SQL, CSV |
-| `build/price_s3.py` | Price S3: sync operations |
+| `build/prices/price_builder.py` | Price engine orchestrator + context |
+| `build/prices/price_archive.py` | Price archive: load, save, merge, prune, partition |
+| `build/prices/price_writers.py` | Price output: JSON streaming, SQLite, SQL, CSV |
+| `build/prices/price_s3.py` | Price S3: sync operations |
 | `build/referral_builder.py` | Referral map generation for purchase URLs |
 | `models/cards.py` | Card Pydantic models |
 | `models/sets.py` | Set Pydantic models |

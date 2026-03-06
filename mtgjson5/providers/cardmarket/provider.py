@@ -27,6 +27,28 @@ from mtgjson5.utils import generate_entity_mapping
 LOGGER = logging.getLogger(__name__)
 
 
+def _load_mcm_finishes_from_parquet() -> dict[str, set[Any]]:
+    """Load mcmId → finishes mapping from parquet cache written during pipeline."""
+    from mtgjson5 import constants
+
+    cache_path = constants.CACHE_PATH / "mcm_finishes.parquet"
+    if not cache_path.exists():
+        return {}
+    try:
+        df = pl.read_parquet(cache_path)
+        result: dict[str, set[Any]] = {}
+        for row in df.iter_rows(named=True):
+            mcm_id = row.get("mcmId")
+            finishes = row.get("finishes")
+            if mcm_id and finishes:
+                result[mcm_id] = set(finishes) if isinstance(finishes, list) else {finishes}
+        LOGGER.info(f"Loaded mcm_finishes from parquet cache ({len(result):,} entries)")
+        return result
+    except Exception as e:
+        LOGGER.warning(f"Failed to load mcm_finishes from parquet: {e}")
+        return {}
+
+
 @dataclass
 class CardMarketConfig:
     """CardMarket API credentials."""
@@ -336,6 +358,39 @@ class CardMarketProvider:
 
     # Price fetching
 
+    async def fetch_raw_prices(self) -> pl.DataFrame:
+        """Fetch raw CardMarket price guide without UUID mapping.
+
+        Returns DataFrame with (productId, trend, trend_foil) rows.
+        """
+        from mtgjson5 import constants
+
+        raw_schema = {"productId": pl.String, "trend": pl.Float64, "trend_foil": pl.Float64}
+
+        price_data = await self.get_price_data()
+        if not price_data:
+            return pl.DataFrame(schema=raw_schema)
+
+        records = [
+            {
+                "productId": pid,
+                "trend": prices.get("trend"),
+                "trend_foil": prices.get("trend-foil"),
+            }
+            for pid, prices in price_data.items()
+            if prices.get("trend") is not None or prices.get("trend-foil") is not None
+        ]
+
+        if not records:
+            return pl.DataFrame(schema=raw_schema)
+
+        df = pl.DataFrame(records, schema=raw_schema)
+        raw_path = constants.CACHE_PATH / "mcm_raw_prices.parquet"
+        raw_path.parent.mkdir(parents=True, exist_ok=True)
+        df.write_parquet(raw_path, compression="zstd")
+        LOGGER.info(f"CardMarket raw: Saved {len(df):,} records to {raw_path}")
+        return df
+
     async def get_price_data(self) -> dict[str, dict[str, float | None]]:
         """
         Fetch price guide data from MKM price API.
@@ -386,8 +441,10 @@ class CardMarketProvider:
         if not mtgjson_id_map:
             mtgjson_id_map = generate_entity_mapping(all_printings_path, ("identifiers", "mcmId"), ("uuid",))
 
-        # Try cached finishes map first, fall back to parsing AllPrintings
+        # Try cached finishes map first, then parquet cache, then AllPrintings.json
         mtgjson_finish_map: dict[str, set[Any]] = GLOBAL_CACHE.get_cardmarket_to_finishes_map()
+        if not mtgjson_finish_map:
+            mtgjson_finish_map = _load_mcm_finishes_from_parquet()
         if not mtgjson_finish_map:
             LOGGER.info("Finishes not in cache, parsing AllPrintings.json...")
             mtgjson_finish_map = generate_entity_mapping(all_printings_path, ("identifiers", "mcmId"), ("finishes",))

@@ -299,8 +299,19 @@ class AssemblyContext:
         )
 
     @classmethod
-    def from_cache(cls, cache_dir: pathlib.Path | None = None) -> AssemblyContext | None:
+    def from_cache(
+        cls,
+        cache_dir: pathlib.Path | None = None,
+        skip: frozenset[str] = frozenset(),
+    ) -> AssemblyContext | None:
         """Load AssemblyContext from cached files (fast path).
+
+        Args:
+            cache_dir: Override cache directory (default: CACHE_PATH).
+            skip: Optional set of field names to skip loading.  Valid names:
+                ``"decks"``, ``"sealed"``, ``"token_products"``, ``"boosters"``.
+                Skipped fields are left at their empty defaults, saving memory
+                in subprocesses that don't need them.
 
         Returns None if cache files don't exist.
         """
@@ -322,41 +333,34 @@ class AssemblyContext:
             LOGGER.warning(f"Parquet directory not found: {parquet_dir}")
             return None
 
-        # Load set metadata
+        # Load set metadata (always required)
         set_meta: dict[str, dict[str, Any]] = orjson.loads(set_meta_path.read_bytes())
         LOGGER.info("Loading cached set metadata...")
-        LOGGER.debug(f"Loaded cached set metadata for {len(set_meta)} sets.")
 
         # Load booster configs
         booster_configs: dict[str, dict[str, Any]] = {}
-        if boosters_path.exists():
+        if "boosters" not in skip and boosters_path.exists():
             booster_configs = orjson.loads(boosters_path.read_bytes())
         LOGGER.info("Loaded assembly cache.")
-        LOGGER.debug(f"Loaded cached booster configurations for {len(booster_configs)} sets.")
 
         # Load decks DataFrame
         decks_df: pl.DataFrame | None = None
-        if decks_path.exists():
+        if "decks" not in skip and decks_path.exists():
             decks_df = pl.read_parquet(decks_path)
-        LOGGER.info("Loading cached deck data...")
-        LOGGER.debug(f"Loaded cached decks DataFrame with {len(decks_df) if decks_df is not None else 0} rows.")
+            LOGGER.info("Loading cached deck data...")
 
         # Load sealed products DataFrame
         sealed_df: pl.DataFrame | None = None
-        if sealed_path.exists():
+        if "sealed" not in skip and sealed_path.exists():
             sealed_df = pl.read_parquet(sealed_path)
-        LOGGER.info("Loading cached sealed products...")
-        LOGGER.debug(
-            f"Loaded cached sealed products DataFrame with {len(sealed_df) if sealed_df is not None else 0} rows."
-        )
+            LOGGER.info("Loading cached sealed products...")
 
         # Load token products
         token_products_path = cache_dir / CACHE_TOKEN_PRODUCTS
         token_products: dict[str, list] = {}
-        if token_products_path.exists():
+        if "token_products" not in skip and token_products_path.exists():
             token_products = orjson.loads(token_products_path.read_bytes())
-        LOGGER.info("Loading cached token products...")
-        LOGGER.debug(f"Loaded cached token products for {len(token_products)} tokens.")
+            LOGGER.info("Loading cached token products...")
 
         keyword_data: dict[str, list[str]] = {}
         card_type_data: dict[str, list[str]] = {}
@@ -381,7 +385,6 @@ class AssemblyContext:
         meta_obj = MtgjsonMeta()
         meta_dict = {"date": meta_obj.date, "version": meta_obj.version}
         LOGGER.info("Loading meta information...")
-        LOGGER.debug(f"Loaded meta: {meta_dict}")
 
         return cls(
             parquet_dir=parquet_dir,
@@ -496,3 +499,26 @@ class AssemblyContext:
         from .assemble import AllIdentifiersAssembler
 
         return AllIdentifiersAssembler(self)
+
+    def release_card_data(self) -> None:
+        """Free card/token DataFrames and assembler caches.
+
+        Evicts heavy ``@cached_property`` values so the GC can reclaim them.
+        Does NOT evict ``normalized_tables`` or ``normalized_boosters`` which
+        may still be needed by export format builders.
+        """
+        import gc
+
+        for attr in (
+            "all_cards_df",
+            "all_tokens_df",
+            "sets_df",
+            "sets",
+            "atomic_cards",
+            "set_list",
+            "tcgplayer_skus",
+            "all_identifiers",
+        ):
+            self.__dict__.pop(attr, None)
+        gc.collect()
+        LOGGER.info("Released card data caches from AssemblyContext")

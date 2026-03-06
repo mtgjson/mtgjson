@@ -216,6 +216,53 @@ class GlobalCache:
             if hasattr(self, attr):
                 setattr(self, attr, None)
 
+    def release_pipeline_frames(self) -> None:
+        """Release heavy LazyFrames used only by the card pipeline."""
+        import gc
+
+        self.release(
+            "rulings_lf",
+            "uuid_cache_lf",
+            "card_kingdom_lf",
+            "card_kingdom_raw_lf",
+            "mcm_lookup_lf",
+            "salt_lf",
+            "spellbook_lf",
+            "sld_subsets_lf",
+            "orientation_lf",
+            "gatherer_lf",
+            "multiverse_bridge_lf",
+            "sealed_cards_lf",
+            "languages_lf",
+            "final_cards_lf",
+            "mtgo_to_uuid_lf",
+            "scryfall_to_uuid_lf",
+        )
+        gc.collect()
+        LOGGER.info("Released pipeline-only cache frames")
+
+    def release_assembly_frames(self) -> None:
+        """Release remaining LazyFrames after all assembly, exports, and referrals."""
+        import gc
+
+        self.release(
+            "sets_lf",
+            "boosters_lf",
+            "decks_lf",
+            "sealed_products_lf",
+            "sealed_contents_lf",
+            "token_products_lf",
+            "tcg_skus_lf",
+            "tcg_sku_map_lf",
+            "tcg_to_uuid_lf",
+            "tcg_etched_to_uuid_lf",
+            "tcg_alt_foil_to_uuid_lf",
+            "cards_lf",
+            "cardmarket_to_uuid_lf",
+        )
+        gc.collect()
+        LOGGER.info("Released assembly cache frames")
+
     def clear(self) -> None:
         """Clear all cached data to free memory."""
         self.release(
@@ -249,6 +296,12 @@ class GlobalCache:
             "languages_lf",
             "final_cards_lf",
         )
+        # Also release provider instances (hold fetched data)
+        self._scryfall = None
+        self._cardkingdom = None
+        self._cardmarket = None
+        self._github = None
+        self._scryfall_id_filter = None
         self._loaded = False
 
     def load_all(
@@ -275,11 +328,18 @@ class GlobalCache:
         self._export_formats = export_formats
         self._set_filter = [s.upper() for s in set_codes] if set_codes else None
 
+        from mtgjson5.profiler import get_profiler
+
+        prof = get_profiler()
+
         self._download_bulk_data()
+        prof.checkpoint("bulk_download")
         self._load_bulk_data()
+        prof.checkpoint("bulk_load")
         self._load_resources()
         self._load_sets_metadata()
         self._load_missing_set_cards()
+        prof.checkpoint("resources_and_metadata")
 
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = {
@@ -317,9 +377,12 @@ class GlobalCache:
             if self._output_types == {"decks"} and self.decks_lf is not None:
                 self._build_deck_scryfall_filter()
 
+            prof.checkpoint("providers_loaded")
+
             self._normalize_all_columns()
             self._apply_categoricals()
             self._dump_and_reload_as_lazy()
+            prof.checkpoint("dump_and_reload", top_n=10)
 
             self._loaded = True
             return self

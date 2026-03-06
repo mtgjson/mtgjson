@@ -74,6 +74,26 @@ class PipelineContext:
     mcm_set_map: dict[str, dict[str, Any]] = field(default_factory=dict, repr=False)
     _mcm_lookup_enriched: pl.LazyFrame | None = field(default=None, repr=False)
 
+    def release_pipeline_data(self) -> None:
+        """Release derived lookup tables after the pipeline has sunk to parquet."""
+        import gc
+
+        self.identifiers_lf = None
+        self.tcg_alt_foil_lf = None
+        self.oracle_data_lf = None
+        self.set_number_lf = None
+        self.name_lf = None
+        self.signatures_lf = None
+        self.watermark_overrides_lf = None
+        self.face_flavor_names_df = None
+        self.face_foreign_lf = None
+        self.uuid_lookup_df = None
+        self.final_cards_lf = None
+        self._mcm_lookup_enriched = None
+        self.categoricals = None
+        gc.collect()
+        LOGGER.info("Released pipeline lookup data")
+
     @property
     def cards_lf(self) -> pl.LazyFrame | None:
         """Raw card data from cache."""
@@ -515,6 +535,10 @@ class PipelineContext:
         """
         import gc
 
+        from mtgjson5.profiler import get_profiler
+
+        prof = get_profiler()
+
         LOGGER.info("Consolidating lookup tables...")
 
         # Collect cards_lf once for the two sub-methods that need it,
@@ -525,8 +549,11 @@ class PipelineContext:
             cards_df = cards_raw.collect() if isinstance(cards_raw, pl.LazyFrame) else cards_raw
 
         self._build_identifiers_lookup()
+        prof.checkpoint("lookup_identifiers")
         self._build_oracle_data_lookup(cards_df=cards_df)
+        prof.checkpoint("lookup_oracle")
         self._build_set_number_lookup(cards_df=cards_df)
+        prof.checkpoint("lookup_set_number")
 
         del cards_df
         gc.collect()
@@ -538,6 +565,7 @@ class PipelineContext:
         self._build_mcm_set_map()
         self._build_mcm_lookup()
         self._build_tcg_alt_foil_lookup()
+        prof.checkpoint("lookup_remaining")
 
         return self
 

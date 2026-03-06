@@ -205,6 +205,13 @@ class CardBase(PolarsMixin, BaseModel):
 
         return result
 
+    def to_output_dict(self) -> dict[str, Any]:
+        """Fast dict conversion, preserving WUBRG color order for split/adventure layouts."""
+        result = super().to_output_dict()
+        if self.layout in _WUBRG_COLOR_LAYOUTS and "colors" in result and result["colors"]:
+            result["colors"] = sorted(result["colors"], key=lambda c: _WUBRG_ORDER.get(c, 99))
+        return result
+
 
 class CardAtomicBase(CardBase):
     """Base for atomic (oracle-like) card properties."""

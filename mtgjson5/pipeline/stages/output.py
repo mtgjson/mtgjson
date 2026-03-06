@@ -428,8 +428,58 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
 
     del combined_df
 
+    # Cache mcmId → finishes for CardMarket price builder (subprocess)
+    _build_mcm_finishes_cache(lf)
 
-def sink_cards(ctx: PipelineContext) -> None:
+
+def _build_mcm_finishes_cache(lf: pl.LazyFrame) -> None:
+    """Cache mcmId → finishes mapping so the subprocess can skip AllPrintings.json parsing."""
+    cache_path = constants.CACHE_PATH
+    try:
+        finishes_df = (
+            lf.select(
+                pl.col("identifiers").struct.field("mcmId").alias("mcmId"),
+                pl.col("finishes"),
+            )
+            .filter(pl.col("mcmId").is_not_null())
+            .unique(subset=["mcmId"])
+            .collect()
+        )
+        if len(finishes_df) > 0:
+            path = cache_path / "mcm_finishes.parquet"
+            finishes_df.write_parquet(path)
+            LOGGER.info(f"Built mcm_finishes cache: {len(finishes_df):,} entries")
+    except Exception as e:
+        LOGGER.warning(f"Failed to build mcm_finishes cache: {e}")
+
+
+def build_id_mappings_from_parquet(ctx: PipelineContext) -> None:
+    """Build ID -> UUID mappings by scanning all partitioned parquet files."""
+    cards_dir = constants.CACHE_PATH / "_parquet"
+    tokens_dir = constants.CACHE_PATH / "_parquet_tokens"
+
+    id_cols = ["uuid", "identifiers", "finishes"]
+
+    frames: list[pl.LazyFrame] = []
+    for parquet_dir in [cards_dir, tokens_dir]:
+        if not parquet_dir.exists():
+            continue
+        for set_dir in parquet_dir.iterdir():
+            if set_dir.is_dir() and set_dir.name.startswith("setCode="):
+                pq_file = set_dir / "0.parquet"
+                if pq_file.exists():
+                    frames.append(pl.scan_parquet(pq_file).select(id_cols))
+
+    if not frames:
+        LOGGER.warning("No parquet partitions found for ID mapping build")
+        return
+
+    combined_lf = pl.concat(frames)
+    _build_id_mappings(ctx, combined_lf)
+    LOGGER.info("Post-batch ID mappings built from parquet partitions")
+
+
+def sink_cards(ctx: PipelineContext, skip_id_mappings: bool = False) -> None:
     """Sink cards and tokens to partitioned parquet files."""
     cards_dir = constants.CACHE_PATH / "_parquet"
     tokens_dir = constants.CACHE_PATH / "_parquet_tokens"
@@ -457,7 +507,8 @@ def sink_cards(ctx: PipelineContext) -> None:
     lf = add_variations(lf)
 
     # Build ID -> UUID mappings for price builder
-    _build_id_mappings(ctx, lf)
+    if not skip_id_mappings:
+        _build_id_mappings(ctx, lf)
 
     # Split into cards and tokens, apply final renames
     cards_lf, tokens_lf = filter_out_tokens(lf)
@@ -492,6 +543,13 @@ def sink_cards(ctx: PipelineContext) -> None:
             set_path.mkdir(exist_ok=True)
             set_df.write_parquet(set_path / "0.parquet")
 
+        del df, partitions
         LOGGER.info(f"  {label} complete")
 
+    # Data is on disk — release the in-memory pipeline DataFrame
+    ctx.final_cards_lf = None
+
+    import gc
+
+    gc.collect()
     LOGGER.info("All parquet sinks complete.")

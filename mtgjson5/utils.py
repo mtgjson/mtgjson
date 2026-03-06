@@ -21,25 +21,42 @@ from .mtgjson_config import MtgjsonConfig
 
 LOGGER = logging.getLogger(__name__)
 
+_CURRENT_LOG_FILE: str | None = None
 
-def init_logger() -> None:
+
+def init_logger(log_file: str | None = None) -> None:
+    """Initialize the main system logger.
+
+    Args:
+        log_file: Path to the log file.  When *None* (default), a new
+            timestamped file is created.  Subprocesses should pass the
+            parent's log file path (via :func:`get_log_file`) so that
+            all processes write to the same log.
     """
-    Initialize the main system logger
-    """
+    global _CURRENT_LOG_FILE
     constants.LOG_PATH.mkdir(parents=True, exist_ok=True)
 
-    start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
+    if log_file is None:
+        start_time = time.strftime("%Y-%m-%d_%H.%M.%S")
+        log_file = str(constants.LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))
+
+    _CURRENT_LOG_FILE = log_file
 
     logging.basicConfig(
         level=(logging.DEBUG if os.environ.get("MTGJSON5_DEBUG", "").lower() in ["true", "1"] else logging.INFO),
         format="[%(levelname)s] %(asctime)s: %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler(str(constants.LOG_PATH.joinpath(f"mtgjson_{start_time}.log"))),
+            logging.FileHandler(log_file),
         ],
         force=True,
     )
     logging.getLogger("urllib3").setLevel(logging.ERROR)
+
+
+def get_log_file() -> str | None:
+    """Return the active log file path, or *None* if :func:`init_logger` has not been called."""
+    return _CURRENT_LOG_FILE
 
 
 def url_keygen(unique_seed: int | str, with_leading: bool = True) -> str:

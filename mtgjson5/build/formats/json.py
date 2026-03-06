@@ -5,7 +5,11 @@ Writers handle file I/O
 
 from __future__ import annotations
 
+import gc
+import multiprocessing
+import os
 import pathlib
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 import orjson
@@ -35,6 +39,65 @@ _ATOMIC_FORMATS = ["legacy", "modern", "pauper", "pioneer", "standard", "vintage
 _PRINTINGS_OUTPUTS = {fmt.title() for fmt in _PRINTINGS_FORMATS}
 _ATOMIC_OUTPUTS = {f"{fmt.title()}Atomic" for fmt in _ATOMIC_FORMATS}
 
+# Assembly task groups for subprocess isolation.
+# Ordered to avoid overlapping two heavy groups simultaneously.
+# Heavy groups (A, B, C, E) are interleaved with medium/light (D, F).
+_ASSEMBLY_GROUPS: list[tuple[str, list[str]]] = [
+    ("A", ["AllPrintings", "FormatPrintings"]),
+    ("D", ["DeckFiles", "DeckList"]),
+    ("F", ["AllIdentifiers", "EnumValues", "Keywords", "CardTypes"]),
+    ("B", ["AtomicCards", "FormatAtomics"]),
+    ("C", ["SetFiles", "SetList", "Meta", "CompiledList"]),
+    ("E", ["TcgplayerSkus"]),
+]
+
+# All individual output names that the should_build filter recognizes.
+# FormatPrintings and FormatAtomics are expanded into their component names.
+_FORMAT_PRINTINGS_NAMES = _PRINTINGS_OUTPUTS
+_FORMAT_ATOMICS_NAMES = _ATOMIC_OUTPUTS
+
+
+def _spawn_assembly_group(
+    tasks: list[str],
+    output_dir: str,
+    pretty: bool,
+    set_codes: list[str] | None,
+    sets_only: bool,
+    include_decks: bool,
+    profile: bool = False,
+    group_label: str = "",
+) -> tuple[multiprocessing.process.BaseProcess, multiprocessing.Queue, multiprocessing.Queue]:
+    """Spawn a subprocess for an assembly task group.
+
+    Returns (process, results_queue, error_queue).
+    """
+    from mtgjson5.utils import get_log_file
+
+    mp_ctx = multiprocessing.get_context("spawn")
+    results_queue = mp_ctx.Queue()
+    error_queue = mp_ctx.Queue()
+
+    from mtgjson5._subprocess_assembly import run_assembly_group
+
+    proc = mp_ctx.Process(
+        target=run_assembly_group,
+        args=(
+            tasks,
+            output_dir,
+            pretty,
+            set_codes,
+            sets_only,
+            include_decks,
+            results_queue,
+            error_queue,
+            get_log_file(),
+            profile,
+            group_label,
+        ),
+    )
+    proc.start()
+    return proc, results_queue, error_queue
+
 
 class JsonOutputBuilder:
     """Writes all JSON-based MTGJSON output files."""
@@ -47,7 +110,7 @@ class JsonOutputBuilder:
         """Build Meta.json."""
         file = MetaFile.with_meta(self.ctx.meta, self.ctx.meta)
         file.write(output_path, pretty=self.ctx.pretty)
-        return file  # type: ignore[return-value]
+        return file
 
     def write_all_printings(
         self,
@@ -65,7 +128,7 @@ class JsonOutputBuilder:
 
         file = AllPrintingsFile.with_meta(data, self.ctx.meta, validate=False)
         file.write(output_path, pretty=self.ctx.pretty)
-        return file  # type: ignore[return-value]
+        return file
 
     def _write_all_printings_streaming(
         self,
@@ -98,13 +161,44 @@ class JsonOutputBuilder:
 
         return count
 
-    def write_atomic_cards(self, output_path: pathlib.Path) -> AtomicCardsFile:
-        """Build AtomicCards.json."""
+    def write_atomic_cards(
+        self,
+        output_path: pathlib.Path,
+        streaming: bool = True,
+    ) -> AtomicCardsFile | int:
+        """Build AtomicCards.json. Returns count if streaming, else full file."""
+        if streaming:
+            return self._write_atomic_cards_streaming(output_path)
+
         data = self.ctx.atomic_cards.build()
 
         file = AtomicCardsFile.with_meta(data, self.ctx.meta, validate=False)
         file.write(output_path, pretty=self.ctx.pretty)
-        return file  # type: ignore[return-value]
+        return file
+
+    def _write_atomic_cards_streaming(self, output_path: pathlib.Path) -> int:
+        """Stream AtomicCards.json to disk one name-group at a time."""
+        with output_path.open("wb") as f:
+            f.write(b'{"meta":')
+            f.write(orjson.dumps(self.ctx.meta, option=self._orjson_opts))
+            f.write(b',"data":{')
+
+            first = True
+            count = 0
+
+            for name, cards in self.ctx.atomic_cards.iter_atomic():
+                if not first:
+                    f.write(b",")
+                first = False
+
+                f.write(orjson.dumps(name))
+                f.write(b":")
+                f.write(orjson.dumps(cards, option=self._orjson_opts))
+                count += 1
+
+            f.write(b"}}")
+
+        return count
 
     def write_set_list(self, output_path: pathlib.Path) -> SetListFile:
         """Build SetList.json."""
@@ -112,7 +206,7 @@ class JsonOutputBuilder:
 
         file = SetListFile.with_meta(data, self.ctx.meta, validate=False)
         file.write(output_path, pretty=self.ctx.pretty)
-        return file  # type: ignore[return-value]
+        return file
 
     def write_format_file(
         self,
@@ -146,6 +240,10 @@ class JsonOutputBuilder:
     ) -> int:
         """Write individual deck JSON files with expanded cards.
 
+        Uses a single DeckAssembler (builds the uuid_index once from
+        parquet) and iterates all decks. The uuid_index only contains
+        cards/tokens actually referenced by decks.
+
         Args:
             output_dir: Output directory (defaults to ctx.output_path/decks)
             set_codes: Optional filter for specific set codes
@@ -172,9 +270,8 @@ class JsonOutputBuilder:
         if len(decks_df) == 0:
             return 0
 
-        assembler = self.ctx.deck_assembler()
-
         meta_dict = self.ctx.meta
+        assembler = self.ctx.deck_assembler()
         count = 0
 
         for deck_raw in decks_df.to_dicts():
@@ -195,6 +292,8 @@ class JsonOutputBuilder:
             count += 1
 
         del assembler
+        gc.collect()
+
         return count
 
     def write_prices(self, output_dir: pathlib.Path) -> dict[str, int]:
@@ -206,7 +305,7 @@ class JsonOutputBuilder:
         Returns:
             Dict mapping file names to record counts.
         """
-        from mtgjson5.build.price_builder import PolarsPriceBuilder
+        from mtgjson5.build.prices.price_builder import PolarsPriceBuilder
         from mtgjson5.utils import LOGGER
 
         builder = PolarsPriceBuilder()
@@ -230,19 +329,43 @@ class JsonOutputBuilder:
 
         return results
 
-    def write_tcgplayer_skus(self, output_path: pathlib.Path) -> TcgplayerSkusFile:
-        """Build TcgplayerSkus.json.
+    def write_tcgplayer_skus(
+        self,
+        output_path: pathlib.Path,
+        streaming: bool = True,
+    ) -> TcgplayerSkusFile | int:
+        """Build TcgplayerSkus.json. Returns count if streaming, else full file."""
+        if streaming:
+            return self._write_tcgplayer_skus_streaming(output_path)
 
-        Args:
-            output_path: Output file path
-
-        Returns:
-            TcgplayerSkusFile with UUID to SKU mappings
-        """
         data = self.ctx.tcgplayer_skus.build()
         file = TcgplayerSkusFile.with_meta(data, self.ctx.meta)
         file.write(output_path)
-        return file  # type: ignore[return-value]
+        return file
+
+    def _write_tcgplayer_skus_streaming(self, output_path: pathlib.Path) -> int:
+        """Stream TcgplayerSkus.json to disk one UUID at a time."""
+        with output_path.open("wb") as f:
+            f.write(b'{"meta":')
+            f.write(orjson.dumps(self.ctx.meta, option=self._orjson_opts))
+            f.write(b',"data":{')
+
+            first = True
+            count = 0
+
+            for uuid, skus in self.ctx.tcgplayer_skus.iter_skus():
+                if not first:
+                    f.write(b",")
+                first = False
+
+                f.write(orjson.dumps(uuid))
+                f.write(b":")
+                f.write(orjson.dumps(skus, option=self._orjson_opts))
+                count += 1
+
+            f.write(b"}}")
+
+        return count
 
     def write_keywords(self, output_path: pathlib.Path) -> KeywordsFile:
         """Build Keywords.json.
@@ -259,7 +382,7 @@ class JsonOutputBuilder:
         data = assembler.build()
         file = KeywordsFile.with_meta(data, self.ctx.meta)
         file.write(output_path)
-        return file  # type: ignore[return-value]
+        return file
 
     def write_card_types(self, output_path: pathlib.Path) -> CardTypesFile:
         """Build CardTypes.json.
@@ -276,7 +399,7 @@ class JsonOutputBuilder:
         data = assembler.build()
         file = CardTypesFile.with_meta(data, self.ctx.meta)
         file.write(output_path)
-        return file  # type: ignore[return-value]
+        return file
 
     def write_enum_values(self, output_path: pathlib.Path) -> EnumValuesFile:
         """Build EnumValues.json.
@@ -293,7 +416,7 @@ class JsonOutputBuilder:
         data = assembler.build()
         file = EnumValuesFile.with_meta(data, self.ctx.meta)
         file.write(output_path)
-        return file  # type: ignore[return-value]
+        return file
 
     def write_all_identifiers(self, output_path: pathlib.Path) -> int:
         """Build AllIdentifiers.json using streaming to minimize memory usage.
@@ -307,8 +430,6 @@ class JsonOutputBuilder:
         Returns:
             Number of entries written
         """
-        import gc
-
         from mtgjson5.utils import LOGGER
 
         count = 0
@@ -331,10 +452,6 @@ class JsonOutputBuilder:
                 f.write(orjson.dumps(entry))
                 count += 1
 
-                if count % 5000 == 0:
-                    gc.collect()
-                    LOGGER.debug(f"AllIdentifiers: streamed {count} entries")
-
             f.write(b"\n}}")
 
         LOGGER.info(f"Streamed AllIdentifiers with {count} entries")
@@ -355,7 +472,136 @@ class JsonOutputBuilder:
         data = assembler.build()
         file = CompiledListFile.with_meta(data, self.ctx.meta)
         file.write(output_path)
-        return file  # type: ignore[return-value]
+        return file
+
+    def _write_all_subprocess(
+        self,
+        output_dir: pathlib.Path,
+        valid_codes: list[str] | None,
+        should_build: Callable[[str], bool],
+        profiler: Any,
+        *,
+        sets_only: bool,
+        include_decks: bool,
+        outputs: set[str] | None,
+    ) -> dict[str, int]:
+        """Execute assembly via subprocess isolation.
+
+        Each task group runs in a spawned child process so that jemalloc
+        allocations are fully reclaimed on child exit.
+        """
+        from mtgjson5.utils import LOGGER
+
+        max_concurrent = int(os.environ.get("MTGJSON_MAX_ASSEMBLY_PROCS", "2"))
+        LOGGER.info(f"Assembly: subprocess mode (max_concurrent={max_concurrent})")
+
+        # Release any cached card data in the parent — children load fresh.
+        self.ctx.release_card_data()
+        gc.collect()
+
+        # Build the filtered group list based on what outputs are requested.
+        groups_to_run: list[tuple[str, list[str]]] = []
+        for group_label, tasks in _ASSEMBLY_GROUPS:
+            filtered: list[str] = []
+            for task in tasks:
+                if task == "FormatPrintings":
+                    # FormatPrintings expands to individual format names
+                    if any(should_build(name) for name in _FORMAT_PRINTINGS_NAMES):
+                        filtered.append(task)
+                elif task == "FormatAtomics":
+                    if any(should_build(name) for name in _FORMAT_ATOMICS_NAMES):
+                        filtered.append(task)
+                elif task == "SetFiles":
+                    # SetFiles builds when no specific outputs requested, or sets_only
+                    if outputs is None or not outputs or sets_only:
+                        filtered.append(task)
+                elif task in ("DeckFiles", "DeckList"):
+                    # Match the in-process logic: build decks when include_decks
+                    # is True AND (no filter OR "Decks"/"DeckList" in outputs)
+                    # AND NOT (sets_only with no explicit outputs).
+                    _want_decks = (
+                        include_decks
+                        and (outputs is None or "Decks" in outputs or "DeckList" in outputs)
+                        and not (sets_only and not outputs)
+                    )
+                    if _want_decks:
+                        filtered.append(task)
+                elif should_build(task):
+                    filtered.append(task)
+            if filtered:
+                groups_to_run.append((group_label, filtered))
+
+        if not groups_to_run:
+            LOGGER.info("Assembly: no groups to run")
+            return {}
+
+        LOGGER.info(
+            "Assembly: %d groups to run: %s",
+            len(groups_to_run),
+            ", ".join(f"{label}={tasks}" for label, tasks in groups_to_run),
+        )
+
+        # Scheduler: run groups with limited concurrency.
+        is_profiling = profiler.enabled
+        results: dict[str, int] = {}
+        active: list[tuple[str, multiprocessing.process.BaseProcess, multiprocessing.Queue, multiprocessing.Queue]] = []
+        group_queue = list(groups_to_run)
+
+        output_dir_str = str(output_dir)
+
+        while group_queue or active:
+            # Start new groups up to max_concurrent
+            while group_queue and len(active) < max_concurrent:
+                label, tasks = group_queue.pop(0)
+                LOGGER.info(f"Assembly: spawning group {label} {tasks}")
+                profiler.checkpoint_with_children(f"assembly/spawn_{label}")
+                proc, rq, eq = _spawn_assembly_group(
+                    tasks,
+                    output_dir_str,
+                    self.ctx.pretty,
+                    valid_codes,
+                    sets_only,
+                    include_decks,
+                    profile=is_profiling,
+                    group_label=label,
+                )
+                active.append((label, proc, rq, eq))
+
+            # Wait for any active process to finish
+            if active:
+                # Poll active processes
+                finished = []
+                for i, (_label, proc, _rq, _eq) in enumerate(active):
+                    proc.join(timeout=1.0)
+                    if not proc.is_alive():
+                        finished.append(i)
+
+                # Collect results from finished processes
+                for i in reversed(finished):
+                    label, proc, rq, eq = active.pop(i)
+                    if not eq.empty():
+                        err = eq.get_nowait()
+                        LOGGER.error(f"Assembly subprocess {label} error: {err}")
+                    while not rq.empty():
+                        group_results = rq.get_nowait()
+                        sp_profile = group_results.pop("_profile", None)
+                        if sp_profile:
+                            profiler.add_subprocess_profile(sp_profile)
+                        results.update(group_results)
+                    profiler.checkpoint_with_children(f"assembly/joined_{label}")
+                    LOGGER.info(f"Assembly: group {label} complete (exit code {proc.exitcode})")
+
+        # Handle AllPrices if explicitly requested (via --outputs AllPrices).
+        # This uses PolarsPriceBuilder and runs in-process since it has its
+        # own separate subprocess path for full builds.
+        if outputs and ("AllPrices" in outputs or "AllPricesToday" in outputs):
+            LOGGER.info("Building price files (in-process)...")
+            price_results = self.write_prices(output_dir)
+            results.update(price_results)
+
+        profiler.checkpoint_with_children("assembly/subprocess_complete")
+        LOGGER.info(f"Assembly complete (subprocess): {sum(results.values())} total records")
+        return results
 
     def write_all(
         self,
@@ -381,7 +627,10 @@ class JsonOutputBuilder:
         Returns:
             Dict mapping file names to record counts.
         """
+        from mtgjson5.profiler import get_profiler
         from mtgjson5.utils import LOGGER
+
+        profiler = get_profiler()
 
         if output_dir is None:
             output_dir = self.ctx.output_path
@@ -401,11 +650,28 @@ class JsonOutputBuilder:
                 return outputs is not None and name in outputs
             return not outputs or name in outputs
 
+        # Subprocess isolation: each group runs in a spawned child process
+        # so jemalloc allocations are fully reclaimed on exit.
+        _use_subprocess = os.environ.get("MTGJSON_NO_SUBPROCESS") != "1"
+        if _use_subprocess:
+            return self._write_all_subprocess(
+                output_dir,
+                valid_codes,
+                should_build,
+                profiler,
+                sets_only=sets_only,
+                include_decks=include_decks,
+                outputs=outputs,
+            )
+
+        # --- In-process fallback (MTGJSON_NO_SUBPROCESS=1) ---
+
         # Build Meta
         if should_build("Meta"):
             LOGGER.info("Building Meta.json...")
             self.write_meta(output_dir / "Meta.json")
             results["Meta"] = 1
+        profiler.checkpoint("assembly/meta")
 
         # Build AllPrintings
         all_printings = None
@@ -420,25 +686,12 @@ class JsonOutputBuilder:
                 all_printings if isinstance(all_printings, int) else len(all_printings.data)  # pylint: disable=no-member
             )
 
-        # Build AtomicCards
-        atomic_cards = None
-        if should_build("AtomicCards"):
-            LOGGER.info("Building AtomicCards.json...")
-            atomic_cards = self.write_atomic_cards(output_dir / "AtomicCards.json")
-            results["AtomicCards"] = len(atomic_cards.data)
-
-        # Build SetList
-        if should_build("SetList"):
-            LOGGER.info("Building SetList.json...")
-            set_list = self.write_set_list(output_dir / "SetList.json")
-            results["SetList"] = len(set_list.data)
-
         # Build format-specific files (require AllPrintings)
         if not sets_only or (outputs and (_PRINTINGS_OUTPUTS & outputs)):  # noqa: SIM102
             if outputs is None or (_PRINTINGS_OUTPUTS & outputs):
                 LOGGER.info("Building format-specific files...")
                 if all_printings is None or (streaming and isinstance(all_printings, int)):
-                    all_printings = AllPrintingsFile.read(output_dir / "AllPrintings.json")  # type: ignore[assignment]
+                    all_printings = AllPrintingsFile.read(output_dir / "AllPrintings.json")
 
                 if isinstance(all_printings, AllPrintingsFile):
                     for fmt in _PRINTINGS_FORMATS:
@@ -446,17 +699,51 @@ class JsonOutputBuilder:
                             fmt_file = self.write_format_file(all_printings, fmt, output_dir / f"{fmt.title()}.json")
                             results[fmt.title()] = len(fmt_file.data)
 
-        # Format atomic files (require AtomicCards)
+        del all_printings
+        gc.collect()
+        profiler.checkpoint("assembly/all_printings")
+
+        # Build AtomicCards (streaming to disk)
+        atomic_cards_count = None
+        if should_build("AtomicCards"):
+            LOGGER.info("Building AtomicCards.json...")
+            atomic_result = self.write_atomic_cards(
+                output_dir / "AtomicCards.json",
+                streaming=streaming,
+            )
+            if isinstance(atomic_result, int):
+                atomic_cards_count = atomic_result
+                results["AtomicCards"] = atomic_cards_count
+            else:
+                results["AtomicCards"] = len(atomic_result.data)
+        profiler.checkpoint("assembly/atomic_cards")
+
+        # Format atomic files (re-read AtomicCards from disk)
         if not sets_only or (outputs and (_ATOMIC_OUTPUTS & outputs)):  # noqa: SIM102
             if outputs is None or (_ATOMIC_OUTPUTS & outputs):
-                if atomic_cards is None:
-                    atomic_cards = self.write_atomic_cards(output_dir / "AtomicCards.json")
+                # Ensure AtomicCards.json exists on disk
+                atomic_path = output_dir / "AtomicCards.json"
+                if not atomic_path.exists():
+                    self.write_atomic_cards(atomic_path, streaming=streaming)
+
+                # Read from disk for format filtering
+                atomic_cards_file = AtomicCardsFile.read(atomic_path)
                 for fmt in _ATOMIC_FORMATS:
                     if should_build(f"{fmt.title()}Atomic"):
                         atomic_file = self.write_format_atomic(
-                            atomic_cards, fmt, output_dir / f"{fmt.title()}Atomic.json"
+                            atomic_cards_file, fmt, output_dir / f"{fmt.title()}Atomic.json"
                         )
                         results[f"{fmt.title()}Atomic"] = len(atomic_file.data)
+                del atomic_cards_file
+
+        gc.collect()
+        profiler.checkpoint("assembly/format_files")
+
+        # Build SetList
+        if should_build("SetList"):
+            LOGGER.info("Building SetList.json...")
+            set_list = self.write_set_list(output_dir / "SetList.json")
+            results["SetList"] = len(set_list.data)
 
         # Build individual set files
         if outputs is None or not outputs or sets_only:
@@ -470,6 +757,7 @@ class JsonOutputBuilder:
                 single.write(output_dir / f"{safe_code}.json", pretty=self.ctx.pretty)
                 set_count += 1
             results["sets"] = set_count
+        profiler.checkpoint("assembly/set_files")
 
         # Build deck files
         if (
@@ -486,6 +774,15 @@ class JsonOutputBuilder:
             deck_list_file.write(output_dir / "DeckList.json", pretty=self.ctx.pretty)
             results["DeckList"] = len(deck_list)
 
+        gc.collect()
+        profiler.checkpoint("assembly/deck_files")
+
+        # All card-dependent stages are done. Release assembler caches
+        # (sets, atomic_cards, etc.) so GC can reclaim their internal state.
+        # Remaining stages use GLOBAL_CACHE data or direct parquet reads.
+        self.ctx.release_card_data()
+        profiler.checkpoint("assembly/card_data_released")
+
         # Use --price-build flag for dedicated price builds, or --outputs AllPrices
         if outputs and ("AllPrices" in outputs or "AllPricesToday" in outputs):
             LOGGER.info("Building price files...")
@@ -495,8 +792,15 @@ class JsonOutputBuilder:
         # Build TcgplayerSkus.json
         if should_build("TcgplayerSkus"):
             LOGGER.info("Building TcgplayerSkus.json...")
-            tcgplayer_skus = self.write_tcgplayer_skus(output_dir / "TcgplayerSkus.json")
-            results["TcgplayerSkus"] = len(tcgplayer_skus.data)
+            tcgplayer_result = self.write_tcgplayer_skus(output_dir / "TcgplayerSkus.json")
+            results["TcgplayerSkus"] = (
+                tcgplayer_result if isinstance(tcgplayer_result, int) else len(tcgplayer_result.data)
+            )
+
+        # Evict the heavy SKU assembler cache before AllIdentifiers
+        self.ctx.__dict__.pop("tcgplayer_skus", None)
+        gc.collect()
+        profiler.checkpoint("assembly/tcgplayer_skus")
 
         # Build Keywords.json
         if should_build("Keywords"):
@@ -523,6 +827,9 @@ class JsonOutputBuilder:
             LOGGER.info("Building AllIdentifiers.json...")
             all_identifiers_count = self.write_all_identifiers(output_dir / "AllIdentifiers.json")
             results["AllIdentifiers"] = all_identifiers_count
+
+        gc.collect()
+        profiler.checkpoint("assembly/all_identifiers")
 
         # Build CompiledList.json
         if should_build("CompiledList"):

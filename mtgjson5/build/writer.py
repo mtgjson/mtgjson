@@ -30,11 +30,6 @@ if TYPE_CHECKING:
 FormatType = Literal["json", "sqlite", "sql", "psql", "csv", "parquet"]
 
 
-# -----------------------------------------------------------------------------
-# Entry point functions (formerly in bridge.py)
-# -----------------------------------------------------------------------------
-
-
 def assemble_with_models(
     ctx: PipelineContext,
     streaming: bool = True,
@@ -42,7 +37,7 @@ def assemble_with_models(
     outputs: set[str] | None = None,
     pretty: bool = False,
     sets_only: bool = False,
-) -> dict[str, int]:
+) -> tuple[dict[str, int], AssemblyContext]:
     """
     Assemble MTGJSON outputs using the model-based approach.
 
@@ -60,7 +55,7 @@ def assemble_with_models(
                   unless explicitly listed in ``outputs``)
 
     Returns:
-        Dict mapping output file names to record counts
+        Tuple of (results dict, AssemblyContext) so caller can reuse the context.
     """
     assembly_ctx = AssemblyContext.from_pipeline(ctx)
     assembly_ctx.pretty = pretty
@@ -77,7 +72,7 @@ def assemble_with_models(
     )
 
     LOGGER.info(f"Model assembly complete: {sum(results.values())} total records")
-    return results
+    return results, assembly_ctx
 
 
 def assemble_json_outputs(
@@ -87,7 +82,7 @@ def assemble_json_outputs(
     set_codes: list[str] | None = None,
     pretty: bool = False,
     sets_only: bool = False,
-) -> dict[str, int]:
+) -> tuple[dict[str, int], AssemblyContext]:
     """
     Assemble MTGJSON JSON outputs from pipeline context.
 
@@ -104,7 +99,7 @@ def assemble_json_outputs(
         sets_only: When True, only build individual set files (skip compiled outputs)
 
     Returns:
-        Dict mapping output file names to record counts
+        Tuple of (results dict, AssemblyContext) so caller can reuse the context.
     """
     LOGGER.info("Assembling JSON outputs from pipeline...")
 
@@ -129,7 +124,7 @@ def assemble_json_outputs(
 
     if sets_only:
         LOGGER.info(f"Sets-only mode: built {results.get('sets', 0)} set files, skipping compiled outputs")
-        return results
+        return results, assembly_ctx
 
     json_builder = JsonOutputBuilder(assembly_ctx)
 
@@ -148,7 +143,7 @@ def assemble_json_outputs(
     # Build AtomicCards.json
     LOGGER.info("Building AtomicCards.json...")
     atomic = json_builder.write_atomic_cards(output_path / "AtomicCards.json")
-    results["AtomicCards"] = len(atomic.data)
+    results["AtomicCards"] = atomic if isinstance(atomic, int) else len(atomic.data)
 
     # Build SetList.json
     LOGGER.info("Building SetList.json...")
@@ -168,7 +163,7 @@ def assemble_json_outputs(
     results["DeckList"] = len(deck_list)
 
     LOGGER.info(f"JSON assembly complete: {sum(results.values())} total records")
-    return results
+    return results, assembly_ctx
 
 
 def _write_sets_parallel(
@@ -221,11 +216,6 @@ def _write_sets_sequential(
     return count
 
 
-# -----------------------------------------------------------------------------
-# Writer classes
-# -----------------------------------------------------------------------------
-
-
 class UnifiedOutputWriter:
     """
     Unified output writer that dispatches to format-specific builders.
@@ -252,9 +242,13 @@ class UnifiedOutputWriter:
         return cls(assembly_ctx)
 
     @classmethod
-    def from_cache(cls, cache_dir: Path | None = None) -> UnifiedOutputWriter | None:
+    def from_cache(
+        cls,
+        cache_dir: Path | None = None,
+        skip: frozenset[str] = frozenset(),
+    ) -> UnifiedOutputWriter | None:
         """Create writer from cached assembly context."""
-        assembly_ctx = AssemblyContext.from_cache(cache_dir)
+        assembly_ctx = AssemblyContext.from_cache(cache_dir, skip=skip)
         if assembly_ctx is None:
             return None
         return cls(assembly_ctx)
@@ -309,6 +303,10 @@ class UnifiedOutputWriter:
         """
         Write output in multiple formats.
 
+        Runs parquet first (it needs ``all_cards_df`` directly), then eagerly
+        builds ``normalized_tables`` while card data is still available, then
+        releases card data before the remaining lighter formats.
+
         Args:
             formats: List of format types. If None, writes all formats.
 
@@ -319,8 +317,22 @@ class UnifiedOutputWriter:
             formats = ["json", "sqlite", "psql", "csv", "parquet"]
 
         results: dict[str, Path | None] = {}
+
+        # Parquet must run first — it directly accesses all_cards_df
+        if "parquet" in formats:
+            results["parquet"] = self.write("parquet")
+
+        # Eagerly build normalized_tables (used by sqlite/csv/psql) while
+        # all_cards_df is still cached, then free the heavy card DataFrames.
+        _ = self.ctx.normalized_tables  # force build / cache hit
+        if "parquet" not in formats:
+            self.ctx.release_card_data()
+        LOGGER.info("Exports: released card data after parquet + normalized_tables")
+
+        # Remaining formats only need normalized_tables (already cached)
         for fmt in formats:
-            results[fmt] = self.write(fmt)
+            if fmt != "parquet":
+                results[fmt] = self.write(fmt)
 
         return results
 

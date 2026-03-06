@@ -16,7 +16,7 @@ from typing import Any
 import polars as pl
 
 from mtgjson5 import constants
-from mtgjson5.build.price_archive import PRICES_PARTITION_DIR, list_local_partitions
+from mtgjson5.build.prices.price_archive import PRICES_PARTITION_DIR, list_local_partitions
 from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
 
@@ -282,7 +282,7 @@ def get_price_archive_from_s3(
     Returns:
         LazyFrame with archive data
     """
-    from mtgjson5.build.price_archive import load_archive
+    from mtgjson5.build.prices.price_archive import load_archive
 
     _load_archive = load_archive_fn or load_archive
 
@@ -327,7 +327,7 @@ def get_price_archive_from_s3(
         if json_to_dataframe_fn is not None:
             df = json_to_dataframe_fn(data.get("data", data))
         else:
-            from mtgjson5.build.price_archive import _default_json_to_dataframe
+            from mtgjson5.build.prices.price_archive import _default_json_to_dataframe
 
             df = _default_json_to_dataframe(data.get("data", data))
         LOGGER.info(f"Loaded {len(df):,} price records from S3 JSON archive")
@@ -366,7 +366,7 @@ def upload_archive_to_s3(
         if json_to_dataframe_fn is not None:
             df = json_to_dataframe_fn(archive_data)
         else:
-            from mtgjson5.build.price_archive import _default_json_to_dataframe
+            from mtgjson5.build.prices.price_archive import _default_json_to_dataframe
 
             df = _default_json_to_dataframe(archive_data)
     elif isinstance(archive_data, pl.LazyFrame):
