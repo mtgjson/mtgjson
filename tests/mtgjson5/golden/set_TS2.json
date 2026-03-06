@@ -1,0 +1,116 @@
+{
+  "baseSetSize": 1,
+  "cards": [
+    {
+      "artist": "Test Artist",
+      "availability": [
+        "paper"
+      ],
+      "borderColor": "black",
+      "colorIdentity": [
+        "R"
+      ],
+      "colors": [
+        "R"
+      ],
+      "convertedManaCost": 1.0,
+      "finishes": [
+        "nonfoil"
+      ],
+      "frameVersion": "2015",
+      "identifiers": {
+        "scryfallId": "sf-bolt-ts2",
+        "scryfallOracleId": "oracle-bolt"
+      },
+      "isReprint": true,
+      "language": "English",
+      "layout": "normal",
+      "legalities": {
+        "commander": "Legal",
+        "legacy": "Legal",
+        "modern": "Legal",
+        "pauper": "Legal",
+        "vintage": "Legal"
+      },
+      "manaCost": "{R}",
+      "manaValue": 1.0,
+      "name": "Lightning Bolt",
+      "number": "1",
+      "printings": null,
+      "purchaseUrls": {},
+      "rarity": "common",
+      "setCode": "TS2",
+      "subtypes": [],
+      "supertypes": [],
+      "text": "Lightning Bolt deals 3 damage to any target.",
+      "type": "Instant",
+      "types": [
+        "Instant"
+      ],
+      "uuid": "uuid-bolt-ts2"
+    },
+    {
+      "artist": "Test Artist",
+      "availability": [
+        "paper"
+      ],
+      "borderColor": "black",
+      "colorIdentity": [
+        "U"
+      ],
+      "colors": [
+        "U"
+      ],
+      "convertedManaCost": 3.0,
+      "finishes": [
+        "nonfoil"
+      ],
+      "frameVersion": "2015",
+      "identifiers": {
+        "scryfallId": "sf-sorcerer",
+        "scryfallOracleId": "oracle-sorcerer"
+      },
+      "language": "English",
+      "layout": "normal",
+      "legalities": {
+        "commander": "Legal",
+        "legacy": "Legal",
+        "vintage": "Legal"
+      },
+      "manaCost": "{2}{U}",
+      "manaValue": 3.0,
+      "name": "Prodigal Sorcerer",
+      "number": "2",
+      "power": "1",
+      "printings": null,
+      "purchaseUrls": {},
+      "rarity": "common",
+      "setCode": "TS2",
+      "subtypes": [
+        "Human",
+        "Wizard"
+      ],
+      "supertypes": [],
+      "text": "{T}: Prodigal Sorcerer deals 1 damage to any target.",
+      "toughness": "1",
+      "type": "Creature — Human Wizard",
+      "types": [
+        "Creature"
+      ],
+      "uuid": "uuid-sorcerer"
+    }
+  ],
+  "code": "TS2",
+  "isFoilOnly": false,
+  "isOnlineOnly": false,
+  "keyruneCode": "TS2",
+  "languages": [
+    "English"
+  ],
+  "name": "Test Set Two",
+  "releaseDate": "2025-06-01",
+  "tokens": [],
+  "totalSetSize": 2,
+  "translations": {},
+  "type": "expansion"
+}

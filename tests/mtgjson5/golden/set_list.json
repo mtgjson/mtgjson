@@ -1,0 +1,48 @@
+[
+  {
+    "baseSetSize": 2,
+    "code": "TS2",
+    "isFoilOnly": false,
+    "isOnlineOnly": false,
+    "keyruneCode": "TS2",
+    "languages": [
+      "English"
+    ],
+    "name": "Test Set Two",
+    "releaseDate": "2025-06-01",
+    "totalSetSize": 2,
+    "translations": {},
+    "type": "expansion"
+  },
+  {
+    "baseSetSize": 4,
+    "code": "TST",
+    "isFoilOnly": false,
+    "isOnlineOnly": false,
+    "keyruneCode": "TST",
+    "languages": [
+      "English"
+    ],
+    "name": "Test Set",
+    "releaseDate": "2025-01-01",
+    "tokenSetCode": "TTST",
+    "totalSetSize": 4,
+    "translations": {},
+    "type": "expansion"
+  },
+  {
+    "baseSetSize": 0,
+    "code": "TTST",
+    "isFoilOnly": false,
+    "isOnlineOnly": false,
+    "keyruneCode": "TTST",
+    "languages": [
+      "English"
+    ],
+    "name": "TTST",
+    "releaseDate": "",
+    "totalSetSize": 0,
+    "translations": {},
+    "type": ""
+  }
+]

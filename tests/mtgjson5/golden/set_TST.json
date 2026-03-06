@@ -1,0 +1,249 @@
+{
+  "baseSetSize": 4,
+  "cards": [
+    {
+      "artist": "Test Artist",
+      "availability": [
+        "paper"
+      ],
+      "borderColor": "black",
+      "colorIdentity": [
+        "R"
+      ],
+      "colors": [
+        "R"
+      ],
+      "convertedManaCost": 1.0,
+      "finishes": [
+        "nonfoil"
+      ],
+      "frameVersion": "2015",
+      "identifiers": {
+        "scryfallId": "sf-bolt-tst",
+        "scryfallOracleId": "oracle-bolt"
+      },
+      "language": "English",
+      "layout": "normal",
+      "legalities": {
+        "commander": "Legal",
+        "legacy": "Legal",
+        "modern": "Legal",
+        "vintage": "Legal"
+      },
+      "manaCost": "{R}",
+      "manaValue": 1.0,
+      "name": "Lightning Bolt",
+      "number": "1",
+      "printings": null,
+      "purchaseUrls": {},
+      "rarity": "common",
+      "setCode": "TST",
+      "subtypes": [],
+      "supertypes": [],
+      "text": "Lightning Bolt deals 3 damage to any target.",
+      "type": "Instant",
+      "types": [
+        "Instant"
+      ],
+      "uuid": "uuid-bolt-tst"
+    },
+    {
+      "artist": "Test Artist",
+      "availability": [
+        "paper"
+      ],
+      "borderColor": "black",
+      "colorIdentity": [
+        "R",
+        "W"
+      ],
+      "colors": [
+        "R"
+      ],
+      "convertedManaCost": 3.0,
+      "faceName": "Wear",
+      "finishes": [
+        "nonfoil"
+      ],
+      "frameVersion": "2015",
+      "identifiers": {
+        "scryfallId": "sf-wt",
+        "scryfallOracleId": "oracle-wt"
+      },
+      "language": "English",
+      "layout": "split",
+      "legalities": {
+        "commander": "Legal",
+        "legacy": "Legal",
+        "vintage": "Legal"
+      },
+      "manaCost": "{R}",
+      "manaValue": 3.0,
+      "name": "Wear // Tear",
+      "number": "2a",
+      "otherFaceIds": [
+        "uuid-tear"
+      ],
+      "printings": null,
+      "purchaseUrls": {},
+      "rarity": "common",
+      "setCode": "TST",
+      "side": "a",
+      "subtypes": [],
+      "supertypes": [],
+      "text": "Destroy target artifact.",
+      "type": "Instant",
+      "types": [
+        "Instant"
+      ],
+      "uuid": "uuid-wear"
+    },
+    {
+      "artist": "Test Artist",
+      "availability": [
+        "paper"
+      ],
+      "borderColor": "black",
+      "colorIdentity": [
+        "R",
+        "W"
+      ],
+      "colors": [
+        "W"
+      ],
+      "convertedManaCost": 3.0,
+      "faceName": "Tear",
+      "finishes": [
+        "nonfoil"
+      ],
+      "frameVersion": "2015",
+      "identifiers": {
+        "scryfallId": "sf-wt",
+        "scryfallOracleId": "oracle-wt"
+      },
+      "language": "English",
+      "layout": "split",
+      "legalities": {
+        "commander": "Legal",
+        "legacy": "Legal",
+        "vintage": "Legal"
+      },
+      "manaCost": "{W}",
+      "manaValue": 3.0,
+      "name": "Wear // Tear",
+      "number": "2b",
+      "otherFaceIds": [
+        "uuid-wear"
+      ],
+      "printings": null,
+      "purchaseUrls": {},
+      "rarity": "common",
+      "setCode": "TST",
+      "side": "b",
+      "subtypes": [],
+      "supertypes": [],
+      "text": "Destroy target enchantment.",
+      "type": "Instant",
+      "types": [
+        "Instant"
+      ],
+      "uuid": "uuid-tear"
+    },
+    {
+      "artist": "Test Artist",
+      "availability": [
+        "paper"
+      ],
+      "borderColor": "black",
+      "colorIdentity": [
+        "R"
+      ],
+      "colors": [
+        "R"
+      ],
+      "convertedManaCost": 2.0,
+      "finishes": [
+        "nonfoil"
+      ],
+      "frameVersion": "2015",
+      "identifiers": {
+        "scryfallId": "sf-funny",
+        "scryfallOracleId": "oracle-funny"
+      },
+      "isFunny": true,
+      "language": "English",
+      "layout": "normal",
+      "legalities": {},
+      "manaCost": "{1}{R}",
+      "manaValue": 2.0,
+      "name": "Funny Card",
+      "number": "3",
+      "power": "1",
+      "printings": null,
+      "purchaseUrls": {},
+      "rarity": "common",
+      "setCode": "TST",
+      "subtypes": [
+        "Clown"
+      ],
+      "supertypes": [],
+      "text": "This card is funny.",
+      "toughness": "1",
+      "type": "Creature — Clown",
+      "types": [
+        "Creature"
+      ],
+      "uuid": "uuid-funny"
+    }
+  ],
+  "code": "TST",
+  "isFoilOnly": false,
+  "isOnlineOnly": false,
+  "keyruneCode": "TST",
+  "languages": [
+    "English"
+  ],
+  "name": "Test Set",
+  "releaseDate": "2025-01-01",
+  "tokenSetCode": "TTST",
+  "tokens": [
+    {
+      "artist": "Token Artist",
+      "availability": [
+        "paper"
+      ],
+      "borderColor": "black",
+      "colorIdentity": [],
+      "colors": [
+        "B"
+      ],
+      "finishes": [
+        "nonfoil"
+      ],
+      "frameVersion": "2015",
+      "identifiers": {
+        "scryfallId": "sf-token-001"
+      },
+      "language": "English",
+      "layout": "token",
+      "name": "Zombie",
+      "number": "T1",
+      "power": "2",
+      "setCode": "TST",
+      "subtypes": [
+        "Zombie"
+      ],
+      "supertypes": [],
+      "toughness": "2",
+      "type": "Token Creature — Zombie",
+      "types": [
+        "Token",
+        "Creature"
+      ],
+      "uuid": "uuid-zombie-001"
+    }
+  ],
+  "totalSetSize": 4,
+  "translations": {},
+  "type": "expansion"
+}
