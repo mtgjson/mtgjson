@@ -132,6 +132,89 @@ class TCGPlayerPriceProvider:
         self._cleanup_checkpoint()
         return result
 
+    async def fetch_raw_prices(self) -> pl.DataFrame:
+        """Fetch raw TCGPlayer prices without UUID mapping.
+
+        Returns DataFrame with raw (productId, subTypeName, marketPrice) rows.
+        Preserves checkpoint/resume system.
+        """
+        raw_schema = {"productId": pl.String, "subTypeName": pl.String, "marketPrice": pl.Float64}
+
+        if not self._config:
+            LOGGER.warning("No TCGPlayer config available, skipping raw pricing")
+            return pl.DataFrame(schema=raw_schema)
+
+        self._load_checkpoint()
+        raw_buffer: list[dict[str, Any]] = []
+
+        async with TcgPlayerClient(self._config) as client:
+            group_ids = await self._get_magic_set_ids(client)
+            total = len(group_ids)
+
+            if not group_ids:
+                return pl.DataFrame(schema=raw_schema)
+
+            LOGGER.info(f"TCGPlayer raw: Fetching prices for {total} sets")
+
+            for idx, (group_id, group_name) in enumerate(group_ids, 1):
+                if group_id in self._completed_groups:
+                    if self.on_progress:
+                        self.on_progress(idx, total, f"{group_name} (cached)")
+                    continue
+
+                records = await self._fetch_group_prices_raw(client, group_id)
+                raw_buffer.extend(records)
+                self._completed_groups.add(group_id)
+
+                if self.on_progress:
+                    self.on_progress(idx, total, group_name)
+
+                if idx % self.checkpoint_interval == 0:
+                    self._save_checkpoint()
+                    LOGGER.info(f"TCGPlayer raw: {idx}/{total} sets ({idx * 100 // total}%)")
+
+        self._cleanup_checkpoint()
+
+        if not raw_buffer:
+            return pl.DataFrame(schema=raw_schema)
+
+        df = pl.DataFrame(raw_buffer, schema=raw_schema)
+        raw_path = constants.CACHE_PATH / "tcg_raw_prices.parquet"
+        raw_path.parent.mkdir(parents=True, exist_ok=True)
+        df.write_parquet(raw_path, compression="zstd")
+        LOGGER.info(f"TCGPlayer raw: Saved {len(df):,} records to {raw_path}")
+        return df
+
+    async def _fetch_group_prices_raw(
+        self,
+        client: TcgPlayerClient,
+        group_id: int,
+    ) -> list[dict[str, Any]]:
+        """Fetch raw prices for a single set (no UUID mapping)."""
+        records: list[dict[str, Any]] = []
+        try:
+            endpoint = f"pricing/group/{group_id}"
+            resp = await client.get(endpoint, versioned=True)
+            results = cast("list[dict[str, Any]]", resp.get("results", []))
+
+            for price_obj in results:
+                if not isinstance(price_obj, dict):
+                    continue
+                product_id = str(price_obj.get("productId", ""))
+                sub_type = price_obj.get("subTypeName", "")
+                market_price = price_obj.get("marketPrice")
+                if market_price is not None and product_id:
+                    records.append(
+                        {
+                            "productId": product_id,
+                            "subTypeName": sub_type,
+                            "marketPrice": float(market_price),
+                        }
+                    )
+        except Exception as e:
+            LOGGER.debug(f"Failed to fetch raw prices for group {group_id}: {e}")
+        return records
+
     def fetch_all_prices_sync(
         self,
         tcg_to_uuid_map: dict[str, set[str]],

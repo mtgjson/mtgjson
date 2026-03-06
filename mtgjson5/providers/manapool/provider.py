@@ -73,6 +73,60 @@ class ManapoolPriceProvider:
         if self.output_path is None:
             self.output_path = constants.CACHE_PATH / "manapool_prices.parquet"
 
+    async def fetch_raw_prices(self) -> pl.DataFrame:
+        """Fetch raw Manapool data without UUID mapping.
+
+        Returns DataFrame with (scryfallId, price_cents, price_cents_foil, price_cents_etched) rows.
+        """
+        raw_schema = {
+            "scryfallId": pl.String,
+            "price_cents": pl.Int64,
+            "price_cents_foil": pl.Int64,
+            "price_cents_etched": pl.Int64,
+        }
+
+        LOGGER.info("Manapool raw: Fetching paper prices")
+        try:
+            async with aiohttp.ClientSession() as session:  # noqa: SIM117
+                async with session.get(MANAPOOL_API_URL, timeout=aiohttp.ClientTimeout(total=120)) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json()
+
+            price_data = data.get("data", [])
+            if not price_data:
+                return pl.DataFrame(schema=raw_schema)
+
+            records: list[dict[str, Any]] = []
+            for card in price_data:
+                scryfall_id = card.get("scryfall_id")
+                if not scryfall_id:
+                    continue
+                records.append(
+                    {
+                        "scryfallId": scryfall_id,
+                        "price_cents": card.get("price_cents") or 0,
+                        "price_cents_foil": card.get("price_cents_foil") or 0,
+                        "price_cents_etched": card.get("price_cents_etched") or 0,
+                    }
+                )
+
+            if not records:
+                return pl.DataFrame(schema=raw_schema)
+
+            df = pl.DataFrame(records, schema=raw_schema)
+            raw_path = constants.CACHE_PATH / "manapool_raw_prices.parquet"
+            raw_path.parent.mkdir(parents=True, exist_ok=True)
+            df.write_parquet(raw_path, compression="zstd")
+            LOGGER.info(f"Manapool raw: Saved {len(df):,} records to {raw_path}")
+            return df
+
+        except aiohttp.ClientError as e:
+            LOGGER.error(f"Failed to fetch Manapool raw prices: {e}")
+            return pl.DataFrame(schema=raw_schema)
+        except Exception as e:
+            LOGGER.error(f"Error fetching Manapool raw data: {e}")
+            return pl.DataFrame(schema=raw_schema)
+
     async def fetch_prices(
         self,
         scryfall_to_uuid_map: dict[str, str],

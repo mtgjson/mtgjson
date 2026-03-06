@@ -358,6 +358,39 @@ class CardMarketProvider:
 
     # Price fetching
 
+    async def fetch_raw_prices(self) -> pl.DataFrame:
+        """Fetch raw CardMarket price guide without UUID mapping.
+
+        Returns DataFrame with (productId, trend, trend_foil) rows.
+        """
+        from mtgjson5 import constants
+
+        raw_schema = {"productId": pl.String, "trend": pl.Float64, "trend_foil": pl.Float64}
+
+        price_data = await self.get_price_data()
+        if not price_data:
+            return pl.DataFrame(schema=raw_schema)
+
+        records = [
+            {
+                "productId": pid,
+                "trend": prices.get("trend"),
+                "trend_foil": prices.get("trend-foil"),
+            }
+            for pid, prices in price_data.items()
+            if prices.get("trend") is not None or prices.get("trend-foil") is not None
+        ]
+
+        if not records:
+            return pl.DataFrame(schema=raw_schema)
+
+        df = pl.DataFrame(records, schema=raw_schema)
+        raw_path = constants.CACHE_PATH / "mcm_raw_prices.parquet"
+        raw_path.parent.mkdir(parents=True, exist_ok=True)
+        df.write_parquet(raw_path, compression="zstd")
+        LOGGER.info(f"CardMarket raw: Saved {len(df):,} records to {raw_path}")
+        return df
+
     async def get_price_data(self) -> dict[str, dict[str, float | None]]:
         """
         Fetch price guide data from MKM price API.

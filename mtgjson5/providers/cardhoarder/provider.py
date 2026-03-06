@@ -230,6 +230,70 @@ class CardHoarderPriceProvider:
 
         return records
 
+    async def fetch_raw_prices(self) -> pl.DataFrame:
+        """Fetch raw CardHoarder TSV data without UUID mapping.
+
+        Returns DataFrame with (mtgoId, price, is_foil) rows.
+        """
+        raw_schema = {"mtgoId": pl.String, "price": pl.Float64, "is_foil": pl.Boolean}
+
+        if not self._config:
+            LOGGER.warning("No CardHoarder config available, skipping raw pricing")
+            return pl.DataFrame(schema=raw_schema)
+
+        LOGGER.info("CardHoarder raw: Fetching MTGO prices")
+        async with aiohttp.ClientSession() as session:
+            normal_task = self._fetch_pricefile_raw(session, self._config.normal_url, is_foil=False)
+            foil_task = self._fetch_pricefile_raw(session, self._config.foil_url, is_foil=True)
+            normal_records, foil_records = await asyncio.gather(normal_task, foil_task)
+
+        all_records = normal_records + foil_records
+        if not all_records:
+            return pl.DataFrame(schema=raw_schema)
+
+        df = pl.DataFrame(all_records, schema=raw_schema)
+        raw_path = constants.CACHE_PATH / "ch_raw_prices.parquet"
+        raw_path.parent.mkdir(parents=True, exist_ok=True)
+        df.write_parquet(raw_path, compression="zstd")
+        LOGGER.info(f"CardHoarder raw: Saved {len(df):,} records to {raw_path}")
+        return df
+
+    async def _fetch_pricefile_raw(
+        self,
+        session: aiohttp.ClientSession,
+        url: str,
+        is_foil: bool,
+    ) -> list[dict[str, Any]]:
+        """Fetch and parse a CardHoarder pricefile without UUID mapping."""
+        records: list[dict[str, Any]] = []
+        try:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=60)) as resp:
+                resp.raise_for_status()
+                content = await resp.text()
+
+            lines = content.splitlines()
+            if len(lines) <= 2:
+                return []
+
+            for line in lines[2:]:
+                columns = line.split("\t")
+                if len(columns) < 6:
+                    continue
+                mtgo_id = columns[0].strip('"')
+                try:
+                    price = float(columns[5].strip('"'))
+                except (ValueError, IndexError):
+                    continue
+                if mtgo_id:
+                    records.append({"mtgoId": mtgo_id, "price": price, "is_foil": is_foil})
+
+            LOGGER.info(f"CardHoarder raw: Parsed {len(records):,} {'foil' if is_foil else 'normal'} records")
+        except aiohttp.ClientError as e:
+            LOGGER.error(f"Failed to fetch CardHoarder pricefile: {e}")
+        except Exception as e:
+            LOGGER.error(f"Error parsing CardHoarder pricefile: {e}")
+        return records
+
     async def generate_today_price_dict(
         self,
         mtgo_to_uuid_map: dict[str, set[str]],
