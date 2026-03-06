@@ -18,11 +18,8 @@ from mtgjson5.build.price_archive import (
     PRICE_SCHEMA,
     load_archive,
     load_partitioned_archive,
-    merge_prices,
     migrate_legacy_archive,
     prune_partitions,
-    prune_prices,
-    save_archive,
     save_prices_partitioned,
 )
 from mtgjson5.build.price_s3 import (
@@ -223,6 +220,23 @@ class PriceBuilderContext:
         return {}
 
 
+RAW_CACHE_FILES = {
+    "tcgplayer": "tcg_raw_prices.parquet",
+    "cardhoarder": "ch_raw_prices.parquet",
+    "manapool": "manapool_raw_prices.parquet",
+    "cardmarket": "mcm_raw_prices.parquet",
+    "cardkingdom": "ck_raw.parquet",
+}
+
+ID_MAPPING_FILES = {
+    "tcg_to_uuid": "tcg_to_uuid.parquet",
+    "tcg_etched_to_uuid": "tcg_etched_to_uuid.parquet",
+    "mtgo_to_uuid": "mtgo_to_uuid.parquet",
+    "scryfall_to_uuid": "scryfall_to_uuid.parquet",
+    "cardmarket_to_uuid": "cardmarket_to_uuid.parquet",
+}
+
+
 class PolarsPriceBuilder:
     """
     Build daily prices using Polars DataFrames with v2 async providers.
@@ -361,6 +375,285 @@ class PolarsPriceBuilder:
     def build_today_prices(self, ctx: PriceBuilderContext | None = None) -> pl.DataFrame:
         """Sync wrapper for build_today_prices_async."""
         return asyncio.run(self.build_today_prices_async(ctx))
+
+    def map_raw_to_today_df(self, cache_dir: Path | None = None) -> pl.DataFrame:
+        """Build today_df from pre-fetched raw parquets + ID mapping parquets.
+
+        This is the Phase 2 mapping step: reads cached raw price data and
+        applies Polars joins with UUID mappings. No network I/O.
+        """
+        if cache_dir is None:
+            cache_dir = constants.CACHE_PATH
+
+        frames: list[pl.DataFrame] = []
+
+        # TCGPlayer
+        tcg_raw = cache_dir / RAW_CACHE_FILES["tcgplayer"]
+        tcg_uuid = cache_dir / ID_MAPPING_FILES["tcg_to_uuid"]
+        tcg_etched = cache_dir / ID_MAPPING_FILES["tcg_etched_to_uuid"]
+        if tcg_raw.exists() and (tcg_uuid.exists() or tcg_etched.exists()):
+            df = self._map_tcg_raw(tcg_raw, tcg_uuid, tcg_etched)
+            if len(df) > 0:
+                frames.append(df)
+                LOGGER.info(f"  TCGPlayer mapped: {len(df):,} price points")
+
+        # CardHoarder
+        ch_raw = cache_dir / RAW_CACHE_FILES["cardhoarder"]
+        mtgo_uuid = cache_dir / ID_MAPPING_FILES["mtgo_to_uuid"]
+        if ch_raw.exists() and mtgo_uuid.exists():
+            df = self._map_cardhoarder_raw(ch_raw, mtgo_uuid)
+            if len(df) > 0:
+                frames.append(df)
+                LOGGER.info(f"  CardHoarder mapped: {len(df):,} price points")
+
+        # Manapool
+        mp_raw = cache_dir / RAW_CACHE_FILES["manapool"]
+        sf_uuid = cache_dir / ID_MAPPING_FILES["scryfall_to_uuid"]
+        if mp_raw.exists() and sf_uuid.exists():
+            df = self._map_manapool_raw(mp_raw, sf_uuid)
+            if len(df) > 0:
+                frames.append(df)
+                LOGGER.info(f"  Manapool mapped: {len(df):,} price points")
+
+        # CardMarket
+        mcm_raw = cache_dir / RAW_CACHE_FILES["cardmarket"]
+        mcm_uuid = cache_dir / ID_MAPPING_FILES["cardmarket_to_uuid"]
+        if mcm_raw.exists() and mcm_uuid.exists():
+            df = self._map_cardmarket_raw(mcm_raw, mcm_uuid, cache_dir)
+            if len(df) > 0:
+                frames.append(df)
+                LOGGER.info(f"  CardMarket mapped: {len(df):,} price points")
+
+        # CardKingdom
+        ck_raw = cache_dir / RAW_CACHE_FILES["cardkingdom"]
+        if ck_raw.exists() and sf_uuid.exists():
+            df = self._map_ck_raw(ck_raw, sf_uuid)
+            if len(df) > 0:
+                frames.append(df)
+                LOGGER.info(f"  CardKingdom mapped: {len(df):,} price points")
+
+        if not frames:
+            LOGGER.warning("No raw price data to map")
+            return pl.DataFrame(schema=PRICE_SCHEMA)
+
+        result = pl.concat(frames)
+        del frames
+        gc.collect()
+        LOGGER.info(f"Mapped {len(result):,} total price points from raw cache")
+        return result
+
+    def _map_tcg_raw(self, raw_path: Path, uuid_path: Path, etched_uuid_path: Path) -> pl.DataFrame:
+        """Join TCGPlayer raw data with UUID mappings."""
+        raw = pl.scan_parquet(raw_path)
+        frames: list[pl.LazyFrame] = []
+
+        # Normal/foil via tcg_to_uuid
+        if uuid_path.exists():
+            tcg_uuid = pl.scan_parquet(uuid_path)
+            normal_foil = (
+                raw.join(tcg_uuid, left_on="productId", right_on="tcgplayerProductId", how="inner")
+                .with_columns(
+                    pl.when(pl.col("subTypeName") == "Normal")
+                    .then(pl.lit("normal"))
+                    .otherwise(pl.lit("foil"))
+                    .alias("finish")
+                )
+                .select(
+                    pl.col("uuid"),
+                    pl.lit(self.today_date).alias("date"),
+                    pl.lit("paper").alias("source"),
+                    pl.lit("tcgplayer").alias("provider"),
+                    pl.lit("retail").alias("price_type"),
+                    pl.col("finish"),
+                    pl.col("marketPrice").alias("price"),
+                    pl.lit("USD").alias("currency"),
+                )
+            )
+            frames.append(normal_foil)
+
+        # Etched via tcg_etched_to_uuid
+        if etched_uuid_path.exists():
+            tcg_etched = pl.scan_parquet(etched_uuid_path)
+            etched = (
+                raw.join(tcg_etched, left_on="productId", right_on="tcgplayerEtchedProductId", how="inner")
+                .with_columns(
+                    pl.when(pl.col("subTypeName") == "Normal")
+                    .then(pl.lit("normal"))
+                    .otherwise(pl.lit("etched"))
+                    .alias("finish")
+                )
+                .select(
+                    pl.col("uuid"),
+                    pl.lit(self.today_date).alias("date"),
+                    pl.lit("paper").alias("source"),
+                    pl.lit("tcgplayer").alias("provider"),
+                    pl.lit("retail").alias("price_type"),
+                    pl.col("finish"),
+                    pl.col("marketPrice").alias("price"),
+                    pl.lit("USD").alias("currency"),
+                )
+            )
+            frames.append(etched)
+
+        if not frames:
+            return pl.DataFrame(schema=PRICE_SCHEMA)
+
+        return pl.concat(frames).collect()
+
+    def _map_cardhoarder_raw(self, raw_path: Path, uuid_path: Path) -> pl.DataFrame:
+        """Join CardHoarder raw data with UUID mappings."""
+        raw = pl.scan_parquet(raw_path)
+        mtgo_uuid = pl.scan_parquet(uuid_path)
+
+        return (
+            raw.join(mtgo_uuid, left_on="mtgoId", right_on="mtgoId", how="inner")
+            .with_columns(pl.when(pl.col("is_foil")).then(pl.lit("foil")).otherwise(pl.lit("normal")).alias("finish"))
+            .select(
+                pl.col("uuid"),
+                pl.lit(self.today_date).alias("date"),
+                pl.lit("mtgo").alias("source"),
+                pl.lit("cardhoarder").alias("provider"),
+                pl.lit("retail").alias("price_type"),
+                pl.col("finish"),
+                pl.col("price"),
+                pl.lit("USD").alias("currency"),
+            )
+            .collect()
+        )
+
+    def _map_manapool_raw(self, raw_path: Path, uuid_path: Path) -> pl.DataFrame:
+        """Join Manapool raw data with UUID mappings, unpivot finishes."""
+        raw = pl.scan_parquet(raw_path)
+        sf_uuid = pl.scan_parquet(uuid_path).unique(subset=["scryfallId"], keep="first")
+
+        joined = raw.join(sf_uuid, on="scryfallId", how="inner").collect()
+
+        frames: list[pl.DataFrame] = []
+
+        for col, finish in [
+            ("price_cents", "normal"),
+            ("price_cents_foil", "foil"),
+            ("price_cents_etched", "etched"),
+        ]:
+            sub = joined.filter(pl.col(col) > 0).select(
+                pl.col("uuid"),
+                pl.lit(self.today_date).alias("date"),
+                pl.lit("paper").alias("source"),
+                pl.lit("manapool").alias("provider"),
+                pl.lit("retail").alias("price_type"),
+                pl.lit(finish).alias("finish"),
+                (pl.col(col).cast(pl.Float64) / 100.0).alias("price"),
+                pl.lit("USD").alias("currency"),
+            )
+            if len(sub) > 0:
+                frames.append(sub)
+
+        if not frames:
+            return pl.DataFrame(schema=PRICE_SCHEMA)
+        return pl.concat(frames)
+
+    def _map_cardmarket_raw(self, raw_path: Path, uuid_path: Path, cache_dir: Path) -> pl.DataFrame:
+        """Join CardMarket raw data with UUID + finishes mappings."""
+        raw = pl.read_parquet(raw_path)
+        mcm_uuid = pl.read_parquet(uuid_path)
+
+        # Join raw prices with UUID mapping
+        joined = raw.join(mcm_uuid, left_on="productId", right_on="mcmId", how="inner")
+
+        frames: list[pl.DataFrame] = []
+
+        # Normal (trend) prices
+        normal = joined.filter(pl.col("trend").is_not_null()).select(
+            pl.col("uuid"),
+            pl.lit(self.today_date).alias("date"),
+            pl.lit("paper").alias("source"),
+            pl.lit("cardmarket").alias("provider"),
+            pl.lit("retail").alias("price_type"),
+            pl.lit("normal").alias("finish"),
+            pl.col("trend").alias("price"),
+            pl.lit("EUR").alias("currency"),
+        )
+        if len(normal) > 0:
+            frames.append(normal)
+
+        # Foil/etched (trend_foil) prices — use finishes to distinguish
+        foil_data = joined.filter(pl.col("trend_foil").is_not_null())
+        if len(foil_data) > 0:
+            finishes_path = cache_dir / "mcm_finishes.parquet"
+            if finishes_path.exists():
+                finishes_df = pl.read_parquet(finishes_path)
+                foil_joined = foil_data.join(finishes_df, left_on="productId", right_on="mcmId", how="left")
+
+                # Etched if finishes list contains "etched"
+                if "finishes" in foil_joined.columns:
+                    etched = foil_joined.filter(pl.col("finishes").list.contains("etched")).select(
+                        pl.col("uuid"),
+                        pl.lit(self.today_date).alias("date"),
+                        pl.lit("paper").alias("source"),
+                        pl.lit("cardmarket").alias("provider"),
+                        pl.lit("retail").alias("price_type"),
+                        pl.lit("etched").alias("finish"),
+                        pl.col("trend_foil").alias("price"),
+                        pl.lit("EUR").alias("currency"),
+                    )
+                    non_etched = foil_joined.filter(~pl.col("finishes").list.contains("etched")).select(
+                        pl.col("uuid"),
+                        pl.lit(self.today_date).alias("date"),
+                        pl.lit("paper").alias("source"),
+                        pl.lit("cardmarket").alias("provider"),
+                        pl.lit("retail").alias("price_type"),
+                        pl.lit("foil").alias("finish"),
+                        pl.col("trend_foil").alias("price"),
+                        pl.lit("EUR").alias("currency"),
+                    )
+                    if len(etched) > 0:
+                        frames.append(etched)
+                    if len(non_etched) > 0:
+                        frames.append(non_etched)
+                else:
+                    # No finishes column — default to foil
+                    foil = foil_data.select(
+                        pl.col("uuid"),
+                        pl.lit(self.today_date).alias("date"),
+                        pl.lit("paper").alias("source"),
+                        pl.lit("cardmarket").alias("provider"),
+                        pl.lit("retail").alias("price_type"),
+                        pl.lit("foil").alias("finish"),
+                        pl.col("trend_foil").alias("price"),
+                        pl.lit("EUR").alias("currency"),
+                    )
+                    if len(foil) > 0:
+                        frames.append(foil)
+            else:
+                # No finishes data — default all to foil
+                foil = foil_data.select(
+                    pl.col("uuid"),
+                    pl.lit(self.today_date).alias("date"),
+                    pl.lit("paper").alias("source"),
+                    pl.lit("cardmarket").alias("provider"),
+                    pl.lit("retail").alias("price_type"),
+                    pl.lit("foil").alias("finish"),
+                    pl.col("trend_foil").alias("price"),
+                    pl.lit("EUR").alias("currency"),
+                )
+                if len(foil) > 0:
+                    frames.append(foil)
+
+        if not frames:
+            return pl.DataFrame(schema=PRICE_SCHEMA)
+        return pl.concat(frames)
+
+    def _map_ck_raw(self, raw_path: Path, uuid_path: Path) -> pl.DataFrame:
+        """Join CardKingdom raw data with UUID mappings."""
+        from mtgjson5.providers.cardkingdom.provider import CardKingdomTransformer
+
+        raw_df = pl.read_parquet(raw_path)
+        ck_pricing = CardKingdomTransformer.to_pricing_df(raw_df)
+
+        sf_uuid = pl.scan_parquet(uuid_path).unique(subset=["scryfallId"], keep="first").collect()
+        scryfall_to_uuid = dict(zip(sf_uuid["scryfallId"].to_list(), sf_uuid["uuid"].to_list(), strict=False))
+
+        return self._convert_ck_pricing(ck_pricing, scryfall_to_uuid)
 
     def _convert_ck_pricing(
         self,
@@ -514,23 +807,9 @@ class PolarsPriceBuilder:
             return pl.DataFrame(schema=PRICE_SCHEMA)
         return pl.DataFrame(records, schema=PRICE_SCHEMA)
 
-    @staticmethod
-    def prune_prices(df: pl.LazyFrame, months: int = 3) -> pl.LazyFrame:
-        """Filter out price entries older than `months` months."""
-        return prune_prices(df, months)
-
-    @staticmethod
-    def merge_prices(archive: pl.LazyFrame, today: pl.LazyFrame) -> pl.LazyFrame:
-        """Merge today's prices into archive, keeping latest price per unique key."""
-        return merge_prices(archive, today)
-
     def load_archive(self, path: Path | None = None) -> pl.LazyFrame:
         """Load price archive from parquet or JSON."""
         return load_archive(path, json_to_dataframe=self._json_to_dataframe)
-
-    def save_archive(self, df: pl.LazyFrame, path: Path | None = None) -> Path:
-        """Save price archive to parquet with zstd compression."""
-        return save_archive(df, path)
 
     def save_prices_partitioned(self, df: pl.LazyFrame | pl.DataFrame) -> Path:
         """Save today's prices to date-partitioned directory."""
@@ -584,9 +863,9 @@ class PolarsPriceBuilder:
         """Upload local partitions to S3 that S3 doesn't have."""
         return sync_local_partitions_to_s3(days, max_workers, max_retries)
 
-    def stream_write_all_prices_json(self, lf: pl.LazyFrame, path: Path) -> None:
+    def stream_write_all_prices_json(self, lf: pl.LazyFrame, path: Path, source_path: Path | None = None) -> None:
         """Stream-write AllPrices.json using Prefix Partitioning."""
-        stream_write_all_prices_json(lf, path, self.today_date)
+        stream_write_all_prices_json(lf, path, self.today_date, source_path=source_path)
 
     def stream_write_today_prices_json(self, df: pl.DataFrame, path: Path) -> None:
         """Stream-write AllPricesToday.json for today's prices only."""
@@ -652,20 +931,20 @@ class PolarsPriceBuilder:
     def build_prices(
         self,
         today_df: pl.DataFrame | None = None,
+        parquet_output_dir: Path | None = None,
+        write_json: bool = True,
+        raw_cache_dir: Path | None = None,
     ) -> tuple[Path | None, Path | None]:
         """
         Full price build with partitioned storage and streaming output.
 
-        This memory-efficient implementation:
-        1. Migrates legacy archives to partitioned format (one-time)
-        2. Syncs missing partitions from S3 (download recent partitions)
-        3. Saves today's prices to a date partition
-        4. Uploads today's partition to S3 (append-only historical archive)
-        5. Prunes old LOCAL partitions only (S3 keeps full history)
-        6. Stream-writes JSON outputs filtered to 90 days
-
         Args:
             today_df: Pre-fetched today prices (skips provider fetch if given).
+            parquet_output_dir: When set, write AllPrices.parquet and
+                AllPricesToday.parquet to this directory.
+            write_json: When True (default), produce JSON/SQL/CSV outputs.
+            raw_cache_dir: When set, build today_df from pre-fetched raw
+                parquets via Polars joins (no network fetch).
 
         Returns:
             Tuple of (all_prices_path, today_prices_path) or (None, None) on failure
@@ -699,12 +978,16 @@ class PolarsPriceBuilder:
 
         # Fetch today's prices from providers (skip if pre-fetched)
         if today_df is None:
-            LOGGER.info("Fetching today's prices from V2 providers")
-            ctx = PriceBuilderContext.from_cache()
-            today_df = self.build_today_prices(ctx)
-            ctx.release()
-            del ctx
-            gc.collect()
+            if raw_cache_dir is not None:
+                LOGGER.info("Mapping today's prices from raw cache (no network fetch)")
+                today_df = self.map_raw_to_today_df(raw_cache_dir)
+            else:
+                LOGGER.info("Fetching today's prices from V2 providers")
+                ctx = PriceBuilderContext.from_cache()
+                today_df = self.build_today_prices(ctx)
+                ctx.release()
+                del ctx
+                gc.collect()
         else:
             LOGGER.info("Using pre-fetched today prices (%s rows)", f"{len(today_df):,}")
 
@@ -738,85 +1021,80 @@ class PolarsPriceBuilder:
         LOGGER.info("Loading archive from partitions (90 day window)")
         archive_lf = self.load_partitioned_archive(days=90)
 
-        # Stream-write JSON outputs
-        output_path = MtgjsonConfig().output_path
-        output_path.mkdir(parents=True, exist_ok=True)
+        # --- Parquet output (optional, streaming) ---
+        if parquet_output_dir is not None:
+            parquet_output_dir.mkdir(parents=True, exist_ok=True)
+            output_all = parquet_output_dir / "AllPrices.parquet"
+            LOGGER.info(f"Sinking AllPrices.parquet to {output_all}")
+            try:
+                archive_lf.sink_parquet(output_all, compression="zstd", compression_level=3)
+                LOGGER.info(f"  {output_all.name}: written via streaming sink")
+            except Exception as exc:
+                LOGGER.warning(f"Streaming sink failed ({exc}), falling back to collect")
+                df = archive_lf.collect()
+                df.write_parquet(output_all, compression="zstd", compression_level=3)
+                LOGGER.info(f"  {output_all.name}: {len(df):,} rows")
+                del df
 
-        all_prices_path = output_path / "AllPrices.json"
-        LOGGER.info(f"Streaming AllPrices.json to {all_prices_path}")
-        self.stream_write_all_prices_json(archive_lf, all_prices_path)
-        del archive_lf
-        gc.collect()
+            if len(today_df) > 0:
+                today_parquet = parquet_output_dir / "AllPricesToday.parquet"
+                today_df.write_parquet(today_parquet, compression="zstd", compression_level=3)
+                LOGGER.info(f"  {today_parquet.name}: {len(today_df):,} rows")
 
-        today_prices_path = output_path / "AllPricesToday.json"
-        LOGGER.info(f"Streaming AllPricesToday.json to {today_prices_path}")
-        self.stream_write_today_prices_json(today_df, today_prices_path)
-        gc.collect()
+            gc.collect()
+            # Re-scan from consolidated parquet (1 file vs 86 partitions)
+            archive_lf = pl.scan_parquet(output_all)
 
-        # Write SQL formats for AllPricesToday
-        LOGGER.info("Writing AllPricesToday SQL formats")
-        self.write_prices_sqlite(today_df, output_path / "AllPricesToday.sqlite")
-        self.write_prices_sql(today_df, output_path / "AllPricesToday.sql")
-        self.write_prices_psql(today_df, output_path / "AllPricesToday.psql")
+        # --- JSON / SQL / CSV output (optional) ---
+        all_prices_path: Path | None = None
+        today_prices_path: Path | None = None
+        _temp_parquet: Path | None = None
 
-        # Write CSV format for cardPrices (goes in csv/ directory with other CSVs)
-        csv_dir = output_path / "csv"
-        csv_dir.mkdir(parents=True, exist_ok=True)
-        LOGGER.info("Writing cardPrices.csv")
-        self.write_prices_csv(today_df, csv_dir / "cardPrices.csv")
+        if write_json:
+            output_path = MtgjsonConfig().output_path
+            output_path.mkdir(parents=True, exist_ok=True)
+
+            # Consolidate partitions to a single file for efficient per-prefix reads
+            if parquet_output_dir is not None:
+                source_parquet = parquet_output_dir / "AllPrices.parquet"
+            else:
+                # No parquet output requested — write temp consolidated file
+                source_parquet = constants.CACHE_PATH / "_all_prices_temp.parquet"
+                source_parquet.parent.mkdir(parents=True, exist_ok=True)
+                LOGGER.info("Writing temp consolidated parquet for JSON streaming")
+                archive_lf.sink_parquet(source_parquet, compression="zstd", compression_level=1)
+                archive_lf = pl.scan_parquet(source_parquet)
+                _temp_parquet = source_parquet
+
+            all_prices_path = output_path / "AllPrices.json"
+            LOGGER.info(f"Streaming AllPrices.json to {all_prices_path}")
+            self.stream_write_all_prices_json(archive_lf, all_prices_path, source_path=source_parquet)
+            del archive_lf
+            gc.collect()
+
+            # Clean up temp file if created
+            if _temp_parquet is not None and _temp_parquet.exists():
+                _temp_parquet.unlink()
+                LOGGER.debug("Removed temp consolidated parquet")
+
+            today_prices_path = output_path / "AllPricesToday.json"
+            LOGGER.info(f"Streaming AllPricesToday.json to {today_prices_path}")
+            self.stream_write_today_prices_json(today_df, today_prices_path)
+            gc.collect()
+
+            # Write SQL formats for AllPricesToday
+            LOGGER.info("Writing AllPricesToday SQL formats")
+            self.write_prices_sqlite(today_df, output_path / "AllPricesToday.sqlite")
+            self.write_prices_sql(today_df, output_path / "AllPricesToday.sql")
+            self.write_prices_psql(today_df, output_path / "AllPricesToday.psql")
+
+            # Write CSV format for cardPrices (goes in csv/ directory with other CSVs)
+            csv_dir = output_path / "csv"
+            csv_dir.mkdir(parents=True, exist_ok=True)
+            LOGGER.info("Writing cardPrices.csv")
+            self.write_prices_csv(today_df, csv_dir / "cardPrices.csv")
+        else:
+            del archive_lf
 
         LOGGER.info("Price build complete")
         return all_prices_path, today_prices_path
-
-    def build_prices_parquet(self) -> tuple[pl.LazyFrame, pl.DataFrame]:
-        """
-        Build prices, save archive, return lazy scan + today DataFrame.
-
-        Returns:
-            Tuple of (archive_lazy_frame, today_prices_df).
-            The archive LazyFrame is a scan of the saved parquet file.
-        """
-        from mtgjson5.profiler import get_profiler
-
-        profiler = get_profiler()
-        LOGGER.info("Polars Price Builder - Building Prices (Parquet mode, V2)")
-
-        if not self.all_printings_path.is_file():
-            LOGGER.info("AllPrintings not found, cannot build prices")
-            empty = pl.DataFrame(schema=PRICE_SCHEMA)
-            return empty.lazy(), empty
-
-        profiler.checkpoint("prices/fetch_start")
-        ctx = PriceBuilderContext.from_cache()
-        LOGGER.info("Fetching today's prices from V2 providers")
-        today_df = self.build_today_prices(ctx)
-        ctx.release()
-        del ctx
-        gc.collect()
-        profiler.checkpoint("prices/fetch_complete")
-
-        if len(today_df) == 0:
-            LOGGER.warning("No price data generated")
-            empty = pl.DataFrame(schema=PRICE_SCHEMA)
-            return empty.lazy(), empty
-
-        LOGGER.info("Loading price archive")
-        archive_lf = self.load_archive()
-
-        LOGGER.info("Merging archive with today's prices")
-        merged_lf = self.merge_prices(archive_lf, today_df.lazy())
-
-        LOGGER.info("Pruning old price data")
-        pruned_lf = self.prune_prices(merged_lf)
-
-        LOGGER.info("Saving updated archive")
-        archive_path = self.save_archive(pruned_lf)
-        gc.collect()
-        profiler.checkpoint("prices/archive_saved")
-
-        # Return lazy scan of saved archive — no full DF held in memory
-        return pl.scan_parquet(archive_path), today_df
-
-    def load_archive_only(self) -> pl.LazyFrame:
-        """Load existing archive without building new prices."""
-        return self.load_archive()

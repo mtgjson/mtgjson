@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import gc
 import pathlib
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -24,37 +23,16 @@ def _write(df: pl.DataFrame, path: pathlib.Path) -> None:
     LOGGER.info(f"  {path.name}: {df.height:,} rows")
 
 
-def write_price_parquet(output_dir: pathlib.Path) -> pl.DataFrame:
+def write_price_parquet(output_dir: pathlib.Path) -> None:
     """Write AllPrices.parquet and AllPricesToday.parquet.
 
-    Standalone function (no AssemblyContext needed) so it can be called
-    from both ParquetBuilder and the price subprocess.
-
-    Returns the today_df so callers can reuse it (avoids re-fetching prices).
+    Delegates to the unified build_prices() with parquet output enabled
+    and JSON/SQL output disabled.  Uses the memory-efficient partitioned
+    archive (never materializes the full 90-day dataset).
     """
     from mtgjson5.build.price_builder import PolarsPriceBuilder
 
-    builder = PolarsPriceBuilder()
-    all_prices_lf, today_df = builder.build_prices_parquet()
-
-    # Stream archive → output parquet via sink
-    output_all = output_dir / "AllPrices.parquet"
-    try:
-        all_prices_lf.sink_parquet(output_all, compression=_COMPRESSION, compression_level=_COMPRESSION_LEVEL)
-        LOGGER.info(f"  {output_all.name}: written via streaming sink")
-    except Exception:
-        # Fallback: collect + write if sink fails
-        df = all_prices_lf.collect()
-        _write(df, output_all)
-        del df
-
-    del all_prices_lf
-    gc.collect()
-
-    if len(today_df) > 0:
-        _write(today_df, output_dir / "AllPricesToday.parquet")
-
-    return today_df
+    PolarsPriceBuilder().build_prices(parquet_output_dir=output_dir, write_json=False)
 
 
 class ParquetBuilder:

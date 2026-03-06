@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import contextlib
 import datetime
+import gc
 import logging
 import sqlite3
 from pathlib import Path
@@ -48,22 +49,29 @@ _PRICE_INDEXES = (
 )
 
 
-def stream_write_all_prices_json(lf: pl.LazyFrame, path: Path, today_date: str) -> None:
+def stream_write_all_prices_json(
+    lf: pl.LazyFrame,
+    path: Path,
+    today_date: str,
+    source_path: Path | None = None,
+) -> None:
     """
     Stream-write AllPrices.json using Prefix Partitioning.
+
+    When *source_path* points to a consolidated parquet file, each prefix
+    creates an independent ``scan_parquet`` so no shared LazyFrame state
+    accumulates across iterations.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     prefixes = "0123456789abcdef"
 
-    opt_lf = lf.with_columns(
-        [
-            pl.col("source").cast(pl.Categorical),
-            pl.col("provider").cast(pl.Categorical),
-            pl.col("price_type").cast(pl.Categorical),
-            pl.col("finish").cast(pl.Categorical),
-            pl.col("currency").cast(pl.Categorical),
-        ]
-    )
+    cat_cols = [
+        pl.col("source").cast(pl.Categorical),
+        pl.col("provider").cast(pl.Categorical),
+        pl.col("price_type").cast(pl.Categorical),
+        pl.col("finish").cast(pl.Categorical),
+        pl.col("currency").cast(pl.Categorical),
+    ]
 
     with open(path, "wb") as f:
         f.write(b'{"meta":')
@@ -78,7 +86,13 @@ def stream_write_all_prices_json(lf: pl.LazyFrame, path: Path, today_date: str) 
         first_chunk_written = False
 
         for prefix in prefixes:
-            chunk_lf = opt_lf.filter(pl.col("uuid").str.starts_with(prefix))
+            # Independent scan per prefix to avoid shared LazyFrame caching
+            if source_path is not None:
+                chunk_lf = (
+                    pl.scan_parquet(source_path).filter(pl.col("uuid").str.starts_with(prefix)).with_columns(cat_cols)
+                )
+            else:
+                chunk_lf = lf.filter(pl.col("uuid").str.starts_with(prefix)).with_columns(cat_cols)
 
             try:
                 df_chunk = chunk_lf.collect()
@@ -87,7 +101,8 @@ def stream_write_all_prices_json(lf: pl.LazyFrame, path: Path, today_date: str) 
                 continue
 
             if df_chunk.height == 0:
-                del df_chunk
+                del df_chunk, chunk_lf
+                gc.collect()
                 continue
 
             # We sort here because we need grouped UUIDs for the iterator
@@ -103,8 +118,9 @@ def stream_write_all_prices_json(lf: pl.LazyFrame, path: Path, today_date: str) 
                 first_chunk_written = True
                 total_processed += items_written
 
-            # Explicitly release memory before next iteration
-            del df_chunk
+            # Release memory before next iteration
+            del df_chunk, chunk_lf
+            gc.collect()
 
             LOGGER.info(f"  Processed prefix '{prefix}' (Total: {total_processed:,})")
 

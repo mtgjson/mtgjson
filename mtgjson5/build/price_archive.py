@@ -174,6 +174,8 @@ def save_archive(df: pl.LazyFrame, path: Path | None = None) -> Path:
     """
     Save price archive to parquet with zstd compression.
 
+    Uses streaming sink to avoid materializing the full archive in memory.
+
     Args:
         df: LazyFrame with price data
         path: Output path (default: cache dir)
@@ -187,10 +189,16 @@ def save_archive(df: pl.LazyFrame, path: Path | None = None) -> Path:
 
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    collected = df.collect()
-    collected.write_parquet(path, compression="zstd", compression_level=9)
+    try:
+        df.sink_parquet(path, compression="zstd", compression_level=9)
+        LOGGER.info(f"Saved price archive (streamed): {path.stat().st_size:,} bytes")
+    except Exception as exc:
+        LOGGER.warning(f"Streaming sink failed ({exc}), falling back to collect")
+        collected = df.collect()
+        collected.write_parquet(path, compression="zstd", compression_level=3)
+        LOGGER.info(f"Saved price archive: {len(collected):,} rows, {path.stat().st_size:,} bytes")
+        del collected
 
-    LOGGER.info(f"Saved price archive: {len(collected):,} rows, {path.stat().st_size:,} bytes")
     return path
 
 
