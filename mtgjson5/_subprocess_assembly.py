@@ -17,6 +17,17 @@ from multiprocessing import Queue
 from pathlib import Path
 from typing import Any
 
+# Per-group skip sets: fields that a group's tasks don't access.
+# Avoids loading large DataFrames into subprocesses that never use them.
+_GROUP_SKIP: dict[str, frozenset[str]] = {
+    "A": frozenset(),  # AllPrintings needs everything
+    "B": frozenset({"decks", "sealed", "token_products", "boosters"}),
+    "C": frozenset(),  # SetFiles needs everything
+    "D": frozenset({"sealed", "token_products", "boosters"}),
+    "E": frozenset({"decks", "boosters"}),
+    "F": frozenset({"token_products", "boosters"}),
+}
+
 
 def run_assembly_group(
     tasks: list[str],
@@ -60,7 +71,8 @@ def run_assembly_group(
         from mtgjson5.build.context import AssemblyContext
         from mtgjson5.build.formats.json import JsonOutputBuilder
 
-        ctx = AssemblyContext.from_cache()
+        skip = _GROUP_SKIP.get(group_label, frozenset())
+        ctx = AssemblyContext.from_cache(skip=skip)
         sp.checkpoint("cache_loaded")
 
         if ctx is None:

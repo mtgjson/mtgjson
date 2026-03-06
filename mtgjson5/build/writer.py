@@ -242,9 +242,13 @@ class UnifiedOutputWriter:
         return cls(assembly_ctx)
 
     @classmethod
-    def from_cache(cls, cache_dir: Path | None = None) -> UnifiedOutputWriter | None:
+    def from_cache(
+        cls,
+        cache_dir: Path | None = None,
+        skip: frozenset[str] = frozenset(),
+    ) -> UnifiedOutputWriter | None:
         """Create writer from cached assembly context."""
-        assembly_ctx = AssemblyContext.from_cache(cache_dir)
+        assembly_ctx = AssemblyContext.from_cache(cache_dir, skip=skip)
         if assembly_ctx is None:
             return None
         return cls(assembly_ctx)
