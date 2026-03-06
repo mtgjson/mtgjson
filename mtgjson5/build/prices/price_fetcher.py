@@ -14,6 +14,7 @@ import asyncio
 import logging
 import threading
 import time
+from collections.abc import Awaitable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -77,7 +78,7 @@ class PriceFetcher:
         """Run all provider raw fetches concurrently."""
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-        async def _timed(name: str, coro: asyncio.coroutines) -> None:
+        async def _timed(name: str, coro: Awaitable[None]) -> None:
             t0 = time.perf_counter()
             await coro
             self._timings[name] = round(time.perf_counter() - t0, 1)
@@ -99,6 +100,7 @@ class PriceFetcher:
         LOGGER.info("PriceFetcher: all raw fetches complete (%s)", self._timings)
 
     async def _fetch_tcg_raw(self) -> None:
+        """Fetch raw TCGPlayer prices to parquet cache."""
         from mtgjson5.providers.tcgplayer.prices import TCGPlayerPriceProvider
 
         provider = TCGPlayerPriceProvider()
@@ -109,6 +111,7 @@ class PriceFetcher:
         LOGGER.info(f"PriceFetcher: TCGPlayer raw: {len(df):,} rows")
 
     async def _fetch_cardhoarder_raw(self) -> None:
+        """Fetch raw CardHoarder MTGO prices to parquet cache."""
         from mtgjson5.providers.cardhoarder.provider import CardHoarderPriceProvider
 
         provider = CardHoarderPriceProvider()
@@ -119,6 +122,7 @@ class PriceFetcher:
         LOGGER.info(f"PriceFetcher: CardHoarder raw: {len(df):,} rows")
 
     async def _fetch_manapool_raw(self) -> None:
+        """Fetch raw Manapool prices to parquet cache."""
         from mtgjson5.providers.manapool.provider import ManapoolPriceProvider
 
         provider = ManapoolPriceProvider()
@@ -126,6 +130,7 @@ class PriceFetcher:
         LOGGER.info(f"PriceFetcher: Manapool raw: {len(df):,} rows")
 
     async def _fetch_cardmarket_raw(self) -> None:
+        """Fetch raw CardMarket prices to parquet cache."""
         from mtgjson5.providers.cardmarket.provider import CardMarketProvider
 
         provider = CardMarketProvider()
@@ -134,6 +139,7 @@ class PriceFetcher:
         LOGGER.info(f"PriceFetcher: CardMarket raw: {len(df):,} rows")
 
     async def _fetch_cardkingdom_raw(self) -> None:
+        """Fetch raw CardKingdom prices to parquet cache."""
         from mtgjson5.providers.cardkingdom.provider import CKProvider
 
         provider = CKProvider()
