@@ -153,6 +153,19 @@ def add_purchase_urls_struct(
                 .chash.sha2_256()
                 .str.slice(0, 16)
                 .alias("_cm_hash"),
+                # Cardmarket Foil: hash(mcm_id + uuid + BUFFER + mcm_meta_id + "foil")
+                plh.concat_str(  # pylint: disable=no-member
+                    [
+                        mcm_id.cast(pl.String),
+                        pl.col("uuid"),
+                        pl.lit(CARD_MARKET_BUFFER),
+                        pl.col("identifiers").struct.field("mcmMetaId").cast(pl.String).fill_null(""),
+                        pl.lit("foil"),
+                    ]
+                )
+                .chash.sha2_256()
+                .str.slice(0, 16)
+                .alias("_cmf_hash"),
             ]
         )
         .with_columns(
@@ -174,6 +187,10 @@ def add_purchase_urls_struct(
                     .then(pl.lit(redirect_base) + pl.col("_cm_hash"))
                     .otherwise(None)
                     .alias("cardmarket"),
+                    pl.when(mcm_id.is_not_null() & pl.col("finishes").list.contains("foil"))
+                    .then(pl.lit(redirect_base) + pl.col("_cmf_hash"))
+                    .otherwise(None)
+                    .alias("cardmarketFoil"),
                     pl.when(tcg_id.is_not_null())
                     .then(pl.lit(redirect_base) + pl.col("_tcg_hash"))
                     .otherwise(None)
@@ -195,6 +212,7 @@ def add_purchase_urls_struct(
                 "_ckf_hash",
                 "_cke_hash",
                 "_cm_hash",
+                "_cmf_hash",
                 "_tcg_hash",
                 "_tcge_hash",
                 "_tcga_hash",

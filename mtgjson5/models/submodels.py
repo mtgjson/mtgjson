@@ -496,6 +496,11 @@ class PurchaseUrls(TypedDict, total=False):
             "introduced": "v4.4.0",
             "optional": True,
         },
+        "cardmarketFoil": {
+            "description": "The URL to purchase a foil product on [Cardmarket](https://www.cardmarket.com/en/Magic?utm_campaign=card_prices&utm_medium=text&utm_source=mtgjson).",
+            "introduced": "v5.3.0",
+            "optional": True,
+        },
         "tcgplayer": {
             "description": "The URL to purchase a product on [TCGplayer](https://www.tcgplayer.com?partner=mtgjson&utm_campaign=affiliate&utm_medium=mtgjson&utm_source=mtgjson).",
             "introduced": "v4.4.0",
@@ -517,6 +522,7 @@ class PurchaseUrls(TypedDict, total=False):
     cardKingdomEtched: str
     cardKingdomFoil: str
     cardmarket: str
+    cardmarketFoil: str
     tcgplayer: str
     tcgplayerEtched: str
     tcgplayerAlternativeFoil: str
