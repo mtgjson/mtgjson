@@ -1,0 +1,174 @@
+{
+  "Funny Card": [
+    {
+      "colorIdentity": [
+        "R"
+      ],
+      "colors": [
+        "R"
+      ],
+      "convertedManaCost": 2.0,
+      "identifiers": {
+        "scryfallOracleId": "oracle-funny"
+      },
+      "isFunny": true,
+      "layout": "normal",
+      "legalities": {},
+      "manaCost": "{1}{R}",
+      "manaValue": 2.0,
+      "name": "Funny Card",
+      "power": "1",
+      "printings": null,
+      "purchaseUrls": {},
+      "subtypes": [
+        "Clown"
+      ],
+      "supertypes": [],
+      "text": "This card is funny.",
+      "toughness": "1",
+      "type": "Creature — Clown",
+      "types": [
+        "Creature"
+      ]
+    }
+  ],
+  "Lightning Bolt": [
+    {
+      "colorIdentity": [
+        "R"
+      ],
+      "colors": [
+        "R"
+      ],
+      "convertedManaCost": 1.0,
+      "identifiers": {
+        "scryfallOracleId": "oracle-bolt"
+      },
+      "layout": "normal",
+      "legalities": {
+        "commander": "Legal",
+        "legacy": "Legal",
+        "modern": "Legal",
+        "pauper": "Legal",
+        "vintage": "Legal"
+      },
+      "manaCost": "{R}",
+      "manaValue": 1.0,
+      "name": "Lightning Bolt",
+      "printings": null,
+      "purchaseUrls": {},
+      "subtypes": [],
+      "supertypes": [],
+      "text": "Lightning Bolt deals 3 damage to any target.",
+      "type": "Instant",
+      "types": [
+        "Instant"
+      ]
+    }
+  ],
+  "Prodigal Sorcerer": [
+    {
+      "colorIdentity": [
+        "U"
+      ],
+      "colors": [
+        "U"
+      ],
+      "convertedManaCost": 3.0,
+      "identifiers": {
+        "scryfallOracleId": "oracle-sorcerer"
+      },
+      "layout": "normal",
+      "legalities": {
+        "commander": "Legal",
+        "legacy": "Legal",
+        "vintage": "Legal"
+      },
+      "manaCost": "{2}{U}",
+      "manaValue": 3.0,
+      "name": "Prodigal Sorcerer",
+      "power": "1",
+      "printings": null,
+      "purchaseUrls": {},
+      "subtypes": [
+        "Human",
+        "Wizard"
+      ],
+      "supertypes": [],
+      "text": "{T}: Prodigal Sorcerer deals 1 damage to any target.",
+      "toughness": "1",
+      "type": "Creature — Human Wizard",
+      "types": [
+        "Creature"
+      ]
+    }
+  ],
+  "Wear // Tear": [
+    {
+      "colorIdentity": [
+        "R",
+        "W"
+      ],
+      "colors": [
+        "R"
+      ],
+      "convertedManaCost": 3.0,
+      "faceName": "Wear",
+      "identifiers": {
+        "scryfallOracleId": "oracle-wt"
+      },
+      "layout": "split",
+      "legalities": {
+        "commander": "Legal",
+        "legacy": "Legal",
+        "vintage": "Legal"
+      },
+      "manaCost": "{R}",
+      "manaValue": 3.0,
+      "name": "Wear // Tear",
+      "printings": null,
+      "purchaseUrls": {},
+      "side": "a",
+      "subtypes": [],
+      "supertypes": [],
+      "text": "Destroy target artifact.",
+      "type": "Instant",
+      "types": [
+        "Instant"
+      ]
+    },
+    {
+      "colorIdentity": [
+        "R",
+        "W"
+      ],
+      "colors": [
+        "W"
+      ],
+      "convertedManaCost": 3.0,
+      "faceName": "Tear",
+      "identifiers": {
+        "scryfallOracleId": "oracle-wt"
+      },
+      "layout": "split",
+      "legalities": {
+        "commander": "Legal",
+        "legacy": "Legal",
+        "vintage": "Legal"
+      },
+      "manaCost": "{W}",
+      "manaValue": 3.0,
+      "name": "Wear // Tear",
+      "printings": null,
+      "purchaseUrls": {},
+      "side": "b",
+      "subtypes": [],
+      "supertypes": [],
+      "text": "Destroy target enchantment.",
+      "type": "Instant",
+      "types": [
+        "Instant"
+      ]
+    }
+  ]
+}
