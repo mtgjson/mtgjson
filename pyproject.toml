@@ -184,7 +184,7 @@ disable_error_code = ["typeddict-item", "no-any-return"]
 
 [tool.pytest.ini_options]
 # -q (quiet mode): reduces output verbosity to show only test results, keeping CI logs clean
-addopts = "-q"
+addopts = "-q --import-mode=importlib"
 # VCR cassette recording modes:
 # - Local development: use --record-mode=once to record new cassettes
 # - CI/offline: use --record-mode=none to ensure no network access (enforced in tox config)
