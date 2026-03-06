@@ -261,9 +261,8 @@ def write_prices_sqlite(df: pl.DataFrame, path: Path) -> None:
 
 def write_prices_sql(df: pl.DataFrame, path: Path) -> None:
     """Write price data as a MySQL text dump with INSERT statements."""
+    from mtgjson5.build.serializers import escape_mysql
     from mtgjson5.models.containers import MtgjsonMeta
-
-    from .serializers import escape_mysql
 
     prepared = _prepare_price_df_for_sql(df)
     meta = MtgjsonMeta()
@@ -305,7 +304,7 @@ def write_prices_sql(df: pl.DataFrame, path: Path) -> None:
 
 def write_prices_psql(df: pl.DataFrame, path: Path) -> None:
     """Write price data as a PostgreSQL dump with COPY format."""
-    from .serializers import escape_postgres
+    from mtgjson5.build.serializers import escape_postgres
 
     prepared = _prepare_price_df_for_sql(df)
 
