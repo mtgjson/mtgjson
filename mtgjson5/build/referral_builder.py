@@ -381,20 +381,24 @@ def _build_cardmarket_entries_from_parquet(
             return None
 
         # Extract needed fields from parquet
-        mcm_data_lf = cards_lf.select(
-            [
-                pl.col("uuid"),
-                pl.col("identifiers").struct.field("scryfallId").alias("_scryfall_id"),
-                pl.col("identifiers").struct.field("mcmId"),
-                pl.col("identifiers").struct.field("mcmMetaId"),
-            ]
-        ).filter(pl.col("mcmId").is_not_null())
+        select_cols = [
+            pl.col("uuid"),
+            pl.col("identifiers").struct.field("scryfallId").alias("_scryfall_id"),
+            pl.col("identifiers").struct.field("mcmId"),
+            pl.col("identifiers").struct.field("mcmMetaId"),
+        ]
+        if "finishes" in parquet_schema.names():
+            select_cols.append(pl.col("finishes"))
+        mcm_data_lf = cards_lf.select(select_cols).filter(pl.col("mcmId").is_not_null())
 
         # Join scryfall URLs with parquet data
+        base_lf = mcm_data_lf.join(cm_urls_lf, on="_scryfall_id", how="inner").filter(pl.col("_cm_url").is_not_null())
+
+        entries = []
+
+        # Non-foil entries
         joined = (
-            mcm_data_lf.join(cm_urls_lf, on="_scryfall_id", how="inner")
-            .filter(pl.col("_cm_url").is_not_null())
-            .with_columns(
+            base_lf.with_columns(
                 [
                     # Hash: sha256(mcm_id + uuid + BUFFER + mcm_meta_id)[:16]
                     plh.concat_str(
@@ -416,9 +420,43 @@ def _build_cardmarket_entries_from_parquet(
             .unique(subset=["hash"])
             .collect()
         )
-
         if len(joined) > 0:
-            return joined
+            entries.append(joined)
+
+        # Foil entries: same URL with &isFoil=Y appended
+        foil_base_lf = base_lf
+        if "finishes" in parquet_schema.names():
+            foil_base_lf = base_lf.filter(pl.col("finishes").list.contains("foil"))
+        foil_joined = (
+            foil_base_lf.with_columns(
+                [
+                    # Hash: sha256(mcm_id + uuid + BUFFER + mcm_meta_id + "foil")[:16]
+                    plh.concat_str(
+                        [
+                            pl.col("mcmId").cast(pl.String),
+                            pl.col("uuid"),
+                            pl.lit(constants.CARD_MARKET_BUFFER),
+                            pl.col("mcmMetaId").cast(pl.String).fill_null(""),
+                            pl.lit("foil"),
+                        ]
+                    )
+                    .chash.sha2_256()
+                    .str.slice(0, 16)
+                    .alias("hash"),
+                    (pl.col("_cm_url").str.replace_all("scryfall", "mtgjson") + pl.lit("&isFoil=Y")).alias(
+                        "referral_url"
+                    ),
+                ]
+            )
+            .select(["hash", "referral_url"])
+            .unique(subset=["hash"])
+            .collect()
+        )
+        if len(foil_joined) > 0:
+            entries.append(foil_joined)
+
+        if entries:
+            return pl.concat(entries)
 
     except Exception as e:
         LOGGER.warning(f"Failed to build Cardmarket referrals: {e}")
