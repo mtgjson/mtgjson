@@ -23,7 +23,6 @@ def set_build_all_flags(parsed_args: argparse.Namespace) -> None:
     """
     if parsed_args.build_all:
         parsed_args.use_models = True
-        parsed_args.compress = False
         parsed_args.price_build = True
         if not parsed_args.sets:
             # Full build: all sets, compiled outputs, and exports
