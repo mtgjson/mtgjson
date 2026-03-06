@@ -296,6 +296,12 @@ class GlobalCache:
             "languages_lf",
             "final_cards_lf",
         )
+        # Also release provider instances (hold fetched data)
+        self._scryfall = None
+        self._cardkingdom = None
+        self._cardmarket = None
+        self._github = None
+        self._scryfall_id_filter = None
         self._loaded = False
 
     def load_all(
