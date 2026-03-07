@@ -180,6 +180,12 @@ disable_error_code = ["union-attr", "operator", "arg-type"]
 module = "mtgjson5.models.sealed"
 disable_error_code = ["typeddict-item", "no-any-return"]
 
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disable_error_code = ["arg-type", "call-arg", "index", "operator", "no-any-return", "dict-item", "attr-defined"]
+
 # --- pytest ---
 
 [tool.pytest.ini_options]
@@ -231,6 +237,9 @@ disable = [
     "wrong-import-position",
     "too-many-positional-arguments",
     "unidiomatic-typecheck",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "import-error",
 ]
 
 [tool.pylint.reports]
@@ -258,19 +267,19 @@ extras = ["dev"]
 
 [tool.tox.env.format]
 description = "Format code and sort imports (auto-fix)"
-commands = [["ruff", "format", "mtgjson5/"], ["ruff", "check", "--fix", "--select", "I", "mtgjson5/"]]
+commands = [["ruff", "format", "mtgjson5/", "tests/"], ["ruff", "check", "--fix", "--select", "I", "mtgjson5/", "tests/"]]
 
 [tool.tox.env.format-check]
 description = "Check formatting and import sorting (fails if unformatted)"
-commands = [["ruff", "format", "--check", "mtgjson5/"], ["ruff", "check", "--select", "I", "mtgjson5/"]]
+commands = [["ruff", "format", "--check", "mtgjson5/", "tests/"], ["ruff", "check", "--select", "I", "mtgjson5/", "tests/"]]
 
 [tool.tox.env.mypy]
 description = "mypy static type checking only"
-commands = [["mypy", "{posargs:mtgjson5/}"]]
+commands = [["mypy", "{posargs:mtgjson5/}", "--explicit-package-bases"], ["mypy", "tests/", "--explicit-package-bases"]]
 
 [tool.tox.env.lint]
 description = "Run linting tools"
-commands = [["ruff", "check", "mtgjson5/"], ["pylint", "mtgjson5/"]]
+commands = [["ruff", "check", "mtgjson5/", "tests/"], ["pylint", "mtgjson5/"], ["pylint", "tests/"]]
 
 [tool.tox.env.unit]
 description = "Run unit tests with coverage and mypy type checking"
