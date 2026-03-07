@@ -173,6 +173,41 @@ class AssemblyContext:
     super_types: list[str] = field(default_factory=list)
     planar_types: list[str] = field(default_factory=list)
 
+    def validate_assembly_data(self, skip: frozenset[str] = frozenset()) -> None:
+        """Validate that expected assembly data is present.
+
+        Logs warnings for any missing data that will result in empty output
+        fields (sealedProduct, booster, decks, sourceProducts).
+
+        Args:
+            skip: Field names that were intentionally skipped during loading.
+        """
+        issues: list[str] = []
+
+        if "sealed" not in skip and (self.sealed_df is None or len(self.sealed_df) == 0):
+            issues.append("sealed_df is empty — sealedProduct will be missing from all sets")
+
+        if "boosters" not in skip and not self.booster_configs:
+            issues.append("booster_configs is empty — booster will be missing from all sets")
+
+        if "decks" not in skip and (self.decks_df is None or len(self.decks_df) == 0):
+            issues.append("decks_df is empty — decks will be missing from all sets")
+
+        if not self.set_meta:
+            issues.append("set_meta is empty — no sets will be assembled")
+
+        if not self.parquet_dir.exists():
+            issues.append(f"parquet_dir does not exist: {self.parquet_dir}")
+
+        for issue in issues:
+            LOGGER.warning(f"Assembly validation: {issue}")
+
+        if issues:
+            LOGGER.error(
+                f"Assembly validation found {len(issues)} issue(s). "
+                "Output may be incomplete. Check GitHub data provider logs above."
+            )
+
     @cached_property
     def all_cards_df(self) -> pl.DataFrame | None:
         """Load all cards from parquet cache (shared across format builders)."""
@@ -283,7 +318,7 @@ class AssemblyContext:
 
         keyword_data, card_type_data, super_types, planar_types = _load_scryfall_catalogs(ctx)
 
-        return cls(
+        instance = cls(
             parquet_dir=parquet_dir,
             tokens_dir=tokens_dir,
             set_meta=set_meta,
@@ -297,6 +332,8 @@ class AssemblyContext:
             super_types=super_types,
             planar_types=planar_types,
         )
+        instance.validate_assembly_data()
+        return instance
 
     @classmethod
     def from_cache(
@@ -386,7 +423,7 @@ class AssemblyContext:
         meta_dict = {"date": meta_obj.date, "version": meta_obj.version}
         LOGGER.info("Loading meta information...")
 
-        return cls(
+        instance = cls(
             parquet_dir=parquet_dir,
             tokens_dir=tokens_dir,
             set_meta=set_meta,
@@ -400,6 +437,8 @@ class AssemblyContext:
             super_types=super_types,
             planar_types=planar_types,
         )
+        instance.validate_assembly_data(skip=skip)
+        return instance
 
     def save_cache(self, cache_dir: pathlib.Path | None = None) -> None:
         """Save context to cache for fast rebuilds."""

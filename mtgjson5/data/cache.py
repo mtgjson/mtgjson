@@ -1054,6 +1054,27 @@ class GlobalCache:
                 self.token_products_lf = provider.token_products_df
 
         self.github.load_async_background(on_complete=on_github_complete)
+        # Block until the background thread finishes so that sealed/deck/booster
+        # data is available before _dump_and_reload_as_lazy() runs.
+        self.github.wait_for_load()
+
+        # Verify data loaded; retry synchronously if the background load failed
+        expected = {
+            "sealed_products_lf": sealed_products_cache,
+            "sealed_contents_lf": sealed_contents_cache,
+            "decks_lf": decks_cache,
+            "boosters_lf": booster_cache,
+            "sealed_cards_lf": card_to_products_cache,
+            "token_products_lf": token_products_cache,
+        }
+        missing = [name for name in expected if getattr(self, name, None) is None]
+        if missing:
+            LOGGER.warning(f"GitHub background load incomplete, missing: {missing}. Retrying synchronously...")
+            self.github.load_sync()
+            on_github_complete(self.github)
+            still_missing = [name for name in expected if getattr(self, name, None) is None]
+            if still_missing:
+                LOGGER.error(f"GitHub data still missing after sync retry: {still_missing}")
 
     def _load_orientations(self) -> None:
         """Load orientation data for Art Series cards from Scryfall."""
