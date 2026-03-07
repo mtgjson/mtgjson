@@ -11,10 +11,12 @@ from mtgjson5.providers.cardkingdom.cache import CardKingdomStorage
 
 class TestCardKingdomStorage:
     def test_write_and_read_roundtrip(self, tmp_path: Path):
-        df = pl.DataFrame({
-            "name": ["Lightning Bolt", "Dark Ritual"],
-            "price": [1.99, 0.49],
-        })
+        df = pl.DataFrame(
+            {
+                "name": ["Lightning Bolt", "Dark Ritual"],
+                "price": [1.99, 0.49],
+            }
+        )
         path = tmp_path / "ck_cache.parquet"
         CardKingdomStorage.write(df, path)
         assert path.exists()
@@ -49,7 +51,7 @@ class TestCardKingdomStorage:
     def test_write_string_path(self, tmp_path: Path):
         df = pl.DataFrame({"name": ["Test"]})
         path = str(tmp_path / "cache.parquet")
-        result = CardKingdomStorage.write(df, path)
+        CardKingdomStorage.write(df, path)
         assert Path(path).exists()
 
     def test_read_string_path(self, tmp_path: Path):

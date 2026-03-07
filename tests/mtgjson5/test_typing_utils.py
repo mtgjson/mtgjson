@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from mtgjson5.models._typing import TypedDictUtils, is_union_type, unwrap_optional
 from mtgjson5.models.submodels import Rulings
 
@@ -48,7 +46,7 @@ class TestTypedDictUtils:
 
 class TestUnwrapOptional:
     def test_optional_str(self):
-        inner, is_opt = unwrap_optional(Optional[str])
+        inner, is_opt = unwrap_optional(str | None)
         assert inner is str
         assert is_opt is True
 
@@ -71,7 +69,7 @@ class TestUnwrapOptional:
 
 class TestIsUnionType:
     def test_optional_is_union(self):
-        assert is_union_type(Optional[str]) is True
+        assert is_union_type(str | None) is True
 
     def test_plain_not_union(self):
         assert is_union_type(str) is False

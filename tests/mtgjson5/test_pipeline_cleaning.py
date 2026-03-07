@@ -114,7 +114,7 @@ class TestPrepareCardsForJson:
         assert result["colors"][0].to_list() == []
         assert result["colors"][1].to_list() == ["W"]
 
-    def test_empty_otherFaceIds_becomes_null(self):
+    def test_empty_other_face_ids_becomes_null(self):
         df = pl.DataFrame(
             {
                 "otherFaceIds": [[], ["uuid-1"]],
@@ -126,7 +126,7 @@ class TestPrepareCardsForJson:
         assert result["otherFaceIds"][0] is None
         assert result["otherFaceIds"][1].to_list() == ["uuid-1"]
 
-    def test_false_isFunny_becomes_null(self):
+    def test_false_is_funny_becomes_null(self):
         df = pl.DataFrame(
             {
                 "isFunny": [False, True],

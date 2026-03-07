@@ -27,7 +27,7 @@ class TestStageSchemaValidate:
         )
         lf = pl.LazyFrame({"a": [1], "b": ["x"]})
         warnings = schema.validate(lf)
-        assert warnings == []
+        assert not warnings
 
     def test_missing_required_column_raises(self):
         schema = StageSchema(
@@ -54,7 +54,7 @@ class TestStageSchemaValidate:
         )
         lf = pl.LazyFrame({"a": pl.Series([1], dtype=pl.Int32)})
         warnings = schema.validate(lf)
-        assert warnings == []
+        assert not warnings
 
     def test_string_type_compatibility(self):
         schema = StageSchema(
@@ -63,7 +63,7 @@ class TestStageSchemaValidate:
         )
         lf = pl.LazyFrame({"a": ["x"]})  # String == Utf8 in modern Polars
         warnings = schema.validate(lf)
-        assert warnings == []
+        assert not warnings
 
     def test_forbidden_column_returns_warning(self):
         schema = StageSchema(
@@ -121,7 +121,7 @@ class TestPreDefinedSchemas:
             }
         )
         warnings = STAGE_POST_EXPLODE.validate(lf)
-        assert warnings == []
+        assert not warnings
 
     def test_pre_sink_rejects_temp_columns(self):
         lf = pl.LazyFrame(

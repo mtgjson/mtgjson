@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import polars as pl
 import pytest
 
 from mtgjson5.polars_utils.preprocess import (
-    CARD_FACE_FIELD_RENAMES,
-    SCRYFALL_TO_PIPELINE,
     add_computed_fields,
     build_face_rename_expr,
     infer_card_face_schema,
@@ -20,7 +15,6 @@ from mtgjson5.polars_utils.preprocess import (
     validate_required_columns,
 )
 
-
 # ---------------------------------------------------------------------------
 # normalize_column_names
 # ---------------------------------------------------------------------------
@@ -28,30 +22,36 @@ from mtgjson5.polars_utils.preprocess import (
 
 class TestNormalizeColumnNames:
     def test_renames_known_columns(self):
-        lf = pl.LazyFrame({
-            "collector_number": ["1"],
-            "type_line": ["Creature"],
-            "oracle_text": ["Flying"],
-        })
+        lf = pl.LazyFrame(
+            {
+                "collector_number": ["1"],
+                "type_line": ["Creature"],
+                "oracle_text": ["Flying"],
+            }
+        )
         result = normalize_column_names(lf).collect()
         assert "collectorNumber" in result.columns
         assert "typeLine" in result.columns
         assert "oracleText" in result.columns
 
     def test_leaves_unknown_columns(self):
-        lf = pl.LazyFrame({
-            "name": ["Test"],
-            "custom_field": ["val"],
-        })
+        lf = pl.LazyFrame(
+            {
+                "name": ["Test"],
+                "custom_field": ["val"],
+            }
+        )
         result = normalize_column_names(lf).collect()
         assert "name" in result.columns
         assert "custom_field" in result.columns
 
     def test_handles_partial_columns(self):
-        lf = pl.LazyFrame({
-            "collector_number": ["1"],
-            "name": ["Test"],
-        })
+        lf = pl.LazyFrame(
+            {
+                "collector_number": ["1"],
+                "name": ["Test"],
+            }
+        )
         result = normalize_column_names(lf).collect()
         assert "collectorNumber" in result.columns
         assert "name" in result.columns
@@ -70,9 +70,11 @@ class TestNormalizeColumnNames:
 class TestNormalizeCardFaces:
     def test_renames_struct_fields(self):
         face = {"type_line": "Creature", "name": "Test", "oracle_text": "Flying"}
-        lf = pl.LazyFrame({
-            "cardFaces": [[face]],
-        })
+        lf = pl.LazyFrame(
+            {
+                "cardFaces": [[face]],
+            }
+        )
         result = normalize_card_faces(lf).collect()
         faces = result["cardFaces"][0]
         field_names = faces[0].keys() if isinstance(faces[0], dict) else [f.name for f in faces[0]]
@@ -99,9 +101,11 @@ class TestNormalizeCardFaces:
 class TestNormalizeAllParts:
     def test_renames_type_line(self):
         part = {"id": "abc", "type_line": "Creature", "name": "Test", "component": "combo_piece", "uri": "u"}
-        lf = pl.LazyFrame({
-            "allParts": [[part]],
-        })
+        lf = pl.LazyFrame(
+            {
+                "allParts": [[part]],
+            }
+        )
         result = normalize_all_parts(lf).collect()
         parts = result["allParts"][0]
         field_names = parts[0].keys() if isinstance(parts[0], dict) else [f.name for f in parts[0]]
@@ -185,9 +189,11 @@ class TestValidateRequiredColumns:
 
 class TestInferCardFaceSchema:
     def test_returns_schema_for_struct(self):
-        df = pl.DataFrame({
-            "card_faces": [[{"name": "A", "type_line": "Creature"}]],
-        })
+        df = pl.DataFrame(
+            {
+                "card_faces": [[{"name": "A", "type_line": "Creature"}]],
+            }
+        )
         schema = infer_card_face_schema(df)
         assert schema is not None
 
@@ -196,9 +202,11 @@ class TestInferCardFaceSchema:
         assert infer_card_face_schema(df) is None
 
     def test_returns_none_all_nulls(self):
-        df = pl.DataFrame({
-            "card_faces": pl.Series([None], dtype=pl.List(pl.Struct({"name": pl.String}))),
-        })
+        df = pl.DataFrame(
+            {
+                "card_faces": pl.Series([None], dtype=pl.List(pl.Struct({"name": pl.String}))),
+            }
+        )
         result = infer_card_face_schema(df)
         # All nulls dropped => len 0 => None
         assert result is None

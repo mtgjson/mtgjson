@@ -5,10 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 import polars as pl
-import pytest
 
 from mtgjson5.pipeline.stages.output import clean_nested, prepare_cards_for_json
-
 
 # ---------------------------------------------------------------------------
 # TestCleanNested
@@ -120,70 +118,90 @@ class TestCleanNested:
 
 class TestPrepareCardsForJson:
     def test_fills_required_list_nulls(self):
-        df = pl.DataFrame({
-            "name": ["Test"],
-            "colors": [None],
-        }, schema={"name": pl.String, "colors": pl.List(pl.String)})
+        df = pl.DataFrame(
+            {
+                "name": ["Test"],
+                "colors": [None],
+            },
+            schema={"name": pl.String, "colors": pl.List(pl.String)},
+        )
         result = prepare_cards_for_json(df)
         assert result["colors"].to_list() == [[]]
 
     def test_nullifies_empty_omit_list(self):
-        df = pl.DataFrame({
-            "name": ["Test"],
-            "keywords": [[]],
-        }, schema={"name": pl.String, "keywords": pl.List(pl.String)})
+        df = pl.DataFrame(
+            {
+                "name": ["Test"],
+                "keywords": [[]],
+            },
+            schema={"name": pl.String, "keywords": pl.List(pl.String)},
+        )
         result = prepare_cards_for_json(df)
         assert result["keywords"].to_list() == [None]
 
     def test_nullifies_false_optional_bool(self):
-        df = pl.DataFrame({
-            "name": ["Test"],
-            "isReprint": [False],
-        })
+        df = pl.DataFrame(
+            {
+                "name": ["Test"],
+                "isReprint": [False],
+            }
+        )
         result = prepare_cards_for_json(df)
         assert result["isReprint"].to_list() == [None]
 
     def test_keeps_true_optional_bool(self):
-        df = pl.DataFrame({
-            "name": ["Test"],
-            "isReprint": [True],
-        })
+        df = pl.DataFrame(
+            {
+                "name": ["Test"],
+                "isReprint": [True],
+            }
+        )
         result = prepare_cards_for_json(df)
         assert result["isReprint"].to_list() == [True]
 
     def test_nullifies_empty_string_optional(self):
-        df = pl.DataFrame({
-            "name": ["Test"],
-            "asciiName": [""],
-        })
+        df = pl.DataFrame(
+            {
+                "name": ["Test"],
+                "asciiName": [""],
+            }
+        )
         result = prepare_cards_for_json(df)
         assert result["asciiName"].to_list() == [None]
 
     def test_nullifies_zero_numeric_optional(self):
-        df = pl.DataFrame({
-            "name": ["Test"],
-            "edhrecSaltiness": [0.0],
-        }, schema={"name": pl.String, "edhrecSaltiness": pl.Float64})
+        df = pl.DataFrame(
+            {
+                "name": ["Test"],
+                "edhrecSaltiness": [0.0],
+            },
+            schema={"name": pl.String, "edhrecSaltiness": pl.Float64},
+        )
         result = prepare_cards_for_json(df)
         assert result["edhrecSaltiness"].to_list() == [None]
 
     def test_drops_internal_columns(self):
-        df = pl.DataFrame({
-            "name": ["Test"],
-            "_row_id": [0],
-            "_temp": ["val"],
-        })
+        df = pl.DataFrame(
+            {
+                "name": ["Test"],
+                "_row_id": [0],
+                "_temp": ["val"],
+            }
+        )
         result = prepare_cards_for_json(df)
         assert "_row_id" not in result.columns
         assert "_temp" not in result.columns
         assert "name" in result.columns
 
     def test_keeps_non_empty_values(self):
-        df = pl.DataFrame({
-            "name": ["Test"],
-            "asciiName": ["Test Card"],
-            "edhrecSaltiness": [1.5],
-        }, schema={"name": pl.String, "asciiName": pl.String, "edhrecSaltiness": pl.Float64})
+        df = pl.DataFrame(
+            {
+                "name": ["Test"],
+                "asciiName": ["Test Card"],
+                "edhrecSaltiness": [1.5],
+            },
+            schema={"name": pl.String, "asciiName": pl.String, "edhrecSaltiness": pl.Float64},
+        )
         result = prepare_cards_for_json(df)
         assert result["asciiName"].to_list() == ["Test Card"]
         assert result["edhrecSaltiness"].to_list() == [1.5]

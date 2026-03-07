@@ -89,8 +89,8 @@ class TestPostgresDataCorrectness:
         )
         dump = _generate_postgres_dump(df)
         lines = dump.split("\n")
-        copy_idx = next(i for i, l in enumerate(lines) if l.startswith("COPY"))
-        term_idx = next(i for i, l in enumerate(lines) if l == "\\.")
+        copy_idx = next(i for i, line in enumerate(lines) if line.startswith("COPY"))
+        term_idx = next(i for i, line in enumerate(lines) if line == "\\.")
         data_lines = lines[copy_idx + 1 : term_idx]
         assert len(data_lines) == 2
 
@@ -104,7 +104,7 @@ class TestPostgresDataCorrectness:
         )
         dump = _generate_postgres_dump(df)
         lines = dump.split("\n")
-        copy_idx = next(i for i, l in enumerate(lines) if l.startswith("COPY"))
+        copy_idx = next(i for i, line in enumerate(lines) if line.startswith("COPY"))
         data_line = lines[copy_idx + 1]
         parts = data_line.split("\t")
         assert len(parts) == 3
@@ -119,7 +119,7 @@ class TestPostgresDataCorrectness:
         )
         dump = _generate_postgres_dump(df)
         lines = dump.split("\n")
-        copy_idx = next(i for i, l in enumerate(lines) if l.startswith("COPY"))
+        copy_idx = next(i for i, line in enumerate(lines) if line.startswith("COPY"))
         data_line = lines[copy_idx + 1]
         parts = data_line.split("\t")
         assert parts[1] == "\\N"
@@ -142,7 +142,7 @@ class TestPostgresBoolAndEscaping:
         )
         dump = _generate_postgres_dump(df)
         lines = dump.split("\n")
-        copy_idx = next(i for i, l in enumerate(lines) if l.startswith("COPY"))
+        copy_idx = next(i for i, line in enumerate(lines) if line.startswith("COPY"))
         data_line = lines[copy_idx + 1]
         assert "\\N" in data_line
 
@@ -150,7 +150,7 @@ class TestPostgresBoolAndEscaping:
         df = pl.DataFrame({"text": ["tab\there\nnewline\\backslash"]})
         dump = _generate_postgres_dump(df)
         lines = dump.split("\n")
-        copy_idx = next(i for i, l in enumerate(lines) if l.startswith("COPY"))
+        copy_idx = next(i for i, line in enumerate(lines) if line.startswith("COPY"))
         data_line = lines[copy_idx + 1]
         # Tab in data should be escaped (not a field separator)
         assert "\\t" in data_line

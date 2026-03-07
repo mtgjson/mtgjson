@@ -6,8 +6,6 @@ import polars as pl
 import pytest
 
 from mtgjson5.providers.github.models import (
-    PolarsSchemaModel,
-    _python_type_to_polars,
     CardEntryModel,
     CardRef,
     ContentConfig,
@@ -16,8 +14,8 @@ from mtgjson5.providers.github.models import (
     SealedProductModel,
     SealedRef,
     VariableConfig,
+    _python_type_to_polars,
 )
-
 
 # ---------------------------------------------------------------------------
 # TestPythonTypeToPolars
@@ -74,19 +72,37 @@ class TestPolarsSchemaModel:
 
 
 class TestAllModelsProduceSchemas:
-    @pytest.mark.parametrize("model", [
-        DeckRef, PackRef, SealedRef, CardRef, VariableConfig,
-        ContentConfig, CardEntryModel, SealedProductModel,
-    ])
+    @pytest.mark.parametrize(
+        "model",
+        [
+            DeckRef,
+            PackRef,
+            SealedRef,
+            CardRef,
+            VariableConfig,
+            ContentConfig,
+            CardEntryModel,
+            SealedProductModel,
+        ],
+    )
     def test_model_schema_is_dict(self, model):
         schema = model.polars_schema()
         assert isinstance(schema, dict)
         assert len(schema) > 0
 
-    @pytest.mark.parametrize("model", [
-        DeckRef, PackRef, SealedRef, CardRef, VariableConfig,
-        ContentConfig, CardEntryModel, SealedProductModel,
-    ])
+    @pytest.mark.parametrize(
+        "model",
+        [
+            DeckRef,
+            PackRef,
+            SealedRef,
+            CardRef,
+            VariableConfig,
+            ContentConfig,
+            CardEntryModel,
+            SealedProductModel,
+        ],
+    )
     def test_model_schema_doc_is_string(self, model):
         doc = model.polars_schema_doc()
         assert isinstance(doc, str)

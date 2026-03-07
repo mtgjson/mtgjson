@@ -83,7 +83,7 @@ class TestCardPrintingBaseSorting:
 
     def test_non_cardprintingbase_returns_not_implemented(self):
         c = _make_card_set(number="1")
-        assert c.__lt__("not a card") is NotImplemented
+        assert c.__lt__("not a card") is NotImplemented  # pylint: disable=unnecessary-dunder-call
 
 
 # ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ class TestCardPrintingBaseSorting:
 # ---------------------------------------------------------------------------
 
 
-class TestCardModelHierarchy:
+class TestCardModelHierarchy:  # pylint: disable=unsupported-membership-test
     def test_card_atomic_has_first_printing(self):
         assert "first_printing" in CardAtomic.model_fields
 

@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Optional, TypedDict
-
-from typing_extensions import Required
+from typing import Required, TypedDict
 
 from mtgjson5.models._typing import TypedDictUtils, unwrap_optional
-
 
 # ---------------------------------------------------------------------------
 # Sample TypedDicts for testing
@@ -101,7 +98,7 @@ class TestCleanNested:
     def test_empty_dict_after_cleaning(self):
         d = {"a": None, "b": None}
         result = TypedDictUtils._clean_nested(d, {})
-        assert result == {}
+        assert not result
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +117,7 @@ class TestCleanList:
 
     def test_removes_empty_dict_items(self):
         result = TypedDictUtils._clean_list([{"a": None}], {})
-        assert result == []
+        assert not result
 
     def test_cleans_nested_lists(self):
         result = TypedDictUtils._clean_list([[1, None, 3]], {})
@@ -128,7 +125,7 @@ class TestCleanList:
 
     def test_removes_empty_nested_lists(self):
         result = TypedDictUtils._clean_list([[None]], {})
-        assert result == []
+        assert not result
 
     def test_primitives_preserved(self):
         result = TypedDictUtils._clean_list(["a", 1, True], {})
@@ -184,11 +181,11 @@ class TestUnwrapOptionalExtended:
     def test_multi_type_union(self):
         """str | int | None should return (str | int | None, True)."""
         tp = str | int | None
-        inner, is_opt = unwrap_optional(tp)
+        _inner, is_opt = unwrap_optional(tp)
         assert is_opt is True
 
     def test_non_optional_union(self):
         """str | int (no None) should not be optional."""
         tp = str | int
-        inner, is_opt = unwrap_optional(tp)
+        _inner, is_opt = unwrap_optional(tp)
         assert is_opt is False

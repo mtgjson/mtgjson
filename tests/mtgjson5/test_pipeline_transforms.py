@@ -21,8 +21,6 @@ from mtgjson5.pipeline.stages.explode import (
     explode_card_faces,
 )
 
-
-
 # ---------------------------------------------------------------------------
 # Helpers (duplicated from conftest to avoid relative imports)
 # ---------------------------------------------------------------------------
@@ -405,7 +403,7 @@ class TestDetectAftermathLayout:
         lf = explode_card_faces(lf)
         result = detect_aftermath_layout(lf).collect()
         layouts = result["layout"].to_list()
-        assert all(l == "aftermath" for l in layouts)
+        assert all(lay == "aftermath" for lay in layouts)
 
     def test_normal_split_unchanged(self):
         """Split card without 'Aftermath' stays split."""
@@ -415,4 +413,4 @@ class TestDetectAftermathLayout:
         lf = explode_card_faces(lf)
         result = detect_aftermath_layout(lf).collect()
         layouts = result["layout"].to_list()
-        assert all(l == "split" for l in layouts)
+        assert all(lay == "split" for lay in layouts)

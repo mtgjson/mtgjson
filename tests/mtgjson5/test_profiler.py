@@ -6,8 +6,6 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from mtgjson5.profiler import (
     PipelineProfiler,
     SubprocessProfiler,
@@ -16,7 +14,6 @@ from mtgjson5.profiler import (
     get_profiler,
     init_profiler,
 )
-
 
 # ---------------------------------------------------------------------------
 # _get_rss_mb / _get_children_rss_mb
@@ -32,7 +29,7 @@ class TestRssHelpers:
     def test_get_rss_mb_without_psutil(self):
         with patch.dict("sys.modules", {"psutil": None}):
             # Force reimport to hit ImportError
-            import importlib
+
             import mtgjson5.profiler as mod
 
             # Direct test of the fallback
@@ -59,7 +56,7 @@ class TestPipelineProfilerDisabled:
         p.checkpoint_with_children("test2")
         p.add_subprocess_profile({"label": "sub"})
         report = p.finish()
-        assert report == {}
+        assert not report
 
     def test_disabled_stage_context_manager(self):
         p = PipelineProfiler(enabled=False)
@@ -137,7 +134,7 @@ class TestPipelineProfilerEnabled:
     def test_finish_when_not_started(self):
         p = PipelineProfiler(enabled=True)
         report = p.finish()
-        assert report == {}
+        assert not report
 
     def test_stage_context_manager(self):
         p = PipelineProfiler(enabled=True)
@@ -169,15 +166,17 @@ class TestPipelineProfilerEnabled:
     def test_write_report_with_subprocesses(self, tmp_path: Path):
         p = PipelineProfiler(enabled=True)
         p.start()
-        p.add_subprocess_profile({
-            "label": "export",
-            "pid": 999,
-            "peak_rss_mb": 50.0,
-            "total_wall_seconds": 2.0,
-            "checkpoints": [
-                {"name": "start", "wall_seconds": 0.0, "delta_seconds": 0.0, "rss_mb": 50.0, "rss_delta_mb": 0.0}
-            ],
-        })
+        p.add_subprocess_profile(
+            {
+                "label": "export",
+                "pid": 999,
+                "peak_rss_mb": 50.0,
+                "total_wall_seconds": 2.0,
+                "checkpoints": [
+                    {"name": "start", "wall_seconds": 0.0, "delta_seconds": 0.0, "rss_mb": 50.0, "rss_delta_mb": 0.0}
+                ],
+            }
+        )
         p.write_report(tmp_path)
 
         report = json.loads((tmp_path / "profile_report.json").read_text())
@@ -186,24 +185,34 @@ class TestPipelineProfilerEnabled:
     def test_format_summary_with_nested_subprocesses(self):
         p = PipelineProfiler(enabled=True)
         p.start()
-        p.add_subprocess_profile({
-            "label": "export",
-            "pid": 999,
-            "peak_rss_mb": 50.0,
-            "total_wall_seconds": 2.0,
-            "checkpoints": [
-                {"name": "start", "wall_seconds": 0.0, "delta_seconds": 0.0, "rss_mb": 50.0, "rss_delta_mb": 0.0}
-            ],
-            "subprocesses": [{
-                "label": "prices",
-                "pid": 1000,
-                "peak_rss_mb": 30.0,
-                "total_wall_seconds": 1.0,
+        p.add_subprocess_profile(
+            {
+                "label": "export",
+                "pid": 999,
+                "peak_rss_mb": 50.0,
+                "total_wall_seconds": 2.0,
                 "checkpoints": [
-                    {"name": "start", "wall_seconds": 0.0, "delta_seconds": 0.0, "rss_mb": 30.0, "rss_delta_mb": 0.0}
+                    {"name": "start", "wall_seconds": 0.0, "delta_seconds": 0.0, "rss_mb": 50.0, "rss_delta_mb": 0.0}
                 ],
-            }],
-        })
+                "subprocesses": [
+                    {
+                        "label": "prices",
+                        "pid": 1000,
+                        "peak_rss_mb": 30.0,
+                        "total_wall_seconds": 1.0,
+                        "checkpoints": [
+                            {
+                                "name": "start",
+                                "wall_seconds": 0.0,
+                                "delta_seconds": 0.0,
+                                "rss_mb": 30.0,
+                                "rss_delta_mb": 0.0,
+                            }
+                        ],
+                    }
+                ],
+            }
+        )
         report = p.finish()
         summary = p._format_summary(report)
         assert "export" in summary
@@ -239,7 +248,7 @@ class TestSubprocessProfiler:
         sp.start()
         sp.checkpoint("mid")
         result = sp.to_dict()
-        assert result == {}
+        assert not result
 
     def test_enabled_records_snapshots(self):
         sp = SubprocessProfiler(label="export", enabled=True)
@@ -294,6 +303,7 @@ class TestGlobalHelpers:
     def test_get_profiler_returns_instance(self):
         # Reset global
         import mtgjson5.profiler as mod
+
         mod._profiler = None
         p = get_profiler()
         assert isinstance(p, PipelineProfiler)

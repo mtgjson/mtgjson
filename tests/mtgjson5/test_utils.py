@@ -3,12 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import pathlib
-from typing import Any
-from unittest.mock import patch
-
-import pytest
 
 from mtgjson5.utils import (
     deep_sort_keys,
@@ -23,7 +18,6 @@ from mtgjson5.utils import (
     to_snake_case,
     url_keygen,
 )
-
 
 # ---------------------------------------------------------------------------
 # url_keygen
@@ -279,7 +273,7 @@ class TestGetAllEntitiesFromContent:
         assert len(result) == 0
 
     def test_empty_content(self):
-        assert get_all_entities_from_content({}) == []
+        assert not get_all_entities_from_content({})
 
     def test_multiple_sets(self):
         content = {

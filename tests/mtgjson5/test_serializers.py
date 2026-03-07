@@ -165,7 +165,7 @@ class TestBatched:
         assert list(batched([1, 2, 3], 2)) == [[1, 2], [3]]
 
     def test_empty(self):
-        assert list(batched([], 5)) == []
+        assert not list(batched([], 5))
 
 
 # =============================================================================

@@ -13,8 +13,7 @@ from __future__ import annotations
 from typing import Any
 
 import polars as pl
-import polars_hash as plh  # noqa: F401 – registers .chash namespace
-import pytest
+import polars_hash as plh  # noqa: F401  # pylint: disable=unused-import  # registers .chash namespace
 
 from mtgjson5 import constants
 from mtgjson5.build.referral_builder import (
@@ -30,16 +29,14 @@ from mtgjson5.build.referral_builder import (
     write_referral_map,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _sha256_16(val: str) -> str:
     """Compute the same sha256[:16] hash the referral builder uses."""
-    df = pl.DataFrame({"v": [val]}).with_columns(
-        pl.col("v").chash.sha2_256().str.slice(0, 16).alias("h")
-    )
+    df = pl.DataFrame({"v": [val]}).with_columns(pl.col("v").chash.sha2_256().str.slice(0, 16).alias("h"))
     return df["h"][0]
 
 
@@ -53,15 +50,17 @@ def _write_cards_parquet(
     """Write a minimal cards parquet partitioned by setCode."""
     schema: dict[str, Any] = {
         "uuid": pl.String,
-        "identifiers": pl.Struct({
-            "scryfallId": pl.String,
-            "tcgplayerProductId": pl.String,
-            "tcgplayerEtchedProductId": pl.String,
-            "tcgplayerAlternativeFoilProductId": pl.String,
-            "mcmId": pl.String,
-            "mcmMetaId": pl.String,
-            "cardKingdomId": pl.String,
-        }),
+        "identifiers": pl.Struct(
+            {
+                "scryfallId": pl.String,
+                "tcgplayerProductId": pl.String,
+                "tcgplayerEtchedProductId": pl.String,
+                "tcgplayerAlternativeFoilProductId": pl.String,
+                "mcmId": pl.String,
+                "mcmMetaId": pl.String,
+                "cardKingdomId": pl.String,
+            }
+        ),
         "finishes": pl.List(pl.String),
     }
     if extra_schema:
@@ -95,39 +94,45 @@ class TestBuildCkEntries:
     """Tests for _build_ck_entries_from_parquet."""
 
     def test_produces_entries_for_nonfoil_url(self, tmp_path, monkeypatch):
-        import mtgjson5.constants
+
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        monkeypatch.setattr(mtgjson5.constants, "CACHE_PATH", cache_dir)
+        monkeypatch.setattr(constants, "CACHE_PATH", cache_dir)
 
-        _write_ck_cache(cache_dir, [
-            {
-                "id": "sf-001",
-                "cardKingdomId": "1234",
-                "cardKingdomUrl": "catalog/product/1234",
-                "cardKingdomFoilId": None,
-                "cardKingdomFoilUrl": None,
-                "cardKingdomEtchedId": None,
-                "cardKingdomEtchedUrl": None,
-            },
-        ])
+        _write_ck_cache(
+            cache_dir,
+            [
+                {
+                    "id": "sf-001",
+                    "cardKingdomId": "1234",
+                    "cardKingdomUrl": "catalog/product/1234",
+                    "cardKingdomFoilId": None,
+                    "cardKingdomFoilUrl": None,
+                    "cardKingdomEtchedId": None,
+                    "cardKingdomEtchedUrl": None,
+                },
+            ],
+        )
 
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": "uuid-001",
-                "identifiers": {
-                    "scryfallId": "sf-001",
-                    "tcgplayerProductId": None,
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": None,
-                    "mcmMetaId": None,
-                    "cardKingdomId": "1234",
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": "uuid-001",
+                    "identifiers": {
+                        "scryfallId": "sf-001",
+                        "tcgplayerProductId": None,
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": None,
+                        "mcmMetaId": None,
+                        "cardKingdomId": "1234",
+                    },
+                    "finishes": ["nonfoil"],
                 },
-                "finishes": ["nonfoil"],
-            },
-        ])
+            ],
+        )
 
         result = _build_ck_entries_from_parquet(parquet_dir)
 
@@ -141,39 +146,45 @@ class TestBuildCkEntries:
         assert result["referral_url"][0] == expected_url
 
     def test_produces_entries_for_foil_and_etched(self, tmp_path, monkeypatch):
-        import mtgjson5.constants
+
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        monkeypatch.setattr(mtgjson5.constants, "CACHE_PATH", cache_dir)
+        monkeypatch.setattr(constants, "CACHE_PATH", cache_dir)
 
-        _write_ck_cache(cache_dir, [
-            {
-                "id": "sf-002",
-                "cardKingdomId": "2000",
-                "cardKingdomUrl": "catalog/regular/2000",
-                "cardKingdomFoilId": "2001",
-                "cardKingdomFoilUrl": "catalog/foil/2001",
-                "cardKingdomEtchedId": "2002",
-                "cardKingdomEtchedUrl": "catalog/etched/2002",
-            },
-        ])
+        _write_ck_cache(
+            cache_dir,
+            [
+                {
+                    "id": "sf-002",
+                    "cardKingdomId": "2000",
+                    "cardKingdomUrl": "catalog/regular/2000",
+                    "cardKingdomFoilId": "2001",
+                    "cardKingdomFoilUrl": "catalog/foil/2001",
+                    "cardKingdomEtchedId": "2002",
+                    "cardKingdomEtchedUrl": "catalog/etched/2002",
+                },
+            ],
+        )
 
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": "uuid-002",
-                "identifiers": {
-                    "scryfallId": "sf-002",
-                    "tcgplayerProductId": None,
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": None,
-                    "mcmMetaId": None,
-                    "cardKingdomId": "2000",
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": "uuid-002",
+                    "identifiers": {
+                        "scryfallId": "sf-002",
+                        "tcgplayerProductId": None,
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": None,
+                        "mcmMetaId": None,
+                        "cardKingdomId": "2000",
+                    },
+                    "finishes": ["nonfoil", "foil"],
                 },
-                "finishes": ["nonfoil", "foil"],
-            },
-        ])
+            ],
+        )
 
         result = _build_ck_entries_from_parquet(parquet_dir)
 
@@ -187,10 +198,10 @@ class TestBuildCkEntries:
         assert CK_BASE + "catalog/etched/2002" + CK_REFERRAL in urls
 
     def test_returns_none_when_no_ck_cache(self, tmp_path, monkeypatch):
-        import mtgjson5.constants
+
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        monkeypatch.setattr(mtgjson5.constants, "CACHE_PATH", cache_dir)
+        monkeypatch.setattr(constants, "CACHE_PATH", cache_dir)
         # No ck_pivoted.parquet written
 
         parquet_dir = tmp_path / "parquet"
@@ -200,123 +211,143 @@ class TestBuildCkEntries:
         assert result is None
 
     def test_returns_none_when_no_parquet_dir(self, tmp_path, monkeypatch):
-        import mtgjson5.constants
+
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        monkeypatch.setattr(mtgjson5.constants, "CACHE_PATH", cache_dir)
-        _write_ck_cache(cache_dir, [
-            {
-                "id": "sf-001",
-                "cardKingdomId": "1",
-                "cardKingdomUrl": "url",
-                "cardKingdomFoilId": None,
-                "cardKingdomFoilUrl": None,
-                "cardKingdomEtchedId": None,
-                "cardKingdomEtchedUrl": None,
-            },
-        ])
+        monkeypatch.setattr(constants, "CACHE_PATH", cache_dir)
+        _write_ck_cache(
+            cache_dir,
+            [
+                {
+                    "id": "sf-001",
+                    "cardKingdomId": "1",
+                    "cardKingdomUrl": "url",
+                    "cardKingdomFoilId": None,
+                    "cardKingdomFoilUrl": None,
+                    "cardKingdomEtchedId": None,
+                    "cardKingdomEtchedUrl": None,
+                },
+            ],
+        )
 
         result = _build_ck_entries_from_parquet(None)
         assert result is None
 
     def test_skips_null_urls(self, tmp_path, monkeypatch):
         """Cards that exist in CK cache but have null URL should be excluded."""
-        import mtgjson5.constants
+
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        monkeypatch.setattr(mtgjson5.constants, "CACHE_PATH", cache_dir)
+        monkeypatch.setattr(constants, "CACHE_PATH", cache_dir)
 
-        _write_ck_cache(cache_dir, [
-            {
-                "id": "sf-001",
-                "cardKingdomId": "1234",
-                "cardKingdomUrl": None,
-                "cardKingdomFoilId": None,
-                "cardKingdomFoilUrl": None,
-                "cardKingdomEtchedId": None,
-                "cardKingdomEtchedUrl": None,
-            },
-        ])
+        _write_ck_cache(
+            cache_dir,
+            [
+                {
+                    "id": "sf-001",
+                    "cardKingdomId": "1234",
+                    "cardKingdomUrl": None,
+                    "cardKingdomFoilId": None,
+                    "cardKingdomFoilUrl": None,
+                    "cardKingdomEtchedId": None,
+                    "cardKingdomEtchedUrl": None,
+                },
+            ],
+        )
 
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": "uuid-001",
-                "identifiers": {
-                    "scryfallId": "sf-001",
-                    "tcgplayerProductId": None,
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": None,
-                    "mcmMetaId": None,
-                    "cardKingdomId": "1234",
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": "uuid-001",
+                    "identifiers": {
+                        "scryfallId": "sf-001",
+                        "tcgplayerProductId": None,
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": None,
+                        "mcmMetaId": None,
+                        "cardKingdomId": "1234",
+                    },
+                    "finishes": ["nonfoil"],
                 },
-                "finishes": ["nonfoil"],
-            },
-        ])
+            ],
+        )
 
         result = _build_ck_entries_from_parquet(parquet_dir)
         assert result is None
 
     def test_multiple_cards(self, tmp_path, monkeypatch):
         """Multiple cards from different sets produce distinct entries."""
-        import mtgjson5.constants
+
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        monkeypatch.setattr(mtgjson5.constants, "CACHE_PATH", cache_dir)
+        monkeypatch.setattr(constants, "CACHE_PATH", cache_dir)
 
-        _write_ck_cache(cache_dir, [
-            {
-                "id": "sf-a",
-                "cardKingdomId": "100",
-                "cardKingdomUrl": "catalog/a",
-                "cardKingdomFoilId": None,
-                "cardKingdomFoilUrl": None,
-                "cardKingdomEtchedId": None,
-                "cardKingdomEtchedUrl": None,
-            },
-            {
-                "id": "sf-b",
-                "cardKingdomId": "200",
-                "cardKingdomUrl": "catalog/b",
-                "cardKingdomFoilId": None,
-                "cardKingdomFoilUrl": None,
-                "cardKingdomEtchedId": None,
-                "cardKingdomEtchedUrl": None,
-            },
-        ])
+        _write_ck_cache(
+            cache_dir,
+            [
+                {
+                    "id": "sf-a",
+                    "cardKingdomId": "100",
+                    "cardKingdomUrl": "catalog/a",
+                    "cardKingdomFoilId": None,
+                    "cardKingdomFoilUrl": None,
+                    "cardKingdomEtchedId": None,
+                    "cardKingdomEtchedUrl": None,
+                },
+                {
+                    "id": "sf-b",
+                    "cardKingdomId": "200",
+                    "cardKingdomUrl": "catalog/b",
+                    "cardKingdomFoilId": None,
+                    "cardKingdomFoilUrl": None,
+                    "cardKingdomEtchedId": None,
+                    "cardKingdomEtchedUrl": None,
+                },
+            ],
+        )
 
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": "uuid-a",
-                "identifiers": {
-                    "scryfallId": "sf-a",
-                    "tcgplayerProductId": None,
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": None,
-                    "mcmMetaId": None,
-                    "cardKingdomId": "100",
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": "uuid-a",
+                    "identifiers": {
+                        "scryfallId": "sf-a",
+                        "tcgplayerProductId": None,
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": None,
+                        "mcmMetaId": None,
+                        "cardKingdomId": "100",
+                    },
+                    "finishes": ["nonfoil"],
                 },
-                "finishes": ["nonfoil"],
-            },
-        ], set_code="SET1")
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": "uuid-b",
-                "identifiers": {
-                    "scryfallId": "sf-b",
-                    "tcgplayerProductId": None,
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": None,
-                    "mcmMetaId": None,
-                    "cardKingdomId": "200",
+            ],
+            set_code="SET1",
+        )
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": "uuid-b",
+                    "identifiers": {
+                        "scryfallId": "sf-b",
+                        "tcgplayerProductId": None,
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": None,
+                        "mcmMetaId": None,
+                        "cardKingdomId": "200",
+                    },
+                    "finishes": ["nonfoil"],
                 },
-                "finishes": ["nonfoil"],
-            },
-        ], set_code="SET2")
+            ],
+            set_code="SET2",
+        )
 
         result = _build_ck_entries_from_parquet(parquet_dir)
 
@@ -335,21 +366,24 @@ class TestBuildTcgEntries:
 
     def test_produces_entries_for_tcgplayer_product(self, tmp_path):
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": "uuid-001",
-                "identifiers": {
-                    "scryfallId": "sf-001",
-                    "tcgplayerProductId": "55555",
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": None,
-                    "mcmMetaId": None,
-                    "cardKingdomId": None,
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": "uuid-001",
+                    "identifiers": {
+                        "scryfallId": "sf-001",
+                        "tcgplayerProductId": "55555",
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": None,
+                        "mcmMetaId": None,
+                        "cardKingdomId": None,
+                    },
+                    "finishes": ["nonfoil"],
                 },
-                "finishes": ["nonfoil"],
-            },
-        ])
+            ],
+        )
 
         result = _build_tcg_entries_from_parquet(parquet_dir)
 
@@ -363,21 +397,24 @@ class TestBuildTcgEntries:
 
     def test_produces_etched_and_alt_foil_entries(self, tmp_path):
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": "uuid-001",
-                "identifiers": {
-                    "scryfallId": "sf-001",
-                    "tcgplayerProductId": "100",
-                    "tcgplayerEtchedProductId": "101",
-                    "tcgplayerAlternativeFoilProductId": "102",
-                    "mcmId": None,
-                    "mcmMetaId": None,
-                    "cardKingdomId": None,
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": "uuid-001",
+                    "identifiers": {
+                        "scryfallId": "sf-001",
+                        "tcgplayerProductId": "100",
+                        "tcgplayerEtchedProductId": "101",
+                        "tcgplayerAlternativeFoilProductId": "102",
+                        "mcmId": None,
+                        "mcmMetaId": None,
+                        "cardKingdomId": None,
+                    },
+                    "finishes": ["nonfoil", "foil"],
                 },
-                "finishes": ["nonfoil", "foil"],
-            },
-        ])
+            ],
+        )
 
         result = _build_tcg_entries_from_parquet(parquet_dir)
 
@@ -391,21 +428,24 @@ class TestBuildTcgEntries:
 
     def test_returns_none_when_no_tcg_ids(self, tmp_path):
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": "uuid-001",
-                "identifiers": {
-                    "scryfallId": "sf-001",
-                    "tcgplayerProductId": None,
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": None,
-                    "mcmMetaId": None,
-                    "cardKingdomId": None,
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": "uuid-001",
+                    "identifiers": {
+                        "scryfallId": "sf-001",
+                        "tcgplayerProductId": None,
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": None,
+                        "mcmMetaId": None,
+                        "cardKingdomId": None,
+                    },
+                    "finishes": ["nonfoil"],
                 },
-                "finishes": ["nonfoil"],
-            },
-        ])
+            ],
+        )
 
         result = _build_tcg_entries_from_parquet(parquet_dir)
         assert result is None
@@ -426,9 +466,11 @@ class TestBuildCardmarketEntries:
             scryfall_rows,
             schema={
                 "id": pl.String,
-                "purchaseUris": pl.Struct({
-                    "cardmarket": pl.String,
-                }),
+                "purchaseUris": pl.Struct(
+                    {
+                        "cardmarket": pl.String,
+                    }
+                ),
             },
         )
         return PipelineContext.for_testing(
@@ -438,31 +480,36 @@ class TestBuildCardmarketEntries:
         )
 
     def test_produces_nonfoil_entries(self, tmp_path):
-        ctx = self._make_ctx([
-            {
-                "id": "sf-001",
-                "purchaseUris": {
-                    "cardmarket": "https://www.cardmarket.com/en/Magic/Products/Singles/Set/Card?referrer=scryfall&utm_source=scryfall",
+        ctx = self._make_ctx(
+            [
+                {
+                    "id": "sf-001",
+                    "purchaseUris": {
+                        "cardmarket": "https://www.cardmarket.com/en/Magic/Products/Singles/Set/Card?referrer=scryfall&utm_source=scryfall",
+                    },
                 },
-            },
-        ])
+            ]
+        )
 
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": "uuid-001",
-                "identifiers": {
-                    "scryfallId": "sf-001",
-                    "tcgplayerProductId": None,
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": "99",
-                    "mcmMetaId": "88",
-                    "cardKingdomId": None,
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": "uuid-001",
+                    "identifiers": {
+                        "scryfallId": "sf-001",
+                        "tcgplayerProductId": None,
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": "99",
+                        "mcmMetaId": "88",
+                        "cardKingdomId": None,
+                    },
+                    "finishes": ["nonfoil"],
                 },
-                "finishes": ["nonfoil"],
-            },
-        ])
+            ],
+        )
 
         result = _build_cardmarket_entries_from_parquet(ctx, parquet_dir)
 
@@ -475,31 +522,36 @@ class TestBuildCardmarketEntries:
             assert "mtgjson" in url
 
     def test_produces_foil_entries(self, tmp_path):
-        ctx = self._make_ctx([
-            {
-                "id": "sf-001",
-                "purchaseUris": {
-                    "cardmarket": "https://www.cardmarket.com/en/Magic/Card?referrer=scryfall",
+        ctx = self._make_ctx(
+            [
+                {
+                    "id": "sf-001",
+                    "purchaseUris": {
+                        "cardmarket": "https://www.cardmarket.com/en/Magic/Card?referrer=scryfall",
+                    },
                 },
-            },
-        ])
+            ]
+        )
 
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": "uuid-001",
-                "identifiers": {
-                    "scryfallId": "sf-001",
-                    "tcgplayerProductId": None,
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": "99",
-                    "mcmMetaId": "88",
-                    "cardKingdomId": None,
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": "uuid-001",
+                    "identifiers": {
+                        "scryfallId": "sf-001",
+                        "tcgplayerProductId": None,
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": "99",
+                        "mcmMetaId": "88",
+                        "cardKingdomId": None,
+                    },
+                    "finishes": ["nonfoil", "foil"],
                 },
-                "finishes": ["nonfoil", "foil"],
-            },
-        ])
+            ],
+        )
 
         result = _build_cardmarket_entries_from_parquet(ctx, parquet_dir)
 
@@ -521,9 +573,11 @@ class TestBuildCardmarketEntries:
         assert result is None
 
     def test_returns_none_when_no_parquet_dir(self):
-        ctx = self._make_ctx([
-            {"id": "sf-001", "purchaseUris": {"cardmarket": "https://example.com"}},
-        ])
+        ctx = self._make_ctx(
+            [
+                {"id": "sf-001", "purchaseUris": {"cardmarket": "https://example.com"}},
+            ]
+        )
         result = _build_cardmarket_entries_from_parquet(ctx, None)
         assert result is None
 
@@ -620,10 +674,12 @@ class TestWriteReferralMap:
     """Tests for write_referral_map (Nginx map format)."""
 
     def test_writes_nginx_map_format(self, tmp_path):
-        df = pl.DataFrame({
-            "hash": ["abc123", "def456"],
-            "referral_url": ["https://example.com/a", "https://example.com/b"],
-        })
+        df = pl.DataFrame(
+            {
+                "hash": ["abc123", "def456"],
+                "referral_url": ["https://example.com/a", "https://example.com/b"],
+            }
+        )
 
         write_referral_map(df, tmp_path)
 
@@ -662,42 +718,48 @@ class TestHashDeterminism:
     """Hashes must be stable across runs — they become part of published URLs."""
 
     def test_ck_hash_is_deterministic(self, tmp_path, monkeypatch):
-        import mtgjson5.constants
+
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        monkeypatch.setattr(mtgjson5.constants, "CACHE_PATH", cache_dir)
+        monkeypatch.setattr(constants, "CACHE_PATH", cache_dir)
 
         ck_url = "catalog/magic-the-gathering-singles/test-set/lightning-bolt-702"
         uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 
-        _write_ck_cache(cache_dir, [
-            {
-                "id": "sf-det",
-                "cardKingdomId": "702",
-                "cardKingdomUrl": ck_url,
-                "cardKingdomFoilId": None,
-                "cardKingdomFoilUrl": None,
-                "cardKingdomEtchedId": None,
-                "cardKingdomEtchedUrl": None,
-            },
-        ])
+        _write_ck_cache(
+            cache_dir,
+            [
+                {
+                    "id": "sf-det",
+                    "cardKingdomId": "702",
+                    "cardKingdomUrl": ck_url,
+                    "cardKingdomFoilId": None,
+                    "cardKingdomFoilUrl": None,
+                    "cardKingdomEtchedId": None,
+                    "cardKingdomEtchedUrl": None,
+                },
+            ],
+        )
 
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": uuid,
-                "identifiers": {
-                    "scryfallId": "sf-det",
-                    "tcgplayerProductId": None,
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": None,
-                    "mcmMetaId": None,
-                    "cardKingdomId": "702",
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": uuid,
+                    "identifiers": {
+                        "scryfallId": "sf-det",
+                        "tcgplayerProductId": None,
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": None,
+                        "mcmMetaId": None,
+                        "cardKingdomId": "702",
+                    },
+                    "finishes": ["nonfoil"],
                 },
-                "finishes": ["nonfoil"],
-            },
-        ])
+            ],
+        )
 
         result = _build_ck_entries_from_parquet(parquet_dir)
         assert result is not None
@@ -710,21 +772,24 @@ class TestHashDeterminism:
         uuid = "uuid-det-tcg"
 
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": uuid,
-                "identifiers": {
-                    "scryfallId": "sf-001",
-                    "tcgplayerProductId": tcg_id,
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": None,
-                    "mcmMetaId": None,
-                    "cardKingdomId": None,
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": uuid,
+                    "identifiers": {
+                        "scryfallId": "sf-001",
+                        "tcgplayerProductId": tcg_id,
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": None,
+                        "mcmMetaId": None,
+                        "cardKingdomId": None,
+                    },
+                    "finishes": ["nonfoil"],
                 },
-                "finishes": ["nonfoil"],
-            },
-        ])
+            ],
+        )
 
         result = _build_tcg_entries_from_parquet(parquet_dir)
         assert result is not None
@@ -749,21 +814,24 @@ class TestHashDeterminism:
         )
 
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": uuid,
-                "identifiers": {
-                    "scryfallId": "sf-cm",
-                    "tcgplayerProductId": None,
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": mcm_id,
-                    "mcmMetaId": mcm_meta,
-                    "cardKingdomId": None,
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": uuid,
+                    "identifiers": {
+                        "scryfallId": "sf-cm",
+                        "tcgplayerProductId": None,
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": mcm_id,
+                        "mcmMetaId": mcm_meta,
+                        "cardKingdomId": None,
+                    },
+                    "finishes": ["nonfoil"],
                 },
-                "finishes": ["nonfoil"],
-            },
-        ])
+            ],
+        )
 
         result = _build_cardmarket_entries_from_parquet(ctx, parquet_dir)
         assert result is not None
@@ -783,39 +851,45 @@ class TestBuildAndWriteReferralMap:
     """Integration tests for the top-level orchestrator."""
 
     def test_writes_file_and_returns_count(self, tmp_path, monkeypatch):
-        import mtgjson5.constants
+
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        monkeypatch.setattr(mtgjson5.constants, "CACHE_PATH", cache_dir)
+        monkeypatch.setattr(constants, "CACHE_PATH", cache_dir)
 
-        _write_ck_cache(cache_dir, [
-            {
-                "id": "sf-int",
-                "cardKingdomId": "500",
-                "cardKingdomUrl": "catalog/test",
-                "cardKingdomFoilId": None,
-                "cardKingdomFoilUrl": None,
-                "cardKingdomEtchedId": None,
-                "cardKingdomEtchedUrl": None,
-            },
-        ])
+        _write_ck_cache(
+            cache_dir,
+            [
+                {
+                    "id": "sf-int",
+                    "cardKingdomId": "500",
+                    "cardKingdomUrl": "catalog/test",
+                    "cardKingdomFoilId": None,
+                    "cardKingdomFoilUrl": None,
+                    "cardKingdomEtchedId": None,
+                    "cardKingdomEtchedUrl": None,
+                },
+            ],
+        )
 
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": "uuid-int",
-                "identifiers": {
-                    "scryfallId": "sf-int",
-                    "tcgplayerProductId": "42",
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": None,
-                    "mcmMetaId": None,
-                    "cardKingdomId": "500",
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": "uuid-int",
+                    "identifiers": {
+                        "scryfallId": "sf-int",
+                        "tcgplayerProductId": "42",
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": None,
+                        "mcmMetaId": None,
+                        "cardKingdomId": "500",
+                    },
+                    "finishes": ["nonfoil"],
                 },
-                "finishes": ["nonfoil"],
-            },
-        ])
+            ],
+        )
 
         from mtgjson5.data.context import PipelineContext
 
@@ -837,10 +911,10 @@ class TestBuildAndWriteReferralMap:
         assert len(lines) == 2
 
     def test_returns_zero_with_no_data(self, tmp_path, monkeypatch):
-        import mtgjson5.constants
+
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        monkeypatch.setattr(mtgjson5.constants, "CACHE_PATH", cache_dir)
+        monkeypatch.setattr(constants, "CACHE_PATH", cache_dir)
 
         from mtgjson5.data.context import PipelineContext
 
@@ -857,10 +931,10 @@ class TestBuildAndWriteReferralMap:
         assert count == 0
 
     def test_includes_sealed_entries(self, tmp_path, monkeypatch):
-        import mtgjson5.constants
+
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        monkeypatch.setattr(mtgjson5.constants, "CACHE_PATH", cache_dir)
+        monkeypatch.setattr(constants, "CACHE_PATH", cache_dir)
 
         from mtgjson5.data.context import PipelineContext
 
@@ -894,10 +968,10 @@ class TestBuildAndWriteReferralMap:
 
     def test_deduplicates_hashes(self, tmp_path, monkeypatch):
         """Duplicate hashes across sources should be deduplicated."""
-        import mtgjson5.constants
+
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        monkeypatch.setattr(mtgjson5.constants, "CACHE_PATH", cache_dir)
+        monkeypatch.setattr(constants, "CACHE_PATH", cache_dir)
 
         from mtgjson5.data.context import PipelineContext
 
@@ -942,41 +1016,46 @@ class TestCkWorksAfterRelease:
 
     def test_ck_entries_produced_without_identifiers_lf(self, tmp_path, monkeypatch):
         """Simulates the exact bug: identifiers_lf=None, but CK cache + parquet exist."""
-        import mtgjson5.constants
         from mtgjson5.data.context import PipelineContext
 
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        monkeypatch.setattr(mtgjson5.constants, "CACHE_PATH", cache_dir)
+        monkeypatch.setattr(constants, "CACHE_PATH", cache_dir)
 
-        _write_ck_cache(cache_dir, [
-            {
-                "id": "sf-reg",
-                "cardKingdomId": "9999",
-                "cardKingdomUrl": "catalog/singles/test/card-9999",
-                "cardKingdomFoilId": None,
-                "cardKingdomFoilUrl": None,
-                "cardKingdomEtchedId": None,
-                "cardKingdomEtchedUrl": None,
-            },
-        ])
+        _write_ck_cache(
+            cache_dir,
+            [
+                {
+                    "id": "sf-reg",
+                    "cardKingdomId": "9999",
+                    "cardKingdomUrl": "catalog/singles/test/card-9999",
+                    "cardKingdomFoilId": None,
+                    "cardKingdomFoilUrl": None,
+                    "cardKingdomEtchedId": None,
+                    "cardKingdomEtchedUrl": None,
+                },
+            ],
+        )
 
         parquet_dir = tmp_path / "parquet"
-        _write_cards_parquet(parquet_dir, [
-            {
-                "uuid": "uuid-reg",
-                "identifiers": {
-                    "scryfallId": "sf-reg",
-                    "tcgplayerProductId": None,
-                    "tcgplayerEtchedProductId": None,
-                    "tcgplayerAlternativeFoilProductId": None,
-                    "mcmId": None,
-                    "mcmMetaId": None,
-                    "cardKingdomId": "9999",
+        _write_cards_parquet(
+            parquet_dir,
+            [
+                {
+                    "uuid": "uuid-reg",
+                    "identifiers": {
+                        "scryfallId": "sf-reg",
+                        "tcgplayerProductId": None,
+                        "tcgplayerEtchedProductId": None,
+                        "tcgplayerAlternativeFoilProductId": None,
+                        "mcmId": None,
+                        "mcmMetaId": None,
+                        "cardKingdomId": "9999",
+                    },
+                    "finishes": ["nonfoil"],
                 },
-                "finishes": ["nonfoil"],
-            },
-        ])
+            ],
+        )
 
         # Create ctx with identifiers_lf=None (simulating post-release state)
         ctx = PipelineContext.for_testing(meld_triplets={}, manual_overrides={})
