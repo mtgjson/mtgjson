@@ -400,6 +400,9 @@ def _build_global_scryfall_uuid_map(ctx: PipelineContext) -> pl.LazyFrame:
 
     all_pairs = pl.concat([single, multi])
 
+    # Fill null side with "a" to match join_identifiers / add_uuid_from_cache
+    all_pairs = all_pairs.with_columns(pl.col("side").fill_null("a"))
+
     # Join with uuid_cache for legacy cachedUuids
     uuid_cache = ctx.uuid_cache_lf
     if uuid_cache is not None:
@@ -417,7 +420,7 @@ def _build_global_scryfall_uuid_map(ctx: PipelineContext) -> pl.LazyFrame:
             pl.col("cachedUuid"),
             _uuid5_concat_expr(pl.col("scryfallId"), pl.col("side"), default="a"),
         ).alias("uuid")
-    ).select(["scryfallId", "uuid"])
+    ).select(["scryfallId", "uuid"]).unique()
 
     LOGGER.info("Pre-pass: building global scryfallId -> uuid mapping...")
     result_df = all_pairs.collect()
