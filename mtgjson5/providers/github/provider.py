@@ -38,7 +38,7 @@ TOKEN_PRODUCTS_DIR_URL = (
     "https://api.github.com/repos/mtgjson/mtg-sealed-content/contents/outputs/token_products_mappings"
 )
 TOKEN_PRODUCTS_RAW_URL = (
-    "https://github.com/mtgjson/mtg-sealed-content/raw/main/outputs/token_products_mappings/{}.json"
+    "https://raw.githubusercontent.com/mtgjson/mtg-sealed-content/main/outputs/token_products_mappings/{}.json"
 )
 
 
@@ -217,12 +217,14 @@ class SealedDataProvider:
     """Provider for MTGJSON GitHub data."""
 
     URLS = {
-        "card_map": "https://github.com/mtgjson/mtg-sealed-content/raw/main/outputs/card_map.json?raw=True",
-        "products": "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/products.json?raw=true",
-        "contents": "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/contents.json?raw=true",
-        "deck_map": "https://github.com/mtgjson/mtg-sealed-content/blob/main/outputs/deck_map.json?raw=True",
-        "decks": "https://github.com/taw/magic-preconstructed-decks-data/blob/master/decks_v2.json?raw=true",
-        "boosters": "https://github.com/taw/magic-sealed-data/blob/master/experimental_export_for_mtgjson.json?raw=true",
+        # LFS files: use media.githubusercontent.com
+        "card_map": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/card_map.json",
+        "products": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/products.json",
+        "contents": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/contents.json",
+        "deck_map": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/deck_map.json",
+        # Non-LFS files: use raw.githubusercontent.com
+        "decks": "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks_v2.json",
+        "boosters": "https://raw.githubusercontent.com/taw/magic-sealed-data/master/experimental_export_for_mtgjson.json",
     }
 
     def __init__(self, timeout: int = 120):
@@ -330,7 +332,7 @@ class SealedDataProvider:
         # Get directory listing
         set_codes: list[str] = []
         try:
-            async with session.get(TOKEN_PRODUCTS_DIR_URL) as r:
+            async with session.get(TOKEN_PRODUCTS_DIR_URL, headers={"Accept": "application/json"}) as r:
                 if r.ok:
                     content = await r.read()
                     entries = json.loads(content)
@@ -370,12 +372,13 @@ class SealedDataProvider:
         LOGGER.info(f"Fetched token products for {len(combined)} sets")
         return combined
 
-    def _build_headers(self) -> dict[str, str]:
+    def _build_headers(self, *, api: bool = False) -> dict[str, str]:
         """Build HTTP headers for GitHub requests."""
-        headers = {
+        headers: dict[str, str] = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "application/json",
         }
+        if api:
+            headers["Accept"] = "application/json"
         try:
             token = MtgjsonConfig().get("GitHub", "api_token")
             if token:
