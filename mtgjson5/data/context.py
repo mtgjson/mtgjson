@@ -56,6 +56,8 @@ class PipelineContext:
     signatures_lf: pl.LazyFrame | None = None
     watermark_overrides_lf: pl.LazyFrame | None = None
     face_flavor_names_df: pl.DataFrame | None = None
+    deck_cards_lf: pl.LazyFrame | None = None
+    computed_card_to_products_lf: pl.LazyFrame | None = None
     face_foreign_lf: pl.LazyFrame | None = None
     uuid_lookup_df: pl.DataFrame | None = None
     final_cards_lf: pl.LazyFrame | None = None
@@ -225,6 +227,13 @@ class PipelineContext:
         return self._cache.boosters_lf if self._cache else None
 
     @property
+    def booster_sheet_cards_lf(self) -> pl.LazyFrame | None:
+        """Flattened booster sheet cards from cache."""
+        if "_booster_sheet_cards_lf" in self._test_data:
+            return self._test_data["_booster_sheet_cards_lf"]  # type: ignore[no-any-return]
+        return self._cache.booster_sheet_cards_lf if self._cache else None
+
+    @property
     def token_products_lf(self) -> pl.LazyFrame | None:
         """Token products mapping from cache."""
         if "_token_products_lf" in self._test_data:
@@ -233,7 +242,11 @@ class PipelineContext:
 
     @property
     def card_to_products_lf(self) -> pl.LazyFrame | None:
-        """Card to products mapping (alias for sealed_cards_lf)."""
+        """Card to products mapping — computed or from cache fallback."""
+        if "_card_to_products_lf" in self._test_data:
+            return self._test_data["_card_to_products_lf"]  # type: ignore[no-any-return]
+        if self.computed_card_to_products_lf is not None:
+            return self.computed_card_to_products_lf
         return self.sealed_cards_lf
 
     @property
@@ -565,7 +578,11 @@ class PipelineContext:
         self._build_mcm_set_map()
         self._build_mcm_lookup()
         self._build_tcg_alt_foil_lookup()
+        self._build_deck_cards_lookup()
         prof.checkpoint("lookup_remaining")
+
+        self._build_card_to_products()
+        prof.checkpoint("card_to_products")
 
         return self
 
@@ -1367,3 +1384,61 @@ class PipelineContext:
 
         self.tcg_alt_foil_lf = result.lazy()
         LOGGER.info(f"tcg_alt_foil_lf: {result.height:,} rows")
+
+    def _build_deck_cards_lookup(self) -> None:
+        """
+        Flatten deck board lists into individual card records.
+
+        Explodes each board column (mainBoard, sideBoard, commander, etc.)
+        and unnests the struct fields to produce a flat LazyFrame with
+        columns: (deckName, setCode, cardUuid, isFoil, isEtched).
+        """
+        decks = self.decks_lf
+        if decks is None:
+            LOGGER.info("deck_cards: No decks data, skipping")
+            return
+
+        board_cols = [
+            "mainBoard",
+            "sideBoard",
+            "commander",
+            "displayCommander",
+            "tokens",
+            "planes",
+            "schemes",
+        ]
+        schema = decks.collect_schema()
+        available_boards = [c for c in board_cols if c in schema.names()]
+
+        if not available_boards:
+            LOGGER.info("deck_cards: No board columns found in decks schema")
+            return
+
+        frames: list[pl.LazyFrame] = []
+        for board in available_boards:
+            frame = (
+                decks.select("name", "setCode", board)
+                .filter(pl.col(board).is_not_null())
+                .explode(board)
+                .unnest(board)
+                .select(
+                    pl.col("name").alias("deckName"),
+                    pl.col("setCode"),
+                    pl.col("uuid").alias("cardUuid"),
+                    pl.col("isFoil"),
+                    pl.col("isEtched"),
+                )
+            )
+            frames.append(frame)
+
+        result = pl.concat(frames, how="diagonal_relaxed")
+        self.deck_cards_lf = result
+        LOGGER.info(f"deck_cards_lf: {len(available_boards)} boards flattened")
+
+    def _build_card_to_products(self) -> None:
+        """Compute card-to-products mapping from sealed contents."""
+        from mtgjson5.pipeline.stages.card_to_products import build_card_to_products_lf
+
+        result = build_card_to_products_lf(self)
+        if result is not None:
+            self.computed_card_to_products_lf = result
