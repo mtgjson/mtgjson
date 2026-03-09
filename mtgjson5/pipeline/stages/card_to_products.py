@@ -147,7 +147,8 @@ def _resolve_variable_contents(
     frames: list[pl.LazyFrame] = []
 
     # --- card sub-type ---
-    try:
+    schema_names = exploded.collect_schema().names()
+    if "card" in schema_names:
         card_part = exploded.filter(pl.col("card").is_not_null()).explode("card").unnest("card")
         card_resolved = card_part.select(
             pl.col("uuid").alias("card_uuid"),
@@ -155,57 +156,44 @@ def _resolve_variable_contents(
             pl.when(pl.col("foil") == True).then(pl.lit("foil")).otherwise(pl.lit("nonfoil")).alias("finish"),
         )
         frames.append(card_resolved)
-    except Exception:
-        pass  # column may not exist in schema
 
     # --- pack sub-type ---
-    if booster_sheet_cards_lf is not None:
-        try:
-            pack_part = exploded.filter(pl.col("pack").is_not_null()).explode("pack").unnest("pack")
-            # After unnest, we have `set` and `code` from the PackRef struct.
-            with_cards = pack_part.join(
-                booster_sheet_cards_lf,
-                left_on=["set", "code"],
-                right_on=["setCode", "boosterType"],
-                how="inner",
-                suffix="_booster",
-            )
-            pack_resolved = with_cards.select(
-                pl.col("cardUuid").alias("card_uuid"),
-                pl.col("product_uuid"),
-                pl.when(pl.col("foil_booster") == True)
-                .then(pl.lit("foil"))
-                .otherwise(pl.lit("nonfoil"))
-                .alias("finish"),
-            )
-            frames.append(pack_resolved)
-        except Exception:
-            pass
+    if booster_sheet_cards_lf is not None and "pack" in schema_names:
+        pack_part = exploded.filter(pl.col("pack").is_not_null()).explode("pack").unnest("pack")
+        with_cards = pack_part.join(
+            booster_sheet_cards_lf,
+            left_on=["set", "code"],
+            right_on=["setCode", "boosterType"],
+            how="inner",
+            suffix="_booster",
+        )
+        pack_resolved = with_cards.select(
+            pl.col("cardUuid").alias("card_uuid"),
+            pl.col("product_uuid"),
+            pl.when(pl.col("foil_booster") == True).then(pl.lit("foil")).otherwise(pl.lit("nonfoil")).alias("finish"),
+        )
+        frames.append(pack_resolved)
 
     # --- deck sub-type ---
-    if deck_cards_lf is not None:
-        try:
-            deck_part = exploded.filter(pl.col("deck").is_not_null()).explode("deck").unnest("deck")
-            # After unnest, we have `set` and `name` from the DeckRef struct.
-            with_cards = deck_part.join(
-                deck_cards_lf,
-                left_on=["name", "set"],
-                right_on=["deckName", "setCode"],
-                how="inner",
-            )
-            deck_resolved = with_cards.select(
-                pl.col("cardUuid").alias("card_uuid"),
-                pl.col("product_uuid"),
-                pl.when(pl.col("isEtched") == True)
-                .then(pl.lit("etched"))
-                .when(pl.col("isFoil") == True)
-                .then(pl.lit("foil"))
-                .otherwise(pl.lit("nonfoil"))
-                .alias("finish"),
-            )
-            frames.append(deck_resolved)
-        except Exception:
-            pass
+    if deck_cards_lf is not None and "deck" in schema_names:
+        deck_part = exploded.filter(pl.col("deck").is_not_null()).explode("deck").unnest("deck")
+        with_cards = deck_part.join(
+            deck_cards_lf,
+            left_on=["name", "set"],
+            right_on=["deckName", "setCode"],
+            how="inner",
+        )
+        deck_resolved = with_cards.select(
+            pl.col("cardUuid").alias("card_uuid"),
+            pl.col("product_uuid"),
+            pl.when(pl.col("isEtched") == True)
+            .then(pl.lit("etched"))
+            .when(pl.col("isFoil") == True)
+            .then(pl.lit("foil"))
+            .otherwise(pl.lit("nonfoil"))
+            .alias("finish"),
+        )
+        frames.append(deck_resolved)
 
     if not frames:
         return None
