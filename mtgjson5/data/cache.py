@@ -700,6 +700,11 @@ class GlobalCache:
             self.scryfall_to_uuid_lf = pl.scan_parquet(scryfall_path)
             LOGGER.info("Loaded scryfall_to_uuid mapping from cache")
 
+        cardmarket_path = self.cache_path / "cardmarket_to_uuid.parquet"
+        if cardmarket_path.exists():
+            self.cardmarket_to_uuid_lf = pl.scan_parquet(cardmarket_path)
+            LOGGER.info("Loaded cardmarket_to_uuid mapping from cache")
+
     def _load_resources(self) -> None:
         """Load local JSON resource files."""
         LOGGER.info("Loading resource files...")
