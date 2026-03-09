@@ -389,8 +389,9 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
     - tcg_etched_to_uuid: TCGPlayer etched product ID -> UUID
     - mtgo_to_uuid: MTGO ID -> UUID
     - scryfall_to_uuid: Scryfall ID -> UUID
+    - cardmarket_to_uuid: CardMarket ID -> UUID
 
-    Uses a single .collect() to extract all 4 ID fields at once,
+    Uses a single .collect() to extract all ID fields at once,
     then splits into per-mapping DataFrames.
     """
     cache_path = constants.CACHE_PATH
@@ -401,6 +402,7 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
         ("tcgplayerAlternativeFoilProductId", "tcg_alt_foil_to_uuid", "tcg_alt_foil_to_uuid_lf"),
         ("mtgoId", "mtgo_to_uuid", "mtgo_to_uuid_lf"),
         ("scryfallId", "scryfall_to_uuid", "scryfall_to_uuid_lf"),
+        ("mcmId", "cardmarket_to_uuid", "cardmarket_to_uuid_lf"),
     ]
 
     try:
