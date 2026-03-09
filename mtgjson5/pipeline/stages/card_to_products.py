@@ -38,7 +38,12 @@ def _resolve_pack_contents(
     booster_sheet_cards_lf: pl.LazyFrame,
 ) -> pl.LazyFrame | None:
     """Resolve contentType == 'pack' via booster sheet cards."""
-    packs = contents_lf.filter(pl.col("contentType") == "pack").select("setCode", "productName", "set", "code")
+    packs = contents_lf.filter(pl.col("contentType") == "pack").select(
+        "setCode",
+        "productName",
+        pl.col("set").str.to_uppercase().alias("set"),
+        "code",
+    )
     joined = packs.join(product_uuids, on=["setCode", "productName"], how="inner")
     with_cards = joined.join(
         booster_sheet_cards_lf,
@@ -60,7 +65,12 @@ def _resolve_deck_contents(
     deck_cards_lf: pl.LazyFrame,
 ) -> pl.LazyFrame | None:
     """Resolve contentType == 'deck' via deck card lists."""
-    decks = contents_lf.filter(pl.col("contentType") == "deck").select("setCode", "productName", "name", "set")
+    decks = contents_lf.filter(pl.col("contentType") == "deck").select(
+        "setCode",
+        "productName",
+        "name",
+        pl.col("set").str.to_uppercase().alias("set"),
+    )
     joined = decks.join(product_uuids, on=["setCode", "productName"], how="inner")
     with_cards = joined.join(
         deck_cards_lf,
@@ -170,7 +180,11 @@ def _resolve_variable_contents(
     # --- pack sub-type ---
     if booster_sheet_cards_lf is not None and "pack" in schema_names:
         pack_part = (
-            exploded.filter(pl.col("pack").is_not_null()).select("product_uuid", "pack").explode("pack").unnest("pack")
+            exploded.filter(pl.col("pack").is_not_null())
+            .select("product_uuid", "pack")
+            .explode("pack")
+            .unnest("pack")
+            .with_columns(pl.col("set").str.to_uppercase())
         )
         with_cards = pack_part.join(
             booster_sheet_cards_lf,
@@ -188,7 +202,11 @@ def _resolve_variable_contents(
     # --- deck sub-type ---
     if deck_cards_lf is not None and "deck" in schema_names:
         deck_part = (
-            exploded.filter(pl.col("deck").is_not_null()).select("product_uuid", "deck").explode("deck").unnest("deck")
+            exploded.filter(pl.col("deck").is_not_null())
+            .select("product_uuid", "deck")
+            .explode("deck")
+            .unnest("deck")
+            .with_columns(pl.col("set").str.to_uppercase())
         )
         with_cards = deck_part.join(
             deck_cards_lf,
