@@ -16,7 +16,6 @@ from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.providers.github.models import (
     BoosterModel,
     BoosterSheetCardModel,
-    CardToProductsModel,
     PreconModel,
     SealedContentModel,
     SealedProductModel,
@@ -26,7 +25,6 @@ from mtgjson5.providers.github.models import (
 LOGGER = logging.getLogger(__name__)
 
 SCHEMAS = {
-    "card_to_products": CardToProductsModel.polars_schema(),
     "sealed_products": SealedProductModel.polars_schema(),
     "sealed_contents": SealedContentModel.polars_schema(),
     "precon": PreconModel.polars_schema(),
@@ -60,20 +58,6 @@ def _to_lazyframe(
     LOGGER.info(f"  {log_label}: {len(records):,}")
     return pl.LazyFrame(records, infer_schema_length=None)
 
-
-def _build_card_to_products_records(data: dict) -> list[dict]:
-    """Build card-to-products mapping records."""
-    if not data:
-        return []
-    return [
-        {
-            "uuid": k,
-            "foil": v.get("foil"),
-            "nonfoil": v.get("nonfoil"),
-            "etched": v.get("etched"),
-        }
-        for k, v in data.items()
-    ]
 
 
 _SUBTYPE_REMAP = {
@@ -245,7 +229,7 @@ class SealedDataProvider:
 
     URLS = {
         # LFS files: use media.githubusercontent.com
-        "card_map": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/card_map.json",
+        # card_map removed — card-to-products is now computed inline by the pipeline
         "products": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/products.json",
         "contents": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/contents.json",
         "deck_map": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/deck_map.json",
@@ -258,7 +242,6 @@ class SealedDataProvider:
         self._timeout = aiohttp.ClientTimeout(total=timeout)
         self.boosters_df: pl.LazyFrame | None = None
         self.booster_sheet_cards_df: pl.LazyFrame | None = None
-        self.card_to_products_df: pl.LazyFrame | None = None
         self.sealed_products_df: pl.LazyFrame | None = None
         self.sealed_contents_df: pl.LazyFrame | None = None
         self.sealed_dicts: dict[str, pl.LazyFrame] | None = None
@@ -430,12 +413,6 @@ class SealedDataProvider:
         """Build all DataFrames from raw fetched data."""
 
         builders: list[tuple[str, str, Callable, tuple]] = [
-            (
-                "card_to_products",
-                "card_to_products",
-                _build_card_to_products_records,
-                ("card_map",),
-            ),
             (
                 "sealed_products",
                 "sealed_products",

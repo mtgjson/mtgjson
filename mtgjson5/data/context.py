@@ -57,6 +57,7 @@ class PipelineContext:
     watermark_overrides_lf: pl.LazyFrame | None = None
     face_flavor_names_df: pl.DataFrame | None = None
     deck_cards_lf: pl.LazyFrame | None = None
+    computed_card_to_products_lf: pl.LazyFrame | None = None
     face_foreign_lf: pl.LazyFrame | None = None
     uuid_lookup_df: pl.DataFrame | None = None
     final_cards_lf: pl.LazyFrame | None = None
@@ -241,7 +242,11 @@ class PipelineContext:
 
     @property
     def card_to_products_lf(self) -> pl.LazyFrame | None:
-        """Card to products mapping (alias for sealed_cards_lf)."""
+        """Card to products mapping — computed or from cache fallback."""
+        if "_card_to_products_lf" in self._test_data:
+            return self._test_data["_card_to_products_lf"]  # type: ignore[no-any-return]
+        if self.computed_card_to_products_lf is not None:
+            return self.computed_card_to_products_lf
         return self.sealed_cards_lf
 
     @property
@@ -575,6 +580,9 @@ class PipelineContext:
         self._build_tcg_alt_foil_lookup()
         self._build_deck_cards_lookup()
         prof.checkpoint("lookup_remaining")
+
+        self._build_card_to_products()
+        prof.checkpoint("card_to_products")
 
         return self
 
@@ -1426,3 +1434,11 @@ class PipelineContext:
         result = pl.concat(frames, how="diagonal_relaxed")
         self.deck_cards_lf = result
         LOGGER.info(f"deck_cards_lf: {len(available_boards)} boards flattened")
+
+    def _build_card_to_products(self) -> None:
+        """Compute card-to-products mapping from sealed contents."""
+        from mtgjson5.pipeline.stages.card_to_products import build_card_to_products_lf
+
+        result = build_card_to_products_lf(self)
+        if result is not None:
+            self.computed_card_to_products_lf = result
