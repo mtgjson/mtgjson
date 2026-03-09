@@ -22,7 +22,7 @@ def _resolve_card_contents(
     product_uuids: pl.LazyFrame,
 ) -> pl.LazyFrame | None:
     """Resolve contentType == 'card' rows to (card_uuid, product_uuid, finish)."""
-    cards = contents_lf.filter(pl.col("contentType") == "card")
+    cards = contents_lf.filter(pl.col("contentType") == "card").select("setCode", "productName", "uuid", "foil")
     joined = cards.join(product_uuids, on=["setCode", "productName"], how="inner")
     resolved = joined.select(
         pl.col("uuid").alias("card_uuid"),
@@ -38,20 +38,18 @@ def _resolve_pack_contents(
     booster_sheet_cards_lf: pl.LazyFrame,
 ) -> pl.LazyFrame | None:
     """Resolve contentType == 'pack' via booster sheet cards."""
-    packs = contents_lf.filter(pl.col("contentType") == "pack")
+    packs = contents_lf.filter(pl.col("contentType") == "pack").select("setCode", "productName", "set", "code")
     joined = packs.join(product_uuids, on=["setCode", "productName"], how="inner")
-    # Both frames have a `foil` column — suffix the right one.
     with_cards = joined.join(
         booster_sheet_cards_lf,
         left_on=["set", "code"],
         right_on=["setCode", "boosterType"],
         how="inner",
-        suffix="_booster",
     )
     resolved = with_cards.select(
         pl.col("cardUuid").alias("card_uuid"),
         pl.col("product_uuid"),
-        pl.when(pl.col("foil_booster") == True).then(pl.lit("foil")).otherwise(pl.lit("nonfoil")).alias("finish"),
+        pl.when(pl.col("foil") == True).then(pl.lit("foil")).otherwise(pl.lit("nonfoil")).alias("finish"),
     )
     return resolved
 
@@ -62,7 +60,7 @@ def _resolve_deck_contents(
     deck_cards_lf: pl.LazyFrame,
 ) -> pl.LazyFrame | None:
     """Resolve contentType == 'deck' via deck card lists."""
-    decks = contents_lf.filter(pl.col("contentType") == "deck")
+    decks = contents_lf.filter(pl.col("contentType") == "deck").select("setCode", "productName", "name", "set")
     joined = decks.join(product_uuids, on=["setCode", "productName"], how="inner")
     with_cards = joined.join(
         deck_cards_lf,
@@ -95,9 +93,12 @@ def _resolve_sealed_contents(
     """
     sealed = contents_lf.filter(pl.col("contentType") == "sealed")
     # The `name` column holds the referenced product name.
-    sealed_with_uuids = sealed.with_columns(
-        _uuid5_expr("name").alias("ref_product_uuid"),
-    ).join(product_uuids, on=["setCode", "productName"], how="inner")
+    # Select only needed columns to avoid collisions in downstream joins.
+    sealed_with_uuids = (
+        sealed.select("setCode", "productName", "name")
+        .with_columns(_uuid5_expr("name").alias("ref_product_uuid"))
+        .join(product_uuids, on=["setCode", "productName"], how="inner")
+    )
 
     # Iterative resolution: look up cards that belong to the referenced product.
     all_new: list[pl.LazyFrame] = []
@@ -138,6 +139,11 @@ def _resolve_variable_contents(
     deck_cards_lf: pl.LazyFrame | None,
 ) -> pl.LazyFrame | None:
     """Resolve contentType == 'variable' by exploding configs."""
+    # Check configs column type — if it's Null (all nulls), skip entirely
+    configs_dtype = contents_lf.collect_schema().get("configs")
+    if configs_dtype is None or configs_dtype == pl.Null:
+        return None
+
     variable = contents_lf.filter((pl.col("contentType") == "variable") & pl.col("configs").is_not_null())
     joined = variable.join(product_uuids, on=["setCode", "productName"], how="inner")
 
@@ -147,9 +153,13 @@ def _resolve_variable_contents(
     frames: list[pl.LazyFrame] = []
 
     # --- card sub-type ---
+    # Select only product_uuid + the sub-type column before explode/unnest
+    # to avoid column name collisions (e.g. outer `uuid` vs card struct `uuid`).
     schema_names = exploded.collect_schema().names()
     if "card" in schema_names:
-        card_part = exploded.filter(pl.col("card").is_not_null()).explode("card").unnest("card")
+        card_part = (
+            exploded.filter(pl.col("card").is_not_null()).select("product_uuid", "card").explode("card").unnest("card")
+        )
         card_resolved = card_part.select(
             pl.col("uuid").alias("card_uuid"),
             pl.col("product_uuid"),
@@ -159,24 +169,27 @@ def _resolve_variable_contents(
 
     # --- pack sub-type ---
     if booster_sheet_cards_lf is not None and "pack" in schema_names:
-        pack_part = exploded.filter(pl.col("pack").is_not_null()).explode("pack").unnest("pack")
+        pack_part = (
+            exploded.filter(pl.col("pack").is_not_null()).select("product_uuid", "pack").explode("pack").unnest("pack")
+        )
         with_cards = pack_part.join(
             booster_sheet_cards_lf,
             left_on=["set", "code"],
             right_on=["setCode", "boosterType"],
             how="inner",
-            suffix="_booster",
         )
         pack_resolved = with_cards.select(
             pl.col("cardUuid").alias("card_uuid"),
             pl.col("product_uuid"),
-            pl.when(pl.col("foil_booster") == True).then(pl.lit("foil")).otherwise(pl.lit("nonfoil")).alias("finish"),
+            pl.when(pl.col("foil") == True).then(pl.lit("foil")).otherwise(pl.lit("nonfoil")).alias("finish"),
         )
         frames.append(pack_resolved)
 
     # --- deck sub-type ---
     if deck_cards_lf is not None and "deck" in schema_names:
-        deck_part = exploded.filter(pl.col("deck").is_not_null()).explode("deck").unnest("deck")
+        deck_part = (
+            exploded.filter(pl.col("deck").is_not_null()).select("product_uuid", "deck").explode("deck").unnest("deck")
+        )
         with_cards = deck_part.join(
             deck_cards_lf,
             left_on=["name", "set"],

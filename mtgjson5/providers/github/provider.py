@@ -59,7 +59,6 @@ def _to_lazyframe(
     return pl.LazyFrame(records, infer_schema_length=None)
 
 
-
 _SUBTYPE_REMAP = {
     "prerelease": "prerelease_kit",
     "starter": "starter_deck",
