@@ -15,6 +15,7 @@ import polars as pl
 from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.providers.github.models import (
     BoosterModel,
+    BoosterSheetCardModel,
     CardToProductsModel,
     PreconModel,
     SealedContentModel,
@@ -31,6 +32,7 @@ SCHEMAS = {
     "precon": PreconModel.polars_schema(),
     "boosters": BoosterModel.polars_schema(),
     "token_products": TokenProductsModel.polars_schema(),
+    "booster_sheet_cards": BoosterSheetCardModel.polars_schema(),
     "decks": PreconModel.polars_schema(),
 }
 
@@ -194,6 +196,31 @@ def _build_boosters_records(data: dict) -> list[dict]:
     return [{"setCode": k, "config": json.dumps(v)} for k, v in data.items()]
 
 
+def _build_booster_sheet_cards_records(data: dict) -> list[dict]:
+    """Flatten booster configs into per-card records.
+
+    Each record: {setCode, boosterType, cardUuid, foil}
+    """
+    if not data:
+        return []
+    records = []
+    for set_code, config in data.items():
+        for booster_type, bt_config in config.items():
+            sheets = bt_config.get("sheets", {})
+            for sheet_data in sheets.values():
+                is_foil = sheet_data.get("foil", False)
+                for card_uuid in sheet_data.get("cards", {}):
+                    records.append(
+                        {
+                            "setCode": set_code,
+                            "boosterType": booster_type,
+                            "cardUuid": card_uuid,
+                            "foil": is_foil,
+                        }
+                    )
+    return records
+
+
 def _build_token_products_records(per_set_data: dict[str, dict]) -> list[dict]:
     """Build token products records from combined per-set data.
 
@@ -230,6 +257,7 @@ class SealedDataProvider:
     def __init__(self, timeout: int = 120):
         self._timeout = aiohttp.ClientTimeout(total=timeout)
         self.boosters_df: pl.LazyFrame | None = None
+        self.booster_sheet_cards_df: pl.LazyFrame | None = None
         self.card_to_products_df: pl.LazyFrame | None = None
         self.sealed_products_df: pl.LazyFrame | None = None
         self.sealed_contents_df: pl.LazyFrame | None = None
@@ -428,6 +456,10 @@ class SealedDataProvider:
             records = builder_func(*args)
             lf = _to_lazyframe(records, schema_key, log_label)
             setattr(self, f"{schema_key}_df", lf)
+
+        # Flattened booster sheet cards for card-to-products resolution
+        booster_card_records = _build_booster_sheet_cards_records(raw.get("boosters", {}))
+        self.booster_sheet_cards_df = _to_lazyframe(booster_card_records, "booster_sheet_cards", "booster_sheet_cards")
 
         # Decks needs special handling (two raw inputs, partitioned by type)
         deck_records = _build_decks_records(raw.get("decks", []), raw.get("deck_map", {}))

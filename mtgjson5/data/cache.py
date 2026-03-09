@@ -136,6 +136,7 @@ class GlobalCache:
         self.sealed_contents_lf: pl.LazyFrame | None = None
         self.decks_lf: pl.LazyFrame | None = None
         self.boosters_lf: pl.LazyFrame | None = None
+        self.booster_sheet_cards_lf: pl.LazyFrame | None = None
         self.token_products_lf: pl.LazyFrame | None = None
 
         # Marketplace Data LFs
@@ -248,6 +249,7 @@ class GlobalCache:
         self.release(
             "sets_lf",
             "boosters_lf",
+            "booster_sheet_cards_lf",
             "decks_lf",
             "sealed_products_lf",
             "sealed_contents_lf",
@@ -284,6 +286,7 @@ class GlobalCache:
             "sealed_contents_lf",
             "decks_lf",
             "boosters_lf",
+            "booster_sheet_cards_lf",
             "token_products_lf",
             "tcg_skus_lf",
             "tcg_sku_map_lf",
@@ -455,6 +458,7 @@ class GlobalCache:
             "sealed_contents_lf": "sealed_contents.parquet",
             "decks_lf": "decks.parquet",
             "boosters_lf": "boosters.parquet",
+            "booster_sheet_cards_lf": "booster_sheet_cards.parquet",
             "token_products_lf": "token_products.parquet",
             "tcg_skus_lf": "tcg_skus.parquet",
             "tcg_sku_map_lf": "tcg_sku_map.parquet",
@@ -1002,6 +1006,7 @@ class GlobalCache:
         sealed_contents_cache = self.cache_path / "github_sealed_contents.parquet"
         decks_cache = self.cache_path / "github_decks.parquet"
         booster_cache = self.cache_path / "github_booster.parquet"
+        booster_sheet_cards_cache = self.cache_path / "github_booster_sheet_cards.parquet"
         token_products_cache = self.cache_path / "github_token_products.parquet"
 
         all_cached = all(
@@ -1012,6 +1017,7 @@ class GlobalCache:
                 sealed_contents_cache,
                 decks_cache,
                 booster_cache,
+                booster_sheet_cards_cache,
                 token_products_cache,
             ]
         )
@@ -1022,6 +1028,7 @@ class GlobalCache:
             self.sealed_contents_lf = pl.scan_parquet(sealed_contents_cache)
             self.decks_lf = pl.scan_parquet(decks_cache)
             self.boosters_lf = pl.scan_parquet(booster_cache)
+            self.booster_sheet_cards_lf = pl.scan_parquet(booster_sheet_cards_cache)
             self.token_products_lf = pl.scan_parquet(token_products_cache)
             return
 
@@ -1049,6 +1056,10 @@ class GlobalCache:
                 provider.boosters_df.collect().write_parquet(booster_cache)
                 self.boosters_lf = provider.boosters_df
 
+            if provider.booster_sheet_cards_df is not None:
+                provider.booster_sheet_cards_df.collect().write_parquet(booster_sheet_cards_cache)
+                self.booster_sheet_cards_lf = provider.booster_sheet_cards_df
+
             if provider.token_products_df is not None:
                 provider.token_products_df.collect().write_parquet(token_products_cache)
                 self.token_products_lf = provider.token_products_df
@@ -1064,6 +1075,7 @@ class GlobalCache:
             "sealed_contents_lf": sealed_contents_cache,
             "decks_lf": decks_cache,
             "boosters_lf": booster_cache,
+            "booster_sheet_cards_lf": booster_sheet_cards_cache,
             "sealed_cards_lf": card_to_products_cache,
             "token_products_lf": token_products_cache,
         }
