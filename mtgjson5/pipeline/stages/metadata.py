@@ -551,6 +551,58 @@ def build_set_metadata_df(
     if cols_to_drop:
         set_meta = set_meta.drop(cols_to_drop, strict=False)
 
+    # Add additional sets prior to the booster join
+    # so they participate in it and get the booster config if available
+    existing_codes = set(set_meta.select("code").collect()["code"].to_list())
+    additional_sets_path = constants.RESOURCE_PATH / "additional_sets.json"
+    if additional_sets_path.exists():
+        with additional_sets_path.open(encoding="utf-8") as f:
+            additional_sets = json.load(f)
+
+        additional_records = []
+        for code, set_data in additional_sets.items():
+            code_upper = code.upper()
+            if code_upper not in existing_codes:
+                additional_records.append(
+                    {
+                        "code": code_upper,
+                        "name": set_data.get("name", code_upper),
+                        "releaseDate": set_data.get("released_at"),
+                        "type": set_data.get("set_type", "box"),
+                        "isOnlineOnly": set_data.get("digital", False),
+                        "isFoilOnly": set_data.get("foil_only", False),
+                        "isNonFoilOnly": set_data.get("nonfoil_only", False),
+                        "isForeignOnly": (True if code_upper in constants.FOREIGN_SETS else None),
+                        "parentCode": (
+                            set_data.get("parent_set_code", "").upper() if set_data.get("parent_set_code") else None
+                        ),
+                        "block": set_data.get("block"),
+                        "tcgplayerGroupId": set_data.get("tcgplayer_id"),
+                        "baseSetSize": 0,
+                        "totalSetSize": 0,
+                        "keyruneCode": code_upper,
+                        "tokenSetCode": None,
+                        "isPartialPreview": None,
+                    }
+                )
+                LOGGER.debug(f"Added additional set: {code_upper}")
+
+        if additional_records:
+            additional_lf = pl.LazyFrame(
+                additional_records,
+                schema_overrides={
+                    "isOnlineOnly": pl.Boolean,
+                    "isFoilOnly": pl.Boolean,
+                    "isNonFoilOnly": pl.Boolean,
+                    "isForeignOnly": pl.Boolean,
+                    "isPartialPreview": pl.Boolean,
+                },
+            )
+            set_meta = pl.concat(
+                [set_meta, additional_lf],
+                how="diagonal_relaxed",
+            )
+
     set_meta = set_meta.join(
         booster_lf.with_columns(pl.col("setCode").str.to_uppercase().alias("code")),
         on="code",
@@ -586,39 +638,6 @@ def build_set_metadata_df(
 
         for scry_field in scryfall_only_fields:
             record.pop(scry_field, None)
-
-    existing_codes = {r["code"] for r in set_records}
-
-    additional_sets_path = constants.RESOURCE_PATH / "additional_sets.json"
-    if additional_sets_path.exists():
-        with additional_sets_path.open(encoding="utf-8") as f:
-            additional_sets = json.load(f)
-
-        for code, set_data in additional_sets.items():
-            code_upper = code.upper()
-            if code_upper not in existing_codes:
-                new_record = {
-                    "code": code_upper,
-                    "name": set_data.get("name", code_upper),
-                    "releaseDate": set_data.get("released_at"),
-                    "type": set_data.get("set_type", "box"),
-                    "isOnlineOnly": set_data.get("digital", False),
-                    "isFoilOnly": set_data.get("foil_only", False),
-                    "isNonFoilOnly": set_data.get("nonfoil_only", False),
-                    "isForeignOnly": (True if code_upper in constants.FOREIGN_SETS else None),
-                    "parentCode": (
-                        set_data.get("parent_set_code", "").upper() if set_data.get("parent_set_code") else None
-                    ),
-                    "block": set_data.get("block"),
-                    "tcgplayerGroupId": set_data.get("tcgplayer_id"),
-                    "baseSetSize": 0,
-                    "totalSetSize": 0,
-                    "keyruneCode": code_upper,
-                    "tokenSetCode": None,
-                    "isPartialPreview": None,
-                }
-                set_records.append(new_record)
-                LOGGER.debug(f"Added additional set: {code_upper}")
 
     # Explicit schema to avoid type inference issues with mixed None/bool values
     schema_overrides = {
