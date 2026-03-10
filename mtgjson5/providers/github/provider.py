@@ -249,10 +249,9 @@ def _build_contents_from_yaml(yaml_data: dict[str, dict]) -> list[dict]:
                 if content_type in skip_keys or not isinstance(items, list):
                     continue
                 for item in items:
-                    if content_type == "sealed" and isinstance(item, dict):
-                        if item.get("name") == product_name:
-                            LOGGER.warning(f"Self-referential sealed in {set_code}/{product_name}, skipping")
-                            continue
+                    if content_type == "sealed" and isinstance(item, dict) and item.get("name") == product_name:
+                        LOGGER.warning(f"Self-referential sealed in {set_code}/{product_name}, skipping")
+                        continue
                     record = {**base, "contentType": content_type}
                     if isinstance(item, dict):
                         record.update(item)
