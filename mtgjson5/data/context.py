@@ -1437,7 +1437,7 @@ class PipelineContext:
 
     def _build_card_to_products(self) -> None:
         """Compute card-to-products mapping from sealed contents."""
-        from mtgjson5.pipeline.stages.card_to_products import build_card_to_products_lf
+        from mtgjson5.pipeline.stages.sealed import build_card_to_products_lf
 
         result = build_card_to_products_lf(self)
         if result is not None:
