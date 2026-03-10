@@ -1,7 +1,8 @@
 """
-Card-to-products resolver.
+Sealed product pipeline stages.
 
-Maps sealed product contents to card UUIDs
+Enriches sealed content records with UUIDs and resolves
+card-to-product mappings from sealed product contents.
 """
 
 from __future__ import annotations
@@ -15,6 +16,77 @@ from mtgjson5.utils import LOGGER
 
 if TYPE_CHECKING:
     from mtgjson5.data.context import PipelineContext
+
+
+def enrich_sealed_contents(
+    contents_lf: pl.LazyFrame,
+    cards_lf: pl.LazyFrame,
+) -> pl.LazyFrame:
+    """Enrich sealed contents with card and sealed product UUIDs.
+
+    Card UUIDs are resolved via LEFT JOIN on ``(set, number)`` against
+    the pipeline card data. Sealed product UUIDs are computed
+    deterministically via UUID5 hash of the product name.
+
+    Args:
+        contents_lf: Raw sealed contents LazyFrame (uuid may be null).
+        cards_lf: Pipeline card LazyFrame with setCode, number, uuid columns.
+
+    Returns:
+        Enriched LazyFrame with uuid column populated where possible.
+    """
+    # Build card lookup: (setCode_lower, number) → uuid
+    # Filter to side 'a' only (matching external compiler behavior)
+    card_lookup = (
+        cards_lf.select(
+            pl.col("setCode").str.to_lowercase().alias("_card_set"),
+            pl.col("number").cast(pl.Utf8).alias("_card_number"),
+            pl.col("uuid").alias("_card_uuid"),
+            pl.col("side"),
+        )
+        .filter((pl.col("side") == "a") | pl.col("side").is_null())
+        .select("_card_set", "_card_number", "_card_uuid")
+        .unique(subset=["_card_set", "_card_number"], keep="first")
+    )
+
+    # Split contents by type for targeted enrichment
+    card_rows = contents_lf.filter(pl.col("contentType") == "card")
+    sealed_rows = contents_lf.filter(pl.col("contentType") == "sealed")
+    other_rows = contents_lf.filter(~pl.col("contentType").is_in(["card", "sealed"]))
+
+    # Enrich card rows: join on (set, number) to get uuid
+    enriched_cards = (
+        card_rows.with_columns(
+            pl.col("set").str.to_lowercase().alias("_join_set"),
+            pl.col("number").cast(pl.Utf8).alias("_join_number"),
+        )
+        .join(
+            card_lookup,
+            left_on=["_join_set", "_join_number"],
+            right_on=["_card_set", "_card_number"],
+            how="left",
+        )
+        .with_columns(
+            pl.coalesce(pl.col("_card_uuid"), pl.col("uuid")).alias("uuid"),
+        )
+        .drop(["_join_set", "_join_number", "_card_uuid"])
+    )
+
+    # Enrich sealed rows: compute uuid from product name
+    enriched_sealed = sealed_rows.with_columns(
+        pl.coalesce(
+            pl.col("uuid"),
+            _uuid5_expr("name"),
+        ).alias("uuid"),
+    )
+
+    # Concat all back together
+    result = pl.concat(
+        [enriched_cards, enriched_sealed, other_rows],
+        how="diagonal_relaxed",
+    )
+
+    return result
 
 
 def _resolve_card_contents(
