@@ -107,7 +107,7 @@ def run_exports(
         from mtgjson5.build.writer import UnifiedOutputWriter
 
         writer = UnifiedOutputWriter.from_cache(
-            skip=frozenset({"decks", "sealed", "token_products", "boosters"}),
+            skip=frozenset({"decks", "sealed", "token_products"}),
         )
         sp.checkpoint("cache_loaded")
         if writer is None:
@@ -164,9 +164,10 @@ def _run_format_exports(
             sp.checkpoint("parquet_data_complete")
         _log.info("Exports: parquet data writes complete (prices deferred)")
 
-    # Build normalized_tables while card data is still cached,
-    # then release heavy card DataFrames.
+    # Build normalized_tables and booster tables while card data is
+    # still cached, then release heavy card DataFrames.
     _ = writer.ctx.normalized_tables
+    _ = writer.ctx.normalized_boosters
     writer.ctx.release_card_data()
     if sp:
         sp.checkpoint("normalized_tables_built")

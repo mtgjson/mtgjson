@@ -322,9 +322,11 @@ class UnifiedOutputWriter:
         if "parquet" in formats:
             results["parquet"] = self.write("parquet")
 
-        # Eagerly build normalized_tables (used by sqlite/csv/psql) while
-        # all_cards_df is still cached, then free the heavy card DataFrames.
+        # Eagerly build normalized_tables and booster tables (used by
+        # sqlite/csv/psql) while all_cards_df is still cached, then free
+        # the heavy card DataFrames.
         _ = self.ctx.normalized_tables  # force build / cache hit
+        _ = self.ctx.normalized_boosters  # force build / cache hit
         if "parquet" not in formats:
             self.ctx.release_card_data()
         LOGGER.info("Exports: released card data after parquet + normalized_tables")
