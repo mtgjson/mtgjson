@@ -581,10 +581,16 @@ class PipelineContext:
         self._build_deck_cards_lookup()
         prof.checkpoint("lookup_remaining")
 
-        self._build_card_to_products()
-        prof.checkpoint("card_to_products")
-
         return self
+
+    def enrich_sealed_data(self) -> None:
+        """Enrich sealed contents and build card-to-products mapping.
+
+        Must be called **after** ``build_cards()`` so that pipeline
+        parquet output is available for card UUID resolution.
+        """
+        self._enrich_sealed_contents()
+        self._build_card_to_products()
 
     def _build_identifiers_lookup(self) -> None:
         """
@@ -742,6 +748,37 @@ class PipelineContext:
 
         self.oracle_data_lf = result.lazy()
         LOGGER.info(f"oracle_data_lf: {result.height:,} rows x {len(result.columns)} cols")
+
+    def _enrich_sealed_contents(self) -> None:
+        """Enrich sealed contents with card/sealed UUIDs from pipeline data.
+
+        Scans pipeline parquet output (written by ``build_cards()``)
+        which has MTGJSON columns (setCode, number, uuid, side).
+        """
+        from mtgjson5 import constants
+        from mtgjson5.pipeline.stages.sealed import enrich_sealed_contents
+
+        contents_lf = self.sealed_contents_lf
+        if contents_lf is None:
+            return
+
+        parquet_dir = constants.CACHE_PATH / "_parquet"
+        if not parquet_dir.exists() or not any(parquet_dir.iterdir()):
+            LOGGER.warning("No pipeline parquet output for sealed contents enrichment")
+            return
+
+        cards_lf = pl.scan_parquet(
+            parquet_dir / "**/*.parquet",
+            hive_partitioning=False,
+        ).select("setCode", "number", "uuid", "side")
+
+        enriched = enrich_sealed_contents(contents_lf, cards_lf)
+
+        # Replace the cached sealed_contents_lf
+        if self._cache is not None:
+            self._cache.sealed_contents_lf = enriched
+        if "_sealed_contents_lf" in self._test_data:
+            self._test_data["_sealed_contents_lf"] = enriched
 
     def _build_set_number_lookup(self, cards_df: pl.DataFrame | None = None) -> None:
         """Build consolidated lookup by setCode + number.

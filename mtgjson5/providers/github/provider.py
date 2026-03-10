@@ -3,14 +3,19 @@ GitHub data provider for MTGJSON supplemental data.
 """
 
 import asyncio
+import itertools
 import json
 import logging
+import tarfile
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from io import BytesIO
 from typing import Any
+from uuid import UUID, uuid5
 
 import aiohttp
 import polars as pl
+import yaml
 
 from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.providers.github.models import (
@@ -40,6 +45,8 @@ TOKEN_PRODUCTS_DIR_URL = (
 TOKEN_PRODUCTS_RAW_URL = (
     "https://raw.githubusercontent.com/mtgjson/mtg-sealed-content/main/outputs/token_products_mappings/{}.json"
 )
+
+_DNS_NAMESPACE = UUID("6ba7f810-9dad-11d1-80b4-00c04fd430c8")
 
 
 def _to_lazyframe(
@@ -131,6 +138,161 @@ def _build_sealed_contents_records(data: dict) -> list[dict]:
                     records.append(record)
 
     return records
+
+
+def _expand_variable_mode(
+    variable_items: list[dict],
+    mode: dict,
+) -> list[dict]:
+    """Expand variable_mode into combinatorial variable configs.
+
+    Args:
+        variable_items: List of raw variable option dicts from YAML.
+        mode: The variable_mode dict with ``count`` and optional
+              ``replacement`` and ``weight`` keys.
+
+    Returns:
+        List of config dicts, each with content keys + ``variable_config``.
+    """
+    count = mode.get("count", 1)
+    use_replacement = mode.get("replacement", False)
+    combiner = itertools.combinations_with_replacement if use_replacement else itertools.combinations
+
+    configs: list[dict] = []
+    for combo in combiner(range(len(variable_items)), count):
+        merged: dict[str, list] = {}
+        chance = 1
+        for idx in combo:
+            item = variable_items[idx]
+            for key in ("card", "pack", "deck", "sealed", "other"):
+                if key in item:
+                    merged.setdefault(key, []).extend(item[key])
+            chance *= item.get("chance", 1)
+        merged["variable_config"] = [{"chance": chance, "weight": 0}]
+        configs.append(merged)
+
+    # Set weight on all configs
+    total_weight = mode.get("weight", sum(c["variable_config"][0]["chance"] for c in configs))
+    if total_weight != sum(c["variable_config"][0]["chance"] for c in configs):
+        LOGGER.warning(
+            f"variable_mode weight mismatch: declared {total_weight}, "
+            f"computed {sum(c['variable_config'][0]['chance'] for c in configs)}"
+        )
+    for c in configs:
+        c["variable_config"][0]["weight"] = total_weight
+
+    return configs
+
+
+def _build_contents_from_yaml(yaml_data: dict[str, dict]) -> list[dict]:
+    """Build sealed contents records from raw YAML data.
+
+    Handles ``copy`` references and ``variable_mode`` expansion.
+    Card and sealed UUID fields are left as None — resolved later
+    by the pipeline enrichment stage.
+
+    Args:
+        yaml_data: Dict keyed by set code, values are parsed YAML dicts
+                   with ``code`` and ``products`` keys.
+
+    Returns:
+        Flat list of content records in the same schema as
+        ``_build_sealed_contents_records()``.
+    """
+    records: list[dict] = []
+
+    for _set_key, set_data in yaml_data.items():
+        if not isinstance(set_data, dict):
+            continue
+        set_code = set_data.get("code", _set_key).upper()
+        products = set_data.get("products", {})
+        if not isinstance(products, dict):
+            continue
+
+        # Resolve copy references first
+        resolved_products: dict[str, dict | list | None] = {}
+        for name, contents in products.items():
+            if isinstance(contents, dict) and set(contents.keys()) == {"copy"}:
+                target = contents["copy"]
+                if target in products:
+                    resolved_products[name] = products[target]
+                else:
+                    LOGGER.warning(f"Copy target '{target}' not found for {set_code}/{name}")
+                    resolved_products[name] = None
+            else:
+                resolved_products[name] = contents
+
+        for product_name, contents in resolved_products.items():
+            if not contents or not isinstance(contents, dict):
+                continue
+
+            base = {
+                "setCode": set_code,
+                "productName": product_name,
+                "productSize": contents.get("size"),
+                "cardCount": contents.get("card_count"),
+            }
+
+            # Handle variable_mode expansion
+            if "variable_mode" in contents and "variable" in contents:
+                mode = contents["variable_mode"]
+                variable_items = contents["variable"]
+                expanded_configs = _expand_variable_mode(variable_items, mode)
+                record = {**base, "contentType": "variable", "configs": expanded_configs}
+                records.append(record)
+                # Process remaining content types (skip variable + variable_mode)
+                skip_keys = {"size", "card_count", "variable", "variable_mode"}
+            else:
+                skip_keys = {"size", "card_count"}
+
+            for content_type, items in contents.items():
+                if content_type in skip_keys or not isinstance(items, list):
+                    continue
+                for item in items:
+                    if content_type == "sealed" and isinstance(item, dict):
+                        if item.get("name") == product_name:
+                            LOGGER.warning(f"Self-referential sealed in {set_code}/{product_name}, skipping")
+                            continue
+                    record = {**base, "contentType": content_type}
+                    if isinstance(item, dict):
+                        record.update(item)
+                    else:
+                        record["item"] = item
+                    records.append(record)
+
+    return records
+
+
+def _build_deck_map_from_contents(
+    contents_records: list[dict],
+) -> dict[str, dict[str, list[str]]]:
+    """Build deck-to-product UUID mapping from contents records.
+
+    For each product that contains a deck reference, maps
+    ``(set_code, deck_name) -> [product_uuid, ...]``.
+
+    Product UUIDs are computed deterministically via UUID5 hash of
+    the product name (same algorithm as ``_uuid5_expr``).
+
+    Returns:
+        Nested dict: ``{set_code_lower: {deck_name: [product_uuid, ...]}}``.
+    """
+    deck_map: dict[str, dict[str, list[str]]] = {}
+    for record in contents_records:
+        if record.get("contentType") != "deck":
+            continue
+        deck_set = record.get("set", "").lower()
+        deck_name = record.get("name", "")
+        product_name = record.get("productName", "")
+        if not deck_set or not deck_name or not product_name:
+            continue
+
+        product_uuid = str(uuid5(_DNS_NAMESPACE, product_name))
+        deck_map.setdefault(deck_set, {}).setdefault(deck_name, [])
+        if product_uuid not in deck_map[deck_set][deck_name]:
+            deck_map[deck_set][deck_name].append(product_uuid)
+
+    return deck_map
 
 
 def _extract_card_list(cards: list[dict]) -> list[dict]:
@@ -229,13 +391,14 @@ class SealedDataProvider:
     URLS = {
         # LFS files: use media.githubusercontent.com
         # card_map removed — card-to-products is now computed inline by the pipeline
+        # contents/deck_map removed — now built from YAML tarball inline
         "products": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/products.json",
-        "contents": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/contents.json",
-        "deck_map": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/deck_map.json",
         # Non-LFS files: use raw.githubusercontent.com
         "decks": "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks_v2.json",
         "boosters": "https://raw.githubusercontent.com/taw/magic-sealed-data/master/experimental_export_for_mtgjson.json",
     }
+
+    TARBALL_URL = "https://github.com/mtgjson/mtg-sealed-content/archive/refs/heads/main.tar.gz"
 
     def __init__(self, timeout: int = 120):
         self._timeout = aiohttp.ClientTimeout(total=timeout)
@@ -321,15 +484,60 @@ class SealedDataProvider:
 
         async with aiohttp.ClientSession(timeout=self._timeout, headers=headers) as session:
             tasks = [self._fetch(session, k, url) for k, url in self.URLS.items()]
-            results = await asyncio.gather(*tasks)
+            # Fetch tarball, URL fetches, and token products concurrently
+            results_list, yaml_data, token_products_data = await asyncio.gather(
+                asyncio.gather(*tasks),
+                self._fetch_contents_tarball(session),
+                self._fetch_token_products(session),
+            )
 
-            # Fetch token products (per-set files)
-            token_products_data = await self._fetch_token_products(session)
-
-        raw = dict(results)
+        raw = dict(results_list)
         raw["token_products"] = token_products_data
+        raw["_yaml_contents"] = yaml_data
         self._build_all_dataframes(raw)
         LOGGER.info("GitHub data loaded")
+
+    async def _fetch_contents_tarball(self, session: aiohttp.ClientSession) -> dict[str, dict]:
+        """Fetch repo tarball and extract data/contents/*.yaml files.
+
+        Returns dict keyed by set code from each YAML's ``code`` field.
+        """
+        try:
+            async with session.get(self.TARBALL_URL) as r:
+                r.raise_for_status()
+                data = await r.read()
+        except aiohttp.ClientError as e:
+            LOGGER.error(f"Failed to fetch contents tarball: {e}")
+            return {}
+
+        result: dict[str, dict] = {}
+        with tarfile.open(fileobj=BytesIO(data), mode="r:gz") as tf:
+            for member in tf.getmembers():
+                if not member.isfile():
+                    continue
+                # Match */data/contents/*.yaml
+                parts = member.name.split("/")
+                if len(parts) < 4:
+                    continue
+                if parts[-3] != "data" or parts[-2] != "contents":
+                    continue
+                if not parts[-1].endswith(".yaml"):
+                    continue
+
+                f = tf.extractfile(member)
+                if f is None:
+                    continue
+                try:
+                    contents = yaml.safe_load(f)
+                except yaml.YAMLError as e:
+                    LOGGER.warning(f"Failed to parse {member.name}: {e}")
+                    continue
+                if not isinstance(contents, dict) or "code" not in contents:
+                    continue
+                result[contents["code"]] = contents
+
+        LOGGER.info(f"Extracted {len(result)} content YAML files from tarball")
+        return result
 
     async def _fetch_token_products(self, session: aiohttp.ClientSession) -> dict[str, dict]:
         """Fetch all per-set token product mapping files from GitHub.
@@ -418,12 +626,6 @@ class SealedDataProvider:
                 _build_sealed_products_records,
                 ("products",),
             ),
-            (
-                "sealed_contents",
-                "sealed_contents",
-                _build_sealed_contents_records,
-                ("contents",),
-            ),
             ("boosters", "boosters", _build_boosters_records, ("boosters",)),
         ]
 
@@ -433,12 +635,24 @@ class SealedDataProvider:
             lf = _to_lazyframe(records, schema_key, log_label)
             setattr(self, f"{schema_key}_df", lf)
 
+        # Build sealed contents from YAML
+        yaml_data = raw.get("_yaml_contents", {})
+        if yaml_data:
+            contents_records = _build_contents_from_yaml(yaml_data)
+        else:
+            # Fallback to pre-compiled contents.json if tarball unavailable
+            contents_records = _build_sealed_contents_records(raw.get("contents", {}))
+        self.sealed_contents_df = _to_lazyframe(contents_records, "sealed_contents", "sealed_contents")
+
+        # Compute deck_map from contents records
+        deck_map = _build_deck_map_from_contents(contents_records) if yaml_data else raw.get("deck_map", {})
+
         # Flattened booster sheet cards for card-to-products resolution
         booster_card_records = _build_booster_sheet_cards_records(raw.get("boosters", {}))
         self.booster_sheet_cards_df = _to_lazyframe(booster_card_records, "booster_sheet_cards", "booster_sheet_cards")
 
         # Decks needs special handling (two raw inputs, partitioned by type)
-        deck_records = _build_decks_records(raw.get("decks", []), raw.get("deck_map", {}))
+        deck_records = _build_decks_records(raw.get("decks", []), deck_map)
         decks_lf = _to_lazyframe(deck_records, "decks", "decks")
         self.decks_df = decks_lf
         self.sealed_dicts = self._partition_decks_by_type(decks_lf)
