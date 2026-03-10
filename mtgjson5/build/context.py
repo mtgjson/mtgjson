@@ -237,9 +237,16 @@ class AssemblyContext:
             "isFoilOnly": pl.Boolean,
             "isNonFoilOnly": pl.Boolean,
             "isForeignOnly": pl.Boolean,
+            "isPaperOnly": pl.Boolean,
             "isPartialPreview": pl.Boolean,
         }
-        df = pl.DataFrame(list(self.set_meta.values()), schema_overrides=schema_overrides)
+        # Ensure sparse boolean keys exist in every dict — Polars drops
+        # schema_overrides columns when the key is absent from most rows.
+        records = list(self.set_meta.values())
+        for rec in records:
+            for key in schema_overrides:
+                rec.setdefault(key, None)
+        df = pl.DataFrame(records, schema_overrides=schema_overrides)
         if "type" in df.columns:
             is_traditional_token = (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
             df = df.filter(~is_traditional_token)
