@@ -25,9 +25,9 @@ def _cast_string_cols(lf: pl.LazyFrame) -> pl.LazyFrame:
     mismatches. This is defensive — the columns may be legitimately
     all-null when content records lack certain fields.
     """
-    _STR_COLS = ("setCode", "productName", "contentType", "set", "number", "name", "uuid", "code")
-    schema = {f.name: f.dtype for f in lf.collect_schema()}
-    casts = [pl.col(c).cast(pl.Utf8) for c in _STR_COLS if c in schema and schema[c] == pl.Null]
+    _str_cols = ("setCode", "productName", "contentType", "set", "number", "name", "uuid", "code")
+    schema = lf.collect_schema()
+    casts = [pl.col(c).cast(pl.Utf8) for c in _str_cols if c in schema and schema[c] == pl.Null]
     return lf.with_columns(casts) if casts else lf
 
 
