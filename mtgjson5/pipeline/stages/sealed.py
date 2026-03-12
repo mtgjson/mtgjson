@@ -18,6 +18,19 @@ if TYPE_CHECKING:
     from mtgjson5.data.context import PipelineContext
 
 
+def _cast_string_cols(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """Cast known string columns to Utf8 to prevent Null-type join failures.
+
+    Polars infers all-null columns as Null type which causes join key
+    mismatches. This is defensive — the columns may be legitimately
+    all-null when content records lack certain fields.
+    """
+    _str_cols = ("setCode", "productName", "contentType", "set", "number", "name", "uuid", "code")
+    schema = lf.collect_schema()
+    casts = [pl.col(c).cast(pl.Utf8) for c in _str_cols if c in schema and schema[c] == pl.Null]
+    return lf.with_columns(casts) if casts else lf
+
+
 def enrich_sealed_contents(
     contents_lf: pl.LazyFrame,
     cards_lf: pl.LazyFrame,
@@ -35,6 +48,8 @@ def enrich_sealed_contents(
     Returns:
         Enriched LazyFrame with uuid column populated where possible.
     """
+    contents_lf = _cast_string_cols(contents_lf)
+
     # Build card lookup: (setCode_lower, number) → uuid
     # Filter to side 'a' only (matching external compiler behavior)
     card_lookup = (
@@ -326,6 +341,8 @@ def build_card_to_products_lf(ctx: PipelineContext) -> pl.LazyFrame | None:
     if contents_lf is None or products_lf is None:
         LOGGER.warning("card_to_products: sealed data not available")
         return None
+
+    contents_lf = _cast_string_cols(contents_lf)
 
     # Product UUID lookup: (setCode, productName) → product_uuid
     product_uuids = products_lf.select(
