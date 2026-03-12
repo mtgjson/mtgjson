@@ -57,7 +57,7 @@ def enrich_sealed_contents(
     # Enrich card rows: join on (set, number) to get uuid
     enriched_cards = (
         card_rows.with_columns(
-            pl.col("set").str.to_lowercase().alias("_join_set"),
+            pl.col("set").cast(pl.Utf8).str.to_lowercase().alias("_join_set"),
             pl.col("number").cast(pl.Utf8).alias("_join_number"),
         )
         .join(
