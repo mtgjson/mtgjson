@@ -238,12 +238,3 @@ class BoosterModel(PolarsSchemaModel):
 
     setCode: str = Field(..., description="The set code of the booster configuration.")
     config: str = Field(..., description="The configuration name of the booster.")
-
-
-class BoosterSheetCardModel(PolarsSchemaModel):
-    """Flattened booster sheet card record."""
-
-    setCode: str = Field(..., description="The set code of the booster.")
-    boosterType: str = Field(..., description="The booster type name.")
-    cardUuid: str = Field(..., description="The UUID of the card on the sheet.")
-    foil: bool = Field(..., description="Whether the sheet produces foil cards.")

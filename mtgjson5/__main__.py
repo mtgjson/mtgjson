@@ -200,11 +200,6 @@ def dispatcher(args: argparse.Namespace) -> None:
         build_cards(ctx, batch_size=batch_size)
         profiler.checkpoint("pipeline_complete", top_n=10)
 
-        # Enrich sealed contents with card UUIDs and build card-to-products
-        # mapping now that pipeline parquet output is available.
-        ctx.enrich_sealed_data()
-        profiler.checkpoint("sealed_enrichment")
-
         # Release pipeline-only frames before assembly
         # Data is now on disk as partitioned parquet — free the in-memory
         # LazyFrames/DataFrames that were only needed for the card pipeline.

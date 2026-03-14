@@ -136,7 +136,6 @@ class GlobalCache:
         self.sealed_contents_lf: pl.LazyFrame | None = None
         self.decks_lf: pl.LazyFrame | None = None
         self.boosters_lf: pl.LazyFrame | None = None
-        self.booster_sheet_cards_lf: pl.LazyFrame | None = None
         self.token_products_lf: pl.LazyFrame | None = None
 
         # Marketplace Data LFs
@@ -249,7 +248,6 @@ class GlobalCache:
         self.release(
             "sets_lf",
             "boosters_lf",
-            "booster_sheet_cards_lf",
             "decks_lf",
             "sealed_products_lf",
             "sealed_contents_lf",
@@ -286,7 +284,6 @@ class GlobalCache:
             "sealed_contents_lf",
             "decks_lf",
             "boosters_lf",
-            "booster_sheet_cards_lf",
             "token_products_lf",
             "tcg_skus_lf",
             "tcg_sku_map_lf",
@@ -458,7 +455,6 @@ class GlobalCache:
             "sealed_contents_lf": "sealed_contents.parquet",
             "decks_lf": "decks.parquet",
             "boosters_lf": "boosters.parquet",
-            "booster_sheet_cards_lf": "booster_sheet_cards.parquet",
             "token_products_lf": "token_products.parquet",
             "tcg_skus_lf": "tcg_skus.parquet",
             "tcg_sku_map_lf": "tcg_sku_map.parquet",
@@ -1006,37 +1002,41 @@ class GlobalCache:
 
     def _load_github_data(self) -> None:
         """Load GitHub sealed/deck/booster/token-products data."""
+        card_to_products_cache = self.cache_path / "github_card_to_products.parquet"
         sealed_products_cache = self.cache_path / "github_sealed_products.parquet"
         sealed_contents_cache = self.cache_path / "github_sealed_contents.parquet"
         decks_cache = self.cache_path / "github_decks.parquet"
         booster_cache = self.cache_path / "github_booster.parquet"
-        booster_sheet_cards_cache = self.cache_path / "github_booster_sheet_cards.parquet"
         token_products_cache = self.cache_path / "github_token_products.parquet"
 
         all_cached = all(
             _cache_fresh(p)
             for p in [
+                card_to_products_cache,
                 sealed_products_cache,
                 sealed_contents_cache,
                 decks_cache,
                 booster_cache,
-                booster_sheet_cards_cache,
                 token_products_cache,
             ]
         )
 
         if all_cached:
+            self.sealed_cards_lf = pl.scan_parquet(card_to_products_cache)
             self.sealed_products_lf = pl.scan_parquet(sealed_products_cache)
             self.sealed_contents_lf = pl.scan_parquet(sealed_contents_cache)
             self.decks_lf = pl.scan_parquet(decks_cache)
             self.boosters_lf = pl.scan_parquet(booster_cache)
-            self.booster_sheet_cards_lf = pl.scan_parquet(booster_sheet_cards_cache)
             self.token_products_lf = pl.scan_parquet(token_products_cache)
             return
 
         def on_github_complete(provider: SealedDataProvider) -> None:
             """Called when GitHub data finishes loading."""
             LOGGER.info("Sealed loaded - transferring to GlobalCache...")
+
+            if provider.card_to_products_df is not None:
+                provider.card_to_products_df.collect().write_parquet(card_to_products_cache)
+                self.sealed_cards_lf = provider.card_to_products_df
 
             if provider.sealed_products_df is not None:
                 provider.sealed_products_df.collect().write_parquet(sealed_products_cache)
@@ -1054,10 +1054,6 @@ class GlobalCache:
                 provider.boosters_df.collect().write_parquet(booster_cache)
                 self.boosters_lf = provider.boosters_df
 
-            if provider.booster_sheet_cards_df is not None:
-                provider.booster_sheet_cards_df.collect().write_parquet(booster_sheet_cards_cache)
-                self.booster_sheet_cards_lf = provider.booster_sheet_cards_df
-
             if provider.token_products_df is not None:
                 provider.token_products_df.collect().write_parquet(token_products_cache)
                 self.token_products_lf = provider.token_products_df
@@ -1073,7 +1069,7 @@ class GlobalCache:
             "sealed_contents_lf": sealed_contents_cache,
             "decks_lf": decks_cache,
             "boosters_lf": booster_cache,
-            "booster_sheet_cards_lf": booster_sheet_cards_cache,
+            "sealed_cards_lf": card_to_products_cache,
             "token_products_lf": token_products_cache,
         }
         missing = [name for name in expected if getattr(self, name, None) is None]
@@ -1304,6 +1300,7 @@ class GlobalCache:
         self.gatherer_lf = _normalize_columns(self.gatherer_lf)
         self.multiverse_bridge_lf = _normalize_columns(self.multiverse_bridge_lf)
         if self._github is not None:
+            self._github.card_to_products_df = _normalize_columns(self._github.card_to_products_df)
             self._github.sealed_products_df = _normalize_columns(self._github.sealed_products_df)
             self._github.sealed_contents_df = _normalize_columns(self._github.sealed_contents_df)
             self._github.decks_df = _normalize_columns(self._github.decks_df)
