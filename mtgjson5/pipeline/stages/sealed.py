@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import itertools as itr
 import logging
+from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 import ijson
 import polars as pl
@@ -561,3 +563,429 @@ def deck_links(all_products: dict) -> dict:
                     deck_mapper[d.set][d.name] = []
                 deck_mapper[d.set][d.name].append(product_contents.uuid)
     return deck_mapper
+
+def build_pipeline_view(
+    contents_dict: dict,
+    boosters_raw: dict,
+    decks_raw: list,
+    card_finishes: dict,
+    products_dict: dict,
+) -> dict:
+    """Build AllPrintings-like dict for card_to_product compilation.
+
+    Constructs a data structure with the same shape that
+    :class:`MtgjsonCardLinker` (from mtg-sealed-content) expects, but
+    sourced entirely from pipeline artefacts instead of AllPrintings.json.
+
+    Args:
+        contents_dict: From compile_contents().
+            ``{set_code: {product_name: {contents…}}}``
+        boosters_raw: Raw taw booster data.
+            ``{SET_CODE: {booster_code: {sheets, boosters, …}}}``
+        decks_raw: Raw taw deck list.
+            ``[{name, set_code, cards, sideboard, …}]``
+        card_finishes: From build_card_finishes_lookup().
+            ``{mtgjson_uuid: {finishes, number, set}}``
+        products_dict: From compile_products().
+            ``{set_code: {product_name: {…}}}``
+
+    Returns:
+        ``{SET_CODE: {"sealedProduct": [...], "booster": {...}, "decks": [...],
+                      "cards": [...], "tokens": []}}``
+    """
+    view: dict[str, dict] = {}
+
+    def _ensure_set(code: str) -> dict:
+        upper = code.upper()
+        if upper not in view:
+            view[upper] = {
+                "sealedProduct": [],
+                "booster": {},
+                "decks": [],
+                "cards": [],
+                "tokens": [],
+            }
+        return view[upper]
+
+    # collect all set codes
+    for code in contents_dict:
+        _ensure_set(code)
+    for code in boosters_raw:
+        _ensure_set(code)
+    for deck_entry in decks_raw:
+        _ensure_set(deck_entry["set_code"])
+    for _uuid_val, info in card_finishes.items():
+        _ensure_set(info["set"])
+    for code in products_dict:
+        _ensure_set(code)
+
+    # Batch-compute sealedProduct UUIDs.
+    all_product_pairs: list[tuple[str, str]] = []
+    for set_code in contents_dict:
+        for product_name in contents_dict[set_code]:
+            all_product_pairs.append((set_code.upper(), product_name))
+
+    product_uuid_map: dict[tuple[str, str], str] = {}
+    if all_product_pairs:
+        names = [p[1] for p in all_product_pairs]
+        pdf = pl.DataFrame({"productName": names})
+        pdf = pdf.with_columns(_uuid5_expr("productName").alias("uuid"))
+        uuids_list = pdf["uuid"].to_list()
+        product_uuid_map = {
+            pair: puuid
+            for pair, puuid in zip(all_product_pairs, uuids_list, strict=True)
+        }
+
+    for set_code, products in contents_dict.items():
+        upper = set_code.upper()
+        for product_name, product_contents in products.items():
+            puuid = product_uuid_map.get((upper, product_name))
+            view[upper]["sealedProduct"].append(
+                {
+                    "uuid": puuid,
+                    "name": product_name,
+                    "contents": product_contents,
+                }
+            )
+
+    for set_code, booster_config in boosters_raw.items():
+        upper = set_code.upper()
+        _ensure_set(upper)
+        view[upper]["booster"] = booster_config
+
+    # Group taw decks by set code, mapping to AllPrintings deck format.
+    decks_by_set: dict[str, list[dict]] = defaultdict(list)
+    for deck_entry in decks_raw:
+        upper = deck_entry["set_code"].upper()
+
+        def _map_card(c: dict) -> dict:
+            return {
+                "uuid": c["mtgjson_uuid"],
+                "isFoil": c.get("foil", False),
+                "isEtched": c.get("etched", False),
+            }
+
+        def _map_board(raw_list: list | None) -> list[dict]:
+            if not raw_list:
+                return []
+            return [_map_card(c) for c in raw_list]
+
+        mapped_cards = _map_board(deck_entry.get("cards"))
+        mapped_main = mapped_cards  # taw "cards" → both cards AND mainBoard
+        mapped_side = _map_board(deck_entry.get("sideboard"))
+        mapped_commander = _map_board(deck_entry.get("commander"))
+        mapped_display_commander = _map_board(deck_entry.get("displayCommander"))
+        mapped_tokens = _map_board(deck_entry.get("tokens"))
+        mapped_planar = _map_board(deck_entry.get("planarDeck"))
+        mapped_scheme = _map_board(deck_entry.get("schemeDeck"))
+
+        source_set_codes = [
+            sc.upper() for sc in deck_entry.get("sourceSetCodes", [upper])
+        ]
+
+        mapped_deck: dict[str, Any] = {
+            "name": deck_entry["name"],
+            "cards": mapped_cards,
+            "mainBoard": mapped_main,
+            "sideBoard": mapped_side,
+            "commander": mapped_commander,
+            "displayCommander": mapped_display_commander,
+            "tokens": mapped_tokens,
+            "planarDeck": mapped_planar,
+            "planes": mapped_planar,
+            "schemeDeck": mapped_scheme,
+            "schemes": mapped_scheme,
+            "sourceSetCodes": source_set_codes,
+        }
+        decks_by_set[upper].append(mapped_deck)
+
+    for upper, deck_list in decks_by_set.items():
+        _ensure_set(upper)
+        view[upper]["decks"] = deck_list
+
+    # Group card_finishes by set code; place all in "cards", leave "tokens" empty.
+    # The compiler looks up UUIDs via linear scan of cards (and cards+tokens for
+    # decks), so having everything in "cards" is correct and sufficient.
+    cards_by_set: dict[str, list[dict]] = defaultdict(list)
+    for uuid_val, info in card_finishes.items():
+        upper = info["set"].upper()
+        cards_by_set[upper].append(
+            {
+                "uuid": uuid_val,
+                "finishes": info["finishes"],
+                "number": info["number"],
+            }
+        )
+
+    for upper, cards_list in cards_by_set.items():
+        _ensure_set(upper)
+        view[upper]["cards"] = cards_list
+
+    LOGGER.info("Built pipeline view for %d sets", len(view))
+    return view
+
+
+class _CTPCard:
+    """Card with finish for card-to-products mapping."""
+
+    __slots__ = ("finish", "uuid")
+
+    def __init__(self, uuid: str, finish: str) -> None:
+        self.uuid = uuid
+        self.finish = finish
+
+    def __hash__(self) -> int:
+        return hash((self.uuid, self.finish))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, _CTPCard):
+            return False
+        return self.uuid == other.uuid and self.finish == other.finish
+
+
+def _ctp_get_card_obj_from_card(card_content: dict[str, Any]) -> list[_CTPCard]:
+    """Extract a :class:`_CTPCard` from a card content dict.
+
+    Finish is ``"foil"`` if the foil flag is set, otherwise ``"nonfoil"``.
+    """
+    finish = "foil" if card_content.get("foil") else "nonfoil"
+    if "uuid" in card_content:
+        return [_CTPCard(card_content["uuid"], finish)]
+    return []
+
+
+def _ctp_get_cards_in_pack(
+    data: dict, set_code: str, booster_code: str
+) -> list[_CTPCard]:
+    """Return cards reachable from a booster pack definition.
+
+    Traverses every sheet referenced by boosters for *booster_code* and resolves
+    finishes using the same special-case logic as the reference compiler.
+    """
+    try:
+        booster_data = data[set_code].get("booster")
+    except KeyError:
+        return []
+    if not booster_data:
+        return []
+
+    sheet_data = booster_data.get(booster_code)
+    if not sheet_data:
+        return []
+
+    sheets_to_poll: set[str] = set()
+    for booster in sheet_data["boosters"]:
+        sheets_to_poll.update(booster["contents"].keys())
+
+    return_value: set[_CTPCard] = set()
+    for sheet in sheets_to_poll:
+        cards_in_sheet = sheet_data["sheets"][sheet]["cards"]
+
+        for card_uuid in cards_in_sheet:
+            finish = "nonfoil"
+            code = ""
+
+            if sheet_data["sheets"][sheet]["foil"]:
+                finishes: list[str] = []
+                for source_code in sheet_data["sourceSetCodes"]:
+                    if source_code not in data:
+                        continue
+                    for c in data[source_code]["cards"]:
+                        if card_uuid == c["uuid"]:
+                            finishes = c["finishes"]
+                            code = source_code
+
+                            # MH2 special case: only numbers 262-441 get etched treatment
+                            if code == "MH2":
+                                try:
+                                    num = int(c["number"])
+                                except (ValueError, TypeError):
+                                    code = ""
+                                else:
+                                    if num < 262 or num > 441:
+                                        code = ""
+
+                # "etched" in sheet name or single finish "etched" → etched
+                if ("etched" in sheet.lower() or len(finishes) == 1) and "etched" in finishes:
+                    finish = "etched"
+                elif "foil" in finishes:
+                    finish = "foil"
+
+            return_value.add(_CTPCard(card_uuid, finish))
+
+            # Upstream does not track etched version of these cards — duplicate
+            if code and code in ("H1R", "MH2", "STA"):
+                return_value.add(_CTPCard(card_uuid, "etched"))
+
+    return list(return_value)
+
+
+def _ctp_get_cards_in_deck(
+    data: dict, set_code: str, deck_name: str
+) -> list[_CTPCard]:
+    """Return cards from a named deck, validating finishes against source sets."""
+    try:
+        decks_data = data[set_code].get("decks")
+    except KeyError:
+        return []
+    if not decks_data:
+        return []
+
+    return_value: set[_CTPCard] = set()
+    for d in decks_data:
+        if d["name"] != deck_name:
+            continue
+
+        deck_cards = (
+            d.get("cards", [])
+            + d.get("mainBoard", [])
+            + d.get("sideBoard", [])
+            + d.get("displayCommander", [])
+            + d.get("commander", [])
+            + d.get("tokens", [])
+            + d.get("schemes", [])
+            + d.get("planes", [])
+            + d.get("planarDeck", [])
+            + d.get("schemeDeck", [])
+        )
+
+        for deck_card in deck_cards:
+            finish = "nonfoil"
+            finishes: list[str] = []
+            for code in d.get("sourceSetCodes", []):
+                if code not in data:
+                    LOGGER.debug("Note: %s was NOT found in pipeline view", code)
+                    continue
+                for c in data[code]["cards"] + data[code]["tokens"]:
+                    if deck_card["uuid"] == c["uuid"]:
+                        finishes = c["finishes"]
+                        break
+
+            # isEtched takes precedence over isFoil
+            if deck_card.get("isEtched", False) and "etched" in finishes:
+                finish = "etched"
+            elif deck_card.get("isFoil", False) and "foil" in finishes:
+                finish = "foil"
+
+            return_value.add(_CTPCard(deck_card["uuid"], finish))
+        break
+
+    return list(return_value)
+
+
+def _ctp_get_cards_in_sealed_product(
+    data: dict, set_code: str, sealed_product_uuid: str | None
+) -> list[_CTPCard]:
+    """Return all cards reachable from a sealed product, traversing contents."""
+    return_value: set[_CTPCard] = set()
+
+    if set_code not in data:
+        return []
+
+    for sealed_product in data[set_code].get("sealedProduct", []):
+        if sealed_product_uuid != sealed_product.get("uuid"):
+            continue
+
+        for content_key, contents in sealed_product.get("contents", {}).items():
+            for content in contents:
+                cards = _ctp_get_cards_in_content_type(data, content_key, content)
+                return_value.update(cards)
+        break
+
+    return list(return_value)
+
+
+def _ctp_get_cards_in_content_type(
+    data: dict, content_key: str, content: dict[str, Any]
+) -> list[_CTPCard]:
+    """Dispatch to the appropriate handler for a content type."""
+    if content_key == "card":
+        return _ctp_get_card_obj_from_card(content)
+
+    if content_key == "pack":
+        return _ctp_get_cards_in_pack(data, content["set"].upper(), content["code"])
+
+    if content_key == "sealed":
+        return _ctp_get_cards_in_sealed_product(
+            data, content["set"].upper(), content.get("uuid")
+        )
+
+    if content_key == "deck":
+        return _ctp_get_cards_in_deck(data, content["set"].upper(), content["name"])
+
+    if content_key == "variable":
+        result: set[_CTPCard] = set()
+        for config in content["configs"]:
+            for dk in config.get("deck", []):
+                result.update(
+                    _ctp_get_cards_in_deck(data, dk["set"].upper(), dk["name"])
+                )
+            for sl in config.get("sealed", []):
+                result.update(
+                    _ctp_get_cards_in_sealed_product(
+                        data, sl["set"].upper(), sl.get("uuid")
+                    )
+                )
+            for pk in config.get("pack", []):
+                result.update(
+                    _ctp_get_cards_in_pack(data, pk["set"].upper(), pk["code"])
+                )
+            for cd in config.get("card", []):
+                result.update(_ctp_get_card_obj_from_card(cd))
+        return list(result)
+
+    if content_key == "other":
+        return []
+
+    LOGGER.warning("Unknown content_key in card_to_products: %s", content_key)
+    return []
+
+
+def _ctp_results_to_json(
+    build_data: dict[_CTPCard, set[str]],
+) -> dict[str, dict[str, list[str]]]:
+    """Convert build_data mapping to JSON-serializable dict."""
+    return_value: dict[str, dict[str, list[str]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+    for ctp_card, product_uuids in build_data.items():
+        return_value[ctp_card.uuid][ctp_card.finish] = sorted(product_uuids)
+    return dict(return_value)
+
+
+def compile_card_to_products(pipeline_view: dict) -> dict[str, dict[str, list[str]]]:
+    """Compile card-to-products mapping from pipeline view dict.
+
+    Replicates: mtg-sealed-content/scripts/card_to_product_compiler.py
+
+    For every sealed product in every set, walks the product's contents
+    tree (cards, packs, decks, sealed, variable) and records which
+    cards (with finish) appear in which products.
+
+    Args:
+        pipeline_view: AllPrintings-like dict from :func:`build_pipeline_view`.
+
+    Returns:
+        ``{card_uuid: {finish: sorted([product_uuid, …])}}``.
+    """
+    build_data: dict[_CTPCard, set[str]] = defaultdict(set)
+
+    for set_code, set_data in pipeline_view.items():
+        if not set_data.get("sealedProduct"):
+            continue
+
+        LOGGER.debug("card_to_products: processing %s", set_code)
+        for sealed_product in set_data["sealedProduct"]:
+            cards_list = _ctp_get_cards_in_sealed_product(
+                pipeline_view, set_code, sealed_product.get("uuid")
+            )
+            for ctp_card in cards_list:
+                build_data[ctp_card].add(sealed_product.get("uuid"))
+
+    result = _ctp_results_to_json(build_data)
+    LOGGER.info(
+        "Compiled card_to_products: %d card UUIDs across %d sets",
+        len(result),
+        len(pipeline_view),
+    )
+    return result
