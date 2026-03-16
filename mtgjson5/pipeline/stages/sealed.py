@@ -4,6 +4,7 @@ import itertools as itr
 import logging
 from pathlib import Path
 
+import ijson
 import yaml
 
 LOGGER = logging.getLogger(__name__)
@@ -238,3 +239,134 @@ class product:
             s.get_uuids(uuid_map)
         for v in self.variable:
             v.get_uuids(uuid_map)
+
+
+def build_uuid_map(allprintings_path: Path) -> dict:
+    """Parse AllPrintings.json via streaming to build a UUID lookup map.
+
+    Returns a dict keyed by lowercase set code with sub-keys:
+        booster: set of booster type codes
+        decks: set of deck names
+        sealedProduct: {product_name: uuid}
+        cards: {number_str: (uuid, name)}  — only side "a" cards
+    """
+    LOGGER.info("Loading AllPrintings.json from %s ...", allprintings_path)
+    uuids: dict = {}
+    current_set = ""
+    ccode = ""
+    status = ""
+    name = ""
+    number = ""
+    uuid = ""
+    holding = ""
+
+    with open(allprintings_path, "rb") as f:
+        parser = ijson.parse(f)
+        for prefix, event, value in parser:
+            if prefix == "data" and event == "map_key":
+                current_set = value
+                ccode = current_set.lower()
+                uuids[ccode] = {
+                    "booster": set(),
+                    "decks": set(),
+                    "sealedProduct": {},
+                    "cards": {},
+                }
+                status = ""
+            elif prefix == f"data.{current_set}" and event == "map_key":
+                status = value
+            elif status == "booster" and prefix == f"data.{current_set}.booster" and event == "map_key":
+                uuids[ccode]["booster"].add(value)
+            elif status == "decks" and prefix == f"data.{current_set}.decks.item.name":
+                uuids[ccode]["decks"].add(value)
+            elif status == "sealedProduct":
+                if prefix == f"data.{current_set}.sealedProduct.item" and event == "start_map":
+                    name = ""
+                    uuid = ""
+                elif prefix == f"data.{current_set}.sealedProduct.item.name":
+                    name = value
+                elif prefix == f"data.{current_set}.sealedProduct.item.uuid":
+                    uuid = value
+                elif prefix == f"data.{current_set}.sealedProduct.item" and event == "end_map":
+                    uuids[ccode]["sealedProduct"][name] = uuid
+            elif status == "cards":
+                if prefix == f"data.{current_set}.cards.item.side" and value != "a":
+                    holding = "skip"
+                if prefix == f"data.{current_set}.cards.item" and event == "start_map":
+                    number = ""
+                    name = ""
+                    uuid = ""
+                elif prefix == f"data.{current_set}.cards.item.number":
+                    number = value
+                elif prefix == f"data.{current_set}.cards.item.name":
+                    name = value
+                elif prefix == f"data.{current_set}.cards.item.uuid":
+                    uuid = value
+                elif prefix == f"data.{current_set}.cards.item" and event == "end_map":
+                    if holding != "skip":
+                        uuids[ccode]["cards"][number] = (uuid, name)
+                    holding = ""
+
+    LOGGER.info("Built UUID map for %d sets", len(uuids))
+    return uuids
+
+
+def set_to_json(set_content: dict) -> dict:
+    """Serialize product objects and filter out empty results."""
+    decoded = {k: v.toJson() for k, v in set_content.items()}
+    return {k: v for k, v in decoded.items() if v}
+
+
+def compile_contents(contents_dir: Path, uuid_map: dict) -> tuple[dict, dict]:
+    """Compile contents.json and deck_map.json from YAML source files.
+
+    Replicates: mtg-sealed-content/scripts/product_contents_compiler.py
+
+    Args:
+        contents_dir: Path to directory containing per-set content YAML files.
+        uuid_map: UUID lookup map from build_uuid_map().
+
+    Returns:
+        Tuple of (contents_dict, deck_map_dict).
+    """
+    products_contents: dict = {}
+
+    for set_file in sorted(contents_dir.glob("*.yaml")):
+        contents = yaml.safe_load(set_file.read_bytes())
+        code = contents["code"]
+        products_contents[code] = {}
+
+        for name, p in contents["products"].items():
+            if not p:
+                LOGGER.warning("Product %s - %s missing contents", code, name)
+                continue
+            if set(p.keys()) == {"copy"}:
+                p = contents["products"][p["copy"]]
+            compiled_product = product(p, code, name)
+            compiled_product.get_uuids(uuid_map)
+            products_contents[code][name] = compiled_product
+
+        if not products_contents[code]:
+            products_contents.pop(code)
+
+    LOGGER.info("Compiled contents for %d sets", len(products_contents))
+
+    contents_dict = {k: set_to_json(v) for k, v in products_contents.items()}
+    deck_map_dict = deck_links(products_contents)
+    return contents_dict, deck_map_dict
+
+
+def deck_links(all_products: dict) -> dict:
+    """Build a mapping of deck set/name to sealed product UUIDs that contain them."""
+    deck_mapper: dict = {}
+    for set_contents in all_products.values():
+        for product_contents in set_contents.values():
+            if not product_contents.uuid:
+                continue
+            for d in product_contents.deck:
+                if d.set not in deck_mapper:
+                    deck_mapper[d.set] = {}
+                if d.name not in deck_mapper[d.set]:
+                    deck_mapper[d.set][d.name] = []
+                deck_mapper[d.set][d.name].append(product_contents.uuid)
+    return deck_mapper

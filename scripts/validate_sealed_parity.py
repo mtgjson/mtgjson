@@ -113,6 +113,31 @@ def fetch_output(sha: str, name: str, cache_dir: Path) -> dict | None:
     return json.loads(resp.content)
 
 
+def fetch_allprintings(cache_dir: Path, local_path: Path | None = None) -> Path:
+    """Return path to AllPrintings.json, downloading if needed."""
+    if local_path and local_path.exists():
+        LOGGER.info("Using local AllPrintings.json: %s", local_path)
+        return local_path
+
+    cached = cache_dir / "AllPrintings.json"
+    if cached.exists():
+        LOGGER.info("Using cached AllPrintings.json: %s", cached)
+        return cached
+
+    import requests
+
+    url = "https://mtgjson.com/api/v5/AllPrintings.json"
+    LOGGER.info("Downloading AllPrintings.json from %s (this may take a few minutes)...", url)
+    resp = requests.get(url, timeout=600, stream=True)
+    resp.raise_for_status()
+    cached.parent.mkdir(parents=True, exist_ok=True)
+    with open(cached, "wb") as f:
+        for chunk in resp.iter_content(chunk_size=1024 * 1024):
+            f.write(chunk)
+    LOGGER.info("Saved AllPrintings.json (%d bytes)", cached.stat().st_size)
+    return cached
+
+
 # ---------------------------------------------------------------------------
 # Deep diff
 # ---------------------------------------------------------------------------
@@ -195,6 +220,90 @@ def validate_products(source_dir: Path, expected: dict) -> tuple[bool, list[str]
         return False, diffs
 
 
+def validate_contents(
+    source_dir: Path, allprintings_path: Path, expected_contents: dict, expected_deck_map: dict | None
+) -> tuple[bool, dict]:
+    """Validate compile_contents() against fetched contents.json and deck_map.json.
+
+    Returns (all_passed, deck_map_actual) so deck_map can be reused.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from mtgjson5.pipeline.stages.sealed import build_uuid_map, compile_contents
+
+    print("Building UUID map from AllPrintings.json ...")
+    uuid_map = build_uuid_map(allprintings_path)
+
+    contents_dir = source_dir / "data" / "contents"
+    print("Compiling contents and deck_map from YAML sources ...")
+    contents_actual, deck_map_actual = compile_contents(contents_dir, uuid_map)
+
+    all_passed = True
+
+    # Validate contents.json
+    diffs = deep_diff(expected_contents, contents_actual)
+    type_warnings = [d for d in diffs if d.startswith("TYPE WARNING")]
+    real_diffs = [d for d in diffs if not d.startswith("TYPE WARNING")]
+    n_sets = len(contents_actual)
+
+    if not real_diffs:
+        print(f"[PASS] contents.json: {n_sets} sets, 0 differences")
+        if type_warnings:
+            print(f"       ({len(type_warnings)} int/str type warnings)")
+    else:
+        print(f"[FAIL] contents.json: {n_sets} sets, {len(real_diffs)} differences")
+        for d in real_diffs[:50]:
+            print(f"  - {d}")
+        if len(real_diffs) > 50:
+            print(f"  ... and {len(real_diffs) - 50} more")
+        if type_warnings:
+            print(f"  ({len(type_warnings)} int/str type warnings omitted)")
+        all_passed = False
+
+    # Validate deck_map.json if expected is available
+    if expected_deck_map is not None:
+        diffs = deep_diff(expected_deck_map, deck_map_actual)
+        type_warnings = [d for d in diffs if d.startswith("TYPE WARNING")]
+        real_diffs = [d for d in diffs if not d.startswith("TYPE WARNING")]
+
+        if not real_diffs:
+            print(f"[PASS] deck_map.json: {len(deck_map_actual)} sets, 0 differences")
+            if type_warnings:
+                print(f"       ({len(type_warnings)} int/str type warnings)")
+        else:
+            print(f"[FAIL] deck_map.json: {len(deck_map_actual)} sets, {len(real_diffs)} differences")
+            for d in real_diffs[:50]:
+                print(f"  - {d}")
+            if len(real_diffs) > 50:
+                print(f"  ... and {len(real_diffs) - 50} more")
+            if type_warnings:
+                print(f"  ({len(type_warnings)} int/str type warnings omitted)")
+            all_passed = False
+
+    return all_passed, deck_map_actual
+
+
+def validate_deck_map(deck_map_actual: dict, expected: dict) -> tuple[bool, list[str]]:
+    """Validate a pre-computed deck_map against the fetched deck_map.json."""
+    diffs = deep_diff(expected, deck_map_actual)
+    type_warnings = [d for d in diffs if d.startswith("TYPE WARNING")]
+    real_diffs = [d for d in diffs if not d.startswith("TYPE WARNING")]
+
+    if not real_diffs:
+        print(f"[PASS] deck_map.json: {len(deck_map_actual)} sets, 0 differences")
+        if type_warnings:
+            print(f"       ({len(type_warnings)} int/str type warnings)")
+        return True, diffs
+    else:
+        print(f"[FAIL] deck_map.json: {len(deck_map_actual)} sets, {len(real_diffs)} differences")
+        for d in real_diffs[:50]:
+            print(f"  - {d}")
+        if len(real_diffs) > 50:
+            print(f"  ... and {len(real_diffs) - 50} more")
+        if type_warnings:
+            print(f"  ({len(type_warnings)} int/str type warnings omitted)")
+        return False, diffs
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -219,6 +328,12 @@ def main() -> None:
         action="store_true",
         help="Skip fetching; reuse data already in cache-dir",
     )
+    parser.add_argument(
+        "--allprintings",
+        type=Path,
+        default=None,
+        help="Path to a local AllPrintings.json (skips download)",
+    )
     args = parser.parse_args()
 
     if args.cache_dir:
@@ -240,30 +355,69 @@ def main() -> None:
         sha = resolve_head_sha()
         source_dir = fetch_tarball(sha, cache_dir)
 
-    all_pass = True
-    for stage in stages:
-        if stage != "products":
-            LOGGER.warning("Stage '%s' not yet implemented — skipping", stage)
-            continue
-
+    def _load_expected(stage_name: str) -> dict | None:
         if args.skip_fetch:
-            out_path = cache_dir / "outputs" / OUTPUT_FILES[stage]
+            out_path = cache_dir / "outputs" / OUTPUT_FILES[stage_name]
             if not out_path.exists():
                 LOGGER.error("--skip-fetch but no cached output at %s", out_path)
+                return None
+            return json.loads(out_path.read_text(encoding="utf-8"))
+        else:
+            return fetch_output(sha, stage_name, cache_dir)
+
+    all_pass = True
+    deck_map_actual: dict | None = None
+
+    for stage in stages:
+        if stage == "products":
+            expected = _load_expected("products")
+            if expected is None:
+                LOGGER.error("Could not fetch expected output for products")
                 all_pass = False
                 continue
-            expected = json.loads(out_path.read_text(encoding="utf-8"))
-        else:
-            expected = fetch_output(sha, stage, cache_dir)
+            passed, _ = validate_products(source_dir, expected)
+            if not passed:
+                all_pass = False
 
-        if expected is None:
-            LOGGER.error("Could not fetch expected output for %s", stage)
-            all_pass = False
-            continue
+        elif stage == "contents":
+            expected_contents = _load_expected("contents")
+            if expected_contents is None:
+                LOGGER.error("Could not fetch expected output for contents")
+                all_pass = False
+                continue
 
-        passed, _ = validate_products(source_dir, expected)
-        if not passed:
-            all_pass = False
+            expected_deck_map = _load_expected("deck_map")
+
+            allprintings_path = fetch_allprintings(cache_dir, args.allprintings)
+            passed, deck_map_actual = validate_contents(
+                source_dir, allprintings_path, expected_contents, expected_deck_map
+            )
+            if not passed:
+                all_pass = False
+
+        elif stage == "deck_map":
+            expected_deck_map = _load_expected("deck_map")
+            if expected_deck_map is None:
+                LOGGER.error("Could not fetch expected output for deck_map")
+                all_pass = False
+                continue
+
+            if deck_map_actual is not None:
+                # Reuse from contents stage
+                passed, _ = validate_deck_map(deck_map_actual, expected_deck_map)
+            else:
+                # Run standalone — need to compile
+                allprintings_path = fetch_allprintings(cache_dir, args.allprintings)
+                sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+                from mtgjson5.pipeline.stages.sealed import build_uuid_map, compile_contents
+
+                uuid_map = build_uuid_map(allprintings_path)
+                contents_dir = source_dir / "data" / "contents"
+                _, deck_map_actual = compile_contents(contents_dir, uuid_map)
+                passed, _ = validate_deck_map(deck_map_actual, expected_deck_map)
+
+            if not passed:
+                all_pass = False
 
     sys.exit(0 if all_pass else 1)
 
