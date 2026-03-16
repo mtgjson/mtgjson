@@ -18,7 +18,7 @@ build_cards(ctx)
 
 ## Pipeline Stages Overview
 
-The pipeline consists of 12 major stages, each backed by one or more stage modules:
+The pipeline consists of 13 major stages, each backed by one or more stage modules:
 
 ```
 1.  Load + Filter          → core.py (inline filtering logic)
@@ -33,7 +33,8 @@ The pipeline consists of 12 major stages, each backed by one or more stage modul
 10. CHECKPOINT 3           → core.py (materialize before final enrichment)
 11. Final Enrichment       → stages/derived.py
 12. Signatures + Cleanup   → stages/signatures.py, stages/output.py
-13. Sink to Parquet        → stages/output.py
+13. Per-Finish SKU IDs     → stages/identifiers.py
+14. Sink to Parquet        → stages/output.py
 ```
 
 ## Stage Module Reference
@@ -42,7 +43,7 @@ The pipeline consists of 12 major stages, each backed by one or more stage modul
 |--------|---------|---------------|
 | `stages/explode.py` | Face explosion, meld handling, layout detection | `explode_card_faces`, `assign_meld_sides`, `update_meld_names`, `detect_aftermath_layout` |
 | `stages/basic_fields.py` | Field mapping, type parsing, mana, attributes | `add_basic_fields`, `parse_type_line_expr`, `add_mana_info`, `add_card_attributes`, `add_booster_types`, `fix_promo_types` |
-| `stages/identifiers.py` | External data joins, struct assembly, UUIDs | `join_identifiers`, `join_oracle_data`, `join_set_number_data`, `add_identifiers_struct`, `add_uuid_from_cache` |
+| `stages/identifiers.py` | External data joins, struct assembly, UUIDs, SKU IDs | `join_identifiers`, `join_oracle_data`, `join_set_number_data`, `add_identifiers_struct`, `add_uuid_from_cache`, `add_sku_ids` |
 | `stages/legalities.py` | Format legalities, platform availability | `add_legalities_struct`, `add_availability_struct`, `remap_availability_values`, `fix_availability_from_ids` |
 | `stages/relationships.py` | Cross-card links, variations, tokens | `add_other_face_ids`, `add_leadership_skills_expr`, `add_reverse_related`, `add_token_ids`, `propagate_salt_to_tokens` |
 | `stages/derived.py` | Boolean flags, purchase URLs, enrichment, overrides | `add_is_funny`, `add_is_timeshifted`, `add_purchase_urls_struct`, `apply_manual_overrides`, `add_rebalanced_linkage` |
@@ -335,7 +336,30 @@ lf = drop_raw_scryfall_columns(lf)      # stages/output.py
 
 Adds signature data for signed cards, then removes intermediate Scryfall columns not needed in output.
 
-## Stage 12: Sink to Parquet (`stages/output.py`)
+## Stage 13: Per-Finish SKU IDs (`stages/identifiers.py`)
+
+```python
+lf = add_sku_ids(lf)
+```
+
+Generates deterministic per-finish, per-language identifiers for each card. These act as SKU-level unique IDs for every purchasable variant of a card.
+
+**Formula**: `uuid5(NAMESPACE_DNS, "{card_uuid}_{finish}_{language}")`
+
+**Top-level `skuIds`**: Uses the card's own `language` field (usually "English"):
+```python
+{
+    "nonfoil": "uuid5(card-uuid_nonfoil_English)",
+    "foil": "uuid5(card-uuid_foil_English)",
+    # null for finishes not in the card's finishes array
+}
+```
+
+**foreignData `skuIds`**: Each `foreignData` entry also gets its own `skuIds` struct, using that entry's language. The function explodes `foreignData`, computes per-entry SKU IDs, rebuilds the struct, and re-aggregates.
+
+This stage must run after Stage 12 because `add_signatures_combined` can inject `"signed"` into the `finishes` array, and `foreignData` must also be finalized.
+
+## Stage 14: Sink to Parquet (`stages/output.py`)
 
 ```python
 sink_cards(ctx)
