@@ -337,7 +337,6 @@ def build_uuid_map_from_pipeline(
     """
     uuids: dict = {}
 
-    # ── 1. Cards lookup ──────────────────────────────────────────────
     # all_cards.ndjson includes all languages — multiple entries per
     # (set, collector_number) with different Scryfall IDs. We need
     # exactly one entry per (set, collector_number), preferring English
@@ -387,7 +386,6 @@ def build_uuid_map_from_pipeline(
             }
         uuids[set_lower]["cards"][row["number"]] = (row["uuid"], row["name"])
 
-    # ── 2. Booster lookup ────────────────────────────────────────────
     for set_code, booster_config in boosters_raw.items():
         code = set_code.lower()
         if code not in uuids:
@@ -399,7 +397,6 @@ def build_uuid_map_from_pipeline(
             }
         uuids[code]["booster"] = set(booster_config.keys())
 
-    # ── 3. Decks lookup ──────────────────────────────────────────────
     for deck_entry in decks_raw:
         code = deck_entry["set_code"].lower()
         if code not in uuids:
@@ -411,7 +408,7 @@ def build_uuid_map_from_pipeline(
             }
         uuids[code]["decks"].add(deck_entry["name"])
 
-    # ── 4. Sealed product lookup ─────────────────────────────────────
+
     # Gather all (set_code, product_name) pairs
     product_pairs: list[tuple[str, str]] = []
     for set_code, products in products_dict.items():
