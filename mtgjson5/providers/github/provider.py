@@ -218,7 +218,6 @@ class SealedDataProvider:
     """Provider for MTGJSON GitHub data."""
 
     URLS = {
-        "card_map": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/card_map.json",
         "decks": "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks_v2.json",
         "boosters": "https://raw.githubusercontent.com/taw/magic-sealed-data/master/experimental_export_for_mtgjson.json",
     }
@@ -486,9 +485,8 @@ class SealedDataProvider:
     def _build_all_dataframes(self, raw: dict[str, Any]) -> None:
         """Build all DataFrames from raw fetched data."""
 
-        # Card-to-products: unchanged (still from card_map.json)
-        card_map_records = _build_card_to_products_records(raw.get("card_map", {}))
-        self.card_to_products_df = _to_lazyframe(card_map_records, "card_to_products", "card_to_products")
+        # Card-to-products: built in cache.py on_github_complete() via inline compilation
+        self.card_to_products_df = None
 
         # Sealed products: from compiled YAML (not pre-built JSON)
         products_records = _build_sealed_products_records(self.products_dict or {})

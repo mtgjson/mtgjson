@@ -1035,10 +1035,6 @@ class GlobalCache:
             LOGGER.info("Sealed loaded - transferring to GlobalCache...")
 
             # Phase 1: Transfer provider data that doesn't need inline compilation
-            if provider.card_to_products_df is not None:
-                provider.card_to_products_df.collect().write_parquet(card_to_products_cache)
-                self.sealed_cards_lf = provider.card_to_products_df
-
             if provider.sealed_products_df is not None:
                 provider.sealed_products_df.collect().write_parquet(sealed_products_cache)
                 self.sealed_products_lf = provider.sealed_products_df
@@ -1056,10 +1052,14 @@ class GlobalCache:
             # before ThreadPoolExecutor started (happens-before guarantee).
             if provider.contents_dir is not None and provider.products_dict is not None and self.cards_lf is not None:
                 from mtgjson5.pipeline.stages.sealed import (
+                    build_card_finishes_lookup,
+                    build_pipeline_view,
                     build_uuid_map_from_pipeline,
+                    compile_card_to_products,
                     compile_contents,
                 )
                 from mtgjson5.providers.github.provider import (
+                    _build_card_to_products_records,
                     _build_decks_records,
                     _build_sealed_contents_records,
                     _to_lazyframe,
@@ -1088,6 +1088,28 @@ class GlobalCache:
                 self.decks_lf = _to_lazyframe(deck_records, "decks", "decks")
                 if self.decks_lf is not None:
                     self.decks_lf.collect().write_parquet(decks_cache)
+
+                # Phase 3: Build card_to_products from pipeline data
+                LOGGER.info("Building card finishes lookup from Scryfall...")
+                card_finishes = build_card_finishes_lookup(self.cards_lf, self.uuid_cache_lf)
+
+                LOGGER.info("Building pipeline view for card_to_products...")
+                pipeline_view = build_pipeline_view(
+                    contents_dict=contents_dict,
+                    boosters_raw=provider.boosters_raw or {},
+                    decks_raw=provider.decks_raw or [],
+                    card_finishes=card_finishes,
+                    products_dict=provider.products_dict,
+                )
+
+                LOGGER.info("Compiling card_to_products from pipeline view...")
+                card_to_products = compile_card_to_products(pipeline_view)
+
+                # Convert to LazyFrame using existing record builder
+                card_to_products_records = _build_card_to_products_records(card_to_products)
+                self.sealed_cards_lf = _to_lazyframe(card_to_products_records, "card_to_products", "card_to_products")
+                if self.sealed_cards_lf is not None:
+                    self.sealed_cards_lf.collect().write_parquet(card_to_products_cache)
 
                 LOGGER.info("Inline sealed compilation complete")
             else:
