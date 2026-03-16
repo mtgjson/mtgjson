@@ -1,11 +1,16 @@
 """Sealed content compilation — inline replacements for mtg-sealed-content outputs."""
 
+from __future__ import annotations
+
 import itertools as itr
 import logging
 from pathlib import Path
 
 import ijson
+import polars as pl
 import yaml
+
+from mtgjson5.pipeline.stages.explode import _uuid5_concat_expr, _uuid5_expr
 
 LOGGER = logging.getLogger(__name__)
 
@@ -308,6 +313,116 @@ def build_uuid_map(allprintings_path: Path) -> dict:
                     holding = ""
 
     LOGGER.info("Built UUID map for %d sets", len(uuids))
+    return uuids
+
+
+def build_uuid_map_from_pipeline(
+    cards_lf: pl.LazyFrame,
+    uuid_cache_lf: pl.LazyFrame | None,
+    boosters_raw: dict,
+    decks_raw: list,
+    products_dict: dict,
+) -> dict:
+    """Build the same UUID lookup map as build_uuid_map(), but from pipeline LazyFrames.
+
+    This eliminates the AllPrintings.json dependency for sealed compilation.
+
+    Returns a dict keyed by lowercase set code with sub-keys:
+        cards: {number_str: (uuid, name)}  — only side "a" cards
+        booster: set of booster type codes
+        decks: set of deck names
+        sealedProduct: {product_name: uuid}
+    """
+    uuids: dict = {}
+
+    # ── 1. Cards lookup ──────────────────────────────────────────────
+    cards_df = cards_lf.select(
+        pl.col("id").alias("scryfallId"),
+        pl.col("set").alias("set_lower"),
+        pl.col("collector_number").alias("number"),
+        pl.col("name"),
+    )
+
+    if uuid_cache_lf is not None:
+        # Filter cache to side "a" only, then left-join
+        cache_a = uuid_cache_lf.filter(pl.col("side") == "a").select("scryfallId", "cachedUuid")
+        cards_df = cards_df.join(cache_a, on="scryfallId", how="left")
+    else:
+        cards_df = cards_df.with_columns(pl.lit(None, dtype=pl.Utf8).alias("cachedUuid"))
+
+    # Add a literal side column for uuid5_concat (always "a" since we only want
+    # front-face cards for the sealed UUID map).
+    cards_df = cards_df.with_columns(pl.lit("a").alias("side"))
+
+    # Compute MTGJSON UUID: coalesce(cachedUuid, uuid5(scryfallId || "a"))
+    cards_df = cards_df.with_columns(
+        pl.coalesce(
+            pl.col("cachedUuid"),
+            _uuid5_concat_expr(pl.col("scryfallId"), pl.col("side"), default="a"),
+        ).alias("uuid")
+    )
+
+    cards_collected = cards_df.collect()
+
+    for row in cards_collected.iter_rows(named=True):
+        set_lower = row["set_lower"]
+        if set_lower not in uuids:
+            uuids[set_lower] = {
+                "cards": {},
+                "booster": set(),
+                "decks": set(),
+                "sealedProduct": {},
+            }
+        uuids[set_lower]["cards"][row["number"]] = (row["uuid"], row["name"])
+
+    # ── 2. Booster lookup ────────────────────────────────────────────
+    for set_code, booster_config in boosters_raw.items():
+        code = set_code.lower()
+        if code not in uuids:
+            uuids[code] = {
+                "cards": {},
+                "booster": set(),
+                "decks": set(),
+                "sealedProduct": {},
+            }
+        uuids[code]["booster"] = set(booster_config.keys())
+
+    # ── 3. Decks lookup ──────────────────────────────────────────────
+    for deck_entry in decks_raw:
+        code = deck_entry["set_code"].lower()
+        if code not in uuids:
+            uuids[code] = {
+                "cards": {},
+                "booster": set(),
+                "decks": set(),
+                "sealedProduct": {},
+            }
+        uuids[code]["decks"].add(deck_entry["name"])
+
+    # ── 4. Sealed product lookup ─────────────────────────────────────
+    # Gather all (set_code, product_name) pairs
+    product_pairs: list[tuple[str, str]] = []
+    for set_code, products in products_dict.items():
+        for product_name in products:
+            product_pairs.append((set_code.lower(), product_name))
+
+    if product_pairs:
+        product_names = [p[1] for p in product_pairs]
+        product_df = pl.DataFrame({"productName": product_names})
+        product_df = product_df.with_columns(_uuid5_expr("productName").alias("uuid"))
+        product_uuids = product_df["uuid"].to_list()
+
+        for (set_lower, product_name), puuid in zip(product_pairs, product_uuids, strict=True):
+            if set_lower not in uuids:
+                uuids[set_lower] = {
+                    "cards": {},
+                    "booster": set(),
+                    "decks": set(),
+                    "sealedProduct": {},
+                }
+            uuids[set_lower]["sealedProduct"][product_name] = puuid
+
+    LOGGER.info("Built UUID map from pipeline for %d sets", len(uuids))
     return uuids
 
 
