@@ -20,6 +20,9 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 LOGGER = logging.getLogger(__name__)
 
+# Ensure mtgjson5 package is importable from repo root
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 REPO = "mtgjson/mtg-sealed-content"
 OUTPUT_FILES = {
     "products": "products.json",
@@ -193,7 +196,6 @@ def _is_int_str_equiv(a: object, b: object) -> bool:
 def validate_products(source_dir: Path, expected: dict) -> tuple[bool, list[str]]:
     """Validate compile_products() against the fetched products.json."""
     # Import inline so the script can be run standalone
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from mtgjson5.pipeline.stages.sealed import compile_products
 
     products_dir = source_dir / "data" / "products"
@@ -227,7 +229,6 @@ def validate_contents(
 
     Returns (all_passed, deck_map_actual) so deck_map can be reused.
     """
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from mtgjson5.pipeline.stages.sealed import build_uuid_map, compile_contents
 
     print("Building UUID map from AllPrintings.json ...")
