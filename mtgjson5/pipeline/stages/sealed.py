@@ -336,11 +336,23 @@ def build_uuid_map_from_pipeline(
     uuids: dict = {}
 
     # ── 1. Cards lookup ──────────────────────────────────────────────
-    cards_df = cards_lf.select(
-        pl.col("id").alias("scryfallId"),
-        pl.col("set").alias("set_lower"),
-        pl.col("collector_number").alias("number"),
-        pl.col("name"),
+    # all_cards.ndjson includes all languages — multiple entries per
+    # (set, collector_number) with different Scryfall IDs. We need
+    # exactly one entry per (set, collector_number), preferring English
+    # but falling back to any language for cards that only exist in
+    # non-English variants (e.g. Phyrexian-language cards).
+    cards_df = (
+        cards_lf.with_columns(
+            pl.when(pl.col("lang") == "en").then(0).otherwise(1).alias("_lang_rank")
+        )
+        .sort("set", "collector_number", "_lang_rank")
+        .unique(subset=["set", "collector_number"], keep="first")
+        .select(
+            pl.col("id").alias("scryfallId"),
+            pl.col("set").alias("set_lower"),
+            pl.col("collector_number").alias("number"),
+            pl.col("name"),
+        )
     )
 
     if uuid_cache_lf is not None:
