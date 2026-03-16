@@ -146,6 +146,7 @@ OMIT_FIELDS: Final[frozenset[str]] = OPTIONAL_BOOL_FIELDS | OMIT_EMPTY_LIST_FIEL
 ALLOW_IF_FALSEY: Final[frozenset[str]] = frozenset(
     {
         "uuid",
+        "skuIds",
         "setCode",
         "type",
         "layout",

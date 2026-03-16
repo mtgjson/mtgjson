@@ -38,6 +38,9 @@
       "purchaseUrls": {},
       "rarity": "common",
       "setCode": "TST",
+      "skuIds": {
+        "nonfoil": "daa6d76b-8592-545b-a584-3c4be749eb6c"
+      },
       "subtypes": [],
       "supertypes": [],
       "text": "Lightning Bolt deals 3 damage to any target.",
@@ -89,6 +92,9 @@
       "rarity": "common",
       "setCode": "TST",
       "side": "a",
+      "skuIds": {
+        "nonfoil": "22096bf4-246b-52f4-bd28-b8ca0fef5b56"
+      },
       "subtypes": [],
       "supertypes": [],
       "text": "Destroy target artifact.",
@@ -140,6 +146,9 @@
       "rarity": "common",
       "setCode": "TST",
       "side": "b",
+      "skuIds": {
+        "nonfoil": "e3835fba-4be8-5346-8eb8-8fcaa7cea054"
+      },
       "subtypes": [],
       "supertypes": [],
       "text": "Destroy target enchantment.",
@@ -183,6 +192,9 @@
       "purchaseUrls": {},
       "rarity": "common",
       "setCode": "TST",
+      "skuIds": {
+        "nonfoil": "51389906-08df-5fef-9eb1-f9ad18adaf72"
+      },
       "subtypes": [
         "Clown"
       ],
@@ -230,6 +242,9 @@
       "number": "T1",
       "power": "2",
       "setCode": "TST",
+      "skuIds": {
+        "nonfoil": "034d1b49-a67d-5330-bbf6-eda40d662389"
+      },
       "subtypes": [
         "Zombie"
       ],

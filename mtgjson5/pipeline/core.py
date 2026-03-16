@@ -50,6 +50,7 @@ from mtgjson5.pipeline.stages.explode import (
     update_meld_names,
 )
 from mtgjson5.pipeline.stages.identifiers import (
+    add_sku_ids,
     add_identifiers_struct,
     add_identifiers_v4_uuid,
     add_uuid_from_cache,
@@ -353,6 +354,10 @@ def _run_pipeline_stages(
         .pipe(drop_raw_scryfall_columns)
     )
     prof.checkpoint(f"{prefix}stage6_signatures")
+
+    # Stage 7: Per-finish SKU IDs (must run after finishes are finalized)
+    lf = lf.pipe(add_sku_ids)
+    prof.checkpoint(f"{prefix}stage7_sku_ids")
 
     return lf
 

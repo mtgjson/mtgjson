@@ -657,3 +657,103 @@ def add_uuid_from_cache(lf: pl.LazyFrame) -> pl.LazyFrame:
             _uuid5_concat_expr(pl.col("scryfallId"), pl.col("side"), default="a"),
         ).alias("uuid")
     ).drop("cachedUuid", strict=False)
+
+
+def _sku_ids_exprs(
+    uuid_col: str,
+    lang_col: str,
+    finishes_col: str,
+    all_finishes: list[str],
+) -> tuple[list[pl.Expr], pl.Expr, list[str]]:
+    """Build temp columns and struct expression for skuIds.
+
+    Returns (temp_col_exprs, struct_expr, temp_col_names) so callers can
+    add temps, build the struct, and clean up.
+    """
+    import polars_hash as plh
+
+    temp_cols = [
+        pl.concat_str([pl.col(uuid_col), pl.lit(f"_{f}_"), pl.col(lang_col)]).alias(f"_fu_{f}")
+        for f in all_finishes
+    ]
+    struct_fields = [
+        pl.when(pl.col(finishes_col).list.contains(f))
+        .then(plh.col(f"_fu_{f}").uuidhash.uuid5())
+        .otherwise(pl.lit(None).cast(pl.String))
+        .alias(f)
+        for f in all_finishes
+    ]
+    temp_names = [f"_fu_{f}" for f in all_finishes]
+    return temp_cols, pl.struct(struct_fields), temp_names
+
+
+def add_sku_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Add skuIds to cards (top-level) and each foreignData entry.
+
+    Top-level: ``uuid5(uuid + "_" + finish + "_" + language)``
+    foreignData: same formula using each entry's own language.
+
+    Must be called after uuid, finishes (including 'signed'), language,
+    and foreignData are finalized.
+    """
+    from mtgjson5.consts.finishes import FINISH_ORDER
+
+    all_finishes = sorted(FINISH_ORDER, key=FINISH_ORDER.get)  # type: ignore[arg-type]
+
+    # --- Top-level skuIds (card's own language) ---
+    temp_cols, struct_expr, temp_names = _sku_ids_exprs("uuid", "language", "finishes", all_finishes)
+    lf = lf.with_columns(temp_cols)
+    lf = lf.with_columns(struct_expr.alias("skuIds")).drop(temp_names)
+
+    # --- foreignData skuIds ---
+    has_fd = "foreignData" in lf.collect_schema().names()
+    if not has_fd:
+        return lf
+
+    lf = lf.with_row_index("_fuuid_row_id")
+
+    # Explode foreignData so each entry gets its own row
+    fd_exploded = (
+        lf.select(["_fuuid_row_id", "uuid", "finishes", "foreignData"])
+        .explode("foreignData")
+        .filter(pl.col("foreignData").is_not_null())
+        .with_columns(pl.col("foreignData").struct.field("language").alias("_fd_lang"))
+    )
+
+    # Compute skuIds per foreignData entry
+    temp_cols, struct_expr, temp_names = _sku_ids_exprs("uuid", "_fd_lang", "finishes", all_finishes)
+    fd_exploded = fd_exploded.with_columns(temp_cols)
+    fd_exploded = fd_exploded.with_columns(struct_expr.alias("_fd_sku_ids")).drop(temp_names)
+
+    # Rebuild foreignData struct with skuIds inserted (alphabetical field order)
+    fd_exploded = fd_exploded.with_columns(
+        pl.struct(
+            [
+                pl.col("foreignData").struct.field("faceName"),
+                pl.col("_fd_sku_ids").alias("skuIds"),
+                pl.col("foreignData").struct.field("flavorText"),
+                pl.col("foreignData").struct.field("identifiers"),
+                pl.col("foreignData").struct.field("language"),
+                pl.col("foreignData").struct.field("multiverseId"),
+                pl.col("foreignData").struct.field("name"),
+                pl.col("foreignData").struct.field("text"),
+                pl.col("foreignData").struct.field("type"),
+                pl.col("foreignData").struct.field("uuid"),
+            ]
+        ).alias("foreignData")
+    )
+
+    # Re-aggregate by original row, sorted by language
+    fd_final = (
+        fd_exploded.group_by("_fuuid_row_id")
+        .agg(pl.col("foreignData"))
+        .with_columns(
+            pl.col("foreignData").list.eval(pl.element().sort_by(pl.element().struct.field("language")))
+        )
+    )
+
+    # Join back — drop original foreignData to avoid struct schema mismatch,
+    # then fill null (cards with no foreignData entries) with empty list.
+    lf = lf.drop("foreignData").join(fd_final, on="_fuuid_row_id", how="left")
+    return lf.with_columns(pl.col("foreignData").fill_null([]).alias("foreignData")).drop("_fuuid_row_id")

@@ -41,6 +41,11 @@ class ForeignData(TypedDict, total=False):
             "introduced": "v5.0.1",
             "optional": True,
         },
+        "skuIds": {
+            "description": "Per-finish unique identifiers for this language variant. See the [Finish UUIDs](/data-models/finish-uuids/) Data Model.",
+            "introduced": "v5.3.0",
+            "type_override": "FinishUuids",
+        },
         "flavorText": {
             "description": "The foreign flavor text of the card.",
             "introduced": "v4.0.0",
@@ -77,6 +82,7 @@ class ForeignData(TypedDict, total=False):
     }
 
     faceName: str
+    skuIds: SkuIds
     flavorText: str
     identifiers: ForeignDataIdentifiers
     language: Required[str]
@@ -85,6 +91,57 @@ class ForeignData(TypedDict, total=False):
     text: str
     type: str
     uuid: str
+
+
+class SkuIds(TypedDict, total=False):
+    """Per-finish SKU identifiers derived from the card UUID and language."""
+
+    __doc_title__ = "SKU IDs"
+    __doc_desc__ = (
+        "The SKU IDs Data Model describes the unique identifiers for each "
+        "finish variant of a card printing at a specific language."
+    )
+    __doc_parent__ = (
+        "**Parent model:** [Card (Deck)](/data-models/card/card-deck/), "
+        "[Card (Set)](/data-models/card/card-set/), "
+        "[Card (Token)](/data-models/card/card-token/), "
+        "[Foreign Data](/data-models/foreign-data/)\n"
+        "- **Parent property:** `skuIds`"
+    )
+    __doc_keywords__ = "mtg, magic the gathering, mtgjson, json, sku ids"
+    __field_docs__ = {
+        "nonfoil": {
+            "description": "The UUID for the nonfoil finish variant.",
+            "introduced": "v5.3.0",
+            "optional": True,
+        },
+        "foil": {
+            "description": "The UUID for the foil finish variant.",
+            "introduced": "v5.3.0",
+            "optional": True,
+        },
+        "etched": {
+            "description": "The UUID for the etched finish variant.",
+            "introduced": "v5.3.0",
+            "optional": True,
+        },
+        "signed": {
+            "description": "The UUID for the signed finish variant.",
+            "introduced": "v5.3.0",
+            "optional": True,
+        },
+        "other": {
+            "description": "The UUID for any other finish variant.",
+            "introduced": "v5.3.0",
+            "optional": True,
+        },
+    }
+
+    nonfoil: str
+    foil: str
+    etched: str
+    signed: str
+    other: str
 
 
 class Identifiers(TypedDict, total=False):
