@@ -342,9 +342,7 @@ def build_uuid_map_from_pipeline(
     # but falling back to any language for cards that only exist in
     # non-English variants (e.g. Phyrexian-language cards).
     cards_df = (
-        cards_lf.with_columns(
-            pl.when(pl.col("lang") == "en").then(0).otherwise(1).alias("_lang_rank")
-        )
+        cards_lf.with_columns(pl.when(pl.col("lang") == "en").then(0).otherwise(1).alias("_lang_rank"))
         .sort("set", "collector_number", "_lang_rank")
         .unique(subset=["set", "collector_number"], keep="first")
         .select(
@@ -436,6 +434,72 @@ def build_uuid_map_from_pipeline(
 
     LOGGER.info("Built UUID map from pipeline for %d sets", len(uuids))
     return uuids
+
+
+def build_card_finishes_lookup(
+    cards_lf: pl.LazyFrame,
+    uuid_cache_lf: pl.LazyFrame | None,
+) -> dict[str, dict]:
+    """Build {mtgjson_uuid: {"finishes": [...], "number": str, "set": str}} from Scryfall.
+
+    Used by card_to_products compilation to determine card finish types.
+    Includes both regular cards and tokens (layout == "token").
+
+    Args:
+        cards_lf: Scryfall cards LazyFrame (snake_case: id, set, collector_number,
+                  name, finishes, layout, lang).
+        uuid_cache_lf: UUID cache LazyFrame (scryfallId, side, cachedUuid).
+
+    Returns:
+        Dict keyed by MTGJSON UUID with values containing finishes list,
+        collector number, and set code.
+    """
+    # Deduplicate by (set, collector_number), preferring English
+    cards_df = (
+        cards_lf.with_columns(pl.when(pl.col("lang") == "en").then(0).otherwise(1).alias("_lang_rank"))
+        .sort("set", "collector_number", "_lang_rank")
+        .unique(subset=["set", "collector_number"], keep="first")
+        .select(
+            pl.col("id").alias("scryfallId"),
+            pl.col("set"),
+            pl.col("collector_number"),
+            pl.col("finishes"),
+            pl.col("layout"),
+        )
+    )
+
+    # Compute MTGJSON UUID
+    if uuid_cache_lf is not None:
+        cache_a = uuid_cache_lf.filter(pl.col("side") == "a").select("scryfallId", "cachedUuid")
+        cards_df = cards_df.join(cache_a, on="scryfallId", how="left")
+    else:
+        cards_df = cards_df.with_columns(pl.lit(None, dtype=pl.Utf8).alias("cachedUuid"))
+
+    cards_df = cards_df.with_columns(pl.lit("a").alias("side"))
+
+    cards_df = cards_df.with_columns(
+        pl.coalesce(
+            pl.col("cachedUuid"),
+            _uuid5_concat_expr(pl.col("scryfallId"), pl.col("side"), default="a"),
+        ).alias("uuid")
+    )
+
+    # Collect and build dict
+    df = cards_df.collect()
+
+    result: dict[str, dict] = {}
+    for row in df.iter_rows(named=True):
+        finishes = row["finishes"]
+        if finishes is None:
+            finishes = ["nonfoil"]
+        result[row["uuid"]] = {
+            "finishes": finishes,
+            "number": row["collector_number"],
+            "set": row["set"],
+        }
+
+    LOGGER.info("Built card finishes lookup with %d entries", len(result))
+    return result
 
 
 def set_to_json(set_content: dict) -> dict:
