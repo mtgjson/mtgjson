@@ -884,6 +884,8 @@ def _ctp_get_cards_in_sealed_product(
             continue
 
         for content_key, contents in sealed_product.get("contents", {}).items():
+            if not isinstance(contents, list):
+                continue
             for content in contents:
                 cards = _ctp_get_cards_in_content_type(data, content_key, content)
                 return_value.update(cards)
