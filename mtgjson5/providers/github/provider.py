@@ -502,13 +502,11 @@ class SealedDataProvider:
         token_records = _build_token_products_records(raw.get("token_products", {}))
         self.token_products_df = _to_lazyframe(token_records, "token_products", "token_products")
 
-        # sealed_contents_df: NOT built here — requires uuid_map from pipeline data.
-        # Built in cache.py on_github_complete() callback after inline compilation.
-        self.sealed_contents_df = pl.LazyFrame(schema=SCHEMAS["sealed_contents"])
-
-        # decks_df: NOT built here — requires deck_map from inline compilation.
+        # sealed_contents_df and decks_df: NOT built here — they require
+        # uuid_map + deck_map from inline compilation using pipeline data.
         # Built in cache.py on_github_complete() callback.
-        self.decks_df = pl.LazyFrame(schema=SCHEMAS["decks"])
+        self.sealed_contents_df = None
+        self.decks_df = None
         self.sealed_dicts = {}
 
     def _partition_decks_by_type(self, decks_lf: pl.LazyFrame) -> dict[str, pl.LazyFrame]:
