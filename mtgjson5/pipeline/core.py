@@ -50,9 +50,9 @@ from mtgjson5.pipeline.stages.explode import (
     update_meld_names,
 )
 from mtgjson5.pipeline.stages.identifiers import (
-    add_sku_ids,
     add_identifiers_struct,
     add_identifiers_v4_uuid,
+    add_sku_ids,
     add_uuid_from_cache,
     fix_foreigndata_for_faces,
     join_cardmarket_ids,

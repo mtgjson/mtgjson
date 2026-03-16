@@ -21,7 +21,6 @@ from pydantic import BaseModel, Field
 
 from .base import PolarsMixin
 from .submodels import (
-    SkuIds,
     ForeignData,
     Identifiers,
     LeadershipSkills,
@@ -29,6 +28,7 @@ from .submodels import (
     PurchaseUrls,
     RelatedCards,
     Rulings,
+    SkuIds,
     SourceProducts,
 )
 

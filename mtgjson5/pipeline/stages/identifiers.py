@@ -673,8 +673,7 @@ def _sku_ids_exprs(
     import polars_hash as plh
 
     temp_cols = [
-        pl.concat_str([pl.col(uuid_col), pl.lit(f"_{f}_"), pl.col(lang_col)]).alias(f"_fu_{f}")
-        for f in all_finishes
+        pl.concat_str([pl.col(uuid_col), pl.lit(f"_{f}_"), pl.col(lang_col)]).alias(f"_fu_{f}") for f in all_finishes
     ]
     struct_fields = [
         pl.when(pl.col(finishes_col).list.contains(f))
@@ -748,9 +747,7 @@ def add_sku_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     fd_final = (
         fd_exploded.group_by("_fuuid_row_id")
         .agg(pl.col("foreignData"))
-        .with_columns(
-            pl.col("foreignData").list.eval(pl.element().sort_by(pl.element().struct.field("language")))
-        )
+        .with_columns(pl.col("foreignData").list.eval(pl.element().sort_by(pl.element().struct.field("language"))))
     )
 
     # Join back — drop original foreignData to avoid struct schema mismatch,
