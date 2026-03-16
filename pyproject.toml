@@ -141,6 +141,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # imported but unused (re-exports in __init__ are intentional)
+"scripts/*.py" = ["T201"]  # print() is expected in CLI scripts
 
 # --- mypy ---
 
