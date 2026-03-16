@@ -40,16 +40,16 @@ def compile_products(products_dir: Path) -> dict:
 
 
 class card:
-    def __init__(self, contents):
-        self.name = contents["name"]
-        self.set = contents["set"]
-        self.number = contents["number"]
-        self.etched = contents.get("etched", False)
-        self.foil = contents.get("foil", False)
-        self.uuid = contents.get("uuid", False)
+    def __init__(self, contents: dict) -> None:
+        self.name: str = contents["name"]
+        self.set: str = contents["set"]
+        self.number: str | int = contents["number"]
+        self.etched: bool = contents.get("etched", False)
+        self.foil: bool = contents.get("foil", False)
+        self.uuid: str | bool | None = contents.get("uuid", False)
 
-    def toJson(self):
-        data = {"name": self.name, "set": self.set, "number": str(self.number)}
+    def toJson(self) -> dict:
+        data: dict = {"name": self.name, "set": self.set, "number": str(self.number)}
         if self.uuid:
             data["uuid"] = self.uuid
         if self.foil:
@@ -58,7 +58,7 @@ class card:
             data["etched"] = self.etched
         return data
 
-    def get_uuids(self, uuid_map):
+    def get_uuids(self, uuid_map: dict) -> None:
         try:
             self.uuid = uuid_map[self.set.lower()]["cards"][str(self.number)][0]
             if self.name not in uuid_map[self.set.lower()]["cards"][str(self.number)][1]:
@@ -77,15 +77,14 @@ class card:
 
 
 class pack:
-    def __init__(self, contents):
-        self.set = contents["set"]
-        self.code = contents["code"]
+    def __init__(self, contents: dict) -> None:
+        self.set: str = contents["set"]
+        self.code: str = contents["code"]
 
-    def toJson(self):
-        data = {"set": self.set, "code": self.code}
-        return data
+    def toJson(self) -> dict:
+        return {"set": self.set, "code": self.code}
 
-    def get_uuids(self, uuid_map):
+    def get_uuids(self, uuid_map: dict) -> None:
         try:
             umap = uuid_map[self.set.lower()]["booster"]
         except KeyError:
@@ -95,15 +94,14 @@ class pack:
 
 
 class deck:
-    def __init__(self, contents):
-        self.set = contents["set"]
-        self.name = contents["name"]
+    def __init__(self, contents: dict) -> None:
+        self.set: str = contents["set"]
+        self.name: str = contents["name"]
 
-    def toJson(self):
-        data = {"set": self.set, "name": self.name}
-        return data
+    def toJson(self) -> dict:
+        return {"set": self.set, "name": self.name}
 
-    def get_uuids(self, uuid_map):
+    def get_uuids(self, uuid_map: dict) -> None:
         try:
             umap = uuid_map[self.set.lower()]["decks"]
         except KeyError:
@@ -113,19 +111,19 @@ class deck:
 
 
 class sealed:
-    def __init__(self, contents):
-        self.set = contents["set"]
-        self.count = contents["count"]
-        self.name = contents["name"]
-        self.uuid = contents.get("uuid", False)
+    def __init__(self, contents: dict) -> None:
+        self.set: str = contents["set"]
+        self.count: int = contents["count"]
+        self.name: str = contents["name"]
+        self.uuid: str | bool | None = contents.get("uuid", False)
 
-    def toJson(self):
-        data = {"set": self.set, "count": self.count, "name": self.name}
+    def toJson(self) -> dict:
+        data: dict = {"set": self.set, "count": self.count, "name": self.name}
         if self.uuid:
             data["uuid"] = self.uuid
         return data
 
-    def get_uuids(self, uuid_map):
+    def get_uuids(self, uuid_map: dict) -> None:
         try:
             self.uuid = uuid_map[self.set.lower()]["sealedProduct"][self.name]
         except KeyError:
@@ -134,45 +132,45 @@ class sealed:
 
 
 class other:
-    def __init__(self, contents):
-        self.name = contents["name"]
+    def __init__(self, contents: dict) -> None:
+        self.name: str = contents["name"]
 
-    def toJson(self):
-        data = {"name": self.name}
-        return data
+    def toJson(self) -> dict:
+        return {"name": self.name}
 
 
 class product:
-    def __init__(self, contents, set_code=None, name=None):
+    def __init__(self, contents: dict | None, set_code: str | None = None, name: str | None = None) -> None:
         self.name = name
         self.set_code = set_code
+        self.uuid: str | None = None
         if not contents:
             contents = {}
-        self.card = []
+        self.card: list[card] = []
         for c in contents.get("card", []):
             self.card.append(card(c))
-        self.pack = []
+        self.pack: list[pack] = []
         for p in contents.get("pack", []):
             self.pack.append(pack(p))
-        self.deck = []
+        self.deck: list[deck] = []
         for d in contents.get("deck", []):
             self.deck.append(deck(d))
-        self.sealed = []
+        self.sealed: list[sealed] = []
         for s in contents.get("sealed", []):
             if s["name"] == self.name:
                 raise ValueError(f"Self-referrential product {self.name}")
             self.sealed.append(sealed(s))
-        self.other = []
+        self.other: list[other] = []
         for o in contents.get("other", []):
             self.other.append(other(o))
             if o["name"] == "Bonus card unknown":
                 LOGGER.warning("Product name %s missing bonus card definition", self.name)
-        self.chance = contents.get("chance", 1)
-        self.weight = contents.get("weight", 0)
+        self.chance: int | float = contents.get("chance", 1)
+        self.weight: int = contents.get("weight", 0)
 
-        self.card_count = contents.get("card_count", 0)
+        self.card_count: int = contents.get("card_count", 0)
 
-        self.variable = []
+        self.variable: list[product] = []
         if "variable_mode" in contents:
             options = contents.pop("variable_mode")
             if options.get("replacement", False):
@@ -197,7 +195,7 @@ class product:
         elif "variable" in contents:
             self.variable = [product(p) for p in contents["variable"]]
 
-    def merge(self, target):
+    def merge(self, target: product) -> None:
         self.card += target.card
         self.pack += target.pack
         self.deck += target.deck
@@ -207,8 +205,8 @@ class product:
         self.other += target.other
         self.chance *= target.chance
 
-    def toJson(self):
-        data = {}
+    def toJson(self) -> dict:
+        data: dict = {}
         if self.card:
             data["card"] = [c.toJson() for c in self.card]
         if self.pack:
@@ -227,10 +225,10 @@ class product:
             data["variable_config"] = [{"chance": self.chance, "weight": self.weight}]
         return data
 
-    def get_uuids(self, uuid_map):
+    def get_uuids(self, uuid_map: dict) -> None:
         if self.name:
             try:
-                self.uuid = uuid_map[self.set_code.lower()]["sealedProduct"][self.name]
+                self.uuid = uuid_map[self.set_code.lower()]["sealedProduct"][self.name]  # type: ignore[union-attr]
             except KeyError:
                 LOGGER.warning("Product name %s not found in set %s", self.name, self.set_code)
                 self.uuid = None
@@ -408,7 +406,6 @@ def build_uuid_map_from_pipeline(
             }
         uuids[code]["decks"].add(deck_entry["name"])
 
-
     # Gather all (set_code, product_name) pairs
     product_pairs: list[tuple[str, str]] = []
     for set_code, products in products_dict.items():
@@ -561,6 +558,7 @@ def deck_links(all_products: dict) -> dict:
                 deck_mapper[d.set][d.name].append(product_contents.uuid)
     return deck_mapper
 
+
 def build_pipeline_view(
     contents_dict: dict,
     boosters_raw: dict,
@@ -611,7 +609,7 @@ def build_pipeline_view(
         _ensure_set(code)
     for deck_entry in decks_raw:
         _ensure_set(deck_entry["set_code"])
-    for _uuid_val, info in card_finishes.items():
+    for info in card_finishes.values():
         _ensure_set(info["set"])
     for code in products_dict:
         _ensure_set(code)
@@ -628,10 +626,7 @@ def build_pipeline_view(
         pdf = pl.DataFrame({"productName": names})
         pdf = pdf.with_columns(_uuid5_expr("productName").alias("uuid"))
         uuids_list = pdf["uuid"].to_list()
-        product_uuid_map = {
-            pair: puuid
-            for pair, puuid in zip(all_product_pairs, uuids_list, strict=True)
-        }
+        product_uuid_map = dict(zip(all_product_pairs, uuids_list, strict=True))
 
     for set_code, products in contents_dict.items():
         upper = set_code.upper()
@@ -651,21 +646,21 @@ def build_pipeline_view(
         view[upper]["booster"] = booster_config
 
     # Group taw decks by set code, mapping to AllPrintings deck format.
+    def _map_card(c: dict) -> dict:
+        return {
+            "uuid": c["mtgjson_uuid"],
+            "isFoil": c.get("foil", False),
+            "isEtched": c.get("etched", False),
+        }
+
+    def _map_board(raw_list: list | None) -> list[dict]:
+        if not raw_list:
+            return []
+        return [_map_card(c) for c in raw_list]
+
     decks_by_set: dict[str, list[dict]] = defaultdict(list)
     for deck_entry in decks_raw:
         upper = deck_entry["set_code"].upper()
-
-        def _map_card(c: dict) -> dict:
-            return {
-                "uuid": c["mtgjson_uuid"],
-                "isFoil": c.get("foil", False),
-                "isEtched": c.get("etched", False),
-            }
-
-        def _map_board(raw_list: list | None) -> list[dict]:
-            if not raw_list:
-                return []
-            return [_map_card(c) for c in raw_list]
 
         mapped_cards = _map_board(deck_entry.get("cards"))
         mapped_main = mapped_cards  # taw "cards" → both cards AND mainBoard
@@ -676,9 +671,7 @@ def build_pipeline_view(
         mapped_planar = _map_board(deck_entry.get("planarDeck"))
         mapped_scheme = _map_board(deck_entry.get("schemeDeck"))
 
-        source_set_codes = [
-            sc.upper() for sc in deck_entry.get("sourceSetCodes", [upper])
-        ]
+        source_set_codes = [sc.upper() for sc in deck_entry.get("sourceSetCodes", [upper])]
 
         mapped_deck: dict[str, Any] = {
             "name": deck_entry["name"],
@@ -751,9 +744,7 @@ def _ctp_get_card_obj_from_card(card_content: dict[str, Any]) -> list[_CTPCard]:
     return []
 
 
-def _ctp_get_cards_in_pack(
-    data: dict, set_code: str, booster_code: str
-) -> list[_CTPCard]:
+def _ctp_get_cards_in_pack(data: dict, set_code: str, booster_code: str) -> list[_CTPCard]:
     """Return cards reachable from a booster pack definition.
 
     Traverses every sheet referenced by boosters for *booster_code* and resolves
@@ -817,9 +808,7 @@ def _ctp_get_cards_in_pack(
     return list(return_value)
 
 
-def _ctp_get_cards_in_deck(
-    data: dict, set_code: str, deck_name: str
-) -> list[_CTPCard]:
+def _ctp_get_cards_in_deck(data: dict, set_code: str, deck_name: str) -> list[_CTPCard]:
     """Return cards from a named deck, validating finishes against source sets."""
     try:
         decks_data = data[set_code].get("decks")
@@ -870,9 +859,7 @@ def _ctp_get_cards_in_deck(
     return list(return_value)
 
 
-def _ctp_get_cards_in_sealed_product(
-    data: dict, set_code: str, sealed_product_uuid: str | None
-) -> list[_CTPCard]:
+def _ctp_get_cards_in_sealed_product(data: dict, set_code: str, sealed_product_uuid: str | None) -> list[_CTPCard]:
     """Return all cards reachable from a sealed product, traversing contents."""
     return_value: set[_CTPCard] = set()
 
@@ -894,9 +881,7 @@ def _ctp_get_cards_in_sealed_product(
     return list(return_value)
 
 
-def _ctp_get_cards_in_content_type(
-    data: dict, content_key: str, content: dict[str, Any]
-) -> list[_CTPCard]:
+def _ctp_get_cards_in_content_type(data: dict, content_key: str, content: dict[str, Any]) -> list[_CTPCard]:
     """Dispatch to the appropriate handler for a content type."""
     if content_key == "card":
         return _ctp_get_card_obj_from_card(content)
@@ -905,9 +890,7 @@ def _ctp_get_cards_in_content_type(
         return _ctp_get_cards_in_pack(data, content["set"].upper(), content["code"])
 
     if content_key == "sealed":
-        return _ctp_get_cards_in_sealed_product(
-            data, content["set"].upper(), content.get("uuid")
-        )
+        return _ctp_get_cards_in_sealed_product(data, content["set"].upper(), content.get("uuid"))
 
     if content_key == "deck":
         return _ctp_get_cards_in_deck(data, content["set"].upper(), content["name"])
@@ -916,19 +899,11 @@ def _ctp_get_cards_in_content_type(
         result: set[_CTPCard] = set()
         for config in content["configs"]:
             for dk in config.get("deck", []):
-                result.update(
-                    _ctp_get_cards_in_deck(data, dk["set"].upper(), dk["name"])
-                )
+                result.update(_ctp_get_cards_in_deck(data, dk["set"].upper(), dk["name"]))
             for sl in config.get("sealed", []):
-                result.update(
-                    _ctp_get_cards_in_sealed_product(
-                        data, sl["set"].upper(), sl.get("uuid")
-                    )
-                )
+                result.update(_ctp_get_cards_in_sealed_product(data, sl["set"].upper(), sl.get("uuid")))
             for pk in config.get("pack", []):
-                result.update(
-                    _ctp_get_cards_in_pack(data, pk["set"].upper(), pk["code"])
-                )
+                result.update(_ctp_get_cards_in_pack(data, pk["set"].upper(), pk["code"]))
             for cd in config.get("card", []):
                 result.update(_ctp_get_card_obj_from_card(cd))
         return list(result)
@@ -944,9 +919,7 @@ def _ctp_results_to_json(
     build_data: dict[_CTPCard, set[str]],
 ) -> dict[str, dict[str, list[str]]]:
     """Convert build_data mapping to JSON-serializable dict."""
-    return_value: dict[str, dict[str, list[str]]] = defaultdict(
-        lambda: defaultdict(list)
-    )
+    return_value: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
     for ctp_card, product_uuids in build_data.items():
         return_value[ctp_card.uuid][ctp_card.finish] = sorted(product_uuids)
     return dict(return_value)
@@ -975,9 +948,7 @@ def compile_card_to_products(pipeline_view: dict) -> dict[str, dict[str, list[st
 
         LOGGER.debug("card_to_products: processing %s", set_code)
         for sealed_product in set_data["sealedProduct"]:
-            cards_list = _ctp_get_cards_in_sealed_product(
-                pipeline_view, set_code, sealed_product.get("uuid")
-            )
+            cards_list = _ctp_get_cards_in_sealed_product(pipeline_view, set_code, sealed_product.get("uuid"))
             for ctp_card in cards_list:
                 build_data[ctp_card].add(sealed_product.get("uuid"))
 
