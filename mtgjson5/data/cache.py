@@ -1034,6 +1034,7 @@ class GlobalCache:
             """Called when GitHub data finishes loading."""
             LOGGER.info("Sealed loaded - transferring to GlobalCache...")
 
+            # Phase 1: Transfer provider data that doesn't need inline compilation
             if provider.card_to_products_df is not None:
                 provider.card_to_products_df.collect().write_parquet(card_to_products_cache)
                 self.sealed_cards_lf = provider.card_to_products_df
@@ -1042,14 +1043,6 @@ class GlobalCache:
                 provider.sealed_products_df.collect().write_parquet(sealed_products_cache)
                 self.sealed_products_lf = provider.sealed_products_df
 
-            if provider.sealed_contents_df is not None:
-                provider.sealed_contents_df.collect().write_parquet(sealed_contents_cache)
-                self.sealed_contents_lf = provider.sealed_contents_df
-
-            if provider.decks_df is not None:
-                provider.decks_df.collect().write_parquet(decks_cache)
-                self.decks_lf = provider.decks_df
-
             if provider.boosters_df is not None:
                 provider.boosters_df.collect().write_parquet(booster_cache)
                 self.boosters_lf = provider.boosters_df
@@ -1057,6 +1050,55 @@ class GlobalCache:
             if provider.token_products_df is not None:
                 provider.token_products_df.collect().write_parquet(token_products_cache)
                 self.token_products_lf = provider.token_products_df
+
+            # Phase 2: Inline sealed compilation
+            # self.cards_lf and self.uuid_cache_lf were set by the main thread
+            # before ThreadPoolExecutor started (happens-before guarantee).
+            if provider.contents_dir is not None and provider.products_dict is not None and self.cards_lf is not None:
+                from mtgjson5.pipeline.stages.sealed import (
+                    build_uuid_map_from_pipeline,
+                    compile_contents,
+                )
+                from mtgjson5.providers.github.provider import (
+                    _build_decks_records,
+                    _build_sealed_contents_records,
+                    _to_lazyframe,
+                )
+
+                LOGGER.info("Building UUID map from pipeline data...")
+                uuid_map = build_uuid_map_from_pipeline(
+                    cards_lf=self.cards_lf,
+                    uuid_cache_lf=self.uuid_cache_lf,
+                    boosters_raw=provider.boosters_raw or {},
+                    decks_raw=provider.decks_raw or [],
+                    products_dict=provider.products_dict,
+                )
+
+                LOGGER.info("Compiling sealed contents from YAML sources...")
+                contents_dict, deck_map = compile_contents(provider.contents_dir, uuid_map)
+
+                # Build sealed_contents_lf from contents_dict
+                contents_records = _build_sealed_contents_records(contents_dict)
+                self.sealed_contents_lf = _to_lazyframe(contents_records, "sealed_contents", "sealed_contents")
+                if self.sealed_contents_lf is not None:
+                    self.sealed_contents_lf.collect().write_parquet(sealed_contents_cache)
+
+                # Build decks_lf with the compiled deck_map
+                deck_records = _build_decks_records(provider.decks_raw or [], deck_map)
+                self.decks_lf = _to_lazyframe(deck_records, "decks", "decks")
+                if self.decks_lf is not None:
+                    self.decks_lf.collect().write_parquet(decks_cache)
+
+                LOGGER.info("Inline sealed compilation complete")
+            else:
+                missing = []
+                if provider.contents_dir is None:
+                    missing.append("contents_dir (YAML tarball extraction failed)")
+                if provider.products_dict is None:
+                    missing.append("products_dict (products compilation failed)")
+                if self.cards_lf is None:
+                    missing.append("cards_lf (Scryfall bulk data not loaded)")
+                raise RuntimeError(f"Inline sealed compilation failed — missing required data: {', '.join(missing)}")
 
         self.github.load_async_background(on_complete=on_github_complete)
         # Block until the background thread finishes so that sealed/deck/booster
@@ -1338,7 +1380,7 @@ class GlobalCache:
     def github(self) -> SealedDataProvider:
         """Get or create the GitHub data provider instance."""
         if self._github is None:
-            self._github = SealedDataProvider()
+            self._github = SealedDataProvider(cache_path=self.cache_path)
         return self._github
 
     @property
