@@ -28,6 +28,7 @@ OUTPUT_FILES = {
     "products": "products.json",
     "contents": "contents.json",
     "deck_map": "deck_map.json",
+    "card_map": "card_map.json",
 }
 
 
@@ -305,6 +306,61 @@ def validate_deck_map(deck_map_actual: dict, expected: dict) -> tuple[bool, list
         return False, diffs
 
 
+def _build_pipeline_view_from_allprintings(allprintings_path: Path) -> dict:
+    """Build pipeline view dict directly from AllPrintings.json.
+
+    For validation: this provides the same data that our pipeline view
+    would provide, but sourced from AllPrintings (same source as upstream).
+    """
+    with open(allprintings_path, encoding="utf-8") as f:
+        ap = json.load(f)
+
+    view: dict = {}
+    for set_code, set_data in ap.get("data", {}).items():
+        view[set_code] = {
+            "sealedProduct": set_data.get("sealedProduct", []),
+            "booster": set_data.get("booster", {}),
+            "decks": set_data.get("decks", []),
+            "cards": set_data.get("cards", []),
+            "tokens": set_data.get("tokens", []),
+        }
+    return view
+
+
+def validate_card_map(
+    allprintings_path: Path,
+    expected_card_map: dict,
+) -> tuple[bool, list[str]]:
+    """Validate compile_card_to_products() against the fetched card_map.json."""
+    from mtgjson5.pipeline.stages.sealed import compile_card_to_products
+
+    print("Building pipeline view from AllPrintings.json ...")
+    pipeline_view = _build_pipeline_view_from_allprintings(allprintings_path)
+
+    print("Compiling card_map from pipeline view ...")
+    actual = compile_card_to_products(pipeline_view)
+
+    diffs = deep_diff(expected_card_map, actual)
+    type_warnings = [d for d in diffs if d.startswith("TYPE WARNING")]
+    real_diffs = [d for d in diffs if not d.startswith("TYPE WARNING")]
+    n_cards = len(actual)
+
+    if not real_diffs:
+        print(f"[PASS] card_map.json: {n_cards} card UUIDs, 0 differences")
+        if type_warnings:
+            print(f"       ({len(type_warnings)} int/str type warnings)")
+        return True, diffs
+    else:
+        print(f"[FAIL] card_map.json: {n_cards} card UUIDs, {len(real_diffs)} differences")
+        for d in real_diffs[:50]:
+            print(f"  - {d}")
+        if len(real_diffs) > 50:
+            print(f"  ... and {len(real_diffs) - 50} more")
+        if type_warnings:
+            print(f"  ({len(type_warnings)} int/str type warnings omitted)")
+        return False, diffs
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -314,7 +370,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Validate sealed content compilation parity")
     parser.add_argument(
         "--stage",
-        choices=["products", "contents", "deck_map", "all"],
+        choices=["products", "contents", "deck_map", "card_map", "all"],
         default="all",
         help="Which stage to validate (default: all)",
     )
@@ -344,7 +400,7 @@ def main() -> None:
         cache_dir = Path(tempfile.mkdtemp(prefix="sealed-validate-"))
     LOGGER.info("Cache directory: %s", cache_dir)
 
-    stages = [args.stage] if args.stage != "all" else ["products", "contents", "deck_map"]
+    stages = [args.stage] if args.stage != "all" else ["products", "contents", "deck_map", "card_map"]
 
     if args.skip_fetch:
         sha = "unknown"
@@ -417,6 +473,18 @@ def main() -> None:
                 _, deck_map_actual = compile_contents(contents_dir, uuid_map)
                 passed, _ = validate_deck_map(deck_map_actual, expected_deck_map)
 
+            if not passed:
+                all_pass = False
+
+        elif stage == "card_map":
+            expected = _load_expected("card_map")
+            if expected is None:
+                LOGGER.error("Could not fetch expected output for card_map")
+                all_pass = False
+                continue
+
+            allprintings_path = fetch_allprintings(cache_dir, args.allprintings)
+            passed, _ = validate_card_map(allprintings_path, expected)
             if not passed:
                 all_pass = False
 
