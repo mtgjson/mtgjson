@@ -222,7 +222,7 @@ class SealedDataProvider:
         "boosters": "https://raw.githubusercontent.com/taw/magic-sealed-data/master/experimental_export_for_mtgjson.json",
     }
 
-    TARBALL_URL = "https://github.com/mtgjson/mtg-sealed-content/archive/refs/heads/main.tar.gz"
+    TARBALL_URL = "https://api.github.com/repos/mtgjson/mtg-sealed-content/tarball/main"
 
     def __init__(self, timeout: int = 120, cache_path: Path | None = None):
         self._timeout = aiohttp.ClientTimeout(total=timeout)
