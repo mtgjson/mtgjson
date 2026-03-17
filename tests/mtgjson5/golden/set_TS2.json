@@ -40,6 +40,9 @@
       "purchaseUrls": {},
       "rarity": "common",
       "setCode": "TS2",
+      "skuIds": {
+        "nonfoil": "1294842b-30ef-5d8f-8d7f-f32d7a28c655"
+      },
       "subtypes": [],
       "supertypes": [],
       "text": "Lightning Bolt deals 3 damage to any target.",
@@ -86,6 +89,9 @@
       "purchaseUrls": {},
       "rarity": "common",
       "setCode": "TS2",
+      "skuIds": {
+        "nonfoil": "24752189-87b1-5a35-83d5-8308dc9cfe5d"
+      },
       "subtypes": [
         "Human",
         "Wizard"

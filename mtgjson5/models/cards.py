@@ -28,6 +28,7 @@ from .submodels import (
     PurchaseUrls,
     RelatedCards,
     Rulings,
+    SkuIds,
     SourceProducts,
 )
 
@@ -535,6 +536,15 @@ class CardPrintingBase(CardBase):
         default_factory=list,
         description="The finishes of the card. These finishes are not mutually exclusive.",
         json_schema_extra={"introduced": "v5.2.0", "enum_key": "finishes"},
+    )
+    sku_ids: SkuIds = Field(
+        default_factory=dict,  # type: ignore[assignment]
+        alias="skuIds",
+        description=(
+            "A mapping of finish type to a unique identifier for that finish variant of the card. "
+            "See the [SKU IDs](/data-models/sku-ids/) Data Model."
+        ),
+        json_schema_extra={"introduced": "v5.3.0"},
     )
 
     promo_types: list[str] | None = Field(

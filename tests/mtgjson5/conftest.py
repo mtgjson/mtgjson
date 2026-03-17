@@ -243,6 +243,22 @@ def meld_ctx():  # -> PipelineContext
 # Assembly-level helpers
 # ---------------------------------------------------------------------------
 
+
+def _make_sku_ids(
+    card_uuid: str,
+    finishes: list[str],
+    language: str = "English",
+) -> dict[str, str | None]:
+    """Compute skuIds struct matching pipeline output."""
+    import uuid as _uuid
+
+    all_finishes = ["nonfoil", "foil", "etched", "signed", "other"]
+    return {
+        f: str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"{card_uuid}_{f}_{language}")) if f in finishes else None
+        for f in all_finishes
+    }
+
+
 _IDENTIFIERS_EMPTY: dict[str, Any] = {
     "abuId": None,
     "cardKingdomEtchedId": None,
@@ -315,8 +331,10 @@ _PURCHASE_URLS_EMPTY: dict[str, Any] = {
 def make_assembled_card(**overrides: Any) -> dict[str, Any]:
     """Build a dict matching CardSet.polars_schema() for assembly-level tests.
 
-    All 87 fields are present with sensible defaults. Override only what matters.
+    All fields are present with sensible defaults. Override only what matters.
     """
+    card_uuid = overrides.get("uuid", "test-uuid-001")
+    card_finishes = overrides.get("finishes", ["nonfoil"])
     defaults: dict[str, Any] = {
         # -- scalars --
         "artist": "Test Artist",
@@ -374,7 +392,7 @@ def make_assembled_card(**overrides: Any) -> dict[str, Any]:
         "text": "Test card text.",
         "toughness": None,
         "type": "Instant",
-        "uuid": "test-uuid-001",
+        "uuid": card_uuid,
         "watermark": None,
         # -- lists --
         "artistIds": None,
@@ -385,7 +403,7 @@ def make_assembled_card(**overrides: Any) -> dict[str, Any]:
         "colorIdentity": ["R"],
         "colorIndicator": None,
         "colors": ["R"],
-        "finishes": ["nonfoil"],
+        "finishes": card_finishes,
         "frameEffects": None,
         "keywords": None,
         "originalPrintings": None,
@@ -400,6 +418,7 @@ def make_assembled_card(**overrides: Any) -> dict[str, Any]:
         "types": ["Instant"],
         "variations": None,
         # -- structs --
+        "skuIds": _make_sku_ids(card_uuid, card_finishes),
         "identifiers": {**_IDENTIFIERS_EMPTY, "scryfallId": "sf-001", "scryfallOracleId": "oracle-001"},
         "legalities": {**_LEGALITIES_EMPTY, "vintage": "Legal", "legacy": "Legal", "commander": "Legal"},
         "leadershipSkills": None,
@@ -416,6 +435,8 @@ def make_assembled_card(**overrides: Any) -> dict[str, Any]:
 
 def make_assembled_token(**overrides: Any) -> dict[str, Any]:
     """Build a dict matching CardToken.polars_schema() for assembly-level tests."""
+    token_uuid = overrides.get("uuid", "uuid-zombie-001")
+    token_finishes = overrides.get("finishes", ["nonfoil"])
     defaults: dict[str, Any] = {
         "artist": "Token Artist",
         "artistIds": None,
@@ -432,7 +453,8 @@ def make_assembled_token(**overrides: Any) -> dict[str, Any]:
         "faceFlavorName": None,
         "faceName": None,
         "facePrintedName": None,
-        "finishes": ["nonfoil"],
+        "finishes": token_finishes,
+        "skuIds": _make_sku_ids(token_uuid, token_finishes),
         "flavorName": None,
         "flavorText": None,
         "frameEffects": None,
@@ -476,7 +498,7 @@ def make_assembled_token(**overrides: Any) -> dict[str, Any]:
         "toughness": "2",
         "type": "Token Creature — Zombie",
         "types": ["Token", "Creature"],
-        "uuid": "uuid-zombie-001",
+        "uuid": token_uuid,
         "watermark": None,
     }
     defaults.update(overrides)
