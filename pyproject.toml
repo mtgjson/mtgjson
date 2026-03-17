@@ -57,8 +57,9 @@ dependencies = [
     "polars-hash==0.5.6",
     "pydantic==2.12.5",
     "python-dateutil==2.9.0.post0",
+    "PyYAML==6.0.3",
     "ratelimit==2.2.1",
-    "requests-cache==1.3.0",
+    "requests-cache[yaml]==1.3.0",
     "psutil>=5.9",
     "requests==2.32.5",
     "singleton-decorator==1.0.0",
@@ -141,6 +142,8 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # imported but unused (re-exports in __init__ are intentional)
+"scripts/*.py" = ["T201"]  # print() is expected in CLI scripts
+"mtgjson5/pipeline/stages/sealed.py" = ["N801", "N802"]  # lowercase class/method names match reference product_classes.py
 
 # --- mypy ---
 

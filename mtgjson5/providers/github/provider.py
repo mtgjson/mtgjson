@@ -7,6 +7,7 @@ import json
 import logging
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Any
 
 import aiohttp
@@ -217,18 +218,15 @@ class SealedDataProvider:
     """Provider for MTGJSON GitHub data."""
 
     URLS = {
-        # LFS files: use media.githubusercontent.com
-        "card_map": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/card_map.json",
-        "products": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/products.json",
-        "contents": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/contents.json",
-        "deck_map": "https://media.githubusercontent.com/media/mtgjson/mtg-sealed-content/main/outputs/deck_map.json",
-        # Non-LFS files: use raw.githubusercontent.com
         "decks": "https://raw.githubusercontent.com/taw/magic-preconstructed-decks-data/master/decks_v2.json",
         "boosters": "https://raw.githubusercontent.com/taw/magic-sealed-data/master/experimental_export_for_mtgjson.json",
     }
 
-    def __init__(self, timeout: int = 120):
+    TARBALL_URL = "https://api.github.com/repos/mtgjson/mtg-sealed-content/tarball/main"
+
+    def __init__(self, timeout: int = 120, cache_path: Path | None = None):
         self._timeout = aiohttp.ClientTimeout(total=timeout)
+        self._cache_path = cache_path
         self.boosters_df: pl.LazyFrame | None = None
         self.card_to_products_df: pl.LazyFrame | None = None
         self.sealed_products_df: pl.LazyFrame | None = None
@@ -239,6 +237,12 @@ class SealedDataProvider:
         self._executor: ThreadPoolExecutor | None = None
         self._load_future: Any = None
         self._on_complete_callback: Callable[[Any], None] | None = None
+        # Inline compilation data (populated by _fetch_and_build)
+        self.products_dir: Path | None = None
+        self.contents_dir: Path | None = None
+        self.products_dict: dict | None = None
+        self.boosters_raw: dict | None = None
+        self.decks_raw: list | None = None
 
     def load_async_background(self, on_complete: Callable[[Any], None] | None = None) -> None:
         """
@@ -303,21 +307,101 @@ class SealedDataProvider:
         asyncio.run(self._fetch_and_build())
         return self
 
+    async def _fetch_and_extract_yaml(self, session: aiohttp.ClientSession) -> tuple[Path, Path]:
+        """Fetch YAML tarball and extract products + contents directories.
+
+        Returns (products_dir, contents_dir). Retries 3 times on failure,
+        raises RuntimeError if all attempts fail.
+        """
+        import io
+        import tarfile as _tarfile
+        import tempfile
+
+        # Determine extraction target
+        if self._cache_path:
+            extract_base = self._cache_path / "sealed_yaml"
+        else:
+            extract_base = Path(tempfile.mkdtemp(prefix="sealed_yaml_"))
+
+        products_dir = extract_base / "data" / "products"
+        contents_dir = extract_base / "data" / "contents"
+
+        # Skip if already extracted
+        if products_dir.exists() and contents_dir.exists():
+            n_p = len(list(products_dir.glob("*.yaml")))
+            n_c = len(list(contents_dir.glob("*.yaml")))
+            if n_p > 0 and n_c > 0:
+                LOGGER.info(f"Using cached YAMLs: {n_p} products, {n_c} contents")
+                return products_dir, contents_dir
+
+        # Download tarball with retries
+        tarball_bytes = None
+        last_error = None
+        for attempt in range(3):
+            try:
+                async with session.get(self.TARBALL_URL) as r:
+                    r.raise_for_status()
+                    tarball_bytes = await r.read()
+                    break
+            except (TimeoutError, aiohttp.ClientError) as e:
+                last_error = e
+                LOGGER.warning("Tarball download attempt %d failed: %s", attempt + 1, e)
+        if tarball_bytes is None:
+            raise RuntimeError(f"Failed to download sealed content YAML tarball after 3 attempts: {last_error}")
+
+        LOGGER.info(f"Extracting YAMLs from tarball ({len(tarball_bytes):,} bytes)...")
+
+        with _tarfile.open(fileobj=io.BytesIO(tarball_bytes), mode="r:gz") as tf:
+            # Find the prefix (mtg-sealed-content-{sha}/)
+            prefix = ""
+            for m in tf.getmembers():
+                if "/" in m.name:
+                    prefix = m.name.split("/")[0] + "/"
+                    break
+
+            for member in tf.getmembers():
+                if not member.name.startswith(prefix):
+                    continue
+                rel = member.name[len(prefix) :]
+                if rel.startswith(("data/products/", "data/contents/")) and rel.endswith(".yaml"):
+                    dest = extract_base / rel
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    f = tf.extractfile(member)
+                    if f is not None:
+                        dest.write_bytes(f.read())
+
+        n_p = len(list(products_dir.glob("*.yaml")))
+        n_c = len(list(contents_dir.glob("*.yaml")))
+        LOGGER.info(f"Extracted {n_p} product YAMLs, {n_c} content YAMLs")
+        return products_dir, contents_dir
+
     async def _fetch_and_build(self) -> None:
         """Fetch all data from GitHub and build DataFrames."""
         LOGGER.info("Fetching GitHub data...")
-
         headers = self._build_headers()
 
         async with aiohttp.ClientSession(timeout=self._timeout, headers=headers) as session:
-            tasks = [self._fetch(session, k, url) for k, url in self.URLS.items()]
-            results = await asyncio.gather(*tasks)
+            # Fetch URLs + tarball + token products in parallel
+            url_tasks = [self._fetch(session, k, url) for k, url in self.URLS.items()]
+            tarball_task = self._fetch_and_extract_yaml(session)
+            token_task = self._fetch_token_products(session)
 
-            # Fetch token products (per-set files)
-            token_products_data = await self._fetch_token_products(session)
+            results = await asyncio.gather(*url_tasks)
+            self.products_dir, self.contents_dir = await tarball_task
+            token_products_data = await token_task
 
         raw = dict(results)
         raw["token_products"] = token_products_data
+
+        # Store raw data for inline compilation (used by cache.py callback)
+        self.boosters_raw = raw.get("boosters", {})
+        self.decks_raw = raw.get("decks", [])
+
+        # Compile products from YAML (no UUID dependency)
+        from mtgjson5.pipeline.stages.sealed import compile_products
+
+        self.products_dict = compile_products(self.products_dir)
+
         self._build_all_dataframes(raw)
         LOGGER.info("GitHub data loaded")
 
@@ -401,43 +485,27 @@ class SealedDataProvider:
     def _build_all_dataframes(self, raw: dict[str, Any]) -> None:
         """Build all DataFrames from raw fetched data."""
 
-        builders: list[tuple[str, str, Callable, tuple]] = [
-            (
-                "card_to_products",
-                "card_to_products",
-                _build_card_to_products_records,
-                ("card_map",),
-            ),
-            (
-                "sealed_products",
-                "sealed_products",
-                _build_sealed_products_records,
-                ("products",),
-            ),
-            (
-                "sealed_contents",
-                "sealed_contents",
-                _build_sealed_contents_records,
-                ("contents",),
-            ),
-            ("boosters", "boosters", _build_boosters_records, ("boosters",)),
-        ]
+        # Card-to-products: built in cache.py on_github_complete() via inline compilation
+        self.card_to_products_df = None
 
-        for schema_key, log_label, builder_func, raw_keys in builders:
-            args = [raw.get(k, {}) for k in raw_keys]
-            records = builder_func(*args)
-            lf = _to_lazyframe(records, schema_key, log_label)
-            setattr(self, f"{schema_key}_df", lf)
+        # Sealed products: from compiled YAML (not pre-built JSON)
+        products_records = _build_sealed_products_records(self.products_dict or {})
+        self.sealed_products_df = _to_lazyframe(products_records, "sealed_products", "sealed_products")
 
-        # Decks needs special handling (two raw inputs, partitioned by type)
-        deck_records = _build_decks_records(raw.get("decks", []), raw.get("deck_map", {}))
-        decks_lf = _to_lazyframe(deck_records, "decks", "decks")
-        self.decks_df = decks_lf
-        self.sealed_dicts = self._partition_decks_by_type(decks_lf)
+        # Boosters: unchanged
+        booster_records = _build_boosters_records(raw.get("boosters", {}))
+        self.boosters_df = _to_lazyframe(booster_records, "boosters", "boosters")
 
-        # Token products (combined from per-set files)
+        # Token products: unchanged
         token_records = _build_token_products_records(raw.get("token_products", {}))
         self.token_products_df = _to_lazyframe(token_records, "token_products", "token_products")
+
+        # sealed_contents_df and decks_df: NOT built here — they require
+        # uuid_map + deck_map from inline compilation using pipeline data.
+        # Built in cache.py on_github_complete() callback.
+        self.sealed_contents_df = None
+        self.decks_df = None
+        self.sealed_dicts = {}
 
     def _partition_decks_by_type(self, decks_lf: pl.LazyFrame) -> dict[str, pl.LazyFrame]:
         """Partition decks LazyFrame by deck type."""
