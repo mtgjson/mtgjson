@@ -180,31 +180,34 @@ def _enrich_sets_with_decks(
             "name": row.get("name", ""),
             "type": row.get("type", ""),
             "releaseDate": row.get("releaseDate"),
-            "sealedProductUuids": row.get("sealedProductUuids") or None,
-            "sourceSetCodes": row.get("sourceSetCodes") or None,
+            "sealedProductUuids": orjson.dumps(row.get("sealedProductUuids") or []).decode("utf-8"),
+            "sourceSetCodes": orjson.dumps(row.get("sourceSetCodes") or []).decode("utf-8"),
         }
-        # Boards that include isEtched
+        # Boards that include isEtched - pre-serialized to JSON strings
+        # to avoid Polars struct schema inference issues
         for board in ["mainBoard", "sideBoard", "commander", "displayCommander"]:
             cards_list = row.get(board)
             if cards_list and isinstance(cards_list, list):
-                minimal[board] = [
+                filtered = [
                     {k: v for k, v in c.items() if k in ("count", "uuid", "isFoil", "isEtched") and v not in (None, False)}
                     for c in cards_list
                     if isinstance(c, dict)
                 ]
+                minimal[board] = orjson.dumps(filtered).decode("utf-8")
             else:
-                minimal[board] = []
+                minimal[board] = "[]"
         # Boards that exclude isEtched
         for board in ["tokens", "planes", "schemes"]:
             cards_list = row.get(board)
             if cards_list and isinstance(cards_list, list):
-                minimal[board] = [
+                filtered = [
                     {k: v for k, v in c.items() if k in ("count", "uuid", "isFoil") and v not in (None, False)}
                     for c in cards_list
                     if isinstance(c, dict)
                 ]
+                minimal[board] = orjson.dumps(filtered).decode("utf-8")
             else:
-                minimal[board] = []
+                minimal[board] = "[]"
         decks_by_set.setdefault(set_code, []).append(minimal)
 
     for rec in records:
