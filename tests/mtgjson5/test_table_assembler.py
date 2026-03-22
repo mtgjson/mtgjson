@@ -105,6 +105,38 @@ def _make_sets_df() -> pl.DataFrame:
                 "type": "core",
                 "releaseDate": "2009-07-17",
                 "translations": {"French": "Magic 2010", "German": "Hauptset 2010"},
+                "sealedProduct": [
+                    {
+                        "uuid": "sealed-001",
+                        "name": "Booster Box",
+                        "category": "booster_box",
+                        "subtype": None,
+                        "releaseDate": "2009-07-17",
+                        "cardCount": 36,
+                        "productSize": None,
+                        "identifiers": {"tcgplayerProductId": "12345"},
+                        "purchaseUrls": {"tcgplayer": "https://tcg.example.com"},
+                        "contents": '{"card": []}',
+                    },
+                ],
+                "decks": [
+                    {
+                        "code": "M10",
+                        "name": "Intro Pack Red",
+                        "type": "Intro Pack",
+                        "releaseDate": "2009-07-17",
+                        "sealedProductUuids": ["sealed-001"],
+                        "sourceSetCodes": None,
+                        "mainBoard": [{"uuid": "uuid-001", "count": 1}],
+                        "sideBoard": [],
+                        "commander": [],
+                        "displayCommander": [],
+                        "tokens": [],
+                        "planes": [],
+                        "schemes": [],
+                    },
+                ],
+                "languages": ["English", "French", "German"],
             },
         ],
         schema={
@@ -113,6 +145,42 @@ def _make_sets_df() -> pl.DataFrame:
             "type": pl.String,
             "releaseDate": pl.String,
             "translations": pl.Struct({"French": pl.String, "German": pl.String}),
+            "sealedProduct": pl.List(
+                pl.Struct(
+                    {
+                        "uuid": pl.String,
+                        "name": pl.String,
+                        "category": pl.String,
+                        "subtype": pl.String,
+                        "releaseDate": pl.String,
+                        "cardCount": pl.Int64,
+                        "productSize": pl.Int64,
+                        "identifiers": pl.Struct({"tcgplayerProductId": pl.String}),
+                        "purchaseUrls": pl.Struct({"tcgplayer": pl.String}),
+                        "contents": pl.String,
+                    }
+                )
+            ),
+            "decks": pl.List(
+                pl.Struct(
+                    {
+                        "code": pl.String,
+                        "name": pl.String,
+                        "type": pl.String,
+                        "releaseDate": pl.String,
+                        "sealedProductUuids": pl.List(pl.String),
+                        "sourceSetCodes": pl.List(pl.String),
+                        "mainBoard": pl.List(pl.Struct({"uuid": pl.String, "count": pl.Int64})),
+                        "sideBoard": pl.List(pl.Struct({"uuid": pl.String, "count": pl.Int64})),
+                        "commander": pl.List(pl.Struct({"uuid": pl.String, "count": pl.Int64})),
+                        "displayCommander": pl.List(pl.Struct({"uuid": pl.String, "count": pl.Int64})),
+                        "tokens": pl.List(pl.Struct({"uuid": pl.String, "count": pl.Int64})),
+                        "planes": pl.List(pl.Struct({"uuid": pl.String, "count": pl.Int64})),
+                        "schemes": pl.List(pl.Struct({"uuid": pl.String, "count": pl.Int64})),
+                    }
+                )
+            ),
+            "languages": pl.List(pl.String),
         },
     )
 
@@ -351,6 +419,94 @@ class TestBuildAllSets:
 
 
 # =============================================================================
+# TestBuildAllSealedProducts
+# =============================================================================
+
+
+class TestBuildAllSealedProducts:
+    def test_sealed_products_table_created(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        assert "sealedProducts" in tables
+
+    def test_sealed_products_columns(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        sp = tables["sealedProducts"]
+        for col in ["setCode", "uuid", "name", "category"]:
+            assert col in sp.columns
+
+    def test_sealed_product_excluded_from_sets(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        assert "sealedProduct" not in tables["sets"].columns
+
+    def test_sealed_products_set_code_from_parent(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        sp = tables["sealedProducts"]
+        assert sp["setCode"][0] == "M10"
+
+    def test_sealed_products_identifiers_serialized(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        sp = tables["sealedProducts"]
+        assert sp.schema["identifiers"] == pl.String
+        import json
+        parsed = json.loads(sp["identifiers"][0])
+        assert parsed["tcgplayerProductId"] == "12345"
+
+
+# =============================================================================
+# TestBuildAllSetDecks
+# =============================================================================
+
+
+class TestBuildAllSetDecks:
+    def test_set_decks_table_created(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        assert "setDecks" in tables
+
+    def test_set_decks_columns(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        sd = tables["setDecks"]
+        for col in ["setCode", "name", "type"]:
+            assert col in sd.columns
+
+    def test_decks_excluded_from_sets(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        assert "decks" not in tables["sets"].columns
+
+    def test_set_decks_boards_serialized_as_json(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        sd = tables["setDecks"]
+        assert sd.schema["mainBoard"] == pl.String
+        import json
+        parsed = json.loads(sd["mainBoard"][0])
+        assert isinstance(parsed, list)
+        assert parsed[0]["uuid"] == "uuid-001"
+
+    def test_set_decks_set_code_from_parent(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        sd = tables["setDecks"]
+        assert sd["setCode"][0] == "M10"
+
+
+# =============================================================================
+# TestLanguagesOnSetsTable
+# =============================================================================
+
+
+class TestLanguagesOnSetsTable:
+    def test_languages_column_on_sets_table(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        sets = tables["sets"]
+        assert "languages" in sets.columns
+
+    def test_languages_serialized_as_csv(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        sets = tables["sets"]
+        assert sets.schema["languages"] == pl.String
+        assert "English" in sets["languages"][0]
+        assert "French" in sets["languages"][0]
+
+
+# =============================================================================
 # TestBuildBoosters
 # =============================================================================
 
@@ -403,3 +559,17 @@ class TestRelationalIntegrity:
         set_codes = set(tables["sets"]["code"].to_list())
         trans_codes = set(tables["setTranslations"]["code"].to_list())
         assert trans_codes.issubset(set_codes)
+
+    def test_sealed_products_set_code_in_sets(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        if "sealedProducts" in tables and "sets" in tables:
+            set_codes = set(tables["sets"]["code"].to_list())
+            sealed_codes = set(tables["sealedProducts"]["setCode"].to_list())
+            assert sealed_codes.issubset(set_codes)
+
+    def test_set_decks_set_code_in_sets(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        if "setDecks" in tables and "sets" in tables:
+            set_codes = set(tables["sets"]["code"].to_list())
+            deck_codes = set(tables["setDecks"]["setCode"].to_list())
+            assert deck_codes.issubset(set_codes)
