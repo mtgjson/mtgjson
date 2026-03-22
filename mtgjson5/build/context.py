@@ -133,6 +133,127 @@ def _enrich_set_metadata(
                 meta["tokenSetCode"] = None
 
 
+def _enrich_sets_with_sealed(
+    records: list[dict[str, Any]],
+    sealed_df: pl.DataFrame | None,
+) -> None:
+    """Attach sealedProduct lists to set records from sealed_df."""
+    if sealed_df is None or sealed_df.is_empty():
+        return
+
+    from mtgjson5.models.sealed import SealedProduct
+
+    # Group sealed products by setCode
+    sealed_by_set: dict[str, list[dict[str, Any]]] = {}
+    for code, group_df in sealed_df.group_by("setCode"):
+        set_code = code[0] if isinstance(code, tuple) else code
+        models = SealedProduct.from_dataframe(group_df)
+        products = []
+        for m in models:
+            d = m.to_polars_dict(exclude_none=False)
+            d.pop("setCode", None)
+            d.pop("language", None)
+            # Pre-serialize contents to JSON string to avoid Polars struct inference issues
+            if "contents" in d and d["contents"] is not None:
+                d["contents"] = orjson.dumps(d["contents"]).decode("utf-8")
+            products.append(d)
+        sealed_by_set[set_code] = products
+
+    for rec in records:
+        rec["sealedProduct"] = sealed_by_set.get(rec.get("code", ""), [])
+
+
+def _enrich_sets_with_decks(
+    records: list[dict[str, Any]],
+    decks_df: pl.DataFrame | None,
+) -> None:
+    """Attach minimal deck lists to set records from decks_df."""
+    if decks_df is None or decks_df.is_empty():
+        return
+
+    # Group decks by setCode and build minimal deck dicts
+    decks_by_set: dict[str, list[dict[str, Any]]] = {}
+    for row in decks_df.to_dicts():
+        set_code = row.get("setCode", "")
+        minimal: dict[str, Any] = {
+            "code": row.get("code", set_code),
+            "name": row.get("name", ""),
+            "type": row.get("type", ""),
+            "releaseDate": row.get("releaseDate"),
+            "sealedProductUuids": row.get("sealedProductUuids") or None,
+            "sourceSetCodes": row.get("sourceSetCodes") or None,
+        }
+        # Boards that include isEtched
+        for board in ["mainBoard", "sideBoard", "commander", "displayCommander"]:
+            cards_list = row.get(board)
+            if cards_list and isinstance(cards_list, list):
+                minimal[board] = [
+                    {k: v for k, v in c.items() if k in ("count", "uuid", "isFoil", "isEtched") and v not in (None, False)}
+                    for c in cards_list
+                    if isinstance(c, dict)
+                ]
+            else:
+                minimal[board] = []
+        # Boards that exclude isEtched
+        for board in ["tokens", "planes", "schemes"]:
+            cards_list = row.get(board)
+            if cards_list and isinstance(cards_list, list):
+                minimal[board] = [
+                    {k: v for k, v in c.items() if k in ("count", "uuid", "isFoil") and v not in (None, False)}
+                    for c in cards_list
+                    if isinstance(c, dict)
+                ]
+            else:
+                minimal[board] = []
+        decks_by_set.setdefault(set_code, []).append(minimal)
+
+    for rec in records:
+        rec["decks"] = decks_by_set.get(rec.get("code", ""), [])
+
+
+def _build_languages_by_set(cards_df: pl.DataFrame | None) -> dict[str, list[str]]:
+    """Compute sorted language lists per setCode from card foreignData.
+
+    Returns dict mapping setCode to sorted list of languages (always includes English).
+    """
+    if cards_df is None or cards_df.is_empty():
+        return {}
+    if "foreignData" not in cards_df.columns or "setCode" not in cards_df.columns:
+        return {}
+
+    # Bulk language extraction: explode foreignData, extract language, group by setCode
+    try:
+        lang_df = (
+            cards_df.lazy()
+            .select("setCode", "foreignData")
+            .filter(pl.col("foreignData").list.len() > 0)
+            .explode("foreignData")
+            .with_columns(pl.col("foreignData").struct.field("language").alias("language"))
+            .filter(pl.col("language").is_not_null() & (pl.col("language") != ""))
+            .select("setCode", "language")
+            .unique()
+            .group_by("setCode")
+            .agg(pl.col("language"))
+            .collect()
+        )
+    except Exception as e:
+        LOGGER.warning(f"Language extraction failed, sets will default to English: {e}")
+        return {}
+
+    result: dict[str, list[str]] = {}
+    for row in lang_df.iter_rows(named=True):
+        langs = set(row["language"]) | {"English"}
+        result[row["setCode"]] = sorted(langs)
+
+    # Also ensure sets that have cards but no foreignData get English
+    all_set_codes = cards_df.select("setCode").unique().to_series().to_list()
+    for code in all_set_codes:
+        if code not in result:
+            result[code] = ["English"]
+
+    return result
+
+
 def _load_scryfall_catalogs(
     ctx: PipelineContext,
 ) -> tuple[dict[str, list[str]], dict[str, list[str]], list[str], list[str]]:
@@ -229,6 +350,10 @@ class AssemblyContext:
 
         Filters out traditional token sets (type='token' AND code starts with 'T')
         to match CDN reference.
+
+        Note: accesses self.all_cards_df for language computation. When accessed
+        via normalized_tables, all_cards_df is already cached. If accessed
+        independently, this will trigger loading all_cards_df as a side effect.
         """
         if not self.set_meta:
             return None
@@ -246,6 +371,12 @@ class AssemblyContext:
         for rec in records:
             for key in schema_overrides:
                 rec.setdefault(key, None)
+        # Enrich with sealed products, decks, and languages
+        _enrich_sets_with_sealed(records, self.sealed_df)
+        _enrich_sets_with_decks(records, self.decks_df)
+        languages_map = _build_languages_by_set(self.all_cards_df)
+        for rec in records:
+            rec["languages"] = languages_map.get(rec.get("code", ""), ["English"])
         df = pl.DataFrame(records, schema_overrides=schema_overrides)
         if "type" in df.columns:
             is_traditional_token = (pl.col("type") == "token") & pl.col("code").str.starts_with("T")
