@@ -171,6 +171,8 @@ SETS_TABLE_EXCLUDE: frozenset[str] = frozenset(
         "setCode",
         "setType",
         "tcgplayerId",
+        "sealedProduct",
+        "decks",
     }
 )
 
