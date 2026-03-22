@@ -231,3 +231,63 @@ class TestCrossDialectConsistency:
         assert pg_result == "l'esprit"
         mysql_result = escape_mysql(val)
         assert mysql_result == "'l\\'esprit'"
+
+
+# =============================================================================
+# TestListOfStructSerialization
+# =============================================================================
+
+
+import json as _json  # noqa: E402
+
+
+class TestListOfStructSerialization:
+    def test_list_of_struct_produces_valid_json(self):
+        """List[Struct] columns should serialize to JSON arrays, not Python repr."""
+        df = pl.DataFrame(
+            [{"items": [{"uuid": "abc", "count": 2}]}],
+            schema={"items": pl.List(pl.Struct({"uuid": pl.String, "count": pl.Int64}))},
+        )
+        result = serialize_complex_types(df)
+        assert result.schema["items"] == pl.String
+        value = result["items"][0]
+        parsed = _json.loads(value)
+        assert parsed == [{"uuid": "abc", "count": 2}]
+
+    def test_list_of_struct_with_nulls_drops_null_values(self):
+        """Null values within structs should be dropped in JSON output."""
+        df = pl.DataFrame(
+            [{"items": [{"uuid": "abc", "name": None}]}],
+            schema={"items": pl.List(pl.Struct({"uuid": pl.String, "name": pl.String}))},
+        )
+        result = serialize_complex_types(df)
+        parsed = _json.loads(result["items"][0])
+        assert parsed == [{"uuid": "abc"}]
+
+    def test_list_of_struct_null_row(self):
+        """Null list values should serialize to null string."""
+        df = pl.DataFrame(
+            [{"items": None}],
+            schema={"items": pl.List(pl.Struct({"uuid": pl.String}))},
+        )
+        result = serialize_complex_types(df)
+        assert result["items"][0] is None
+
+    def test_list_of_string_still_uses_csv(self):
+        """List[String] columns should still use comma-separated format."""
+        df = pl.DataFrame(
+            [{"colors": ["R", "G"]}],
+            schema={"colors": pl.List(pl.String)},
+        )
+        result = serialize_complex_types(df)
+        assert result["colors"][0] == "R, G"
+
+    def test_struct_still_uses_json(self):
+        """Struct columns should still use JSON serialization."""
+        df = pl.DataFrame(
+            [{"ids": {"scryfallId": "sf-001"}}],
+            schema={"ids": pl.Struct({"scryfallId": pl.String})},
+        )
+        result = serialize_complex_types(df)
+        parsed = _json.loads(result["ids"][0])
+        assert parsed == {"scryfallId": "sf-001"}
