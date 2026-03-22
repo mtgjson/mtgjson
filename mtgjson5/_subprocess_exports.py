@@ -107,7 +107,7 @@ def run_exports(
         from mtgjson5.build.writer import UnifiedOutputWriter
 
         writer = UnifiedOutputWriter.from_cache(
-            skip=frozenset({"decks", "sealed", "token_products"}),
+            skip=frozenset({"token_products"}),
         )
         sp.checkpoint("cache_loaded")
         if writer is None:
