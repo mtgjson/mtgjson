@@ -170,6 +170,8 @@ class TestTableIndexes:
             "setBoosterSheetCards",
             "setBoosterContents",
             "setBoosterContentWeights",
+            "sealedProducts",
+            "setDecks",
         }
         assert set(TABLE_INDEXES.keys()) == expected
 
