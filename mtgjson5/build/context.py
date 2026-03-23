@@ -189,7 +189,11 @@ def _enrich_sets_with_decks(
             cards_list = row.get(board)
             if cards_list and isinstance(cards_list, list):
                 filtered = [
-                    {k: v for k, v in c.items() if k in ("count", "uuid", "isFoil", "isEtched") and v not in (None, False)}
+                    {
+                        k: v
+                        for k, v in c.items()
+                        if k in ("count", "uuid", "isFoil", "isEtched") and v not in (None, False)
+                    }
                     for c in cards_list
                     if isinstance(c, dict)
                 ]

@@ -1226,28 +1226,24 @@ class TableAssembler:
 
             # sealedProducts - explode list of structs
             if "sealedProduct" in sets_schema and isinstance(sets_schema["sealedProduct"], pl.List):
-                sealed_filtered = sets_df.select(
-                    pl.col("code").alias("_set_code"), "sealedProduct"
-                ).filter(pl.col("sealedProduct").list.len() > 0)
+                sealed_filtered = sets_df.select(pl.col("code").alias("_set_code"), "sealedProduct").filter(
+                    pl.col("sealedProduct").list.len() > 0
+                )
                 if len(sealed_filtered) > 0:
                     sealed_exploded = sealed_filtered.explode("sealedProduct").unnest("sealedProduct")
                     # Drop setCode from struct if present (redundant with parent code)
                     if "setCode" in sealed_exploded.columns:
                         sealed_exploded = sealed_exploded.drop("setCode")
-                    tables["sealedProducts"] = serialize_complex_types(
-                        sealed_exploded.rename({"_set_code": "setCode"})
-                    )
+                    tables["sealedProducts"] = serialize_complex_types(sealed_exploded.rename({"_set_code": "setCode"}))
 
             # setDecks - explode list of structs
             if "decks" in sets_schema and isinstance(sets_schema["decks"], pl.List):
-                decks_filtered = sets_df.select(
-                    pl.col("code").alias("_set_code"), "decks"
-                ).filter(pl.col("decks").list.len() > 0)
+                decks_filtered = sets_df.select(pl.col("code").alias("_set_code"), "decks").filter(
+                    pl.col("decks").list.len() > 0
+                )
                 if len(decks_filtered) > 0:
                     decks_exploded = decks_filtered.explode("decks").unnest("decks")
-                    tables["setDecks"] = serialize_complex_types(
-                        decks_exploded.rename({"_set_code": "setCode"})
-                    )
+                    tables["setDecks"] = serialize_complex_types(decks_exploded.rename({"_set_code": "setCode"}))
 
         return tables
 

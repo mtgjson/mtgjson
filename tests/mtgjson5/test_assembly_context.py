@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import polars as pl
-import pytest
 
-from mtgjson5.build.context import _enrich_sets_with_sealed, _enrich_sets_with_decks, _build_languages_by_set
+from mtgjson5.build.context import (
+    _build_languages_by_set,
+    _enrich_sets_with_decks,
+    _enrich_sets_with_sealed,
+)
 
 
 class TestEnrichSetsWithSealed:
@@ -36,7 +37,7 @@ class TestEnrichSetsWithSealed:
         assert products[0]["uuid"] == "sealed-001"
         assert products[0]["name"] == "Booster Box"
 
-    def test_setCode_and_language_stripped_from_product_dicts(self):
+    def test_set_code_and_language_stripped_from_product_dicts(self):
         records = [{"code": "M10", "name": "Magic 2010"}]
         _enrich_sets_with_sealed(records, self._make_sealed_df())
         product = records[0]["sealedProduct"][0]

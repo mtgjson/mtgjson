@@ -448,6 +448,7 @@ class TestBuildAllSealedProducts:
         sp = tables["sealedProducts"]
         assert sp.schema["identifiers"] == pl.String
         import json
+
         parsed = json.loads(sp["identifiers"][0])
         assert parsed["tcgplayerProductId"] == "12345"
 
@@ -477,6 +478,7 @@ class TestBuildAllSetDecks:
         sd = tables["setDecks"]
         assert sd.schema["mainBoard"] == pl.String
         import json
+
         parsed = json.loads(sd["mainBoard"][0])
         assert isinstance(parsed, list)
         assert parsed[0]["uuid"] == "uuid-001"

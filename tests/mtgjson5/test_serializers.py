@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import polars as pl
 import pytest
 
@@ -212,8 +214,6 @@ class TestCrossDialectConsistency:
         pg_result = escape_postgres(val)
         mysql_result = escape_mysql(val)
         # All should produce parseable JSON (possibly with SQL quoting)
-        import json
-
         # SQLite wraps in single quotes
         assert json.loads(sqlite_result.strip("'").replace("''", "'")) == {"a": 1}
         # Postgres escapes backslashes
@@ -238,9 +238,6 @@ class TestCrossDialectConsistency:
 # =============================================================================
 
 
-import json as _json  # noqa: E402
-
-
 class TestListOfStructSerialization:
     def test_list_of_struct_produces_valid_json(self):
         """List[Struct] columns should serialize to JSON arrays, not Python repr."""
@@ -251,7 +248,7 @@ class TestListOfStructSerialization:
         result = serialize_complex_types(df)
         assert result.schema["items"] == pl.String
         value = result["items"][0]
-        parsed = _json.loads(value)
+        parsed = json.loads(value)
         assert parsed == [{"uuid": "abc", "count": 2}]
 
     def test_list_of_struct_with_nulls_drops_null_values(self):
@@ -261,7 +258,7 @@ class TestListOfStructSerialization:
             schema={"items": pl.List(pl.Struct({"uuid": pl.String, "name": pl.String}))},
         )
         result = serialize_complex_types(df)
-        parsed = _json.loads(result["items"][0])
+        parsed = json.loads(result["items"][0])
         assert parsed == [{"uuid": "abc"}]
 
     def test_list_of_struct_null_row(self):
@@ -289,5 +286,5 @@ class TestListOfStructSerialization:
             schema={"ids": pl.Struct({"scryfallId": pl.String})},
         )
         result = serialize_complex_types(df)
-        parsed = _json.loads(result["ids"][0])
+        parsed = json.loads(result["ids"][0])
         assert parsed == {"scryfallId": "sf-001"}
