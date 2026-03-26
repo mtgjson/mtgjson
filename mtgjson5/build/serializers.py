@@ -70,9 +70,13 @@ def serialize_complex_types(df: pl.DataFrame) -> pl.DataFrame:
 
     if list_cols:
         for col_name in list_cols:
-            result = result.with_columns(
-                pl.col(col_name).map_batches(_list_to_csv_batch, return_dtype=pl.String).alias(col_name)
-            )
+            col_dtype = schema[col_name]
+            inner = col_dtype.inner if isinstance(col_dtype, pl.List) else None
+            if isinstance(inner, pl.Struct):
+                batch_fn = _list_of_struct_to_json_batch
+            else:
+                batch_fn = _list_to_csv_batch
+            result = result.with_columns(pl.col(col_name).map_batches(batch_fn, return_dtype=pl.String).alias(col_name))
 
     return result
 
@@ -81,6 +85,17 @@ def _list_to_csv_batch(series: pl.Series) -> pl.Series:
     """Batch convert list Series to comma-separated strings."""
     return pl.Series(
         [", ".join(str(item) for item in x) if x is not None else None for x in series.to_list()],
+        dtype=pl.String,
+    )
+
+
+def _list_of_struct_to_json_batch(series: pl.Series) -> pl.Series:
+    """Batch convert list-of-struct Series to JSON array strings."""
+    return pl.Series(
+        [
+            orjson.dumps([_drop_nulls(item) for item in x]).decode("utf-8") if x is not None else None
+            for x in series.to_list()
+        ],
         dtype=pl.String,
     )
 

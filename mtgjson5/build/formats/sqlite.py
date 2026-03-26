@@ -34,6 +34,8 @@ TABLE_INDEXES = {
     "setBoosterSheetCards": [("setCode", "setCode"), ("cardUuid", "cardUuid")],
     "setBoosterContents": [("setCode", "setCode")],
     "setBoosterContentWeights": [("setCode", "setCode")],
+    "sealedProducts": [("setCode", "setCode"), ("uuid", "uuid")],
+    "setDecks": [("setCode", "setCode")],
 }
 
 
