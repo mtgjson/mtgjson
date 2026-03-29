@@ -14,6 +14,7 @@ import polars_hash as plh
 
 from mtgjson5.consts import BASIC_LAND_NAMES, CARD_MARKET_BUFFER
 from mtgjson5.data import PipelineContext
+from mtgjson5.utils import LOGGER
 
 
 # 4.5: add_alternative_deck_limit
@@ -286,6 +287,70 @@ def apply_manual_overrides(
             .alias(field_name)
         )
 
+    return lf
+
+
+# 5.1: apply scryfall overrides
+def apply_scryfall_overrides(
+    lf: pl.LazyFrame,
+    ctx: PipelineContext,
+) -> pl.LazyFrame:
+    """
+    Apply field overrides keyed by Scryfall UUID.
+
+    Reads ctx.scryfall_overrides (from scryfall_overrides.json) which maps
+    scryfallId -> {field: value, ...} and upserts matching fields onto the
+    LazyFrame.
+    """
+    overrides = ctx.scryfall_overrides
+    if not overrides:
+        return lf
+
+    # Group overrides by field name
+    field_overrides: dict[str, dict[str, Any]] = {}
+    for scryfall_id, fields in overrides.items():
+        for field_name, value in fields.items():
+            if field_name.startswith("__"):
+                continue
+            if field_name not in field_overrides:
+                field_overrides[field_name] = {}
+            field_overrides[field_name][scryfall_id] = value
+
+    schema_names = lf.collect_schema().names()
+    applied_count = 0
+
+    for field_name, id_map in field_overrides.items():
+        if field_name not in schema_names:
+            LOGGER.warning(f"scryfall_overrides: field '{field_name}' not in schema, skipping ({len(id_map)} entries)")
+            continue
+
+        sample_value = next(iter(id_map.values()))
+        return_dtype: pl.List | type[pl.String] | type[pl.Int64]
+        if isinstance(sample_value, list):
+            return_dtype = pl.List(pl.String)
+        elif isinstance(sample_value, int):
+            return_dtype = pl.Int64
+        elif isinstance(sample_value, str):
+            return_dtype = pl.String
+        else:
+            return_dtype = pl.String
+
+        lf = lf.with_columns(
+            pl.when(pl.col("scryfallId").is_in(list(id_map.keys())))
+            .then(
+                pl.col("scryfallId").replace_strict(
+                    id_map,
+                    default=pl.col(field_name),
+                    return_dtype=return_dtype,
+                )
+            )
+            .otherwise(pl.col(field_name))
+            .alias(field_name)
+        )
+        applied_count += len(id_map)
+        LOGGER.info(f"scryfall_overrides: applied {len(id_map)} overrides for '{field_name}'")
+
+    LOGGER.info(f"scryfall_overrides: {applied_count} total overrides applied across {len(field_overrides)} fields")
     return lf
 
 
