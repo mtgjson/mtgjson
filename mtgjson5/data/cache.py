@@ -160,6 +160,7 @@ class GlobalCache:
         self.meld_overrides: dict = {}
         self.world_championship_signatures: dict = {}
         self.manual_overrides: dict = {}
+        self.scryfall_overrides: dict = {}
         self.foreigndata_exceptions: dict = {}
         self.gatherer_map: dict = {}
         self.set_code_watermarks: dict = {}
@@ -751,6 +752,9 @@ class GlobalCache:
 
         self.base_set_sizes = cast("dict", load_resource_json("base_set_sizes.json"))
         self.card_enrichment = cast("dict", load_resource_json("card_enrichment.json"))
+        self.scryfall_overrides = cast("dict", load_resource_json("scryfall_overrides.json"))
+        if self.scryfall_overrides:
+            LOGGER.info(f"Loaded scryfall_overrides: {len(self.scryfall_overrides):,} entries")
 
         multiverse_bridge_raw = cast("dict", load_resource_json("multiverse_bridge_backup.json"))
         if multiverse_bridge_raw and "cards" in multiverse_bridge_raw:

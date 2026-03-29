@@ -320,6 +320,13 @@ class PipelineContext:
         return self._cache.manual_overrides if self._cache else {}
 
     @property
+    def scryfall_overrides(self) -> dict:
+        """Scryfall overrides (scryfallId -> field overrides) from cache."""
+        if "_scryfall_overrides" in self._test_data:
+            return self._test_data["_scryfall_overrides"]  # type: ignore[no-any-return]
+        return self._cache.scryfall_overrides if self._cache else {}
+
+    @property
     def foreigndata_exceptions(self) -> dict:
         """Foreign data exceptions from cache."""
         if "_foreigndata_exceptions" in self._test_data:
@@ -479,6 +486,7 @@ class PipelineContext:
         orientation_lf: pl.LazyFrame | None = None,
         meld_triplets: dict[str, list[str]] | None = None,
         manual_overrides: dict | None = None,
+        scryfall_overrides: dict | None = None,
         foreigndata_exceptions: dict | None = None,
         resource_path: Path | None = None,
         args: Namespace | None = None,
@@ -510,6 +518,8 @@ class PipelineContext:
             test_data["_meld_triplets"] = meld_triplets
         if manual_overrides is not None:
             test_data["_manual_overrides"] = manual_overrides
+        if scryfall_overrides is not None:
+            test_data["_scryfall_overrides"] = scryfall_overrides
         if foreigndata_exceptions is not None:
             test_data["_foreigndata_exceptions"] = foreigndata_exceptions
 

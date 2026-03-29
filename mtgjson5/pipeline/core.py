@@ -40,6 +40,7 @@ from mtgjson5.pipeline.stages.derived import (
     add_secret_lair_subsets,
     add_source_products,
     apply_manual_overrides,
+    apply_scryfall_overrides,
     calculate_duel_deck,
 )
 from mtgjson5.pipeline.stages.explode import (
@@ -273,6 +274,7 @@ def _run_pipeline_stages(
         .pipe(partial(join_name_data, ctx=ctx))
         .pipe(partial(join_cardmarket_ids, ctx=ctx))
         .pipe(partial(join_tcg_alt_foil_lookup, ctx=ctx))
+        .pipe(partial(apply_scryfall_overrides, ctx=ctx))
         .pipe(fix_availability_from_ids)
     )
     prof.checkpoint(f"{prefix}stage2_joins")
