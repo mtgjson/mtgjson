@@ -321,10 +321,7 @@ def apply_scryfall_overrides(
 
     for field_name, id_map in field_overrides.items():
         if field_name not in schema_names:
-            LOGGER.warning(
-                f"scryfall_overrides: field '{field_name}' not in schema, skipping "
-                f"({len(id_map)} entries)"
-            )
+            LOGGER.warning(f"scryfall_overrides: field '{field_name}' not in schema, skipping ({len(id_map)} entries)")
             continue
 
         sample_value = next(iter(id_map.values()))
@@ -351,9 +348,7 @@ def apply_scryfall_overrides(
             .alias(field_name)
         )
         applied_count += len(id_map)
-        LOGGER.info(
-            f"scryfall_overrides: applied {len(id_map)} overrides for '{field_name}'"
-        )
+        LOGGER.info(f"scryfall_overrides: applied {len(id_map)} overrides for '{field_name}'")
 
     LOGGER.info(f"scryfall_overrides: {applied_count} total overrides applied across {len(field_overrides)} fields")
     return lf
