@@ -151,6 +151,62 @@
           "neoninkyellow"
         ]
       }
+    },
+    "7031": {
+      "name": "Lotus Petal",
+      "enrichment": {
+        "promo_types": [
+          "greenemerald"
+        ]
+      }
+    },
+    "7032": {
+      "name": "Lotus Petal",
+      "enrichment": {
+        "promo_types": [
+          "redemerald"
+        ]
+      }
+    },
+    "7033": {
+      "name": "Lotus Petal",
+      "enrichment": {
+        "promo_types": [
+          "blueemerald"
+        ]
+      }
+    },
+    "7034": {
+      "name": "Lotus Petal",
+      "enrichment": {
+        "promo_types": [
+          "purpleemerald"
+        ]
+      }
+    },
+    "7035": {
+      "name": "Lotus Petal",
+      "enrichment": {
+        "promo_types": [
+          "yellowemerald"
+        ]
+      }
+    },
+    "7036": {
+      "name": "Lotus Petal",
+      "enrichment": {
+        "promo_types": [
+          "cyanemerald"
+        ]
+      }
+    },
+    "7037": {
+      "name": "Lotus Petal",
+      "enrichment": {
+        "promo_types": [
+          "whiteemerald"
+        ]
+      }
     }
   },
   "SPG": {
