@@ -985,7 +985,7 @@ class GlobalCache:
                         {
                             "multiverseId": str(mv_id),
                             "originalText": entry.get("original_text"),
-                            "originalType": entry.get("original_types"),
+                            "originalType": entry.get("original_type"),
                         }
                     )
             if rows:
