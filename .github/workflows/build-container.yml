@@ -28,7 +28,7 @@ jobs:
         uses: tj-actions/branch-names@v9
 
       - id: commit
-        uses: prompt/actions-commit-hash@v3
+        uses: prompt/actions-commit-hash@v4
 
       - name: Generate Tag
         id: generate-tag
