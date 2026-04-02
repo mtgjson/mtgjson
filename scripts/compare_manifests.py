@@ -4,6 +4,10 @@
 Usage:
     python scripts/compare_manifests.py <previous> <current> [options]
 
+Arguments accept local file paths or URLs (http/https). If the previous
+manifest is not found (missing file or unreachable URL), the comparison
+is skipped with a pass status - treating it as a first build.
+
 Exit codes:
     0 - pass (no issues)
     1 - warn (minor regressions detected)
@@ -15,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import urllib.request
 from pathlib import Path
 
 
@@ -151,12 +156,31 @@ def compare_manifests(
     }
 
 
+def _load_manifest(location: str) -> dict | None:
+    """Load a manifest from a file path or URL.
+
+    Returns the parsed dict, or None if the location is a local path that
+    doesn't exist (first-build case).
+    """
+    if location.startswith(("http://", "https://")):
+        try:
+            with urllib.request.urlopen(location, timeout=30) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except (urllib.error.URLError, urllib.error.HTTPError):
+            return None
+
+    path = Path(location)
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Compare two MTGJSON BuildManifest.json files."
     )
-    parser.add_argument("previous", help="Path to previous BuildManifest.json")
-    parser.add_argument("current", help="Path to current BuildManifest.json")
+    parser.add_argument("previous", help="Path or URL to previous BuildManifest.json")
+    parser.add_argument("current", help="Path or URL to current BuildManifest.json")
     parser.add_argument(
         "--size-warn-pct",
         type=float,
@@ -192,12 +216,15 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    prev_path = Path(args.previous)
-    curr_path = Path(args.current)
+    previous = _load_manifest(args.previous)
+    current = _load_manifest(args.current)
 
-    # Handle missing previous manifest (first build)
-    if not prev_path.exists():
-        current = json.loads(curr_path.read_text(encoding="utf-8"))
+    if current is None:
+        print(f"Error: cannot load current manifest: {args.current}", file=sys.stderr)
+        return 2
+
+    # Handle missing previous manifest (first build or unreachable URL)
+    if previous is None:
         report = {
             "status": "pass",
             "note": "No previous manifest found — first build comparison skipped.",
@@ -217,8 +244,6 @@ def main() -> int:
             "record_count_changes": [],
         }
     else:
-        previous = json.loads(prev_path.read_text(encoding="utf-8"))
-        current = json.loads(curr_path.read_text(encoding="utf-8"))
         report = compare_manifests(
             previous,
             current,
