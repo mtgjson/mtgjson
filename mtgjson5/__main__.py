@@ -207,6 +207,7 @@ def dispatcher(args: argparse.Namespace) -> None:
         GlobalCache().release_pipeline_frames()
         profiler.checkpoint("pipeline_frames_released")
 
+        results: dict[str, int] = {}
         if decks_only:
             # Only build deck files, skip set JSON assembly
             from mtgjson5.pipeline import build_expanded_decks_df
@@ -228,7 +229,7 @@ def dispatcher(args: argparse.Namespace) -> None:
             LOGGER.info(f"Model assembly results: {results}")
         else:
             set_codes = sets_to_build if sets_only else None
-            _, assembly_ctx = assemble_json_outputs(
+            results, assembly_ctx = assemble_json_outputs(
                 ctx,
                 parallel=True,
                 max_workers=30,
