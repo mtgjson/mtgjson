@@ -609,6 +609,11 @@ class RelatedCards(TypedDict, total=False):
             "introduced": "v5.2.1",
             "optional": True,
         },
+        "tokens": {
+            "description": "A list of card names for tokens associated to a card.",
+            "introduced": "v5.2.1",
+            "optional": True,
+        },
     }
 
     reverseRelated: list[str]
