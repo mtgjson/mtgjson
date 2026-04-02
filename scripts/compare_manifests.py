@@ -66,19 +66,23 @@ def compare_manifests(
     # Check for missing files
     for path, prev_info in prev_files.items():
         if path not in curr_files:
-            missing_files.append({
-                "path": path,
-                "previous_size_bytes": prev_info["size_bytes"],
-            })
+            missing_files.append(
+                {
+                    "path": path,
+                    "previous_size_bytes": prev_info["size_bytes"],
+                }
+            )
             escalate("fail")
 
     # Check for new files
     for path, curr_info in curr_files.items():
         if path not in prev_files:
-            new_files.append({
-                "path": path,
-                "size_bytes": curr_info["size_bytes"],
-            })
+            new_files.append(
+                {
+                    "path": path,
+                    "size_bytes": curr_info["size_bytes"],
+                }
+            )
 
     # Check size changes for files present in both
     for path in sorted(prev_files.keys() & curr_files.keys()):
@@ -100,13 +104,15 @@ def compare_manifests(
             else:
                 continue
 
-            size_changes.append({
-                "path": path,
-                "previous_size_bytes": prev_size,
-                "current_size_bytes": curr_size,
-                "change_pct": round(change_pct, 2),
-                "severity": severity,
-            })
+            size_changes.append(
+                {
+                    "path": path,
+                    "previous_size_bytes": prev_size,
+                    "current_size_bytes": curr_size,
+                    "change_pct": round(change_pct, 2),
+                    "severity": severity,
+                }
+            )
             escalate(severity)
 
     # Check record count changes
@@ -130,13 +136,15 @@ def compare_manifests(
             else:
                 continue
 
-            record_count_changes.append({
-                "key": key,
-                "previous_count": prev_count,
-                "current_count": curr_count,
-                "change_pct": round(change_pct, 2),
-                "severity": severity,
-            })
+            record_count_changes.append(
+                {
+                    "key": key,
+                    "previous_count": prev_count,
+                    "current_count": curr_count,
+                    "change_pct": round(change_pct, 2),
+                    "severity": severity,
+                }
+            )
             escalate(severity)
 
     return {
@@ -176,9 +184,7 @@ def _load_manifest(location: str) -> dict | None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Compare two MTGJSON BuildManifest.json files."
-    )
+    parser = argparse.ArgumentParser(description="Compare two MTGJSON BuildManifest.json files.")
     parser.add_argument("previous", help="Path or URL to previous BuildManifest.json")
     parser.add_argument("current", help="Path or URL to current BuildManifest.json")
     parser.add_argument(
@@ -234,9 +240,7 @@ def main() -> int:
                 "previous_file_count": 0,
                 "current_file_count": current.get("meta", {}).get("total_files", 0),
                 "previous_total_size": 0,
-                "current_total_size": current.get("meta", {}).get(
-                    "total_size_bytes", 0
-                ),
+                "current_total_size": current.get("meta", {}).get("total_size_bytes", 0),
             },
             "missing_files": [],
             "new_files": [],
@@ -263,9 +267,9 @@ def main() -> int:
     if not args.quiet:
         status = report["status"].upper()
         summary = report["summary"]
-        print(f"\n{'='*60}", file=sys.stderr)
+        print(f"\n{'=' * 60}", file=sys.stderr)
         print(f"Build Manifest Comparison: {status}", file=sys.stderr)
-        print(f"{'='*60}", file=sys.stderr)
+        print(f"{'=' * 60}", file=sys.stderr)
         print(
             f"Previous: {summary['previous_date']} "
             f"({summary['previous_file_count']} files, "
@@ -316,7 +320,7 @@ def main() -> int:
                 )
 
         print(f"\nResult: {status}", file=sys.stderr)
-        print(f"{'='*60}", file=sys.stderr)
+        print(f"{'=' * 60}", file=sys.stderr)
 
     exit_code_map = {"pass": 0, "warn": 1, "fail": 2}
     return exit_code_map.get(report["status"], 2)

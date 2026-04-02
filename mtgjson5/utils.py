@@ -191,6 +191,7 @@ def generate_build_manifest(
         directory: Build output directory to scan.
         assembly_results: Record counts from assembly (e.g. AllIdentifiers: 117449).
     """
+    import contextlib
     import datetime
     import subprocess
 
@@ -235,6 +236,7 @@ def generate_build_manifest(
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
         if result.returncode == 0:
             git_commit = result.stdout.strip()
@@ -243,19 +245,15 @@ def generate_build_manifest(
 
     # Get version from config (if available)
     version = ""
-    try:
+    with contextlib.suppress(Exception):
         version = MtgjsonConfig().mtgjson_version
-    except Exception:
-        pass
 
     manifest = {
         "meta": {
             "version": version,
             "date": constants.MTGJSON_BUILD_DATE,
             "git_commit": git_commit,
-            "generated_at": datetime.datetime.now(datetime.timezone.utc).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            ),
+            "generated_at": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "total_files": len(files),
             "total_size_bytes": total_size,
         },
@@ -268,10 +266,7 @@ def generate_build_manifest(
         json.dumps(manifest, indent=2, sort_keys=False),
         encoding="utf-8",
     )
-    LOGGER.info(
-        f"BuildManifest.json written: {len(files)} files, "
-        f"{total_size:,} bytes total"
-    )
+    LOGGER.info(f"BuildManifest.json written: {len(files)} files, {total_size:,} bytes total")
 
 
 def get_str_or_none(value: Any) -> str | None:

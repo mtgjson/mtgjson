@@ -32,7 +32,7 @@ def _run_compare(
     if extra_args:
         cmd.extend(extra_args)
 
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10, check=False)
     report = json.loads(report_path.read_text())
     return result.returncode, report
 
@@ -123,7 +123,7 @@ class TestSizeChanges:
         """A 1% decrease is below the 2% warn threshold."""
         prev = _make_manifest({"AllPrintings.json": 1000})
         curr = _make_manifest({"AllPrintings.json": 990}, date="2026-04-02")
-        exit_code, report = _run_compare(prev, curr, tmp_path)
+        exit_code, _report = _run_compare(prev, curr, tmp_path)
         assert exit_code == 0
 
 
@@ -155,7 +155,7 @@ class TestRecordCountChanges:
             record_counts={"AllIdentifiers": 105000},
             date="2026-04-02",
         )
-        exit_code, report = _run_compare(prev, curr, tmp_path)
+        exit_code, _report = _run_compare(prev, curr, tmp_path)
         assert exit_code == 0
 
 
@@ -164,9 +164,7 @@ class TestCustomThresholds:
         """A 3% decrease with --size-warn-pct 5 should pass."""
         prev = _make_manifest({"AllPrintings.json": 1000})
         curr = _make_manifest({"AllPrintings.json": 970}, date="2026-04-02")
-        exit_code, report = _run_compare(
-            prev, curr, tmp_path, extra_args=["--size-warn-pct", "5"]
-        )
+        exit_code, _report = _run_compare(prev, curr, tmp_path, extra_args=["--size-warn-pct", "5"])
         assert exit_code == 0
 
 
@@ -186,7 +184,7 @@ class TestPreviousManifestMissing:
             "--output",
             str(report_path),
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10, check=False)
         report = json.loads(report_path.read_text())
         assert result.returncode == 0
         assert report["status"] == "pass"
