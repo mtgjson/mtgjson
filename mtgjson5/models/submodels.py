@@ -42,9 +42,9 @@ class ForeignData(TypedDict, total=False):
             "optional": True,
         },
         "skuIds": {
-            "description": "Per-finish unique identifiers for this language variant. See the [Finish UUIDs](/data-models/finish-uuids/) Data Model.",
+            "description": "Per-finish unique identifiers for this language variant. See the [SKU IDs](/data-models/sku-ids/) Data Model.",
             "introduced": "v5.3.0",
-            "type_override": "FinishUuids",
+            "type_override": "SkuIds",
         },
         "flavorText": {
             "description": "The foreign flavor text of the card.",
@@ -96,7 +96,7 @@ class ForeignData(TypedDict, total=False):
 class SkuIds(TypedDict, total=False):
     """Per-finish SKU identifiers derived from the card UUID and language."""
 
-    __doc_title__ = "SKU IDs"
+    __doc_title__ = "Sku Ids"
     __doc_desc__ = (
         "The SKU IDs Data Model describes the unique identifiers for each "
         "finish variant of a card printing at a specific language."
@@ -1432,6 +1432,7 @@ TYPEDDICT_REGISTRY: list[type] = [
     # Core card sub-models
     ForeignDataIdentifiers,
     ForeignData,
+    SkuIds,
     Identifiers,
     LeadershipSkills,
     Legalities,
