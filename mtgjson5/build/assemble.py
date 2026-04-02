@@ -1077,7 +1077,12 @@ class TcgplayerSkusAssembler(Assembler):
             chunk = flat_df.filter(pl.col("uuid").str.starts_with(prefix))
             if chunk.is_empty():
                 continue
-            grouped = chunk.sort("skuId").group_by("uuid", maintain_order=True).agg(pl.struct(sku_fields).alias("skus"))
+            grouped = (
+                chunk.sort("skuId")
+                .group_by("uuid", maintain_order=True)
+                .agg(pl.struct(sku_fields).alias("skus"))
+                .sort("uuid")
+            )
             del chunk
             for row in grouped.iter_rows(named=True):
                 uuid = row["uuid"]
@@ -1411,6 +1416,7 @@ class AllIdentifiersAssembler(Assembler):
 
         count = 0
 
+        frames = []
         for label, pq_dir in (
             ("cards", self.ctx.parquet_dir),
             ("tokens", self.ctx.tokens_dir),
@@ -1424,8 +1430,15 @@ class AllIdentifiersAssembler(Assembler):
                 continue
             if "uuid" in df.columns:
                 df = df.unique(subset=["uuid"], keep="first")
-            LOGGER.info(f"  {label}: {len(df)} rows loaded, iterating...")
-            for row in df.iter_rows(named=True):
+            LOGGER.info(f"  {label}: {len(df)} rows loaded")
+            frames.append(df)
+
+        if frames:
+            combined = pl.concat(frames, how="diagonal").sort("uuid")
+            del frames
+            gc.collect()
+            LOGGER.info(f"AllIdentifiers: {len(combined)} total rows, iterating sorted...")
+            for row in combined.iter_rows(named=True):
                 uuid = row.get("uuid")
                 if not uuid:
                     continue
@@ -1433,7 +1446,7 @@ class AllIdentifiersAssembler(Assembler):
                 count += 1
                 if count % 20000 == 0:
                     LOGGER.info(f"AllIdentifiers: streamed {count} entries")
-            del df
+            del combined
             gc.collect()
 
         LOGGER.info(f"Built AllIdentifiers with {count} entries")
