@@ -437,7 +437,7 @@ class JsonOutputBuilder:
 
         with open(output_path, "wb") as f:
             f.write(b'{"meta": ')
-            f.write(orjson.dumps(meta_dict))
+            f.write(orjson.dumps(meta_dict, option=self._orjson_opts))
             f.write(b', "data": {')
 
             first = True
@@ -449,7 +449,7 @@ class JsonOutputBuilder:
                 f.write(b"\n")
                 f.write(orjson.dumps(uuid))
                 f.write(b": ")
-                f.write(orjson.dumps(entry))
+                f.write(orjson.dumps(entry, option=self._orjson_opts))
                 count += 1
 
             f.write(b"\n}}")
