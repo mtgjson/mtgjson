@@ -88,6 +88,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                             "split",
                             "aftermath",
                             "adventure",
+                            "prepare",
                             "battle",
                             "double_faced_token",
                             "art_series",
@@ -107,6 +108,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                             "flip",
                             "split",
                             "adventure",
+                            "prepare",
                             "battle",
                             "double_faced_token",
                         ]
@@ -133,15 +135,15 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                 face_field("colorIndicator").alias("colorIndicator"),
                 pl.when(pl.col("layout").is_in(["split", "aftermath"]))
                 .then(extract_colors_from_mana_expr(pl.col("_face_data").struct.field("mana_cost")))
-                .when((pl.col("layout") == "adventure") & (pl.col("side") == "a"))
+                .when((pl.col("layout").is_in(["adventure", "prepare"])) & (pl.col("side") == "a"))
                 .then(sort_colors_wubrg_expr(face_field("colors")))
                 .when(
-                    (pl.col("layout") == "adventure")
+                    (pl.col("layout").is_in(["adventure", "prepare"]))
                     & (pl.col("side") == "b")
                     & (pl.col("typeLine").str.contains(r"(?i)\bLand\b").max().over("scryfallId"))
                 )
                 .then(pl.lit([]).cast(pl.List(pl.String)))
-                .when((pl.col("layout") == "adventure") & (pl.col("side") == "b"))
+                .when((pl.col("layout").is_in(["adventure", "prepare"])) & (pl.col("side") == "b"))
                 .then(extract_colors_from_mana_expr(pl.col("_face_data").struct.field("mana_cost")))
                 .otherwise(sort_colors_wubrg_expr(face_field("colors")))
                 .alias("colors"),
@@ -158,6 +160,7 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                             "flip",
                             "split",
                             "adventure",
+                            "prepare",
                             "battle",
                             "double_faced_token",
                         ]
