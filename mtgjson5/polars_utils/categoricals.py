@@ -205,6 +205,7 @@ STATIC_CATEGORICALS: dict[str, list[str]] = {
         "host",
         "art_series",
         "reversible_card",
+        "prepare",
     ],
     "border_color": ["black", "white", "borderless", "silver", "gold"],
     "frame": ["1993", "1997", "2003", "2015", "future"],
