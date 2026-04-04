@@ -80,6 +80,7 @@ class Layout(StrEnum):
     HOST = "host"
     ART_SERIES = "art_series"
     REVERSIBLE_CARD = "reversible_card"
+    PREPARE = "prepare"
 
 
 class Frame(StrEnum):

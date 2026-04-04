@@ -33,7 +33,7 @@ from .submodels import (
 )
 
 # Layouts that use WUBRG color order instead of alphabetical
-_WUBRG_COLOR_LAYOUTS = frozenset({"split", "adventure"})
+_WUBRG_COLOR_LAYOUTS = frozenset({"split", "adventure", "prepare"})
 _WUBRG_ORDER = {"W": 0, "U": 1, "B": 2, "R": 3, "G": 4}
 
 

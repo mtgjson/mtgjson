@@ -38,6 +38,7 @@ class LayoutVariant(Enum):
     ART_SERIES = "art_series"
     REVERSIBLE_CARD = "reversible_card"
     AFTERMATH = "aftermath"
+    PREPARE = "prepare"
 
 
 MULTIFACE_LAYOUTS: Final[frozenset[str]] = frozenset(
@@ -49,6 +50,7 @@ MULTIFACE_LAYOUTS: Final[frozenset[str]] = frozenset(
         LayoutVariant.MODAL_DFC.value,
         LayoutVariant.MELD.value,
         LayoutVariant.ADVENTURE.value,
+        LayoutVariant.PREPARE.value,
         LayoutVariant.REVERSIBLE_CARD.value,
         LayoutVariant.BATTLE.value,
         LayoutVariant.DOUBLE_FACED_TOKEN.value,
@@ -65,6 +67,7 @@ FACE_NAME_LAYOUTS: Final[frozenset[str]] = frozenset(
         LayoutVariant.SPLIT.value,
         LayoutVariant.AFTERMATH.value,
         LayoutVariant.ADVENTURE.value,
+        LayoutVariant.PREPARE.value,
         LayoutVariant.BATTLE.value,
         LayoutVariant.DOUBLE_FACED_TOKEN.value,
         LayoutVariant.ART_SERIES.value,
@@ -80,6 +83,7 @@ FACE_MANA_VALUE_LAYOUTS: Final[frozenset[str]] = frozenset(
         LayoutVariant.MODAL_DFC.value,
         LayoutVariant.MELD.value,
         LayoutVariant.ADVENTURE.value,
+        LayoutVariant.PREPARE.value,
         LayoutVariant.REVERSIBLE_CARD.value,
     }
 )

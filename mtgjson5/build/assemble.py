@@ -1453,7 +1453,7 @@ class AllIdentifiersAssembler(Assembler):
 
 
 _WUBRG_ORDER = {"W": 0, "U": 1, "B": 2, "R": 3, "G": 4}
-_WUBRG_COLOR_LAYOUTS = frozenset({"split", "adventure"})
+_WUBRG_COLOR_LAYOUTS = frozenset({"split", "adventure", "prepare"})
 
 
 def _clean_row(row: dict[str, Any]) -> dict[str, Any]:

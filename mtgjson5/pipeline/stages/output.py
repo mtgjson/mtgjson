@@ -315,6 +315,7 @@ def rename_all_the_things(lf: pl.LazyFrame, output_type: str = "card_set") -> pl
         "modal_dfc",
         "meld",
         "adventure",
+        "prepare",
     ]
 
     lf = lf.with_columns(

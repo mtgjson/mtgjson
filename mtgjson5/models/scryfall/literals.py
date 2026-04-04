@@ -41,6 +41,7 @@ Layout = Literal[
     "host",
     "art_series",
     "reversible_card",
+    "prepare",
 ]
 
 FrameEffect = Literal[
