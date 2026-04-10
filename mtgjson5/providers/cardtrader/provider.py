@@ -202,18 +202,15 @@ class CardTraderPriceProvider:
                 "uuid": list(scryfall_to_uuid_map.values()),
             }
         )
-        return (
-            raw_df.join(mapping_df, on="scryfallId", how="inner")
-            .select(
-                pl.col("uuid"),
-                pl.lit(self.today_date).alias("date"),
-                pl.lit("paper").alias("source"),
-                pl.lit("cardtrader").alias("provider"),
-                pl.lit("retail").alias("price_type"),
-                pl.col("finish"),
-                pl.col("price"),
-                pl.col("currency"),
-            )
+        return raw_df.join(mapping_df, on="scryfallId", how="inner").select(
+            pl.col("uuid"),
+            pl.lit(self.today_date).alias("date"),
+            pl.lit("paper").alias("source"),
+            pl.lit("cardtrader").alias("provider"),
+            pl.lit("retail").alias("price_type"),
+            pl.col("finish"),
+            pl.col("price"),
+            pl.col("currency"),
         )
 
     async def _sleep_between_marketplace_requests(self) -> None:

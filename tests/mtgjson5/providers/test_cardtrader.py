@@ -1,13 +1,19 @@
+"""Tests for the CardTrader price provider."""
+
 import asyncio
+from typing import Any, TypeAlias
 
 import aiohttp
 import polars as pl
 
 from mtgjson5.providers.cardtrader import CardTraderConfig, CardTraderPriceProvider
 
+ResponseKey: TypeAlias = tuple[str, tuple[tuple[str, str | int], ...]]
+ResponseMap: TypeAlias = dict[ResponseKey, Any]
+
 
 class StubCardTraderProvider(CardTraderPriceProvider):
-    def __init__(self, responses):
+    def __init__(self, responses: ResponseMap) -> None:
         super().__init__(
             config=CardTraderConfig(auth_token="token", expected_currency="EUR"),
             market_request_delay=0,
@@ -15,7 +21,12 @@ class StubCardTraderProvider(CardTraderPriceProvider):
         self.output_path = None
         self.responses = responses
 
-    async def _request_json(self, session, path, params=None):
+    async def _request_json(
+        self,
+        session: aiohttp.ClientSession,
+        path: str,
+        params: dict[str, str | int] | None = None,
+    ) -> Any:
         key = (path, tuple(sorted((params or {}).items())))
         response = self.responses[key]
         if isinstance(response, Exception):
@@ -23,7 +34,7 @@ class StubCardTraderProvider(CardTraderPriceProvider):
         return response
 
 
-def test_cardtrader_averages_the_first_15_listings():
+def test_cardtrader_averages_the_first_15_listings() -> None:
     provider = CardTraderPriceProvider(config=CardTraderConfig(auth_token="token"))
 
     listings = [
@@ -34,24 +45,28 @@ def test_cardtrader_averages_the_first_15_listings():
         {"price": {"cents": 360, "currency": "EUR"}},
     ]
 
-    price, currency = provider._calculate_listing_price(listings)
+    result = provider._calculate_listing_price(listings)
 
+    assert result is not None
+    price, currency = result
     assert currency == "EUR"
     assert price == 2.42
 
 
-def test_cardtrader_caps_the_average_at_the_first_15_listings():
+def test_cardtrader_caps_the_average_at_the_first_15_listings() -> None:
     provider = CardTraderPriceProvider(config=CardTraderConfig(auth_token="token"))
 
     listings = [{"price": {"cents": cents, "currency": "EUR"}} for cents in range(100, 1800, 100)]
 
-    price, currency = provider._calculate_listing_price(listings)
+    result = provider._calculate_listing_price(listings)
 
+    assert result is not None
+    price, currency = result
     assert currency == "EUR"
     assert price == 8.0
 
 
-def test_cardtrader_fetch_raw_prices_builds_normal_and_foil_rows():
+def test_cardtrader_fetch_raw_prices_builds_normal_and_foil_rows() -> None:
     responses = {
         ("expansions", ()): [
             {"id": 10, "game_id": 1, "name": "Test Expansion"},
@@ -97,7 +112,7 @@ def test_cardtrader_fetch_raw_prices_builds_normal_and_foil_rows():
     ]
 
 
-def test_cardtrader_fetch_prices_maps_to_uuid():
+def test_cardtrader_fetch_prices_maps_to_uuid() -> None:
     responses = {
         ("expansions", ()): [
             {"id": 10, "game_id": 1, "name": "Test Expansion"},
@@ -162,7 +177,7 @@ def test_cardtrader_fetch_prices_maps_to_uuid():
     ]
 
 
-def test_cardtrader_returns_empty_frame_without_config():
+def test_cardtrader_returns_empty_frame_without_config() -> None:
     provider = CardTraderPriceProvider(config=None)
     provider.config = None
     provider.output_path = None
@@ -172,7 +187,7 @@ def test_cardtrader_returns_empty_frame_without_config():
     assert df.is_empty()
 
 
-def test_cardtrader_skips_unexpected_currency():
+def test_cardtrader_skips_unexpected_currency() -> None:
     provider = CardTraderPriceProvider(config=CardTraderConfig(auth_token="token", expected_currency="EUR"))
 
     records = provider._build_raw_records(
@@ -185,10 +200,10 @@ def test_cardtrader_skips_unexpected_currency():
         finish="normal",
     )
 
-    assert records == []
+    assert not records
 
 
-def test_cardtrader_returns_empty_frame_when_expansions_fetch_fails():
+def test_cardtrader_returns_empty_frame_when_expansions_fetch_fails() -> None:
     provider = StubCardTraderProvider(
         {
             ("expansions", ()): aiohttp.ClientError("401 Unauthorized"),
@@ -201,7 +216,7 @@ def test_cardtrader_returns_empty_frame_when_expansions_fetch_fails():
     assert df.is_empty()
 
 
-def test_cardtrader_skips_failed_expansion_and_keeps_other_results():
+def test_cardtrader_skips_failed_expansion_and_keeps_other_results() -> None:
     responses = {
         ("expansions", ()): [
             {"id": 10, "game_id": 1, "name": "Broken Expansion"},
