@@ -70,6 +70,13 @@ class TestPolarsToMysqlType:
     def test_list_maps_to_text(self):
         assert _polars_to_mysql_type(pl.List(pl.String), "_test", "_col") == "TEXT"
 
+    def test_sealed_products_contents_maps_to_longtext(self):
+        assert _polars_to_mysql_type(pl.String, "sealedProducts", "contents") == "LONGTEXT"
+        assert _polars_to_mysql_type(pl.List(pl.String), "sealedProducts", "contents") == "LONGTEXT"
+
+    def test_contents_in_other_tables_stays_text(self):
+        assert _polars_to_mysql_type(pl.String, "cards", "contents") == "TEXT"
+
 
 # =============================================================================
 # Dialect differences

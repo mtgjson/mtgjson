@@ -30,6 +30,9 @@ _MYSQL_VARCHAR_OVERRIDES: dict[str, str] = {
 # Integer columns that exceed MySQL INTEGER range and need BIGINT
 _MYSQL_BIGINT_COLUMNS: set[str] = {"sheetTotalWeight", "cardWeight"}
 
+# (table, column) pairs whose serialized payloads can exceed TEXT's 64KB limit
+_MYSQL_LONGTEXT_COLUMNS: set[tuple[str, str]] = {("sealedProducts", "contents")}
+
 
 def _polars_to_mysql_type(dtype: pl.DataType, table_name: str, col_name: str) -> str:
     """Map Polars dtype to MySQL type, with compatibility overrides"""
@@ -40,6 +43,9 @@ def _polars_to_mysql_type(dtype: pl.DataType, table_name: str, col_name: str) ->
         override = _MYSQL_VARCHAR_OVERRIDES.get(col_name)
         if override:
             return override
+
+    if (table_name, col_name) in _MYSQL_LONGTEXT_COLUMNS:
+        return "LONGTEXT"
 
     if col_name in _MYSQL_BIGINT_COLUMNS:
         return "BIGINT"
