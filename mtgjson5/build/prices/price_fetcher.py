@@ -83,11 +83,12 @@ class PriceFetcher:
             await coro
             self._timings[name] = round(time.perf_counter() - t0, 1)
 
-        provider_names = ["TCGPlayer", "CardHoarder", "Manapool", "CardMarket", "CardKingdom"]
+        provider_names = ["TCGPlayer", "CardHoarder", "Manapool", "CardTrader", "CardMarket", "CardKingdom"]
         results = await asyncio.gather(
             _timed("TCGPlayer", self._fetch_tcg_raw()),
             _timed("CardHoarder", self._fetch_cardhoarder_raw()),
             _timed("Manapool", self._fetch_manapool_raw()),
+            _timed("CardTrader", self._fetch_cardtrader_raw()),
             _timed("CardMarket", self._fetch_cardmarket_raw()),
             _timed("CardKingdom", self._fetch_cardkingdom_raw()),
             return_exceptions=True,
@@ -128,6 +129,17 @@ class PriceFetcher:
         provider = ManapoolPriceProvider()
         df = await provider.fetch_raw_prices()
         LOGGER.info(f"PriceFetcher: Manapool raw: {len(df):,} rows")
+
+    async def _fetch_cardtrader_raw(self) -> None:
+        """Fetch raw CardTrader prices to parquet cache."""
+        from mtgjson5.providers.cardtrader.provider import CardTraderPriceProvider
+
+        provider = CardTraderPriceProvider()
+        if provider.config is None:
+            LOGGER.info("PriceFetcher: CardTrader not configured, skipping")
+            return
+        df = await provider.fetch_raw_prices()
+        LOGGER.info(f"PriceFetcher: CardTrader raw: {len(df):,} rows")
 
     async def _fetch_cardmarket_raw(self) -> None:
         """Fetch raw CardMarket prices to parquet cache."""

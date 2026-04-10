@@ -7,7 +7,7 @@
 - `mtgjson5/build/prices/price_s3.py` — S3 sync operations
 - `mtgjson5/build/referral_builder.py` — Referral map generation for purchase URL rewrites
 
-The price engine is a distinct ETL pipeline from the card builder. It fetches daily prices from five providers, stores them in a date-partitioned parquet data lake, syncs to/from S3, and streams JSON and SQL outputs — all without loading the full history into memory.
+The price engine is a distinct ETL pipeline from the card builder. It fetches daily prices from six providers, stores them in a date-partitioned parquet data lake, syncs to/from S3, and streams JSON and SQL outputs — all without loading the full history into memory.
 
 ## Overview
 
@@ -21,7 +21,8 @@ The price engine is a distinct ETL pipeline from the card builder. It fetches da
                        ▼
 ┌──────────────────────────────────────────────────────┐
 │  2. Provider Fetch              (price_builder.py)   │
-│  TCGPlayer, CardHoarder, Manapool, CardMarket, CK    │
+│  TCGPlayer, CardHoarder, Manapool, CardTrader,       │
+│  CardMarket, CK                                      │
 │  → flat DataFrame with PRICE_SCHEMA                  │
 └──────────────────────┬───────────────────────────────┘
                        │
@@ -83,7 +84,7 @@ PRICE_SCHEMA = {
     "uuid":       pl.String,    # MTGJSON UUID
     "date":       pl.String,    # "YYYY-MM-DD"
     "source":     pl.String,    # "paper" or "mtgo"
-    "provider":   pl.String,    # "tcgplayer", "cardhoarder", "manapool", "cardmarket", "cardkingdom"
+    "provider":   pl.String,    # "tcgplayer", "cardhoarder", "manapool", "cardtrader", "cardmarket", "cardkingdom"
     "price_type": pl.String,    # "buylist" or "retail"
     "finish":     pl.String,    # "normal", "foil", "etched"
     "price":      pl.Float64,   # Price value
@@ -108,7 +109,7 @@ ctx = PriceBuilderContext.from_cache()
 | `tcg_to_uuid` | TCGPlayer productId → set[UUID] | TCGPlayer |
 | `tcg_etched_to_uuid` | TCGPlayer etched productId → set[UUID] | TCGPlayer |
 | `mtgo_to_uuid` | MTGO ID → set[UUID] | CardHoarder |
-| `scryfall_to_uuid` | Scryfall ID → set[UUID] | Manapool |
+| `scryfall_to_uuid` | Scryfall ID → set[UUID] | Manapool, CardTrader |
 
 Mappings are built lazily from GlobalCache LazyFrames on first access. For standalone price builds (no preceding card build), `load_id_mappings()` reads from previously-written parquet files.
 
@@ -120,7 +121,7 @@ The main orchestrator class that coordinates provider fetching and delegates to 
 
 | Method | Purpose |
 |--------|---------|
-| `build_today_prices_async()` | Async fetch from 5 providers, returns flat DataFrame |
+| `build_today_prices_async()` | Async fetch from 6 providers, returns flat DataFrame |
 | `build_today_prices()` | Sync wrapper around `build_today_prices_async()` |
 | `build_prices()` | Full pipeline: migrate → S3 sync → fetch → save → upload → prune → output (parquet + JSON) |
 | `to_nested_dict()` | Converts flat DataFrame to nested MTGJSON JSON format |
@@ -161,10 +162,16 @@ def build_prices(self, parquet_output_dir=None, write_json=True):
 - **Pricing**: Retail (prices in cents, converted to dollars)
 - **Method**: Single bulk API endpoint, maps scryfall_id → UUID
 
+### CardTrader (`providers/cardtrader/provider.py`)
+
+- **Source**: `paper` | **Currency**: account-validated, expected `EUR`
+- **Pricing**: Retail only
+- **Method**: Authenticated marketplace requests, maps blueprint `scryfall_id` → UUID and calculates price as the average of the first 15 returned marketplace listings
+
 ### CardMarket (`providers/cardmarket/provider.py`)
 
 - **Source**: `paper` | **Currency**: `EUR`
-- **Pricing**: Retail + buylist
+- **Pricing**: Retail
 - **Method**: Sequential requests via mkmsdk (rate limited to 1 request per 1.5s)
 
 ### Card Kingdom (`providers/cardkingdom/provider.py`)
