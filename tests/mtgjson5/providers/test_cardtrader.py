@@ -34,7 +34,7 @@ def test_cardtrader_averages_the_first_15_listings():
         {"price": {"cents": 360, "currency": "EUR"}},
     ]
 
-    price, currency = provider._calculate_listing_price(listings)  # noqa: SLF001
+    price, currency = provider._calculate_listing_price(listings)
 
     assert currency == "EUR"
     assert price == 2.42
@@ -45,7 +45,7 @@ def test_cardtrader_caps_the_average_at_the_first_15_listings():
 
     listings = [{"price": {"cents": cents, "currency": "EUR"}} for cents in range(100, 1800, 100)]
 
-    price, currency = provider._calculate_listing_price(listings)  # noqa: SLF001
+    price, currency = provider._calculate_listing_price(listings)
 
     assert currency == "EUR"
     assert price == 8.0
@@ -92,8 +92,8 @@ def test_cardtrader_fetch_raw_prices_builds_normal_and_foil_rows():
     assert len(df) == 3
     assert sorted(df.to_dicts(), key=lambda row: (row["finish"], row["scryfallId"])) == [
         {"scryfallId": "sf-foil", "finish": "foil", "price": 6.0, "currency": "EUR"},
-        {"scryfallId": "sf-normal", "finish": "normal", "price": 3.0, "currency": "EUR"},
         {"scryfallId": "sf-unmapped", "finish": "foil", "price": 9.99, "currency": "EUR"},
+        {"scryfallId": "sf-normal", "finish": "normal", "price": 3.0, "currency": "EUR"},
     ]
 
 
@@ -175,7 +175,7 @@ def test_cardtrader_returns_empty_frame_without_config():
 def test_cardtrader_skips_unexpected_currency():
     provider = CardTraderPriceProvider(config=CardTraderConfig(auth_token="token", expected_currency="EUR"))
 
-    records = provider._build_raw_records(  # noqa: SLF001
+    records = provider._build_raw_records(
         {
             "101": [
                 {"price": {"cents": 250, "currency": "USD"}},

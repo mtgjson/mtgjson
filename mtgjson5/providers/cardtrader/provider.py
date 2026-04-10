@@ -214,7 +214,6 @@ class CardTraderPriceProvider:
                 pl.col("price"),
                 pl.col("currency"),
             )
-            .cast(PRICE_SCHEMA)
         )
 
     async def _sleep_between_marketplace_requests(self) -> None:
