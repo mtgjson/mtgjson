@@ -8,6 +8,7 @@ of Scryfall bulk data files for Polars ingestion, plus API access methods.
 
 import asyncio
 import gzip
+import json
 import logging
 import pathlib
 import time
@@ -17,6 +18,8 @@ from typing import Any
 import aiohttp
 import ijson
 import orjson
+
+from mtgjson5 import constants
 
 
 class ScryfallProvider:
@@ -39,11 +42,31 @@ class ScryfallProvider:
     )
     TYPE_CATALOG_URL: str = "https://api.scryfall.com/catalog/{0}"
 
-    RATE_LIMIT_SLEEP: int = 60
+    # Scryfall rate limits (as of 2026-04):
+    #   /cards/search, /cards/named, /cards/random, /cards/collection = 2/sec (500ms)
+    #   All other endpoints = 10/sec (100ms)
+    SLOW_ENDPOINT_PREFIXES: tuple[str, ...] = (
+        "/cards/search",
+        "/cards/named",
+        "/cards/random",
+        "/cards/collection",
+    )
+    SLOW_DELAY: float = 0.5  # 500ms for card endpoints
+    FAST_DELAY: float = 0.1  # 100ms for everything else
+    RATE_LIMIT_BACKOFF_BASE: float = 2.0
+    RATE_LIMIT_MAX_RETRIES: int = 5
 
     def __init__(self) -> None:
         self._cards_without_limits: set[str] | None = None
-        self._rate_limiter: asyncio.Semaphore = asyncio.Semaphore(10)
+        self._rate_limiter: asyncio.Semaphore = asyncio.Semaphore(2)
+
+    def _delay_for_url(self, url: str) -> float:
+        """Return the appropriate rate-limit delay based on the Scryfall endpoint."""
+        path = url.split("api.scryfall.com", 1)[-1].split("?")[0] if "api.scryfall.com" in url else url
+        for prefix in self.SLOW_ENDPOINT_PREFIXES:
+            if path.startswith(prefix):
+                return self.SLOW_DELAY
+        return self.FAST_DELAY
 
     async def _rate_limited_get(
         self,
@@ -51,18 +74,22 @@ class ScryfallProvider:
         url: str,
         **kwargs: Any,
     ) -> aiohttp.ClientResponse:
-        """Make a GET request respecting Scryfall's 10 req/s rate limit with 429 retry."""
+        """Make a GET request respecting Scryfall's endpoint-specific rate limits with 429 backoff."""
+        delay = self._delay_for_url(url)
         async with self._rate_limiter:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(delay)
             response = await session.get(url, **kwargs)
 
-            if response.status == 429:
+            retries = 0
+            while response.status == 429 and retries < self.RATE_LIMIT_MAX_RETRIES:
                 response.release()
+                wait = self.RATE_LIMIT_BACKOFF_BASE ** (retries + 1)
                 self.LOGGER.warning(
-                    f"Rate limited by Scryfall (429). Sleeping for {self.RATE_LIMIT_SLEEP} seconds before retrying..."
+                    f"Rate limited by Scryfall (429). Backing off {wait:.0f}s (attempt {retries + 1}/{self.RATE_LIMIT_MAX_RETRIES})..."
                 )
-                await asyncio.sleep(self.RATE_LIMIT_SLEEP)
+                await asyncio.sleep(wait)
                 response = await session.get(url, **kwargs)
+                retries += 1
 
             return response
 
@@ -221,10 +248,11 @@ class ScryfallProvider:
                         data = await response.json()
                     if data.get("object") == "error":
                         if data.get("code") == "rate_limited":
+                            wait = self.RATE_LIMIT_BACKOFF_BASE ** 2
                             self.LOGGER.warning(
-                                f"Rate limited by Scryfall (429). Sleeping for {self.RATE_LIMIT_SLEEP} seconds..."
+                                f"Rate limited by Scryfall (response body). Backing off {wait:.0f}s..."
                             )
-                            await asyncio.sleep(self.RATE_LIMIT_SLEEP)
+                            await asyncio.sleep(wait)
                             continue
                         self.LOGGER.warning(f"Error: {data}")
                         break
@@ -233,28 +261,36 @@ class ScryfallProvider:
                 return results
 
             async def get_cards_by_ids(ids: list[str]) -> list[dict]:
-                """Fetch cards in batches of 75 using collection endpoint."""
+                """Fetch cards in batches of 75 using collection endpoint (500ms rate limit)."""
                 self.LOGGER.info(f"Fetching {len(ids)} cards in batches of 75...")
                 all_cards = []
+                collection_url = "https://api.scryfall.com/cards/collection"
                 for i in range(0, len(ids), 75):
                     batch = ids[i : i + 75]
                     identifiers = [{"id": card_id} for card_id in batch]
                     async with self._rate_limiter:
-                        await asyncio.sleep(0.1)
+                        await asyncio.sleep(self.SLOW_DELAY)
                         try:
+                            retries = 0
                             async with session.post(
-                                "https://api.scryfall.com/cards/collection",
+                                collection_url,
                                 json={"identifiers": identifiers},
                                 timeout=timeout,
                             ) as resp:
                                 if resp.status == 429:
-                                    self.LOGGER.warning(
-                                        f"Rate limited by Scryfall (429). "
-                                        f"Sleeping for {self.RATE_LIMIT_SLEEP} seconds..."
-                                    )
-                                    await asyncio.sleep(self.RATE_LIMIT_SLEEP)
+                                    while resp.status == 429 and retries < self.RATE_LIMIT_MAX_RETRIES:
+                                        wait = self.RATE_LIMIT_BACKOFF_BASE ** (retries + 1)
+                                        self.LOGGER.warning(
+                                            f"Rate limited on collection endpoint (429). "
+                                            f"Backing off {wait:.0f}s (attempt {retries + 1}/{self.RATE_LIMIT_MAX_RETRIES})..."
+                                        )
+                                        await asyncio.sleep(wait)
+                                        retries += 1
+                                    if retries >= self.RATE_LIMIT_MAX_RETRIES:
+                                        self.LOGGER.warning(f"Max retries exceeded for batch starting at {i}")
+                                        continue
                                     async with session.post(
-                                        "https://api.scryfall.com/cards/collection",
+                                        collection_url,
                                         json={"identifiers": identifiers},
                                         timeout=timeout,
                                     ) as retry_resp:
@@ -271,6 +307,14 @@ class ScryfallProvider:
             parents_url = "https://api.scryfall.com/cards/search?q=is:alchemy%20and%20oracle:/conjure|draft|%27s%20spellbook/&include_extras=true"
             spellbook_url = 'https://api.scryfall.com/cards/search?q=spellbook:"{}"'
 
+            # Load skip-list of cards known to have no spellbook results on Scryfall
+            skip_list: set[str] = set()
+            skip_file = constants.RESOURCE_PATH / "spellbook_no_results.json"
+            if skip_file.exists():
+                with skip_file.open("rb") as f:
+                    skip_list = set(json.loads(f.read()))
+                self.LOGGER.info(f"Loaded spellbook skip-list: {len(skip_list)} cards")
+
             # Get parent cards
             self.LOGGER.info("Fetching parent cards...")
             parent_cards = await get_all_pages(parents_url)
@@ -278,11 +322,17 @@ class ScryfallProvider:
 
             # Collect all spellbook card IDs first
             all_spellbook_ids = {}
+            skipped = 0
             for parent in parent_cards:
                 parent_name = parent["name"]
+                if parent_name in skip_list:
+                    skipped += 1
+                    continue
                 self.LOGGER.info(f"Fetching spellbook for: {parent_name}")
                 spellbook_pages = await get_all_pages(spellbook_url.format(parent_name))
                 all_spellbook_ids[parent_name] = [card["id"] for card in spellbook_pages]
+            if skipped:
+                self.LOGGER.info(f"Skipped {skipped} cards with no known spellbook results")
 
             # Fetch all cards by ID in batches
             all_ids = [card_id for ids in all_spellbook_ids.values() for card_id in ids]
