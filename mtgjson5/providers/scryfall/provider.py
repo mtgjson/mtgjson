@@ -248,10 +248,8 @@ class ScryfallProvider:
                         data = await response.json()
                     if data.get("object") == "error":
                         if data.get("code") == "rate_limited":
-                            wait = self.RATE_LIMIT_BACKOFF_BASE ** 2
-                            self.LOGGER.warning(
-                                f"Rate limited by Scryfall (response body). Backing off {wait:.0f}s..."
-                            )
+                            wait = self.RATE_LIMIT_BACKOFF_BASE**2
+                            self.LOGGER.warning(f"Rate limited by Scryfall (response body). Backing off {wait:.0f}s...")
                             await asyncio.sleep(wait)
                             continue
                         self.LOGGER.warning(f"Error: {data}")
