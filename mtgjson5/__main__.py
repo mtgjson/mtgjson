@@ -134,7 +134,7 @@ def dispatcher(args: argparse.Namespace) -> None:
     from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
     from mtgjson5.pipeline.core import build_cards
     from mtgjson5.profiler import init_profiler
-    from mtgjson5.utils import generate_output_file_hashes
+    from mtgjson5.utils import generate_build_manifest, generate_output_file_hashes
 
     use_tracemalloc = getattr(args, "profile_tracemalloc", False)
     profiler = init_profiler(
@@ -207,6 +207,7 @@ def dispatcher(args: argparse.Namespace) -> None:
         GlobalCache().release_pipeline_frames()
         profiler.checkpoint("pipeline_frames_released")
 
+        results: dict[str, int] = {}
         if decks_only:
             # Only build deck files, skip set JSON assembly
             from mtgjson5.pipeline import build_expanded_decks_df
@@ -228,7 +229,7 @@ def dispatcher(args: argparse.Namespace) -> None:
             LOGGER.info(f"Model assembly results: {results}")
         else:
             set_codes = sets_to_build if sets_only else None
-            _, assembly_ctx = assemble_json_outputs(
+            results, assembly_ctx = assemble_json_outputs(
                 ctx,
                 parallel=True,
                 max_workers=30,
@@ -327,6 +328,12 @@ def dispatcher(args: argparse.Namespace) -> None:
 
     generate_output_file_hashes(MtgjsonConfig().output_path)
     profiler.checkpoint("hashes_complete")
+
+    generate_build_manifest(
+        MtgjsonConfig().output_path,
+        assembly_results=results,
+    )
+    profiler.checkpoint("manifest_complete")
 
     if generate_types:
         from mtgjson5.models import write_typescript_interfaces

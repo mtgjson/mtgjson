@@ -181,6 +181,94 @@ def generate_output_file_hashes(directory: pathlib.Path) -> None:
             hash_file.write(generated_hash)
 
 
+def generate_build_manifest(
+    directory: pathlib.Path,
+    assembly_results: dict[str, int],
+) -> None:
+    """Generate BuildManifest.json cataloging all output files with sizes.
+
+    Args:
+        directory: Build output directory to scan.
+        assembly_results: Record counts from assembly (e.g. AllIdentifiers: 117449).
+    """
+    import contextlib
+    import datetime
+    import subprocess
+
+    excluded_dirs = {"data-models", "types"}
+    excluded_names = {"AllMTGJSONTypes.ts", "BuildManifest.json"}
+
+    files: dict[str, dict[str, int]] = {}
+    total_size = 0
+
+    for file in sorted(directory.rglob("*")):
+        if file.is_dir():
+            continue
+
+        relative = file.relative_to(directory)
+        relative_str = relative.as_posix()
+
+        # Skip excluded directories
+        if relative.parts[0] in excluded_dirs:
+            continue
+
+        # Skip excluded file names
+        if file.name in excluded_names:
+            continue
+
+        # Skip hash sidecars, logs, and profile output
+        if file.name.endswith(f".{constants.HASH_TO_GENERATE.name}"):
+            continue
+        if file.suffix == ".log":
+            continue
+        if file.name in ("profile_report.json", "profile_summary.log"):
+            continue
+
+        size = file.stat().st_size
+        files[relative_str] = {"size_bytes": size}
+        total_size += size
+
+    # Get git commit hash
+    git_commit = ""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode == 0:
+            git_commit = result.stdout.strip()
+    except Exception:
+        pass
+
+    # Get version from config (if available)
+    version = ""
+    with contextlib.suppress(Exception):
+        version = MtgjsonConfig().mtgjson_version
+
+    manifest = {
+        "meta": {
+            "version": version,
+            "date": constants.MTGJSON_BUILD_DATE,
+            "git_commit": git_commit,
+            "generated_at": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "total_files": len(files),
+            "total_size_bytes": total_size,
+        },
+        "record_counts": assembly_results,
+        "files": files,
+    }
+
+    manifest_path = directory / "BuildManifest.json"
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=False),
+        encoding="utf-8",
+    )
+    LOGGER.info(f"BuildManifest.json written: {len(files)} files, {total_size:,} bytes total")
+
+
 def get_str_or_none(value: Any) -> str | None:
     """
     Given a value, get its string representation
