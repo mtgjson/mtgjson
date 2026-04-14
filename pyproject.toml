@@ -72,7 +72,7 @@ dev = [
     "ruff==0.15.2",
     "mypy==1.19.1",
     "pylint==4.0.5",
-    "pytest==9.0.2",
+    "pytest==9.0.3",
     "pytest-cov==7.0.0",
     "pytest-mock==3.15.1",
     "pytest-recording==0.13.4",
