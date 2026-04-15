@@ -59,7 +59,7 @@ class DeckSet(PolarsMixin, BaseModel):
     )
     source: str | None = Field(
         default=None,
-        description="A source URL for the deck list.",
+        description="A human-readable source for the deck list.",
         json_schema_extra={"optional": True},
     )
     sealed_product_uuids: list[str] | None = Field(
