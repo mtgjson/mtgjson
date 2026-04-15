@@ -5,7 +5,6 @@ from __future__ import annotations
 import polars as pl
 import pytest
 
-from mtgjson5.providers.github.provider import _build_decks_records
 from mtgjson5.providers.github.models import (
     CardEntryModel,
     CardRef,
@@ -18,6 +17,7 @@ from mtgjson5.providers.github.models import (
     VariableConfig,
     _python_type_to_polars,
 )
+from mtgjson5.providers.github.provider import _build_decks_records
 
 # ---------------------------------------------------------------------------
 # TestPythonTypeToPolars
