@@ -20,6 +20,7 @@ from mtgjson5.mtgjson_config import MtgjsonConfig
 LOGGER = logging.getLogger(__name__)
 
 CARDTRADER_API_BASE_URL = "https://api.cardtrader.com/api/v2"
+MTGJSON_USER_AGENT = "MTGJSON/5.0 (https://mtgjson.com)"
 MAGIC_GAME_ID = 1
 MAX_LISTINGS_FOR_MARKET_PRICE = 15
 
@@ -103,13 +104,9 @@ class CardTraderPriceProvider:
             LOGGER.warning("No CardTrader config available, skipping provider")
             return pl.DataFrame(schema=RAW_SCHEMA)
 
-        headers = {
-            "Authorization": f"Bearer {self.config.auth_token}",
-            "Accept": "application/json",
-        }
         records: list[dict[str, Any]] = []
 
-        async with aiohttp.ClientSession(headers=headers) as session:
+        async with aiohttp.ClientSession(headers=self._build_headers()) as session:
             try:
                 expansions = self._parse_expansions(await self._request_json(session, "expansions"))
             except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
@@ -199,13 +196,9 @@ class CardTraderPriceProvider:
             LOGGER.warning("No CardTrader config available, skipping provider")
             return pl.DataFrame(schema=LOOKUP_SCHEMA)
 
-        headers = {
-            "Authorization": f"Bearer {self.config.auth_token}",
-            "Accept": "application/json",
-        }
         records: list[dict[str, str]] = []
 
-        async with aiohttp.ClientSession(headers=headers) as session:
+        async with aiohttp.ClientSession(headers=self._build_headers()) as session:
             try:
                 expansions = self._parse_expansions(await self._request_json(session, "expansions"))
             except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
@@ -314,6 +307,17 @@ class CardTraderPriceProvider:
                 prices_obj.sell_foil = price
 
         return result
+
+    def _build_headers(self) -> dict[str, str]:
+        """Build HTTP headers for CardTrader API requests."""
+        if not self.config:
+            return {"Accept": "application/json", "User-Agent": MTGJSON_USER_AGENT}
+
+        return {
+            "Authorization": f"Bearer {self.config.auth_token}",
+            "Accept": "application/json",
+            "User-Agent": MTGJSON_USER_AGENT,
+        }
 
     async def _sleep_between_marketplace_requests(self) -> None:
         """Throttle marketplace requests to avoid rate-limit trouble."""

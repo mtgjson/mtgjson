@@ -20,6 +20,7 @@ class StubCardTraderProvider(CardTraderPriceProvider):
         )
         self.output_path = None
         self.responses = responses
+        self.seen_user_agents: list[str | None] = []
 
     async def _request_json(
         self,
@@ -27,6 +28,7 @@ class StubCardTraderProvider(CardTraderPriceProvider):
         path: str,
         params: dict[str, str | int] | None = None,
     ) -> Any:
+        self.seen_user_agents.append(session.headers.get("User-Agent"))
         key = (path, tuple(sorted((params or {}).items())))
         response = self.responses[key]
         if isinstance(response, Exception):
@@ -175,6 +177,8 @@ def test_cardtrader_fetch_prices_maps_to_uuid() -> None:
             "currency": "EUR",
         },
     ]
+    assert provider.seen_user_agents
+    assert all(user_agent == "MTGJSON/5.0 (https://mtgjson.com)" for user_agent in provider.seen_user_agents)
 
 
 def test_cardtrader_generate_today_price_dict_maps_to_legacy_price_entries() -> None:
@@ -254,6 +258,8 @@ def test_cardtrader_fetch_identifier_lookup_builds_scryfall_to_blueprint_rows() 
         {"scryfallId": "sf-foil", "cardtraderId": "102"},
         {"scryfallId": "sf-normal", "cardtraderId": "101"},
     ]
+    assert provider.seen_user_agents
+    assert all(user_agent == "MTGJSON/5.0 (https://mtgjson.com)" for user_agent in provider.seen_user_agents)
 
 
 def test_cardtrader_returns_empty_frame_without_config() -> None:
