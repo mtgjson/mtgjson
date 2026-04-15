@@ -106,9 +106,9 @@ def test_cardtrader_fetch_raw_prices_builds_normal_and_foil_rows() -> None:
     assert isinstance(df, pl.DataFrame)
     assert len(df) == 3
     assert sorted(df.to_dicts(), key=lambda row: (row["finish"], row["scryfallId"])) == [
-        {"scryfallId": "sf-foil", "finish": "foil", "price": 6.0, "currency": "EUR"},
-        {"scryfallId": "sf-unmapped", "finish": "foil", "price": 9.99, "currency": "EUR"},
-        {"scryfallId": "sf-normal", "finish": "normal", "price": 3.0, "currency": "EUR"},
+        {"scryfallId": "sf-foil", "blueprintId": "102", "finish": "foil", "price": 6.0, "currency": "EUR"},
+        {"scryfallId": "sf-unmapped", "blueprintId": "103", "finish": "foil", "price": 9.99, "currency": "EUR"},
+        {"scryfallId": "sf-normal", "blueprintId": "101", "finish": "normal", "price": 3.0, "currency": "EUR"},
     ]
 
 
@@ -174,6 +174,29 @@ def test_cardtrader_fetch_prices_maps_to_uuid() -> None:
             "price": 3.0,
             "currency": "EUR",
         },
+    ]
+
+
+def test_cardtrader_fetch_identifier_lookup_builds_scryfall_to_blueprint_rows() -> None:
+    responses = {
+        ("expansions", ()): [
+            {"id": 10, "game_id": 1, "name": "Test Expansion"},
+            {"id": 11, "game_id": 2, "name": "Other Game"},
+        ],
+        ("blueprints/export", (("expansion_id", 10),)): [
+            {"id": 101, "scryfall_id": "sf-normal"},
+            {"id": 102, "scryfall_id": "sf-foil"},
+            {"id": 103, "scryfall_id": None},
+        ],
+    }
+
+    provider = StubCardTraderProvider(responses)
+    df = asyncio.run(provider.fetch_identifier_lookup())
+
+    assert isinstance(df, pl.DataFrame)
+    assert sorted(df.to_dicts(), key=lambda row: row["scryfallId"]) == [
+        {"scryfallId": "sf-foil", "cardtraderId": "102"},
+        {"scryfallId": "sf-normal", "cardtraderId": "101"},
     ]
 
 

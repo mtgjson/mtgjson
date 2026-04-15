@@ -24,9 +24,15 @@ MAX_LISTINGS_FOR_MARKET_PRICE = 15
 
 RAW_SCHEMA = {
     "scryfallId": pl.String,
+    "blueprintId": pl.String,
     "finish": pl.String,
     "price": pl.Float64,
     "currency": pl.String,
+}
+
+LOOKUP_SCHEMA = {
+    "scryfallId": pl.String,
+    "cardtraderId": pl.String,
 }
 
 PRICE_SCHEMA = {
@@ -186,6 +192,68 @@ class CardTraderPriceProvider:
 
         return df
 
+    async def fetch_identifier_lookup(self) -> pl.DataFrame:
+        """Fetch CardTrader blueprint identifiers keyed by Scryfall ID."""
+        if not self.config:
+            LOGGER.warning("No CardTrader config available, skipping provider")
+            return pl.DataFrame(schema=LOOKUP_SCHEMA)
+
+        headers = {
+            "Authorization": f"Bearer {self.config.auth_token}",
+            "Accept": "application/json",
+        }
+        records: list[dict[str, str]] = []
+
+        async with aiohttp.ClientSession(headers=headers) as session:
+            try:
+                expansions = self._parse_expansions(await self._request_json(session, "expansions"))
+            except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+                LOGGER.error("CardTrader: failed to fetch expansions for identifier lookup: %s", exc)
+                return pl.DataFrame(schema=LOOKUP_SCHEMA)
+            except Exception as exc:
+                LOGGER.error("CardTrader: unexpected error fetching identifier lookup expansions: %s", exc)
+                return pl.DataFrame(schema=LOOKUP_SCHEMA)
+
+            magic_expansions = [exp for exp in expansions if self._extract_game_id(exp) == MAGIC_GAME_ID]
+            for expansion in magic_expansions:
+                expansion_id = self._extract_expansion_id(expansion)
+                if expansion_id is None:
+                    continue
+
+                expansion_name = str(expansion.get("name") or expansion.get("code") or expansion_id)
+                try:
+                    blueprints = self._parse_blueprints(
+                        await self._request_json(session, "blueprints/export", {"expansion_id": expansion_id})
+                    )
+                    records.extend(self._build_identifier_records(blueprints))
+                except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+                    LOGGER.warning(
+                        "CardTrader: skipping identifier lookup for expansion %s (%s): %s",
+                        expansion_name,
+                        expansion_id,
+                        exc,
+                    )
+                    continue
+                except Exception as exc:
+                    LOGGER.warning(
+                        "CardTrader: unexpected identifier lookup error in expansion %s (%s): %s",
+                        expansion_name,
+                        expansion_id,
+                        exc,
+                    )
+                    continue
+
+        if not records:
+            LOGGER.warning("CardTrader: no identifier lookup data retrieved")
+            return pl.DataFrame(schema=LOOKUP_SCHEMA)
+
+        df = pl.DataFrame(records, schema=LOOKUP_SCHEMA)
+        deduped = df.unique(subset=["scryfallId"], keep="first")
+        dropped = len(df) - len(deduped)
+        if dropped > 0:
+            LOGGER.warning("CardTrader: dropped %s duplicate blueprint mappings by scryfallId", dropped)
+        return deduped
+
     async def fetch_prices(self, scryfall_to_uuid_map: dict[str, str]) -> pl.DataFrame:
         """Fetch CardTrader prices and map them to MTGJSON UUIDs."""
         if not scryfall_to_uuid_map:
@@ -325,12 +393,30 @@ class CardTraderPriceProvider:
             records.append(
                 {
                     "scryfallId": scryfall_id,
+                    "blueprintId": blueprint_id,
                     "finish": finish,
                     "price": price,
                     "currency": currency,
                 }
             )
 
+        return records
+
+    @staticmethod
+    def _build_identifier_records(blueprints: list[dict[str, Any]]) -> list[dict[str, str]]:
+        """Convert CardTrader blueprints to card identifier records."""
+        records: list[dict[str, str]] = []
+        for blueprint in blueprints:
+            blueprint_id = blueprint.get("id")
+            scryfall_id = blueprint.get("scryfall_id")
+            if blueprint_id is None or not scryfall_id:
+                continue
+            records.append(
+                {
+                    "scryfallId": str(scryfall_id),
+                    "cardtraderId": str(blueprint_id),
+                }
+            )
         return records
 
     def _calculate_listing_price(self, listings: list[dict[str, Any]]) -> tuple[float, str] | None:

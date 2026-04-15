@@ -123,6 +123,13 @@ class PipelineContext:
         return self._cache.card_kingdom_lf if self._cache else None
 
     @property
+    def cardtrader_lf(self) -> pl.LazyFrame | None:
+        """CardTrader identifier lookup from cache."""
+        if "_cardtrader_lf" in self._test_data:
+            return self._test_data["_cardtrader_lf"]  # type: ignore[no-any-return]
+        return self._cache.cardtrader_lf if self._cache else None
+
+    @property
     def card_kingdom_raw_lf(self) -> pl.LazyFrame | None:
         """Card Kingdom raw data from cache."""
         if "_card_kingdom_raw_lf" in self._test_data:
@@ -482,6 +489,7 @@ class PipelineContext:
         rulings_lf: pl.LazyFrame | None = None,
         uuid_cache_lf: pl.LazyFrame | None = None,
         card_kingdom_lf: pl.LazyFrame | None = None,
+        cardtrader_lf: pl.LazyFrame | None = None,
         salt_lf: pl.LazyFrame | None = None,
         orientation_lf: pl.LazyFrame | None = None,
         meld_triplets: dict[str, list[str]] | None = None,
@@ -510,6 +518,8 @@ class PipelineContext:
             test_data["_uuid_cache_lf"] = uuid_cache_lf
         if card_kingdom_lf is not None:
             test_data["_card_kingdom_lf"] = card_kingdom_lf
+        if cardtrader_lf is not None:
+            test_data["_cardtrader_lf"] = cardtrader_lf
         if salt_lf is not None:
             test_data["_salt_lf"] = salt_lf
         if orientation_lf is not None:
@@ -626,8 +636,21 @@ class PipelineContext:
                 result = result.join(ck, on="scryfallId", how="full", coalesce=True)
                 LOGGER.info(f"identifiers: +card_kingdom ({ck.height:,} rows)")
 
+        # Add CardTrader blueprint identifiers by scryfallId.
+        cardtrader_raw = self.cardtrader_lf
+        if cardtrader_raw is not None:
+            if isinstance(cardtrader_raw, pl.LazyFrame):
+                cardtrader: pl.DataFrame = cardtrader_raw.collect()
+            else:
+                cardtrader = cardtrader_raw
+            if cardtrader.height > 0:
+                result = result.join(cardtrader, on="scryfallId", how="full", coalesce=True)
+                LOGGER.info(f"identifiers: +cardtrader ({cardtrader.height:,} rows)")
+
         # Fill null side values for CK-only rows (cards not in uuid_cache)
         result = result.with_columns(pl.col("side").fill_null("a"))
+        if "cardtraderId" not in result.columns:
+            result = result.with_columns(pl.lit(None).cast(pl.String).alias("cardtraderId"))
 
         # Add orientation data (by scryfallId only)
         orient_raw = self.orientation_lf

@@ -297,7 +297,6 @@ class Identifiers(TypedDict, total=False):
 
     # Sealed product identifiers
     abuId: str
-    cardtraderId: str
     csiId: str
     miniaturemarketId: str
     mvpId: str
@@ -309,6 +308,7 @@ class Identifiers(TypedDict, total=False):
     cardKingdomId: str
     cardsphereId: str
     cardsphereFoilId: str
+    cardtraderId: str
     deckboxId: str
     mcmId: str
     mcmMetaId: str
