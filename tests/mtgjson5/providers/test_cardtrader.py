@@ -177,6 +177,62 @@ def test_cardtrader_fetch_prices_maps_to_uuid() -> None:
     ]
 
 
+def test_cardtrader_generate_today_price_dict_maps_to_legacy_price_entries() -> None:
+    responses = {
+        ("expansions", ()): [
+            {"id": 10, "game_id": 1, "name": "Test Expansion"},
+        ],
+        ("blueprints/export", (("expansion_id", 10),)): [
+            {"id": 101, "scryfall_id": "sf-normal"},
+            {"id": 102, "scryfall_id": "sf-foil"},
+        ],
+        ("marketplace/products", (("expansion_id", 10), ("foil", "false"), ("language", "en"))): {
+            "101": {
+                "products": [
+                    {"price": {"cents": 200, "currency": "EUR"}},
+                    {"price": {"cents": 400, "currency": "EUR"}},
+                ]
+            }
+        },
+        ("marketplace/products", (("expansion_id", 10), ("foil", "true"), ("language", "en"))): {
+            "102": {
+                "products": [
+                    {"price": {"cents": 500, "currency": "EUR"}},
+                    {"price": {"cents": 700, "currency": "EUR"}},
+                ]
+            }
+        },
+    }
+
+    provider = StubCardTraderProvider(responses)
+    result = asyncio.run(
+        provider.generate_today_price_dict(
+            {
+                "sf-normal": "uuid-normal",
+                "sf-foil": "uuid-foil",
+            }
+        )
+    )
+
+    assert sorted(result) == ["uuid-foil", "uuid-normal"]
+
+    normal_entry = result["uuid-normal"]
+    assert normal_entry.source == "paper"
+    assert normal_entry.provider == "cardtrader"
+    assert normal_entry.date == provider.today_date
+    assert normal_entry.currency == "EUR"
+    assert normal_entry.sell_normal == 3.0
+    assert normal_entry.sell_foil is None
+
+    foil_entry = result["uuid-foil"]
+    assert foil_entry.source == "paper"
+    assert foil_entry.provider == "cardtrader"
+    assert foil_entry.date == provider.today_date
+    assert foil_entry.currency == "EUR"
+    assert foil_entry.sell_foil == 6.0
+    assert foil_entry.sell_normal is None
+
+
 def test_cardtrader_fetch_identifier_lookup_builds_scryfall_to_blueprint_rows() -> None:
     responses = {
         ("expansions", ()): [
@@ -208,6 +264,16 @@ def test_cardtrader_returns_empty_frame_without_config() -> None:
     df = asyncio.run(provider.fetch_prices({"sfid": "uuid"}))
 
     assert df.is_empty()
+
+
+def test_cardtrader_generate_today_price_dict_returns_empty_dict_without_config() -> None:
+    provider = CardTraderPriceProvider(config=None)
+    provider.config = None
+    provider.output_path = None
+
+    result = asyncio.run(provider.generate_today_price_dict({"sfid": "uuid"}))
+
+    assert result == {}
 
 
 def test_cardtrader_skips_unexpected_currency() -> None:

@@ -14,6 +14,7 @@ import aiohttp
 import polars as pl
 
 from mtgjson5 import constants
+from mtgjson5.models.containers import MtgjsonPriceEntry
 from mtgjson5.mtgjson_config import MtgjsonConfig
 
 LOGGER = logging.getLogger(__name__)
@@ -280,6 +281,39 @@ class CardTraderPriceProvider:
             pl.col("price"),
             pl.col("currency"),
         )
+
+    async def generate_today_price_dict(
+        self,
+        scryfall_to_uuid_map: dict[str, str],
+    ) -> dict[str, MtgjsonPriceEntry]:
+        """
+        Generate MTGJSON-format price dict for compatibility with legacy code.
+
+        Returns dict mapping UUID -> MtgjsonPriceEntry.
+        """
+        df = await self.fetch_prices(scryfall_to_uuid_map)
+        return self._dataframe_to_price_dict(df)
+
+    def _dataframe_to_price_dict(self, df: pl.DataFrame) -> dict[str, MtgjsonPriceEntry]:
+        """Convert DataFrame to MTGJSON price dict format."""
+        result: dict[str, MtgjsonPriceEntry] = {}
+
+        for row in df.iter_rows(named=True):
+            uuid = row["uuid"]
+            finish = row["finish"]
+            price = row["price"]
+            currency = row["currency"]
+
+            if uuid not in result:
+                result[uuid] = MtgjsonPriceEntry("paper", "cardtrader", self.today_date, currency)
+
+            prices_obj = result[uuid]
+            if finish == "normal":
+                prices_obj.sell_normal = price
+            elif finish == "foil":
+                prices_obj.sell_foil = price
+
+        return result
 
     async def _sleep_between_marketplace_requests(self) -> None:
         """Throttle marketplace requests to avoid rate-limit trouble."""
