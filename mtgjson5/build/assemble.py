@@ -158,6 +158,8 @@ class Assembler:
             }
             if deck.get("releaseDate"):
                 minimal_deck["releaseDate"] = deck["releaseDate"]
+            if deck.get("source"):
+                minimal_deck["source"] = deck["source"]
             sealed_uuids = deck.get("sealedProductUuids")
             minimal_deck["sealedProductUuids"] = sealed_uuids if sealed_uuids else None
             if deck.get("sourceSetCodes"):
@@ -591,6 +593,7 @@ class DeckAssembler(Assembler):
             "name": deck_data.get("name", ""),
             "type": deck_data.get("type", ""),
             "releaseDate": deck_data.get("releaseDate"),
+            "source": deck_data.get("source"),
         }
 
         sealed_uuids = deck_data.get("sealedProductUuids")
@@ -624,6 +627,7 @@ class DeckAssembler(Assembler):
             "deck_name": deck.get("name", ""),
             "deck_type": deck.get("type", ""),
             "release_date": deck.get("releaseDate"),
+            "source": deck.get("source"),
         }
 
         for board in ["mainBoard", "sideBoard", "commander", "tokens"]:
@@ -666,6 +670,8 @@ class DeckListAssembler(Assembler):
             }
             if deck.get("releaseDate"):
                 entry["releaseDate"] = deck["releaseDate"]
+            if deck.get("source"):
+                entry["source"] = deck["source"]
 
             deck_list.append(entry)
 

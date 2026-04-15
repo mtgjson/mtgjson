@@ -60,6 +60,11 @@ class DeckList(PolarsMixin, BaseModel):
         ),
         json_schema_extra={"introduced": "v4.3.0"},
     )
+    source: str | None = Field(
+        default=None,
+        description="A source URL for the deck list.",
+        json_schema_extra={"optional": True},
+    )
 
 
 class Deck(PolarsMixin, BaseModel):
@@ -95,6 +100,11 @@ class Deck(PolarsMixin, BaseModel):
             "format for the set. Returns `null` if the deck was not formally released as a product."
         ),
         json_schema_extra={"introduced": "v4.3.0"},
+    )
+    source: str | None = Field(
+        default=None,
+        description="A source URL for the deck list.",
+        json_schema_extra={"optional": True},
     )
     sealed_product_uuids: list[str] | None = Field(
         default=None,

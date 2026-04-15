@@ -125,6 +125,7 @@ def _make_sets_df() -> pl.DataFrame:
                         "name": "Intro Pack Red",
                         "type": "Intro Pack",
                         "releaseDate": "2009-07-17",
+                        "source": "https://example.com/intro-pack-red",
                         "sealedProductUuids": ["sealed-001"],
                         "sourceSetCodes": None,
                         "mainBoard": [{"uuid": "uuid-001", "count": 1}],
@@ -168,6 +169,7 @@ def _make_sets_df() -> pl.DataFrame:
                         "name": pl.String,
                         "type": pl.String,
                         "releaseDate": pl.String,
+                        "source": pl.String,
                         "sealedProductUuids": pl.List(pl.String),
                         "sourceSetCodes": pl.List(pl.String),
                         "mainBoard": pl.List(pl.Struct({"uuid": pl.String, "count": pl.Int64})),
@@ -466,7 +468,7 @@ class TestBuildAllSetDecks:
     def test_set_decks_columns(self):
         tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
         sd = tables["setDecks"]
-        for col in ["setCode", "name", "type"]:
+        for col in ["setCode", "name", "type", "source"]:
             assert col in sd.columns
 
     def test_decks_excluded_from_sets(self):
@@ -487,6 +489,11 @@ class TestBuildAllSetDecks:
         tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
         sd = tables["setDecks"]
         assert sd["setCode"][0] == "M10"
+
+    def test_set_decks_source_preserved(self):
+        tables = TableAssembler.build_all(_make_cards_df(), sets_df=_make_sets_df())
+        sd = tables["setDecks"]
+        assert sd["source"][0] == "https://example.com/intro-pack-red"
 
 
 # =============================================================================

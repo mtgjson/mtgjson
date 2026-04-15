@@ -5,12 +5,14 @@ from __future__ import annotations
 import polars as pl
 import pytest
 
+from mtgjson5.providers.github.provider import _build_decks_records
 from mtgjson5.providers.github.models import (
     CardEntryModel,
     CardRef,
     ContentConfig,
     DeckRef,
     PackRef,
+    PreconModel,
     SealedProductModel,
     SealedRef,
     VariableConfig,
@@ -82,6 +84,7 @@ class TestAllModelsProduceSchemas:
             VariableConfig,
             ContentConfig,
             CardEntryModel,
+            PreconModel,
             SealedProductModel,
         ],
     )
@@ -100,6 +103,7 @@ class TestAllModelsProduceSchemas:
             VariableConfig,
             ContentConfig,
             CardEntryModel,
+            PreconModel,
             SealedProductModel,
         ],
     )
@@ -107,3 +111,32 @@ class TestAllModelsProduceSchemas:
         doc = model.polars_schema_doc()
         assert isinstance(doc, str)
         assert model.__name__ in doc
+
+
+class TestBuildDeckRecords:
+    def test_build_decks_records_preserves_source(self):
+        records = _build_decks_records(
+            [
+                {
+                    "name": "Deck A",
+                    "set_code": "tst",
+                    "type": "Commander",
+                    "release_date": "2025-01-01",
+                    "source": "https://example.com/deck-a",
+                    "sourceSetCodes": ["tst"],
+                    "cards": [{"mtgjson_uuid": "uuid-001", "count": 1, "foil": False}],
+                    "sideboard": [],
+                    "commander": [],
+                    "displayCommander": [],
+                    "tokens": [],
+                    "planarDeck": [],
+                    "schemeDeck": [],
+                }
+            ],
+            {"tst": {"Deck A": ["sealed-001"]}},
+        )
+
+        assert len(records) == 1
+        assert records[0]["source"] == "https://example.com/deck-a"
+        assert records[0]["setCode"] == "TST"
+        assert records[0]["sealedProductUuids"] == ["sealed-001"]

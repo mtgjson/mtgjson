@@ -204,6 +204,7 @@ class PreconModel(PolarsSchemaModel):
     setCode: str = Field(..., description="The set code associated with the deck.")
     type: str = Field(..., description="The type of the deck (e.g., Commander, Standard).")
     releaseDate: str = Field(..., description="The release date of the deck.")
+    source: str | None = Field(default=None, description="A source URL for the deck list.")
     sourceSetCodes: list[str] = Field(
         default_factory=list,
         description="List of source set codes for the deck.",

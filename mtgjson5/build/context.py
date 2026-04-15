@@ -180,6 +180,7 @@ def _enrich_sets_with_decks(
             "name": row.get("name", ""),
             "type": row.get("type", ""),
             "releaseDate": row.get("releaseDate"),
+            "source": row.get("source"),
             "sealedProductUuids": orjson.dumps(row.get("sealedProductUuids") or []).decode("utf-8"),
             "sourceSetCodes": orjson.dumps(row.get("sourceSetCodes") or []).decode("utf-8"),
         }
