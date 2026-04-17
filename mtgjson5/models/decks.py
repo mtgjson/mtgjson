@@ -63,7 +63,7 @@ class DeckList(PolarsMixin, BaseModel):
     source: str | None = Field(
         default=None,
         description="A human-readable source for the deck list.",
-        json_schema_extra={"optional": True},
+        json_schema_extra={"introduced": "v5.3.0", "optional": True},
     )
 
 
@@ -104,7 +104,7 @@ class Deck(PolarsMixin, BaseModel):
     source: str | None = Field(
         default=None,
         description="A human-readable source for the deck list.",
-        json_schema_extra={"optional": True},
+        json_schema_extra={"introduced": "v5.3.0", "optional": True},
     )
     sealed_product_uuids: list[str] | None = Field(
         default=None,
