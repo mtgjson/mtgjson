@@ -65,6 +65,7 @@ class TestEnrichSetsWithDecks:
                     "name": "Intro Pack Red",
                     "type": "Intro Pack",
                     "releaseDate": "2009-07-17",
+                    "source": "https://example.com/intro-pack-red",
                     "sealedProductUuids": ["sealed-001"],
                     "sourceSetCodes": None,
                     "mainBoard": [{"uuid": "uuid-001", "count": 1}],
@@ -85,6 +86,7 @@ class TestEnrichSetsWithDecks:
         decks = records[0]["decks"]
         assert len(decks) == 1
         assert decks[0]["name"] == "Intro Pack Red"
+        assert decks[0]["source"] == "https://example.com/intro-pack-red"
 
     def test_sets_without_decks_get_empty_list(self):
         records = [{"code": "ZZZ", "name": "No Decks"}]
