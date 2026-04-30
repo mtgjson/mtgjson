@@ -104,10 +104,7 @@ class CardSphereProvider:
         failed = 0
 
         with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as executor:
-            futures = {
-                executor.submit(self._download_csv, session, set_id): set_id
-                for set_id in set_ids
-            }
+            futures = {executor.submit(self._download_csv, session, set_id): set_id for set_id in set_ids}
 
             for future in as_completed(futures):
                 set_id = futures[future]
@@ -135,10 +132,7 @@ class CardSphereProvider:
         # Pivot: for each scryfallId, get the non-foil and foil CS IDs
         self._cards_df = self._pivot_to_card_mapping(raw_df)
 
-        LOGGER.info(
-            f"Built CardSphere mapping: {len(self._cards_df):,} unique cards, "
-            f"{len(self._sets_df):,} sets"
-        )
+        LOGGER.info(f"Built CardSphere mapping: {len(self._cards_df):,} unique cards, {len(self._sets_df):,} sets")
 
         return self._cards_df, self._sets_df
 
@@ -166,7 +160,7 @@ class CardSphereProvider:
                 props = next_data.get("props", {}).get("pageProps", {})
                 sets_list = props.get("sets") or props.get("data", {}).get("sets")
                 if sets_list:
-                    return sets_list
+                    return list(sets_list)
             except (json.JSONDecodeError, AttributeError):
                 pass
 
@@ -180,7 +174,7 @@ class CardSphereProvider:
             try:
                 parsed = json.loads(candidate)
                 if parsed and isinstance(parsed, list) and "id" in parsed[0]:
-                    return parsed
+                    return list(parsed)
             except (json.JSONDecodeError, IndexError, TypeError):
                 continue
 
@@ -190,10 +184,7 @@ class CardSphereProvider:
             html,
         )
         if set_objects:
-            return [
-                {"id": int(m[0]), "name": m[1], "code": m[2]}
-                for m in set_objects
-            ]
+            return [{"id": int(m[0]), "name": m[1], "code": m[2]} for m in set_objects]
 
         LOGGER.error("Could not parse set data from CardSphere sets page")
         return []
