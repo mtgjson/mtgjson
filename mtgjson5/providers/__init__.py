@@ -7,6 +7,7 @@ CardKingdom, GitHub, EDHREC Salt, Scryfall, and pricing providers.
 
 from .cardhoarder import CardHoarderPriceProvider
 from .cardkingdom import CKProvider
+from .cardsphere import CardSphereProvider
 from .cardmarket import CardMarketProvider
 from .gatherer import GathererProvider
 from .github import SealedDataProvider
@@ -22,6 +23,7 @@ __all__ = [
     "BulkDataProvider",
     "CKProvider",
     "CardHoarderPriceProvider",
+    "CardSphereProvider",
     "CardMarketProvider",
     "EdhrecSaltProvider",
     "GathererProvider",
