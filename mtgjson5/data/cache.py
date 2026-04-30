@@ -773,8 +773,6 @@ class GlobalCache:
             rows = [
                 {
                     "cachedUuid": uuid,
-                    "cardsphereId": data.get("cardsphereId"),
-                    "cardsphereFoilId": data.get("cardsphereFoilId"),
                     "deckboxId": data.get("deckboxId"),
                 }
                 for uuid, data in cards_data.items()
