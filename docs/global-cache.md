@@ -47,7 +47,9 @@ All bulk data is stored as LazyFrames (suffix `_lf`) for memory efficiency. Lazy
 | `tcg_skus_lf` | TCGPlayer | SKU mappings |
 | `gatherer_lf` | Gatherer pages | Wizards database IDs |
 | `orientation_lf` | Scryfall images | Card image orientations |
-| `multiverse_bridge_lf` | Wizards | Multiverse ID bridge data |
+| `cardsphere_lf` | CardSphere | Card ID mappings (scryfallId to cardsphereId/cardsphereFoilId) |
+| `cardsphere_sets_lf` | CardSphere | Set ID mappings (setCode to cardsphereSetId) |
+| `multiverse_bridge_lf` | Resources | Deckbox ID bridge data |
 
 ### Sealed/Deck LazyFrames
 
@@ -126,6 +128,7 @@ def load_all(
    - What's in Standard
    - GitHub sealed products
    - Secret Lair subsets
+   - CardSphere identifiers
    - (Optional) CardMarket data
 6. **Apply dynamic categoricals** for memory optimization
 7. **Dump to parquet and reload as lazy** (memory optimization)
