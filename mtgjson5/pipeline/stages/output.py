@@ -483,10 +483,7 @@ def build_id_mappings_from_parquet(ctx: PipelineContext) -> None:
             [
                 pl.col("uuid").cast(pl.String),
                 pl.struct(
-                    [
-                        pl.col("identifiers").struct.field(name).cast(pl.String).alias(name)
-                        for name in needed_id_fields
-                    ]
+                    [pl.col("identifiers").struct.field(name).cast(pl.String).alias(name) for name in needed_id_fields]
                 ).alias("identifiers"),
                 pl.col("finishes"),
             ]
