@@ -120,6 +120,7 @@ class GlobalCache:
         self.uuid_cache_lf: pl.LazyFrame | None = None
 
         # Provider Data lFs
+        self.cardtrader_lf: pl.LazyFrame | None = None
         self.card_kingdom_lf: pl.LazyFrame | None = None
         self.card_kingdom_raw_lf: pl.LazyFrame | None = None
         self.mcm_lookup_lf: pl.LazyFrame | None = None
@@ -224,6 +225,7 @@ class GlobalCache:
         self.release(
             "rulings_lf",
             "uuid_cache_lf",
+            "cardtrader_lf",
             "card_kingdom_lf",
             "card_kingdom_raw_lf",
             "mcm_lookup_lf",
@@ -271,6 +273,7 @@ class GlobalCache:
             "rulings_lf",
             "sets_lf",
             "uuid_cache_lf",
+            "cardtrader_lf",
             "card_kingdom_lf",
             "card_kingdom_raw_lf",
             "mcm_lookup_lf",
@@ -345,6 +348,7 @@ class GlobalCache:
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = {
                 executor.submit(self._load_orientations): "orientations",
+                executor.submit(self._load_cardtrader_lookup): "cardtrader",
                 executor.submit(self._load_card_kingdom): "card_kingdom",
                 executor.submit(self._load_edhrec_salt): "edhrec",
                 executor.submit(self._load_spellbook): "spellbook",
@@ -441,6 +445,7 @@ class GlobalCache:
             "cards_lf": "cards.parquet",
             "rulings_lf": "rulings.parquet",
             "sets_lf": "sets.parquet",
+            "cardtrader_lf": "cardtrader_lookup.parquet",
             "card_kingdom_lf": "card_kingdom.parquet",
             "card_kingdom_raw_lf": "card_kingdom_raw.parquet",
             "mcm_lookup_lf": "mcm_lookup.parquet",
@@ -934,6 +939,31 @@ class GlobalCache:
         except Exception as e:
             LOGGER.warning(f"Failed to fetch Card Kingdom data: {e}")
 
+    def _load_cardtrader_lookup(self) -> None:
+        """Load CardTrader blueprint identifier lookup with caching."""
+        from mtgjson5.providers.cardtrader.provider import CardTraderPriceProvider
+
+        cache_path = self.cache_path / "cardtrader_lookup.parquet"
+
+        if _cache_fresh(cache_path):
+            self.cardtrader_lf = pl.scan_parquet(cache_path)
+            return
+
+        self.cardtrader_lf = pl.DataFrame(
+            schema={
+                "scryfallId": pl.String,
+                "cardtraderId": pl.String,
+            }
+        ).lazy()
+
+        try:
+            lookup_df = asyncio.run(CardTraderPriceProvider().fetch_identifier_lookup())
+            if len(lookup_df) > 0:
+                lookup_df.write_parquet(cache_path)
+                self.cardtrader_lf = lookup_df.lazy()
+        except Exception as e:
+            LOGGER.warning(f"Failed to fetch CardTrader lookup data: {e}")
+
     def _load_edhrec_salt(self) -> None:
         """Load EDHREC saltiness data."""
         cache_path = self.cache_path / "edhrec_salt.parquet"
@@ -1358,6 +1388,7 @@ class GlobalCache:
         self.rulings_lf = _normalize_columns(self.rulings_lf)
         self.sets_lf = _normalize_columns(self.sets_lf)
         self.rulings_lf = _normalize_columns(self.rulings_lf)
+        self.cardtrader_lf = _normalize_columns(self.cardtrader_lf)
         self.uuid_cache_lf = _normalize_columns(self.uuid_cache_lf)
         self.card_kingdom_lf = _normalize_columns(self.card_kingdom_lf)
         self.mcm_lookup_lf = _normalize_columns(self.mcm_lookup_lf)

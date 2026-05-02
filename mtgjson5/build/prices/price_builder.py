@@ -41,6 +41,7 @@ from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.providers import (
     CardHoarderPriceProvider,
     CardMarketProvider,
+    CardTraderPriceProvider,
     CKProvider,
     ManapoolPriceProvider,
     TCGPlayerPriceProvider,
@@ -224,6 +225,7 @@ RAW_CACHE_FILES = {
     "tcgplayer": "tcg_raw_prices.parquet",
     "cardhoarder": "ch_raw_prices.parquet",
     "manapool": "manapool_raw_prices.parquet",
+    "cardtrader": "cardtrader_raw_prices.parquet",
     "cardmarket": "mcm_raw_prices.parquet",
     "cardkingdom": "ck_raw.parquet",
 }
@@ -250,6 +252,7 @@ class PolarsPriceBuilder:
     - TCGPlayer: retail only (no buylist - deprecated API)
     - CardHoarder: MTGO prices
     - Manapool: paper prices
+    - CardTrader: paper prices
     - CardMarket: paper prices (EUR)
     - CardKingdom: paper prices
     """
@@ -273,6 +276,7 @@ class PolarsPriceBuilder:
         self._tcg_provider: TCGPlayerPriceProvider | None = None
         self._ch_provider: CardHoarderPriceProvider | None = None
         self._manapool_provider: ManapoolPriceProvider | None = None
+        self._cardtrader_provider: CardTraderPriceProvider | None = None
         self._mcm_provider: CardMarketProvider | None = None
         self._ck_provider: CKProvider | None = None
 
@@ -299,6 +303,7 @@ class PolarsPriceBuilder:
         self._tcg_provider = TCGPlayerPriceProvider(on_progress=self.on_progress)
         self._ch_provider = CardHoarderPriceProvider(on_progress=self.on_progress)
         self._manapool_provider = ManapoolPriceProvider(on_progress=self.on_progress)
+        self._cardtrader_provider = CardTraderPriceProvider(on_progress=self.on_progress)
         self._mcm_provider = CardMarketProvider()
         self._ck_provider = CKProvider()
 
@@ -330,6 +335,15 @@ class PolarsPriceBuilder:
                 frames.append(manapool_df)
                 LOGGER.info(f"  ManapoolPriceProvider: {len(manapool_df):,} price points")
             del manapool_df
+
+        # Fetch CardTrader - authenticated marketplace listings
+        LOGGER.info("Fetching CardTrader prices")
+        if scryfall_to_uuid:
+            cardtrader_df = await self._cardtrader_provider.fetch_prices(scryfall_to_uuid)
+            if len(cardtrader_df) > 0:
+                frames.append(cardtrader_df)
+                LOGGER.info(f"  CardTraderPriceProvider: {len(cardtrader_df):,} price points")
+            del cardtrader_df
 
         # Fetch CardMarket - bulk API
         LOGGER.info("Fetching CardMarket prices")
@@ -367,6 +381,7 @@ class PolarsPriceBuilder:
         self._tcg_provider = None
         self._ch_provider = None
         self._manapool_provider = None
+        self._cardtrader_provider = None
         self._mcm_provider = None
         self._ck_provider = None
         gc.collect()
@@ -414,6 +429,14 @@ class PolarsPriceBuilder:
             if len(df) > 0:
                 frames.append(df)
                 LOGGER.info(f"  Manapool mapped: {len(df):,} price points")
+
+        # CardTrader
+        ct_raw = cache_dir / RAW_CACHE_FILES["cardtrader"]
+        if ct_raw.exists() and sf_uuid.exists():
+            df = self._map_cardtrader_raw(ct_raw, sf_uuid)
+            if len(df) > 0:
+                frames.append(df)
+                LOGGER.info(f"  CardTrader mapped: {len(df):,} price points")
 
         # CardMarket
         mcm_raw = cache_dir / RAW_CACHE_FILES["cardmarket"]
@@ -551,6 +574,26 @@ class PolarsPriceBuilder:
         if not frames:
             return pl.DataFrame(schema=PRICE_SCHEMA)
         return pl.concat(frames)
+
+    def _map_cardtrader_raw(self, raw_path: Path, uuid_path: Path) -> pl.DataFrame:
+        """Join CardTrader raw data with UUID mappings."""
+        raw = pl.scan_parquet(raw_path)
+        sf_uuid = pl.scan_parquet(uuid_path).unique(subset=["scryfallId"], keep="first")
+
+        return (
+            raw.join(sf_uuid, on="scryfallId", how="inner")
+            .select(
+                pl.col("uuid"),
+                pl.lit(self.today_date).alias("date"),
+                pl.lit("paper").alias("source"),
+                pl.lit("cardtrader").alias("provider"),
+                pl.lit("retail").alias("price_type"),
+                pl.col("finish"),
+                pl.col("price"),
+                pl.col("currency"),
+            )
+            .collect()
+        )
 
     def _map_cardmarket_raw(self, raw_path: Path, uuid_path: Path, cache_dir: Path) -> pl.DataFrame:
         """Join CardMarket raw data with UUID + finishes mappings."""
