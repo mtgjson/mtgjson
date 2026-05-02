@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import polars as pl
@@ -457,11 +458,39 @@ def _build_mcm_finishes_cache(lf: pl.LazyFrame) -> None:
 
 
 def build_id_mappings_from_parquet(ctx: PipelineContext) -> None:
-    """Build ID -> UUID mappings by scanning all partitioned parquet files."""
+    """Build ID -> UUID mappings by scanning all partitioned parquet files.
+
+    Projects only the identifier fields the downstream helpers need and casts
+    each to String per-partition before concat. Without this, struct-field
+    dtype drift between partitions (e.g. an all-null column inferred as Null
+    in one partition vs String in another) causes pl.concat to panic and
+    silently disables the price builder's ID mappings.
+    """
     cards_dir = constants.CACHE_PATH / "_parquet"
     tokens_dir = constants.CACHE_PATH / "_parquet_tokens"
 
-    id_cols = ["uuid", "identifiers", "finishes"]
+    needed_id_fields = [
+        "tcgplayerProductId",
+        "tcgplayerEtchedProductId",
+        "tcgplayerAlternativeFoilProductId",
+        "mtgoId",
+        "scryfallId",
+        "mcmId",
+    ]
+
+    def _normalized(pq_file: Path) -> pl.LazyFrame:
+        return pl.scan_parquet(pq_file).select(
+            [
+                pl.col("uuid").cast(pl.String),
+                pl.struct(
+                    [
+                        pl.col("identifiers").struct.field(name).cast(pl.String).alias(name)
+                        for name in needed_id_fields
+                    ]
+                ).alias("identifiers"),
+                pl.col("finishes"),
+            ]
+        )
 
     frames: list[pl.LazyFrame] = []
     for parquet_dir in [cards_dir, tokens_dir]:
@@ -471,7 +500,7 @@ def build_id_mappings_from_parquet(ctx: PipelineContext) -> None:
             if set_dir.is_dir() and set_dir.name.startswith("setCode="):
                 pq_file = set_dir / "0.parquet"
                 if pq_file.exists():
-                    frames.append(pl.scan_parquet(pq_file).select(id_cols))
+                    frames.append(_normalized(pq_file))
 
     if not frames:
         LOGGER.warning("No parquet partitions found for ID mapping build")
