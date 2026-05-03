@@ -24,6 +24,7 @@ from mtgjson5.polars_utils import DynamicCategoricals, discover_categoricals
 from mtgjson5.providers import CardHoarderPriceProvider as CardHoarderProvider
 from mtgjson5.providers import (
     CardMarketProvider,
+    CardSphereProvider,
     CKProvider,
     EdhrecSaltProvider,
     ManapoolPriceProvider,
@@ -129,6 +130,8 @@ class GlobalCache:
         self.orientation_lf: pl.LazyFrame | None = None
         self.gatherer_lf: pl.LazyFrame | None = None
         self.multiverse_bridge_lf: pl.LazyFrame | None = None
+        self.cardsphere_lf: pl.LazyFrame | None = None
+        self.cardsphere_sets_lf: pl.LazyFrame | None = None
 
         # GitHub/Sealed LFs
         self.sealed_cards_lf: pl.LazyFrame | None = None
@@ -197,6 +200,7 @@ class GlobalCache:
         self._secretlair: SecretLairProvider | None = None
         self._orientations: OrientationDetector | None = None
         self._wizards: WizardsProvider | None = None
+        self._cardsphere: CardSphereProvider | None = None
 
         # State
         self._initialized = True
@@ -238,6 +242,8 @@ class GlobalCache:
             "final_cards_lf",
             "mtgo_to_uuid_lf",
             "scryfall_to_uuid_lf",
+            "cardsphere_lf",
+            "cardsphere_sets_lf",
         )
         gc.collect()
         LOGGER.info("Released pipeline-only cache frames")
@@ -296,6 +302,8 @@ class GlobalCache:
             "cardmarket_to_uuid_lf",
             "languages_lf",
             "final_cards_lf",
+            "cardsphere_lf",
+            "cardsphere_sets_lf",
         )
         # Also release provider instances (hold fetched data)
         self._scryfall = None
@@ -353,6 +361,7 @@ class GlobalCache:
                 executor.submit(self._load_github_data): "github",
                 executor.submit(self._load_secretlair_subsets): "secretlair",
                 executor.submit(self._load_scryfall_catalogs): "scryfall_catalogs",
+                executor.submit(self._load_cardsphere): "cardsphere",
             }
             if not skip_mcm:
                 futures[executor.submit(self._load_mcm_lookup)] = "mcm"
@@ -465,6 +474,8 @@ class GlobalCache:
             "scryfall_to_uuid_lf": "scryfall_to_uuid.parquet",
             "cardmarket_to_uuid_lf": "cardmarket_to_uuid.parquet",
             "languages_lf": "languages.parquet",
+            "cardsphere_lf": "cardsphere.parquet",
+            "cardsphere_sets_lf": "cardsphere_sets.parquet",
         }
 
         for attr, filename in dataframes_to_dump.items():
@@ -762,8 +773,6 @@ class GlobalCache:
             rows = [
                 {
                     "cachedUuid": uuid,
-                    "cardsphereId": data.get("cardsphereId"),
-                    "cardsphereFoilId": data.get("cardsphereFoilId"),
                     "deckboxId": data.get("deckboxId"),
                 }
                 for uuid, data in cards_data.items()
@@ -1190,6 +1199,30 @@ class GlobalCache:
             sld_df.write_parquet(cache_path)
             self.sld_subsets_lf = sld_df.lazy()
 
+    def _load_cardsphere(self) -> None:
+        """Load CardSphere card and set ID mappings."""
+        cards_cache = self.cache_path / "cardsphere_cards.parquet"
+        sets_cache = self.cache_path / "cardsphere_sets.parquet"
+
+        if _cache_fresh(cards_cache) and _cache_fresh(sets_cache):
+            self.cardsphere_lf = pl.scan_parquet(cards_cache)
+            self.cardsphere_sets_lf = pl.scan_parquet(sets_cache)
+            return
+
+        try:
+            cards_df, sets_df = self.cardsphere.fetch_and_build()
+
+            if cards_df is not None and len(cards_df) > 0:
+                cards_df.write_parquet(cards_cache)
+                self.cardsphere_lf = cards_df.lazy()
+
+            if sets_df is not None and len(sets_df) > 0:
+                sets_df.write_parquet(sets_cache)
+                self.cardsphere_sets_lf = sets_df.lazy()
+
+        except Exception as e:
+            LOGGER.warning(f"Failed to fetch CardSphere data: {e}")
+
     def _load_scryfall_catalogs(self) -> None:
         """Load keyword and card type catalogs from Scryfall API and Magic rules.
 
@@ -1367,6 +1400,8 @@ class GlobalCache:
         self.orientation_lf = _normalize_columns(self.orientation_lf)
         self.gatherer_lf = _normalize_columns(self.gatherer_lf)
         self.multiverse_bridge_lf = _normalize_columns(self.multiverse_bridge_lf)
+        self.cardsphere_lf = _normalize_columns(self.cardsphere_lf)
+        self.cardsphere_sets_lf = _normalize_columns(self.cardsphere_sets_lf)
         if self._github is not None:
             self._github.card_to_products_df = _normalize_columns(self._github.card_to_products_df)
             self._github.sealed_products_df = _normalize_columns(self._github.sealed_products_df)
@@ -1450,6 +1485,13 @@ class GlobalCache:
         if self._secretlair is None:
             self._secretlair = SecretLairProvider()
         return self._secretlair
+
+    @property
+    def cardsphere(self) -> CardSphereProvider:
+        """Get or create the CardSphere provider instance."""
+        if self._cardsphere is None:
+            self._cardsphere = CardSphereProvider()
+        return self._cardsphere
 
     @property
     def wizards(self) -> WizardsProvider:

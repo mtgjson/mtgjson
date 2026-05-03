@@ -90,6 +90,7 @@ def sets_lf(self) -> pl.LazyFrame:
 | `boosters_lf` | GlobalCache | Booster configurations |
 | `tcg_skus_lf` | GlobalCache | TCGPlayer SKUs |
 | `orientation_lf` | GlobalCache | Card image orientations |
+| `cardsphere_lf` | GlobalCache | CardSphere card ID mappings |
 | `gatherer_lf` | GlobalCache | Gatherer page data |
 
 ## Factory Methods
@@ -175,7 +176,7 @@ def consolidate_lookups(self) -> PipelineContext:
 **Output**: `self.identifiers_lf`
 **Key**: `(scryfallId, side)`
 
-Joins UUID cache with Card Kingdom data to provide identifiers for each card face.
+Joins UUID cache with Card Kingdom and CardSphere data to provide identifiers for each card face.
 
 ```python
 # Schema
@@ -186,6 +187,8 @@ identifiers_lf = pl.LazyFrame({
     "cardKingdomId": str | None,
     "cardKingdomEtchedId": str | None,
     "cardKingdomFoilId": str | None,
+    "cardsphereId": str | None,
+    "cardsphereFoilId": str | None,
     "orientation": str | None,   # "normal", "flip", etc.
 })
 ```
