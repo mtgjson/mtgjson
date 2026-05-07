@@ -648,7 +648,10 @@ class PipelineContext:
                 LOGGER.info(f"identifiers: +orientation ({orient.height:,} rows)")
 
         # Add CardSphere IDs by scryfallId
+        if self._cache:
+            self._cache._await_cardsphere()
         cs_raw = self.cardsphere_lf
+        cs_joined = False
         if cs_raw is not None:
             if isinstance(cs_raw, pl.LazyFrame):
                 cs: pl.DataFrame = cs_raw.collect()
@@ -660,7 +663,15 @@ class PipelineContext:
                     on="scryfallId",
                     how="left",
                 )
+                cs_joined = True
                 LOGGER.info(f"identifiers: +cardsphere ({cs.height:,} rows)")
+
+        if not cs_joined:
+            result = result.with_columns(
+                pl.lit(None).cast(pl.String).alias("cardsphereId"),
+                pl.lit(None).cast(pl.String).alias("cardsphereEtchedId"),
+                pl.lit(None).cast(pl.String).alias("cardsphereFoilId"),
+            )
 
         # Add multiverse bridge data (deckbox IDs) by cachedUuid
         mvb_raw = self.multiverse_bridge_lf

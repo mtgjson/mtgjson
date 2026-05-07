@@ -210,6 +210,7 @@ class GlobalCache:
         self._output_types: set[str] = set()
         self._export_formats: set[str] | None = None
         self._tcg_skus_future: Future[pl.LazyFrame] | None = None
+        self._cardsphere_future: Future[tuple[pl.DataFrame, pl.DataFrame]] | None = None
 
     def release(self, *attrs: str) -> None:
         """Release specific cached data to free memory.
@@ -361,7 +362,6 @@ class GlobalCache:
                 executor.submit(self._load_github_data): "github",
                 executor.submit(self._load_secretlair_subsets): "secretlair",
                 executor.submit(self._load_scryfall_catalogs): "scryfall_catalogs",
-                executor.submit(self._load_cardsphere): "cardsphere",
             }
             if not skip_mcm:
                 futures[executor.submit(self._load_mcm_lookup)] = "mcm"
@@ -369,6 +369,7 @@ class GlobalCache:
                 LOGGER.info("Skipping MCM data (--skip-mcm flag)")
 
             self._start_tcg_skus_fetch(executor)
+            self._start_cardsphere_fetch(executor)
 
             for future in as_completed(futures):
                 name = futures[future]
@@ -389,6 +390,7 @@ class GlobalCache:
 
             prof.checkpoint("providers_loaded")
 
+            self._await_cardsphere()
             self._normalize_all_columns()
             self._apply_categoricals()
             self._dump_and_reload_as_lazy()
@@ -1199,14 +1201,19 @@ class GlobalCache:
             sld_df.write_parquet(cache_path)
             self.sld_subsets_lf = sld_df.lazy()
 
-    def _load_cardsphere(self) -> None:
-        """Load CardSphere card and set ID mappings."""
+    def _start_cardsphere_fetch(self, executor: ThreadPoolExecutor) -> None:
+        """Start CardSphere fetch in background.
+
+        The fetch runs in the thread pool executor. The result can be awaited
+        later using _await_cardsphere() when identifiers are being built.
+        """
         cards_cache = self.cache_path / "cardsphere_cards.parquet"
         sets_cache = self.cache_path / "cardsphere_sets.parquet"
 
         if _cache_fresh(cards_cache) and _cache_fresh(sets_cache):
             self.cardsphere_lf = pl.scan_parquet(cards_cache)
             self.cardsphere_sets_lf = pl.scan_parquet(sets_cache)
+            LOGGER.info("Using cached CardSphere data")
             return
 
         # Build finishes lookup from Scryfall data (already loaded by _load_bulk_data)
@@ -1214,17 +1221,34 @@ class GlobalCache:
         if self.cards_lf is not None:
             finishes_df = self.cards_lf.select(pl.col("id").alias("scryfallId"), "finishes").collect()
 
-        try:
-            cards_df, sets_df = self.cardsphere.fetch_and_build(finishes_df)
+        LOGGER.info("Starting CardSphere fetch in background...")
+        self._cardsphere_future = executor.submit(self.cardsphere.fetch_and_build, finishes_df)
 
-            if len(cards_df) > 0:
-                self.cardsphere_lf = cards_df.lazy()
+    def _await_cardsphere(self) -> None:
+        """Block until CardSphere data is ready (called when identifiers are built).
 
-            if len(sets_df) > 0:
-                self.cardsphere_sets_lf = sets_df.lazy()
+        If the data was cached, this returns immediately. If the background
+        fetch is still running, this blocks until completion.
+        """
+        if self.cardsphere_lf is not None:
+            return  # Already loaded from cache
 
-        except Exception as e:
-            LOGGER.warning(f"Failed to fetch CardSphere data: {e}")
+        if self._cardsphere_future is not None:
+            try:
+                LOGGER.info("Waiting for CardSphere fetch to complete...")
+                cards_df, sets_df = self._cardsphere_future.result()
+
+                if len(cards_df) > 0:
+                    self.cardsphere_lf = cards_df.lazy()
+
+                if len(sets_df) > 0:
+                    self.cardsphere_sets_lf = sets_df.lazy()
+
+                LOGGER.info("CardSphere fetch complete")
+            except Exception as e:
+                LOGGER.warning(f"Failed to fetch CardSphere data: {e}")
+            finally:
+                self._cardsphere_future = None
 
     def _load_scryfall_catalogs(self) -> None:
         """Load keyword and card type catalogs from Scryfall API and Magic rules.
