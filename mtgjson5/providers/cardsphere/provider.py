@@ -4,16 +4,15 @@ CardSphere provider - downloads set CSVs and builds ID mappings.
 Fetches the set index from cardsphere.com/sets/, then downloads
 the haves.csv for each set. Produces two DataFrames:
 
-1. cards_df: scryfallId -> cardsphereId / cardsphereFoilId
+1. cards_df: scryfallId -> cardsphereId / cardsphereFoilId / cardsphereEtchedId
 2. sets_df:  setCode   -> cardsphereSetId
 """
 
-import csv
 import io
 import json
 import logging
-import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from html.parser import HTMLParser
 from pathlib import Path
 
 import polars as pl
@@ -33,6 +32,7 @@ CARD_SCHEMA = {
     "scryfallId": pl.String,
     "cardsphereId": pl.String,
     "cardsphereFoilId": pl.String,
+    "cardsphereEtchedId": pl.String,
 }
 
 # Schema for the set-level mapping
@@ -44,6 +44,33 @@ SET_SCHEMA = {
 
 # Max concurrent downloads
 _MAX_WORKERS = 8
+
+
+class _NextDataParser(HTMLParser):
+    """Extract the __NEXT_DATA__ script content from HTML."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._in_next_data = False
+        self._data: str | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "script":
+            attr_dict = dict(attrs)
+            if attr_dict.get("id") == "__NEXT_DATA__":
+                self._in_next_data = True
+
+    def handle_data(self, data: str) -> None:
+        if self._in_next_data:
+            self._data = data
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "script" and self._in_next_data:
+            self._in_next_data = False
+
+    @property
+    def content(self) -> str | None:
+        return self._data
 
 
 def _build_session() -> requests.Session:
@@ -68,13 +95,22 @@ class CardSphereProvider:
         self._cards_df: pl.DataFrame | None = None
         self._sets_df: pl.DataFrame | None = None
 
-    def fetch_and_build(self) -> tuple[pl.DataFrame, pl.DataFrame]:
+    def fetch_and_build(
+        self,
+        finishes_df: pl.DataFrame | None = None,
+    ) -> tuple[pl.DataFrame, pl.DataFrame]:
         """Fetch all CardSphere data and return (cards_df, sets_df).
+
+        Args:
+            finishes_df: Optional DataFrame with columns [scryfallId, finishes]
+                where finishes is a list of strings (e.g. ["nonfoil", "foil"]).
+                Used to distinguish foil vs etched CardSphere IDs since CS
+                marks both as Foil=F.
 
         Returns:
             Tuple of (cards_df, sets_df). cards_df maps scryfallId to
-            cardsphereId/cardsphereFoilId. sets_df maps set codes to
-            cardsphereSetId.
+            cardsphereId/cardsphereFoilId/cardsphereEtchedId. sets_df maps
+            set codes to cardsphereSetId.
         """
         sets_list = self._fetch_sets_index()
         if not sets_list:
@@ -96,41 +132,53 @@ class CardSphereProvider:
             schema=SET_SCHEMA,
         )
 
-        # Download all CSVs concurrently and collect rows
-        all_rows: list[dict[str, str | None]] = []
-        session = _build_session()
+        # Download all CSVs concurrently, retrying failures up to 3 times
+        frames: list[pl.DataFrame] = []
+        pending_ids = [s["id"] for s in sets_list]
+        max_attempts = 3
 
-        set_ids = [s["id"] for s in sets_list]
-        failed = 0
+        with _build_session() as session:
+            for attempt in range(1, max_attempts + 1):
+                failed_ids: list[int] = []
 
-        with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as executor:
-            futures = {executor.submit(self._download_csv, session, set_id): set_id for set_id in set_ids}
+                with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as executor:
+                    futures = {executor.submit(self._download_csv, session, set_id): set_id for set_id in pending_ids}
 
-            for future in as_completed(futures):
-                set_id = futures[future]
-                try:
-                    rows = future.result()
-                    all_rows.extend(rows)
-                except Exception as e:
-                    failed += 1
-                    LOGGER.debug(f"Failed to download CSV for set {set_id}: {e}")
+                    for future in as_completed(futures):
+                        set_id = futures[future]
+                        try:
+                            df = future.result()
+                            if len(df) > 0:
+                                frames.append(df)
+                        except Exception as e:
+                            failed_ids.append(set_id)
+                            LOGGER.debug(
+                                f"Failed to download CSV for set {set_id} (attempt {attempt}/{max_attempts}): {e}"
+                            )
 
-        session.close()
+                if not failed_ids:
+                    break
 
-        if failed:
-            LOGGER.warning(f"Failed to download {failed}/{len(set_ids)} CSVs")
+                pending_ids = failed_ids
+                if attempt < max_attempts:
+                    LOGGER.info(f"Retrying {len(failed_ids)} failed CSVs (attempt {attempt + 1}/{max_attempts})")
 
-        LOGGER.info(f"Downloaded {len(all_rows):,} card rows from CardSphere")
+        if failed_ids:
+            LOGGER.warning(
+                f"Failed to download {len(failed_ids)}/{len(sets_list)} CSVs after {max_attempts} attempts: "
+                f"set_ids={failed_ids[:20]}{'...' if len(failed_ids) > 20 else ''}"
+            )
 
-        if not all_rows:
+        if not frames:
+            LOGGER.warning("No card data retrieved from CardSphere")
             self._cards_df = self._empty_cards_df()
             return self._cards_df, self._sets_df
 
-        # Build raw DataFrame from all rows
-        raw_df = pl.DataFrame(all_rows)
+        raw_df = pl.concat(frames)
+        LOGGER.info(f"Downloaded {len(raw_df):,} card rows from CardSphere")
 
-        # Pivot: for each scryfallId, get the non-foil and foil CS IDs
-        self._cards_df = self._pivot_to_card_mapping(raw_df)
+        # Pivot: for each scryfallId, get the non-foil, foil, and etched CS IDs
+        self._cards_df = self._pivot_to_card_mapping(raw_df, finishes_df)
 
         LOGGER.info(f"Built CardSphere mapping: {len(self._cards_df):,} unique cards, {len(self._sets_df):,} sets")
 
@@ -145,117 +193,127 @@ class CardSphereProvider:
             LOGGER.error(f"Failed to fetch CardSphere sets page: {e}")
             return []
 
-        html = response.text
+        return self._parse_sets_from_html(response.text)
 
-        # Look for __NEXT_DATA__ JSON payload
-        match = re.search(
-            r'<script[^>]*id="__NEXT_DATA__"[^>]*>(.*?)</script>',
-            html,
-            re.DOTALL,
-        )
-        if match:
-            try:
-                next_data = json.loads(match.group(1))
-                # Navigate the Next.js data structure to find sets
-                props = next_data.get("props", {}).get("pageProps", {})
-                sets_list = props.get("sets") or props.get("data", {}).get("sets")
-                if sets_list:
-                    return list(sets_list)
-            except (json.JSONDecodeError, AttributeError):
-                pass
+    @staticmethod
+    def _parse_sets_from_html(html: str) -> list[dict]:
+        """Extract the sets list from a CardSphere HTML page.
 
-        # Fallback: look for JSON array of sets anywhere in the page
-        # Pattern: array of objects with id, name, code fields
-        matches = re.findall(
-            r'\[(?:\s*\{"id":\d+,"name":"[^"]+","code":"[^"]+"\}\s*,?\s*)+\]',
-            html,
-        )
-        for candidate in matches:
-            try:
-                parsed = json.loads(candidate)
-                if parsed and isinstance(parsed, list) and "id" in parsed[0]:
-                    return list(parsed)
-            except (json.JSONDecodeError, IndexError, TypeError):
-                continue
+        Uses html.parser to locate the __NEXT_DATA__ script tag and
+        parse its JSON content.
+        """
+        parser = _NextDataParser()
+        parser.feed(html)
 
-        # Last resort: extract individual set objects
-        set_objects = re.findall(
-            r'\{"id":(\d+),"name":"([^"]+)","code":"([^"]+)"\}',
-            html,
-        )
-        if set_objects:
-            return [{"id": int(m[0]), "name": m[1], "code": m[2]} for m in set_objects]
+        if not parser.content:
+            LOGGER.error("Could not find __NEXT_DATA__ script tag on CardSphere sets page")
+            return []
 
-        LOGGER.error("Could not parse set data from CardSphere sets page")
-        return []
+        try:
+            next_data = json.loads(str(parser.content))
+        except json.JSONDecodeError as e:
+            LOGGER.error(f"Failed to parse __NEXT_DATA__ JSON: {e}")
+            return []
+
+        props = next_data.get("props", {}).get("pageProps", {})
+        sets_list = props.get("sets") or props.get("data", {}).get("sets")
+
+        if not sets_list:
+            LOGGER.error("__NEXT_DATA__ found but no sets data in pageProps")
+            return []
+
+        return list(sets_list)
 
     @staticmethod
     def _download_csv(
         session: requests.Session,
         set_id: int,
-    ) -> list[dict[str, str | None]]:
-        """Download and parse a single set's CSV.
+    ) -> pl.DataFrame:
+        """Download and parse a single set's CSV using polars.
 
-        Returns list of dicts with keys: scryfallId, cardsphereId, foil.
+        Returns a DataFrame with columns: scryfallId, cardsphereId, foil.
         """
         url = CSV_URL_TEMPLATE.format(set_id=set_id)
         response = session.get(url, timeout=30)
         response.raise_for_status()
 
-        rows: list[dict[str, str | None]] = []
-        reader = csv.DictReader(io.StringIO(response.text))
+        df = pl.read_csv(
+            io.BytesIO(response.content),
+            columns=["Scryfall ID", "Cardsphere ID", "Foil"],
+            schema_overrides={
+                "Scryfall ID": pl.String,
+                "Cardsphere ID": pl.String,
+                "Foil": pl.String,
+            },
+        )
 
-        for row in reader:
-            scryfall_id = row.get("Scryfall ID", "").strip()
-            cs_id = row.get("Cardsphere ID", "").strip()
-            foil = row.get("Foil", "").strip()
-
-            if not scryfall_id or not cs_id:
-                continue
-
-            rows.append(
+        return (
+            df.rename(
                 {
-                    "scryfallId": scryfall_id,
-                    "cardsphereId": cs_id,
-                    "foil": foil,
+                    "Scryfall ID": "scryfallId",
+                    "Cardsphere ID": "cardsphereId",
+                    "Foil": "foil",
                 }
             )
-
-        return rows
+            .filter(pl.col("scryfallId").str.len_bytes() > 0)
+            .filter(pl.col("cardsphereId").str.len_bytes() > 0)
+        )
 
     @staticmethod
-    def _pivot_to_card_mapping(raw_df: pl.DataFrame) -> pl.DataFrame:
-        """Pivot raw CSV rows into scryfallId -> cardsphereId / cardsphereFoilId.
+    def _pivot_to_card_mapping(
+        raw_df: pl.DataFrame,
+        finishes_df: pl.DataFrame | None = None,
+    ) -> pl.DataFrame:
+        """Pivot raw CSV rows into scryfallId -> cardsphereId / cardsphereFoilId / cardsphereEtchedId.
 
-        Each scryfallId can have up to two rows: Foil=N and Foil=F.
-        We pivot these into separate columns.
+        CardSphere marks both foil and etched cards as Foil=F. We use Scryfall's
+        finishes data to determine whether an F row is foil or etched:
+        - If finishes contains "etched" but not "foil": F -> cardsphereEtchedId
+        - If finishes contains "foil" (regardless of etched): F -> cardsphereFoilId
+        - If no finishes data available: F -> cardsphereFoilId (default)
         """
+        # Non-foil is straightforward
         non_foil = (
             raw_df.filter(pl.col("foil") == "N")
-            .select(
-                pl.col("scryfallId"),
-                pl.col("cardsphereId").alias("cardsphereId"),
-            )
+            .select("scryfallId", pl.col("cardsphereId"))
             .unique(subset=["scryfallId"], keep="first")
         )
 
-        foil = (
-            raw_df.filter(pl.col("foil") == "F")
-            .select(
-                pl.col("scryfallId"),
-                pl.col("cardsphereId").alias("cardsphereFoilId"),
+        # Split F rows into foil vs etched using Scryfall finishes
+        foil_rows = raw_df.filter(pl.col("foil") == "F")
+
+        if finishes_df is not None and len(foil_rows) > 0:
+            # Build a lookup: scryfallIds whose finishes include "etched" but NOT "foil"
+            etched_only_ids = finishes_df.filter(
+                pl.col("finishes").list.contains("etched") & ~pl.col("finishes").list.contains("foil")
+            ).select("scryfallId")
+
+            # F rows for etched-only cards -> cardsphereEtchedId
+            etched = (
+                foil_rows.join(etched_only_ids, on="scryfallId", how="semi")
+                .select("scryfallId", pl.col("cardsphereId").alias("cardsphereEtchedId"))
+                .unique(subset=["scryfallId"], keep="first")
             )
-            .unique(subset=["scryfallId"], keep="first")
+
+            # F rows for everything else -> cardsphereFoilId
+            foil = (
+                foil_rows.join(etched_only_ids, on="scryfallId", how="anti")
+                .select("scryfallId", pl.col("cardsphereId").alias("cardsphereFoilId"))
+                .unique(subset=["scryfallId"], keep="first")
+            )
+        else:
+            # No finishes data: all F rows default to cardsphereFoilId
+            foil = foil_rows.select("scryfallId", pl.col("cardsphereId").alias("cardsphereFoilId")).unique(
+                subset=["scryfallId"], keep="first"
+            )
+            etched = pl.DataFrame(schema={"scryfallId": pl.String, "cardsphereEtchedId": pl.String})
+
+        # Full outer joins to capture cards that only exist in one finish
+        result = non_foil.join(foil, on="scryfallId", how="full", coalesce=True).join(
+            etched, on="scryfallId", how="full", coalesce=True
         )
 
-        # Full outer join to capture cards that only exist in one finish
-        result = non_foil.join(foil, on="scryfallId", how="full", coalesce=True)
-
-        return result.select(
-            pl.col("scryfallId"),
-            pl.col("cardsphereId").cast(pl.String),
-            pl.col("cardsphereFoilId").cast(pl.String),
-        )
+        return result.select("scryfallId", "cardsphereId", "cardsphereFoilId", "cardsphereEtchedId")
 
     @staticmethod
     def _empty_cards_df() -> pl.DataFrame:

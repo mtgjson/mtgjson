@@ -183,6 +183,11 @@ class Identifiers(TypedDict, total=False):
             "introduced": "v5.2.1",
             "optional": True,
         },
+        "cardsphereEtchedId": {
+            "description": "The [Cardsphere](https://www.cardsphere.com/) etched card identifier.",
+            "introduced": "v5.3.0",
+            "optional": True,
+        },
         "cardsphereFoilId": {
             "description": "The [Cardsphere](https://www.cardsphere.com/) foil card identifier.",
             "introduced": "v5.2.2",
@@ -308,6 +313,7 @@ class Identifiers(TypedDict, total=False):
     cardKingdomFoilId: str
     cardKingdomId: str
     cardsphereId: str
+    cardsphereEtchedId: str
     cardsphereFoilId: str
     deckboxId: str
     mcmId: str

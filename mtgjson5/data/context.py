@@ -656,7 +656,7 @@ class PipelineContext:
                 cs = cs_raw
             if cs.height > 0:
                 result = result.join(
-                    cs.select(["scryfallId", "cardsphereId", "cardsphereFoilId"]),
+                    cs.select(["scryfallId", "cardsphereId", "cardsphereEtchedId", "cardsphereFoilId"]),
                     on="scryfallId",
                     how="left",
                 )

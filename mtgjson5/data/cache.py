@@ -474,7 +474,7 @@ class GlobalCache:
             "scryfall_to_uuid_lf": "scryfall_to_uuid.parquet",
             "cardmarket_to_uuid_lf": "cardmarket_to_uuid.parquet",
             "languages_lf": "languages.parquet",
-            "cardsphere_lf": "cardsphere.parquet",
+            "cardsphere_lf": "cardsphere_cards.parquet",
             "cardsphere_sets_lf": "cardsphere_sets.parquet",
         }
 
@@ -1209,15 +1209,18 @@ class GlobalCache:
             self.cardsphere_sets_lf = pl.scan_parquet(sets_cache)
             return
 
-        try:
-            cards_df, sets_df = self.cardsphere.fetch_and_build()
+        # Build finishes lookup from Scryfall data (already loaded by _load_bulk_data)
+        finishes_df = None
+        if self.cards_lf is not None:
+            finishes_df = self.cards_lf.select(pl.col("id").alias("scryfallId"), "finishes").collect()
 
-            if cards_df is not None and len(cards_df) > 0:
-                cards_df.write_parquet(cards_cache)
+        try:
+            cards_df, sets_df = self.cardsphere.fetch_and_build(finishes_df)
+
+            if len(cards_df) > 0:
                 self.cardsphere_lf = cards_df.lazy()
 
-            if sets_df is not None and len(sets_df) > 0:
-                sets_df.write_parquet(sets_cache)
+            if len(sets_df) > 0:
                 self.cardsphere_sets_lf = sets_df.lazy()
 
         except Exception as e:

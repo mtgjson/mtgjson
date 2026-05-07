@@ -188,6 +188,7 @@ identifiers_lf = pl.LazyFrame({
     "cardKingdomEtchedId": str | None,
     "cardKingdomFoilId": str | None,
     "cardsphereId": str | None,
+    "cardsphereEtchedId": str | None,
     "cardsphereFoilId": str | None,
     "orientation": str | None,   # "normal", "flip", etc.
 })
