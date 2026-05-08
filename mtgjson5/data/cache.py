@@ -242,7 +242,6 @@ class GlobalCache:
             "mtgo_to_uuid_lf",
             "scryfall_to_uuid_lf",
             "cardsphere_lf",
-
         )
         gc.collect()
         LOGGER.info("Released pipeline-only cache frames")
@@ -302,7 +301,6 @@ class GlobalCache:
             "languages_lf",
             "final_cards_lf",
             "cardsphere_lf",
-
         )
         # Also release provider instances (hold fetched data)
         self._scryfall = None
