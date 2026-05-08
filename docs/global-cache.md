@@ -47,8 +47,7 @@ All bulk data is stored as LazyFrames (suffix `_lf`) for memory efficiency. Lazy
 | `tcg_skus_lf` | TCGPlayer | SKU mappings |
 | `gatherer_lf` | Gatherer pages | Wizards database IDs |
 | `orientation_lf` | Scryfall images | Card image orientations |
-| `cardsphere_lf` | CardSphere | Card ID mappings (scryfallId to cardsphereId/cardsphereFoilId) |
-| `cardsphere_sets_lf` | CardSphere | Set ID mappings (setCode to cardsphereSetId) |
+| `cardsphere_lf` | CardSphere | Card ID mappings (scryfallId to cardsphereId/cardsphereFoilId/cardsphereAlternativeFoilId) |
 | `multiverse_bridge_lf` | Resources | Deckbox ID bridge data |
 
 ### Sealed/Deck LazyFrames

@@ -648,8 +648,6 @@ class PipelineContext:
                 LOGGER.info(f"identifiers: +orientation ({orient.height:,} rows)")
 
         # Add CardSphere IDs by scryfallId
-        if self._cache:
-            self._cache._await_cardsphere()
         cs_raw = self.cardsphere_lf
         cs_joined = False
         if cs_raw is not None:
@@ -659,7 +657,7 @@ class PipelineContext:
                 cs = cs_raw
             if cs.height > 0:
                 result = result.join(
-                    cs.select(["scryfallId", "cardsphereId", "cardsphereEtchedId", "cardsphereFoilId"]),
+                    cs.select(["scryfallId", "cardsphereId", "cardsphereAlternativeFoilId", "cardsphereFoilId"]),
                     on="scryfallId",
                     how="left",
                 )
@@ -669,7 +667,7 @@ class PipelineContext:
         if not cs_joined:
             result = result.with_columns(
                 pl.lit(None).cast(pl.String).alias("cardsphereId"),
-                pl.lit(None).cast(pl.String).alias("cardsphereEtchedId"),
+                pl.lit(None).cast(pl.String).alias("cardsphereAlternativeFoilId"),
                 pl.lit(None).cast(pl.String).alias("cardsphereFoilId"),
             )
 

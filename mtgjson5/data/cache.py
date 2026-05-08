@@ -131,7 +131,6 @@ class GlobalCache:
         self.gatherer_lf: pl.LazyFrame | None = None
         self.multiverse_bridge_lf: pl.LazyFrame | None = None
         self.cardsphere_lf: pl.LazyFrame | None = None
-        self.cardsphere_sets_lf: pl.LazyFrame | None = None
 
         # GitHub/Sealed LFs
         self.sealed_cards_lf: pl.LazyFrame | None = None
@@ -210,7 +209,6 @@ class GlobalCache:
         self._output_types: set[str] = set()
         self._export_formats: set[str] | None = None
         self._tcg_skus_future: Future[pl.LazyFrame] | None = None
-        self._cardsphere_future: Future[tuple[pl.DataFrame, pl.DataFrame]] | None = None
 
     def release(self, *attrs: str) -> None:
         """Release specific cached data to free memory.
@@ -244,7 +242,7 @@ class GlobalCache:
             "mtgo_to_uuid_lf",
             "scryfall_to_uuid_lf",
             "cardsphere_lf",
-            "cardsphere_sets_lf",
+
         )
         gc.collect()
         LOGGER.info("Released pipeline-only cache frames")
@@ -304,7 +302,7 @@ class GlobalCache:
             "languages_lf",
             "final_cards_lf",
             "cardsphere_lf",
-            "cardsphere_sets_lf",
+
         )
         # Also release provider instances (hold fetched data)
         self._scryfall = None
@@ -369,7 +367,6 @@ class GlobalCache:
                 LOGGER.info("Skipping MCM data (--skip-mcm flag)")
 
             self._start_tcg_skus_fetch(executor)
-            self._start_cardsphere_fetch(executor)
 
             for future in as_completed(futures):
                 name = futures[future]
@@ -390,7 +387,7 @@ class GlobalCache:
 
             prof.checkpoint("providers_loaded")
 
-            self._await_cardsphere()
+            self._load_cardsphere()
             self._normalize_all_columns()
             self._apply_categoricals()
             self._dump_and_reload_as_lazy()
@@ -477,7 +474,6 @@ class GlobalCache:
             "cardmarket_to_uuid_lf": "cardmarket_to_uuid.parquet",
             "languages_lf": "languages.parquet",
             "cardsphere_lf": "cardsphere_cards.parquet",
-            "cardsphere_sets_lf": "cardsphere_sets.parquet",
         }
 
         for attr, filename in dataframes_to_dump.items():
@@ -1201,54 +1197,22 @@ class GlobalCache:
             sld_df.write_parquet(cache_path)
             self.sld_subsets_lf = sld_df.lazy()
 
-    def _start_cardsphere_fetch(self, executor: ThreadPoolExecutor) -> None:
-        """Start CardSphere fetch in background.
-
-        The fetch runs in the thread pool executor. The result can be awaited
-        later using _await_cardsphere() when identifiers are being built.
-        """
+    def _load_cardsphere(self) -> None:
+        """Load CardSphere ID mappings from the local resource file."""
         cards_cache = self.cache_path / "cardsphere_cards.parquet"
-        sets_cache = self.cache_path / "cardsphere_sets.parquet"
 
-        if _cache_fresh(cards_cache) and _cache_fresh(sets_cache):
+        if _cache_fresh(cards_cache):
             self.cardsphere_lf = pl.scan_parquet(cards_cache)
-            self.cardsphere_sets_lf = pl.scan_parquet(sets_cache)
             LOGGER.info("Using cached CardSphere data")
             return
 
-        # Build finishes lookup from Scryfall data (already loaded by _load_bulk_data)
-        finishes_df = None
-        if self.cards_lf is not None:
-            finishes_df = self.cards_lf.select(pl.col("id").alias("scryfallId"), "finishes").collect()
-
-        LOGGER.info("Starting CardSphere fetch in background...")
-        self._cardsphere_future = executor.submit(self.cardsphere.fetch_and_build, finishes_df)
-
-    def _await_cardsphere(self) -> None:
-        """Block until CardSphere data is ready (called when identifiers are built).
-
-        If the data was cached, this returns immediately. If the background
-        fetch is still running, this blocks until completion.
-        """
-        if self.cardsphere_lf is not None:
-            return  # Already loaded from cache
-
-        if self._cardsphere_future is not None:
-            try:
-                LOGGER.info("Waiting for CardSphere fetch to complete...")
-                cards_df, sets_df = self._cardsphere_future.result()
-
-                if len(cards_df) > 0:
-                    self.cardsphere_lf = cards_df.lazy()
-
-                if len(sets_df) > 0:
-                    self.cardsphere_sets_lf = sets_df.lazy()
-
-                LOGGER.info("CardSphere fetch complete")
-            except Exception as e:
-                LOGGER.warning(f"Failed to fetch CardSphere data: {e}")
-            finally:
-                self._cardsphere_future = None
+        try:
+            cards_df = self.cardsphere.load()
+            if len(cards_df) > 0:
+                self.cardsphere_lf = cards_df.lazy()
+            LOGGER.info("Loaded CardSphere data from resource file")
+        except Exception as e:
+            LOGGER.warning(f"Failed to load CardSphere data: {e}")
 
     def _load_scryfall_catalogs(self) -> None:
         """Load keyword and card type catalogs from Scryfall API and Magic rules.
@@ -1428,7 +1392,6 @@ class GlobalCache:
         self.gatherer_lf = _normalize_columns(self.gatherer_lf)
         self.multiverse_bridge_lf = _normalize_columns(self.multiverse_bridge_lf)
         self.cardsphere_lf = _normalize_columns(self.cardsphere_lf)
-        self.cardsphere_sets_lf = _normalize_columns(self.cardsphere_sets_lf)
         if self._github is not None:
             self._github.card_to_products_df = _normalize_columns(self._github.card_to_products_df)
             self._github.sealed_products_df = _normalize_columns(self._github.sealed_products_df)
