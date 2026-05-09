@@ -264,6 +264,7 @@ _IDENTIFIERS_EMPTY: dict[str, Any] = {
     "cardKingdomEtchedId": None,
     "cardKingdomFoilId": None,
     "cardKingdomId": None,
+    "cardsphereAlternativeFoilId": None,
     "cardsphereFoilId": None,
     "cardsphereId": None,
     "cardtraderId": None,
