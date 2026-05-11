@@ -19,7 +19,7 @@ SAMPLE_RESOURCE = [
         "cardsphereId": "90538",
         "cardsphereFoilId": "90589",
     },
-    # Alternative foil only (etched)
+    # Alternative foil only
     {
         "scryfallId": "355dcac7-120b-4c52-b077-bf36c41c579d",
         "cardsphereAlternativeFoilId": "90989",
@@ -34,11 +34,17 @@ SAMPLE_RESOURCE = [
         "scryfallId": "ccc-only-foil",
         "cardsphereFoilId": "3002",
     },
-    # Card with all three
+    # Etched only
     {
-        "scryfallId": "ddd-all-three",
+        "scryfallId": "eee-only-etched",
+        "cardsphereEtchedId": "5001",
+    },
+    # Card with all four
+    {
+        "scryfallId": "ddd-all-four",
         "cardsphereId": "4001",
         "cardsphereFoilId": "4002",
+        "cardsphereEtchedId": "4004",
         "cardsphereAlternativeFoilId": "4003",
     },
 ]
@@ -58,11 +64,12 @@ class TestLoad:
             result = provider.load()
 
         assert isinstance(result, pl.DataFrame)
-        assert result.height == 5
+        assert result.height == 6
         assert set(result.columns) == {
             "scryfallId",
             "cardsphereId",
             "cardsphereFoilId",
+            "cardsphereEtchedId",
             "cardsphereAlternativeFoilId",
         }
 
@@ -78,6 +85,7 @@ class TestLoad:
         row = result.filter(pl.col("scryfallId") == "cd94f624-9b35-4468-829f-106366f61c1a")
         assert row["cardsphereId"][0] == "90538"
         assert row["cardsphereFoilId"][0] == "90589"
+        assert row["cardsphereEtchedId"][0] is None
         assert row["cardsphereAlternativeFoilId"][0] is None
 
     def test_alternative_foil_only_card(self, tmp_path):
@@ -92,6 +100,7 @@ class TestLoad:
         row = result.filter(pl.col("scryfallId") == "355dcac7-120b-4c52-b077-bf36c41c579d")
         assert row["cardsphereAlternativeFoilId"][0] == "90989"
         assert row["cardsphereFoilId"][0] is None
+        assert row["cardsphereEtchedId"][0] is None
         assert row["cardsphereId"][0] is None
 
     def test_nonfoil_only_card(self, tmp_path):
@@ -106,6 +115,7 @@ class TestLoad:
         row = result.filter(pl.col("scryfallId") == "bbb-only-nonfoil")
         assert row["cardsphereId"][0] == "2001"
         assert row["cardsphereFoilId"][0] is None
+        assert row["cardsphereEtchedId"][0] is None
         assert row["cardsphereAlternativeFoilId"][0] is None
 
     def test_foil_only_card(self, tmp_path):
@@ -120,9 +130,10 @@ class TestLoad:
         row = result.filter(pl.col("scryfallId") == "ccc-only-foil")
         assert row["cardsphereId"][0] is None
         assert row["cardsphereFoilId"][0] == "3002"
+        assert row["cardsphereEtchedId"][0] is None
         assert row["cardsphereAlternativeFoilId"][0] is None
 
-    def test_all_three_ids(self, tmp_path):
+    def test_etched_only_card(self, tmp_path):
         resource_file = tmp_path / "cardsphere_data.json"
         resource_file.write_text(json.dumps(SAMPLE_RESOURCE))
 
@@ -131,9 +142,25 @@ class TestLoad:
             mock_constants.RESOURCE_PATH = tmp_path
             result = provider.load()
 
-        row = result.filter(pl.col("scryfallId") == "ddd-all-three")
+        row = result.filter(pl.col("scryfallId") == "eee-only-etched")
+        assert row["cardsphereId"][0] is None
+        assert row["cardsphereFoilId"][0] is None
+        assert row["cardsphereEtchedId"][0] == "5001"
+        assert row["cardsphereAlternativeFoilId"][0] is None
+
+    def test_all_four_ids(self, tmp_path):
+        resource_file = tmp_path / "cardsphere_data.json"
+        resource_file.write_text(json.dumps(SAMPLE_RESOURCE))
+
+        provider = CardSphereProvider()
+        with patch("mtgjson5.providers.cardsphere.provider.constants") as mock_constants:
+            mock_constants.RESOURCE_PATH = tmp_path
+            result = provider.load()
+
+        row = result.filter(pl.col("scryfallId") == "ddd-all-four")
         assert row["cardsphereId"][0] == "4001"
         assert row["cardsphereFoilId"][0] == "4002"
+        assert row["cardsphereEtchedId"][0] == "4004"
         assert row["cardsphereAlternativeFoilId"][0] == "4003"
 
     def test_unique_scryfall_ids(self, tmp_path):
@@ -182,4 +209,4 @@ class TestLoad:
             provider.load()
 
         assert provider.cards_df is not None
-        assert provider.cards_df.height == 5
+        assert provider.cards_df.height == 6

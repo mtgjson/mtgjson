@@ -657,7 +657,15 @@ class PipelineContext:
                 cs = cs_raw
             if cs.height > 0:
                 result = result.join(
-                    cs.select(["scryfallId", "cardsphereId", "cardsphereAlternativeFoilId", "cardsphereFoilId"]),
+                    cs.select(
+                        [
+                            "scryfallId",
+                            "cardsphereId",
+                            "cardsphereAlternativeFoilId",
+                            "cardsphereEtchedId",
+                            "cardsphereFoilId",
+                        ]
+                    ),
                     on="scryfallId",
                     how="left",
                 )
@@ -668,6 +676,7 @@ class PipelineContext:
             result = result.with_columns(
                 pl.lit(None).cast(pl.String).alias("cardsphereId"),
                 pl.lit(None).cast(pl.String).alias("cardsphereAlternativeFoilId"),
+                pl.lit(None).cast(pl.String).alias("cardsphereEtchedId"),
                 pl.lit(None).cast(pl.String).alias("cardsphereFoilId"),
             )
 
