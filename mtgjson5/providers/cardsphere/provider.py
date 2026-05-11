@@ -4,7 +4,7 @@ CardSphere provider - loads card ID mappings from a local resource file.
 Reads cardsphere_data.json (pre-built from the CardSphere database export)
 and produces a DataFrame:
 
-  cards_df: scryfallId -> cardsphereId / cardsphereFoilId / cardsphereAlternativeFoilId
+  cards_df: scryfallId -> cardsphereId / cardsphereFoilId / cardsphereEtchedId / cardsphereAlternativeFoilId
 """
 
 import logging
@@ -20,6 +20,7 @@ CARD_SCHEMA = {
     "scryfallId": pl.String,
     "cardsphereId": pl.String,
     "cardsphereFoilId": pl.String,
+    "cardsphereEtchedId": pl.String,
     "cardsphereAlternativeFoilId": pl.String,
 }
 
@@ -36,7 +37,7 @@ class CardSphereProvider:
         """Load CardSphere data from the resource file.
 
         Returns:
-            cards_df mapping scryfallId to cardsphereId/cardsphereFoilId/cardsphereAlternativeFoilId.
+            cards_df mapping scryfallId to cardsphereId/cardsphereFoilId/cardsphereEtchedId/cardsphereAlternativeFoilId.
         """
         resource_path = constants.RESOURCE_PATH / RESOURCE_FILENAME
 
