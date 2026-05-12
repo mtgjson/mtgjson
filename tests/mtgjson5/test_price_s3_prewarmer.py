@@ -1,7 +1,9 @@
 """Tests for S3PartitionPrewarmer: background S3 partition sync thread.
 
-All tests monkeypatch `sync_missing_partitions_from_s3` so no real boto3 or
-S3 calls happen. Designed to run sub-second.
+Most tests monkeypatch `sync_missing_partitions_from_s3` so no real boto3 or
+S3 calls happen. One integration test (`test_no_s3_config_is_clean_no_op`)
+exercises the real sync function but patches `_get_s3_config` to return None,
+preventing any network I/O. All tests are designed to run sub-second.
 """
 
 from __future__ import annotations
@@ -121,3 +123,17 @@ def test_raise_if_error_is_noop_even_when_error_set(monkeypatch):
     # Intentional asymmetry vs PriceFetcher: prewarmer NEVER raises.
     # The in-subprocess sync retries any partition still missing locally.
     assert prewarmer.raise_if_error() is None  # no exception, returns None
+
+
+def test_no_s3_config_is_clean_no_op(monkeypatch):
+    """When `[Prices]` config is missing, the prewarm exits cleanly with
+    zero downloads and no error. Exercises the real sync function with
+    its config check shortcut, no boto3 involvement."""
+
+    # Force `_get_s3_config()` to return None (no Prices section configured)
+    monkeypatch.setattr(price_s3, "_get_s3_config", lambda: None)
+
+    prewarmer = S3PartitionPrewarmer.start_background()
+    assert prewarmer.wait(timeout=2.0) is True
+    assert prewarmer._error is None
+    assert prewarmer._downloaded == 0
