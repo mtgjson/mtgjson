@@ -179,6 +179,14 @@ def dispatcher(args: argparse.Namespace) -> None:
         raw_fetcher = PriceFetcher.start_background()
         LOGGER.info("Background price raw fetch started")
 
+    # Start background S3 partition prewarm so the prices subprocess finds
+    # historical partitions already on disk (saves ~100s of serial S3 GETs).
+    s3_prewarmer = None
+    if args.price_build:
+        from mtgjson5.build.prices.price_s3 import S3PartitionPrewarmer
+
+        s3_prewarmer = S3PartitionPrewarmer.start_background()
+
     if args.all_sets:
         additional_set_keys = set(load_local_set_data().keys())
         additional_set_keys -= set(args.skip_sets)
@@ -302,6 +310,9 @@ def dispatcher(args: argparse.Namespace) -> None:
 
         # Phase 2: Price build subprocess (separate process = clean jemalloc heap)
         if args.price_build:
+            if s3_prewarmer is not None:
+                LOGGER.info("Waiting for S3 partition prewarm to complete...")
+                s3_prewarmer.wait()
             parquet_dir = str(MtgjsonConfig().output_path / "parquet") if has_parquet else None
             profiler.checkpoint_with_children("pre_price_subprocess")
             _run_subprocess(
