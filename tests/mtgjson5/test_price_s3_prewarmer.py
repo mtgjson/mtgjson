@@ -6,6 +6,7 @@ S3 calls happen. Designed to run sub-second.
 
 from __future__ import annotations
 
+import logging
 import threading
 
 import pytest
@@ -85,3 +86,38 @@ def test_run_invokes_sync_with_configured_days(monkeypatch):
     assert p2.wait(timeout=2.0) is True
 
     assert captured == [90, 30]
+
+
+def test_thread_swallows_exceptions(monkeypatch, caplog):
+    def boom(days: int = 90) -> int:
+        raise RuntimeError("simulated S3 failure")
+
+    monkeypatch.setattr(price_s3, "sync_missing_partitions_from_s3", boom)
+
+    with caplog.at_level(logging.WARNING, logger="mtgjson5.build.prices.price_s3"):
+        prewarmer = S3PartitionPrewarmer.start_background()
+        assert prewarmer.wait(timeout=2.0) is True
+
+    assert isinstance(prewarmer._error, RuntimeError)
+    assert "simulated S3 failure" in str(prewarmer._error)
+    # Build must not have crashed — the WARNING was logged, not raised
+    assert any(
+        "S3 partition prewarm failed" in record.getMessage()
+        and record.levelname == "WARNING"
+        for record in caplog.records
+    )
+
+
+def test_raise_if_error_is_noop_even_when_error_set(monkeypatch):
+    def boom(days: int = 90) -> int:
+        raise RuntimeError("simulated S3 failure")
+
+    monkeypatch.setattr(price_s3, "sync_missing_partitions_from_s3", boom)
+
+    prewarmer = S3PartitionPrewarmer.start_background()
+    prewarmer.wait(timeout=2.0)
+    assert prewarmer._error is not None  # error did occur
+
+    # Intentional asymmetry vs PriceFetcher: prewarmer NEVER raises.
+    # The in-subprocess sync retries any partition still missing locally.
+    assert prewarmer.raise_if_error() is None  # no exception, returns None

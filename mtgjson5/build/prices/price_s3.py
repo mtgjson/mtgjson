@@ -422,9 +422,22 @@ class S3PartitionPrewarmer:
         """Block until done. Returns True if finished, False if timed out."""
         return self._done.wait(timeout=timeout)
 
+    def raise_if_error(self) -> None:
+        """Intentional no-op. The prewarm is best-effort: per-partition
+        failures are already swallowed by `sync_missing_partitions_from_s3`,
+        and the in-subprocess sync acts as a retry net for any partition
+        still missing locally. We never want to fail the build over this.
+        """
+        return None
+
     def _run(self) -> None:
         """Runs the prewarmer"""
         try:
             self._downloaded = sync_missing_partitions_from_s3(days=self.days)
+        except BaseException as exc:  # noqa: BLE001 - intentional broad catch
+            self._error = exc
+            LOGGER.warning(
+                f"S3 partition prewarm failed (continuing): {exc}"
+            )
         finally:
             self._done.set()
