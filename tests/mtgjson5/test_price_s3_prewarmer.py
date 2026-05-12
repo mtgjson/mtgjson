@@ -11,8 +11,6 @@ from __future__ import annotations
 import logging
 import threading
 
-import pytest
-
 from mtgjson5.build.prices import price_s3
 from mtgjson5.build.prices.price_s3 import S3PartitionPrewarmer
 
@@ -104,8 +102,7 @@ def test_thread_swallows_exceptions(monkeypatch, caplog):
     assert "simulated S3 failure" in str(prewarmer._error)
     # Build must not have crashed — the WARNING was logged, not raised
     assert any(
-        "S3 partition prewarm failed" in record.getMessage()
-        and record.levelname == "WARNING"
+        "S3 partition prewarm failed" in record.getMessage() and record.levelname == "WARNING"
         for record in caplog.records
     )
 
@@ -122,7 +119,8 @@ def test_raise_if_error_is_noop_even_when_error_set(monkeypatch):
 
     # Intentional asymmetry vs PriceFetcher: prewarmer NEVER raises.
     # The in-subprocess sync retries any partition still missing locally.
-    assert prewarmer.raise_if_error() is None  # no exception, returns None
+    # The contract is "doesn't raise"; the return type is None.
+    prewarmer.raise_if_error()  # must not raise
 
 
 def test_no_s3_config_is_clean_no_op(monkeypatch):

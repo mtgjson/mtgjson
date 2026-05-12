@@ -434,10 +434,8 @@ class S3PartitionPrewarmer:
         """Runs the prewarmer"""
         try:
             self._downloaded = sync_missing_partitions_from_s3(days=self.days)
-        except BaseException as exc:  # noqa: BLE001 - intentional broad catch
+        except BaseException as exc:
             self._error = exc
-            LOGGER.warning(
-                f"S3 partition prewarm failed (continuing): {exc}"
-            )
+            LOGGER.warning(f"S3 partition prewarm failed (continuing): {exc}")
         finally:
             self._done.set()
