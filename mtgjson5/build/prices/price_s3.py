@@ -8,9 +8,11 @@ import datetime
 import json
 import logging
 import lzma
+import threading
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
 from typing import Any
 
 import polars as pl
@@ -385,3 +387,44 @@ def upload_archive_to_s3(
     final_path = constants.CACHE_PATH / "prices_archive.parquet"
     if local_parquet != final_path:
         local_parquet.rename(final_path)
+
+
+@dataclass
+class S3PartitionPrewarmer:
+    """Background thread that runs `sync_missing_partitions_from_s3` so the
+    prices subprocess finds historical partitions already on disk.
+
+    Mirrors the shape of `PriceFetcher.start_background()`. Intentionally
+    best-effort: `raise_if_error()` is a no-op because the in-subprocess
+    sync acts as a retry net for any partition this thread missed.
+    """
+
+    days: int = 90
+    _done: threading.Event = field(default_factory=threading.Event, repr=False)
+    _thread: threading.Thread | None = field(default=None, repr=False)
+    _error: BaseException | None = field(default=None, repr=False)
+    _downloaded: int = 0
+
+    @classmethod
+    def start_background(cls, days: int = 90) -> S3PartitionPrewarmer:
+        """Start the sync in a daemon thread. Returns immediately."""
+        prewarmer = cls(days=days)
+        prewarmer._thread = threading.Thread(
+            target=prewarmer._run,
+            name="s3-partition-prewarm",
+            daemon=True,
+        )
+        prewarmer._thread.start()
+        LOGGER.info("S3 partition prewarm started in background thread")
+        return prewarmer
+
+    def wait(self, timeout: float | None = None) -> bool:
+        """Block until done. Returns True if finished, False if timed out."""
+        return self._done.wait(timeout=timeout)
+
+    def _run(self) -> None:
+        """Runs the prewarmer"""
+        try:
+            self._downloaded = sync_missing_partitions_from_s3(days=self.days)
+        finally:
+            self._done.set()
