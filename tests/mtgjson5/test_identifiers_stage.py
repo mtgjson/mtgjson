@@ -42,12 +42,20 @@ def test_build_identifiers_lookup_joins_cardtrader_ids() -> None:
             "side": "a",
             "cachedUuid": "uuid-001",
             "cardtraderId": "ct-101",
+            "cardsphereId": None,
+            "cardsphereAlternativeFoilId": None,
+            "cardsphereEtchedId": None,
+            "cardsphereFoilId": None,
         },
         {
             "scryfallId": "sf-002",
             "side": "a",
             "cachedUuid": "uuid-002",
             "cardtraderId": None,
+            "cardsphereId": None,
+            "cardsphereAlternativeFoilId": None,
+            "cardsphereEtchedId": None,
+            "cardsphereFoilId": None,
         },
     ]
 
@@ -76,6 +84,8 @@ def test_add_identifiers_struct_includes_cardtrader_id() -> None:
                 "cardKingdomEtchedId": None,
                 "cardtraderId": "ct-101",
                 "cardsphereId": None,
+                "cardsphereAlternativeFoilId": None,
+                "cardsphereEtchedId": None,
                 "cardsphereFoilId": None,
                 "deckboxId": None,
             }
@@ -101,6 +111,8 @@ def test_add_identifiers_struct_includes_cardtrader_id() -> None:
             "cardKingdomEtchedId": pl.String,
             "cardtraderId": pl.String,
             "cardsphereId": pl.String,
+            "cardsphereAlternativeFoilId": pl.String,
+            "cardsphereEtchedId": pl.String,
             "cardsphereFoilId": pl.String,
             "deckboxId": pl.String,
         },
