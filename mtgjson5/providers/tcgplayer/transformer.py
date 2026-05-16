@@ -92,9 +92,9 @@ class TcgPlayerTransformer:
             .unnest("skus")
             .with_columns(
                 [
-                    pl.col("languageId").replace(LANGUAGE_MAP, default="UNKNOWN").alias("language"),
-                    pl.col("printingId").replace(PRINTING_MAP, default="UNKNOWN").alias("printing"),
-                    pl.col("conditionId").replace(CONDITION_MAP, default="UNKNOWN").alias("condition"),
+                    pl.col("languageId").replace_strict(LANGUAGE_MAP, default="UNKNOWN").alias("language"),
+                    pl.col("printingId").replace_strict(PRINTING_MAP, default="UNKNOWN").alias("printing"),
+                    pl.col("conditionId").replace_strict(CONDITION_MAP, default="UNKNOWN").alias("condition"),
                 ]
             )
         )

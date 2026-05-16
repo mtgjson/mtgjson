@@ -161,6 +161,7 @@ def build_expanded_decks_df(
             if "releaseDate" in available_cols
             else pl.lit(None).cast(pl.String).alias("releaseDate")
         ),
+        (pl.col("source") if "source" in available_cols else pl.lit(None).cast(pl.String).alias("source")),
         # sealedProductUuids should stay null when not present
         (
             pl.col("sealedProductUuids")

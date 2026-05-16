@@ -174,6 +174,7 @@ def _build_decks_records(decks_raw: list, deck_map: dict) -> list[dict]:
             "setCode": deck.get("set_code", "").upper(),
             "type": deck.get("type"),
             "releaseDate": deck.get("release_date"),
+            "source": deck.get("source"),
             "sourceSetCodes": [s.upper() for s in deck.get("sourceSetCodes", [])],
             "sealedProductUuids": (deck_map or {}).get(deck.get("set_code", "").lower(), {}).get(deck.get("name", "")),
             "mainBoard": _extract_card_list(deck.get("cards", [])),

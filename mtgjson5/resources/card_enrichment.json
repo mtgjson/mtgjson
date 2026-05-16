@@ -156,7 +156,7 @@
       "name": "Lotus Petal",
       "enrichment": {
         "promo_types": [
-          "greenemerald"
+          "emeraldgreen"
         ]
       }
     },
@@ -164,7 +164,7 @@
       "name": "Lotus Petal",
       "enrichment": {
         "promo_types": [
-          "redemerald"
+          "emeraldred"
         ]
       }
     },
@@ -172,7 +172,7 @@
       "name": "Lotus Petal",
       "enrichment": {
         "promo_types": [
-          "blueemerald"
+          "emeraldblue"
         ]
       }
     },
@@ -180,7 +180,7 @@
       "name": "Lotus Petal",
       "enrichment": {
         "promo_types": [
-          "purpleemerald"
+          "emeraldpurple"
         ]
       }
     },
@@ -188,7 +188,7 @@
       "name": "Lotus Petal",
       "enrichment": {
         "promo_types": [
-          "yellowemerald"
+          "emeraldyellow"
         ]
       }
     },
@@ -196,7 +196,7 @@
       "name": "Lotus Petal",
       "enrichment": {
         "promo_types": [
-          "cyanemerald"
+          "emeraldcyan"
         ]
       }
     },
@@ -204,7 +204,7 @@
       "name": "Lotus Petal",
       "enrichment": {
         "promo_types": [
-          "whiteemerald"
+          "emeraldwhite"
         ]
       }
     }

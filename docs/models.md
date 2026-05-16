@@ -331,6 +331,7 @@ class DeckSet(PolarsMixin, BaseModel):
     name: str
     type: str
     release_date: str | None = Field(None, alias="releaseDate")
+    source: str | None = None
     sealed_product_uuids: list[str] | None = Field(None, alias="sealedProductUuids")
 
     # Card boards (all use CardSetDeck)
@@ -358,6 +359,7 @@ class DeckList(PolarsMixin, BaseModel):
     file_name: str = Field(alias="fileName")
     type: str
     release_date: str | None = Field(None, alias="releaseDate")
+    source: str | None = None
 ```
 
 ### Deck
@@ -370,6 +372,7 @@ class Deck(PolarsMixin, BaseModel):
     name: str
     type: str
     release_date: str | None = Field(None, alias="releaseDate")
+    source: str | None = None
     sealed_product_uuids: list[str] | None = Field(None, alias="sealedProductUuids")
 
     # Card boards (all use CardDeck - full card data)

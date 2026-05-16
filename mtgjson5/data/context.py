@@ -191,10 +191,17 @@ class PipelineContext:
 
     @property
     def multiverse_bridge_lf(self) -> pl.LazyFrame | None:
-        """Multiverse bridge data (cardsphere, deckbox IDs) from cache."""
+        """Multiverse bridge data (deckbox IDs) from cache."""
         if "_multiverse_bridge_lf" in self._test_data:
             return self._test_data["_multiverse_bridge_lf"]  # type: ignore[no-any-return]
         return self._cache.multiverse_bridge_lf if self._cache else None
+
+    @property
+    def cardsphere_lf(self) -> pl.LazyFrame | None:
+        """CardSphere ID mappings from cache."""
+        if "_cardsphere_lf" in self._test_data:
+            return self._test_data["_cardsphere_lf"]  # type: ignore[no-any-return]
+        return self._cache.cardsphere_lf if self._cache else None
 
     @property
     def sealed_cards_lf(self) -> pl.LazyFrame | None:
@@ -663,7 +670,40 @@ class PipelineContext:
                 result = result.join(orient, on="scryfallId", how="left")
                 LOGGER.info(f"identifiers: +orientation ({orient.height:,} rows)")
 
-        # Add multiverse bridge data (cardsphere, deckbox IDs) by cachedUuid
+        # Add CardSphere IDs by scryfallId
+        cs_raw = self.cardsphere_lf
+        cs_joined = False
+        if cs_raw is not None:
+            if isinstance(cs_raw, pl.LazyFrame):
+                cs: pl.DataFrame = cs_raw.collect()
+            else:
+                cs = cs_raw
+            if cs.height > 0:
+                result = result.join(
+                    cs.select(
+                        [
+                            "scryfallId",
+                            "cardsphereId",
+                            "cardsphereAlternativeFoilId",
+                            "cardsphereEtchedId",
+                            "cardsphereFoilId",
+                        ]
+                    ),
+                    on="scryfallId",
+                    how="left",
+                )
+                cs_joined = True
+                LOGGER.info(f"identifiers: +cardsphere ({cs.height:,} rows)")
+
+        if not cs_joined:
+            result = result.with_columns(
+                pl.lit(None).cast(pl.String).alias("cardsphereId"),
+                pl.lit(None).cast(pl.String).alias("cardsphereAlternativeFoilId"),
+                pl.lit(None).cast(pl.String).alias("cardsphereEtchedId"),
+                pl.lit(None).cast(pl.String).alias("cardsphereFoilId"),
+            )
+
+        # Add multiverse bridge data (deckbox IDs) by cachedUuid
         mvb_raw = self.multiverse_bridge_lf
         if mvb_raw is not None:
             if isinstance(mvb_raw, pl.LazyFrame):

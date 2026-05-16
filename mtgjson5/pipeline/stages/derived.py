@@ -509,24 +509,24 @@ def link_foil_nonfoil_versions(lf: pl.LazyFrame) -> pl.LazyFrame:
             version_links[first_uuid] = (first_foil, first_nonfoil)
             version_links[uuid] = (None, first_uuid)  # nonfoilVersionId = first
 
-    # Create lookup DataFrame
+    # Pin String dtype so all-None batches don't get inferred as Null,
+    # which would diverge the identifiers struct schema across partitions.
     links_df = pl.DataFrame(
         {
             "uuid": list(version_links.keys()),
             "_foil_version": [v[0] for v in version_links.values()],
             "_nonfoil_version": [v[1] for v in version_links.values()],
-        }
+        },
+        schema={"uuid": pl.String, "_foil_version": pl.String, "_nonfoil_version": pl.String},
     ).lazy()
 
-    # Join back to main LazyFrame
     lf = lf.join(links_df, on="uuid", how="left")
 
-    # Update identifiers struct with version IDs
     lf = lf.with_columns(
         pl.col("identifiers").struct.with_fields(
             [
-                pl.col("_foil_version").alias("mtgjsonFoilVersionId"),
-                pl.col("_nonfoil_version").alias("mtgjsonNonFoilVersionId"),
+                pl.col("_foil_version").cast(pl.String).alias("mtgjsonFoilVersionId"),
+                pl.col("_nonfoil_version").cast(pl.String).alias("mtgjsonNonFoilVersionId"),
             ]
         )
     )

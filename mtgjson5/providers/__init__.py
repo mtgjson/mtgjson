@@ -9,6 +9,7 @@ from .cardhoarder import CardHoarderPriceProvider
 from .cardkingdom import CKProvider
 from .cardmarket import CardMarketProvider
 from .cardtrader import CardTraderPriceProvider
+from .cardsphere import CardSphereProvider
 from .gatherer import GathererProvider
 from .github import SealedDataProvider
 from .manapool import ManapoolPriceProvider
@@ -25,6 +26,7 @@ __all__ = [
     "CardHoarderPriceProvider",
     "CardMarketProvider",
     "CardTraderPriceProvider",
+    "CardSphereProvider",
     "EdhrecSaltProvider",
     "GathererProvider",
     "ManapoolPriceProvider",

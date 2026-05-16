@@ -105,7 +105,7 @@ class ParquetBuilder:
         if "setCode" in decks_df.columns and "code" not in decks_df.columns:
             decks_df = decks_df.rename({"setCode": "code"})
 
-        meta_cols = [c for c in ("code", "name", "type", "releaseDate") if c in decks_df.columns]
+        meta_cols = [c for c in ("code", "name", "type", "releaseDate", "source") if c in decks_df.columns]
         board_cols = [
             "mainBoard",
             "sideBoard",

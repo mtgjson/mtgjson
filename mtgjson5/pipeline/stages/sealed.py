@@ -747,8 +747,10 @@ def _ctp_get_card_obj_from_card(card_content: dict[str, Any]) -> list[_CTPCard]:
 def _ctp_get_cards_in_pack(data: dict, set_code: str, booster_code: str) -> list[_CTPCard]:
     """Return cards reachable from a booster pack definition.
 
-    Traverses every sheet referenced by boosters for *booster_code* and resolves
-    finishes using the same special-case logic as the reference compiler.
+    Traverses every sheet referenced by boosters for *booster_code* and assigns
+    each card a finish: "etched" if the sheet name contains "etched" (or the
+    card's only finish is "etched"), "foil" if it's a foil sheet and the card
+    has a foil printing, otherwise "nonfoil".
     """
     try:
         booster_data = data[set_code].get("booster")
@@ -771,27 +773,15 @@ def _ctp_get_cards_in_pack(data: dict, set_code: str, booster_code: str) -> list
 
         for card_uuid in cards_in_sheet:
             finish = "nonfoil"
-            code = ""
+            finishes: list[str] = []
 
             if sheet_data["sheets"][sheet]["foil"]:
-                finishes: list[str] = []
                 for source_code in sheet_data["sourceSetCodes"]:
                     if source_code not in data:
                         continue
                     for c in data[source_code]["cards"]:
                         if card_uuid == c["uuid"]:
                             finishes = c["finishes"]
-                            code = source_code
-
-                            # MH2 special case: only numbers 262-441 get etched treatment
-                            if code == "MH2":
-                                try:
-                                    num = int(c["number"])
-                                except (ValueError, TypeError):
-                                    code = ""
-                                else:
-                                    if num < 262 or num > 441:
-                                        code = ""
 
                 # "etched" in sheet name or single finish "etched" → etched
                 if ("etched" in sheet.lower() or len(finishes) == 1) and "etched" in finishes:
@@ -800,10 +790,6 @@ def _ctp_get_cards_in_pack(data: dict, set_code: str, booster_code: str) -> list
                     finish = "foil"
 
             return_value.add(_CTPCard(card_uuid, finish))
-
-            # Upstream does not track etched version of these cards — duplicate
-            if code and code in ("H1R", "MH2", "STA"):
-                return_value.add(_CTPCard(card_uuid, "etched"))
 
     return list(return_value)
 

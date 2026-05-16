@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import polars as pl
 import pytest
 
-from mtgjson5.build.assemble import Assembler, AtomicCardsAssembler
+from mtgjson5.build.assemble import Assembler, AtomicCardsAssembler, DeckAssembler, DeckListAssembler
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -28,6 +29,30 @@ def _make_assembler():
         planar_types = []
 
     return Assembler(FakeCtx())
+
+
+def _make_decks_df() -> pl.DataFrame:
+    return pl.DataFrame(
+        [
+            {
+                "setCode": "TST",
+                "code": "TST",
+                "name": "Source Deck",
+                "type": "Commander",
+                "releaseDate": "2025-01-01",
+                "source": "https://example.com/source-deck",
+                "sealedProductUuids": ["sealed-001"],
+                "sourceSetCodes": ["TST"],
+                "mainBoard": [{"uuid": "uuid-001", "count": 1}],
+                "sideBoard": [],
+                "commander": [],
+                "displayCommander": [],
+                "tokens": [],
+                "planes": [],
+                "schemes": [],
+            }
+        ]
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -107,3 +132,59 @@ class TestBuildLanguages:
         assert result == sorted(result)
         assert "English" in result
         assert len(result) == 4  # English + 3 foreign
+
+
+class TestDeckAssemblers:
+    def test_build_minimal_decks_preserves_source(self):
+        class FakeCtx:
+            parquet_dir = None
+            tokens_dir = None
+            set_meta = {}
+            decks_df = _make_decks_df()
+            sealed_df = None
+            booster_configs = {}
+            token_products = {}
+            keyword_data = {}
+            card_type_data = {}
+            super_types = []
+            planar_types = []
+
+        decks = Assembler(FakeCtx()).build_minimal_decks("TST")
+        assert decks is not None
+        assert decks[0]["source"] == "https://example.com/source-deck"
+
+    def test_deck_list_preserves_source(self):
+        class FakeCtx:
+            parquet_dir = None
+            tokens_dir = None
+            set_meta = {}
+            decks_df = _make_decks_df()
+            sealed_df = None
+            booster_configs = {}
+            token_products = {}
+            keyword_data = {}
+            card_type_data = {}
+            super_types = []
+            planar_types = []
+
+        deck_list = DeckListAssembler(FakeCtx()).build()
+        assert deck_list[0]["source"] == "https://example.com/source-deck"
+
+    def test_full_deck_build_preserves_source(self, monkeypatch):
+        class FakeCtx:
+            parquet_dir = None
+            tokens_dir = None
+            set_meta = {}
+            decks_df = _make_decks_df()
+            sealed_df = None
+            booster_configs = {}
+            token_products = {}
+            keyword_data = {}
+            card_type_data = {}
+            super_types = []
+            planar_types = []
+
+        assembler = DeckAssembler(FakeCtx())
+        monkeypatch.setattr(assembler, "expand_card_list", lambda refs: refs)
+        built = assembler.build(_make_decks_df().to_dicts()[0])
+        assert built["source"] == "https://example.com/source-deck"
