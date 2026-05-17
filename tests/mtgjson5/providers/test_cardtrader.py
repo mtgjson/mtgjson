@@ -323,7 +323,7 @@ def test_cardtrader_requires_at_least_three_eligible_listings() -> None:
         {"101": "sf-normal"},
     )
 
-    assert records == []
+    assert not records
 
 
 def test_cardtrader_trims_prices_above_ten_times_median() -> None:
@@ -360,7 +360,7 @@ def test_cardtrader_skips_when_trimming_leaves_too_few_prices() -> None:
         {"101": "sf-normal"},
     )
 
-    assert records == []
+    assert not records
 
 
 def test_cardtrader_excludes_special_listings() -> None:
