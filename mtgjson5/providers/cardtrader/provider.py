@@ -26,6 +26,16 @@ MAX_LISTINGS_FOR_MARKET_PRICE = 15
 CARDTRADER_MAX_REQUEST_ATTEMPTS = 3
 CARDTRADER_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 CARDTRADER_HIGH_PRICE_WARNING = 10_000.0
+CARDTRADER_MIN_LISTINGS_FOR_MARKET_PRICE = 3
+CARDTRADER_OUTLIER_MEDIAN_MULTIPLIER = 10.0
+CARDTRADER_SPECIAL_PROPERTY_KEYS = {
+    "altered",
+    "misprint",
+    "mtg_altered",
+    "mtg_misprint",
+    "mtg_signed",
+    "signed",
+}
 
 RAW_SCHEMA = {
     "scryfallId": pl.String,
@@ -61,7 +71,12 @@ class CardTraderPriceCalculation:
     price: float
     currency: str
     listing_count: int
+    original_listing_count: int
+    eligible_listing_count: int
+    selected_listing_count: int
+    trimmed_listing_count: int
     min_price: float
+    median_price: float
     max_price: float
 
 
@@ -96,8 +111,9 @@ class CardTraderPriceProvider:
     """
     Async CardTrader pricing provider.
 
-    Approximates CardTrader CT Market Price by averaging the first 15 returned
-    marketplace listings, matching CardTrader's published site definition.
+    Fetches CardTrader marketplace listings by expansion, groups listings by
+    CardTrader's MTG foil flag, and computes a retail market price from eligible
+    listings after sparse-listing and outlier safeguards.
     """
 
     config: CardTraderConfig | None = None
@@ -209,7 +225,8 @@ class CardTraderPriceProvider:
         finally:
             await self._sleep_between_marketplace_requests()
 
-        return self._build_raw_records(
+        return await self._build_raw_records_with_fallback(
+            session,
             self._parse_marketplace_products(payload),
             blueprint_map,
         )
@@ -496,54 +513,158 @@ class CardTraderPriceProvider:
                 continue
 
             for finish, finish_listings in self._group_listings_by_finish(listings, blueprint_id).items():
-                calculation = self._calculate_listing_price_detail(finish_listings)
-                if calculation is None:
-                    continue
-
-                price = calculation.price
-                currency = calculation.currency
-                expected_currency = self.config.expected_currency if self.config else ""
-                if expected_currency and currency != expected_currency:
-                    LOGGER.error(
-                        "CardTrader currency mismatch for blueprint %s: expected %s, got %s",
-                        blueprint_id,
-                        expected_currency,
-                        currency,
-                    )
-                    continue
-                LOGGER.debug(
-                    "CardTrader %s price for blueprint %s: %.2f %s from %s listings (min %.2f, max %.2f)",
-                    finish,
-                    blueprint_id,
-                    price,
-                    currency,
-                    calculation.listing_count,
-                    calculation.min_price,
-                    calculation.max_price,
-                )
-                if price >= CARDTRADER_HIGH_PRICE_WARNING:
-                    LOGGER.warning(
-                        "CardTrader high %s price for blueprint %s: %.2f %s from %s listings (min %.2f, max %.2f)",
-                        finish,
-                        blueprint_id,
-                        price,
-                        currency,
-                        calculation.listing_count,
-                        calculation.min_price,
-                        calculation.max_price,
-                    )
-
-                records.append(
-                    {
-                        "scryfallId": scryfall_id,
-                        "blueprintId": blueprint_id,
-                        "finish": finish,
-                        "price": price,
-                        "currency": currency,
-                    }
-                )
+                record = self._build_raw_record(blueprint_id, scryfall_id, finish, finish_listings)
+                if record:
+                    records.append(record)
 
         return records
+
+    async def _build_raw_records_with_fallback(
+        self,
+        session: aiohttp.ClientSession,
+        marketplace_groups: dict[str, list[dict[str, Any]]],
+        blueprint_to_scryfall: dict[str, str],
+    ) -> list[dict[str, Any]]:
+        """Convert marketplace listings to raw records, verifying thin or suspicious finish groups."""
+        records: list[dict[str, Any]] = []
+
+        for blueprint_id, listings in marketplace_groups.items():
+            scryfall_id = blueprint_to_scryfall.get(blueprint_id)
+            if not scryfall_id:
+                continue
+
+            for finish, finish_listings in self._group_listings_by_finish(listings, blueprint_id).items():
+                if not finish_listings:
+                    continue
+
+                source_listings = finish_listings
+                if self._needs_blueprint_finish_fallback(finish_listings):
+                    fallback = await self._fetch_blueprint_finish_listings(session, blueprint_id, finish)
+                    if fallback is not None:
+                        source_listings = self._group_listings_by_finish(fallback, blueprint_id)[finish]
+
+                record = self._build_raw_record(blueprint_id, scryfall_id, finish, source_listings)
+                if record:
+                    records.append(record)
+
+        return records
+
+    async def _fetch_blueprint_finish_listings(
+        self,
+        session: aiohttp.ClientSession,
+        blueprint_id: str,
+        finish: str,
+    ) -> list[dict[str, Any]] | None:
+        """Fetch one blueprint/finish when expansion-level data is thin or suspicious."""
+        try:
+            payload = await self._request_json(
+                session,
+                "marketplace/products",
+                {
+                    "blueprint_id": blueprint_id,
+                    "foil": "true" if finish == "foil" else "false",
+                    "language": "en",
+                },
+            )
+        except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+            LOGGER.warning(
+                "CardTrader: fallback failed for blueprint %s %s: %s",
+                blueprint_id,
+                finish,
+                self._format_api_exception(exc),
+            )
+            return None
+        except Exception as exc:
+            LOGGER.warning(
+                "CardTrader: unexpected fallback error for blueprint %s %s: %s",
+                blueprint_id,
+                finish,
+                exc,
+            )
+            return None
+        finally:
+            await self._sleep_between_marketplace_requests()
+
+        return self._parse_marketplace_products(payload).get(blueprint_id, [])
+
+    def _build_raw_record(
+        self,
+        blueprint_id: str,
+        scryfall_id: str,
+        finish: str,
+        listings: list[dict[str, Any]],
+    ) -> dict[str, Any] | None:
+        """Build one raw price record when listings meet CardTrader confidence rules."""
+        calculation = self._calculate_listing_price_detail(listings)
+        if calculation is None:
+            return None
+
+        price = calculation.price
+        currency = calculation.currency
+        expected_currency = self.config.expected_currency if self.config else ""
+        if expected_currency and currency != expected_currency:
+            LOGGER.error(
+                "CardTrader currency mismatch for blueprint %s: expected %s, got %s",
+                blueprint_id,
+                expected_currency,
+                currency,
+            )
+            return None
+
+        LOGGER.debug(
+            "CardTrader %s price for blueprint %s: %.2f %s from %s/%s eligible listings "
+            "(source %s, selected %s, min %.2f, median %.2f, max %.2f)",
+            finish,
+            blueprint_id,
+            price,
+            currency,
+            calculation.trimmed_listing_count,
+            calculation.eligible_listing_count,
+            calculation.original_listing_count,
+            calculation.selected_listing_count,
+            calculation.min_price,
+            calculation.median_price,
+            calculation.max_price,
+        )
+        if price >= CARDTRADER_HIGH_PRICE_WARNING:
+            LOGGER.warning(
+                "CardTrader high %s price for blueprint %s: %.2f %s from %s/%s eligible listings "
+                "(source %s, selected %s, min %.2f, median %.2f, max %.2f)",
+                finish,
+                blueprint_id,
+                price,
+                currency,
+                calculation.trimmed_listing_count,
+                calculation.eligible_listing_count,
+                calculation.original_listing_count,
+                calculation.selected_listing_count,
+                calculation.min_price,
+                calculation.median_price,
+                calculation.max_price,
+            )
+
+        return {
+            "scryfallId": scryfall_id,
+            "blueprintId": blueprint_id,
+            "finish": finish,
+            "price": price,
+            "currency": currency,
+        }
+
+    def _needs_blueprint_finish_fallback(self, listings: list[dict[str, Any]]) -> bool:
+        """Return whether expansion-level listings need targeted blueprint verification."""
+        parsed = self._parse_eligible_listing_prices(listings)
+        if len(parsed) < CARDTRADER_MIN_LISTINGS_FOR_MARKET_PRICE:
+            return True
+
+        selected = parsed[:MAX_LISTINGS_FOR_MARKET_PRICE]
+        currencies = {currency for _, currency in selected}
+        if len(currencies) != 1:
+            return True
+
+        cents_values = [cents for cents, _ in selected]
+        median_cents = self._median(cents_values)
+        return median_cents > 0 and max(cents_values) > median_cents * CARDTRADER_OUTLIER_MEDIAN_MULTIPLIER
 
     def _group_listings_by_finish(
         self,
@@ -609,14 +730,8 @@ class CardTraderPriceProvider:
 
     def _calculate_listing_price_detail(self, listings: list[dict[str, Any]]) -> CardTraderPriceCalculation | None:
         """Approximate CardTrader market price with internal diagnostics."""
-        parsed: list[tuple[int, str]] = []
-        for listing in listings:
-            extracted = self._extract_listing_price(listing)
-            if extracted is None:
-                continue
-            parsed.append(extracted)
-
-        if not parsed:
+        parsed = self._parse_eligible_listing_prices(listings)
+        if len(parsed) < CARDTRADER_MIN_LISTINGS_FOR_MARKET_PRICE:
             return None
 
         selected = parsed[:MAX_LISTINGS_FOR_MARKET_PRICE]
@@ -625,15 +740,76 @@ class CardTraderPriceProvider:
             LOGGER.warning("CardTrader listings mixed currencies in one listing slice: %s", sorted(currencies))
             return None
 
-        avg_cents = sum(cents for cents, _ in selected) / len(selected)
         cents_values = [cents for cents, _ in selected]
+        median_cents = self._median(cents_values)
+        if median_cents <= 0:
+            return None
+
+        trimmed = [
+            (cents, currency)
+            for cents, currency in selected
+            if cents <= median_cents * CARDTRADER_OUTLIER_MEDIAN_MULTIPLIER
+        ]
+        if len(trimmed) < CARDTRADER_MIN_LISTINGS_FOR_MARKET_PRICE:
+            return None
+
+        avg_cents = sum(cents for cents, _ in trimmed) / len(trimmed)
         return CardTraderPriceCalculation(
             price=avg_cents / 100.0,
             currency=selected[0][1],
-            listing_count=len(selected),
+            listing_count=len(trimmed),
+            original_listing_count=len(listings),
+            eligible_listing_count=len(parsed),
+            selected_listing_count=len(selected),
+            trimmed_listing_count=len(trimmed),
             min_price=min(cents_values) / 100.0,
+            median_price=median_cents / 100.0,
             max_price=max(cents_values) / 100.0,
         )
+
+    def _parse_eligible_listing_prices(self, listings: list[dict[str, Any]]) -> list[tuple[int, str]]:
+        """Extract price tuples from listings eligible for CardTrader market pricing."""
+        parsed: list[tuple[int, str]] = []
+        for listing in listings:
+            if self._is_special_listing(listing):
+                continue
+
+            extracted = self._extract_listing_price(listing)
+            if extracted is None:
+                continue
+            parsed.append(extracted)
+        return parsed
+
+    def _is_special_listing(self, listing: dict[str, Any]) -> bool:
+        """Return whether a listing should be excluded from market-price calculation."""
+        if listing.get("graded") is True:
+            return True
+
+        properties_hash = listing.get("properties_hash")
+        if not isinstance(properties_hash, dict):
+            return False
+
+        return any(self._property_is_truthy(properties_hash.get(key)) for key in CARDTRADER_SPECIAL_PROPERTY_KEYS)
+
+    @staticmethod
+    def _property_is_truthy(value: Any) -> bool:
+        """Interpret CardTrader boolean-like property values."""
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes"}
+        if isinstance(value, int):
+            return value != 0
+        return False
+
+    @staticmethod
+    def _median(values: list[int]) -> float:
+        """Return the median of integer cents values."""
+        sorted_values = sorted(values)
+        mid = len(sorted_values) // 2
+        if len(sorted_values) % 2:
+            return float(sorted_values[mid])
+        return (sorted_values[mid - 1] + sorted_values[mid]) / 2
 
     @staticmethod
     def _extract_listing_price(listing: dict[str, Any]) -> tuple[int, str] | None:

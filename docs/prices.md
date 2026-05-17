@@ -165,8 +165,8 @@ def build_prices(self, parquet_output_dir=None, write_json=True):
 ### CardTrader (`providers/cardtrader/provider.py`)
 
 - **Source**: `paper` | **Currency**: account-validated, expected `EUR`
-- **Pricing**: Retail only
-- **Method**: Authenticated marketplace requests, maps blueprint `scryfall_id` → UUID and calculates price as the average of the first 15 returned marketplace listings
+- **Pricing**: Retail only (`normal` + `foil`)
+- **Method**: Authenticated marketplace requests by expansion with English-language listings. Listings are grouped by CardTrader's `mtg_foil` property, with targeted blueprint/finish fallback requests for thin or suspicious groups. Prices require at least 3 eligible listings, exclude graded/signed/altered/misprint listings, average up to the first 15 eligible listings, and trim prices above 10x the selected-listing median.
 
 ### CardMarket (`providers/cardmarket/provider.py`)
 
