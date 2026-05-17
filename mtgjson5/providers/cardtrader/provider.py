@@ -23,6 +23,9 @@ CARDTRADER_API_BASE_URL = "https://api.cardtrader.com/api/v2"
 MTGJSON_USER_AGENT = "MTGJSON/5.0 (https://mtgjson.com)"
 MAGIC_GAME_ID = 1
 MAX_LISTINGS_FOR_MARKET_PRICE = 15
+CARDTRADER_MAX_REQUEST_ATTEMPTS = 3
+CARDTRADER_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+CARDTRADER_HIGH_PRICE_WARNING = 10_000.0
 
 RAW_SCHEMA = {
     "scryfallId": pl.String,
@@ -49,6 +52,17 @@ PRICE_SCHEMA = {
 }
 
 ProgressCallback = Callable[[int, int, str], None]
+
+
+@dataclass(frozen=True)
+class CardTraderPriceCalculation:
+    """Internal diagnostics for a computed CardTrader marketplace price."""
+
+    price: float
+    currency: str
+    listing_count: int
+    min_price: float
+    max_price: float
 
 
 @dataclass
@@ -89,7 +103,8 @@ class CardTraderPriceProvider:
     config: CardTraderConfig | None = None
     output_path: Path | None = None
     on_progress: ProgressCallback | None = None
-    market_request_delay: float = 1.05
+    market_request_delay: float = 0.13
+    request_retry_base_delay: float = 1.0
     today_date: str = field(default_factory=lambda: datetime.date.today().strftime("%Y-%m-%d"))
 
     def __post_init__(self) -> None:
@@ -136,33 +151,7 @@ class CardTraderPriceProvider:
                     if not blueprint_map:
                         continue
 
-                    normal_payload = await self._request_json(
-                        session,
-                        "marketplace/products",
-                        {"expansion_id": expansion_id, "language": "en", "foil": "false"},
-                    )
-                    records.extend(
-                        self._build_raw_records(
-                            self._parse_marketplace_products(normal_payload),
-                            blueprint_map,
-                            finish="normal",
-                        )
-                    )
-                    await self._sleep_between_marketplace_requests()
-
-                    foil_payload = await self._request_json(
-                        session,
-                        "marketplace/products",
-                        {"expansion_id": expansion_id, "language": "en", "foil": "true"},
-                    )
-                    records.extend(
-                        self._build_raw_records(
-                            self._parse_marketplace_products(foil_payload),
-                            blueprint_map,
-                            finish="foil",
-                        )
-                    )
-                    await self._sleep_between_marketplace_requests()
+                    records.extend(await self._fetch_expansion_records(session, expansion_id, blueprint_map))
                 except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
                     LOGGER.warning("CardTrader: skipping expansion %s (%s): %s", expansion_name, expansion_id, exc)
                     continue
@@ -189,6 +178,41 @@ class CardTraderPriceProvider:
             LOGGER.info("Saved %s CardTrader raw price records to %s", f"{len(df):,}", self.output_path)
 
         return df
+
+    async def _fetch_expansion_records(
+        self,
+        session: aiohttp.ClientSession,
+        expansion_id: int,
+        blueprint_map: dict[str, str],
+    ) -> list[dict[str, Any]]:
+        """Fetch and price one CardTrader expansion from product finish flags."""
+        try:
+            payload = await self._request_json(
+                session,
+                "marketplace/products",
+                {"expansion_id": expansion_id, "language": "en"},
+            )
+        except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+            LOGGER.warning(
+                "CardTrader: skipping marketplace products for expansion %s: %s",
+                expansion_id,
+                self._format_api_exception(exc),
+            )
+            return []
+        except Exception as exc:
+            LOGGER.warning(
+                "CardTrader: unexpected marketplace error for expansion %s: %s",
+                expansion_id,
+                exc,
+            )
+            return []
+        finally:
+            await self._sleep_between_marketplace_requests()
+
+        return self._build_raw_records(
+            self._parse_marketplace_products(payload),
+            blueprint_map,
+        )
 
     async def fetch_identifier_lookup(self) -> pl.DataFrame:
         """Fetch CardTrader blueprint identifiers keyed by Scryfall ID."""
@@ -334,10 +358,69 @@ class CardTraderPriceProvider:
         if not self.config:
             return {}
 
+        for attempt in range(1, CARDTRADER_MAX_REQUEST_ATTEMPTS + 1):
+            try:
+                return await self._request_json_once(session, path, params)
+            except aiohttp.ClientResponseError as exc:
+                if exc.status not in CARDTRADER_RETRYABLE_STATUS_CODES or attempt == CARDTRADER_MAX_REQUEST_ATTEMPTS:
+                    raise
+                await self._sleep_before_retry(path, params, attempt, exc)
+            except (aiohttp.ClientConnectionError, aiohttp.ServerTimeoutError, TimeoutError) as exc:
+                if attempt == CARDTRADER_MAX_REQUEST_ATTEMPTS:
+                    raise
+                await self._sleep_before_retry(path, params, attempt, exc)
+
+        return {}
+
+    async def _request_json_once(
+        self,
+        session: aiohttp.ClientSession,
+        path: str,
+        params: dict[str, str | int] | None = None,
+    ) -> Any:
+        """Perform a single GET request against the CardTrader API."""
+        if not self.config:
+            return {}
+
         url = f"{self.config.base_url.rstrip('/')}/{path.lstrip('/')}"
         async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=120)) as response:
             response.raise_for_status()
             return await response.json()
+
+    async def _sleep_before_retry(
+        self,
+        path: str,
+        params: dict[str, str | int] | None,
+        attempt: int,
+        exc: BaseException,
+    ) -> None:
+        """Back off before retrying a transient CardTrader API failure."""
+        retry_after = None
+        if isinstance(exc, aiohttp.ClientResponseError) and exc.headers:
+            retry_after_header = exc.headers.get("Retry-After")
+            if retry_after_header:
+                try:
+                    retry_after = float(retry_after_header)
+                except ValueError:
+                    retry_after = None
+
+        delay = retry_after if retry_after is not None else self.request_retry_base_delay * (2 ** (attempt - 1))
+        LOGGER.warning(
+            "CardTrader: retrying %s %s after attempt %s failed: %s",
+            path,
+            params or {},
+            attempt,
+            self._format_api_exception(exc),
+        )
+        if delay > 0:
+            await asyncio.sleep(delay)
+
+    @staticmethod
+    def _format_api_exception(exc: BaseException) -> str:
+        """Format aiohttp exceptions without requiring complete request metadata."""
+        if isinstance(exc, aiohttp.ClientResponseError):
+            return f"HTTP {exc.status} {exc.message}"
+        return repr(exc)
 
     @staticmethod
     def _parse_expansions(payload: Any) -> list[dict[str, Any]]:
@@ -403,7 +486,6 @@ class CardTraderPriceProvider:
         self,
         marketplace_groups: dict[str, list[dict[str, Any]]],
         blueprint_to_scryfall: dict[str, str],
-        finish: str,
     ) -> list[dict[str, Any]]:
         """Convert grouped marketplace listings to raw price records."""
         records: list[dict[str, Any]] = []
@@ -413,32 +495,93 @@ class CardTraderPriceProvider:
             if not scryfall_id:
                 continue
 
-            selected = self._calculate_listing_price(listings)
-            if selected is None:
-                continue
+            for finish, finish_listings in self._group_listings_by_finish(listings, blueprint_id).items():
+                calculation = self._calculate_listing_price_detail(finish_listings)
+                if calculation is None:
+                    continue
 
-            price, currency = selected
-            expected_currency = self.config.expected_currency if self.config else ""
-            if expected_currency and currency != expected_currency:
-                LOGGER.error(
-                    "CardTrader currency mismatch for blueprint %s: expected %s, got %s",
+                price = calculation.price
+                currency = calculation.currency
+                expected_currency = self.config.expected_currency if self.config else ""
+                if expected_currency and currency != expected_currency:
+                    LOGGER.error(
+                        "CardTrader currency mismatch for blueprint %s: expected %s, got %s",
+                        blueprint_id,
+                        expected_currency,
+                        currency,
+                    )
+                    continue
+                LOGGER.debug(
+                    "CardTrader %s price for blueprint %s: %.2f %s from %s listings (min %.2f, max %.2f)",
+                    finish,
                     blueprint_id,
-                    expected_currency,
+                    price,
                     currency,
+                    calculation.listing_count,
+                    calculation.min_price,
+                    calculation.max_price,
                 )
-                continue
+                if price >= CARDTRADER_HIGH_PRICE_WARNING:
+                    LOGGER.warning(
+                        "CardTrader high %s price for blueprint %s: %.2f %s from %s listings (min %.2f, max %.2f)",
+                        finish,
+                        blueprint_id,
+                        price,
+                        currency,
+                        calculation.listing_count,
+                        calculation.min_price,
+                        calculation.max_price,
+                    )
 
-            records.append(
-                {
-                    "scryfallId": scryfall_id,
-                    "blueprintId": blueprint_id,
-                    "finish": finish,
-                    "price": price,
-                    "currency": currency,
-                }
-            )
+                records.append(
+                    {
+                        "scryfallId": scryfall_id,
+                        "blueprintId": blueprint_id,
+                        "finish": finish,
+                        "price": price,
+                        "currency": currency,
+                    }
+                )
 
         return records
+
+    def _group_listings_by_finish(
+        self,
+        listings: list[dict[str, Any]],
+        blueprint_id: str,
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Group products by CardTrader's MTG foil property."""
+        grouped: dict[str, list[dict[str, Any]]] = {"normal": [], "foil": []}
+
+        for listing in listings:
+            mtg_foil = self._extract_mtg_foil(listing)
+            if mtg_foil is None:
+                LOGGER.warning(
+                    "CardTrader: skipping blueprint %s listing without usable mtg_foil property",
+                    blueprint_id,
+                )
+                continue
+            grouped["foil" if mtg_foil else "normal"].append(listing)
+
+        return grouped
+
+    @staticmethod
+    def _extract_mtg_foil(listing: dict[str, Any]) -> bool | None:
+        """Extract CardTrader's MTG foil flag from a marketplace listing if present."""
+        properties_hash = listing.get("properties_hash")
+        if not isinstance(properties_hash, dict) or "mtg_foil" not in properties_hash:
+            return None
+
+        value = properties_hash.get("mtg_foil")
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"true", "1", "yes"}:
+                return True
+            if normalized in {"false", "0", "no"}:
+                return False
+        return None
 
     @staticmethod
     def _build_identifier_records(blueprints: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -459,6 +602,13 @@ class CardTraderPriceProvider:
 
     def _calculate_listing_price(self, listings: list[dict[str, Any]]) -> tuple[float, str] | None:
         """Approximate CardTrader market price from returned listings."""
+        calculation = self._calculate_listing_price_detail(listings)
+        if calculation is None:
+            return None
+        return calculation.price, calculation.currency
+
+    def _calculate_listing_price_detail(self, listings: list[dict[str, Any]]) -> CardTraderPriceCalculation | None:
+        """Approximate CardTrader market price with internal diagnostics."""
         parsed: list[tuple[int, str]] = []
         for listing in listings:
             extracted = self._extract_listing_price(listing)
@@ -476,7 +626,14 @@ class CardTraderPriceProvider:
             return None
 
         avg_cents = sum(cents for cents, _ in selected) / len(selected)
-        return avg_cents / 100.0, selected[0][1]
+        cents_values = [cents for cents, _ in selected]
+        return CardTraderPriceCalculation(
+            price=avg_cents / 100.0,
+            currency=selected[0][1],
+            listing_count=len(selected),
+            min_price=min(cents_values) / 100.0,
+            max_price=max(cents_values) / 100.0,
+        )
 
     @staticmethod
     def _extract_listing_price(listing: dict[str, Any]) -> tuple[int, str] | None:

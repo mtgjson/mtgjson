@@ -17,12 +17,13 @@ class StubCardTraderProvider(CardTraderPriceProvider):
         super().__init__(
             config=CardTraderConfig(auth_token="token", expected_currency="EUR"),
             market_request_delay=0,
+            request_retry_base_delay=0,
         )
         self.output_path = None
         self.responses = responses
         self.seen_user_agents: list[str | None] = []
 
-    async def _request_json(
+    async def _request_json_once(
         self,
         session: aiohttp.ClientSession,
         path: str,
@@ -31,6 +32,10 @@ class StubCardTraderProvider(CardTraderPriceProvider):
         self.seen_user_agents.append(session.headers.get("User-Agent"))
         key = (path, tuple(sorted((params or {}).items())))
         response = self.responses[key]
+        if isinstance(response, tuple):
+            next_response = response[0]
+            self.responses[key] = response[1:] if len(response) > 2 else response[1]
+            response = next_response
         if isinstance(response, Exception):
             raise response
         return response
@@ -79,26 +84,18 @@ def test_cardtrader_fetch_raw_prices_builds_normal_and_foil_rows() -> None:
             {"id": 102, "scryfall_id": "sf-foil"},
             {"id": 103, "scryfall_id": "sf-unmapped"},
         ],
-        ("marketplace/products", (("expansion_id", 10), ("foil", "false"), ("language", "en"))): {
-            "101": {
-                "products": [
-                    {"price": {"cents": 200, "currency": "EUR"}},
-                    {"price": {"cents": 400, "currency": "EUR"}},
-                ]
-            }
-        },
-        ("marketplace/products", (("expansion_id", 10), ("foil", "true"), ("language", "en"))): {
-            "102": {
-                "products": [
-                    {"price": {"cents": 500, "currency": "EUR"}},
-                    {"price": {"cents": 700, "currency": "EUR"}},
-                ]
-            },
-            "103": {
-                "products": [
-                    {"price": {"cents": 999, "currency": "EUR"}},
-                ]
-            },
+        ("marketplace/products", (("expansion_id", 10), ("language", "en"))): {
+            "101": [
+                {"price": {"cents": 200, "currency": "EUR"}, "properties_hash": {"mtg_foil": False}},
+                {"price": {"cents": 400, "currency": "EUR"}, "properties_hash": {"mtg_foil": False}},
+            ],
+            "102": [
+                {"price": {"cents": 500, "currency": "EUR"}, "properties_hash": {"mtg_foil": True}},
+                {"price": {"cents": 700, "currency": "EUR"}, "properties_hash": {"mtg_foil": True}},
+            ],
+            "103": [
+                {"price": {"cents": 999, "currency": "EUR"}, "properties_hash": {"mtg_foil": True}},
+            ],
         },
     }
 
@@ -123,21 +120,15 @@ def test_cardtrader_fetch_prices_maps_to_uuid() -> None:
             {"id": 101, "scryfall_id": "sf-normal"},
             {"id": 102, "scryfall_id": "sf-foil"},
         ],
-        ("marketplace/products", (("expansion_id", 10), ("foil", "false"), ("language", "en"))): {
-            "101": {
-                "products": [
-                    {"price": {"cents": 200, "currency": "EUR"}},
-                    {"price": {"cents": 400, "currency": "EUR"}},
-                ]
-            }
-        },
-        ("marketplace/products", (("expansion_id", 10), ("foil", "true"), ("language", "en"))): {
-            "102": {
-                "products": [
-                    {"price": {"cents": 500, "currency": "EUR"}},
-                    {"price": {"cents": 700, "currency": "EUR"}},
-                ]
-            }
+        ("marketplace/products", (("expansion_id", 10), ("language", "en"))): {
+            "101": [
+                {"price": {"cents": 200, "currency": "EUR"}, "properties_hash": {"mtg_foil": False}},
+                {"price": {"cents": 400, "currency": "EUR"}, "properties_hash": {"mtg_foil": False}},
+            ],
+            "102": [
+                {"price": {"cents": 500, "currency": "EUR"}, "properties_hash": {"mtg_foil": True}},
+                {"price": {"cents": 700, "currency": "EUR"}, "properties_hash": {"mtg_foil": True}},
+            ],
         },
     }
 
@@ -190,21 +181,15 @@ def test_cardtrader_generate_today_price_dict_maps_to_legacy_price_entries() -> 
             {"id": 101, "scryfall_id": "sf-normal"},
             {"id": 102, "scryfall_id": "sf-foil"},
         ],
-        ("marketplace/products", (("expansion_id", 10), ("foil", "false"), ("language", "en"))): {
-            "101": {
-                "products": [
-                    {"price": {"cents": 200, "currency": "EUR"}},
-                    {"price": {"cents": 400, "currency": "EUR"}},
-                ]
-            }
-        },
-        ("marketplace/products", (("expansion_id", 10), ("foil", "true"), ("language", "en"))): {
-            "102": {
-                "products": [
-                    {"price": {"cents": 500, "currency": "EUR"}},
-                    {"price": {"cents": 700, "currency": "EUR"}},
-                ]
-            }
+        ("marketplace/products", (("expansion_id", 10), ("language", "en"))): {
+            "101": [
+                {"price": {"cents": 200, "currency": "EUR"}, "properties_hash": {"mtg_foil": False}},
+                {"price": {"cents": 400, "currency": "EUR"}, "properties_hash": {"mtg_foil": False}},
+            ],
+            "102": [
+                {"price": {"cents": 500, "currency": "EUR"}, "properties_hash": {"mtg_foil": True}},
+                {"price": {"cents": 700, "currency": "EUR"}, "properties_hash": {"mtg_foil": True}},
+            ],
         },
     }
 
@@ -288,14 +273,64 @@ def test_cardtrader_skips_unexpected_currency() -> None:
     records = provider._build_raw_records(
         {
             "101": [
-                {"price": {"cents": 250, "currency": "USD"}},
+                {"price": {"cents": 250, "currency": "USD"}, "properties_hash": {"mtg_foil": False}},
             ]
         },
         {"101": "sf-normal"},
-        finish="normal",
     )
 
     assert not records
+
+
+def test_cardtrader_skips_listings_without_usable_finish_flag() -> None:
+    provider = CardTraderPriceProvider(config=CardTraderConfig(auth_token="token", expected_currency="EUR"))
+
+    records = provider._build_raw_records(
+        {
+            "101": [
+                {"price": {"cents": 200, "currency": "EUR"}, "properties_hash": {}},
+                {"price": {"cents": 400, "currency": "EUR"}, "properties_hash": {"mtg_foil": False}},
+            ]
+        },
+        {"101": "sf-normal"},
+    )
+
+    assert records == [
+        {"scryfallId": "sf-normal", "blueprintId": "101", "finish": "normal", "price": 4.0, "currency": "EUR"}
+    ]
+
+
+def test_cardtrader_retries_retryable_marketplace_errors() -> None:
+    retry_error = aiohttp.ClientResponseError(
+        request_info=None,
+        history=(),
+        status=429,
+        message="Too Many Requests",
+        headers={},
+    )
+    responses = {
+        ("expansions", ()): [
+            {"id": 10, "game_id": 1, "name": "Test Expansion"},
+        ],
+        ("blueprints/export", (("expansion_id", 10),)): [
+            {"id": 101, "scryfall_id": "sf-normal"},
+        ],
+        ("marketplace/products", (("expansion_id", 10), ("language", "en"))): (
+            retry_error,
+            {
+                "101": [
+                    {"price": {"cents": 250, "currency": "EUR"}, "properties_hash": {"mtg_foil": False}},
+                ]
+            },
+        ),
+    }
+
+    provider = StubCardTraderProvider(responses)
+    df = asyncio.run(provider.fetch_raw_prices())
+
+    assert df.to_dicts() == [
+        {"scryfallId": "sf-normal", "blueprintId": "101", "finish": "normal", "price": 2.5, "currency": "EUR"}
+    ]
 
 
 def test_cardtrader_returns_empty_frame_when_expansions_fetch_fails() -> None:
@@ -321,14 +356,11 @@ def test_cardtrader_skips_failed_expansion_and_keeps_other_results() -> None:
         ("blueprints/export", (("expansion_id", 11),)): [
             {"id": 201, "scryfall_id": "sf-working"},
         ],
-        ("marketplace/products", (("expansion_id", 11), ("foil", "false"), ("language", "en"))): {
-            "201": {
-                "products": [
-                    {"price": {"cents": 350, "currency": "EUR"}},
-                ]
-            }
+        ("marketplace/products", (("expansion_id", 11), ("language", "en"))): {
+            "201": [
+                {"price": {"cents": 350, "currency": "EUR"}, "properties_hash": {"mtg_foil": False}},
+            ]
         },
-        ("marketplace/products", (("expansion_id", 11), ("foil", "true"), ("language", "en"))): {},
     }
 
     provider = StubCardTraderProvider(responses)
@@ -336,6 +368,43 @@ def test_cardtrader_skips_failed_expansion_and_keeps_other_results() -> None:
 
     assert isinstance(df, pl.DataFrame)
     assert len(df) == 1
+    assert df.to_dicts() == [
+        {
+            "uuid": "uuid-working",
+            "date": provider.today_date,
+            "source": "paper",
+            "provider": "cardtrader",
+            "price_type": "retail",
+            "finish": "normal",
+            "price": 3.5,
+            "currency": "EUR",
+        }
+    ]
+
+
+def test_cardtrader_skips_failed_marketplace_expansion_and_keeps_other_results() -> None:
+    responses = {
+        ("expansions", ()): [
+            {"id": 10, "game_id": 1, "name": "Broken Expansion"},
+            {"id": 11, "game_id": 1, "name": "Working Expansion"},
+        ],
+        ("blueprints/export", (("expansion_id", 10),)): [
+            {"id": 201, "scryfall_id": "sf-broken"},
+        ],
+        ("marketplace/products", (("expansion_id", 10), ("language", "en"))): aiohttp.ClientError("broken"),
+        ("blueprints/export", (("expansion_id", 11),)): [
+            {"id": 202, "scryfall_id": "sf-working"},
+        ],
+        ("marketplace/products", (("expansion_id", 11), ("language", "en"))): {
+            "202": [
+                {"price": {"cents": 350, "currency": "EUR"}, "properties_hash": {"mtg_foil": False}},
+            ]
+        },
+    }
+
+    provider = StubCardTraderProvider(responses)
+    df = asyncio.run(provider.fetch_prices({"sf-broken": "uuid-broken", "sf-working": "uuid-working"}))
+
     assert df.to_dicts() == [
         {
             "uuid": "uuid-working",
