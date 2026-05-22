@@ -255,18 +255,26 @@ def add_leadership_skills_expr(
     # Oathbreaker legal = is a planeswalker
     is_oathbreaker_legal = pl.col("type").str.contains("Planeswalker")
 
+    # Pauper commander legal check based on rarity
+    is_pauper_commander_legal = (
+        (pl.col("rarity") == "uncommon")
+        & (is_creature | (is_vehicle_or_spacecraft & has_power_toughness))
+        & is_front_face
+    )
+
     # Brawl legal = set is in Standard AND (commander or oathbreaker eligible)
     standard_sets = ctx.standard_legal_sets
     is_in_standard = pl.col("setCode").is_in(standard_sets or set())
     is_brawl_legal = is_in_standard & (is_commander_legal | is_oathbreaker_legal)
 
     return lf.with_columns(
-        pl.when(is_commander_legal | is_oathbreaker_legal | is_brawl_legal)
+        pl.when(is_commander_legal | is_oathbreaker_legal | is_brawl_legal | is_pauper_commander_legal)
         .then(
             pl.struct(
                 brawl=is_brawl_legal,
                 commander=is_commander_legal,
                 oathbreaker=is_oathbreaker_legal,
+                pauper_commander=is_pauper_commander_legal,
             )
         )
         .otherwise(pl.lit(None))
