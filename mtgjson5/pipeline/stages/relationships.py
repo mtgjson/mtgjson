@@ -263,9 +263,9 @@ def add_leadership_skills_expr(
     )
 
     # Predh commanders are all of the same checks as regular commander, but also checked as legal in predh
-    is_predh_legal = (
-        is_commander_legal
-        & (pl.col("legalities").struct.field("predh").is_not_null() & (pl.col("legalities").struct.field("predh") == "Legal"))
+    is_predh_legal = is_commander_legal & (
+        pl.col("legalities").struct.field("predh").is_not_null()
+        & (pl.col("legalities").struct.field("predh") == "Legal")
     )
 
     # Brawl legal = set is in Standard AND (commander or oathbreaker eligible)
