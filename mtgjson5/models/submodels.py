@@ -365,11 +365,16 @@ class LeadershipSkills(TypedDict):
             "description": "If the card can be your commander in the [Oathbreaker](https://oathbreakermtg.org/) format.",
             "introduced": "v4.5.1",
         },
+        "pauper_commander": {
+            "description": "If the card can be your commander in the [Pauper Commander](https://mtg.wiki/page/Pauper_Commander) format.",
+            "introduced": "v5.3.1",
+        },
     }
 
     brawl: bool
     commander: bool
     oathbreaker: bool
+    pauper_commander: bool
 
 
 class Legalities(TypedDict, total=False):
