@@ -369,12 +369,17 @@ class LeadershipSkills(TypedDict):
             "description": "If the card can be your commander in the [Pauper Commander](https://mtg.wiki/page/Pauper_Commander) format.",
             "introduced": "v5.3.1",
         },
+        "predh": {
+            "description": "If the card can be your commander in the [PreDH](https://articles.starcitygames.com/magic-the-gathering/commander-sub-format-predh-is-the-new-magic-rage/) format.",
+            "introduced": "v5.3.1",
+        },
     }
 
     brawl: bool
     commander: bool
     oathbreaker: bool
     pauper_commander: bool
+    predh: bool
 
 
 class Legalities(TypedDict, total=False):
