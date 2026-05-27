@@ -552,12 +552,6 @@ def build_set_metadata_df(
     if cols_to_drop:
         set_meta = set_meta.drop(cols_to_drop, strict=False)
 
-    set_meta = set_meta.join(
-        booster_lf.with_columns(pl.col("setCode").str.to_uppercase().alias("code")),
-        on="code",
-        how="left",
-    ).rename({"config": "booster"})
-
     if isinstance(set_meta, pl.LazyFrame):
         set_meta_df = set_meta.collect()
     else:
@@ -629,4 +623,18 @@ def build_set_metadata_df(
         "isForeignOnly": pl.Boolean,
         "isPartialPreview": pl.Boolean,
     }
-    return pl.DataFrame(set_records, schema_overrides=schema_overrides)
+    set_meta_df = pl.DataFrame(set_records, schema_overrides=schema_overrides)
+
+    # Attach booster configs last, so additional sets (e.g. MB1 from
+    # additional_sets.json) receive their boosters via the same join as
+    # Scryfall-derived sets rather than being silently omitted.
+    return (
+        set_meta_df.lazy()
+        .join(
+            booster_lf.with_columns(pl.col("setCode").str.to_uppercase().alias("code")),
+            on="code",
+            how="left",
+        )
+        .rename({"config": "booster"})
+        .collect()
+    )
