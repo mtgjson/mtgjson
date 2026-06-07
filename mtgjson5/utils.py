@@ -430,7 +430,11 @@ def deep_sort_keys(obj: Any) -> Any:
 @lru_cache(maxsize=1)
 def _fetch_scryfall_sets() -> pl.LazyFrame:
     """Fetch and cache the Scryfall sets list (one HTTP request per build)."""
-    response = requests.get("https://api.scryfall.com/sets", timeout=30)
+    response = requests.get(
+        "https://api.scryfall.com/sets",
+        headers={"User-Agent": "MTGJSON/5.0 (https://mtgjson.com)"},
+        timeout=30,
+    )
     response.raise_for_status()
     data = response.json()
 
