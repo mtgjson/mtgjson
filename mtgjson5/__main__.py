@@ -92,7 +92,11 @@ def get_sets_to_build(args: argparse.Namespace) -> list[str]:
         return sorted(set(args.sets) - set(args.skip_sets))
 
     # Fetch all set codes from Scryfall
-    response = requests.get(SCRYFALL_SETS_URL, timeout=30)
+    response = requests.get(
+        SCRYFALL_SETS_URL,
+        headers={"User-Agent": "MTGJSON/5.0 (https://mtgjson.com)"},
+        timeout=30,
+    )
     response.raise_for_status()
     scryfall_sets = [s["code"].upper() for s in response.json().get("data", [])]
 
