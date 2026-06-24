@@ -9,6 +9,10 @@ app_secret=
 mkm_access_token=
 mkm_access_token_secret=
 
+[CardTrader]
+auth_token=
+expected_currency=EUR
+
 [EDHRec]
 api_url=
 

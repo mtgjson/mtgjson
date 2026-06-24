@@ -44,6 +44,7 @@ Over time, MTGJSON has gone through a number of transitions to bring the best pr
 - [CardHoarder](https://www.cardhoarder.com/?affiliate_id=mtgjson&utm_source=mtgjson&utm_campaign=affiliate&utm_medium=card)
 - [CardKingdom](https://www.cardkingdom.com/?partner=mtgjson&utm_source=mtgjson&utm_medium=affiliate&utm_campaign=mtgjson)
 - [CardMarket](https://www.cardmarket.com/en/Magic?utm_campaign=card_prices&utm_medium=text&utm_source=mtgjson)
+- [CardTrader](https://www.cardtrader.com/)
 - [Gatherer](https://gatherer.wizards.com)
 - [Manapool](https://manapool.com/?ref=mtgjson)
 - [MTG.wtf](https://mtg.wtf/)
