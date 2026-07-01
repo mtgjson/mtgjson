@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import types
+
 import polars as pl
 
+from mtgjson5.build.formats.postgres import PostgresBuilder, _polars_to_postgres_type
 from mtgjson5.build.serializers import escape_postgres, serialize_complex_types
 
 # =============================================================================
@@ -156,3 +159,50 @@ class TestPostgresBoolAndEscaping:
         assert "\\t" in data_line
         assert "\\n" in data_line
         assert "\\\\" in data_line
+
+
+# =============================================================================
+# TestPostgresTypeMapping
+# =============================================================================
+
+
+class TestPostgresTypeMapping:
+    def test_wide_weight_columns_use_bigint(self):
+        # sheetTotalWeight/cardWeight can exceed INTEGER's 2^31-1 range
+        assert _polars_to_postgres_type(pl.Int64, "sheetTotalWeight") == "BIGINT"
+        assert _polars_to_postgres_type(pl.Int64, "cardWeight") == "BIGINT"
+
+    def test_ordinary_integer_columns_use_integer(self):
+        assert _polars_to_postgres_type(pl.Int64, "edhrecRank") == "INTEGER"
+
+    def test_bigint_applied_in_create_table(self):
+        import io
+
+        df = pl.DataFrame(
+            {"setCode": ["TST"], "sheetTotalWeight": [171_600_000_000]},
+            schema={"setCode": pl.String, "sheetTotalWeight": pl.Int64},
+        )
+        buf = io.StringIO()
+        PostgresBuilder._write_table(buf, "setBoosterSheets", df)
+        create_stmt = buf.getvalue()
+        assert '"sheetTotalWeight" BIGINT' in create_stmt
+
+
+# =============================================================================
+# TestPostgresDumpHeader
+# =============================================================================
+
+
+class TestPostgresDumpHeader:
+    def test_header_declares_utf8_client_encoding(self, tmp_path):
+        df = pl.DataFrame({"uuid": ["a"], "name": ["Alpha"]})
+        ctx = types.SimpleNamespace(
+            normalized_tables={"cards": df},
+            normalized_boosters={},
+            output_path=tmp_path,
+        )
+        out = PostgresBuilder(ctx).write()
+        text = out.read_text(encoding="utf-8")
+        assert "SET client_encoding = 'UTF8';" in text
+        # Must precede any COPY data so psql decodes the whole dump correctly
+        assert text.index("SET client_encoding") < text.index("COPY ")
