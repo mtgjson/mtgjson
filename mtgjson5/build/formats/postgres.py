@@ -18,8 +18,14 @@ if TYPE_CHECKING:
     from ..context import AssemblyContext
 
 
-def _polars_to_postgres_type(dtype: pl.DataType) -> str:
+# Integer columns whose values exceed PostgreSQL INTEGER (2^31-1) and need BIGINT
+_POSTGRES_BIGINT_COLUMNS: set[str] = {"sheetTotalWeight", "cardWeight"}
+
+
+def _polars_to_postgres_type(dtype: pl.DataType, col_name: str) -> str:
     """Map Polars dtype to PostgreSQL type."""
+    if col_name in _POSTGRES_BIGINT_COLUMNS:
+        return "BIGINT"
     if dtype.is_integer():
         return "INTEGER"
     if dtype.is_float():
@@ -52,7 +58,7 @@ class PostgresBuilder:
         serialized = serialize_complex_types(df)
 
         schema = serialized.schema
-        col_defs = ",\n    ".join([f'"{c}" {_polars_to_postgres_type(schema[c])}' for c in serialized.columns])
+        col_defs = ",\n    ".join([f'"{c}" {_polars_to_postgres_type(schema[c], c)}' for c in serialized.columns])
         f.write(f'DROP TABLE IF EXISTS "{table_name}" CASCADE;\n')
         f.write(f'CREATE TABLE "{table_name}" (\n    {col_defs}\n);\n\n')
 
@@ -119,6 +125,7 @@ class PostgresBuilder:
 
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(f"-- MTGJSON PostgreSQL Dump\n-- Generated: {datetime.now().strftime('%Y-%m-%d')}\n")
+            f.write("SET client_encoding = 'UTF8';\n")
             f.write("BEGIN;\n\n")
 
             total_rows = 0
