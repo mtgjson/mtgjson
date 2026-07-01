@@ -202,6 +202,7 @@ class TestPostgresDumpHeader:
             output_path=tmp_path,
         )
         out = PostgresBuilder(ctx).write()
+        assert out is not None
         text = out.read_text(encoding="utf-8")
         assert "SET client_encoding = 'UTF8';" in text
         # Must precede any COPY data so psql decodes the whole dump correctly
