@@ -82,7 +82,7 @@ class TestBuildTcgAltFoilLookup:
             ],
             known_tcg_ids=[2000, 2001],
         )
-        assert mapping == {}
+        assert not mapping
 
     def test_mixed_sets_resolve_independently(self) -> None:
         """Normal and flipped pairs in one build resolve to correct directions."""
