@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from mtgjson5.models.sealed import SealedProduct
 
 
@@ -61,6 +63,32 @@ class TestSealedProductValidator:
         assert d["uuid"] == "sp-007"
         assert d["name"] == "Minimal Product"
         assert d["identifiers"] == {}
+
+    def test_hareruya_identifier_preserved(self):
+        product = SealedProduct(
+            uuid="sp-009",
+            name="Test Product",
+            identifiers={"cardKingdomId": "1", "hareruyaId": "162494"},
+        )
+        d = product.to_polars_dict(exclude_none=True)
+        assert d["identifiers"]["hareruyaId"] == "162494"
+
+    def test_unknown_identifier_dropped_with_warning(self, caplog):
+        # Use a key unique to this test so the once-per-key dedup doesn't
+        # suppress the warning due to unrelated tests.
+        unknown_key = "someBrandNewRetailerId"
+        with caplog.at_level(logging.WARNING, logger="mtgjson5.models.sealed"):
+            product = SealedProduct.model_validate(
+                {
+                    "uuid": "sp-010",
+                    "name": "Test Product",
+                    "identifiers": {"tcgplayerProductId": "12345", unknown_key: "999"},
+                }
+            )
+        d = product.to_polars_dict(exclude_none=True)
+        assert unknown_key not in d["identifiers"]
+        assert d["identifiers"]["tcgplayerProductId"] == "12345"
+        assert any(unknown_key in r.message for r in caplog.records)
 
     def test_contents_with_multiple_types(self):
         data = {

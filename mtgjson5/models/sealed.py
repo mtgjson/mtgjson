@@ -4,6 +4,7 @@ MTGJSON sealed product and booster models.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from pydantic import BaseModel, Field, model_validator
@@ -27,6 +28,18 @@ from .submodels import (
 
 if TYPE_CHECKING:
     from polars import DataFrame
+
+LOGGER = logging.getLogger(__name__)
+
+# Identifier keys recognised by the Identifiers model. Any sealed-product
+# identifier coming from mtg-sealed-content that is not in this set is silently
+# dropped by Pydantic during validation, so we warn about it (see
+# SealedProduct.warn_on_dropped_identifiers).
+_KNOWN_IDENTIFIER_FIELDS: frozenset[str] = frozenset(Identifiers.__annotations__)
+
+# Track identifier keys we've already warned about so a single unknown key
+# doesn't produce one warning per product across the whole build.
+_WARNED_DROPPED_IDENTIFIERS: set[str] = set()
 
 
 class SealedProduct(PolarsMixin, BaseModel):
@@ -106,6 +119,33 @@ class SealedProduct(PolarsMixin, BaseModel):
         description="Links that navigate to websites where the product can be purchased. See the [Purchase Urls](/data-models/purchase-urls/) Data Model.",
         json_schema_extra={"introduced": "v5.2.0"},
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def warn_on_dropped_identifiers(cls, data: Any) -> Any:
+        """Warn when a source identifier key is not recognised by the model.
+
+        Sealed-product identifiers come straight from mtg-sealed-content and can
+        contain any key. Pydantic silently drops keys not declared on the
+        :class:`Identifiers` model, so a newly-added identifier type (e.g. a new
+        retailer) would vanish from the output with no signal. Emit a warning —
+        once per unknown key — so it's noticed and the field can be added.
+        """
+        if isinstance(data, dict):
+            identifiers = data.get("identifiers")
+            if isinstance(identifiers, dict):
+                unknown = set(identifiers) - _KNOWN_IDENTIFIER_FIELDS
+                for key in sorted(unknown):
+                    if key in _WARNED_DROPPED_IDENTIFIERS:
+                        continue
+                    _WARNED_DROPPED_IDENTIFIERS.add(key)
+                    LOGGER.warning(
+                        "Dropping unknown sealed-product identifier %r (product %r) - "
+                        "add it to the Identifiers model to include it in output.",
+                        key,
+                        data.get("name"),
+                    )
+        return data
 
     @model_validator(mode="before")
     @classmethod

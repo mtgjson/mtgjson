@@ -208,6 +208,11 @@ class Identifiers(TypedDict, total=False):
             "introduced": "v5.2.2",
             "optional": True,
         },
+        "hareruyaId": {
+            "description": "The [Hareruya](https://www.hareruyamtg.com/en/) identifier.",
+            "introduced": "v5.3.1",
+            "optional": True,
+        },
         "mcmId": {
             "description": "The [Cardmarket](https://www.cardmarket.com/en/Magic?utm_campaign=card_prices&utm_medium=text&utm_source=mtgjson) card identifier.",
             "introduced": "v4.4.0",
@@ -309,6 +314,7 @@ class Identifiers(TypedDict, total=False):
     abuId: str
     cardtraderId: str
     csiId: str
+    hareruyaId: str
     miniaturemarketId: str
     mvpId: str
     scgId: str
