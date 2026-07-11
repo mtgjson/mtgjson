@@ -129,6 +129,7 @@ flamegraph.pl
 stacksampler.py
 *.psql
 *.json
+!mtgjson5/resources/mkm_finish_profiles.json
 *.sh
 *.parquet
 benchmark*

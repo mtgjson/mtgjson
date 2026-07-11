@@ -457,6 +457,27 @@ class CardMarketProvider:
 
         today_dict: dict[str, MtgjsonPriceEntry] = {}
 
+        from mtgjson5 import constants
+
+        finish_mapping_path = constants.CACHE_PATH / "mcm_price_mappings.parquet"
+        if finish_mapping_path.exists():
+            finish_mappings = pl.read_parquet(finish_mapping_path)
+            for row in finish_mappings.iter_rows(named=True):
+                product_id = str(row["productId"])
+                price_column = str(row["priceColumn"])
+                finish = str(row["finish"])
+                price = price_data.get(product_id, {}).get(price_column.replace("_", "-"))
+                if price is None:
+                    continue
+                uuid = str(row["uuid"])
+                entry = today_dict.setdefault(
+                    uuid,
+                    MtgjsonPriceEntry("paper", "cardmarket", self.today_date, "EUR"),
+                )
+                setattr(entry, f"sell_{finish}", price)
+            LOGGER.info(f"Generated prices for {len(today_dict)} cards")
+            return today_dict
+
         for product_id, prices in price_data.items():
             avg_sell = prices.get("trend")
             avg_foil = prices.get("trend-foil")
@@ -471,14 +492,14 @@ class CardMarketProvider:
                 if uuid not in today_dict:
                     today_dict[uuid] = MtgjsonPriceEntry("paper", "cardmarket", self.today_date, "EUR")
 
-                if avg_sell:
-                    today_dict[uuid].sell_normal = avg_sell
-
-                if avg_foil:
-                    finishes: list[Any] | set[Any] = mtgjson_finish_map.get(product_id, [])
-                    if "etched" in finishes:
-                        today_dict[uuid].sell_etched = avg_foil
-                    else:
+                finishes = set(mtgjson_finish_map.get(product_id, [])) & {"nonfoil", "foil", "etched"}
+                if len(finishes) == 1 and avg_sell:
+                    only_finish = next(iter(finishes)).replace("nonfoil", "normal")
+                    setattr(today_dict[uuid], f"sell_{only_finish}", avg_sell)
+                elif "nonfoil" in finishes:
+                    if avg_sell:
+                        today_dict[uuid].sell_normal = avg_sell
+                    if finishes == {"nonfoil", "foil"} and avg_foil:
                         today_dict[uuid].sell_foil = avg_foil
 
         LOGGER.info(f"Generated prices for {len(today_dict)} cards")

@@ -112,6 +112,11 @@ ctx = PriceBuilderContext.from_cache()
 
 Mappings are built lazily from GlobalCache LazyFrames on first access. For standalone price builds (no preceding card build), `load_id_mappings()` reads from previously-written parquet files.
 
+Cardmarket additionally writes an internal `mcm_price_mappings.parquet` bridge
+with one row per `(productId, uuid, priceColumn, finish)`. This preserves
+separate finish-variant products without exposing partially inferred
+finish-specific identifiers in the public card model.
+
 ## PolarsPriceBuilder (`price_builder.py`)
 
 The main orchestrator class that coordinates provider fetching and delegates to the archive, S3, and writer modules.
@@ -166,6 +171,7 @@ def build_prices(self, parquet_output_dir=None, write_json=True):
 - **Source**: `paper` | **Currency**: `EUR`
 - **Pricing**: Retail + buylist
 - **Method**: Sequential requests via mkmsdk (rate limited to 1 request per 1.5s)
+- **Finish mapping**: Price fields are joined through finish-specific product identity. Verified variant families use expansion-scoped profiles; ambiguous values are omitted.
 
 ### Card Kingdom (`providers/cardkingdom/provider.py`)
 
