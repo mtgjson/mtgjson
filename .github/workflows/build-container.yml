@@ -33,7 +33,9 @@ jobs:
       - name: Generate Tag
         id: generate-tag
         run: |
-          echo "release_tag=mtgjson:$(date +"%Y-%m-%d_%H-%M")-${{ steps.branch-name.outputs.current_branch }}" >> $GITHUB_OUTPUT
+          BRANCH_NAME="${{ steps.branch-name.outputs.current_branch }}"
+          SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9_.-]/-/g')
+          echo "release_tag=mtgjson:$(date +"%Y-%m-%d_%H-%M")-${SANITIZED_BRANCH}" >> $GITHUB_OUTPUT
 
       - name: Build Image
         id: build-image
