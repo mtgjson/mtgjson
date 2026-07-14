@@ -1362,9 +1362,18 @@ class PipelineContext:
             how="inner",
         )
 
-        # Dedup filter: remove alt-foil productIds that already appear as any
-        # card's tcgplayerProductId or tcgplayerEtchedProductId. We gather known
-        # IDs from both uuid_cache (prior build) and Scryfall cards (current data).
+        # Decide, per (base, alt-foil) pair, which product Scryfall anchors on.
+        # We gather known IDs (any card's tcgplayerId or tcgplayerEtchedId) from
+        # both uuid_cache (prior build) and Scryfall cards (current data).
+        #
+        # - Normal: Scryfall points at the non-suffixed base product, so we map
+        #   base -> alt-foil (the suffixed product is the "alternative").
+        # - Flipped (e.g. MSC Surge Foil): Scryfall points at the *suffixed*
+        #   product and the non-suffixed "Regular" product is orphaned. We map
+        #   alt -> base so the regular product's SKUs/prices still attach to the
+        #   card via tcgplayerAlternativeFoilProductId.
+        # - Both known: the two products are distinct Scryfall cards, so emit no
+        #   mapping for the pair.
         known_ids: set[str] = set()
 
         # From uuid_cache (prior build's IDs)
@@ -1382,19 +1391,28 @@ class PipelineContext:
             for col in cards_ids.columns:
                 known_ids.update(cards_ids.select(col).drop_nulls().get_column(col).cast(pl.String).to_list())
 
-        LOGGER.info(f"tcg_alt_foil: {len(known_ids):,} known tcgplayer IDs for dedup")
+        LOGGER.info(f"tcg_alt_foil: {len(known_ids):,} known tcgplayer IDs")
 
-        if known_ids:
-            known_ids_series = pl.Series("_known", list(known_ids), dtype=pl.String)
-            joined = (
-                joined.with_columns(
-                    pl.col("productId").cast(pl.String).alias("_altIdStr"),
-                )
-                .filter(~pl.col("_altIdStr").is_in(known_ids_series))
-                .drop("_altIdStr")
-            )
+        known_ids_series = pl.Series("_known", list(known_ids), dtype=pl.String)
+        joined = joined.with_columns(
+            pl.col("productId").cast(pl.String).alias("_altIdStr"),
+            pl.col("_baseProductId").cast(pl.String).alias("_baseIdStr"),
+        ).with_columns(
+            pl.col("_altIdStr").is_in(known_ids_series.implode()).alias("_altKnown"),
+            pl.col("_baseIdStr").is_in(known_ids_series.implode()).alias("_baseKnown"),
+        )
 
-        # Pick single value per base product: prefer non-etched types, then first
+        # Drop pairs where both products are distinct known Scryfall cards.
+        joined = joined.filter(~(pl.col("_altKnown") & pl.col("_baseKnown")))
+
+        # Flip direction when Scryfall anchors on the suffixed (alt-foil) product.
+        flipped = pl.col("_altKnown") & ~pl.col("_baseKnown")
+        joined = joined.with_columns(
+            pl.when(flipped).then(pl.col("_altIdStr")).otherwise(pl.col("_baseIdStr")).alias("_keyId"),
+            pl.when(flipped).then(pl.col("_baseIdStr")).otherwise(pl.col("_altIdStr")).alias("_valueId"),
+        )
+
+        # Pick single value per key product: prefer non-etched types, then first
         joined = joined.sort(
             [
                 pl.col("_foilType").str.contains("(?i)etched").cast(pl.Int8),
@@ -1404,10 +1422,10 @@ class PipelineContext:
 
         joined_df: pl.DataFrame = joined.collect() if isinstance(joined, pl.LazyFrame) else joined
 
-        result = joined_df.unique(subset=["_baseProductId"], keep="first").select(
+        result = joined_df.unique(subset=["_keyId"], keep="first").select(
             [
-                pl.col("_baseProductId").cast(pl.String).alias("tcgplayerProductId"),
-                pl.col("productId").cast(pl.String).alias("tcgplayerAlternativeFoilProductId"),
+                pl.col("_keyId").alias("tcgplayerProductId"),
+                pl.col("_valueId").alias("tcgplayerAlternativeFoilProductId"),
             ]
         )
 
