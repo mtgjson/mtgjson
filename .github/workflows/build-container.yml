@@ -32,8 +32,13 @@ jobs:
 
       - name: Generate Tag
         id: generate-tag
+        env:
+          BRANCH_NAME: ${{ steps.branch-name.outputs.current_branch }}
         run: |
-          echo "release_tag=mtgjson:$(date +"%Y-%m-%d_%H-%M")-${{ steps.branch-name.outputs.current_branch }}" >> $GITHUB_OUTPUT
+          # Docker tags only allow [a-zA-Z0-9_.-]; replace anything else (e.g. the
+          # "/" in branch names like "fix/foo") with "-" so the tag is valid.
+          safe_branch=$(printf '%s' "$BRANCH_NAME" | tr -c 'a-zA-Z0-9_.-' '-')
+          echo "release_tag=mtgjson:$(date +"%Y-%m-%d_%H-%M")-${safe_branch}" >> "$GITHUB_OUTPUT"
 
       - name: Build Image
         id: build-image
