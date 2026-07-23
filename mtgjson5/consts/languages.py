@@ -13,6 +13,7 @@ LANGUAGE_MAP: Final[dict[str, str]] = {
     "ar": "Arabic",
     "zhs": "Chinese Simplified",
     "zht": "Chinese Traditional",
+    "dw": "Dwarvish",
     "en": "English",
     "fr": "French",
     "de": "German",
