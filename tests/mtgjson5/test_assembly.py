@@ -120,6 +120,18 @@ class TestBuildLanguages:
         assert result == expected_langs
         assert result == sorted(result)
 
+    def test_documented_printings_are_added(self):
+        """Sets with documented printings missing from foreignData get them back."""
+        assembler = _make_assembler()
+        cards = [{"name": "Ravenous Rats", "foreignData": [{"language": "Japanese"}]}]
+        result = assembler.build_languages(cards, "PTK")
+        assert result == ["Chinese Traditional", "English", "Japanese"]
+
+    def test_documented_printings_ignored_for_other_sets(self):
+        assembler = _make_assembler()
+        cards = [{"name": "A", "foreignData": [{"language": "Japanese"}]}]
+        assert assembler.build_languages(cards, "NEO") == ["English", "Japanese"]
+
     def test_unicode_language_names(self):
         """Verify sort handles accented characters correctly."""
         assembler = _make_assembler()
