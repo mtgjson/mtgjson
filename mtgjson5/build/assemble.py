@@ -23,6 +23,8 @@ from mtgjson5.models.schemas import (
 )
 from mtgjson5.models.sets import SealedProduct
 
+from .languages import merge_set_languages
+
 if TYPE_CHECKING:
     from .context import AssemblyContext
 
@@ -133,14 +135,10 @@ class Assembler:
         """Get metadata for a specific set."""
         return self.ctx.set_meta.get(code, {})
 
-    def build_languages(self, cards: list[dict[str, Any]]) -> list[str]:
-        """Build sorted language list from card foreignData."""
-        languages = {"English"}
-        for card in cards:
-            for fd in card.get("foreignData", []):
-                if fd.get("language"):
-                    languages.add(fd["language"])
-        return sorted(languages)
+    def build_languages(self, cards: list[dict[str, Any]], set_code: str | None = None) -> list[str]:
+        """Build sorted language list from card foreignData and documented printings."""
+        languages = {fd["language"] for card in cards for fd in card.get("foreignData", []) if fd.get("language")}
+        return merge_set_languages(set_code, languages)
 
     def build_minimal_decks(self, set_code: str) -> list[dict[str, Any]] | None:
         """Build minimal deck references for a set, or None if no decks."""
@@ -764,7 +762,7 @@ class SetAssembler(Assembler):
                 set_data[fld] = val
 
         # Languages from foreign data
-        set_data["languages"] = self.build_languages(cards)
+        set_data["languages"] = self.build_languages(cards, set_code)
 
         # Booster config
         if include_booster and set_code in self.ctx.booster_configs:
@@ -843,6 +841,7 @@ class SetListAssembler(Assembler):
         }
 
         # Languages from foreign data
+        fd_langs: list[str] = []
         if not df.is_empty() and "foreignData" in df.columns:
             fd_langs = (
                 df.select("foreignData")
@@ -854,9 +853,7 @@ class SetListAssembler(Assembler):
                 .to_series()
                 .to_list()
             )
-            entry["languages"] = sorted({"English", *fd_langs})
-        else:
-            entry["languages"] = ["English"]
+        entry["languages"] = merge_set_languages(set_code, fd_langs)
 
         # Decks (minimal format)
         decks = self.build_minimal_decks(set_code)

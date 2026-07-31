@@ -7,6 +7,7 @@ import polars as pl
 from mtgjson5.build.context import (
     _build_languages_by_set,
     _enrich_sets_with_decks,
+    _enrich_sets_with_languages,
     _enrich_sets_with_sealed,
 )
 
@@ -145,3 +146,35 @@ class TestBuildLanguagesBySet:
         )
         result = _build_languages_by_set(cards_df)
         assert "ZZZ" not in result
+
+
+class TestEnrichSetsWithLanguages:
+    def _make_cards_df(self, set_code: str, languages: list[str]) -> pl.DataFrame:
+        return pl.DataFrame(
+            [
+                {
+                    "setCode": set_code,
+                    "foreignData": [{"language": lang, "name": lang} for lang in languages],
+                }
+            ],
+            schema={
+                "setCode": pl.String,
+                "foreignData": pl.List(pl.Struct({"language": pl.String, "name": pl.String})),
+            },
+        )
+
+    def test_languages_attached_from_card_data(self):
+        records = [{"code": "M10", "name": "Magic 2010"}]
+        _enrich_sets_with_languages(records, self._make_cards_df("M10", ["French"]))
+        assert records[0]["languages"] == ["English", "French"]
+
+    def test_documented_printings_added(self):
+        """Portal Three Kingdoms keeps its Traditional Chinese printing (issue #1691)."""
+        records = [{"code": "PTK", "name": "Portal Three Kingdoms"}]
+        _enrich_sets_with_languages(records, self._make_cards_df("PTK", ["Japanese"]))
+        assert records[0]["languages"] == ["Chinese Traditional", "English", "Japanese"]
+
+    def test_sets_without_cards_get_english(self):
+        records = [{"code": "ZZZ", "name": "No Cards"}]
+        _enrich_sets_with_languages(records, self._make_cards_df("M10", ["French"]))
+        assert records[0]["languages"] == ["English"]
