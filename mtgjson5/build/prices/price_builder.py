@@ -333,14 +333,17 @@ class PolarsPriceBuilder:
 
         # Fetch CardMarket - bulk API
         LOGGER.info("Fetching CardMarket prices")
-        mcm_dict = await self._mcm_provider.generate_today_price_dict(self.all_printings_path)
-        if mcm_dict:
-            mcm_df = self._prices_dict_to_dataframe(mcm_dict)
-            del mcm_dict
+        mcm_raw_df = await self._mcm_provider.fetch_raw_prices()
+        mcm_mapping_path = constants.CACHE_PATH / "mcm_price_mappings.parquet"
+        if not mcm_raw_df.is_empty() and mcm_mapping_path.exists():
+            mcm_df = self._map_cardmarket_frames(mcm_raw_df, pl.read_parquet(mcm_mapping_path))
             if len(mcm_df) > 0:
                 frames.append(mcm_df)
                 LOGGER.info(f"  CardMarketProvider: {len(mcm_df):,} price points")
             del mcm_df
+        elif not mcm_raw_df.is_empty():
+            LOGGER.warning("Cardmarket finish mapping cache is unavailable; omitting Cardmarket prices")
+        del mcm_raw_df
         await self._mcm_provider.close()
 
         # Fetch CardKingdom - async fetch, convert to DataFrame
@@ -418,7 +421,8 @@ class PolarsPriceBuilder:
         # CardMarket
         mcm_raw = cache_dir / RAW_CACHE_FILES["cardmarket"]
         mcm_uuid = cache_dir / ID_MAPPING_FILES["cardmarket_to_uuid"]
-        if mcm_raw.exists() and mcm_uuid.exists():
+        mcm_prices = cache_dir / "mcm_price_mappings.parquet"
+        if mcm_raw.exists() and mcm_prices.exists():
             df = self._map_cardmarket_raw(mcm_raw, mcm_uuid, cache_dir)
             if len(df) > 0:
                 frames.append(df)
@@ -553,95 +557,44 @@ class PolarsPriceBuilder:
         return pl.concat(frames)
 
     def _map_cardmarket_raw(self, raw_path: Path, uuid_path: Path, cache_dir: Path) -> pl.DataFrame:
-        """Join CardMarket raw data with UUID + finishes mappings."""
+        """Join Cardmarket raw prices with finish-specific product mappings."""
         raw = pl.read_parquet(raw_path)
-        mcm_uuid = pl.read_parquet(uuid_path)
+        mapping_path = cache_dir / "mcm_price_mappings.parquet"
+        if not mapping_path.exists():
+            LOGGER.warning("Cardmarket finish mapping cache is unavailable; omitting Cardmarket prices")
+            return pl.DataFrame(schema=PRICE_SCHEMA)
+        return self._map_cardmarket_frames(raw, pl.read_parquet(mapping_path))
 
-        # Join raw prices with UUID mapping
-        joined = raw.join(mcm_uuid, left_on="productId", right_on="mcmId", how="inner")
-
+    def _map_cardmarket_frames(self, raw: pl.DataFrame, mapping: pl.DataFrame) -> pl.DataFrame:
+        """Map Cardmarket price fields using explicit product/finish identity."""
         frames: list[pl.DataFrame] = []
-
-        # Normal (trend) prices
-        normal = joined.filter(pl.col("trend").is_not_null()).select(
-            pl.col("uuid"),
-            pl.lit(self.today_date).alias("date"),
-            pl.lit("paper").alias("source"),
-            pl.lit("cardmarket").alias("provider"),
-            pl.lit("retail").alias("price_type"),
-            pl.lit("normal").alias("finish"),
-            pl.col("trend").alias("price"),
-            pl.lit("EUR").alias("currency"),
-        )
-        if len(normal) > 0:
-            frames.append(normal)
-
-        # Foil/etched (trend_foil) prices — use finishes to distinguish
-        foil_data = joined.filter(pl.col("trend_foil").is_not_null())
-        if len(foil_data) > 0:
-            finishes_path = cache_dir / "mcm_finishes.parquet"
-            if finishes_path.exists():
-                finishes_df = pl.read_parquet(finishes_path)
-                foil_joined = foil_data.join(finishes_df, left_on="productId", right_on="mcmId", how="left")
-
-                # Etched if finishes list contains "etched"
-                if "finishes" in foil_joined.columns:
-                    etched = foil_joined.filter(pl.col("finishes").list.contains("etched")).select(
-                        pl.col("uuid"),
-                        pl.lit(self.today_date).alias("date"),
-                        pl.lit("paper").alias("source"),
-                        pl.lit("cardmarket").alias("provider"),
-                        pl.lit("retail").alias("price_type"),
-                        pl.lit("etched").alias("finish"),
-                        pl.col("trend_foil").alias("price"),
-                        pl.lit("EUR").alias("currency"),
-                    )
-                    non_etched = foil_joined.filter(~pl.col("finishes").list.contains("etched")).select(
-                        pl.col("uuid"),
-                        pl.lit(self.today_date).alias("date"),
-                        pl.lit("paper").alias("source"),
-                        pl.lit("cardmarket").alias("provider"),
-                        pl.lit("retail").alias("price_type"),
-                        pl.lit("foil").alias("finish"),
-                        pl.col("trend_foil").alias("price"),
-                        pl.lit("EUR").alias("currency"),
-                    )
-                    if len(etched) > 0:
-                        frames.append(etched)
-                    if len(non_etched) > 0:
-                        frames.append(non_etched)
-                else:
-                    # No finishes column — default to foil
-                    foil = foil_data.select(
-                        pl.col("uuid"),
-                        pl.lit(self.today_date).alias("date"),
-                        pl.lit("paper").alias("source"),
-                        pl.lit("cardmarket").alias("provider"),
-                        pl.lit("retail").alias("price_type"),
-                        pl.lit("foil").alias("finish"),
-                        pl.col("trend_foil").alias("price"),
-                        pl.lit("EUR").alias("currency"),
-                    )
-                    if len(foil) > 0:
-                        frames.append(foil)
-            else:
-                # No finishes data — default all to foil
-                foil = foil_data.select(
+        for price_column in ("trend", "trend_foil"):
+            field_mapping = mapping.filter(pl.col("priceColumn") == price_column)
+            if field_mapping.is_empty():
+                continue
+            mapped = (
+                field_mapping.join(raw, on="productId", how="inner")
+                .filter(pl.col(price_column).is_not_null())
+                .select(
                     pl.col("uuid"),
                     pl.lit(self.today_date).alias("date"),
                     pl.lit("paper").alias("source"),
                     pl.lit("cardmarket").alias("provider"),
                     pl.lit("retail").alias("price_type"),
-                    pl.lit("foil").alias("finish"),
-                    pl.col("trend_foil").alias("price"),
+                    pl.col("finish"),
+                    pl.col(price_column).alias("price"),
                     pl.lit("EUR").alias("currency"),
                 )
-                if len(foil) > 0:
-                    frames.append(foil)
+            )
+            if not mapped.is_empty():
+                frames.append(mapped)
 
         if not frames:
             return pl.DataFrame(schema=PRICE_SCHEMA)
-        return pl.concat(frames)
+        return pl.concat(frames).unique(
+            subset=["uuid", "date", "source", "provider", "price_type", "finish"],
+            keep="first",
+        )
 
     def _map_ck_raw(self, raw_path: Path, uuid_path: Path) -> pl.DataFrame:
         """Join CardKingdom raw data with UUID mappings."""

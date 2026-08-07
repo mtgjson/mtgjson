@@ -8,6 +8,7 @@ token filtering, ID mapping extraction, and parquet writing.
 from __future__ import annotations
 
 import contextlib
+import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -432,29 +433,97 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
 
     del combined_df
 
-    # Cache mcmId → finishes for CardMarket price builder (subprocess)
-    _build_mcm_finishes_cache(lf)
+    _build_mcm_price_mapping_cache(ctx, lf)
 
 
-def _build_mcm_finishes_cache(lf: pl.LazyFrame) -> None:
-    """Cache mcmId → finishes mapping so the subprocess can skip AllPrintings.json parsing."""
-    cache_path = constants.CACHE_PATH
+def _build_mcm_price_mapping_cache(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
+    """Build product + price field → UUID + finish mappings for Cardmarket."""
     try:
-        finishes_df = (
+        cards = (
             lf.select(
+                pl.col("uuid"),
+                pl.col("setCode"),
+                pl.col("name").str.to_lowercase().alias("nameLower"),
+                pl.col("number").str.strip_chars_start("0").alias("number"),
                 pl.col("identifiers").struct.field("mcmId").alias("mcmId"),
                 pl.col("finishes"),
             )
             .filter(pl.col("mcmId").is_not_null())
-            .unique(subset=["mcmId"])
             .collect()
         )
-        if len(finishes_df) > 0:
-            path = cache_path / "mcm_finishes.parquet"
-            finishes_df.write_parquet(path)
-            LOGGER.info(f"Built mcm_finishes cache: {len(finishes_df):,} entries")
+        frames: list[pl.DataFrame] = []
+
+        profile_path = constants.RESOURCE_PATH / "mkm_finish_profiles.json"
+        profiles = json.loads(profile_path.read_text(encoding="utf-8"))
+        profile_rows = [
+            {
+                "expansionId": int(expansion_id),
+                "mcmVariant": variant,
+                "priceColumn": price_column,
+                "finish": finish,
+            }
+            for expansion_id, variants in profiles.items()
+            for variant, fields in variants.items()
+            for price_column, finish in fields.items()
+        ]
+
+        explicit_pairs = pl.DataFrame(schema={"uuid": pl.String, "productId": pl.String})
+        price_lookup = ctx.mcm_price_lookup_lf
+        if profile_rows and price_lookup is not None:
+            profile_df = pl.DataFrame(profile_rows)
+            candidates = price_lookup.collect().join(profile_df, on=["expansionId", "mcmVariant"], how="inner")
+            explicit = (
+                cards.join(candidates, on=["setCode", "nameLower", "number"], how="inner")
+                .with_columns(
+                    pl.col("mcmId_right").cast(pl.String).alias("productId"),
+                    pl.when(pl.col("finish") == "normal")
+                    .then(pl.lit("nonfoil"))
+                    .otherwise(pl.col("finish"))
+                    .alias("cardFinish"),
+                )
+                .filter(pl.col("finishes").list.contains(pl.col("cardFinish")))
+                .select(["uuid", "productId", "priceColumn", "finish"])
+                .unique()
+            )
+            if not explicit.is_empty():
+                frames.append(explicit)
+                explicit_pairs = explicit.select(["uuid", "productId"]).unique()
+
+        base = cards.with_columns(pl.col("mcmId").cast(pl.String).alias("productId"))
+        if not explicit_pairs.is_empty():
+            base = base.join(explicit_pairs, on=["uuid", "productId"], how="anti")
+
+        single = base.filter(pl.col("finishes").list.len() == 1).select(
+            "uuid",
+            "productId",
+            pl.lit("trend").alias("priceColumn"),
+            pl.col("finishes").list.first().replace({"nonfoil": "normal"}).alias("finish"),
+        )
+        normal = base.filter((pl.col("finishes").list.len() > 1) & pl.col("finishes").list.contains("nonfoil")).select(
+            "uuid",
+            "productId",
+            pl.lit("trend").alias("priceColumn"),
+            pl.lit("normal").alias("finish"),
+        )
+        normal_foil = base.filter(
+            (pl.col("finishes").list.len() == 2)
+            & pl.col("finishes").list.contains("nonfoil")
+            & pl.col("finishes").list.contains("foil")
+        ).select(
+            "uuid",
+            "productId",
+            pl.lit("trend_foil").alias("priceColumn"),
+            pl.lit("foil").alias("finish"),
+        )
+        frames.extend(frame for frame in [single, normal, normal_foil] if not frame.is_empty())
+
+        if frames:
+            mapping = pl.concat(frames).unique()
+            path = constants.CACHE_PATH / "mcm_price_mappings.parquet"
+            mapping.write_parquet(path)
+            LOGGER.info(f"Built Cardmarket price mappings: {len(mapping):,} entries")
     except Exception as e:
-        LOGGER.warning(f"Failed to build mcm_finishes cache: {e}")
+        LOGGER.warning(f"Failed to build Cardmarket price mappings: {e}")
 
 
 def build_id_mappings_from_parquet(ctx: PipelineContext) -> None:

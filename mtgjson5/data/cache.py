@@ -1339,8 +1339,11 @@ class GlobalCache:
         cache_path = self.cache_path / "mcm_lookup.parquet"
 
         if _cache_fresh(cache_path):
-            self.mcm_lookup_lf = pl.scan_parquet(cache_path)
-            return
+            cached = pl.scan_parquet(cache_path)
+            if "expansionId" in cached.collect_schema().names():
+                self.mcm_lookup_lf = cached
+                return
+            LOGGER.info("MCM lookup cache lacks expansionId; rebuilding")
 
         # Try to download from S3 if not present
         self._download_mcm_from_s3()
@@ -1353,6 +1356,7 @@ class GlobalCache:
                 schema={
                     "mcmId": pl.String,
                     "mcmMetaId": pl.String,
+                    "expansionId": pl.Int64,
                     "expansionName": pl.String,
                     "name": pl.String,
                     "number": pl.String,
@@ -1364,6 +1368,7 @@ class GlobalCache:
             [
                 pl.col("mcmId").cast(pl.String),
                 pl.col("mcmMetaId").cast(pl.String),
+                pl.col("expansionId").cast(pl.Int64),
                 pl.col("expansionName"),
                 pl.col("name"),
                 pl.col("number").cast(pl.String),

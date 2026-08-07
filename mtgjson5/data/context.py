@@ -73,6 +73,7 @@ class PipelineContext:
 
     mcm_set_map: dict[str, dict[str, Any]] = field(default_factory=dict, repr=False)
     _mcm_lookup_enriched: pl.LazyFrame | None = field(default=None, repr=False)
+    _mcm_price_lookup_enriched: pl.LazyFrame | None = field(default=None, repr=False)
 
     def release_pipeline_data(self) -> None:
         """Release derived lookup tables after the pipeline has sunk to parquet."""
@@ -90,6 +91,7 @@ class PipelineContext:
         self.uuid_lookup_df = None
         self.final_cards_lf = None
         self._mcm_lookup_enriched = None
+        self._mcm_price_lookup_enriched = None
         self.categoricals = None
         gc.collect()
         LOGGER.info("Released pipeline lookup data")
@@ -139,6 +141,15 @@ class PipelineContext:
         if "_mcm_lookup_lf" in self._test_data:
             return self._test_data["_mcm_lookup_lf"]  # type: ignore[no-any-return]
         return self._cache.mcm_lookup_lf if self._cache else None
+
+    @property
+    def mcm_price_lookup_lf(self) -> pl.LazyFrame | None:
+        """All MCM product candidates, including finish-specific variants."""
+        if self._mcm_price_lookup_enriched is not None:
+            return self._mcm_price_lookup_enriched
+        if "_mcm_price_lookup_lf" in self._test_data:
+            return self._test_data["_mcm_price_lookup_lf"]  # type: ignore[no-any-return]
+        return None
 
     @property
     def salt_lf(self) -> pl.LazyFrame | None:
@@ -1229,19 +1240,26 @@ class PipelineContext:
             )
             .with_columns(
                 pl.col("name").str.to_lowercase().str.replace(r"\s*\(v\.\d+\)\s*$", "").alias("nameLower"),
+                pl.col("name").str.extract(r"(?i)\(v\.(\d+)\)\s*$", 1).alias("mcmVariant"),
             )
             .select(
                 [
                     pl.col("mcmId"),
                     pl.col("mcmMetaId"),
+                    pl.col("expansionId"),
                     pl.col("setCode"),
                     pl.col("nameLower"),
                     pl.col("number"),
+                    pl.col("mcmVariant"),
                 ]
             )
-            .unique(subset=["setCode", "nameLower", "number"], keep="first")
         )
-        self._mcm_lookup_enriched = result.lazy()
+        self._mcm_price_lookup_enriched = result.lazy()
+        self._mcm_lookup_enriched = (
+            result.unique(subset=["setCode", "nameLower", "number"], keep="first")
+            .select(["mcmId", "mcmMetaId", "setCode", "nameLower", "number"])
+            .lazy()
+        )
 
     def _build_mcm_set_map(self) -> None:
         """
