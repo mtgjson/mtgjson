@@ -122,6 +122,10 @@ class TestLanguageMap:
         assert LANGUAGE_MAP["ph"] == "Phyrexian"
         assert LANGUAGE_MAP["px"] == "Phyrexian"
 
+    def test_tolkien_languages(self):
+        assert LANGUAGE_MAP["qya"] == "Quenya"
+        assert LANGUAGE_MAP["dw"] == "Dwarvish"
+
     @pytest.mark.parametrize(
         ("code", "name"),
         [("ja", "Japanese"), ("fr", "French"), ("de", "German"), ("es", "Spanish")],

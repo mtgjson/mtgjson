@@ -17,6 +17,8 @@ from mtgjson5.models.containers import MtgjsonMeta
 from mtgjson5.mtgjson_config import MtgjsonConfig
 from mtgjson5.utils import LOGGER
 
+from .languages import merge_set_languages
+
 if TYPE_CHECKING:
     from mtgjson5.data import PipelineContext
 
@@ -262,6 +264,14 @@ def _build_languages_by_set(cards_df: pl.DataFrame | None) -> dict[str, list[str
     return result
 
 
+def _enrich_sets_with_languages(records: list[dict[str, Any]], cards_df: pl.DataFrame | None) -> None:
+    """Attach the language list to each set record, in place."""
+    languages_map = _build_languages_by_set(cards_df)
+    for rec in records:
+        code = rec.get("code", "")
+        rec["languages"] = merge_set_languages(code, languages_map.get(code, ["English"]))
+
+
 def _load_scryfall_catalogs(
     ctx: PipelineContext,
 ) -> tuple[dict[str, list[str]], dict[str, list[str]], list[str], list[str]]:
@@ -382,9 +392,7 @@ class AssemblyContext:
         # Enrich with sealed products, decks, and languages
         _enrich_sets_with_sealed(records, self.sealed_df)
         _enrich_sets_with_decks(records, self.decks_df)
-        languages_map = _build_languages_by_set(self.all_cards_df)
-        for rec in records:
-            rec["languages"] = languages_map.get(rec.get("code", ""), ["English"])
+        _enrich_sets_with_languages(records, self.all_cards_df)
         df = pl.DataFrame(records, schema_overrides=schema_overrides)
         if "type" in df.columns:
             is_traditional_token = (pl.col("type") == "token") & pl.col("code").str.starts_with("T")

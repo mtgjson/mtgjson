@@ -78,13 +78,17 @@ def join_cardmarket_ids(
         how="left",
     )
 
-    # Coalesce: prefer first join results, fall back to second join, then Scryfall
+    # Scryfall identifies the exact Cardmarket printing and version. Prefer that
+    # value over the name/number joins, which can be ambiguous when Cardmarket
+    # gives multiple variants the same collector number (for example RVR #404
+    # and its serialized counterpart). Use the Cardmarket lookup as a fallback
+    # for cards that do not have a Scryfall Cardmarket ID.
     lf = lf.with_columns(
         [
             pl.coalesce(
+                pl.col("cardmarketId").cast(pl.String),
                 pl.col("mcmId"),
                 pl.col("_mcmId2"),
-                pl.col("cardmarketId").cast(pl.String),
             ).alias("mcmId"),
             pl.coalesce(
                 pl.col("mcmMetaId"),
