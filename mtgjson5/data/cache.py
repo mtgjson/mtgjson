@@ -467,6 +467,7 @@ class GlobalCache:
             "tcg_sku_map_lf": "tcg_sku_map.parquet",
             "tcg_to_uuid_lf": "tcg_to_uuid.parquet",
             "tcg_etched_to_uuid_lf": "tcg_etched_to_uuid.parquet",
+            "tcg_alt_foil_to_uuid_lf": "tcg_alt_foil_to_uuid.parquet",
             "mtgo_to_uuid_lf": "mtgo_to_uuid.parquet",
             "scryfall_to_uuid_lf": "scryfall_to_uuid.parquet",
             "cardmarket_to_uuid_lf": "cardmarket_to_uuid.parquet",
@@ -1523,6 +1524,13 @@ class GlobalCache:
     def get_tcg_etched_to_uuid_map(self) -> dict[str, set[str]]:
         """Get mapping from TCGPlayer etched product ID to MTGJSON UUID(s)."""
         return self._get_id_to_uuid_map(self.tcg_etched_to_uuid_lf, "tcgplayerEtchedProductId")
+
+    def get_tcg_alt_foil_to_uuid_map(self) -> dict[str, set[str]]:
+        """Get mapping from alternative TCGPlayer product ID to MTGJSON UUID(s)."""
+        return self._get_id_to_uuid_map(
+            self.tcg_alt_foil_to_uuid_lf,
+            "tcgplayerAlternativeFoilProductId",
+        )
 
     def get_mtgo_to_uuid_map(self) -> dict[str, set[str]]:
         """Get mapping from MTGO ID to MTGJSON UUID(s)."""
