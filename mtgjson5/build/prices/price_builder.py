@@ -65,6 +65,7 @@ class PriceBuilderContext:
     Owns the ID -> UUID mappings needed by price providers:
     - tcg_to_uuid: TCGPlayer product ID -> MTGJSON UUIDs
     - tcg_etched_to_uuid: TCGPlayer etched product ID -> MTGJSON UUIDs
+    - tcg_alt_foil_to_uuid: Alternative TCGPlayer product ID -> MTGJSON UUID
     - mtgo_to_uuid: MTGO ID -> MTGJSON UUIDs
     - scryfall_to_uuid: Scryfall ID -> single MTGJSON UUID
 
@@ -76,6 +77,7 @@ class PriceBuilderContext:
     # Derived mappings (built lazily)
     _tcg_to_uuid: dict[str, set[str]] | None = field(default=None, repr=False)
     _tcg_etched_to_uuid: dict[str, set[str]] | None = field(default=None, repr=False)
+    _tcg_alt_foil_to_uuid: dict[str, set[str]] | None = field(default=None, repr=False)
     _mtgo_to_uuid: dict[str, set[str]] | None = field(default=None, repr=False)
     _scryfall_to_uuid: dict[str, str] | None = field(default=None, repr=False)
 
@@ -88,9 +90,20 @@ class PriceBuilderContext:
         """
         from mtgjson5.data import GLOBAL_CACHE
 
-        # Load ID mappings from cache if they haven't been set
-        # (happens when running price build separately from card build)
-        if GLOBAL_CACHE.tcg_to_uuid_lf is None and GLOBAL_CACHE.mtgo_to_uuid_lf is None:
+        # Load any persisted mapping that is not already present in memory.
+        # This happens when a price build runs separately from a card build.
+        persisted_mappings = {
+            "tcg_to_uuid_lf": "tcg_to_uuid.parquet",
+            "tcg_etched_to_uuid_lf": "tcg_etched_to_uuid.parquet",
+            "tcg_alt_foil_to_uuid_lf": "tcg_alt_foil_to_uuid.parquet",
+            "mtgo_to_uuid_lf": "mtgo_to_uuid.parquet",
+            "scryfall_to_uuid_lf": "scryfall_to_uuid.parquet",
+            "cardmarket_to_uuid_lf": "cardmarket_to_uuid.parquet",
+        }
+        if any(
+            getattr(GLOBAL_CACHE, attr) is None and (GLOBAL_CACHE.cache_path / filename).exists()
+            for attr, filename in persisted_mappings.items()
+        ):
             GLOBAL_CACHE.load_id_mappings()
 
         return cls(_cache=GLOBAL_CACHE)
@@ -108,6 +121,13 @@ class PriceBuilderContext:
         if self._tcg_etched_to_uuid is None:
             self._tcg_etched_to_uuid = self._build_tcg_etched_to_uuid()
         return self._tcg_etched_to_uuid
+
+    @property
+    def tcg_alt_foil_to_uuid(self) -> dict[str, set[str]]:
+        """Alternative TCGPlayer product ID -> MTGJSON UUID mapping."""
+        if self._tcg_alt_foil_to_uuid is None:
+            self._tcg_alt_foil_to_uuid = self._build_tcg_alt_foil_to_uuid()
+        return self._tcg_alt_foil_to_uuid
 
     @property
     def mtgo_to_uuid(self) -> dict[str, set[str]]:
@@ -157,6 +177,21 @@ class PriceBuilderContext:
                 result[tcg_id].add(uuid)
         return result
 
+    def _build_tcg_alt_foil_to_uuid(self) -> dict[str, set[str]]:
+        """Build alternative TCGPlayer product ID -> UUID mapping from cache."""
+        if self._cache is None or self._cache.tcg_alt_foil_to_uuid_lf is None:
+            return {}
+        df = self._cache.tcg_alt_foil_to_uuid_lf.collect()
+        if df.is_empty():
+            return {}
+        result: dict[str, set[str]] = {}
+        for row in df.iter_rows(named=True):
+            tcg_id = str(row.get("tcgplayerAlternativeFoilProductId", ""))
+            uuid = row.get("uuid")
+            if tcg_id and uuid:
+                result.setdefault(tcg_id, set()).add(uuid)
+        return result
+
     def _build_mtgo_to_uuid(self) -> dict[str, set[str]]:
         """Build MTGO ID -> UUID mapping from cache."""
         if self._cache is None or self._cache.mtgo_to_uuid_lf is None:
@@ -178,6 +213,7 @@ class PriceBuilderContext:
         """Free ID-mapping dicts (no longer needed after fetch)."""
         self._tcg_to_uuid = None
         self._tcg_etched_to_uuid = None
+        self._tcg_alt_foil_to_uuid = None
         self._mtgo_to_uuid = None
         self._scryfall_to_uuid = None
         self._cache = None
@@ -231,6 +267,7 @@ RAW_CACHE_FILES = {
 ID_MAPPING_FILES = {
     "tcg_to_uuid": "tcg_to_uuid.parquet",
     "tcg_etched_to_uuid": "tcg_etched_to_uuid.parquet",
+    "tcg_alt_foil_to_uuid": "tcg_alt_foil_to_uuid.parquet",
     "mtgo_to_uuid": "mtgo_to_uuid.parquet",
     "scryfall_to_uuid": "scryfall_to_uuid.parquet",
     "cardmarket_to_uuid": "cardmarket_to_uuid.parquet",
@@ -292,6 +329,7 @@ class PolarsPriceBuilder:
 
         tcg_to_uuid = ctx.tcg_to_uuid
         tcg_etched_to_uuid = ctx.tcg_etched_to_uuid
+        tcg_alt_foil_to_uuid = ctx.tcg_alt_foil_to_uuid
         mtgo_to_uuid = ctx.mtgo_to_uuid
         scryfall_to_uuid = ctx.scryfall_to_uuid
 
@@ -306,8 +344,12 @@ class PolarsPriceBuilder:
 
         # Fetch TCGPlayer prices (largest, async with streaming)
         LOGGER.info("Fetching TCGPlayer prices")
-        if tcg_to_uuid or tcg_etched_to_uuid:
-            tcg_df = await self._tcg_provider.fetch_all_prices(tcg_to_uuid or {}, tcg_etched_to_uuid or {})
+        if tcg_to_uuid or tcg_etched_to_uuid or tcg_alt_foil_to_uuid:
+            tcg_df = await self._tcg_provider.fetch_all_prices(
+                tcg_to_uuid or {},
+                tcg_etched_to_uuid or {},
+                tcg_alt_foil_to_uuid or {},
+            )
             if len(tcg_df) > 0:
                 frames.append(tcg_df)
                 LOGGER.info(f"  TCGPlayerPriceProvider: {len(tcg_df):,} price points")
@@ -391,8 +433,9 @@ class PolarsPriceBuilder:
         tcg_raw = cache_dir / RAW_CACHE_FILES["tcgplayer"]
         tcg_uuid = cache_dir / ID_MAPPING_FILES["tcg_to_uuid"]
         tcg_etched = cache_dir / ID_MAPPING_FILES["tcg_etched_to_uuid"]
-        if tcg_raw.exists() and (tcg_uuid.exists() or tcg_etched.exists()):
-            df = self._map_tcg_raw(tcg_raw, tcg_uuid, tcg_etched)
+        tcg_alt_foil = cache_dir / ID_MAPPING_FILES["tcg_alt_foil_to_uuid"]
+        if tcg_raw.exists() and (tcg_uuid.exists() or tcg_etched.exists() or tcg_alt_foil.exists()):
+            df = self._map_tcg_raw(tcg_raw, tcg_uuid, tcg_etched, tcg_alt_foil)
             if len(df) > 0:
                 frames.append(df)
                 LOGGER.info(f"  TCGPlayer mapped: {len(df):,} price points")
@@ -442,21 +485,88 @@ class PolarsPriceBuilder:
         LOGGER.info(f"Mapped {len(result):,} total price points from raw cache")
         return result
 
-    def _map_tcg_raw(self, raw_path: Path, uuid_path: Path, etched_uuid_path: Path) -> pl.DataFrame:
+    def _map_tcg_raw(
+        self,
+        raw_path: Path,
+        uuid_path: Path,
+        etched_uuid_path: Path,
+        alt_foil_uuid_path: Path | None = None,
+    ) -> pl.DataFrame:
         """Join TCGPlayer raw data with UUID mappings."""
-        raw = pl.scan_parquet(raw_path)
+        raw = pl.scan_parquet(raw_path).filter(pl.col("marketPrice").is_not_null())
         frames: list[pl.LazyFrame] = []
 
-        # Normal/foil via tcg_to_uuid
+        base_mapping: pl.LazyFrame | None = None
+        etched_mapping: pl.LazyFrame | None = None
+        alt_foil_mapping: pl.LazyFrame | None = None
+
         if uuid_path.exists():
-            tcg_uuid = pl.scan_parquet(uuid_path)
-            normal_foil = (
-                raw.join(tcg_uuid, left_on="productId", right_on="tcgplayerProductId", how="inner")
+            base_mapping = (
+                pl.scan_parquet(uuid_path)
+                .select(
+                    pl.col("tcgplayerProductId").cast(pl.String).alias("productId"),
+                    pl.col("uuid"),
+                )
+                .unique()
+            )
+
+        if etched_uuid_path.exists():
+            etched_mapping = (
+                pl.scan_parquet(etched_uuid_path)
+                .select(
+                    pl.col("tcgplayerEtchedProductId").cast(pl.String).alias("productId"),
+                    pl.col("uuid"),
+                )
+                .unique()
+            )
+
+        # Match live-provider precedence when a product occurs in more than
+        # one authoritative mapping: base products win over etched products.
+        if base_mapping is not None and etched_mapping is not None:
+            etched_mapping = etched_mapping.join(
+                base_mapping.select("productId").unique(),
+                on="productId",
+                how="anti",
+            )
+
+        if alt_foil_uuid_path is not None and alt_foil_uuid_path.exists():
+            alt_foil_mapping = (
+                pl.scan_parquet(alt_foil_uuid_path)
+                .select(
+                    pl.col("tcgplayerAlternativeFoilProductId").cast(pl.String).alias("productId"),
+                    pl.col("uuid"),
+                )
+                .unique()
+                .group_by("productId")
+                .agg(
+                    pl.col("uuid").first(),
+                    pl.col("uuid").n_unique().alias("_uuidCount"),
+                )
+                .filter(pl.col("_uuidCount") == 1)
+                .drop("_uuidCount")
+            )
+
+            reserved_ids: list[pl.LazyFrame] = []
+            if base_mapping is not None:
+                reserved_ids.append(base_mapping.select("productId"))
+            if etched_mapping is not None:
+                reserved_ids.append(etched_mapping.select("productId"))
+            if reserved_ids:
+                alt_foil_mapping = alt_foil_mapping.join(
+                    pl.concat(reserved_ids).unique(),
+                    on="productId",
+                    how="anti",
+                )
+
+        def _map_prices(mapping: pl.LazyFrame, non_normal_finish: str, priority: int) -> pl.LazyFrame:
+            return (
+                raw.join(mapping, on="productId", how="inner")
                 .with_columns(
                     pl.when(pl.col("subTypeName") == "Normal")
                     .then(pl.lit("normal"))
-                    .otherwise(pl.lit("foil"))
-                    .alias("finish")
+                    .otherwise(pl.lit(non_normal_finish))
+                    .alias("finish"),
+                    pl.lit(priority).alias("_mappingPriority"),
                 )
                 .select(
                     pl.col("uuid"),
@@ -467,38 +577,35 @@ class PolarsPriceBuilder:
                     pl.col("finish"),
                     pl.col("marketPrice").alias("price"),
                     pl.lit("USD").alias("currency"),
+                    pl.col("productId"),
+                    pl.col("_mappingPriority"),
                 )
             )
-            frames.append(normal_foil)
+
+        # Normal/foil via tcg_to_uuid
+        if base_mapping is not None:
+            frames.append(_map_prices(base_mapping, "foil", 0))
 
         # Etched via tcg_etched_to_uuid
-        if etched_uuid_path.exists():
-            tcg_etched = pl.scan_parquet(etched_uuid_path)
-            etched = (
-                raw.join(tcg_etched, left_on="productId", right_on="tcgplayerEtchedProductId", how="inner")
-                .with_columns(
-                    pl.when(pl.col("subTypeName") == "Normal")
-                    .then(pl.lit("normal"))
-                    .otherwise(pl.lit("etched"))
-                    .alias("finish")
-                )
-                .select(
-                    pl.col("uuid"),
-                    pl.lit(self.today_date).alias("date"),
-                    pl.lit("paper").alias("source"),
-                    pl.lit("tcgplayer").alias("provider"),
-                    pl.lit("retail").alias("price_type"),
-                    pl.col("finish"),
-                    pl.col("marketPrice").alias("price"),
-                    pl.lit("USD").alias("currency"),
-                )
-            )
-            frames.append(etched)
+        if etched_mapping is not None:
+            frames.append(_map_prices(etched_mapping, "etched", 1))
+
+        # Alternative products are ordinary TCGplayer products whose finish
+        # must be inferred from the price row, not the mapping field name.
+        if alt_foil_mapping is not None:
+            frames.append(_map_prices(alt_foil_mapping, "foil", 2))
 
         if not frames:
             return pl.DataFrame(schema=PRICE_SCHEMA)
 
-        return pl.concat(frames).collect()
+        key_cols = ["uuid", "date", "source", "provider", "price_type", "finish"]
+        return (
+            pl.concat(frames)
+            .sort(["_mappingPriority", "productId"])
+            .unique(subset=key_cols, keep="first", maintain_order=True)
+            .select(list(PRICE_SCHEMA))
+            .collect()
+        )
 
     def _map_cardhoarder_raw(self, raw_path: Path, uuid_path: Path) -> pl.DataFrame:
         """Join CardHoarder raw data with UUID mappings."""
