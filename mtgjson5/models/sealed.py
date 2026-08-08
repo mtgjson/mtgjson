@@ -199,8 +199,9 @@ class SealedProductAssembler:
                 continue
 
             if content_type == "card":
-                contents["card"] = [
-                    SealedProductCard(
+                card_entries = []
+                for r in type_rows.to_dicts():
+                    entry = SealedProductCard(
                         uuid=r["uuid"],
                         name=r["name"],
                         number=r["number"],
@@ -208,8 +209,10 @@ class SealedProductAssembler:
                         foil=r.get("foil"),
                         finishes=["foil"] if r.get("foil") else ["nonfoil"],
                     )
-                    for r in type_rows.to_dicts()
-                ]
+                    if r.get("token"):
+                        entry["token"] = True
+                    card_entries.append(entry)
+                contents["card"] = card_entries
             elif content_type == "sealed":
                 contents["sealed"] = [
                     SealedProductSealed(

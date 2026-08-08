@@ -116,6 +116,7 @@ class CardRef(PolarsSchemaModel):
     number: str
     uuid: str
     foil: bool
+    token: bool | None = None
 
 
 class VariableConfig(PolarsSchemaModel):
@@ -195,6 +196,10 @@ class SealedContentModel(PolarsSchemaModel):
     )
     number: str | None = Field(default=None, description="The collector number of the card.")
     foil: bool | None = Field(default=None, description="Indicates if the card is foil.")
+    token: bool | None = Field(
+        default=None,
+        description="Indicates the collector number refers to a token, whose UUID lives in the set's tokens.",
+    )
 
 
 class PreconModel(PolarsSchemaModel):
