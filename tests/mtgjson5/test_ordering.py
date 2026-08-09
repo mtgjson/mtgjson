@@ -66,6 +66,24 @@ class TestFinishesFollowFinishOrder:
         assert ordered[0] == "nonfoil"
         assert ordered[1] == "mystery"
 
+    def test_empty_list(self):
+        df = pl.DataFrame(
+            {"finishes": [[], ["foil", "nonfoil"]]},
+            schema={"finishes": pl.List(pl.String)},
+        )
+        result = df.select(order_finishes_expr("finishes"))
+        assert result["finishes"][0].to_list() == []
+        assert result["finishes"][1].to_list() == ["nonfoil", "foil"]
+
+    def test_null_list(self):
+        df = pl.DataFrame(
+            {"finishes": [None, ["foil", "nonfoil"]]},
+            schema={"finishes": pl.List(pl.String)},
+        )
+        result = df.select(order_finishes_expr("finishes"))
+        assert result["finishes"][0] is None
+        assert result["finishes"][1].to_list() == ["nonfoil", "foil"]
+
 
 # =============================================================================
 # TestColorsWubrgForSplitLayout

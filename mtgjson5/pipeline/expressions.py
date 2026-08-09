@@ -38,15 +38,22 @@ def order_finishes_expr(col: str = "finishes") -> pl.Expr:
     Orders finishes without Python UDFs.
     Assigns weights: nonfoil=0, foil=1, etched=2, signed=3, others=99.
     """
-    return pl.col(col).list.eval(
-        pl.element().sort_by(
-            pl.element().replace_strict(
-                {"nonfoil": 0, "foil": 1, "etched": 2, "signed": 3},
-                default=99,
-                return_dtype=pl.Int32,
-            ),
-            pl.element(),  # secondary sort alphabetical
+    # sort_by inside list.eval raises "must have matching group lengths" on
+    # empty lists (polars 1.40), so mask them to null and restore afterwards
+    return (
+        pl.when(pl.col(col).list.len() > 0)
+        .then(pl.col(col))
+        .list.eval(
+            pl.element().sort_by(
+                pl.element().replace_strict(
+                    {"nonfoil": 0, "foil": 1, "etched": 2, "signed": 3},
+                    default=99,
+                    return_dtype=pl.Int32,
+                ),
+                pl.element(),  # secondary sort alphabetical
+            )
         )
+        .fill_null(pl.col(col))
     )
 
 
