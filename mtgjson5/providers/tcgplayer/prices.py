@@ -42,7 +42,7 @@ PRICE_SCHEMA = {
 
 _BUFFER_SCHEMA = {
     **PRICE_SCHEMA,
-    "productId": pl.String,
+    "productId": pl.Int64,
     "_mappingPriority": pl.UInt8,
 }
 
@@ -285,7 +285,7 @@ class TCGPlayerPriceProvider:
 
         Note: Buylist endpoint (/pricing/buy/group/) is deprecated and not called.
         """
-        candidates: dict[tuple[str, str], tuple[tuple[int, str], dict[str, Any]]] = {}
+        candidates: dict[tuple[str, str], tuple[tuple[int, int], dict[str, Any]]] = {}
 
         try:
             endpoint = f"pricing/group/{group_id}"
@@ -320,6 +320,7 @@ class TCGPlayerPriceProvider:
                         mapping_priority = 2
                 if not uuids:
                     continue
+                numeric_product_id = int(product_id)
 
                 # Determine finish type
                 is_normal = sub_type == "Normal"
@@ -335,7 +336,7 @@ class TCGPlayerPriceProvider:
                 # finish for the same UUID.
                 for uuid in uuids:
                     key = (uuid, finish)
-                    rank = (mapping_priority, product_id)
+                    rank = (mapping_priority, numeric_product_id)
                     existing = candidates.get(key)
                     if existing is not None and existing[0] <= rank:
                         continue
@@ -350,7 +351,7 @@ class TCGPlayerPriceProvider:
                             "finish": finish,
                             "price": float(market_price),
                             "currency": "USD",
-                            "productId": product_id,
+                            "productId": numeric_product_id,
                             "_mappingPriority": mapping_priority,
                         },
                     )

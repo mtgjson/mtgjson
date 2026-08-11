@@ -577,7 +577,7 @@ class PolarsPriceBuilder:
                     pl.col("finish"),
                     pl.col("marketPrice").alias("price"),
                     pl.lit("USD").alias("currency"),
-                    pl.col("productId"),
+                    pl.col("productId").cast(pl.Int64),
                     pl.col("_mappingPriority"),
                 )
             )

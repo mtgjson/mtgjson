@@ -46,12 +46,12 @@ ALT_MAP = {
     "900": {"wrong-alt-base-collision"},
     "901": {"wrong-alt-etched-collision"},
     "902": {"ambiguous-one", "ambiguous-two"},
-    "903": {JAWS_UUID},
+    "700000": {JAWS_UUID},
     "904": {"null-price"},
 }
 RAW_PRICES = [
     # Put the duplicate alternative first to prove selection is deterministic.
-    {"productId": "903", "subTypeName": "Foil", "marketPrice": 999.0},
+    {"productId": "700000", "subTypeName": "Foil", "marketPrice": 999.0},
     {"productId": "656544", "subTypeName": "Foil", "marketPrice": 22.0},
     {"productId": "656542", "subTypeName": "Normal", "marketPrice": 11.0},
     {"productId": "700", "subTypeName": "Foil", "marketPrice": 31.0},
@@ -152,12 +152,12 @@ def test_live_mapping_priority_applies_across_groups(tmp_path, monkeypatch, grou
         1: [
             {"productId": "200", "subTypeName": "Foil", "marketPrice": 20.0},
             {"productId": "201", "subTypeName": "Normal", "marketPrice": 21.0},
-            {"productId": "301", "subTypeName": "Foil", "marketPrice": 31.0},
+            {"productId": "1000", "subTypeName": "Foil", "marketPrice": 31.0},
         ],
         2: [
             {"productId": "100", "subTypeName": "Foil", "marketPrice": 10.0},
             {"productId": "101", "subTypeName": "Normal", "marketPrice": 11.0},
-            {"productId": "300", "subTypeName": "Foil", "marketPrice": 30.0},
+            {"productId": "999", "subTypeName": "Foil", "marketPrice": 30.0},
         ],
     }
     base_map = {"100": {CROSS_GROUP_UUID}}
@@ -165,8 +165,8 @@ def test_live_mapping_priority_applies_across_groups(tmp_path, monkeypatch, grou
     alt_map = {
         "200": {CROSS_GROUP_UUID},
         "201": {CROSS_GROUP_ETCHED_UUID},
-        "300": {ALT_TIE_UUID},
-        "301": {ALT_TIE_UUID},
+        "999": {ALT_TIE_UUID},
+        "1000": {ALT_TIE_UUID},
     }
 
     fake_client = _FakeTcgClient(grouped_prices)
