@@ -60,7 +60,7 @@ class TCGPlayerPriceProvider:
 
     Usage:
         provider = TCGPlayerPriceProvider()
-        prices_df = await provider.fetch_all_prices(tcg_to_uuid_map, tcg_etched_map)
+        prices_df = await provider.fetch_all_prices(tcg_to_uuid_map, tcg_etched_map, tcg_alt_foil_map)
     """
 
     output_path: Path | None = None
@@ -84,7 +84,7 @@ class TCGPlayerPriceProvider:
         self,
         tcg_to_uuid_map: dict[str, set[str]],
         tcg_etched_to_uuid_map: dict[str, set[str]],
-        tcg_alt_foil_to_uuid_map: dict[str, set[str]] | None = None,
+        tcg_alt_foil_to_uuid_map: dict[str, set[str]],
     ) -> pl.DataFrame:
         """
         Fetch retail prices for all TCGPlayer Magic sets.
@@ -92,7 +92,7 @@ class TCGPlayerPriceProvider:
         Args:
             tcg_to_uuid_map: TCGPlayer productId -> MTGJSON UUIDs mapping
             tcg_etched_to_uuid_map: TCGPlayer etched productId -> MTGJSON UUIDs
-            tcg_alt_foil_to_uuid_map: Alternative TCGPlayer productId -> MTGJSON UUID
+            tcg_alt_foil_to_uuid_map: Alternative TCGPlayer productId -> MTGJSON UUIDs
 
         Returns:
             DataFrame with flat price records
@@ -127,7 +127,7 @@ class TCGPlayerPriceProvider:
                     group_id,
                     tcg_to_uuid_map,
                     tcg_etched_to_uuid_map,
-                    tcg_alt_foil_to_uuid_map or {},
+                    tcg_alt_foil_to_uuid_map,
                 )
                 self._buffer.extend(prices)
                 self._completed_groups.add(group_id)
@@ -233,7 +233,7 @@ class TCGPlayerPriceProvider:
         self,
         tcg_to_uuid_map: dict[str, set[str]],
         tcg_etched_to_uuid_map: dict[str, set[str]],
-        tcg_alt_foil_to_uuid_map: dict[str, set[str]] | None = None,
+        tcg_alt_foil_to_uuid_map: dict[str, set[str]],
     ) -> pl.DataFrame:
         """Sync wrapper for fetch_all_prices."""
         return asyncio.run(self.fetch_all_prices(tcg_to_uuid_map, tcg_etched_to_uuid_map, tcg_alt_foil_to_uuid_map))
@@ -278,7 +278,7 @@ class TCGPlayerPriceProvider:
         group_id: int,
         tcg_to_uuid_map: dict[str, set[str]],
         tcg_etched_to_uuid_map: dict[str, set[str]],
-        tcg_alt_foil_to_uuid_map: dict[str, set[str]] | None = None,
+        tcg_alt_foil_to_uuid_map: dict[str, set[str]],
     ) -> list[dict[str, Any]]:
         """
         Fetch RETAIL prices for a single set.
@@ -307,18 +307,18 @@ class TCGPlayerPriceProvider:
                 # the same product and card occur in both, the base mapping wins.
                 base_uuids = tcg_to_uuid_map.get(product_id) or set()
                 etched_uuids = (tcg_etched_to_uuid_map.get(product_id) or set()) - base_uuids
-                mapping_candidates: list[tuple[set[str], bool, int]] = []
+                mapping_candidates: list[tuple[set[str], int]] = []
                 if base_uuids:
-                    mapping_candidates.append((base_uuids, False, 0))
+                    mapping_candidates.append((base_uuids, 0))
                 if etched_uuids:
-                    mapping_candidates.append((etched_uuids, True, 1))
+                    mapping_candidates.append((etched_uuids, 1))
 
                 # Alternative IDs are used only when the product is otherwise
                 # unknown and the association resolves to exactly one UUID.
                 if not mapping_candidates and tcg_alt_foil_to_uuid_map:
                     alt_uuids = tcg_alt_foil_to_uuid_map.get(product_id)
                     if alt_uuids and len(alt_uuids) == 1:
-                        mapping_candidates.append((alt_uuids, False, 2))
+                        mapping_candidates.append((alt_uuids, 2))
                 if not mapping_candidates:
                     continue
                 numeric_product_id = int(product_id)
@@ -326,10 +326,10 @@ class TCGPlayerPriceProvider:
                 # Create one price record per unique output key. A primary
                 # mapping wins when an alternative product exposes the same
                 # finish for the same UUID.
-                for uuids, is_etched, mapping_priority in mapping_candidates:
+                for uuids, mapping_priority in mapping_candidates:
                     if sub_type == "Normal":
                         finish = "normal"
-                    elif is_etched:
+                    elif mapping_priority == 1:
                         finish = "etched"
                     else:
                         finish = "foil"
@@ -419,7 +419,7 @@ class TCGPlayerPriceProvider:
         self,
         tcg_to_uuid_map: dict[str, set[str]],
         tcg_etched_to_uuid_map: dict[str, set[str]],
-        tcg_alt_foil_to_uuid_map: dict[str, set[str]] | None = None,
+        tcg_alt_foil_to_uuid_map: dict[str, set[str]],
     ) -> dict[str, MtgjsonPriceEntry]:
         """
         Generate MTGJSON-format price dict for compatibility with legacy code.
@@ -460,7 +460,8 @@ async def get_tcgplayer_prices(
     tcg_to_uuid_map: dict[str, set[str]],
     tcg_etched_to_uuid_map: dict[str, set[str]],
     on_progress: ProgressCallback | None = None,
-    tcg_alt_foil_to_uuid_map: dict[str, set[str]] | None = None,
+    *,
+    tcg_alt_foil_to_uuid_map: dict[str, set[str]],
 ) -> pl.DataFrame:
     """
     Fetch TCGPlayer prices as DataFrame.
@@ -482,9 +483,15 @@ def get_tcgplayer_prices_sync(
     tcg_to_uuid_map: dict[str, set[str]],
     tcg_etched_to_uuid_map: dict[str, set[str]],
     on_progress: ProgressCallback | None = None,
-    tcg_alt_foil_to_uuid_map: dict[str, set[str]] | None = None,
+    *,
+    tcg_alt_foil_to_uuid_map: dict[str, set[str]],
 ) -> pl.DataFrame:
     """Sync wrapper for get_tcgplayer_prices."""
     return asyncio.run(
-        get_tcgplayer_prices(tcg_to_uuid_map, tcg_etched_to_uuid_map, on_progress, tcg_alt_foil_to_uuid_map)
+        get_tcgplayer_prices(
+            tcg_to_uuid_map,
+            tcg_etched_to_uuid_map,
+            on_progress,
+            tcg_alt_foil_to_uuid_map=tcg_alt_foil_to_uuid_map,
+        )
     )

@@ -179,18 +179,9 @@ class PriceBuilderContext:
 
     def _build_tcg_alt_foil_to_uuid(self) -> dict[str, set[str]]:
         """Build alternative TCGPlayer product ID -> UUID mapping from cache."""
-        if self._cache is None or self._cache.tcg_alt_foil_to_uuid_lf is None:
+        if self._cache is None:
             return {}
-        df = self._cache.tcg_alt_foil_to_uuid_lf.collect()
-        if df.is_empty():
-            return {}
-        result: dict[str, set[str]] = {}
-        for row in df.iter_rows(named=True):
-            tcg_id = str(row.get("tcgplayerAlternativeFoilProductId", ""))
-            uuid = row.get("uuid")
-            if tcg_id and uuid:
-                result.setdefault(tcg_id, set()).add(uuid)
-        return result
+        return self._cache.get_tcg_alt_foil_to_uuid_map()
 
     def _build_mtgo_to_uuid(self) -> dict[str, set[str]]:
         """Build MTGO ID -> UUID mapping from cache."""
@@ -490,7 +481,7 @@ class PolarsPriceBuilder:
         raw_path: Path,
         uuid_path: Path,
         etched_uuid_path: Path,
-        alt_foil_uuid_path: Path | None = None,
+        alt_foil_uuid_path: Path,
     ) -> pl.DataFrame:
         """Join TCGPlayer raw data with UUID mappings."""
         raw = pl.scan_parquet(raw_path).filter(pl.col("marketPrice").is_not_null())
@@ -529,14 +520,13 @@ class PolarsPriceBuilder:
                 how="anti",
             )
 
-        if alt_foil_uuid_path is not None and alt_foil_uuid_path.exists():
+        if alt_foil_uuid_path.exists():
             alt_foil_mapping = (
                 pl.scan_parquet(alt_foil_uuid_path)
                 .select(
                     pl.col("tcgplayerAlternativeFoilProductId").cast(pl.String).alias("productId"),
                     pl.col("uuid"),
                 )
-                .unique()
                 .group_by("productId")
                 .agg(
                     pl.col("uuid").first(),
