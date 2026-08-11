@@ -40,6 +40,12 @@ PRICE_SCHEMA = {
     "currency": pl.String,
 }
 
+_BUFFER_SCHEMA = {
+    **PRICE_SCHEMA,
+    "productId": pl.String,
+    "_mappingPriority": pl.UInt8,
+}
+
 
 @dataclass
 class TCGPlayerPriceProvider:
@@ -344,6 +350,8 @@ class TCGPlayerPriceProvider:
                             "finish": finish,
                             "price": float(market_price),
                             "currency": "USD",
+                            "productId": product_id,
+                            "_mappingPriority": mapping_priority,
                         },
                     )
 
@@ -388,10 +396,15 @@ class TCGPlayerPriceProvider:
         if not self._buffer:
             return pl.DataFrame(schema=PRICE_SCHEMA)
 
-        df = pl.DataFrame(self._buffer, schema=PRICE_SCHEMA).unique(
-            subset=["uuid", "date", "source", "provider", "price_type", "finish"],
-            keep="first",
-            maintain_order=True,
+        df = (
+            pl.DataFrame(self._buffer, schema=_BUFFER_SCHEMA)
+            .sort(["_mappingPriority", "productId"])
+            .unique(
+                subset=["uuid", "date", "source", "provider", "price_type", "finish"],
+                keep="first",
+                maintain_order=True,
+            )
+            .select(list(PRICE_SCHEMA))
         )
 
         if self.output_path:

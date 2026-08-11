@@ -25,6 +25,9 @@ ETCHED_UUID = "etched00-0000-0000-0000-000000000001"
 BASE_COLLISION_UUID = "base0000-0000-0000-0000-000000000001"
 ETCHED_COLLISION_UUID = "etched00-0000-0000-0000-000000000002"
 OVERLAP_UUID = "base0000-0000-0000-0000-000000000002"
+CROSS_GROUP_UUID = "cross000-0000-0000-0000-000000000001"
+CROSS_GROUP_ETCHED_UUID = "cross000-0000-0000-0000-000000000002"
+ALT_TIE_UUID = "alttie00-0000-0000-0000-000000000001"
 
 BASE_MAP = {
     "656542": {JAWS_UUID},
@@ -63,7 +66,7 @@ RAW_PRICES = [
 
 
 class _FakeTcgClient:
-    def __init__(self, results: list[dict[str, Any]]) -> None:
+    def __init__(self, results: list[dict[str, Any]] | dict[int, list[dict[str, Any]]]) -> None:
         self.results = results
 
     async def __aenter__(self) -> _FakeTcgClient:
@@ -72,8 +75,11 @@ class _FakeTcgClient:
     async def __aexit__(self, *_args: object) -> None:
         return None
 
-    async def get(self, _endpoint: str, versioned: bool = True) -> dict[str, list[dict[str, Any]]]:
+    async def get(self, endpoint: str, versioned: bool = True) -> dict[str, list[dict[str, Any]]]:
         assert versioned
+        if isinstance(self.results, dict):
+            group_id = int(endpoint.rsplit("/", maxsplit=1)[-1])
+            return {"results": self.results[group_id]}
         return {"results": self.results}
 
 
@@ -131,6 +137,74 @@ def test_live_and_raw_paths_map_alternative_products_equivalently(mapped_price_f
         (BASE_COLLISION_UUID, "normal"): 50.0,
         (ETCHED_COLLISION_UUID, "etched"): 60.0,
         (OVERLAP_UUID, "foil"): 80.0,
+    }
+
+
+@pytest.mark.parametrize(
+    "group_ids",
+    [
+        [(1, "Alternatives"), (2, "Base products")],
+        [(2, "Base products"), (1, "Alternatives")],
+    ],
+)
+def test_live_mapping_priority_applies_across_groups(tmp_path, monkeypatch, group_ids):
+    grouped_prices = {
+        1: [
+            {"productId": "200", "subTypeName": "Foil", "marketPrice": 20.0},
+            {"productId": "201", "subTypeName": "Normal", "marketPrice": 21.0},
+            {"productId": "301", "subTypeName": "Foil", "marketPrice": 31.0},
+        ],
+        2: [
+            {"productId": "100", "subTypeName": "Foil", "marketPrice": 10.0},
+            {"productId": "101", "subTypeName": "Normal", "marketPrice": 11.0},
+            {"productId": "300", "subTypeName": "Foil", "marketPrice": 30.0},
+        ],
+    }
+    base_map = {"100": {CROSS_GROUP_UUID}}
+    etched_map = {"101": {CROSS_GROUP_ETCHED_UUID}}
+    alt_map = {
+        "200": {CROSS_GROUP_UUID},
+        "201": {CROSS_GROUP_ETCHED_UUID},
+        "300": {ALT_TIE_UUID},
+        "301": {ALT_TIE_UUID},
+    }
+
+    fake_client = _FakeTcgClient(grouped_prices)
+    monkeypatch.setattr(tcg_prices_module, "TcgPlayerClient", lambda _config: fake_client)
+
+    provider = TCGPlayerPriceProvider(output_path=tmp_path / "live_prices.parquet")
+    provider.today_date = TODAY
+    provider._config = object()  # type: ignore[assignment]
+
+    async def _group_ids(_client: object) -> list[tuple[int, str]]:
+        return group_ids
+
+    monkeypatch.setattr(provider, "_get_magic_set_ids", _group_ids)
+    live = asyncio.run(provider.fetch_all_prices(base_map, etched_map, alt_map))
+
+    raw_prices = [price for group_id, _name in group_ids for price in grouped_prices[group_id]]
+    pl.DataFrame(
+        raw_prices,
+        schema={"productId": pl.String, "subTypeName": pl.String, "marketPrice": pl.Float64},
+    ).write_parquet(tmp_path / "tcg_raw_prices.parquet")
+    _write_mapping(tmp_path / "tcg_to_uuid.parquet", "tcgplayerProductId", base_map)
+    _write_mapping(tmp_path / "tcg_etched_to_uuid.parquet", "tcgplayerEtchedProductId", etched_map)
+    _write_mapping(
+        tmp_path / "tcg_alt_foil_to_uuid.parquet",
+        "tcgplayerAlternativeFoilProductId",
+        alt_map,
+    )
+
+    builder = PolarsPriceBuilder()
+    builder.today_date = TODAY
+    raw = builder.map_raw_to_today_df(tmp_path)
+
+    sort_columns = ["uuid", "finish", "price"]
+    assert live.sort(sort_columns).rows(named=True) == raw.sort(sort_columns).rows(named=True)
+    assert {(row["uuid"], row["finish"]): row["price"] for row in live.iter_rows(named=True)} == {
+        (CROSS_GROUP_UUID, "foil"): 10.0,
+        (CROSS_GROUP_ETCHED_UUID, "normal"): 11.0,
+        (ALT_TIE_UUID, "foil"): 30.0,
     }
 
 
