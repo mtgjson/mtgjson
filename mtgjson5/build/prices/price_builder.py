@@ -520,12 +520,12 @@ class PolarsPriceBuilder:
                 .unique()
             )
 
-        # Match live-provider precedence when a product occurs in more than
-        # one authoritative mapping: base products win over etched products.
+        # Match live-provider precedence when the same product and card occur
+        # in both authoritative mappings: base products win over etched products.
         if base_mapping is not None and etched_mapping is not None:
             etched_mapping = etched_mapping.join(
-                base_mapping.select("productId").unique(),
-                on="productId",
+                base_mapping.select("productId", "uuid").unique(),
+                on=["productId", "uuid"],
                 how="anti",
             )
 

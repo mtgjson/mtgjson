@@ -25,6 +25,7 @@ ETCHED_UUID = "etched00-0000-0000-0000-000000000001"
 BASE_COLLISION_UUID = "base0000-0000-0000-0000-000000000001"
 ETCHED_COLLISION_UUID = "etched00-0000-0000-0000-000000000002"
 OVERLAP_UUID = "base0000-0000-0000-0000-000000000002"
+SHARED_PRODUCT_ETCHED_UUID = "etched00-0000-0000-0000-000000000003"
 CROSS_GROUP_UUID = "cross000-0000-0000-0000-000000000001"
 CROSS_GROUP_ETCHED_UUID = "cross000-0000-0000-0000-000000000002"
 ALT_TIE_UUID = "alttie00-0000-0000-0000-000000000001"
@@ -38,7 +39,8 @@ BASE_MAP = {
 ETCHED_MAP = {
     "800": {ETCHED_UUID},
     "901": {ETCHED_COLLISION_UUID},
-    "910": {"wrong-etched-overlap"},
+    # The exact base overlap is dropped, while the different card is retained.
+    "910": {OVERLAP_UUID, SHARED_PRODUCT_ETCHED_UUID},
 }
 ALT_MAP = {
     "656544": {JAWS_UUID},
@@ -137,7 +139,17 @@ def test_live_and_raw_paths_map_alternative_products_equivalently(mapped_price_f
         (BASE_COLLISION_UUID, "normal"): 50.0,
         (ETCHED_COLLISION_UUID, "etched"): 60.0,
         (OVERLAP_UUID, "foil"): 80.0,
+        (SHARED_PRODUCT_ETCHED_UUID, "etched"): 80.0,
     }
+
+
+def test_base_overlap_only_suppresses_same_card_etched_mapping(mapped_price_frames):
+    for prices in mapped_price_frames:
+        actual = {(row["uuid"], row["finish"]): row["price"] for row in prices.iter_rows(named=True)}
+
+        assert actual[(OVERLAP_UUID, "foil")] == 80.0
+        assert (OVERLAP_UUID, "etched") not in actual
+        assert actual[(SHARED_PRODUCT_ETCHED_UUID, "etched")] == 80.0
 
 
 @pytest.mark.parametrize(
@@ -218,7 +230,6 @@ def test_alternative_mapping_does_not_duplicate_or_override_authoritative_produc
         {
             "wrong-alt-base-collision",
             "wrong-alt-etched-collision",
-            "wrong-etched-overlap",
             "ambiguous-one",
             "ambiguous-two",
             "null-price",

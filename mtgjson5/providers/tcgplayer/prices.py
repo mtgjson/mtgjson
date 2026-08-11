@@ -303,58 +303,58 @@ class TCGPlayerPriceProvider:
                 if market_price is None:
                     continue
 
-                # Base and etched mappings are authoritative. Alternative IDs
-                # are used only when the product is otherwise unknown and the
-                # alternative association resolves to exactly one UUID.
-                is_etched = False
-                mapping_priority = 0
-                uuids = tcg_to_uuid_map.get(product_id)
-                if not uuids:
-                    uuids = tcg_etched_to_uuid_map.get(product_id)
-                    is_etched = bool(uuids)
-                    mapping_priority = 1
-                if not uuids and tcg_alt_foil_to_uuid_map:
+                # Preserve base and etched mappings for different cards. When
+                # the same product and card occur in both, the base mapping wins.
+                base_uuids = tcg_to_uuid_map.get(product_id) or set()
+                etched_uuids = (tcg_etched_to_uuid_map.get(product_id) or set()) - base_uuids
+                mapping_candidates: list[tuple[set[str], bool, int]] = []
+                if base_uuids:
+                    mapping_candidates.append((base_uuids, False, 0))
+                if etched_uuids:
+                    mapping_candidates.append((etched_uuids, True, 1))
+
+                # Alternative IDs are used only when the product is otherwise
+                # unknown and the association resolves to exactly one UUID.
+                if not mapping_candidates and tcg_alt_foil_to_uuid_map:
                     alt_uuids = tcg_alt_foil_to_uuid_map.get(product_id)
                     if alt_uuids and len(alt_uuids) == 1:
-                        uuids = alt_uuids
-                        mapping_priority = 2
-                if not uuids:
+                        mapping_candidates.append((alt_uuids, False, 2))
+                if not mapping_candidates:
                     continue
                 numeric_product_id = int(product_id)
-
-                # Determine finish type
-                is_normal = sub_type == "Normal"
-                if is_normal:
-                    finish = "normal"
-                elif is_etched:
-                    finish = "etched"
-                else:
-                    finish = "foil"
 
                 # Create one price record per unique output key. A primary
                 # mapping wins when an alternative product exposes the same
                 # finish for the same UUID.
-                for uuid in uuids:
-                    key = (uuid, finish)
-                    rank = (mapping_priority, numeric_product_id)
-                    existing = candidates.get(key)
-                    if existing is not None and existing[0] <= rank:
-                        continue
-                    candidates[key] = (
-                        rank,
-                        {
-                            "uuid": uuid,
-                            "date": self.today_date,
-                            "source": "paper",
-                            "provider": "tcgplayer",
-                            "price_type": "retail",
-                            "finish": finish,
-                            "price": float(market_price),
-                            "currency": "USD",
-                            "productId": numeric_product_id,
-                            "_mappingPriority": mapping_priority,
-                        },
-                    )
+                for uuids, is_etched, mapping_priority in mapping_candidates:
+                    if sub_type == "Normal":
+                        finish = "normal"
+                    elif is_etched:
+                        finish = "etched"
+                    else:
+                        finish = "foil"
+
+                    for uuid in uuids:
+                        key = (uuid, finish)
+                        rank = (mapping_priority, numeric_product_id)
+                        existing = candidates.get(key)
+                        if existing is not None and existing[0] <= rank:
+                            continue
+                        candidates[key] = (
+                            rank,
+                            {
+                                "uuid": uuid,
+                                "date": self.today_date,
+                                "source": "paper",
+                                "provider": "tcgplayer",
+                                "price_type": "retail",
+                                "finish": finish,
+                                "price": float(market_price),
+                                "currency": "USD",
+                                "productId": numeric_product_id,
+                                "_mappingPriority": mapping_priority,
+                            },
+                        )
 
         except Exception as e:
             LOGGER.debug(f"Failed to fetch prices for group {group_id}: {e}")
