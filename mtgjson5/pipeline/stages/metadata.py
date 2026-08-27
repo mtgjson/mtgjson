@@ -236,6 +236,11 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
             ]
         )
 
+    # A cache written before the token flag existed has no such column, so fall
+    # back to a null literal rather than failing the whole build.
+    contents_cols = contents_lf.collect_schema().names()
+    token_col = pl.col("token") if "token" in contents_cols else pl.lit(None, dtype=pl.Boolean)
+
     # Aggregate contents by product and content_type
     # Each content type becomes a list of structs
     card_contents = (
@@ -248,6 +253,7 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
                 set=pl.col("set"),
                 uuid=pl.col("uuid"),
                 foil=pl.col("foil"),
+                token=token_col.alias("token"),
             ).alias("_card_list")
         )
     )

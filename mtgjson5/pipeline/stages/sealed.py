@@ -46,6 +46,7 @@ class card:
         self.number: str | int = contents["number"]
         self.etched: bool = contents.get("etched", False)
         self.foil: bool = contents.get("foil", False)
+        self.token: bool = contents.get("token", False)
         self.uuid: str | bool | None = contents.get("uuid", False)
 
     def toJson(self) -> dict:
@@ -56,12 +57,33 @@ class card:
             data["foil"] = self.foil
         if self.etched:
             data["etched"] = self.etched
+        if self.token:
+            data["token"] = self.token
         return data
 
     def get_uuids(self, uuid_map: dict) -> None:
         try:
-            self.uuid = uuid_map[self.set.lower()]["cards"][str(self.number)][0]
-            if self.name not in uuid_map[self.set.lower()]["cards"][str(self.number)][1]:
+            set_map = uuid_map[self.set.lower()]
+            number = str(self.number)
+            # Tokens (e.g. SLD 918 "Food") are listed separately from the
+            # regular cards, and the token flag picks which one to look in.
+            primary = "tokens" if self.token else "cards"
+            fallback = "cards" if self.token else "tokens"
+            if number in set_map.get(primary, {}):
+                entry = set_map[primary][number]
+            else:
+                # Still resolve it, but report the mismatch so the flag can be
+                # corrected in mtg-sealed-content.
+                entry = set_map[fallback][number]
+                LOGGER.warning(
+                    "Card number %s:%s found in %s, token flag should be %s",
+                    self.set,
+                    self.number,
+                    fallback,
+                    not self.token,
+                )
+            self.uuid = entry[0]
+            if self.name not in entry[1]:
                 raise ValueError("name and number do not match", self.name, self.name)
         except KeyError:
             LOGGER.warning("Card number %s:%s not found in set %s", self.set, self.number, self.set)
@@ -254,6 +276,7 @@ def build_uuid_map(allprintings_path: Path) -> dict:
         decks: set of deck names
         sealedProduct: {product_name: uuid}
         cards: {number_str: (uuid, name)}  — only side "a" cards
+        tokens: {number_str: (uuid, name)}  — only side "a" tokens
     """
     LOGGER.info("Loading AllPrintings.json from %s ...", allprintings_path)
     uuids: dict = {}
@@ -276,6 +299,7 @@ def build_uuid_map(allprintings_path: Path) -> dict:
                     "decks": set(),
                     "sealedProduct": {},
                     "cards": {},
+                    "tokens": {},
                 }
                 status = ""
             elif prefix == f"data.{current_set}" and event == "map_key":
@@ -311,6 +335,25 @@ def build_uuid_map(allprintings_path: Path) -> dict:
                     if holding != "skip":
                         uuids[ccode]["cards"][number] = (uuid, name)
                     holding = ""
+            elif status == "tokens":
+                # Tokens are referenced the same way as cards (by collector
+                # number) by sealed contents carrying the token flag.
+                if prefix == f"data.{current_set}.tokens.item.side" and value != "a":
+                    holding = "skip"
+                if prefix == f"data.{current_set}.tokens.item" and event == "start_map":
+                    number = ""
+                    name = ""
+                    uuid = ""
+                elif prefix == f"data.{current_set}.tokens.item.number":
+                    number = value
+                elif prefix == f"data.{current_set}.tokens.item.name":
+                    name = value
+                elif prefix == f"data.{current_set}.tokens.item.uuid":
+                    uuid = value
+                elif prefix == f"data.{current_set}.tokens.item" and event == "end_map":
+                    if holding != "skip":
+                        uuids[ccode]["tokens"][number] = (uuid, name)
+                    holding = ""
 
     LOGGER.info("Built UUID map for %d sets", len(uuids))
     return uuids
@@ -329,11 +372,12 @@ def build_uuid_map_from_pipeline(
 
     Returns a dict keyed by lowercase set code with sub-keys:
         cards: {number_str: (uuid, name)}  — only side "a" cards
+        tokens: {number_str: (uuid, name)}  — the subset laid out as tokens
         booster: set of booster type codes
         decks: set of deck names
         sealedProduct: {product_name: uuid}
     """
-    uuids: dict = {}
+    uuids: dict[str, dict] = {}
 
     # all_cards.ndjson includes all languages — multiple entries per
     # (set, collector_number) with different Scryfall IDs. We need
@@ -349,6 +393,7 @@ def build_uuid_map_from_pipeline(
             pl.col("set").alias("set_lower"),
             pl.col("collector_number").alias("number"),
             pl.col("name"),
+            pl.col("layout"),
         )
     )
 
@@ -373,37 +418,35 @@ def build_uuid_map_from_pipeline(
 
     cards_collected = cards_df.collect()
 
-    for row in cards_collected.iter_rows(named=True):
-        set_lower = row["set_lower"]
-        if set_lower not in uuids:
-            uuids[set_lower] = {
-                "cards": {},
-                "booster": set(),
-                "decks": set(),
-                "sealedProduct": {},
-            }
-        uuids[set_lower]["cards"][row["number"]] = (row["uuid"], row["name"])
-
-    for set_code, booster_config in boosters_raw.items():
-        code = set_code.lower()
+    def _ensure_set(code: str) -> dict:
         if code not in uuids:
             uuids[code] = {
                 "cards": {},
+                "tokens": {},
                 "booster": set(),
                 "decks": set(),
                 "sealedProduct": {},
             }
+        return uuids[code]
+
+    for row in cards_collected.iter_rows(named=True):
+        set_map = _ensure_set(row["set_lower"])
+        entry = (row["uuid"], row["name"])
+        set_map["cards"][row["number"]] = entry
+        # Tokens printed inside a regular set (e.g. SLD 918 "Food") end up in
+        # {set}.tokens rather than {set}.cards, and sealed contents flagged as
+        # token are resolved against this map.
+        if row["layout"] == "token":
+            set_map["tokens"][row["number"]] = entry
+
+    for set_code, booster_config in boosters_raw.items():
+        code = set_code.lower()
+        _ensure_set(code)
         uuids[code]["booster"] = set(booster_config.keys())
 
     for deck_entry in decks_raw:
         code = deck_entry["set_code"].lower()
-        if code not in uuids:
-            uuids[code] = {
-                "cards": {},
-                "booster": set(),
-                "decks": set(),
-                "sealedProduct": {},
-            }
+        _ensure_set(code)
         uuids[code]["decks"].add(deck_entry["name"])
 
     # Gather all (set_code, product_name) pairs
@@ -419,13 +462,7 @@ def build_uuid_map_from_pipeline(
         product_uuids = product_df["uuid"].to_list()
 
         for (set_lower, product_name), puuid in zip(product_pairs, product_uuids, strict=True):
-            if set_lower not in uuids:
-                uuids[set_lower] = {
-                    "cards": {},
-                    "booster": set(),
-                    "decks": set(),
-                    "sealedProduct": {},
-                }
+            _ensure_set(set_lower)
             uuids[set_lower]["sealedProduct"][product_name] = puuid
 
     LOGGER.info("Built UUID map from pipeline for %d sets", len(uuids))
