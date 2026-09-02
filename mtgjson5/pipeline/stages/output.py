@@ -523,17 +523,21 @@ def _build_mcm_price_mapping_cache(ctx: PipelineContext, lf: pl.LazyFrame) -> No
             mapping.write_parquet(path)
             LOGGER.info(f"Built Cardmarket price mappings: {len(mapping):,} entries")
     except Exception as e:
-        LOGGER.warning(f"Failed to build Cardmarket price mappings: {e}")
+        LOGGER.error(f"Failed to build Cardmarket price mappings, prices will be omitted: {e}")
 
 
 def build_id_mappings_from_parquet(ctx: PipelineContext) -> None:
     """Build ID -> UUID mappings by scanning all partitioned parquet files.
 
-    Projects only the identifier fields the downstream helpers need and casts
-    each to String per-partition before concat. Without this, struct-field
-    dtype drift between partitions (e.g. an all-null column inferred as Null
-    in one partition vs String in another) causes pl.concat to panic and
-    silently disables the price builder's ID mappings.
+    Projects the identifier fields the downstream helpers need and casts each
+    to String per-partition before concat. Without this, struct-field dtype
+    drift between partitions (e.g. an all-null column inferred as Null in one
+    partition vs String in another) causes pl.concat to panic and silently
+    disables the price builder's ID mappings.
+
+    setCode/name/number are projected alongside the identifiers because
+    _build_mcm_price_mapping_cache joins on them to resolve Cardmarket
+    product/finish identity.
     """
     cards_dir = constants.CACHE_PATH / "_parquet"
     tokens_dir = constants.CACHE_PATH / "_parquet_tokens"
@@ -551,6 +555,9 @@ def build_id_mappings_from_parquet(ctx: PipelineContext) -> None:
         return pl.scan_parquet(pq_file).select(
             [
                 pl.col("uuid").cast(pl.String),
+                pl.col("setCode").cast(pl.String),
+                pl.col("name").cast(pl.String),
+                pl.col("number").cast(pl.String),
                 pl.struct(
                     [pl.col("identifiers").struct.field(name).cast(pl.String).alias(name) for name in needed_id_fields]
                 ).alias("identifiers"),

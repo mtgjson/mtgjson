@@ -177,3 +177,47 @@ def test_every_mapped_finish_is_supported(tmp_path, monkeypatch):
     for row in mapping.iter_rows(named=True):
         card_finish = "nonfoil" if row["finish"] == "normal" else row["finish"]
         assert card_finish in supported[row["uuid"]]
+
+
+def test_post_batch_parquet_path_builds_cardmarket_mapping(tmp_path, monkeypatch):
+    """The production build writes parquet partitions first, then derives ID
+    mappings from them. That projection must keep the columns the Cardmarket
+    mapping joins on, or Cardmarket silently drops out of AllPrices."""
+    from mtgjson5 import constants
+    from mtgjson5.pipeline.stages.output import build_id_mappings_from_parquet
+
+    monkeypatch.setattr(constants, "CACHE_PATH", tmp_path)
+
+    id_fields = [
+        "tcgplayerProductId",
+        "tcgplayerEtchedProductId",
+        "tcgplayerAlternativeFoilProductId",
+        "mtgoId",
+        "scryfallId",
+        "mcmId",
+    ]
+    cards = _cards().with_columns(
+        pl.struct(
+            [
+                (
+                    pl.col("identifiers").struct.field("mcmId") if name == "mcmId" else pl.lit(None, dtype=pl.String)
+                ).alias(name)
+                for name in id_fields
+            ]
+        ).alias("identifiers")
+    )
+    for set_df in cards.partition_by("setCode", as_dict=False):
+        set_path = tmp_path / "_parquet" / f"setCode={set_df['setCode'][0]}"
+        set_path.mkdir(parents=True)
+        set_df.write_parquet(set_path / "0.parquet")
+
+    ctx = PipelineContext()
+    ctx._mcm_price_lookup_enriched = _price_candidates().lazy()
+    build_id_mappings_from_parquet(ctx)
+
+    assert (tmp_path / "cardmarket_to_uuid.parquet").exists()
+    mapping = pl.read_parquet(tmp_path / "mcm_price_mappings.parquet")
+    actual = set(mapping.rows())
+    assert (FORCE_UUID, "566136", "trend", "foil") in actual
+    assert (FORCE_UUID, "567745", "trend", "etched") in actual
+    assert set(mapping.filter(pl.col("uuid") == "normal-foil")["finish"]) == {"normal", "foil"}
