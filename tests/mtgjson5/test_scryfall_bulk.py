@@ -199,14 +199,14 @@ CATALOG = {
 }
 
 
-def _stub_downloads(provider, catalog=CATALOG, metadata_error=None):
+def _stub_downloads(provider, metadata_error=None):
     """Record which bulk types would be downloaded, without touching the network."""
     downloaded = []
 
     async def fake_metadata(_session):
         if metadata_error is not None:
             raise metadata_error
-        return catalog
+        return CATALOG
 
     async def fake_download(_session, url, destination, updated_at=None):
         downloaded.append(destination.name)
@@ -234,7 +234,7 @@ class TestDownloadBulkFiles:
 
         asyncio.run(provider.download_bulk_files(tmp_path, ["all_cards", "rulings"]))
 
-        assert downloaded == []
+        assert not downloaded
 
     def test_refreshes_only_the_stale_file(self, provider, tmp_path):
         _write_dump(tmp_path / "all_cards.ndjson", DUMP_TIME.timestamp() - 86400)
@@ -266,7 +266,7 @@ class TestDownloadBulkFiles:
 
         result = asyncio.run(provider.download_bulk_files(tmp_path, ["all_cards"]))
 
-        assert downloaded == []
+        assert not downloaded
         assert result["all_cards"] == tmp_path / "all_cards.ndjson"
 
     def test_unreachable_catalog_raises_without_usable_cache(self, provider, tmp_path):
