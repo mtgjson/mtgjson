@@ -316,6 +316,7 @@ class GlobalCache:
         output_types: set[str] | None = None,
         export_formats: set[str] | None = None,
         skip_mcm: bool = False,
+        refresh_bulk: bool = False,
     ) -> "GlobalCache":
         """
         Load all data sources and pre-compute aggregations.
@@ -329,6 +330,8 @@ class GlobalCache:
                 When specified, can be used to skip loading data not needed
                 for the requested formats.
             skip_mcm: Skip CardMarket data fetching (speeds up builds).
+            refresh_bulk: Re-download Scryfall bulk data even when the cached
+                files already match the newest published dump.
         """
         self._output_types = output_types or set()
         self._export_formats = export_formats
@@ -338,7 +341,7 @@ class GlobalCache:
 
         prof = get_profiler()
 
-        self._download_bulk_data()
+        self._download_bulk_data(force_refresh=refresh_bulk)
         prof.checkpoint("bulk_download")
         self._load_bulk_data()
         prof.checkpoint("bulk_load")
@@ -565,35 +568,20 @@ class GlobalCache:
         LOGGER.warning("uuid_cache not available, cannot build scryfall_id filter")
 
     def _download_bulk_data(self, force_refresh: bool = False) -> None:
-        """Download Scryfall bulk data if missing or stale."""
-        cards_path = self.cache_path / "all_cards.ndjson"
-        default_cards_path = self.cache_path / "default_cards.ndjson"
-        rulings_path = self.cache_path / "rulings.ndjson"
+        """
+        Sync Scryfall bulk data to the newest published dump.
 
-        needs_download = force_refresh
-        if not cards_path.exists() or cards_path.stat().st_size == 0:
-            needs_download = True
-        if not default_cards_path.exists() or default_cards_path.stat().st_size == 0:
-            needs_download = True
-        if not rulings_path.exists() or rulings_path.stat().st_size == 0:
-            needs_download = True
-
-        # Check age (72h max)
-        if not needs_download and cards_path.exists():
-            age_hours = (time.time() - cards_path.stat().st_mtime) / 3600
-            if age_hours > 72:
-                LOGGER.info(f"Bulk data is {age_hours:.1f}h old, refreshing...")
-                needs_download = True
-
-        if needs_download:
-            LOGGER.info("Downloading bulk scryfall data...")
-            self.bulkdata.download_bulk_files_sync(
-                self.cache_path,
-                ["all_cards", "default_cards", "rulings"],
-                force_refresh,
-            )
-        else:
-            LOGGER.info("Using cached bulk data")
+        Freshness is decided per file inside the provider, which compares each
+        cached file against the `updated_at` Scryfall reports for that dump. A
+        build therefore always reads the newest snapshot rather than whichever
+        one happened to be left in the cache.
+        """
+        LOGGER.info("Checking bulk scryfall data...")
+        self.bulkdata.download_bulk_files_sync(
+            self.cache_path,
+            ["all_cards", "default_cards", "rulings"],
+            force_refresh,
+        )
 
     def _load_bulk_data(self) -> None:
         """Load bulk NDJSON files into LazyFrames."""

@@ -7,9 +7,11 @@ of Scryfall bulk data files for Polars ingestion, plus API access methods.
 """
 
 import asyncio
+import datetime
 import gzip
 import json
 import logging
+import os
 import pathlib
 import time
 from typing import IO, Any, cast
@@ -55,6 +57,9 @@ class ScryfallProvider:
     RATE_LIMIT_BACKOFF_BASE: float = 2.0
     RATE_LIMIT_MAX_RETRIES: int = 5
 
+    # Only used when Scryfall omits `updated_at` for a bulk entry
+    BULK_MAX_AGE_HOURS: float = 24.0
+
     def __init__(self) -> None:
         self._cards_without_limits: set[str] | None = None
         self._rate_limiter: asyncio.Semaphore = asyncio.Semaphore(2)
@@ -98,26 +103,63 @@ class ScryfallProvider:
         uri = item.get("jsonl_download_uri") or item.get("download_uri")
         return str(uri) if uri else None
 
-    async def get_bulk_download_url(self, session: aiohttp.ClientSession, bulk_type: str) -> str:
-        """Fetch the download URL for a bulk data type."""
+    @staticmethod
+    def _parse_updated_at(item: dict[str, Any]) -> datetime.datetime | None:
+        """Read the timestamp Scryfall cut a bulk dump at, or None if it is unusable."""
+        raw = item.get("updated_at")
+        if not raw:
+            return None
+        try:
+            parsed = datetime.datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=datetime.UTC)
+        return parsed
+
+    def _cached_dump_is_current(
+        self,
+        destination: pathlib.Path,
+        updated_at: datetime.datetime | None,
+    ) -> bool:
+        """
+        Decide whether the on-disk NDJSON already holds Scryfall's newest dump.
+
+        Downloaded files are stamped with the dump's own `updated_at` (see
+        download_to_ndjson), so an mtime at or past the remote timestamp means we
+        already have that dump. Files written before that stamping existed carry
+        their download time, which is still later than the dump they came from.
+        """
+        if not destination.exists() or destination.stat().st_size == 0:
+            return False
+        if updated_at is None:
+            age_hours = (time.time() - destination.stat().st_mtime) / 3600
+            return age_hours < self.BULK_MAX_AGE_HOURS
+        return destination.stat().st_mtime >= updated_at.timestamp()
+
+    async def get_bulk_metadata(self, session: aiohttp.ClientSession) -> dict[str, dict[str, Any]]:
+        """Fetch Scryfall's bulk data catalog, keyed by bulk type."""
         response = await self._rate_limited_get(session, self.BULK_DATA_URL)
         async with response:
             response.raise_for_status()
             data = await response.json()
 
-        for item in data.get("data", []):
-            if item.get("type") == bulk_type:
-                download_uri = self._select_download_uri(item)
-                if download_uri:
-                    return download_uri
+        return {item["type"]: item for item in data.get("data", []) if item.get("type")}
 
-        raise ValueError(f"Unknown bulk type: {bulk_type}")
+    async def get_bulk_download_url(self, session: aiohttp.ClientSession, bulk_type: str) -> str:
+        """Fetch the download URL for a bulk data type."""
+        item = (await self.get_bulk_metadata(session)).get(bulk_type)
+        download_uri = self._select_download_uri(item) if item else None
+        if not download_uri:
+            raise ValueError(f"Unknown bulk type: {bulk_type}")
+        return download_uri
 
     async def download_to_ndjson(
         self,
         session: aiohttp.ClientSession,
         url: str,
         destination: pathlib.Path,
+        updated_at: datetime.datetime | None = None,
     ) -> pathlib.Path:
         """Stream a bulk file to a temp file, then convert it to NDJSON on disk."""
         self.LOGGER.info(f"Downloading {url}...")
@@ -160,6 +202,13 @@ class ScryfallProvider:
         # asyncio.to_thread to offload the blocking file conversion
         await asyncio.to_thread(self._convert_file_to_ndjson, tmp, destination)
         tmp.unlink(missing_ok=True)
+
+        # Stamp the file with the dump's own timestamp so later builds can tell
+        # which Scryfall snapshot they are sitting on
+        if updated_at is not None:
+            stamp = updated_at.timestamp()
+            os.utime(destination, (stamp, stamp))
+
         return destination
 
     @staticmethod
@@ -208,35 +257,56 @@ class ScryfallProvider:
         """
         Download multiple bulk files concurrently.
 
+        A cached file is reused only when it holds the newest dump Scryfall has
+        published; anything older is re-downloaded. Without that check a build
+        pins itself to whatever snapshot happened to be on disk, so passthrough
+        identifiers appear to flip back and forth between builds.
+
         Returns dict mapping bulk_type to file path.
         """
         headers = {
             "User-Agent": "MTGJSON/5.0 (https://mtgjson.com)",
             "Accept": "application/json",
         }
+        results = {bt: cache_dir / f"{bt}.ndjson" for bt in bulk_types}
         timeout = aiohttp.ClientTimeout(total=1800)
         async with aiohttp.ClientSession(headers=headers, timeout=timeout) as session:
-            # Resolve all download URLs first
-            urls = {}
-            for bulk_type in bulk_types:
-                urls[bulk_type] = await self.get_bulk_download_url(session, bulk_type)
+            try:
+                catalog = await self.get_bulk_metadata(session)
+            except (TimeoutError, aiohttp.ClientError) as exc:
+                usable = all(path.exists() and path.stat().st_size > 0 for path in results.values())
+                if force_refresh or not usable:
+                    raise
+                self.LOGGER.warning(
+                    f"Could not reach the Scryfall bulk catalog ({exc}); falling back to cached bulk data"
+                )
+                return results
 
-            # Download concurrently
             tasks = []
-            for bulk_type, url in urls.items():
-                dest = cache_dir / f"{bulk_type}.ndjson"
-                # local caching for dev convenience - wont matter in prod
-                if not force_refresh and dest.exists() and dest.stat().st_size > 0:
-                    self.LOGGER.info(f"Using cached {bulk_type}")
+            for bulk_type in bulk_types:
+                item = catalog.get(bulk_type)
+                if not item:
+                    raise ValueError(f"Unknown bulk type: {bulk_type}")
+                url = self._select_download_uri(item)
+                if not url:
+                    raise ValueError(f"No download URI for bulk type: {bulk_type}")
+
+                dest = results[bulk_type]
+                updated_at = self._parse_updated_at(item)
+                dump = updated_at.isoformat() if updated_at else "unknown timestamp"
+                if not force_refresh and self._cached_dump_is_current(dest, updated_at):
+                    self.LOGGER.info(f"Using cached {bulk_type} (Scryfall dump {dump})")
                     continue
+
+                self.LOGGER.info(f"Refreshing {bulk_type} to Scryfall dump {dump}")
                 # send to executor to avoid blocking event loop
-                tasks.append(self.download_to_ndjson(session, url, dest))
+                tasks.append(self.download_to_ndjson(session, url, dest, updated_at))
 
             if tasks:
                 # we waits
                 await asyncio.gather(*tasks)
 
-        return {bt: cache_dir / f"{bt}.ndjson" for bt in bulk_types}
+        return results
 
     def download_bulk_files_sync(
         self,
