@@ -155,6 +155,11 @@ def parse_args() -> argparse.Namespace:
         help="Shorthand for --use-models --all-sets --full-build --export all. When combined with --sets, only builds individual set files (skipping compiled outputs and exports unless --outputs/--export/--full-build are specified).",
     )
     pipeline_group.add_argument(
+        "--refresh-bulk",
+        action="store_true",
+        help="Re-download Scryfall bulk data even if the cached files already match the newest published dump.",
+    )
+    pipeline_group.add_argument(
         "--skip-mcm",
         action="store_true",
         help="Skip CardMarket data fetching (speeds up builds when MCM data not needed).",
@@ -253,6 +258,7 @@ def parse_args() -> argparse.Namespace:
         parsed_args.parallel = bool(os.environ.get("PARALLEL", False))
         parsed_args.pretty = bool(os.environ.get("PRETTY", False))
         parsed_args.bulk_files = bool(os.environ.get("USE_BULK", False))
+        parsed_args.refresh_bulk = bool(os.environ.get("REFRESH_BULK", False))
         parsed_args.skip_sets = list(filter(None, os.environ.get("SKIP_SETS", "").split(",")))
         parsed_args.price_build = bool(os.environ.get("PRICE_BUILD", False))
         parsed_args.referrals = bool(os.environ.get("REFERRALS", False))

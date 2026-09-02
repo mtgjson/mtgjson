@@ -172,6 +172,7 @@ def dispatcher(args: argparse.Namespace) -> None:
         output_types=outputs_requested,
         export_formats=export_formats,
         skip_mcm=args.skip_mcm,
+        refresh_bulk=args.refresh_bulk,
     )
     profiler.checkpoint("cache_loaded", top_n=10)
 
