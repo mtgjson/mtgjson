@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from .assemble import (
         AllIdentifiersAssembler,
         AtomicCardsAssembler,
+        CardmarketIdentifiersAssembler,
         DeckAssembler,
         DeckListAssembler,
         SetAssembler,
@@ -693,6 +694,13 @@ class AssemblyContext:
 
         return AllIdentifiersAssembler(self)
 
+    @cached_property
+    def cardmarket_identifiers(self) -> CardmarketIdentifiersAssembler:
+        """Assembler for CardmarketIdentifiers.json."""
+        from .assemble import CardmarketIdentifiersAssembler
+
+        return CardmarketIdentifiersAssembler(self)
+
     def release_card_data(self) -> None:
         """Free card/token DataFrames and assembler caches.
 
@@ -711,6 +719,7 @@ class AssemblyContext:
             "set_list",
             "tcgplayer_skus",
             "all_identifiers",
+            "cardmarket_identifiers",
         ):
             self.__dict__.pop(attr, None)
         gc.collect()

@@ -18,6 +18,7 @@ from mtgjson5.models.compiled import EnumValuesFile
 from mtgjson5.models.files import (
     AllPrintingsFile,
     AtomicCardsFile,
+    CardmarketIdentifiersFile,
     CardTypesFile,
     CompiledListFile,
     DeckListFile,
@@ -45,7 +46,7 @@ _ATOMIC_OUTPUTS = {f"{fmt.title()}Atomic" for fmt in _ATOMIC_FORMATS}
 _ASSEMBLY_GROUPS: list[tuple[str, list[str]]] = [
     ("A", ["AllPrintings", "FormatPrintings"]),
     ("D", ["DeckFiles", "DeckList"]),
-    ("F", ["AllIdentifiers", "EnumValues", "Keywords", "CardTypes"]),
+    ("F", ["AllIdentifiers", "EnumValues", "Keywords", "CardTypes", "CardmarketIdentifiers"]),
     ("B", ["AtomicCards", "FormatAtomics"]),
     ("C", ["SetFiles", "SetList", "Meta", "CompiledList"]),
     ("E", ["TcgplayerSkus"]),
@@ -341,6 +342,13 @@ class JsonOutputBuilder:
         data = self.ctx.tcgplayer_skus.build()
         file = TcgplayerSkusFile.with_meta(data, self.ctx.meta)
         file.write(output_path)
+        return file
+
+    def write_cardmarket_identifiers(self, output_path: pathlib.Path) -> CardmarketIdentifiersFile:
+        """Build CardmarketIdentifiers.json."""
+        data = self.ctx.cardmarket_identifiers.build()
+        file = CardmarketIdentifiersFile.with_meta(data, self.ctx.meta)
+        file.write(output_path, pretty=self.ctx.pretty)
         return file
 
     def _write_tcgplayer_skus_streaming(self, output_path: pathlib.Path) -> int:
@@ -801,6 +809,12 @@ class JsonOutputBuilder:
         self.ctx.__dict__.pop("tcgplayer_skus", None)
         gc.collect()
         profiler.checkpoint("assembly/tcgplayer_skus")
+
+        # Build CardmarketIdentifiers.json
+        if should_build("CardmarketIdentifiers"):
+            LOGGER.info("Building CardmarketIdentifiers.json...")
+            cardmarket_file = self.write_cardmarket_identifiers(output_dir / "CardmarketIdentifiers.json")
+            results["CardmarketIdentifiers"] = sum(len(v) for v in cardmarket_file.data.values())
 
         # Build Keywords.json
         if should_build("Keywords"):

@@ -271,6 +271,22 @@ class TcgplayerSkusAssembler(Assembler):
         """Returns UUID -> [SKU objects] mapping."""
 ```
 
+### CardmarketIdentifiersAssembler
+
+Builds `CardmarketIdentifiers.json`, decoding the opaque IDs in Cardmarket's
+public download files:
+
+```python
+class CardmarketIdentifiersAssembler(Assembler):
+    def build(self) -> dict[str, dict[str, Any]]:
+        """Returns {"expansions": {idExpansion -> {name, setCodes}},
+        "products": {idProduct -> {name, number?, expansionId, uuids?}}}."""
+```
+
+Reads the raw Cardmarket catalog (`mkm_cards.parquet`) and the
+`cardmarket_to_uuid` mapping from the pipeline cache. Produces empty maps when
+no Cardmarket credentials are configured.
+
 ### TableAssembler
 
 Assembles flattened table representations for relational formats:

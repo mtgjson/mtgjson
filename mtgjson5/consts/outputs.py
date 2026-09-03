@@ -27,6 +27,7 @@ COMPILED_OUTPUT_NAMES: Final[frozenset[str]] = frozenset(
         "AllDeckFiles",
         "AllSetFiles",
         "CardTypes",
+        "CardmarketIdentifiers",
         "CompiledList",
         "DeckList",
         "Keywords",
