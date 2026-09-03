@@ -151,7 +151,7 @@ class TestCardmarketIdentifiersAssembler:
             "name": "Mystery Product",
             "expansionId": 42,
         }
-        assert result["expansions"]["42"] == {"name": "Unknown Set", "setCodes": []}
+        assert result["expansions"]["42"] == {"name": "Unknown Set"}
 
     def test_multiple_uuids_are_sorted(self, cache_dir):
         _write_catalog(
@@ -211,8 +211,8 @@ class TestCardmarketIdentifiersAssembler:
         result = CardmarketIdentifiersAssembler(_make_ctx()).build()
 
         assert result["expansions"] == {
-            "1676": {"name": "Oath of the Gatewatch", "setCodes": []},
-            "2901": {"name": "Secret Lair Drop Series", "setCodes": []},
+            "1676": {"name": "Oath of the Gatewatch"},
+            "2901": {"name": "Secret Lair Drop Series"},
         }
 
     def test_missing_expansion_list_changes_nothing(self, cache_dir):

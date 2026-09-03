@@ -119,7 +119,7 @@ class CardmarketIdentifiersFile(RecordFileBase):
     """CardmarketIdentifiers.json: { meta, data: { expansions, products } }
 
     Decodes the opaque IDs in Cardmarket's public download files:
-    - expansions: { idExpansion: { name, setCodes } }
+    - expansions: { idExpansion: { name, setCodes? } }
     - products: { idProduct: { name, number?, expansionId, uuids? } }
     """
 

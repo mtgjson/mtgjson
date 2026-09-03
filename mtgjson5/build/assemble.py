@@ -1217,10 +1217,11 @@ class CardmarketIdentifiersAssembler(Assembler):
             )
         for row in expansion_rows.iter_rows(named=True):
             exp_id = int(row["expansionId"])
-            expansions[str(exp_id)] = {
-                "name": row["expansionName"],
-                "setCodes": set_codes_by_expansion.get(exp_id, []),
-            }
+            entry: dict[str, Any] = {"name": row["expansionName"]}
+            set_codes = set_codes_by_expansion.get(exp_id)
+            if set_codes:
+                entry["setCodes"] = set_codes
+            expansions[str(exp_id)] = entry
 
         products: dict[str, dict[str, Any]] = {}
         product_rows = (
