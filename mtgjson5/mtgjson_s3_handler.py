@@ -35,7 +35,7 @@ class MtgjsonS3Handler:
         try:
             self.s3_client.download_file(bucket_name, bucket_object_path, local_save_file_path)
             return True
-        except botocore.exceptions.ClientError as error:
+        except (botocore.exceptions.ClientError, botocore.exceptions.BotoCoreError) as error:
             self.logger.error(f"Failed to download s3://{bucket_name}/{bucket_object_path}: {error}")
             return False
 
