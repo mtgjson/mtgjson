@@ -1136,6 +1136,25 @@ class CardmarketIdentifiersAssembler(Assembler):
             LOGGER.warning(f"Failed to read Cardmarket catalog: {e}")
             return None
 
+    def _load_expansion_list(self) -> pl.DataFrame | None:
+        """Load the full Cardmarket expansion list from the pipeline cache.
+
+        The card catalog only names the expansions whose cards have been
+        crawled; the expansion list names all of them, so the output can
+        decode an ``idExpansion`` even before its products are linked.
+        """
+        from mtgjson5 import constants
+        from mtgjson5.utils import LOGGER
+
+        path = constants.CACHE_PATH / "mkm_expansions.parquet"
+        if not path.exists():
+            return None
+        try:
+            return pl.read_parquet(path)
+        except Exception as e:
+            LOGGER.warning(f"Failed to read Cardmarket expansion list: {e}")
+            return None
+
     def _load_uuid_map(self) -> dict[str, list[str]]:
         """Build mcmId -> sorted UUID list from GLOBAL_CACHE or disk fallback."""
         from mtgjson5 import constants
@@ -1189,12 +1208,20 @@ class CardmarketIdentifiersAssembler(Assembler):
             .filter(pl.col("expansionId").is_not_null())
             .sort("expansionId")
         )
+        expansion_list = self._load_expansion_list()
+        if expansion_list is not None and not expansion_list.is_empty():
+            expansion_rows = (
+                pl.concat([expansion_list, expansion_rows])
+                .unique(subset=["expansionId"], keep="first")
+                .sort("expansionId")
+            )
         for row in expansion_rows.iter_rows(named=True):
             exp_id = int(row["expansionId"])
-            expansions[str(exp_id)] = {
-                "name": row["expansionName"],
-                "setCodes": set_codes_by_expansion.get(exp_id, []),
-            }
+            exp_entry: dict[str, Any] = {"name": row["expansionName"]}
+            set_codes = set_codes_by_expansion.get(exp_id)
+            if set_codes:
+                exp_entry["setCodes"] = set_codes
+            expansions[str(exp_id)] = exp_entry
 
         products: dict[str, dict[str, Any]] = {}
         product_rows = (
