@@ -115,6 +115,25 @@ class TcgplayerSkusFile(RecordFileBase):
         return self.data.get(uuid)
 
 
+class CardmarketIdentifiersFile(RecordFileBase):
+    """CardmarketIdentifiers.json: { meta, data: { expansions, products } }
+
+    Decodes the opaque IDs in Cardmarket's public download files:
+    - expansions: { idExpansion: { name, setCodes } }
+    - products: { idProduct: { name, number?, expansionId, uuids? } }
+    """
+
+    data: dict[str, dict[str, dict[str, Any]]]
+
+    def get_expansion(self, expansion_id: str) -> dict[str, Any] | None:
+        """Get expansion info by Cardmarket expansion ID."""
+        return self.data.get("expansions", {}).get(expansion_id)
+
+    def get_product(self, product_id: str) -> dict[str, Any] | None:
+        """Get product info by Cardmarket product ID."""
+        return self.data.get("products", {}).get(product_id)
+
+
 class KeywordsFile(RecordFileBase):
     """Keywords.json: { meta, data: { abilityWords, keywordAbilities, keywordActions } }
 
@@ -285,6 +304,7 @@ class Files:
     AllIdentifiersFile = AllIdentifiersFile
     AllPricesFile = AllPricesFile
     TcgplayerSkusFile = TcgplayerSkusFile
+    CardmarketIdentifiersFile = CardmarketIdentifiersFile
     SetListFile = SetListFile
     DeckListFile = DeckListFile
     IndividualSetFile = IndividualSetFile
@@ -304,6 +324,7 @@ FILE_MODEL_REGISTRY: list[type[BaseModel]] = [
     AllIdentifiersFile,
     AllPricesFile,
     TcgplayerSkusFile,
+    CardmarketIdentifiersFile,
     SetListFile,
     DeckListFile,
     IndividualSetFile,

@@ -124,7 +124,7 @@ def parse_args() -> argparse.Namespace:
         type=lambda s: [x.strip() for x in s.split(",") if x.strip()],
         metavar="LIST",
         default=None,
-        help="Compiled outputs to build: AllPrintings, AllIdentifiers, TcgplayerSkus, AllPrices, CompiledList, Keywords, CardTypes, Meta, SetList, AtomicCards, Decks, EnumValues. Defaults to all.",
+        help="Compiled outputs to build: AllPrintings, AllIdentifiers, TcgplayerSkus, CardmarketIdentifiers, AllPrices, CompiledList, Keywords, CardTypes, Meta, SetList, AtomicCards, Decks, EnumValues. Defaults to all.",
     )
     pipeline_group.add_argument(
         "--export",

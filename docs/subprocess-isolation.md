@@ -61,7 +61,7 @@ Tasks are grouped to keep intra-group dependencies internal and minimize per-gro
 | **C** | SetFiles, SetList, Meta, CompiledList | _(none)_ | `all_cards_df`, `decks_df`, `sealed_df`, `token_products`, `booster_configs` |
 | **D** | DeckFiles, DeckList | sealed, token_products, boosters | `decks_df` + uuid_index from parquet |
 | **E** | TcgplayerSkus | decks, boosters | `sealed_df`, `token_products`, TCG SKU parquets |
-| **F** | AllIdentifiers, EnumValues, Keywords, CardTypes | token_products, boosters | Parquet reads, `decks_df`/`sealed_df` (EnumValues), scryfall catalogs |
+| **F** | AllIdentifiers, EnumValues, Keywords, CardTypes, CardmarketIdentifiers | token_products, boosters | Parquet reads, `decks_df`/`sealed_df` (EnumValues), scryfall catalogs, MCM catalog parquets |
 
 **Dependencies:** FormatPrintings reads AllPrintings.json from disk (stays in Group A). FormatAtomics reads AtomicCards.json from disk (stays in Group B). No cross-group dependencies.
 

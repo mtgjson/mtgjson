@@ -201,6 +201,10 @@ def _run_task(
         count = builder.write_all_identifiers(out / "AllIdentifiers.json")
         results["AllIdentifiers"] = count
 
+    elif task == "CardmarketIdentifiers":
+        cardmarket_file = builder.write_cardmarket_identifiers(out / "CardmarketIdentifiers.json")
+        results["CardmarketIdentifiers"] = sum(len(v) for v in cardmarket_file.data.values())
+
     elif task == "Keywords":
         keywords = builder.write_keywords(out / "Keywords.json")
         results["Keywords"] = sum(len(v) for v in keywords.data.values())

@@ -1111,6 +1111,114 @@ class TcgplayerSkusAssembler(Assembler):
         return dict(self.iter_skus())
 
 
+class CardmarketIdentifiersAssembler(Assembler):
+    """Assembles CardmarketIdentifiers.json - decodes Cardmarket expansion/product IDs.
+
+    Cardmarket's public download files only reference an opaque ``idExpansion``
+    and ``idProduct`` per product. This output maps those IDs to expansion
+    names, MTGJSON set codes, collector numbers, and MTGJSON UUIDs.
+    """
+
+    def _load_catalog(self) -> pl.DataFrame | None:
+        """Load the raw Cardmarket product catalog from the pipeline cache."""
+        from mtgjson5 import constants
+        from mtgjson5.utils import LOGGER
+
+        catalog_path = constants.CACHE_PATH / "mkm_cards.parquet"
+        if not catalog_path.exists():
+            LOGGER.warning(
+                "Cardmarket catalog not found (mkm_cards.parquet missing). CardmarketIdentifiers.json will be empty."
+            )
+            return None
+        try:
+            return pl.read_parquet(catalog_path)
+        except Exception as e:
+            LOGGER.warning(f"Failed to read Cardmarket catalog: {e}")
+            return None
+
+    def _load_uuid_map(self) -> dict[str, list[str]]:
+        """Build mcmId -> sorted UUID list from GLOBAL_CACHE or disk fallback."""
+        from mtgjson5 import constants
+        from mtgjson5.data import GLOBAL_CACHE
+
+        uuid_lf = GLOBAL_CACHE.cardmarket_to_uuid_lf
+        if uuid_lf is None:
+            path = constants.CACHE_PATH / "cardmarket_to_uuid.parquet"
+            if path.exists():
+                uuid_lf = pl.scan_parquet(path)
+        if uuid_lf is None:
+            return {}
+
+        df = uuid_lf.select(["mcmId", "uuid"]).collect()
+        uuid_map: dict[str, list[str]] = {}
+        for mcm_id, uuid in df.iter_rows():
+            if mcm_id is None or uuid is None:
+                continue
+            uuid_map.setdefault(str(mcm_id), []).append(uuid)
+        for uuids in uuid_map.values():
+            uuids.sort()
+        return uuid_map
+
+    def _build_expansion_set_codes(self) -> dict[int, list[str]]:
+        """Map Cardmarket expansion ID -> MTGJSON set codes via set metadata."""
+        set_codes_by_expansion: dict[int, list[str]] = {}
+        for code, meta in self.ctx.set_meta.items():
+            for key in ("mcmId", "mcmIdExtras"):
+                exp_id = meta.get(key)
+                if exp_id is not None:
+                    set_codes_by_expansion.setdefault(int(exp_id), []).append(code)
+        for codes in set_codes_by_expansion.values():
+            codes.sort()
+        return set_codes_by_expansion
+
+    def build(self) -> dict[str, dict[str, Any]]:
+        """Build CardmarketIdentifiers data with expansion and product maps."""
+        from mtgjson5.utils import LOGGER
+
+        catalog = self._load_catalog()
+        if catalog is None or catalog.is_empty():
+            return {"expansions": {}, "products": {}}
+
+        uuid_map = self._load_uuid_map()
+        set_codes_by_expansion = self._build_expansion_set_codes()
+
+        expansions: dict[str, dict[str, Any]] = {}
+        expansion_rows = (
+            catalog.select(["expansionId", "expansionName"])
+            .unique()
+            .filter(pl.col("expansionId").is_not_null())
+            .sort("expansionId")
+        )
+        for row in expansion_rows.iter_rows(named=True):
+            exp_id = int(row["expansionId"])
+            expansions[str(exp_id)] = {
+                "name": row["expansionName"],
+                "setCodes": set_codes_by_expansion.get(exp_id, []),
+            }
+
+        products: dict[str, dict[str, Any]] = {}
+        product_rows = (
+            catalog.select(["mcmId", "name", "number", "expansionId"])
+            .unique(subset=["mcmId"], keep="first")
+            .filter(pl.col("mcmId").is_not_null())
+            .sort("mcmId")
+        )
+        for row in product_rows.iter_rows(named=True):
+            product_id = str(int(row["mcmId"]))
+            entry: dict[str, Any] = {"name": row["name"]}
+            if row["number"]:
+                entry["number"] = row["number"]
+            if row["expansionId"] is not None:
+                entry["expansionId"] = int(row["expansionId"])
+            uuids = uuid_map.get(product_id)
+            if uuids:
+                entry["uuids"] = uuids
+            products[product_id] = entry
+
+        LOGGER.info(f"Built CardmarketIdentifiers with {len(expansions)} expansions and {len(products)} products")
+        return {"expansions": expansions, "products": products}
+
+
 class TableAssembler:
     """Build normalized relational tables from card data."""
 
@@ -1732,6 +1840,7 @@ class CompiledListAssembler:
         "AllPrintings",
         "AtomicCards",
         "CardTypes",
+        "CardmarketIdentifiers",
         "CompiledList",
         "DeckList",
         "EnumValues",
