@@ -12,6 +12,7 @@ import polars as pl
 from mtgjson5.consts import BASIC_LAND_NAMES, TOKEN_LAYOUTS
 from mtgjson5.data import PipelineContext
 from mtgjson5.pipeline.lookups import add_meld_other_face_ids, apply_meld_overrides
+from mtgjson5.pipeline.stages.token_references import TokenPins
 
 
 def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
@@ -316,13 +317,22 @@ def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
 
 
 # 4.4: add token UUIDs to non-token cards
-def add_token_ids(lf: pl.LazyFrame, scryfall_uuid_lf: pl.LazyFrame) -> pl.LazyFrame:
+def add_token_ids(
+    lf: pl.LazyFrame,
+    scryfall_uuid_lf: pl.LazyFrame,
+    token_pins: TokenPins | None = None,
+) -> pl.LazyFrame:
     """
     Resolve token Scryfall IDs from _all_parts to MTGJSON UUIDs.
 
     Uses explode-join-aggregate pattern: extracts token scryfall IDs,
     explodes to one row per ID, joins with the scryfall->uuid mapping,
     then aggregates back to a list per card.
+
+    When ``token_pins`` is supplied, a reference resolves to the printing the
+    card was first published against rather than whichever printing Scryfall
+    currently names.  A pin whose printing has left Scryfall resolves to null
+    and falls back to the live reference.
     """
     # Extract token Scryfall IDs from _all_parts where component == "token"
     with_token_ids = lf.with_columns(
@@ -336,21 +346,46 @@ def add_token_ids(lf: pl.LazyFrame, scryfall_uuid_lf: pl.LazyFrame) -> pl.LazyFr
         .alias("_token_scryfall_ids")
     )
 
+    uuid_lookup = scryfall_uuid_lf.select(
+        pl.col("scryfallId").alias("_lookup_sid"),
+        pl.col("uuid").alias("_lookup_uuid"),
+    )
+
     # Explode to one row per token scryfall ID, join to resolve uuids, aggregate back
-    resolved = (
-        with_token_ids.select(["uuid", "_token_scryfall_ids"])
+    pairs = (
+        with_token_ids.select(["uuid", "scryfallId", "_token_scryfall_ids"])
         .explode("_token_scryfall_ids")
         .filter(pl.col("_token_scryfall_ids").is_not_null())
-        .join(
-            scryfall_uuid_lf.select(
-                pl.col("scryfallId").alias("_token_scryfall_ids"),
-                pl.col("uuid").alias("_resolved_uuid"),
-            ),
-            on="_token_scryfall_ids",
-            how="inner",
+    )
+
+    if token_pins is None:
+        pairs = pairs.with_columns(pl.lit(None, dtype=pl.String).alias("_pinned_uuid"))
+    else:
+        pairs = (
+            # all_parts names a printing; the pin is filed under its oracle id.
+            pairs.join(
+                token_pins.oracle_lf,
+                left_on="_token_scryfall_ids",
+                right_on="_tok_sid",
+                how="left",
+            )
+            .join(
+                token_pins.pins_lf,
+                left_on=["scryfallId", "_tok_oracle"],
+                right_on=["_card_sid", "_tok_oracle"],
+                how="left",
+            )
+            .join(uuid_lookup, left_on="_pin_sid", right_on="_lookup_sid", how="left")
+            .rename({"_lookup_uuid": "_pinned_uuid"})
+            .drop(["_tok_oracle", "_pin_sid"], strict=False)
         )
+
+    resolved = (
+        pairs.join(uuid_lookup, left_on="_token_scryfall_ids", right_on="_lookup_sid", how="left")
+        .with_columns(pl.coalesce(pl.col("_pinned_uuid"), pl.col("_lookup_uuid")).alias("_resolved_uuid"))
+        .filter(pl.col("_resolved_uuid").is_not_null())
         .group_by("uuid")
-        .agg(pl.col("_resolved_uuid").sort().alias("_token_uuids"))
+        .agg(pl.col("_resolved_uuid").unique().sort().alias("_token_uuids"))
     )
 
     # Join resolved tokens back to main frame
