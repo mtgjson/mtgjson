@@ -54,6 +54,13 @@ def _write_uuid_map(cache_dir, rows: list[dict]) -> None:
     ).write_parquet(cache_dir / "cardmarket_to_uuid.parquet")
 
 
+def _write_expansion_list(cache_dir, rows: list[dict]) -> None:
+    pl.DataFrame(
+        rows,
+        schema={"expansionId": pl.Int64, "expansionName": pl.String},
+    ).write_parquet(cache_dir / "mkm_expansions.parquet")
+
+
 @pytest.fixture
 def cache_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(constants, "CACHE_PATH", tmp_path)
@@ -171,6 +178,62 @@ class TestCardmarketIdentifiersAssembler:
         result = CardmarketIdentifiersAssembler(_make_ctx()).build()
 
         assert result["products"]["100"]["uuids"] == ["uuid-a", "uuid-b"]
+
+    def test_expansion_list_names_uncrawled_expansions(self, cache_dir):
+        """Every expansion Cardmarket sells is named, crawled or not.
+
+        The card catalog only covers expansions whose cards have been
+        fetched; a consumer joining Cardmarket's public product list needs
+        the rest of the names too, or their products cannot be resolved.
+        """
+        _write_catalog(
+            cache_dir,
+            [
+                {
+                    "mcmId": 287295,
+                    "mcmMetaId": 221432,
+                    "name": "Fall of the Titans",
+                    "number": "167",
+                    "expansionId": 1676,
+                    "expansionName": "Oath of the Gatewatch",
+                },
+            ],
+        )
+        _write_uuid_map(cache_dir, [])
+        _write_expansion_list(
+            cache_dir,
+            [
+                {"expansionId": 1676, "expansionName": "Oath of the Gatewatch"},
+                {"expansionId": 2901, "expansionName": "Secret Lair Drop Series"},
+            ],
+        )
+
+        result = CardmarketIdentifiersAssembler(_make_ctx()).build()
+
+        assert result["expansions"] == {
+            "1676": {"name": "Oath of the Gatewatch", "setCodes": []},
+            "2901": {"name": "Secret Lair Drop Series", "setCodes": []},
+        }
+
+    def test_missing_expansion_list_changes_nothing(self, cache_dir):
+        _write_catalog(
+            cache_dir,
+            [
+                {
+                    "mcmId": 287295,
+                    "mcmMetaId": 221432,
+                    "name": "Fall of the Titans",
+                    "number": "167",
+                    "expansionId": 1676,
+                    "expansionName": "Oath of the Gatewatch",
+                },
+            ],
+        )
+        _write_uuid_map(cache_dir, [])
+
+        result = CardmarketIdentifiersAssembler(_make_ctx()).build()
+
+        assert list(result["expansions"]) == ["1676"]
 
     def test_missing_catalog_returns_empty_maps(self, cache_dir):
         result = CardmarketIdentifiersAssembler(_make_ctx()).build()

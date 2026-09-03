@@ -157,6 +157,9 @@ class CardMarketProvider:
                 "mcmName": exp["enName"],
             }
 
+        # Persist the complete expansion list so CardmarketIdentifiers can name expansions the crawl has not covered
+        self._persist_expansion_list(data.get("expansion", []))
+
         # Apply manual fixes
         fixes_path = RESOURCE_PATH / "mkm_set_name_fixes.json"
         if fixes_path.exists():
@@ -171,6 +174,28 @@ class CardMarketProvider:
 
         LOGGER.info(f"Loaded {len(self._set_map)} MKM expansions")
         return self._set_map
+
+    def _persist_expansion_list(self, expansions: list[dict[str, Any]]) -> None:
+        """Write the raw expansion id/name list to the pipeline cache."""
+        from mtgjson5 import constants
+
+        rows = [
+            {
+                "expansionId": int(exp["idExpansion"]),
+                "expansionName": str(exp["enName"]),
+            }
+            for exp in expansions
+            if exp.get("idExpansion") is not None
+        ]
+        if not rows:
+            return
+        try:
+            path = constants.CACHE_PATH / "mkm_expansions.parquet"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            pl.DataFrame(rows).write_parquet(path)
+            LOGGER.info(f"Persisted {len(rows)} MKM expansions to cache")
+        except Exception as e:
+            LOGGER.warning(f"Failed to persist MKM expansion list: {e}")
 
     def get_set_id(self, set_name: str) -> int | None:
         """Get MKM set ID by name."""
