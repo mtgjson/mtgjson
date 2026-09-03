@@ -93,6 +93,7 @@ from mtgjson5.pipeline.stages.signatures import (
     add_signatures_combined,
     join_signatures,
 )
+from mtgjson5.pipeline.stages.token_references import TokenPins, build_token_pins
 from mtgjson5.profiler import get_profiler
 from mtgjson5.utils import LOGGER
 
@@ -150,6 +151,11 @@ def _build_cards_batched(ctx: PipelineContext, batch_size: int, prof: PipelinePr
     scryfall_uuid_lf = _build_global_scryfall_uuid_map(ctx)
     prof.checkpoint("prepass_scryfall_uuid_map")
 
+    # Pre-pass: pinned token references keep relatedCards.tokens stable when
+    # Scryfall repoints a card at a different printing of the same token.
+    token_pins = build_token_pins(ctx.cards_lf)
+    prof.checkpoint("prepass_token_pins")
+
     # Determine batches
     all_codes = sorted(set_codes) if set_codes else _get_all_set_codes(ctx)
 
@@ -166,7 +172,14 @@ def _build_cards_batched(ctx: PipelineContext, batch_size: int, prof: PipelinePr
         lf = _prepare_batch_lf(ctx, batch_codes, sets_lf, set_select_exprs)
 
         try:
-            lf = _run_pipeline_stages(ctx, lf, scryfall_uuid_lf=scryfall_uuid_lf, prof=prof, label=batch_label)
+            lf = _run_pipeline_stages(
+                ctx,
+                lf,
+                scryfall_uuid_lf=scryfall_uuid_lf,
+                token_pins=token_pins,
+                prof=prof,
+                label=batch_label,
+            )
         except Exception:
             LOGGER.error(f"[{batch_label}] Pipeline failed for sets: {batch_codes}")
             raise
@@ -193,6 +206,7 @@ def _run_pipeline_stages(
     lf: pl.LazyFrame,
     *,
     scryfall_uuid_lf: pl.LazyFrame,
+    token_pins: TokenPins | None = None,
     prof: PipelineProfiler,
     label: str,
 ) -> pl.LazyFrame:
@@ -203,6 +217,8 @@ def _run_pipeline_stages(
         lf: Input LazyFrame (already filtered and joined with set metadata).
         scryfall_uuid_lf: Pre-built global scryfallId->uuid mapping for
             ``add_token_ids()``.
+        token_pins: Pinned token references, or None to follow Scryfall's
+            current ``all_parts`` pointers.
         prof: Profiler instance.
         label: Prefix for profiler checkpoint names (e.g. "batch_0").
     """
@@ -323,7 +339,7 @@ def _run_pipeline_stages(
         lf.pipe(partial(add_other_face_ids, ctx=ctx))
         .pipe(partial(add_leadership_skills_expr, ctx=ctx))
         .pipe(add_reverse_related)
-        .pipe(partial(add_token_ids, scryfall_uuid_lf=scryfall_uuid_lf))
+        .pipe(partial(add_token_ids, scryfall_uuid_lf=scryfall_uuid_lf, token_pins=token_pins))
         .pipe(propagate_salt_to_tokens)
         .pipe(partial(add_related_cards_from_context, _ctx=ctx))
         .pipe(partial(add_alternative_deck_limit, ctx=ctx))
