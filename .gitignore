@@ -130,6 +130,7 @@ stacksampler.py
 *.psql
 *.json
 !mtgjson5/resources/mkm_finish_profiles.json
+!mtgjson5/resources/token_references.json
 *.sh
 *.parquet
 benchmark*
