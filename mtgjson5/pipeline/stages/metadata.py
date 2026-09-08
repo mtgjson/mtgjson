@@ -16,6 +16,7 @@ import polars_hash as plh
 from mtgjson5 import constants
 from mtgjson5.data import PipelineContext
 from mtgjson5.pipeline.stages.explode import _uuid5_expr
+from mtgjson5.pipeline.stages.sealed_uuids import sealed_uuid_expr
 from mtgjson5.utils import LOGGER
 
 
@@ -349,7 +350,9 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
         ]
     )
 
-    result = result.with_columns(_uuid5_expr("productName").alias("uuid"))
+    # Pinned UUIDs keep a renamed product on the UUID it was first published
+    # with; anything without a pin falls back to the name-based formula.
+    result = result.with_columns(pl.coalesce(sealed_uuid_expr(products_lf), _uuid5_expr("productName")).alias("uuid"))
 
     result = result.with_columns(
         pl.when(pl.col("subtype").is_in(["REDEMPTION", "SECRET_LAIR_DROP"]))

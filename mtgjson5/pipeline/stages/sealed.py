@@ -12,7 +12,8 @@ import ijson
 import polars as pl
 import yaml
 
-from mtgjson5.pipeline.stages.explode import _uuid5_concat_expr, _uuid5_expr
+from mtgjson5.pipeline.stages.explode import _uuid5_concat_expr
+from mtgjson5.pipeline.stages.sealed_uuids import name_uuid, resolve_sealed_uuids
 
 LOGGER = logging.getLogger(__name__)
 
@@ -449,21 +450,10 @@ def build_uuid_map_from_pipeline(
         _ensure_set(code)
         uuids[code]["decks"].add(deck_entry["name"])
 
-    # Gather all (set_code, product_name) pairs
-    product_pairs: list[tuple[str, str]] = []
-    for set_code, products in products_dict.items():
-        for product_name in products:
-            product_pairs.append((set_code.lower(), product_name))
-
-    if product_pairs:
-        product_names = [p[1] for p in product_pairs]
-        product_df = pl.DataFrame({"productName": product_names})
-        product_df = product_df.with_columns(_uuid5_expr("productName").alias("uuid"))
-        product_uuids = product_df["uuid"].to_list()
-
-        for (set_lower, product_name), puuid in zip(product_pairs, product_uuids, strict=True):
-            _ensure_set(set_lower)
-            uuids[set_lower]["sealedProduct"][product_name] = puuid
+    for (set_code, product_name), puuid in resolve_sealed_uuids(products_dict).items():
+        set_lower = set_code.lower()
+        _ensure_set(set_lower)
+        uuids[set_lower]["sealedProduct"][product_name] = puuid
 
     LOGGER.info("Built UUID map from pipeline for %d sets", len(uuids))
     return uuids
@@ -651,24 +641,24 @@ def build_pipeline_view(
     for code in products_dict:
         _ensure_set(code)
 
-    # Batch-compute sealedProduct UUIDs.
-    all_product_pairs: list[tuple[str, str]] = []
-    for set_code in contents_dict:
-        for product_name in contents_dict[set_code]:
-            all_product_pairs.append((set_code.upper(), product_name))
-
-    product_uuid_map: dict[tuple[str, str], str] = {}
-    if all_product_pairs:
-        names = [p[1] for p in all_product_pairs]
-        pdf = pl.DataFrame({"productName": names})
-        pdf = pdf.with_columns(_uuid5_expr("productName").alias("uuid"))
-        uuids_list = pdf["uuid"].to_list()
-        product_uuid_map = dict(zip(all_product_pairs, uuids_list, strict=True))
+    # Products only present in the contents YAML have no pin to look up, so they
+    # keep the historical name-based UUID.
+    product_uuid_map = resolve_sealed_uuids(products_dict)
 
     for set_code, products in contents_dict.items():
         upper = set_code.upper()
         for product_name, product_contents in products.items():
             puuid = product_uuid_map.get((upper, product_name))
+            if puuid is None:
+                # No products.yaml entry, so no pin either. The name-based UUID
+                # can collide with one a rename carried over to another product,
+                # so say so rather than emitting a silent duplicate.
+                puuid = name_uuid(product_name)
+                LOGGER.warning(
+                    "Sealed contents %s '%s' has no products.yaml entry, using its name-based UUID",
+                    upper,
+                    product_name,
+                )
             view[upper]["sealedProduct"].append(
                 {
                     "uuid": puuid,
