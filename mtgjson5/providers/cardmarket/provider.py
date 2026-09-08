@@ -26,6 +26,13 @@ from mtgjson5.utils import generate_entity_mapping
 
 LOGGER = logging.getLogger(__name__)
 
+# Cardmarket price columns, most specific first. A uuid/finish pair mapped to more
+# than one column takes the value from the earliest column that carries a price.
+MCM_COLUMN_PRIORITY = {
+    "trend_foil": 0,
+    "trend": 1,
+}
+
 
 def _load_mcm_finishes_from_parquet() -> dict[str, set[Any]]:
     """Load mcmId → finishes mapping from parquet cache written during pipeline."""
@@ -487,7 +494,14 @@ class CardMarketProvider:
         finish_mapping_path = constants.CACHE_PATH / "mcm_price_mappings.parquet"
         if finish_mapping_path.exists():
             finish_mappings = pl.read_parquet(finish_mapping_path)
-            for row in finish_mappings.iter_rows(named=True):
+            # A uuid/finish pair can map to more than one price column; take the
+            # value from the most specific column that Cardmarket actually filled.
+            rows = sorted(
+                finish_mappings.iter_rows(named=True),
+                key=lambda row: MCM_COLUMN_PRIORITY.get(str(row["priceColumn"]), len(MCM_COLUMN_PRIORITY)),
+            )
+            resolved: set[tuple[str, str]] = set()
+            for row in rows:
                 product_id = str(row["productId"])
                 price_column = str(row["priceColumn"])
                 finish = str(row["finish"])
@@ -495,6 +509,9 @@ class CardMarketProvider:
                 if price is None:
                     continue
                 uuid = str(row["uuid"])
+                if (uuid, finish) in resolved:
+                    continue
+                resolved.add((uuid, finish))
                 entry = today_dict.setdefault(
                     uuid,
                     MtgjsonPriceEntry("paper", "cardmarket", self.today_date, "EUR"),

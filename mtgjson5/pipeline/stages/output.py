@@ -493,11 +493,31 @@ def _build_mcm_price_mapping_cache(ctx: PipelineContext, lf: pl.LazyFrame) -> No
         if not explicit_pairs.is_empty():
             base = base.join(explicit_pairs, on=["uuid", "productId"], how="anti")
 
-        single = base.filter(pl.col("finishes").list.len() == 1).select(
+        single_nonfoil = base.filter(
+            (pl.col("finishes").list.len() == 1) & pl.col("finishes").list.contains("nonfoil")
+        ).select(
             "uuid",
             "productId",
             pl.lit("trend").alias("priceColumn"),
-            pl.col("finishes").list.first().replace({"nonfoil": "normal"}).alias("finish"),
+            pl.lit("normal").alias("finish"),
+        )
+        # Foil-only and etched-only products usually carry their price in trend-foil,
+        # but a few older ones only populate trend. Emit both columns; the price
+        # mapper prefers trend_foil and falls back to trend when it is missing.
+        single_foil_base = base.filter(
+            (pl.col("finishes").list.len() == 1) & ~pl.col("finishes").list.contains("nonfoil")
+        )
+        single_foil = single_foil_base.select(
+            "uuid",
+            "productId",
+            pl.lit("trend_foil").alias("priceColumn"),
+            pl.col("finishes").list.first().alias("finish"),
+        )
+        single_foil_fallback = single_foil_base.select(
+            "uuid",
+            "productId",
+            pl.lit("trend").alias("priceColumn"),
+            pl.col("finishes").list.first().alias("finish"),
         )
         normal = base.filter((pl.col("finishes").list.len() > 1) & pl.col("finishes").list.contains("nonfoil")).select(
             "uuid",
@@ -515,7 +535,11 @@ def _build_mcm_price_mapping_cache(ctx: PipelineContext, lf: pl.LazyFrame) -> No
             pl.lit("trend_foil").alias("priceColumn"),
             pl.lit("foil").alias("finish"),
         )
-        frames.extend(frame for frame in [single, normal, normal_foil] if not frame.is_empty())
+        frames.extend(
+            frame
+            for frame in [single_nonfoil, single_foil, single_foil_fallback, normal, normal_foil]
+            if not frame.is_empty()
+        )
 
         if frames:
             mapping = pl.concat(frames).unique()
