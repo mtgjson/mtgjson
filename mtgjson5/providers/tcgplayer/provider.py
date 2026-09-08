@@ -35,6 +35,9 @@ RETRY_PASS_CONCURRENCY = 4
 # A live catalog shifts under offset pagination, so require near-completeness
 # rather than an exact match against the up-front totalItems.
 MIN_COMPLETENESS = 0.98
+# The catalog only ever grows in practice, so a real day-over-day shrink of more
+# than this is a fetch problem rather than TCGPlayer delisting products.
+MIN_CATALOG_RETENTION = 0.95
 NEAR_MINT_CONDITION = 1
 ENGLISH_LANGUAGE = 1
 NON_FOIL_PRINTING = 1
@@ -467,6 +470,34 @@ class TCGProvider:
             self._discard_parts(part_files)
             raise
 
+    def _reject_regression(self, staging_path: Path) -> None:
+        """Refuse a catalog that lost ground against the last good one.
+
+        Counting pages is not enough on its own: the API can answer every page
+        and still hand back products whose ``skus`` array is empty, which drops
+        the same cards from TcgplayerSkus.json without losing a single product.
+        Comparing both totals against the previous catalog catches either shape.
+        """
+        if not self.output_path.exists():
+            return
+
+        counts = pl.col("skus").list.len().sum().alias("skus")
+        try:
+            previous = pl.scan_parquet(self.output_path).select(pl.len().alias("products"), counts).collect()
+            current = pl.scan_parquet(staging_path).select(pl.len().alias("products"), counts).collect()
+        except Exception as e:
+            LOGGER.warning(f"Could not compare against the previous TCG catalog: {e}")
+            return
+
+        for label in ("products", "skus"):
+            before = previous[label][0] or 0
+            after = current[label][0] or 0
+            if before and after < before * MIN_CATALOG_RETENTION:
+                raise TcgPlayerIncompleteFetchError(
+                    f"TCGPlayer catalog dropped from {before:,} to {after:,} {label} "
+                    f"({after / before:.1%} of the previous build); refusing to publish it"
+                )
+
     async def _combine_part_files(self, part_files: list[Path]) -> pl.LazyFrame:
         """Combine part files into single output parquet."""
         if not part_files:
@@ -483,6 +514,7 @@ class TCGProvider:
 
             # Stream to final output
             lf.sink_parquet(staging_path)
+            self._reject_regression(staging_path)
             staging_path.replace(self.output_path)
             LOGGER.info(f"Combined {len(part_files)} parts to {self.output_path}")
 

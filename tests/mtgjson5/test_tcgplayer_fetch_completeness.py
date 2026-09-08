@@ -164,6 +164,35 @@ class TestFetchCompleteness:
             provider.fetch_all_products_sync()
 
 
+class TestRegressionAgainstPreviousCatalog:
+    def test_a_growing_catalog_is_accepted(self, make_provider, tmp_path):
+        make_provider(FakeApi(_catalog(400))).fetch_all_products_sync()
+        provider = make_provider(FakeApi(_catalog(500)))
+
+        assert provider.fetch_all_products_sync().collect().height == 500
+
+    def test_a_shrinking_catalog_is_rejected(self, make_provider, tmp_path):
+        make_provider(FakeApi(_catalog(500))).fetch_all_products_sync()
+        provider = make_provider(FakeApi(_catalog(300)))
+
+        with pytest.raises(TcgPlayerIncompleteFetchError, match="500 to 300 products"):
+            provider.fetch_all_products_sync()
+
+        assert pl.read_parquet(tmp_path / "tcg_skus.parquet").height == 500
+
+    def test_products_that_lose_their_skus_are_rejected(self, make_provider, tmp_path):
+        """Every page can answer in full and still come back stripped of SKUs."""
+        make_provider(FakeApi(_catalog(500))).fetch_all_products_sync()
+
+        stripped = _catalog(500)
+        for product in stripped[:100]:
+            product["skus"] = []
+        provider = make_provider(FakeApi(stripped))
+
+        with pytest.raises(TcgPlayerIncompleteFetchError, match="500 to 400 skus"):
+            provider.fetch_all_products_sync()
+
+
 # ---------------------------------------------------------------------------
 # Rate limit handling
 # ---------------------------------------------------------------------------
