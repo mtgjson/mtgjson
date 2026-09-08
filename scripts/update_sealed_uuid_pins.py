@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import argparse
 import io
-import json
 import logging
 import sys
 import tarfile
@@ -35,6 +34,7 @@ from mtgjson5.pipeline.stages.sealed_uuids import (
     build_pins,
     dump_pins,
     load_pins,
+    serialize_pins,
 )
 
 LOGGER = logging.getLogger("update_sealed_uuid_pins")
@@ -62,7 +62,10 @@ def _download_products(destination: Path) -> Path:
     return destination
 
 
-def _resolve_products_dir(explicit: Path | None, staging: Path) -> Path:
+MAX_CACHE_AGE_HOURS = 24.0
+
+
+def _resolve_products_dir(explicit: Path | None, staging: Path, *, allow_stale_cache: bool = True) -> Path:
     if explicit is not None:
         if not explicit.is_dir():
             raise SystemExit(f"Not a directory: {explicit}")
@@ -71,7 +74,16 @@ def _resolve_products_dir(explicit: Path | None, staging: Path) -> Path:
         # Pins generated from a stale cache miss whatever landed upstream since,
         # so be loud about how old it is rather than just saying "cached".
         age_hours = (time.time() - CACHED_PRODUCTS_DIR.stat().st_mtime) / 3600
-        log = LOGGER.warning if age_hours > 24 else LOGGER.info
+        if age_hours > MAX_CACHE_AGE_HOURS and not allow_stale_cache:
+            # Checking the pin file against data that predates the rename being
+            # checked would report "up to date" for a file that is not.
+            LOGGER.warning(
+                "Ignoring cached products from %s (%.1fh old); downloading a fresh copy",
+                CACHED_PRODUCTS_DIR,
+                age_hours,
+            )
+            return _download_products(staging)
+        log = LOGGER.warning if age_hours > MAX_CACHE_AGE_HOURS else LOGGER.info
         log(
             "Using cached products from %s (%.1fh old); pass --products-dir or clear the cache for a fresh copy",
             CACHED_PRODUCTS_DIR,
@@ -105,7 +117,7 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     with tempfile.TemporaryDirectory() as staging:
-        products_dir = _resolve_products_dir(args.products_dir, Path(staging))
+        products_dir = _resolve_products_dir(args.products_dir, Path(staging), allow_stale_cache=not args.check)
         products = compile_products(products_dir)
 
     if not products:
@@ -121,8 +133,12 @@ def main() -> int:
     )
 
     if args.check:
-        current = json.dumps(existing, indent=1, sort_keys=True, ensure_ascii=False)
-        proposed = json.dumps(updated, indent=1, sort_keys=True, ensure_ascii=False)
+        # Compare what would be written against the file as it stands, not
+        # against a re-serialisation of it: a hand edit, a merge reformat or a
+        # duplicate JSON key all survive json.loads and would pass a
+        # dict-vs-dict check while still producing a diff on the next write.
+        current = args.output.read_text(encoding="utf-8") if args.output.exists() else ""
+        proposed = serialize_pins(updated)
         if current != proposed:
             LOGGER.error("%s is out of date; run scripts/update_sealed_uuid_pins.py", args.output)
             return 1

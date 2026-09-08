@@ -1000,12 +1000,21 @@ class GlobalCache:
 
     def _load_github_data(self) -> None:
         """Load GitHub sealed/deck/booster/token-products data."""
+        from mtgjson5.pipeline.stages.sealed_uuids import pin_file_digest
+
         card_to_products_cache = self.cache_path / "github_card_to_products.parquet"
         sealed_products_cache = self.cache_path / "github_sealed_products.parquet"
         sealed_contents_cache = self.cache_path / "github_sealed_contents.parquet"
         decks_cache = self.cache_path / "github_decks.parquet"
         booster_cache = self.cache_path / "github_booster.parquet"
         token_products_cache = self.cache_path / "github_token_products.parquet"
+        # sealed_contents, decks and card_to_products bake sealed product UUIDs
+        # in at compile time, while sealedProduct[] re-resolves them from the
+        # pin file every build.  Reusing those caches across a pin edit would
+        # ship an AllPrintings where the two sides disagree, so the pin file is
+        # part of their cache key.
+        pins_digest_cache = self.cache_path / "github_sealed_pins.sha256"
+        pins_digest = pin_file_digest()
 
         all_cached = all(
             _cache_fresh(p)
@@ -1018,6 +1027,12 @@ class GlobalCache:
                 token_products_cache,
             ]
         )
+
+        if all_cached:
+            cached_digest = pins_digest_cache.read_text().strip() if pins_digest_cache.exists() else ""
+            if cached_digest != pins_digest:
+                LOGGER.info("Sealed UUID pin file changed since the cache was written, recompiling sealed data")
+                all_cached = False
 
         if all_cached:
             self.sealed_cards_lf = pl.scan_parquet(card_to_products_cache)
@@ -1109,6 +1124,7 @@ class GlobalCache:
                 if self.sealed_cards_lf is not None:
                     self.sealed_cards_lf.collect().write_parquet(card_to_products_cache)
 
+                pins_digest_cache.write_text(pins_digest, encoding="utf-8")
                 LOGGER.info("Inline sealed compilation complete")
             else:
                 missing = []
