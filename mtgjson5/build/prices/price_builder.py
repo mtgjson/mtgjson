@@ -45,6 +45,7 @@ from mtgjson5.providers import (
     ManapoolPriceProvider,
     TCGPlayerPriceProvider,
 )
+from mtgjson5.providers.cardmarket.provider import MCM_COLUMN_PRIORITY
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -663,9 +664,15 @@ class PolarsPriceBuilder:
         return self._map_cardmarket_frames(raw, pl.read_parquet(mapping_path))
 
     def _map_cardmarket_frames(self, raw: pl.DataFrame, mapping: pl.DataFrame) -> pl.DataFrame:
-        """Map Cardmarket price fields using explicit product/finish identity."""
+        """Map Cardmarket price fields using explicit product/finish identity.
+
+        A uuid/finish pair can be mapped to both price columns when Cardmarket is
+        inconsistent about where it stores the price (foil-only products mostly use
+        trend-foil, a few only use trend). Columns are resolved by MCM_COLUMN_PRIORITY
+        so the more specific column wins whenever both carry a price.
+        """
         frames: list[pl.DataFrame] = []
-        for price_column in ("trend", "trend_foil"):
+        for price_column, priority in MCM_COLUMN_PRIORITY.items():
             field_mapping = mapping.filter(pl.col("priceColumn") == price_column)
             if field_mapping.is_empty():
                 continue
@@ -681,6 +688,7 @@ class PolarsPriceBuilder:
                     pl.col("finish"),
                     pl.col(price_column).alias("price"),
                     pl.lit("EUR").alias("currency"),
+                    pl.lit(priority).alias("columnPriority"),
                 )
             )
             if not mapped.is_empty():
@@ -688,9 +696,15 @@ class PolarsPriceBuilder:
 
         if not frames:
             return pl.DataFrame(schema=PRICE_SCHEMA)
-        return pl.concat(frames).unique(
-            subset=["uuid", "date", "source", "provider", "price_type", "finish"],
-            keep="first",
+        return (
+            pl.concat(frames)
+            .sort("columnPriority")
+            .unique(
+                subset=["uuid", "date", "source", "provider", "price_type", "finish"],
+                keep="first",
+                maintain_order=True,
+            )
+            .drop("columnPriority")
         )
 
     def _map_ck_raw(self, raw_path: Path, uuid_path: Path) -> pl.DataFrame:

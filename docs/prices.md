@@ -117,6 +117,11 @@ with one row per `(productId, uuid, priceColumn, finish)`. This preserves
 separate finish-variant products without exposing partially inferred
 finish-specific identifiers in the public card model.
 
+A `(uuid, finish)` pair may map to more than one price column, because Cardmarket
+is inconsistent about where it stores a foil-only product's price: most use
+`trend-foil`, a few older ones only use `trend`. `MCM_COLUMN_PRIORITY` resolves
+these, taking the value from the most specific column that carries a price.
+
 ## PolarsPriceBuilder (`price_builder.py`)
 
 The main orchestrator class that coordinates provider fetching and delegates to the archive, S3, and writer modules.
@@ -171,7 +176,7 @@ def build_prices(self, parquet_output_dir=None, write_json=True):
 - **Source**: `paper` | **Currency**: `EUR`
 - **Pricing**: Retail + buylist
 - **Method**: Sequential requests via mkmsdk (rate limited to 1 request per 1.5s)
-- **Finish mapping**: Price fields are joined through finish-specific product identity. Verified variant families use expansion-scoped profiles; ambiguous values are omitted.
+- **Finish mapping**: Price fields are joined through finish-specific product identity. Verified variant families use expansion-scoped profiles; ambiguous values are omitted. Foil-only and etched-only products read `trend-foil` first and fall back to `trend`.
 
 ### Card Kingdom (`providers/cardkingdom/provider.py`)
 

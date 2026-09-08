@@ -96,7 +96,9 @@ def test_finish_mapping_is_explicit_and_conservative(tmp_path, monkeypatch):
     assert not mapping.filter(pl.col("uuid") == "ambiguous").height
     assert set(mapping.filter(pl.col("uuid") == "normal-foil")["finish"]) == {"normal", "foil"}
     assert set(mapping.filter(pl.col("uuid") == "foil-only")["finish"]) == {"foil"}
+    assert set(mapping.filter(pl.col("uuid") == "foil-only")["priceColumn"]) == {"trend_foil", "trend"}
     assert set(mapping.filter(pl.col("uuid") == "etched-only")["finish"]) == {"etched"}
+    assert set(mapping.filter(pl.col("uuid") == "etched-only")["priceColumn"]) == {"trend_foil", "trend"}
     assert set(mapping.filter(pl.col("uuid") == "all-three")["finish"]) == {"normal"}
 
 
@@ -141,10 +143,51 @@ def test_ordinary_and_single_finish_price_fields(tmp_path, monkeypatch):
     }
 
     assert by_uuid["normal-foil"] == {"normal": 10.0, "foil": 11.0}
-    assert by_uuid["foil-only"] == {"foil": 20.0}
-    assert by_uuid["etched-only"] == {"etched": 30.0}
+    assert by_uuid["foil-only"] == {"foil": 21.0}
+    assert by_uuid["etched-only"] == {"etched": 31.0}
     assert by_uuid["all-three"] == {"normal": 40.0}
     assert "ambiguous" not in by_uuid
+
+
+def test_foil_only_cards_priced_from_trend_foil(tmp_path, monkeypatch):
+    """Cardmarket stores foil-only and etched-only prices in trend-foil, leaving
+    trend empty. Reading trend for those products drops the price entirely (#1719)."""
+    mapping = _build_mapping(tmp_path, monkeypatch)
+    raw = pl.DataFrame(
+        {
+            "productId": ["101", "102"],
+            "trend": [None, None],
+            "trend_foil": [1334.47, 61.78],
+        },
+        schema={"productId": pl.String, "trend": pl.Float64, "trend_foil": pl.Float64},
+    )
+    prices = PolarsPriceBuilder()._map_cardmarket_frames(raw, mapping)
+    by_uuid = {
+        uuid: dict(zip(group["finish"], group["price"], strict=False)) for (uuid,), group in prices.group_by("uuid")
+    }
+
+    assert by_uuid["foil-only"] == {"foil": 1334.47}
+    assert by_uuid["etched-only"] == {"etched": 61.78}
+
+
+def test_foil_only_cards_fall_back_to_trend(tmp_path, monkeypatch):
+    """A handful of older foil-only products only populate trend."""
+    mapping = _build_mapping(tmp_path, monkeypatch)
+    raw = pl.DataFrame(
+        {
+            "productId": ["101", "102"],
+            "trend": [4.5, 6.5],
+            "trend_foil": [None, None],
+        },
+        schema={"productId": pl.String, "trend": pl.Float64, "trend_foil": pl.Float64},
+    )
+    prices = PolarsPriceBuilder()._map_cardmarket_frames(raw, mapping)
+    by_uuid = {
+        uuid: dict(zip(group["finish"], group["price"], strict=False)) for (uuid,), group in prices.group_by("uuid")
+    }
+
+    assert by_uuid["foil-only"] == {"foil": 4.5}
+    assert by_uuid["etched-only"] == {"etched": 6.5}
 
 
 def test_all_three_finishes_when_separate_product_identity_is_known():
