@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import asyncio
 from types import SimpleNamespace
+from typing import cast
 
+import aiohttp
 import polars as pl
 import pytest
 
@@ -16,6 +18,7 @@ from mtgjson5.providers.tcgplayer import provider as provider_mod
 from mtgjson5.providers.tcgplayer.provider import (
     PRODUCTS_PER_PAGE,
     TcgPlayerClient,
+    TcgPlayerConfig,
     TcgPlayerIncompleteFetchError,
     TCGProvider,
 )
@@ -53,7 +56,7 @@ class FakeApi:
         remaining = self.failures.get(offset, 0)
         if remaining:
             self.failures[offset] = remaining - 1
-            raise ConnectionError(f"boom at {offset}")
+            raise aiohttp.ClientError(f"boom at {offset}")
         if offset in self.short_pages:
             return []
         return self.products[offset : offset + PRODUCTS_PER_PAGE]
@@ -94,7 +97,7 @@ def make_provider(tmp_path, monkeypatch):
         monkeypatch.setattr(provider_mod, "TcgPlayerClient", FakeClient)
         return TCGProvider(
             output_path=tmp_path / "tcg_skus.parquet",
-            configs=[SimpleNamespace(public_key="a", private_key="b")],
+            configs=[TcgPlayerConfig(public_key="a", private_key="b")],
         )
 
     return _make
@@ -227,21 +230,26 @@ class FakeSession:
         return self._responses.pop(0)
 
 
+def _client_with(responses: list[FakeResponse]) -> tuple[TcgPlayerClient, FakeSession]:
+    client = TcgPlayerClient(TcgPlayerConfig(public_key="a", private_key="b"))
+    session = FakeSession(responses)
+    client._session = cast("aiohttp.ClientSession", session)
+    return client, session
+
+
 class TestRateLimitRetries:
     def test_waits_out_repeated_rate_limits(self):
         """A 429 is a 'come back later', not one of the three error retries."""
-        client = TcgPlayerClient(SimpleNamespace(base_url="https://x", api_version="v1"))
-        client._session = FakeSession([FakeResponse(429) for _ in range(5)] + [FakeResponse(200, {"totalItems": 7})])
+        client, session = _client_with([FakeResponse(429) for _ in range(5)] + [FakeResponse(200, {"totalItems": 7})])
 
         result = asyncio.run(client._get("catalog/products", versioned=False))
 
         assert result == {"totalItems": 7}
-        assert client._session.calls == 6
+        assert session.calls == 6
 
     def test_gives_up_after_the_rate_limit_budget(self, monkeypatch):
         monkeypatch.setattr(provider_mod, "MAX_RATE_LIMIT_WAITS", 2)
-        client = TcgPlayerClient(SimpleNamespace(base_url="https://x", api_version="v1"))
-        client._session = FakeSession([FakeResponse(429) for _ in range(4)])
+        client, _ = _client_with([FakeResponse(429) for _ in range(4)])
 
         with pytest.raises(Exception, match="Still rate limited"):
             asyncio.run(client._get("catalog/products", versioned=False))
