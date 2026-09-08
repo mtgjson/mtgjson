@@ -131,6 +131,7 @@ stacksampler.py
 *.json
 !mtgjson5/resources/mkm_finish_profiles.json
 !mtgjson5/resources/sealed_product_uuids.json
+!mtgjson5/resources/token_references.json
 *.sh
 *.parquet
 benchmark*
