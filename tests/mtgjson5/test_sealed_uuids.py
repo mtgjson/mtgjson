@@ -43,7 +43,7 @@ class TestResolveSealedUuids:
         assert resolved[("TST", BOX)] == name_uuid(BOX)
 
     def test_set_code_is_normalised_to_upper(self):
-        products = {"tst": {BOX: {}}}
+        products: dict = {"tst": {BOX: {}}}
 
         resolved = resolve_sealed_uuids(products, {})
 
@@ -51,7 +51,7 @@ class TestResolveSealedUuids:
 
     def test_pin_wins_over_name_formula(self):
         pins = _pins(**{BOX: {"uuid": "pinned-uuid"}})
-        products = {"TST": {BOX: {}}}
+        products: dict = {"TST": {BOX: {}}}
 
         resolved = resolve_sealed_uuids(products, pins)
 
@@ -174,7 +174,7 @@ class TestResolveSealedUuids:
 
     def test_cross_set_name_reuse_does_not_duplicate_a_pinned_uuid(self):
         pins = _pins(**{BUNDLE_RENAMED: {"uuid": name_uuid(BUNDLE), "originalName": BUNDLE}})
-        products = {"TST": {BUNDLE_RENAMED: {}}, "OTH": {BUNDLE: {}}}
+        products: dict = {"TST": {BUNDLE_RENAMED: {}}, "OTH": {BUNDLE: {}}}
 
         resolved = resolve_sealed_uuids(products, pins)
 
@@ -187,7 +187,7 @@ class TestResolveSealedUuids:
         Nothing was pinned here, so both UUIDs are already published as-is and
         re-minting one would move it.  Report it, do not rewrite it.
         """
-        products = {"TST": {BOX: {}}, "OTH": {BOX: {}}}
+        products: dict = {"TST": {BOX: {}}, "OTH": {BOX: {}}}
 
         resolved = resolve_sealed_uuids(products, {})
 
@@ -278,7 +278,7 @@ class TestBuildPins:
     def test_every_pin_traces_back_to_the_name_it_was_minted_from(self):
         """The invariant TestShippedPinFile enforces has to survive a collision."""
         pins = _pins(**{BUNDLE_RENAMED: {"uuid": name_uuid(BUNDLE), "originalName": BUNDLE}})
-        products = {"TST": {BUNDLE: {}, BUNDLE_RENAMED: {}, BOX: {}}}
+        products: dict = {"TST": {BUNDLE: {}, BUNDLE_RENAMED: {}, BOX: {}}}
 
         updated = build_pins(products, pins)
 
