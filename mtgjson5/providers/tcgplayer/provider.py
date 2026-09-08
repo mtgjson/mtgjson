@@ -13,6 +13,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 import aiohttp
 import polars as pl
@@ -20,12 +21,20 @@ import polars as pl
 from mtgjson5 import constants
 from mtgjson5.mtgjson_config import MtgjsonConfig
 
+from .models import PRODUCT_SCHEMA
+
 LOGGER = logging.getLogger(__name__)
 
 PRODUCTS_PER_PAGE = 100
 CONCURRENT_REQUESTS = 75
 MAX_RETRIES = 3
 RETRY_DELAY = 2.0
+MAX_RATE_LIMIT_WAITS = 8
+# Pages that still failed after the main pass get a second, gentler sweep.
+RETRY_PASS_CONCURRENCY = 4
+# A live catalog shifts under offset pagination, so require near-completeness
+# rather than an exact match against the up-front totalItems.
+MIN_COMPLETENESS = 0.98
 NEAR_MINT_CONDITION = 1
 ENGLISH_LANGUAGE = 1
 NON_FOIL_PRINTING = 1
@@ -49,6 +58,15 @@ SEALED_PRODUCT_TYPES = [
 ALL_PRODUCT_TYPES = ",".join(["Cards", *SEALED_PRODUCT_TYPES])
 
 ProgressCallback = Callable[[int, int, str], None]
+
+
+class TcgPlayerIncompleteFetchError(RuntimeError):
+    """Raised when the TCGPlayer catalog could not be fetched in full.
+
+    A partial catalog silently drops every SKU for the products that went
+    missing, so callers must treat this as a failed fetch and fall back to the
+    previous good data rather than publishing the truncated result.
+    """
 
 
 @dataclass
@@ -163,13 +181,24 @@ class TcgPlayerClient:
         if self._session is None:
             raise RuntimeError("Session not initialized")
 
-        last_error = None
-        for attempt in range(MAX_RETRIES):
+        last_error: Exception | None = None
+        attempt = 0
+        rate_limit_waits = 0
+        # Waiting out a 429 is not a failed attempt, so it gets its own budget.
+        # Sharing one counter meant three consecutive rate limits abandoned the
+        # page even though the API never actually errored.
+        while attempt < MAX_RETRIES:
             try:
                 async with self._session.get(url, headers=headers) as resp:
                     if resp.status == 429:
-                        retry_after = float(resp.headers.get("Retry-After", RETRY_DELAY * (attempt + 1)))
-                        LOGGER.warning(f"Rate limited, waiting {retry_after}s")
+                        if rate_limit_waits >= MAX_RATE_LIMIT_WAITS:
+                            last_error = aiohttp.ClientError(
+                                f"Still rate limited after {rate_limit_waits} waits for {endpoint}"
+                            )
+                            break
+                        rate_limit_waits += 1
+                        retry_after = float(resp.headers.get("Retry-After", RETRY_DELAY * rate_limit_waits))
+                        LOGGER.warning(f"Rate limited, waiting {retry_after}s ({endpoint})")
                         await asyncio.sleep(retry_after)
                         continue
                     resp.raise_for_status()
@@ -177,9 +206,10 @@ class TcgPlayerClient:
                     return result
             except (TimeoutError, aiohttp.ClientError) as e:
                 last_error = e
-                if attempt < MAX_RETRIES - 1:
-                    await asyncio.sleep(RETRY_DELAY * (attempt + 1))
-                    LOGGER.debug(f"Retry {attempt + 1}/{MAX_RETRIES} for {endpoint}: {e}")
+                attempt += 1
+                if attempt < MAX_RETRIES:
+                    LOGGER.debug(f"Retry {attempt}/{MAX_RETRIES} for {endpoint}: {e}")
+                    await asyncio.sleep(RETRY_DELAY * attempt)
 
         raise last_error or aiohttp.ClientError(f"Failed after {MAX_RETRIES} retries")
 
@@ -239,23 +269,7 @@ class TCGProvider:
         Streams results to parquet incrementally using part files.
         Returns LazyFrame of final combined output.
         """
-        empty_schema = {
-            "productId": pl.Int64(),
-            "name": pl.String(),
-            "cleanName": pl.String(),
-            "groupId": pl.Int64(),
-            "url": pl.String(),
-            "skus": pl.List(
-                pl.Struct(
-                    {
-                        "skuId": pl.Int64(),
-                        "languageId": pl.Int64(),
-                        "printingId": pl.Int64(),
-                        "conditionId": pl.Int64(),
-                    }
-                )
-            ),
-        }
+        empty_schema = cast("dict", PRODUCT_SCHEMA)
 
         if not self.configs:
             LOGGER.warning("No TCGPlayer API keys configured")
@@ -279,9 +293,9 @@ class TCGProvider:
             total_items = await clients[0].get_total_products(product_types=self.product_types)
 
             if total_items == 0:
-                LOGGER.info("No TCGPlayer products found")
-                pl.DataFrame(schema=empty_schema).write_parquet(self.output_path)
-                return pl.scan_parquet(self.output_path)
+                # Credentials worked but the catalog came back empty, which is an
+                # upstream failure rather than a real answer.
+                raise TcgPlayerIncompleteFetchError("TCGPlayer reported 0 products for the requested product types")
 
             # Calculate pagination
             offsets = list(range(0, total_items, PRODUCTS_PER_PAGE))
@@ -294,116 +308,78 @@ class TCGProvider:
                 offsets_per_client[i % len(clients)].append(offset)
 
             # Fetch with streaming to part files (pass authenticated clients)
-            part_files = await self._fetch_with_streaming_clients(clients, offsets_per_client, total_pages)
+            part_files, fetched = await self._fetch_with_streaming_clients(clients, offsets_per_client, total_pages)
+
+            if fetched < total_items * MIN_COMPLETENESS:
+                self._discard_parts(part_files)
+                raise TcgPlayerIncompleteFetchError(
+                    f"TCGPlayer returned {fetched:,} of {total_items:,} products "
+                    f"({fetched / total_items:.1%}); refusing to publish a truncated catalog"
+                )
 
             # Combine part files
             return await self._combine_part_files(part_files)
 
-    async def _fetch_with_streaming(self, offsets_per_client: list[list[int]], total_pages: int) -> list[Path]:
-        """Fetch products in parallel, streaming to part files."""
-        part_files: list[Path] = []
-        part_counter = 0
-        buffer: list[dict] = []
-        lock = asyncio.Lock()
-        completed = 0
+    @staticmethod
+    def _parse_products(resp: dict[str, object]) -> list[dict]:
+        """Normalize a catalog/products response into part-file rows."""
+        products_raw = resp.get("results", [])
+        products = products_raw if isinstance(products_raw, list) else []
+        return [
+            {
+                "productId": product["productId"],
+                "name": product.get("name", ""),
+                "cleanName": product.get("cleanName", ""),
+                "groupId": product.get("groupId"),
+                "url": product.get("url", ""),
+                "skus": [
+                    {
+                        "skuId": sku["skuId"],
+                        "languageId": sku["languageId"],
+                        "printingId": sku["printingId"],
+                        "conditionId": sku["conditionId"],
+                    }
+                    for sku in (product.get("skus", []) if isinstance(product.get("skus", []), list) else [])
+                ],
+            }
+            for product in products
+        ]
 
-        async def flush_buffer() -> None:
-            nonlocal buffer, part_counter
-            if not buffer:
-                return
-
-            to_write = buffer
-            buffer = []
-
-            part_path = self.output_path.parent / f".tcg_part_{part_counter:04d}.parquet"
-            part_counter += 1
-            pl.DataFrame(to_write).write_parquet(part_path)
-            part_files.append(part_path)
-            LOGGER.debug(f"Flushed {len(to_write)} products to {part_path}")
-
-        async def fetch_client_pages(config: TcgPlayerConfig, client_offsets: list[int]) -> None:
-            nonlocal completed, buffer
-            async with TcgPlayerClient(config) as client:
-                for offset in client_offsets:
-                    try:
-                        resp = await client.get_products_page(
-                            offset=offset,
-                            include_skus=True,
-                            product_types=self.product_types,
-                        )
-                        products_raw = resp.get("results", [])
-                        products = products_raw if isinstance(products_raw, list) else []
-                        page_products = [
-                            {
-                                "productId": product["productId"],
-                                "name": product.get("name", ""),
-                                "cleanName": product.get("cleanName", ""),
-                                "groupId": product.get("groupId"),
-                                "url": product.get("url", ""),
-                                "skus": [
-                                    {
-                                        "skuId": sku["skuId"],
-                                        "languageId": sku["languageId"],
-                                        "printingId": sku["printingId"],
-                                        "conditionId": sku["conditionId"],
-                                    }
-                                    for sku in (
-                                        product.get("skus", []) if isinstance(product.get("skus", []), list) else []
-                                    )
-                                ],
-                            }
-                            for product in products
-                        ]
-
-                        async with lock:
-                            buffer.extend(page_products)
-                            completed += 1
-                            if len(buffer) >= self.flush_threshold:
-                                await flush_buffer()
-                            if self.on_progress:
-                                self.on_progress(completed, total_pages, f"offset={offset}")
-                    except Exception as e:
-                        LOGGER.warning(f"Failed offset {offset}: {e}")
-                        async with lock:
-                            completed += 1
-
-        try:
-            # Run all clients in parallel
-            await asyncio.gather(
-                *[
-                    fetch_client_pages(config, client_offsets)
-                    for config, client_offsets in zip(self.configs, offsets_per_client, strict=False)
-                ]
-            )
-
-            # Final flush
-            async with lock:
-                await flush_buffer()
-
-            LOGGER.info(f"TCGPlayer fetch complete: {len(part_files)} part files")
-            return part_files
-
-        except Exception as e:
-            LOGGER.error(f"Error during TCGPlayer fetch: {e}")
-            raise
+    def _discard_parts(self, part_files: list[Path]) -> None:
+        """Delete part files from an aborted fetch."""
+        for part_file in part_files:
+            try:
+                part_file.unlink()
+            except OSError as e:
+                LOGGER.warning(f"Failed to delete {part_file}: {e}")
+        part_files.clear()
 
     async def _fetch_with_streaming_clients(
         self,
         clients: list[TcgPlayerClient],
         offsets_per_client: list[list[int]],
         total_pages: int,
-    ) -> list[Path]:
+    ) -> tuple[list[Path], int]:
         """Fetch products in parallel using pre-authenticated clients.
 
-        Uses semaphore to limit concurrent requests while still parallelizing
+        Uses a semaphore to limit concurrent requests while still parallelizing
         within each client for better performance.
+
+        Every page that never landed is tracked, retried at low concurrency, and
+        then raised as :class:`TcgPlayerIncompleteFetchError` if it still fails.
+        A dropped page silently removes ~100 products from the catalog, and every
+        SKU of every card mapped to those products disappears from the build.
+
+        Returns:
+            Tuple of (part file paths, number of products fetched).
         """
         part_files: list[Path] = []
         part_counter = 0
         buffer: list[dict] = []
         lock = asyncio.Lock()
-        completed = 0
-        semaphore = asyncio.Semaphore(CONCURRENT_REQUESTS)
+        fetched = 0
+        succeeded: set[int] = set()
+        failures: dict[int, str] = {}
 
         async def flush_buffer() -> None:
             nonlocal buffer, part_counter
@@ -415,12 +391,12 @@ class TCGProvider:
 
             part_path = self.output_path.parent / f".tcg_part_{part_counter:04d}.parquet"
             part_counter += 1
-            pl.DataFrame(to_write).write_parquet(part_path)
+            pl.DataFrame(to_write, schema=cast("dict", PRODUCT_SCHEMA)).write_parquet(part_path)
             part_files.append(part_path)
             LOGGER.debug(f"Flushed {len(to_write)} products to {part_path}")
 
-        async def fetch_single_page(client: TcgPlayerClient, offset: int) -> None:
-            nonlocal completed, buffer
+        async def fetch_single_page(client: TcgPlayerClient, offset: int, semaphore: asyncio.Semaphore) -> None:
+            nonlocal fetched, buffer
             async with semaphore:
                 try:
                     resp = await client.get_products_page(
@@ -428,109 +404,94 @@ class TCGProvider:
                         include_skus=True,
                         product_types=self.product_types,
                     )
-                    products_raw = resp.get("results", [])
-                    products = products_raw if isinstance(products_raw, list) else []
-                    page_products = [
-                        {
-                            "productId": product["productId"],
-                            "name": product.get("name", ""),
-                            "cleanName": product.get("cleanName", ""),
-                            "groupId": product.get("groupId"),
-                            "url": product.get("url", ""),
-                            "skus": [
-                                {
-                                    "skuId": sku["skuId"],
-                                    "languageId": sku["languageId"],
-                                    "printingId": sku["printingId"],
-                                    "conditionId": sku["conditionId"],
-                                }
-                                for sku in (
-                                    product.get("skus", []) if isinstance(product.get("skus", []), list) else []
-                                )
-                            ],
-                        }
-                        for product in products
-                    ]
-
-                    async with lock:
-                        buffer.extend(page_products)
-                        completed += 1
-                        if len(buffer) >= self.flush_threshold:
-                            await flush_buffer()
-                        if self.on_progress:
-                            self.on_progress(completed, total_pages, f"offset={offset}")
+                    page_products = self._parse_products(resp)
                 except Exception as e:
                     LOGGER.warning(f"Failed offset {offset}: {e}")
                     async with lock:
-                        completed += 1
+                        failures[offset] = str(e)
+                    return
+
+                async with lock:
+                    buffer.extend(page_products)
+                    fetched += len(page_products)
+                    succeeded.add(offset)
+                    failures.pop(offset, None)
+                    if len(buffer) >= self.flush_threshold:
+                        await flush_buffer()
+                    if self.on_progress:
+                        self.on_progress(len(succeeded), total_pages, f"offset={offset}")
 
         try:
-            # Create tasks for all pages across all clients
-            tasks = []
-            for client, client_offsets in zip(clients, offsets_per_client, strict=False):
-                for offset in client_offsets:
-                    tasks.append(fetch_single_page(client, offset))
+            semaphore = asyncio.Semaphore(CONCURRENT_REQUESTS)
+            await asyncio.gather(
+                *[
+                    fetch_single_page(client, offset, semaphore)
+                    for client, client_offsets in zip(clients, offsets_per_client, strict=False)
+                    for offset in client_offsets
+                ]
+            )
 
-            # Run all tasks in parallel (semaphore limits concurrency)
-            await asyncio.gather(*tasks)
+            if failures:
+                # Failures arrive in bursts when the API rate limits or wobbles,
+                # so a burst takes out a whole run of neighbouring pages. Sweep
+                # them again slowly instead of accepting the hole.
+                retry_offsets = sorted(failures)
+                LOGGER.warning(
+                    f"{len(retry_offsets):,} of {total_pages:,} TCGPlayer pages failed; "
+                    f"retrying at concurrency {RETRY_PASS_CONCURRENCY}"
+                )
+                retry_semaphore = asyncio.Semaphore(RETRY_PASS_CONCURRENCY)
+                await asyncio.gather(
+                    *[
+                        fetch_single_page(clients[i % len(clients)], offset, retry_semaphore)
+                        for i, offset in enumerate(retry_offsets)
+                    ]
+                )
 
-            # Final flush
             async with lock:
                 await flush_buffer()
 
-            LOGGER.info(f"TCGPlayer fetch complete: {len(part_files)} part files")
-            return part_files
+            if failures:
+                sample = ", ".join(f"{offset} ({failures[offset]})" for offset in sorted(failures)[:3])
+                raise TcgPlayerIncompleteFetchError(
+                    f"{len(failures):,} of {total_pages:,} TCGPlayer catalog pages still failed "
+                    f"after retries; first failures: {sample}"
+                )
+
+            LOGGER.info(f"TCGPlayer fetch complete: {fetched:,} products in {len(part_files)} part files")
+            return part_files, fetched
 
         except Exception as e:
-            LOGGER.error(f"Error during TCGPlayer fetch: {e}")
+            if not isinstance(e, TcgPlayerIncompleteFetchError):
+                LOGGER.error(f"Error during TCGPlayer fetch: {e}")
+            self._discard_parts(part_files)
             raise
 
     async def _combine_part_files(self, part_files: list[Path]) -> pl.LazyFrame:
         """Combine part files into single output parquet."""
         if not part_files:
-            pl.DataFrame(
-                schema={
-                    "productId": pl.Int64(),
-                    "name": pl.String(),
-                    "cleanName": pl.String(),
-                    "groupId": pl.Int64(),
-                    "url": pl.String(),
-                    "skus": pl.List(
-                        pl.Struct(
-                            {
-                                "skuId": pl.Int64(),
-                                "languageId": pl.Int64(),
-                                "printingId": pl.Int64(),
-                                "conditionId": pl.Int64(),
-                            }
-                        )
-                    ),
-                }
-            ).write_parquet(self.output_path)
+            pl.DataFrame(schema=cast("dict", PRODUCT_SCHEMA)).write_parquet(self.output_path)
             return pl.scan_parquet(self.output_path)
 
+        # Build alongside the existing cache and swap it in only once the whole
+        # catalog is on disk, so a crash mid-write leaves yesterday's good file.
+        staging_path = self.output_path.with_suffix(".parquet.staging")
         try:
-            # Scan and combine all parts
-            lf = pl.scan_parquet(
-                source=str(self.output_path.parent / ".tcg_part_*.parquet"),
-                glob=True,
-                rechunk=True,
-            )
+            # Scan and combine this run's parts. Listing them explicitly keeps
+            # orphans from an earlier interrupted fetch out of the catalog.
+            lf = pl.scan_parquet(source=part_files, rechunk=True)
 
             # Stream to final output
-            lf.sink_parquet(self.output_path)
+            lf.sink_parquet(staging_path)
+            staging_path.replace(self.output_path)
             LOGGER.info(f"Combined {len(part_files)} parts to {self.output_path}")
 
         except Exception as e:
             LOGGER.error(f"Error combining part files: {e}")
+            staging_path.unlink(missing_ok=True)
             raise
         finally:
-            # Clean up part files
-            for part_file in part_files:
-                try:
-                    part_file.unlink()
-                except OSError as e:
-                    LOGGER.warning(f"Failed to delete {part_file}: {e}")
+            self._discard_parts(part_files)
 
         return pl.scan_parquet(self.output_path)
 

@@ -429,12 +429,28 @@ class GlobalCache:
                 self.tcg_skus_lf = self._tcg_skus_future.result()
                 LOGGER.info("TCGPlayer SKU fetch complete")
             except Exception as e:
-                LOGGER.warning(f"Failed to fetch TCGPlayer SKUs: {e}")
-                from mtgjson5.providers.tcgplayer.models import PRODUCT_SCHEMA
-
-                self.tcg_skus_lf = pl.DataFrame(schema=cast("dict", PRODUCT_SCHEMA)).lazy()
+                LOGGER.error(f"Failed to fetch TCGPlayer SKUs: {e}")
+                self.tcg_skus_lf = self._last_good_tcg_skus()
             finally:
                 self._tcg_skus_future = None
+
+    def _last_good_tcg_skus(self) -> pl.LazyFrame:
+        """Return the previous build's TCG catalog, or an empty frame.
+
+        The fetch never overwrites ``tcg_skus.parquet`` with a partial catalog,
+        so whatever is on disk is a complete catalog from an earlier run. Reusing
+        it costs a day of freshness; the alternative drops every SKU for tens of
+        thousands of cards.
+        """
+        cache_path = self.cache_path / "tcg_skus.parquet"
+        if cache_path.exists():
+            LOGGER.warning(f"Falling back to the previous TCG catalog at {cache_path}")
+            return pl.scan_parquet(cache_path)
+
+        from mtgjson5.providers.tcgplayer.models import PRODUCT_SCHEMA
+
+        LOGGER.error("No previous TCG catalog available; TCGPlayer SKUs will be empty")
+        return pl.DataFrame(schema=cast("dict", PRODUCT_SCHEMA)).lazy()
 
     def _dump_and_reload_as_lazy(self) -> None:
         """
