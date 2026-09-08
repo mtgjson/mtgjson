@@ -93,7 +93,7 @@ from mtgjson5.pipeline.stages.signatures import (
     add_signatures_combined,
     join_signatures,
 )
-from mtgjson5.pipeline.stages.token_references import TokenPins, build_token_pins
+from mtgjson5.pipeline.stages.token_references import TokenPins, build_token_pins, oracle_id_expr
 from mtgjson5.profiler import get_profiler
 from mtgjson5.utils import LOGGER
 
@@ -147,13 +147,17 @@ def _build_cards_batched(ctx: PipelineContext, batch_size: int, prof: PipelinePr
     sets_schema = sets_lf.collect_schema().names()
     set_select_exprs = _build_set_select_exprs(sets_schema)
 
-    # Pre-pass: build global scryfallId -> uuid mapping for add_token_ids()
-    scryfall_uuid_lf = _build_global_scryfall_uuid_map(ctx)
+    # Pre-pass: one scan of the dump feeds both the global scryfallId -> uuid
+    # mapping add_token_ids() needs and the token reference pins.
+    identity_df = _build_card_identity_df(ctx)
+    prof.checkpoint("prepass_card_identity")
+
+    scryfall_uuid_lf = _build_global_scryfall_uuid_map(identity_df, ctx)
     prof.checkpoint("prepass_scryfall_uuid_map")
 
     # Pre-pass: pinned token references keep relatedCards.tokens stable when
     # Scryfall repoints a card at a different printing of the same token.
-    token_pins = build_token_pins(ctx.cards_lf)
+    token_pins = build_token_pins(identity_df.lazy(), scryfall_uuid_lf)
     prof.checkpoint("prepass_token_pins")
 
     # Determine batches
@@ -380,23 +384,38 @@ def _run_pipeline_stages(
     return lf
 
 
-def _build_global_scryfall_uuid_map(ctx: PipelineContext) -> pl.LazyFrame:
-    """Build a global scryfallId -> uuid mapping from cards_lf.
+def _build_card_identity_df(ctx: PipelineContext) -> pl.DataFrame:
+    """Collect the per-printing identity columns the pre-passes share.
 
-    Uses a narrow scan (id, cardFaces columns only) to derive
-    (scryfallId, side) pairs, then joins with uuid_cache to get
-    cachedUuid, and falls back to uuid5(scryfallId, side).
-
-    Returns a LazyFrame with columns [scryfallId, uuid].
+    The global UUID map and the token reference pins both need a narrow
+    projection of the same multi-gigabyte dump, and separate collects never
+    share a scan.  One pass here yields [id, _n_faces, oracleId] for both.
     """
     cards_lf = ctx.cards_lf
     if cards_lf is None:
         raise ValueError("cards_lf is not available")
 
-    # Narrow select: only need scryfall ID and face count
-    narrow = cards_lf.select(["id", "cardFaces"]).with_columns(
-        pl.col("cardFaces").list.len().fill_null(0).alias("_n_faces")
-    )
+    exprs = [
+        pl.col("id"),
+        pl.col("cardFaces").list.len().fill_null(0).alias("_n_faces"),
+    ]
+    oracle = oracle_id_expr(cards_lf.collect_schema())
+    if oracle is not None:
+        exprs.append(oracle.alias("oracleId"))
+
+    LOGGER.info("Pre-pass: collecting card identity columns...")
+    return cards_lf.select(exprs).collect()
+
+
+def _build_global_scryfall_uuid_map(identity_df: pl.DataFrame, ctx: PipelineContext) -> pl.LazyFrame:
+    """Build a global scryfallId -> uuid mapping from the card identity frame.
+
+    Derives (scryfallId, side) pairs from the face counts, then joins with
+    uuid_cache to get cachedUuid, and falls back to uuid5(scryfallId, side).
+
+    Returns a LazyFrame with columns [scryfallId, uuid].
+    """
+    narrow = identity_df.lazy()
 
     # Single-face cards: side = None (defaults to "a" in uuid5_concat)
     single = narrow.filter(pl.col("_n_faces") <= 1).select(

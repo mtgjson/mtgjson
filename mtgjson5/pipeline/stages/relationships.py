@@ -370,14 +370,14 @@ def add_token_ids(
                 how="left",
             )
             .join(
+                # Already carries the pinned printing's UUID: resolving the
+                # pins once beats re-joining the global UUID map per batch.
                 token_pins.pins_lf,
                 left_on=["scryfallId", "_tok_oracle"],
                 right_on=["_card_sid", "_tok_oracle"],
                 how="left",
             )
-            .join(uuid_lookup, left_on="_pin_sid", right_on="_lookup_sid", how="left")
-            .rename({"_lookup_uuid": "_pinned_uuid"})
-            .drop(["_tok_oracle", "_pin_sid"], strict=False)
+            .drop("_tok_oracle", strict=False)
         )
 
     resolved = (

@@ -13,17 +13,23 @@ published against, keyed by the token's Scryfall oracle id — the identity that
 survives a printing swap.  A pinned printing that has since disappeared from
 Scryfall falls back to whatever ``all_parts`` currently names, so a pin can
 never strand a reference.
+
+One churn case stays unpinned by design: when the printing ``all_parts`` names
+today is missing from the dump entirely, there is no oracle id to reach the
+pin through, so the reference resolves to nothing — exactly what it did before
+pins existed.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from mtgjson5 import constants
+from mtgjson5.consts import TOKEN_LAYOUTS
 
 if TYPE_CHECKING:
     import polars as pl
@@ -36,8 +42,9 @@ PIN_RESOURCE_NAME = "token_references.json"
 #
 #     {"<card scryfall id>": {"<token oracle id>": "<token scryfall id>"}}
 #
-# (card, token oracle id) is a unique key: a card never relates to two distinct
-# printings that share an oracle id.
+# (card, token oracle id) is a unique key: a card that names two printings of
+# one token oracle is not representable here, so it is left unpinned rather
+# than silently collapsed — see :func:`extract_token_references`.
 PinFile = dict[str, dict[str, str]]
 
 _pins_cache: PinFile | None = None
@@ -46,6 +53,7 @@ _pins_cache: PinFile | None = None
 # before the pipeline sees it, so both spellings reach this module.
 _ORACLE_COLUMNS = ("oracle_id", "oracleId")
 _ALL_PARTS_COLUMNS = ("all_parts", "allParts")
+_FACES_COLUMNS = ("card_faces", "cardFaces")
 
 
 def _pick_column(names: set[str], candidates: tuple[str, ...]) -> str | None:
@@ -54,6 +62,52 @@ def _pick_column(names: set[str], candidates: tuple[str, ...]) -> str | None:
         if candidate in names:
             return candidate
     return None
+
+
+def _face_oracle_expr(schema: pl.Schema) -> pl.Expr | None:
+    """Oracle id carried on a printing's first face, when the dump exposes it."""
+    import polars as pl
+
+    faces_col = _pick_column(set(schema.names()), _FACES_COLUMNS)
+    if faces_col is None:
+        return None
+
+    faces_dtype = schema.get(faces_col)
+    if not isinstance(faces_dtype, pl.List) or not isinstance(faces_dtype.inner, pl.Struct):
+        return None
+
+    face_field = _pick_column({f.name for f in faces_dtype.inner.fields}, _ORACLE_COLUMNS)
+    if face_field is None:
+        # The field only appears once schema inference has seen a reversible
+        # printing.  Readers must sample deeply enough (the pipeline scans
+        # 100k records); a shallower scan silently loses the fallback.
+        return None
+
+    return pl.col(faces_col).list.first().struct.field(face_field)
+
+
+def oracle_id_expr(schema: pl.Schema) -> pl.Expr | None:
+    """Oracle id of a printing, falling back to its first face.
+
+    Scryfall gives ``reversible_card`` printings no top-level ``oracle_id`` —
+    the identity lives on each face instead.  Without the fallback their token
+    references cannot be filed under any oracle, so they stay exposed to the
+    repointing this module exists to stop.
+
+    Returns:
+        An unaliased expression, or None when the frame carries no oracle id
+        column at all.
+    """
+    import polars as pl
+
+    oracle_col = _pick_column(set(schema.names()), _ORACLE_COLUMNS)
+    if oracle_col is None:
+        return None
+
+    face_oracle = _face_oracle_expr(schema)
+    if face_oracle is None:
+        return pl.col(oracle_col)
+    return pl.coalesce(pl.col(oracle_col), face_oracle)
 
 
 def load_pins(path: Path | None = None, *, refresh: bool = False) -> PinFile:
@@ -86,7 +140,9 @@ class TokenPins:
     """Lookups ``add_token_ids()`` needs to apply pinned token references.
 
     Attributes:
-        pins_lf: ``_card_sid``, ``_tok_oracle``, ``_pin_sid``.
+        pins_lf: ``_card_sid``, ``_tok_oracle``, ``_pinned_uuid``.  The pinned
+            printing is resolved to its MTGJSON UUID once here rather than
+            joined against the million-row UUID map inside every batch.
         oracle_lf: ``_tok_sid``, ``_tok_oracle`` — maps the printing named in
             ``all_parts`` onto the oracle id the pin is filed under.  Only
             covers oracles someone actually pinned; the rest fall through to
@@ -97,55 +153,119 @@ class TokenPins:
     oracle_lf: pl.LazyFrame
 
 
-def extract_token_references(cards_lf: pl.LazyFrame) -> pl.DataFrame:
-    """Pull every ``all_parts`` token reference out of the Scryfall dump.
+@dataclass(frozen=True)
+class PinMerge:
+    """Outcome of merging fresh references into an existing pin file.
 
-    Returns:
-        DataFrame with ``_card_sid``, ``_tok_oracle``, ``_tok_sid``.  Rows whose
-        token is missing from the dump (a dangling Scryfall reference) are
-        dropped, since there is no oracle id to file them under.
+    Attributes:
+        pins: The merged pin file.
+        added: References that had no pin yet.
+        repointed: Pins whose printing had left Scryfall, so they were moved
+            to the live reference.  A healthy refresh repoints nothing; a large
+            count means the dump is partial, not that Scryfall retired a set.
     """
+
+    pins: PinFile = field(default_factory=dict)
+    added: int = 0
+    repointed: int = 0
+
+
+def _token_references_lf(cards_lf: pl.LazyFrame) -> pl.LazyFrame:
+    """Join every ``all_parts`` token reference onto its token's oracle id."""
     import polars as pl
 
     cards_lf = cards_lf.lazy()
-    names = set(cards_lf.collect_schema().names())
-    oracle_col = _pick_column(names, _ORACLE_COLUMNS)
+    schema = cards_lf.collect_schema()
+    names = set(schema.names())
+    oracle = oracle_id_expr(schema)
     parts_col = _pick_column(names, _ALL_PARTS_COLUMNS)
-    if oracle_col is None or parts_col is None or "id" not in names:
+    if oracle is None or parts_col is None or "id" not in names:
         missing = [
             label
-            for label, present in (("id", "id" in names), ("oracle_id", oracle_col), ("all_parts", parts_col))
+            for label, present in (
+                ("id", "id" in names),
+                ("oracle_id", oracle is not None),
+                ("all_parts", parts_col is not None),
+            )
             if not present
         ]
         raise ValueError(f"cards frame is missing required columns: {', '.join(missing)}")
 
-    oracle = cards_lf.select(
+    oracle_lf = cards_lf.select(
         pl.col("id").alias("_tok_sid"),
-        pl.col(oracle_col).alias("_tok_oracle"),
+        oracle.alias("_tok_oracle"),
     )
 
-    references = (
-        cards_lf.filter(pl.col(parts_col).is_not_null())
-        .select(["id", parts_col])
+    references = cards_lf.filter(pl.col(parts_col).is_not_null())
+    if "layout" in names:
+        # Token-layout cards never publish relatedCards.tokens (signatures.py
+        # nulls it), so pinning their references only pads the pin file.
+        references = references.filter(~pl.col("layout").is_in(list(TOKEN_LAYOUTS)))
+
+    return (
+        references.select(["id", parts_col])
         .explode(parts_col)
         .filter(pl.col(parts_col).struct.field("component") == "token")
         .select(
             pl.col("id").alias("_card_sid"),
             pl.col(parts_col).struct.field("id").alias("_tok_sid"),
         )
+        .join(oracle_lf, on="_tok_sid", how="left")
+        .select(["_card_sid", "_tok_oracle", "_tok_sid"])
     )
 
+
+def extract_token_references(cards_lf: pl.LazyFrame) -> pl.DataFrame:
+    """Pull every pinnable ``all_parts`` token reference out of the dump.
+
+    Returns:
+        DataFrame with ``_card_sid``, ``_tok_oracle``, ``_tok_sid``, sorted for
+        a stable pin file.  Two kinds of row are dropped: a token missing from
+        the dump, which has no oracle id to file under, and a card naming two
+        printings of one oracle, which the pin layout cannot represent.
+    """
+    return _finalize_references(_token_references_lf(cards_lf).collect())
+
+
+def _finalize_references(joined: pl.DataFrame) -> pl.DataFrame:
+    """Drop the references that cannot be pinned, saying so when it happens."""
+    import polars as pl
+
+    unfiled = joined.filter(pl.col("_tok_oracle").is_null())
+    if unfiled.height:
+        LOGGER.warning(
+            "%d token reference(s) name a printing missing from the dump and cannot be pinned: %s",
+            unfiled.height,
+            sorted(set(unfiled["_tok_sid"].to_list()))[:10],
+        )
+
+    references = joined.filter(pl.col("_tok_oracle").is_not_null())
+
+    # A card may legitimately name two printings of the same token oracle.  The
+    # pin file is keyed on (card, oracle) and cannot hold both, and pinning one
+    # of them would drop the other from the published output — so leave the
+    # pair unpinned and let it follow Scryfall.
+    ambiguous = pl.col("_tok_sid").n_unique().over(["_card_sid", "_tok_oracle"]) > 1
+    dropped = references.filter(ambiguous)
+    if dropped.height:
+        LOGGER.warning(
+            "%d reference(s) across %d card(s) name two printings of one token oracle; leaving them unpinned",
+            dropped.height,
+            dropped["_card_sid"].n_unique(),
+        )
+
     return (
-        references.join(oracle, on="_tok_sid", how="left")
-        .filter(pl.col("_tok_oracle").is_not_null())
-        .select(["_card_sid", "_tok_oracle", "_tok_sid"])
-        # Sort before deduplicating: ``unique`` keeps an arbitrary row otherwise,
-        # so a card naming two printings of one token oracle would flip between
-        # runs and churn the pin file it is meant to keep still.
+        references.filter(~ambiguous)
+        .unique(subset=["_card_sid", "_tok_oracle", "_tok_sid"])
         .sort(["_card_sid", "_tok_oracle", "_tok_sid"])
-        .unique(subset=["_card_sid", "_tok_oracle"], keep="first", maintain_order=True)
-        .collect()
     )
+
+
+def _printing_ids_lf(cards_lf: pl.LazyFrame) -> pl.LazyFrame:
+    """Every Scryfall id present in the dump, one column named ``id``."""
+    import polars as pl
+
+    return cards_lf.lazy().select(pl.col("id")).drop_nulls().unique()
 
 
 def extract_printing_ids(cards_lf: pl.LazyFrame) -> set[str]:
@@ -154,13 +274,33 @@ def extract_printing_ids(cards_lf: pl.LazyFrame) -> set[str]:
     ``build_pins()`` uses this to tell a pinned printing that has been retired
     from one that is merely no longer named by any ``all_parts`` entry.
     """
+    return set(_printing_ids_lf(cards_lf).collect().to_series().to_list())
+
+
+def scan_references_and_printings(cards_lf: pl.LazyFrame) -> tuple[pl.DataFrame, set[str]]:
+    """Both inputs :func:`build_pins` needs, from a single pass over the dump."""
     import polars as pl
 
-    return set(cards_lf.lazy().select(pl.col("id")).drop_nulls().collect().to_series().to_list())
+    joined, printings = pl.collect_all([_token_references_lf(cards_lf), _printing_ids_lf(cards_lf)])
+    return _finalize_references(joined), set(printings.to_series().to_list())
 
 
-def build_token_pins(cards_lf: pl.LazyFrame, pins: PinFile | None = None) -> TokenPins | None:
-    """Build the lookups ``add_token_ids()`` applies, or None when unpinned."""
+def build_token_pins(
+    cards_lf: pl.LazyFrame,
+    scryfall_uuid_lf: pl.LazyFrame,
+    pins: PinFile | None = None,
+) -> TokenPins | None:
+    """Build the lookups ``add_token_ids()`` applies, or None when unpinned.
+
+    Args:
+        cards_lf: Any frame carrying ``id`` and an oracle id column — the raw
+            dump, or a narrow projection of it.
+        scryfall_uuid_lf: The global ``scryfallId`` -> ``uuid`` map.  Pinned
+            printings are resolved through it here, once, so batches do not
+            re-join it.  A pin the map cannot resolve yields a null UUID and
+            falls back to the live reference.
+        pins: Pin file to apply; loaded from the packaged resource when None.
+    """
     import polars as pl
 
     if pins is None:
@@ -169,23 +309,37 @@ def build_token_pins(cards_lf: pl.LazyFrame, pins: PinFile | None = None) -> Tok
         return None
 
     cards_lf = cards_lf.lazy()
-    oracle_col = _pick_column(set(cards_lf.collect_schema().names()), _ORACLE_COLUMNS)
-    if oracle_col is None:
+    oracle = oracle_id_expr(cards_lf.collect_schema())
+    if oracle is None:
         # Without oracle ids there is nothing to file pins against; following
         # Scryfall is still correct, just not pinned.
         LOGGER.warning("cards_lf has no oracle id column, token reference pins disabled")
         return None
 
     rows = [
-        {"_card_sid": card_sid, "_tok_oracle": oracle, "_pin_sid": pin_sid}
+        {"_card_sid": card_sid, "_tok_oracle": token_oracle, "_pin_sid": pin_sid}
         for card_sid, entries in pins.items()
-        for oracle, pin_sid in entries.items()
+        for token_oracle, pin_sid in entries.items()
     ]
     if not rows:
         return None
 
     schema = {"_card_sid": pl.String, "_tok_oracle": pl.String, "_pin_sid": pl.String}
     pins_lf = pl.DataFrame(rows, schema=schema).lazy()
+
+    pins_lf = (
+        pins_lf.join(
+            scryfall_uuid_lf.select(
+                pl.col("scryfallId").alias("_pin_sid"),
+                pl.col("uuid").alias("_pinned_uuid"),
+            ),
+            on="_pin_sid",
+            how="left",
+        )
+        .drop("_pin_sid")
+        .collect()
+        .lazy()
+    )
 
     # Collected once and narrowed to the oracles actually pinned: this lookup is
     # joined in every batch, and leaving it lazy rescans the whole dump each time.
@@ -194,7 +348,7 @@ def build_token_pins(cards_lf: pl.LazyFrame, pins: PinFile | None = None) -> Tok
     oracle_lf = (
         cards_lf.select(
             pl.col("id").alias("_tok_sid"),
-            pl.col(oracle_col).alias("_tok_oracle"),
+            oracle.alias("_tok_oracle"),
         )
         .filter(pl.col("_tok_oracle").is_in(pinned_oracles))
         .unique(subset=["_tok_sid"])
@@ -210,7 +364,7 @@ def build_pins(
     references: pl.DataFrame,
     pins: PinFile | None,
     live_printings: set[str],
-) -> PinFile:
+) -> PinMerge:
     """Merge freshly extracted references into the existing pin file.
 
     An existing pin wins, which is the whole point — that is the printing the
@@ -252,7 +406,11 @@ def build_pins(
             repointed += 1
 
     LOGGER.info("Token reference pins: %d added, %d repointed", added, repointed)
-    return {card: dict(sorted(entries.items())) for card, entries in sorted(updated.items()) if entries}
+    return PinMerge(
+        pins={card: dict(sorted(entries.items())) for card, entries in sorted(updated.items()) if entries},
+        added=added,
+        repointed=repointed,
+    )
 
 
 def serialize_pins(pins: PinFile) -> str:
