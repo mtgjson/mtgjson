@@ -312,7 +312,6 @@ class Identifiers(TypedDict, total=False):
 
     # Sealed product identifiers
     abuId: str
-    cardtraderId: str
     csiId: str
     hareruyaId: str
     miniaturemarketId: str
@@ -327,6 +326,7 @@ class Identifiers(TypedDict, total=False):
     cardsphereAlternativeFoilId: str
     cardsphereEtchedId: str
     cardsphereFoilId: str
+    cardtraderId: str
     deckboxId: str
     mcmId: str
     mcmMetaId: str
@@ -1061,7 +1061,7 @@ class PriceList(TypedDict, total=False):
     )
     __doc_parent__ = (
         "**Parent model:** [Price Formats](/data-models/price/price-formats/)\n"
-        "- **Parent property:** `cardhoarder`, `cardkingdom`, `cardmarket`, `cardsphere`, `tcgplayer`, `manapool`"
+        "- **Parent property:** `cardhoarder`, `cardkingdom`, `cardmarket`, `cardtrader`, `cardsphere`, `manapool`, `tcgplayer`"
     )
     __doc_slug__ = "price/price-list"
     __doc_keywords__ = "mtg, magic the gathering, mtgjson, json, price provider"
@@ -1112,7 +1112,7 @@ class PriceFormats(TypedDict, total=False):
             "description": "Card prices available to this card for paper products. See the [Price List](/data-models/price/price-list/) Data Model.",
             "introduced": "v5.2.2",
             "optional": True,
-            "type_override": "Record<'cardkingdom' | 'cardmarket' | 'cardsphere' | 'tcgplayer', PriceList>",
+            "type_override": "Record<'cardkingdom' | 'cardmarket' | 'cardtrader' | 'cardsphere' | 'manapool' | 'tcgplayer', PriceList>",
         },
     }
 

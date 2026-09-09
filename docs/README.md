@@ -66,7 +66,7 @@ The Polars pipeline consists of four main layers:
 │              5. PRICE ENGINE (separate ETL)                 │
 │  PolarsPriceBuilder (build/prices/price_builder.py)      │
 │  + price_archive.py, price_writers.py, price_s3.py         │
-│  - Fetches daily prices from 5 providers                    │
+│  - Fetches daily prices from 6 providers                    │
 │  - Date-partitioned parquet data lake with S3 sync          │
 │  - Streams AllPrices.json, AllPricesToday.json + SQL        │
 └─────────────────────────────────────────────────────────────┘
