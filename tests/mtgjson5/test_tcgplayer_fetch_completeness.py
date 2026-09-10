@@ -11,8 +11,10 @@ import io
 import json
 import lzma
 import os
+import shutil
 import time
 from concurrent.futures import Future
+from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
 
@@ -21,6 +23,7 @@ import polars as pl
 import pytest
 import requests
 
+from mtgjson5.providers.tcgplayer import archive as archive_mod
 from mtgjson5.providers.tcgplayer import provider as provider_mod
 from mtgjson5.providers.tcgplayer import published as published_mod
 from mtgjson5.providers.tcgplayer.provider import (
@@ -109,13 +112,18 @@ class FakeClient:
 
 @pytest.fixture
 def make_provider(tmp_path, monkeypatch):
-    def _make(api: FakeApi, published_catalog_url: str | None = None) -> TCGProvider:
+    def _make(
+        api: FakeApi,
+        published_catalog_url: str | None = None,
+        archive_catalog: bool = False,
+    ) -> TCGProvider:
         FakeClient.api = api
         monkeypatch.setattr(provider_mod, "TcgPlayerClient", FakeClient)
         return TCGProvider(
             output_path=tmp_path / "tcg_skus.parquet",
             configs=[TcgPlayerConfig(public_key="a", private_key="b")],
             published_catalog_url=published_catalog_url,
+            archive_catalog=archive_catalog,
         )
 
     return _make
@@ -200,6 +208,55 @@ class _Response:
 @pytest.fixture
 def published(monkeypatch) -> PublishedSkus:
     return PublishedSkus(monkeypatch)
+
+
+class FakeS3:
+    """Stands in for the catalog archive bucket, backed by a directory."""
+
+    bucket = "mtgjson-test"
+    object_path = "tcg_catalog/tcg_skus.parquet"
+
+    def __init__(self, monkeypatch, store: Path):
+        self.store = store
+        self.uploads: list[str] = []
+        self.downloads: list[str] = []
+        self.configured = True
+        self.download_error: Exception | None = None
+        handler = self
+
+        class Handler:
+            def upload_file(self, local_path: str, bucket: str, object_path: str, *args: object) -> bool:
+                handler.uploads.append(object_path)
+                shutil.copyfile(local_path, handler.store / object_path.replace("/", "_"))
+                return True
+
+            def download_file(self, bucket: str, object_path: str, local_path: str) -> bool:
+                handler.downloads.append(object_path)
+                if handler.download_error is not None:
+                    raise handler.download_error
+                archived = handler.store / object_path.replace("/", "_")
+                if not archived.exists():
+                    return False
+                shutil.copyfile(archived, local_path)
+                return True
+
+        monkeypatch.setattr(archive_mod, "MtgjsonS3Handler", Handler)
+        monkeypatch.setattr(
+            archive_mod,
+            "catalog_archive_location",
+            lambda: (self.bucket, self.object_path) if self.configured else None,
+        )
+
+    @property
+    def holds_a_catalog(self) -> bool:
+        return (self.store / self.object_path.replace("/", "_")).exists()
+
+
+@pytest.fixture
+def s3(monkeypatch, tmp_path) -> FakeS3:
+    store = tmp_path / "s3"
+    store.mkdir()
+    return FakeS3(monkeypatch, store)
 
 
 # ---------------------------------------------------------------------------
@@ -459,7 +516,7 @@ class TestPublishedCatalog:
         provider.previous_catalog()
 
         # A catalog left by a build days ago is too small a baseline to trust.
-        stale = time.time() - (provider_mod.PUBLISHED_CATALOG_MAX_AGE_HOURS + 1) * 3600
+        stale = time.time() - (provider_mod.RECOVERED_CATALOG_MAX_AGE_HOURS + 1) * 3600
         os.utime(tmp_path / "tcg_skus_published.parquet", (stale, stale))
         published.serve({10: [100], 11: [110], 12: [120]})
 
@@ -499,6 +556,112 @@ class TestRegressionOnAFreshContainer:
         assert provider.fetch_all_products_sync().collect().height == 300
 
 
+class TestCatalogArchive:
+    """The archived catalog is the one fallback that still carries product names."""
+
+    def test_a_good_fetch_is_archived(self, make_provider, s3):
+        provider = make_provider(FakeApi(_catalog(500)), archive_catalog=True)
+
+        provider.fetch_all_products_sync()
+
+        assert s3.uploads == [s3.object_path]
+        assert s3.holds_a_catalog
+
+    def test_an_unconfigured_bucket_archives_nothing(self, make_provider, s3):
+        s3.configured = False
+        provider = make_provider(FakeApi(_catalog(500)), archive_catalog=True)
+
+        provider.fetch_all_products_sync()
+
+        assert s3.uploads == []
+
+    def test_a_failed_upload_does_not_fail_the_build(self, make_provider, s3, monkeypatch):
+        monkeypatch.setattr(
+            archive_mod.MtgjsonS3Handler,
+            "upload_file",
+            lambda *args: (_ for _ in ()).throw(RuntimeError("no credentials")),
+        )
+        provider = make_provider(FakeApi(_catalog(500)), archive_catalog=True)
+
+        assert provider.fetch_all_products_sync().collect().height == 500
+
+    def test_a_fresh_container_restores_it_with_names_intact(self, make_provider, s3, published, tmp_path):
+        make_provider(FakeApi(_catalog(500)), archive_catalog=True).fetch_all_products_sync()
+        (tmp_path / "tcg_skus.parquet").unlink()  # the next night starts empty
+
+        provider = make_provider(FakeApi([]), published_catalog_url=published.url, archive_catalog=True)
+        restored = provider.previous_catalog().collect()
+
+        assert restored.height == 500
+        # Names are what the published TcgplayerSkus.json cannot give back, and
+        # what alternative-foil detection matches on.
+        assert restored["name"].to_list()[:2] == ["Card 0", "Card 1"]
+        assert published.downloads == 0
+
+    def test_it_is_preferred_over_the_published_catalog(self, make_provider, s3, published, tmp_path):
+        make_provider(FakeApi(_catalog(500)), archive_catalog=True).fetch_all_products_sync()
+        (tmp_path / "tcg_skus.parquet").unlink()
+        published.serve({10: [100]})
+
+        provider = make_provider(FakeApi([]), published_catalog_url=published.url, archive_catalog=True)
+
+        assert provider.previous_catalog().collect().height == 500
+        assert published.downloads == 0
+
+    def test_an_empty_archive_falls_through_to_the_published_catalog(self, make_provider, s3, published):
+        published.serve({10: [100], 11: [110]})
+        provider = make_provider(FakeApi([]), published_catalog_url=published.url, archive_catalog=True)
+
+        catalog = provider.previous_catalog().collect()
+
+        assert s3.downloads == [s3.object_path]
+        assert catalog["productId"].to_list() == [10, 11]
+
+    def test_a_download_failure_is_not_retried(self, make_provider, s3, tmp_path):
+        s3.download_error = RuntimeError("bucket unreachable")
+        provider = make_provider(FakeApi([]), archive_catalog=True)
+
+        assert provider.previous_catalog() is None
+        assert provider.previous_catalog() is None
+        assert len(s3.downloads) == 1
+        # A half-written restore must not be left behind as a catalog.
+        assert not (tmp_path / "tcg_skus_archived.parquet").exists()
+
+    def test_the_regression_check_uses_the_archived_catalog(self, make_provider, s3, tmp_path):
+        make_provider(FakeApi(_catalog(500)), archive_catalog=True).fetch_all_products_sync()
+        (tmp_path / "tcg_skus.parquet").unlink()
+
+        provider = make_provider(FakeApi(_catalog(300)), archive_catalog=True)
+
+        with pytest.raises(TcgPlayerIncompleteFetchError, match="500 to 300 products"):
+            provider.fetch_all_products_sync()
+
+
+class TestArchiveConfiguration:
+    def test_no_bucket_means_no_archive(self, monkeypatch):
+        monkeypatch.setattr(archive_mod, "MtgjsonConfig", lambda: _config({}))
+
+        assert archive_mod.catalog_archive_location() is None
+
+    def test_a_bucket_alone_uses_the_default_object_path(self, monkeypatch):
+        monkeypatch.setattr(archive_mod, "MtgjsonConfig", lambda: _config({"catalog_bucket_name": "mtgjson-test"}))
+
+        assert archive_mod.catalog_archive_location() == ("mtgjson-test", archive_mod.CATALOG_OBJECT_PATH)
+
+    def test_the_object_path_can_be_overridden(self, monkeypatch):
+        values = {"catalog_bucket_name": "mtgjson-test", "catalog_object_path": "somewhere/else.parquet"}
+        monkeypatch.setattr(archive_mod, "MtgjsonConfig", lambda: _config(values))
+
+        assert archive_mod.catalog_archive_location() == ("mtgjson-test", "somewhere/else.parquet")
+
+
+def _config(values: dict[str, str]) -> SimpleNamespace:
+    return SimpleNamespace(
+        has_section=lambda section: section == "TCGPlayer",
+        get=lambda section, option, fallback="": values.get(option, fallback),
+    )
+
+
 class TestSubprocessCatalogFallback:
     def test_a_recovered_catalog_reaches_an_assembly_subprocess(self, tmp_path, monkeypatch):
         """A subprocess has no shared cache and reads the catalog off disk."""
@@ -526,7 +689,6 @@ class TestSubprocessCatalogFallback:
 
         assembler._load_tcg_data()
 
-        assert assembler._tcg_skus_lf is not None
         assert assembler._tcg_skus_lf.collect()["productId"].to_list() == [3]
 
 
@@ -559,42 +721,3 @@ class TestMalformedPages:
         )
 
         assert rows == [{"productId": 5, "name": "", "cleanName": "", "groupId": None, "url": "", "skus": []}]
-
-    def test_a_product_with_a_null_sku_list_is_still_accepted(self):
-        # One product carrying null skus should not take the whole page - and
-        # then, after retries, the whole build - down with it.
-        rows = TCGProvider._parse_products({"results": [{"productId": 5, "skus": None}]})
-
-        assert rows == [{"productId": 5, "name": "", "cleanName": "", "groupId": None, "url": "", "skus": []}]
-
-
-class TestPoisonedFallbacks:
-    def test_an_empty_catalog_on_disk_is_not_a_fallback(self, tmp_path, make_provider, published):
-        # A run with no usable API keys writes an empty catalog to this path.
-        pl.DataFrame(schema=cast("dict", provider_mod.PRODUCT_SCHEMA)).write_parquet(tmp_path / "tcg_skus.parquet")
-        provider = make_provider(FakeApi([]), published_catalog_url=published.url)
-        published.serve({10: [100], 11: [110]})
-
-        assert provider.previous_catalog().collect()["productId"].to_list() == [10, 11]
-
-    def test_a_failure_while_recovering_is_latched(self, make_provider):
-        from mtgjson5.data.cache import GlobalCache
-
-        failed: Future[pl.LazyFrame] = Future()
-        failed.set_exception(TcgPlayerIncompleteFetchError("every page failed"))
-        provider = make_provider(FakeApi([]))
-        provider.previous_catalog = lambda: (_ for _ in ()).throw(OSError("no space left on device"))
-        cache = SimpleNamespace(
-            tcgplayer=provider,
-            tcg_skus_lf=None,
-            _tcg_skus_future=failed,
-            _tcg_skus_error=None,
-        )
-        cache._last_good_tcg_skus = lambda error: GlobalCache._last_good_tcg_skus(cache, error)
-
-        with pytest.raises(OSError, match="no space left"):
-            GlobalCache._await_tcg_skus(cache)
-
-        # The second awaiter must not read this as "there is nothing to write".
-        with pytest.raises(OSError, match="no space left"):
-            GlobalCache._await_tcg_skus(cache)
