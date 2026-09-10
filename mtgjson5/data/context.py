@@ -1356,7 +1356,9 @@ class PipelineContext:
         else:
             alt_count = len(alt_foil)
         if alt_count == 0:
-            LOGGER.info("tcg_alt_foil: No alt-foil products found")
+            # A catalog recovered from the last published TcgplayerSkus.json
+            # carries no product names, so a build that fell back lands here.
+            LOGGER.warning("tcg_alt_foil: No alt-foil products found; alternative foil IDs will be absent")
             return
 
         # Strip suffix from alt-foil names to get base name for matching

@@ -914,6 +914,17 @@ class TcgplayerSkusAssembler(Assembler):
                     setattr(self, attr, pl.scan_parquet(path))
                     LOGGER.info(f"Loaded {filename} from disk (subprocess fallback)")
 
+        if self._tcg_skus_lf is None:
+            # A build whose fetch failed recovers the last published catalog
+            # instead of writing tcg_skus.parquet, so look for that too rather
+            # than writing out an empty TcgplayerSkus.json.
+            from mtgjson5.providers.tcgplayer.provider import published_catalog_path
+
+            recovered = published_catalog_path()
+            if recovered.exists():
+                self._tcg_skus_lf = pl.scan_parquet(recovered)
+                LOGGER.warning(f"Loaded the recovered TCGPlayer catalog {recovered.name} from disk")
+
     def _flatten_skus_lazy(self) -> pl.LazyFrame | None:
         """Build lazy flattened SKU pipeline (no materialization).
 
