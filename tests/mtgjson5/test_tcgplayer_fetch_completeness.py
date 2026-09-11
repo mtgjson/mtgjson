@@ -526,6 +526,7 @@ class TestSubprocessCatalogFallback:
 
         assembler._load_tcg_data()
 
+        assert assembler._tcg_skus_lf is not None
         assert assembler._tcg_skus_lf.collect()["productId"].to_list() == [3]
 
 
