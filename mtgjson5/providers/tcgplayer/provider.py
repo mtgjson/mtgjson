@@ -102,6 +102,23 @@ def _fresh(path: Path) -> bool:
     return (time.time() - path.stat().st_mtime) / 3600 < RECOVERED_CATALOG_MAX_AGE_HOURS
 
 
+def _usable_catalog(path: Path) -> pl.LazyFrame | None:
+    """Return a scan of ``path``, or None if it holds no products or cannot be read.
+
+    A run with no usable API keys writes an empty catalog, and a truncated S3
+    object only fails at collect time. Either one passed on as a baseline makes
+    the day-over-day check compare against nothing, and an empty one published
+    as a catalog is the outcome the fallback exists to prevent.
+    """
+    try:
+        if pl.scan_parquet(path).select(pl.len()).collect().item():
+            return pl.scan_parquet(path)
+        LOGGER.warning(f"Ignoring the empty TCG catalog at {path}")
+    except Exception as e:
+        LOGGER.warning(f"Could not read the TCG catalog at {path}: {e}")
+    return None
+
+
 class TcgPlayerIncompleteFetchError(RuntimeError):
     """Raised when the TCGPlayer catalog could not be fetched in full.
 
@@ -335,14 +352,9 @@ class TCGProvider:
         build its alternative-foil identifiers.
         """
         if self.output_path.exists():
-            # A run with no usable API keys writes an empty catalog here, so an
-            # existing file is only a baseline once it actually holds products.
-            try:
-                if pl.scan_parquet(self.output_path).select(pl.len()).collect().item():
-                    return pl.scan_parquet(self.output_path)
-                LOGGER.warning(f"Ignoring the empty TCG catalog at {self.output_path}")
-            except Exception as e:
-                LOGGER.warning(f"Could not read the TCG catalog at {self.output_path}: {e}")
+            catalog = _usable_catalog(self.output_path)
+            if catalog is not None:
+                return catalog
 
         archived = self._archived_catalog()
         if archived is not None:
@@ -351,17 +363,30 @@ class TCGProvider:
 
     def _archived_catalog(self) -> pl.LazyFrame | None:
         """Restore the catalog the last good build archived, downloading it once."""
-        if _fresh(self.archive_path):
-            return pl.scan_parquet(self.archive_path)
-        if not self.archive_catalog or self._archive_download_failed:
+        if not self.archive_catalog:
             return None
 
-        if not download_archived_catalog(self.archive_path):
+        if _fresh(self.archive_path):
+            catalog = _usable_catalog(self.archive_path)
+            if catalog is not None:
+                return catalog
+
+        if self._archive_download_failed:
+            return None
+
+        if not download_archived_catalog(self.archive_path, RECOVERED_CATALOG_MAX_AGE_HOURS):
             self._archive_download_failed = True
             self.archive_path.unlink(missing_ok=True)
             return None
 
-        return pl.scan_parquet(self.archive_path)
+        catalog = _usable_catalog(self.archive_path)
+        if catalog is None:
+            # A corrupt or empty object will not read any better on a retry, and
+            # an empty one passing itself off as a baseline is what the
+            # day-over-day check exists to catch.
+            self._archive_download_failed = True
+            self.archive_path.unlink(missing_ok=True)
+        return catalog
 
     def _archive_catalog(self) -> None:
         """Hand a freshly fetched catalog to S3 for tomorrow's build to fall back on."""

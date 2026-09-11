@@ -2,11 +2,13 @@
 S3 Uploader to store MTGJSON files in a Bucket
 """
 
+import datetime
 import logging
 import pathlib
 import time
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import cast
 
 import boto3
 import botocore.exceptions
@@ -38,6 +40,20 @@ class MtgjsonS3Handler:
         except (botocore.exceptions.ClientError, botocore.exceptions.BotoCoreError) as error:
             self.logger.error(f"Failed to download s3://{bucket_name}/{bucket_object_path}: {error}")
             return False
+
+    def object_last_modified(self, bucket_name: str, bucket_object_path: str) -> datetime.datetime | None:
+        """
+        Read when an object was last written
+        :param bucket_name: Bucket the object lives in
+        :param bucket_object_path: Path within Bucket the object resides at
+        :returns When the object was last written, or None if it could not be reached
+        """
+        try:
+            response = self.s3_client.head_object(Bucket=bucket_name, Key=bucket_object_path)
+            return cast("datetime.datetime", response["LastModified"])
+        except (botocore.exceptions.ClientError, botocore.exceptions.BotoCoreError) as error:
+            self.logger.error(f"Failed to stat s3://{bucket_name}/{bucket_object_path}: {error}")
+            return None
 
     def upload_file(
         self,

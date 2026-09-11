@@ -14,6 +14,7 @@ import os
 import shutil
 import time
 from concurrent.futures import Future
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -222,6 +223,7 @@ class FakeS3:
         self.downloads: list[str] = []
         self.configured = True
         self.download_error: Exception | None = None
+        self.last_modified: datetime | None = datetime.now(UTC)
         handler = self
 
         class Handler:
@@ -229,6 +231,12 @@ class FakeS3:
                 handler.uploads.append(object_path)
                 shutil.copyfile(local_path, handler.store / object_path.replace("/", "_"))
                 return True
+
+            def upload_file_with_retry(self, local_path: str, bucket: str, object_path: str, *args: object) -> bool:
+                return self.upload_file(local_path, bucket, object_path)
+
+            def object_last_modified(self, bucket: str, object_path: str) -> datetime | None:
+                return handler.last_modified
 
             def download_file(self, bucket: str, object_path: str, local_path: str) -> bool:
                 handler.downloads.append(object_path)
@@ -250,6 +258,14 @@ class FakeS3:
     @property
     def holds_a_catalog(self) -> bool:
         return (self.store / self.object_path.replace("/", "_")).exists()
+
+    def holds(self, catalog: pl.DataFrame | bytes) -> None:
+        """Put an object in the bucket without a build having to produce it."""
+        archived = self.store / self.object_path.replace("/", "_")
+        if isinstance(catalog, bytes):
+            archived.write_bytes(catalog)
+        else:
+            catalog.write_parquet(archived)
 
 
 @pytest.fixture
@@ -627,6 +643,45 @@ class TestCatalogArchive:
         # A half-written restore must not be left behind as a catalog.
         assert not (tmp_path / "tcg_skus_archived.parquet").exists()
 
+    def test_a_corrupt_archive_falls_through_to_the_published_catalog(self, make_provider, s3, published):
+        # A truncated object reads fine as a LazyFrame and only fails at collect
+        # time, well past the point where the published file is still reachable.
+        s3.holds(b"PAR1 truncated")
+        published.serve({10: [100], 11: [110]})
+        provider = make_provider(FakeApi([]), published_catalog_url=published.url, archive_catalog=True)
+
+        assert provider.previous_catalog().collect()["productId"].to_list() == [10, 11]
+
+    def test_a_zero_row_archive_falls_through_to_the_published_catalog(self, make_provider, s3, published):
+        # An empty archive passes every check and publishes an empty catalog.
+        s3.holds(pl.DataFrame(schema=cast("dict", provider_mod.PRODUCT_SCHEMA)))
+        published.serve({10: [100], 11: [110]})
+        provider = make_provider(FakeApi([]), published_catalog_url=published.url, archive_catalog=True)
+
+        assert provider.previous_catalog().collect()["productId"].to_list() == [10, 11]
+
+    def test_a_stale_archive_is_not_restored(self, make_provider, s3, published, tmp_path):
+        make_provider(FakeApi(_catalog(500)), archive_catalog=True).fetch_all_products_sync()
+        (tmp_path / "tcg_skus.parquet").unlink()
+        s3.downloads.clear()  # that fetch looked for a baseline of its own
+        # Nothing has archived a catalog for days, so this one is no baseline.
+        s3.last_modified = datetime.now(UTC) - timedelta(days=3)
+        published.serve({10: [100], 11: [110]})
+
+        provider = make_provider(FakeApi([]), published_catalog_url=published.url, archive_catalog=True)
+
+        assert provider.previous_catalog().collect()["productId"].to_list() == [10, 11]
+        assert s3.downloads == []
+
+    def test_switching_the_archive_off_ignores_one_left_on_disk(self, make_provider, s3, tmp_path):
+        make_provider(FakeApi(_catalog(500)), archive_catalog=True).fetch_all_products_sync()
+        shutil.copyfile(tmp_path / "tcg_skus.parquet", tmp_path / "tcg_skus_archived.parquet")
+        (tmp_path / "tcg_skus.parquet").unlink()
+
+        provider = make_provider(FakeApi([]), archive_catalog=False)
+
+        assert provider.previous_catalog() is None
+
     def test_the_regression_check_uses_the_archived_catalog(self, make_provider, s3, tmp_path):
         make_provider(FakeApi(_catalog(500)), archive_catalog=True).fetch_all_products_sync()
         (tmp_path / "tcg_skus.parquet").unlink()
@@ -689,6 +744,7 @@ class TestSubprocessCatalogFallback:
 
         assembler._load_tcg_data()
 
+        assert assembler._tcg_skus_lf is not None
         assert assembler._tcg_skus_lf.collect()["productId"].to_list() == [3]
 
 
@@ -721,3 +777,42 @@ class TestMalformedPages:
         )
 
         assert rows == [{"productId": 5, "name": "", "cleanName": "", "groupId": None, "url": "", "skus": []}]
+
+    def test_a_product_with_a_null_sku_list_is_still_accepted(self):
+        # One product carrying null skus should not take the whole page - and
+        # then, after retries, the whole build - down with it.
+        rows = TCGProvider._parse_products({"results": [{"productId": 5, "skus": None}]})
+
+        assert rows == [{"productId": 5, "name": "", "cleanName": "", "groupId": None, "url": "", "skus": []}]
+
+
+class TestPoisonedFallbacks:
+    def test_an_empty_catalog_on_disk_is_not_a_fallback(self, tmp_path, make_provider, published):
+        # A run with no usable API keys writes an empty catalog to this path.
+        pl.DataFrame(schema=cast("dict", provider_mod.PRODUCT_SCHEMA)).write_parquet(tmp_path / "tcg_skus.parquet")
+        provider = make_provider(FakeApi([]), published_catalog_url=published.url)
+        published.serve({10: [100], 11: [110]})
+
+        assert provider.previous_catalog().collect()["productId"].to_list() == [10, 11]
+
+    def test_a_failure_while_recovering_is_latched(self, make_provider):
+        from mtgjson5.data.cache import GlobalCache
+
+        failed: Future[pl.LazyFrame] = Future()
+        failed.set_exception(TcgPlayerIncompleteFetchError("every page failed"))
+        provider = make_provider(FakeApi([]))
+        provider.previous_catalog = lambda: (_ for _ in ()).throw(OSError("no space left on device"))
+        cache = SimpleNamespace(
+            tcgplayer=provider,
+            tcg_skus_lf=None,
+            _tcg_skus_future=failed,
+            _tcg_skus_error=None,
+        )
+        cache._last_good_tcg_skus = lambda error: GlobalCache._last_good_tcg_skus(cache, error)
+
+        with pytest.raises(OSError, match="no space left"):
+            GlobalCache._await_tcg_skus(cache)
+
+        # The second awaiter must not read this as "there is nothing to write".
+        with pytest.raises(OSError, match="no space left"):
+            GlobalCache._await_tcg_skus(cache)
