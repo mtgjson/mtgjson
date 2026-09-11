@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,7 +22,8 @@ import polars as pl
 from mtgjson5 import constants
 from mtgjson5.mtgjson_config import MtgjsonConfig
 
-from .models import PRODUCT_SCHEMA
+from .models import PRODUCT_SCHEMA, ProductsResponse
+from .published import PUBLISHED_SKUS_URL, download_published_catalog
 
 LOGGER = logging.getLogger(__name__)
 
@@ -38,6 +40,9 @@ MIN_COMPLETENESS = 0.98
 # The catalog only ever grows in practice, so a real day-over-day shrink of more
 # than this is a fetch problem rather than TCGPlayer delisting products.
 MIN_CATALOG_RETENTION = 0.95
+# MTGJSON publishes daily, so a catalog rebuilt from a published build goes stale
+# quickly. Past this it is refetched rather than reused.
+PUBLISHED_CATALOG_MAX_AGE_HOURS = 24.0
 NEAR_MINT_CONDITION = 1
 ENGLISH_LANGUAGE = 1
 NON_FOIL_PRINTING = 1
@@ -63,12 +68,31 @@ ALL_PRODUCT_TYPES = ",".join(["Cards", *SEALED_PRODUCT_TYPES])
 ProgressCallback = Callable[[int, int, str], None]
 
 
+def published_catalog_path(output_path: Path | None = None) -> Path:
+    """Where a catalog rebuilt from the last published build is kept.
+
+    A build that fell back never writes ``tcg_skus.parquet``, so anything that
+    reads the catalog off disk - assembly subprocesses, which have no shared
+    cache - has to know about this file too.
+    """
+    base = output_path or (constants.CACHE_PATH / "tcg_skus.parquet")
+    return base.with_name(f"{base.stem}_published.parquet")
+
+
 class TcgPlayerIncompleteFetchError(RuntimeError):
     """Raised when the TCGPlayer catalog could not be fetched in full.
 
     A partial catalog silently drops every SKU for the products that went
     missing, so callers must treat this as a failed fetch and fall back to the
     previous good data rather than publishing the truncated result.
+    """
+
+
+class TcgPlayerCatalogUnavailableError(RuntimeError):
+    """Raised when the fetch failed and no previous catalog could be recovered.
+
+    Publishing an empty TcgplayerSkus.json drops every SKU for every card, so a
+    build that has nothing to fall back on stops instead of shipping the hole.
     """
 
 
@@ -257,6 +281,7 @@ class TCGProvider:
         on_progress: ProgressCallback | None = None,
         flush_threshold: int = 50_000,
         product_types: str | None = None,
+        published_catalog_url: str | None = PUBLISHED_SKUS_URL,
     ):
         self.output_path = output_path or (constants.CACHE_PATH / "tcg_skus.parquet")
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -264,6 +289,63 @@ class TCGProvider:
         self.on_progress = on_progress
         self.flush_threshold = flush_threshold
         self.product_types = product_types or ALL_PRODUCT_TYPES
+        # Set to None to keep a build off the network when no catalog is cached.
+        self.published_catalog_url = published_catalog_url
+        self.published_path = published_catalog_path(self.output_path)
+        self._published_download_failed = False
+
+    def previous_catalog(self) -> pl.LazyFrame | None:
+        """Return the last complete catalog, or None if none can be reached.
+
+        A rerun on the same machine has the previous ``tcg_skus.parquet`` on
+        disk. The nightly does not - it starts in a fresh container - so it falls
+        back to MTGJSON's last published TcgplayerSkus.json, which is the only
+        copy of yesterday's catalog the build machine can get to.
+        """
+        if self.output_path.exists():
+            # A run with no usable API keys writes an empty catalog here, so an
+            # existing file is only a baseline once it actually holds products.
+            try:
+                if pl.scan_parquet(self.output_path).select(pl.len()).collect().item():
+                    return pl.scan_parquet(self.output_path)
+                LOGGER.warning(f"Ignoring the empty TCG catalog at {self.output_path}")
+            except Exception as e:
+                LOGGER.warning(f"Could not read the TCG catalog at {self.output_path}: {e}")
+        return self._published_catalog()
+
+    def _published_catalog(self) -> pl.LazyFrame | None:
+        """Rebuild the last published catalog, downloading it at most once.
+
+        A copy left by an earlier build is only reused while it is still recent.
+        Falling back to a catalog from weeks ago would quietly hand a regressed
+        fetch a baseline small enough to pass the day-over-day check.
+        """
+        if self._published_catalog_fresh():
+            return pl.scan_parquet(self.published_path)
+        if not self.published_catalog_url or self._published_download_failed:
+            return None
+
+        staging_path = self.published_path.with_suffix(".parquet.staging")
+        try:
+            catalog = download_published_catalog(self.published_catalog_url)
+            # Swap the file in whole: a half-written copy would still look fresh
+            # to the next run and to the assembly subprocesses.
+            catalog.write_parquet(staging_path)
+            staging_path.replace(self.published_path)
+        except Exception as e:
+            self._published_download_failed = True
+            staging_path.unlink(missing_ok=True)
+            LOGGER.error(f"Could not rebuild the last published TCGPlayer catalog: {e}")
+            return None
+
+        return pl.scan_parquet(self.published_path)
+
+    def _published_catalog_fresh(self) -> bool:
+        """Return True if a rebuilt catalog from this or a recent build is on disk."""
+        if not self.published_path.exists():
+            return False
+        age_hours = (time.time() - self.published_path.stat().st_mtime) / 3600
+        return age_hours < PUBLISHED_CATALOG_MAX_AGE_HOURS
 
     async def fetch_all_products(self) -> pl.LazyFrame:
         """
@@ -325,27 +407,23 @@ class TCGProvider:
 
     @staticmethod
     def _parse_products(resp: dict[str, object]) -> list[dict]:
-        """Normalize a catalog/products response into part-file rows."""
-        products_raw = resp.get("results", [])
-        products = products_raw if isinstance(products_raw, list) else []
+        """Validate a catalog/products response into part-file rows.
+
+        Validation raises on a malformed page, which sends it back through the
+        retry sweep. Coercing it to an empty list instead would drop the page's
+        products from the catalog without anything noticing.
+        """
+        page = ProductsResponse.model_validate(resp)
         return [
             {
-                "productId": product["productId"],
-                "name": product.get("name", ""),
-                "cleanName": product.get("cleanName", ""),
-                "groupId": product.get("groupId"),
-                "url": product.get("url", ""),
-                "skus": [
-                    {
-                        "skuId": sku["skuId"],
-                        "languageId": sku["languageId"],
-                        "printingId": sku["printingId"],
-                        "conditionId": sku["conditionId"],
-                    }
-                    for sku in (product.get("skus", []) if isinstance(product.get("skus", []), list) else [])
-                ],
+                "productId": product.productId,
+                "name": product.name,
+                "cleanName": product.cleanName,
+                "groupId": product.groupId,
+                "url": product.url,
+                "skus": [sku.model_dump() for sku in product.skus],
             }
-            for product in products
+            for product in page.results
         ]
 
     def _discard_parts(self, part_files: list[Path]) -> None:
@@ -477,13 +555,20 @@ class TCGProvider:
         and still hand back products whose ``skus`` array is empty, which drops
         the same cards from TcgplayerSkus.json without losing a single product.
         Comparing both totals against the previous catalog catches either shape.
+
+        On the nightly the baseline is the last published TcgplayerSkus.json,
+        which only covers the products that mapped to an MTGJSON UUID. That makes
+        it a floor rather than an exact match: a catalog can never legitimately
+        come back smaller than the slice of itself that shipped yesterday.
         """
-        if not self.output_path.exists():
+        previous_lf = self.previous_catalog()
+        if previous_lf is None:
+            LOGGER.warning("No previous TCGPlayer catalog to compare against; skipping the day-over-day check")
             return
 
         counts = pl.col("skus").list.len().sum().alias("skus")
         try:
-            previous = pl.scan_parquet(self.output_path).select(pl.len().alias("products"), counts).collect()
+            previous = previous_lf.select(pl.len().alias("products"), counts).collect()
             current = pl.scan_parquet(staging_path).select(pl.len().alias("products"), counts).collect()
         except Exception as e:
             LOGGER.warning(f"Could not compare against the previous TCG catalog: {e}")

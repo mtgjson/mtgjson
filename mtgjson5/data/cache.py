@@ -35,6 +35,7 @@ from mtgjson5.providers import (
 from mtgjson5.providers.gatherer import GathererProvider
 from mtgjson5.providers.mtgwiki import SecretLairProvider
 from mtgjson5.providers.scryfall.orientation import OrientationDetector
+from mtgjson5.providers.tcgplayer.provider import TcgPlayerCatalogUnavailableError
 from mtgjson5.providers.whats_in_standard import WhatsInStandardProvider
 from mtgjson5.providers.wizards import WizardsProvider
 from mtgjson5.utils import LOGGER
@@ -209,6 +210,7 @@ class GlobalCache:
         self._output_types: set[str] = set()
         self._export_formats: set[str] | None = None
         self._tcg_skus_future: Future[pl.LazyFrame] | None = None
+        self._tcg_skus_error: Exception | None = None
 
     def release(self, *attrs: str) -> None:
         """Release specific cached data to free memory.
@@ -403,7 +405,7 @@ class GlobalCache:
         The fetch runs in a thread pool executor. The result can be awaited
         later using _await_tcg_skus() when TcgplayerSkus.json is needed.
         """
-        cache_path = self.cache_path / "tcg_skus.parquet"
+        cache_path = self.tcgplayer.output_path
 
         if _cache_fresh(cache_path):
             self.tcg_skus_lf = pl.scan_parquet(cache_path)
@@ -419,7 +421,14 @@ class GlobalCache:
         This method is called by TcgplayerSkusAssembler when it needs the data.
         If the data was cached, this returns immediately. If the background
         fetch is still running, this blocks until completion.
+
+        A build with no catalog to publish stays dead: the failure is latched and
+        re-raised, so a caller that swallows the first one cannot leave a later
+        caller thinking there is simply nothing to write.
         """
+        if self._tcg_skus_error is not None:
+            raise self._tcg_skus_error
+
         if self.tcg_skus_lf is not None:
             return  # Already loaded from cache
 
@@ -430,27 +439,37 @@ class GlobalCache:
                 LOGGER.info("TCGPlayer SKU fetch complete")
             except Exception as e:
                 LOGGER.error(f"Failed to fetch TCGPlayer SKUs: {e}")
-                self.tcg_skus_lf = self._last_good_tcg_skus()
+                try:
+                    self.tcg_skus_lf = self._last_good_tcg_skus(e)
+                except Exception as fatal:
+                    # Latch every failure, not just the deliberate one: a disk or
+                    # polars error while recovering would otherwise leave the
+                    # cache looking like "nothing to write" to the next caller.
+                    self._tcg_skus_error = fatal
+                    raise
             finally:
                 self._tcg_skus_future = None
 
-    def _last_good_tcg_skus(self) -> pl.LazyFrame:
-        """Return the previous build's TCG catalog, or an empty frame.
+    def _last_good_tcg_skus(self, error: Exception) -> pl.LazyFrame:
+        """Return the previous good TCG catalog, or stop the build.
 
-        The fetch never overwrites ``tcg_skus.parquet`` with a partial catalog,
-        so whatever is on disk is a complete catalog from an earlier run. Reusing
-        it costs a day of freshness; the alternative drops every SKU for tens of
-        thousands of cards.
+        The fetch never overwrites the catalog with a partial one, so the
+        previous complete catalog is either on disk (a rerun) or in MTGJSON's
+        last published TcgplayerSkus.json (the nightly, which starts from an
+        empty cache directory every time). Reusing it costs a day of freshness.
+
+        With neither reachable there is nothing to publish but an empty file,
+        which would drop every SKU for every card, so the build stops instead.
         """
-        cache_path = self.cache_path / "tcg_skus.parquet"
-        if cache_path.exists():
-            LOGGER.warning(f"Falling back to the previous TCG catalog at {cache_path}")
-            return pl.scan_parquet(cache_path)
+        fallback = self.tcgplayer.previous_catalog()
+        if fallback is None:
+            raise TcgPlayerCatalogUnavailableError(
+                "TCGPlayer catalog fetch failed and no previous catalog could be recovered; "
+                "refusing to publish an empty TcgplayerSkus.json"
+            ) from error
 
-        from mtgjson5.providers.tcgplayer.models import PRODUCT_SCHEMA
-
-        LOGGER.error("No previous TCG catalog available; TCGPlayer SKUs will be empty")
-        return pl.DataFrame(schema=cast("dict", PRODUCT_SCHEMA)).lazy()
+        LOGGER.warning("Falling back to the previous TCGPlayer catalog; SKUs will be a day stale")
+        return fallback
 
     def _dump_and_reload_as_lazy(self) -> None:
         """
