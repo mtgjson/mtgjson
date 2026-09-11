@@ -303,7 +303,14 @@ class TCGProvider:
         copy of yesterday's catalog the build machine can get to.
         """
         if self.output_path.exists():
-            return pl.scan_parquet(self.output_path)
+            # A run with no usable API keys writes an empty catalog here, so an
+            # existing file is only a baseline once it actually holds products.
+            try:
+                if pl.scan_parquet(self.output_path).select(pl.len()).collect().item():
+                    return pl.scan_parquet(self.output_path)
+                LOGGER.warning(f"Ignoring the empty TCG catalog at {self.output_path}")
+            except Exception as e:
+                LOGGER.warning(f"Could not read the TCG catalog at {self.output_path}: {e}")
         return self._published_catalog()
 
     def _published_catalog(self) -> pl.LazyFrame | None:
@@ -318,14 +325,19 @@ class TCGProvider:
         if not self.published_catalog_url or self._published_download_failed:
             return None
 
+        staging_path = self.published_path.with_suffix(".parquet.staging")
         try:
             catalog = download_published_catalog(self.published_catalog_url)
+            # Swap the file in whole: a half-written copy would still look fresh
+            # to the next run and to the assembly subprocesses.
+            catalog.write_parquet(staging_path)
+            staging_path.replace(self.published_path)
         except Exception as e:
             self._published_download_failed = True
+            staging_path.unlink(missing_ok=True)
             LOGGER.error(f"Could not rebuild the last published TCGPlayer catalog: {e}")
             return None
 
-        catalog.write_parquet(self.published_path)
         return pl.scan_parquet(self.published_path)
 
     def _published_catalog_fresh(self) -> bool:

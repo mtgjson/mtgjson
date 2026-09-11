@@ -35,6 +35,17 @@ class Product(BaseModel):
         """
         return "" if value is None else value
 
+    @field_validator("skus", mode="before")
+    @classmethod
+    def _empty_when_null(cls, value: object) -> object:
+        """Treat a null SKU list the same as an absent one.
+
+        The catalog API omits ``skus`` for products that have none and sends null
+        for some of them; either way the product simply contributes no SKUs, and
+        a real collapse in SKU counts is caught by the day-over-day check.
+        """
+        return [] if value is None else value
+
 
 class ProductsResponse(BaseModel):
     """TCGPlayer catalog/products API response.

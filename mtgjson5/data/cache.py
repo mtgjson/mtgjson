@@ -441,7 +441,10 @@ class GlobalCache:
                 LOGGER.error(f"Failed to fetch TCGPlayer SKUs: {e}")
                 try:
                     self.tcg_skus_lf = self._last_good_tcg_skus(e)
-                except TcgPlayerCatalogUnavailableError as fatal:
+                except Exception as fatal:
+                    # Latch every failure, not just the deliberate one: a disk or
+                    # polars error while recovering would otherwise leave the
+                    # cache looking like "nothing to write" to the next caller.
                     self._tcg_skus_error = fatal
                     raise
             finally:

@@ -558,3 +558,42 @@ class TestMalformedPages:
         )
 
         assert rows == [{"productId": 5, "name": "", "cleanName": "", "groupId": None, "url": "", "skus": []}]
+
+    def test_a_product_with_a_null_sku_list_is_still_accepted(self):
+        # One product carrying null skus should not take the whole page - and
+        # then, after retries, the whole build - down with it.
+        rows = TCGProvider._parse_products({"results": [{"productId": 5, "skus": None}]})
+
+        assert rows == [{"productId": 5, "name": "", "cleanName": "", "groupId": None, "url": "", "skus": []}]
+
+
+class TestPoisonedFallbacks:
+    def test_an_empty_catalog_on_disk_is_not_a_fallback(self, tmp_path, make_provider, published):
+        # A run with no usable API keys writes an empty catalog to this path.
+        pl.DataFrame(schema=cast("dict", provider_mod.PRODUCT_SCHEMA)).write_parquet(tmp_path / "tcg_skus.parquet")
+        provider = make_provider(FakeApi([]), published_catalog_url=published.url)
+        published.serve({10: [100], 11: [110]})
+
+        assert provider.previous_catalog().collect()["productId"].to_list() == [10, 11]
+
+    def test_a_failure_while_recovering_is_latched(self, make_provider):
+        from mtgjson5.data.cache import GlobalCache
+
+        failed: Future[pl.LazyFrame] = Future()
+        failed.set_exception(TcgPlayerIncompleteFetchError("every page failed"))
+        provider = make_provider(FakeApi([]))
+        provider.previous_catalog = lambda: (_ for _ in ()).throw(OSError("no space left on device"))
+        cache = SimpleNamespace(
+            tcgplayer=provider,
+            tcg_skus_lf=None,
+            _tcg_skus_future=failed,
+            _tcg_skus_error=None,
+        )
+        cache._last_good_tcg_skus = lambda error: GlobalCache._last_good_tcg_skus(cache, error)
+
+        with pytest.raises(OSError, match="no space left"):
+            GlobalCache._await_tcg_skus(cache)
+
+        # The second awaiter must not read this as "there is nothing to write".
+        with pytest.raises(OSError, match="no space left"):
+            GlobalCache._await_tcg_skus(cache)
