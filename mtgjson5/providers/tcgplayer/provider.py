@@ -22,6 +22,8 @@ import polars as pl
 from mtgjson5 import constants
 from mtgjson5.mtgjson_config import MtgjsonConfig
 
+from .archive import download_catalog as download_archived_catalog
+from .archive import upload_catalog as upload_archived_catalog
 from .models import PRODUCT_SCHEMA, ProductsResponse
 from .published import PUBLISHED_SKUS_URL, download_published_catalog
 
@@ -40,9 +42,9 @@ MIN_COMPLETENESS = 0.98
 # The catalog only ever grows in practice, so a real day-over-day shrink of more
 # than this is a fetch problem rather than TCGPlayer delisting products.
 MIN_CATALOG_RETENTION = 0.95
-# MTGJSON publishes daily, so a catalog rebuilt from a published build goes stale
-# quickly. Past this it is refetched rather than reused.
-PUBLISHED_CATALOG_MAX_AGE_HOURS = 24.0
+# Past this, a recovered catalog left on disk by an earlier build is fetched
+# again rather than reused.
+RECOVERED_CATALOG_MAX_AGE_HOURS = 24.0
 NEAR_MINT_CONDITION = 1
 ENGLISH_LANGUAGE = 1
 NON_FOIL_PRINTING = 1
@@ -75,8 +77,46 @@ def published_catalog_path(output_path: Path | None = None) -> Path:
     reads the catalog off disk - assembly subprocesses, which have no shared
     cache - has to know about this file too.
     """
+    return _sibling(output_path, "published")
+
+
+def archived_catalog_path(output_path: Path | None = None) -> Path:
+    """Where a catalog restored from the S3 archive is kept."""
+    return _sibling(output_path, "archived")
+
+
+def _sibling(output_path: Path | None, suffix: str) -> Path:
     base = output_path or (constants.CACHE_PATH / "tcg_skus.parquet")
-    return base.with_name(f"{base.stem}_published.parquet")
+    return base.with_name(f"{base.stem}_{suffix}.parquet")
+
+
+def _fresh(path: Path) -> bool:
+    """Return True if a recovered catalog on disk is recent enough to reuse.
+
+    MTGJSON builds daily, so a recovered copy left by an earlier build goes stale
+    quickly. Reusing one from weeks ago would hand a regressed fetch a baseline
+    small enough to pass the day-over-day check.
+    """
+    if not path.exists():
+        return False
+    return (time.time() - path.stat().st_mtime) / 3600 < RECOVERED_CATALOG_MAX_AGE_HOURS
+
+
+def _usable_catalog(path: Path) -> pl.LazyFrame | None:
+    """Return a scan of ``path``, or None if it holds no products or cannot be read.
+
+    A run with no usable API keys writes an empty catalog, and a truncated S3
+    object only fails at collect time. Either one passed on as a baseline makes
+    the day-over-day check compare against nothing, and an empty one published
+    as a catalog is the outcome the fallback exists to prevent.
+    """
+    try:
+        if pl.scan_parquet(path).select(pl.len()).collect().item():
+            return pl.scan_parquet(path)
+        LOGGER.warning(f"Ignoring the empty TCG catalog at {path}")
+    except Exception as e:
+        LOGGER.warning(f"Could not read the TCG catalog at {path}: {e}")
+    return None
 
 
 class TcgPlayerIncompleteFetchError(RuntimeError):
@@ -282,6 +322,7 @@ class TCGProvider:
         flush_threshold: int = 50_000,
         product_types: str | None = None,
         published_catalog_url: str | None = PUBLISHED_SKUS_URL,
+        archive_catalog: bool = True,
     ):
         self.output_path = output_path or (constants.CACHE_PATH / "tcg_skus.parquet")
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -293,25 +334,64 @@ class TCGProvider:
         self.published_catalog_url = published_catalog_url
         self.published_path = published_catalog_path(self.output_path)
         self._published_download_failed = False
+        self.archive_catalog = archive_catalog
+        self.archive_path = archived_catalog_path(self.output_path)
+        self._archive_download_failed = False
 
     def previous_catalog(self) -> pl.LazyFrame | None:
         """Return the last complete catalog, or None if none can be reached.
 
         A rerun on the same machine has the previous ``tcg_skus.parquet`` on
-        disk. The nightly does not - it starts in a fresh container - so it falls
-        back to MTGJSON's last published TcgplayerSkus.json, which is the only
-        copy of yesterday's catalog the build machine can get to.
+        disk. The nightly does not - it starts in a fresh container - so it looks
+        to the copy the last good build archived in S3, and failing that to
+        MTGJSON's last published TcgplayerSkus.json.
+
+        The two remote sources are not equivalent. The archive is the catalog
+        itself, product names included, so a build that falls back to it behaves
+        like an ordinary one. The published file has no names, which costs that
+        build its alternative-foil identifiers.
         """
         if self.output_path.exists():
-            # A run with no usable API keys writes an empty catalog here, so an
-            # existing file is only a baseline once it actually holds products.
-            try:
-                if pl.scan_parquet(self.output_path).select(pl.len()).collect().item():
-                    return pl.scan_parquet(self.output_path)
-                LOGGER.warning(f"Ignoring the empty TCG catalog at {self.output_path}")
-            except Exception as e:
-                LOGGER.warning(f"Could not read the TCG catalog at {self.output_path}: {e}")
+            catalog = _usable_catalog(self.output_path)
+            if catalog is not None:
+                return catalog
+
+        archived = self._archived_catalog()
+        if archived is not None:
+            return archived
         return self._published_catalog()
+
+    def _archived_catalog(self) -> pl.LazyFrame | None:
+        """Restore the catalog the last good build archived, downloading it once."""
+        if not self.archive_catalog:
+            return None
+
+        if _fresh(self.archive_path):
+            catalog = _usable_catalog(self.archive_path)
+            if catalog is not None:
+                return catalog
+
+        if self._archive_download_failed:
+            return None
+
+        if not download_archived_catalog(self.archive_path, RECOVERED_CATALOG_MAX_AGE_HOURS):
+            self._archive_download_failed = True
+            self.archive_path.unlink(missing_ok=True)
+            return None
+
+        catalog = _usable_catalog(self.archive_path)
+        if catalog is None:
+            # A corrupt or empty object will not read any better on a retry, and
+            # an empty one passing itself off as a baseline is what the
+            # day-over-day check exists to catch.
+            self._archive_download_failed = True
+            self.archive_path.unlink(missing_ok=True)
+        return catalog
+
+    def _archive_catalog(self) -> None:
+        """Hand a freshly fetched catalog to S3 for tomorrow's build to fall back on."""
+        if self.archive_catalog:
+            upload_archived_catalog(self.output_path)
 
     def _published_catalog(self) -> pl.LazyFrame | None:
         """Rebuild the last published catalog, downloading it at most once.
@@ -320,7 +400,7 @@ class TCGProvider:
         Falling back to a catalog from weeks ago would quietly hand a regressed
         fetch a baseline small enough to pass the day-over-day check.
         """
-        if self._published_catalog_fresh():
+        if _fresh(self.published_path):
             return pl.scan_parquet(self.published_path)
         if not self.published_catalog_url or self._published_download_failed:
             return None
@@ -339,13 +419,6 @@ class TCGProvider:
             return None
 
         return pl.scan_parquet(self.published_path)
-
-    def _published_catalog_fresh(self) -> bool:
-        """Return True if a rebuilt catalog from this or a recent build is on disk."""
-        if not self.published_path.exists():
-            return False
-        age_hours = (time.time() - self.published_path.stat().st_mtime) / 3600
-        return age_hours < PUBLISHED_CATALOG_MAX_AGE_HOURS
 
     async def fetch_all_products(self) -> pl.LazyFrame:
         """
@@ -556,10 +629,12 @@ class TCGProvider:
         the same cards from TcgplayerSkus.json without losing a single product.
         Comparing both totals against the previous catalog catches either shape.
 
-        On the nightly the baseline is the last published TcgplayerSkus.json,
-        which only covers the products that mapped to an MTGJSON UUID. That makes
-        it a floor rather than an exact match: a catalog can never legitimately
-        come back smaller than the slice of itself that shipped yesterday.
+        On the nightly the baseline comes from the archived catalog, or from the
+        last published TcgplayerSkus.json when no archive is configured. The
+        published file only covers products that mapped to an MTGJSON UUID, which
+        makes it a floor rather than an exact match: a catalog can never
+        legitimately come back smaller than the slice of itself that shipped
+        yesterday.
         """
         previous_lf = self.previous_catalog()
         if previous_lf is None:
@@ -610,6 +685,9 @@ class TCGProvider:
         finally:
             self._discard_parts(part_files)
 
+        # Archived outside the block above so a bad upload cannot read as a
+        # failed combine and cost the build a catalog it already has.
+        self._archive_catalog()
         return pl.scan_parquet(self.output_path)
 
     # Sync wrapper methods

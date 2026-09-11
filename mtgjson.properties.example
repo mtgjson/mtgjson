@@ -41,3 +41,9 @@ app_id=
 client_id=
 client_secret=
 api_version=
+# Where each good build archives its product catalog, so a build whose fetch
+# fails can restore it instead of publishing an empty TcgplayerSkus.json.
+# Without a bucket the fallback is the last published TcgplayerSkus.json, which
+# carries no product names and so costs that build its alt-foil identifiers.
+catalog_bucket_name=
+catalog_object_path=
