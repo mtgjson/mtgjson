@@ -10,6 +10,7 @@ from typing import Any
 
 import ijson
 import polars as pl
+import polars_hash as plh
 import yaml
 
 from mtgjson5.pipeline.stages.explode import _uuid5_concat_expr
@@ -48,6 +49,11 @@ class card:
         self.etched: bool = contents.get("etched", False)
         self.foil: bool = contents.get("foil", False)
         self.token: bool = contents.get("token", False)
+        # Human-readable language name (e.g. "German", "Japanese",
+        # "Phyrexian"), matching mtgjson5.consts.LANGUAGE_MAP's values and
+        # the top-level product "language" field mtg-sealed-content already
+        # uses. Optional: most cards only need the default resolution below.
+        self.language: str | None = contents.get("language")
         self.uuid: str | bool | None = contents.get("uuid", False)
 
     def toJson(self) -> dict:
@@ -60,6 +66,8 @@ class card:
             data["etched"] = self.etched
         if self.token:
             data["token"] = self.token
+        if self.language:
+            data["language"] = self.language
         return data
 
     def get_uuids(self, uuid_map: dict) -> None:
@@ -70,19 +78,57 @@ class card:
             # regular cards, and the token flag picks which one to look in.
             primary = "tokens" if self.token else "cards"
             fallback = "cards" if self.token else "tokens"
-            if number in set_map.get(primary, {}):
-                entry = set_map[primary][number]
-            else:
-                # Still resolve it, but report the mismatch so the flag can be
-                # corrected in mtg-sealed-content.
-                entry = set_map[fallback][number]
-                LOGGER.warning(
-                    "Card number %s:%s found in %s, token flag should be %s",
-                    self.set,
-                    self.number,
-                    fallback,
-                    not self.token,
-                )
+
+            entry = None
+            if self.language and not self.token:
+                # Scryfall's all_cards data carries one row per (set, number,
+                # language) -- e.g. WAR:5 "Battlefield Promotion" has a
+                # distinct card object and UUID for every language it was
+                # printed in. build_uuid_map_from_pipeline() indexes those
+                # under "cards_by_language" for any (set, number) where more
+                # than one language exists, so an explicit language picks the
+                # matching printing instead of always falling through to the
+                # single default entry in "cards" (English when available,
+                # otherwise whichever language exists).
+                #
+                # Tokens are excluded on purpose. A per-language UUID is a
+                # foreignData UUID, and tokens carry no foreignData at all
+                # (CardToken extends CardPrintingBase, while foreign_data is
+                # declared on CardAtomicBase), so there is nothing for one to
+                # resolve to -- the default entry is the only UUID a token
+                # number actually has in the output.
+                by_lang = set_map.get("cards_by_language", {}).get(number, {})
+                if self.language in by_lang:
+                    entry = by_lang[self.language]
+                elif by_lang:
+                    # Only a number that really was printed in several
+                    # languages can be missing the requested one. A number
+                    # printed in a single language carries no index entry at
+                    # all, and a correct language tag on it resolves through
+                    # the default map below -- warning there would fire on
+                    # perfectly valid input.
+                    LOGGER.warning(
+                        "Card number %s:%s has no %s printing in set %s; using the default-language entry instead",
+                        self.set,
+                        self.number,
+                        self.language,
+                        self.set,
+                    )
+
+            if entry is None:
+                if number in set_map.get(primary, {}):
+                    entry = set_map[primary][number]
+                else:
+                    # Still resolve it, but report the mismatch so the flag can
+                    # be corrected in mtg-sealed-content.
+                    entry = set_map[fallback][number]
+                    LOGGER.warning(
+                        "Card number %s:%s found in %s, token flag should be %s",
+                        self.set,
+                        self.number,
+                        fallback,
+                        not self.token,
+                    )
             self.uuid = entry[0]
             if self.name not in entry[1]:
                 raise ValueError("name and number do not match", self.name, self.name)
@@ -372,63 +418,93 @@ def build_uuid_map_from_pipeline(
     This eliminates the AllPrintings.json dependency for sealed compilation.
 
     Returns a dict keyed by lowercase set code with sub-keys:
-        cards: {number_str: (uuid, name)}  — only side "a" cards
+        cards: {number_str: (uuid, name)}  — the default pick for a number:
+            English when a printing at that number exists in English, else
+            whichever language does. Used when a card: entry has no explicit
+            language.
         tokens: {number_str: (uuid, name)}  — the subset laid out as tokens
+        cards_by_language: {number_str: {language: (uuid, name)}}  — every
+            language a (set, number) was printed in, present only where more
+            than one language exists for that number. For the default
+            language this is the same UUID as "cards" above; for every other
+            language it is that printing's foreignData UUID -- computed the
+            same way _build_foreign_data_df() computes the one that ends up
+            in AllPrintings.json's foreignData[].uuid, not the language's own
+            Scryfall ID or a fresh hash of it (verified against a live
+            AllPrintings.json: e.g. GRAVE PACT's Chinese Simplified/French/
+            German/Italian/Japanese/Portuguese/Russian/Spanish foreignData
+            UUIDs all reproduce exactly from its English printing's Scryfall
+            ID this way). Used when a card: entry names a specific language.
+            Token layouts are left out: they have no foreignData in the
+            output, so no per-language UUID exists for them and a language-
+            tagged token resolves through "tokens"/"cards" instead.
         booster: set of booster type codes
         decks: set of deck names
         sealedProduct: {product_name: uuid}
     """
+    from mtgjson5.consts import LANGUAGE_MAP
+    from mtgjson5.data.context import _DNS_NAMESPACE
+
     uuids: dict[str, dict] = {}
 
-    # all_cards.ndjson includes all languages — multiple entries per
-    # (set, collector_number) with different Scryfall IDs. We need
-    # exactly one entry per (set, collector_number), preferring English
-    # but falling back to any language for cards that only exist in
-    # non-English variants (e.g. Phyrexian-language cards).
-    cards_df = (
-        cards_lf.with_columns(pl.when(pl.col("lang") == "en").then(0).otherwise(1).alias("_lang_rank"))
-        .sort("set", "collector_number", "_lang_rank")
-        .unique(subset=["set", "collector_number"], keep="first")
-        .select(
-            pl.col("id").alias("scryfallId"),
-            pl.col("set").alias("set_lower"),
-            pl.col("collector_number").alias("number"),
-            pl.col("name"),
-            pl.col("layout"),
-        )
+    # all_cards.ndjson includes all languages: a (set, collector_number) that
+    # was printed in English, German, Japanese, etc. has one row per language,
+    # each with its own Scryfall ID (e.g. WAR:5 "Battlefield Promotion" — see
+    # get_uuids() on the card class for why this matters). Compute every
+    # row's UUID and human-readable language up front; the two indices below
+    # (single default pick vs. full per-language map) are both built from it.
+    cards_all_df = cards_lf.with_columns(
+        pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("language"),
+        pl.when(pl.col("lang") == "en").then(0).otherwise(1).alias("_lang_rank"),
+    ).select(
+        pl.col("id").alias("scryfallId"),
+        pl.col("set").alias("set_lower"),
+        pl.col("collector_number").alias("number"),
+        pl.col("name"),
+        pl.col("layout"),
+        pl.col("language"),
+        pl.col("_lang_rank"),
     )
 
     if uuid_cache_lf is not None:
         # Filter cache to side "a" only, then left-join
         cache_a = uuid_cache_lf.filter(pl.col("side") == "a").select("scryfallId", "cachedUuid")
-        cards_df = cards_df.join(cache_a, on="scryfallId", how="left")
+        cards_all_df = cards_all_df.join(cache_a, on="scryfallId", how="left")
     else:
-        cards_df = cards_df.with_columns(pl.lit(None, dtype=pl.Utf8).alias("cachedUuid"))
+        cards_all_df = cards_all_df.with_columns(pl.lit(None, dtype=pl.Utf8).alias("cachedUuid"))
 
     # Add a literal side column for uuid5_concat (always "a" since we only want
     # front-face cards for the sealed UUID map).
-    cards_df = cards_df.with_columns(pl.lit("a").alias("side"))
+    cards_all_df = cards_all_df.with_columns(pl.lit("a").alias("side"))
 
     # Compute MTGJSON UUID: coalesce(cachedUuid, uuid5(scryfallId || "a"))
-    cards_df = cards_df.with_columns(
+    cards_all_df = cards_all_df.with_columns(
         pl.coalesce(
             pl.col("cachedUuid"),
             _uuid5_concat_expr(pl.col("scryfallId"), pl.col("side"), default="a"),
         ).alias("uuid")
     )
 
-    cards_collected = cards_df.collect()
+    cards_all_collected = cards_all_df.collect()
 
     def _ensure_set(code: str) -> dict:
         if code not in uuids:
             uuids[code] = {
                 "cards": {},
                 "tokens": {},
+                "cards_by_language": {},
                 "booster": set(),
                 "decks": set(),
                 "sealedProduct": {},
             }
         return uuids[code]
+
+    # Default pick: exactly one entry per (set, collector_number), preferring
+    # English but falling back to whatever language exists for numbers that
+    # only have a non-English printing (e.g. Phyrexian-language cards).
+    cards_collected = cards_all_collected.sort(["set_lower", "number", "_lang_rank"]).unique(
+        subset=["set_lower", "number"], keep="first"
+    )
 
     for row in cards_collected.iter_rows(named=True):
         set_map = _ensure_set(row["set_lower"])
@@ -439,6 +515,57 @@ def build_uuid_map_from_pipeline(
         # token are resolved against this map.
         if row["layout"] == "token":
             set_map["tokens"][row["number"]] = entry
+
+    # Per-language index, restricted to (set, number) pairs that were
+    # actually printed in more than one language -- the common case (a
+    # number with a single language, e.g. most tokens and language-exclusive
+    # promos) needs no entry here and stays resolvable only through the
+    # default map above.
+    #
+    # A non-default-language printing does NOT get its own UUID computed from
+    # its own Scryfall ID: AllPrintings.json folds it into foreignData[] on
+    # the default-language card, and _build_foreign_data_df() (mtgjson5/data/
+    # context.py) derives that entry's UUID from the *default* printing's
+    # Scryfall ID, its side ("a"), and the language name --
+    # uuid5(defaultScryfallId + "a" + "_" + language, NAMESPACE_DNS) -- not
+    # from the foreign printing's own Scryfall ID. Reproduce that exactly so
+    # a language-tagged card: entry resolves to the same UUID that already
+    # exists in foreignData[].uuid, instead of an unrelated one nothing else
+    # in the dataset would recognize.
+    multi_language_numbers = (
+        cards_all_collected.group_by(["set_lower", "number"])
+        .agg(pl.col("language").n_unique().alias("_language_count"))
+        .filter(pl.col("_language_count") > 1)
+        .select(["set_lower", "number"])
+    )
+    default_lookup = cards_collected.select(
+        pl.col("set_lower"),
+        pl.col("number"),
+        pl.col("scryfallId").alias("_default_scryfall_id"),
+        pl.col("language").alias("_default_language"),
+        pl.col("uuid").alias("_default_uuid"),
+    )
+    by_language_rows = (
+        cards_all_collected.filter(pl.col("layout").ne_missing("token"))
+        .join(multi_language_numbers, on=["set_lower", "number"], how="inner")
+        .join(default_lookup, on=["set_lower", "number"], how="left")
+        .with_columns(
+            pl.concat_str([pl.col("_default_scryfall_id"), pl.lit("a"), pl.lit("_"), pl.col("language")]).alias(
+                "_foreign_uuid_source"
+            )
+        )
+        .with_columns(plh.col("_foreign_uuid_source").uuidhash.uuid5(_DNS_NAMESPACE).alias("_foreign_uuid"))
+        .with_columns(
+            pl.when(pl.col("language") == pl.col("_default_language"))
+            .then(pl.col("_default_uuid"))
+            .otherwise(pl.col("_foreign_uuid"))
+            .alias("_language_uuid")
+        )
+    )
+    for row in by_language_rows.iter_rows(named=True):
+        set_map = _ensure_set(row["set_lower"])
+        entry = (row["_language_uuid"], row["name"])
+        set_map["cards_by_language"].setdefault(row["number"], {})[row["language"]] = entry
 
     for set_code, booster_config in boosters_raw.items():
         code = set_code.lower()
