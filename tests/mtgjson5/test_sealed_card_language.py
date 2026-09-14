@@ -24,6 +24,8 @@ drifts from what actually ships.
 
 from __future__ import annotations
 
+import logging
+
 import polars as pl
 
 from mtgjson5.pipeline.stages.sealed import build_uuid_map_from_pipeline, card
@@ -107,6 +109,35 @@ def _build_uuid_map() -> dict:
             "lang": "en",
         }
     )
+    # A token printed in several languages. Scryfall carries one row per
+    # language for these just like it does for cards, but MTGJSON emits no
+    # foreignData for tokens, so there is no per-language UUID to resolve to.
+    rows.extend(
+        {
+            "id": scryfall_id,
+            "set": "tok",
+            "collector_number": "1",
+            "name": "Soldier",
+            "layout": "token",
+            "lang": lang,
+        }
+        for lang, scryfall_id in (
+            ("en", "22222222-2222-2222-2222-222222222222"),
+            ("de", "33333333-3333-3333-3333-333333333333"),
+        )
+    )
+    # A promo that only ever existed in German: a correct language tag on it
+    # has no by-language index entry to hit.
+    rows.append(
+        {
+            "id": "44444444-4444-4444-4444-444444444444",
+            "set": "prm",
+            "collector_number": "7",
+            "name": "German Only Promo",
+            "layout": "normal",
+            "lang": "de",
+        }
+    )
     return build_uuid_map_from_pipeline(
         cards_lf=_cards_lf(rows),
         uuid_cache_lf=None,
@@ -140,6 +171,19 @@ class TestBuildUuidMapFromPipelineLanguages:
     def test_single_language_number_still_resolves_via_the_default_map(self):
         uuid_map = _build_uuid_map()
         assert "560" in uuid_map["sld"]["cards"]
+
+    def test_multi_language_token_is_left_out_of_the_by_language_index(self):
+        """Tokens have no foreignData, so a foreignData-derived UUID for one
+        would match nothing in the output. The number must still resolve
+        through the default maps."""
+        uuid_map = _build_uuid_map()
+        assert uuid_map["tok"]["cards_by_language"] == {}
+        assert "1" in uuid_map["tok"]["tokens"]
+        assert "1" in uuid_map["tok"]["cards"]
+
+    def test_no_token_by_language_index_is_built(self):
+        uuid_map = _build_uuid_map()
+        assert "tokens_by_language" not in uuid_map["tok"]
 
 
 class TestCardGetUuidsLanguage:
@@ -179,6 +223,40 @@ class TestCardGetUuidsLanguage:
         c = card({"name": "Swamp", "set": "sld", "number": "560"})
         c.get_uuids(uuid_map)
         assert c.uuid == expected
+
+    def test_language_tagged_token_resolves_to_the_default_token_uuid(self):
+        """A language on a token must not invent a foreignData-style UUID --
+        tokens have none, so it resolves exactly as an untagged token does."""
+        uuid_map = _build_uuid_map()
+        expected = uuid_map["tok"]["tokens"]["1"][0]
+        c = card({"name": "Soldier", "set": "tok", "number": "1", "token": True, "language": "German"})
+        c.get_uuids(uuid_map)
+        assert c.uuid == expected
+
+        untagged = card({"name": "Soldier", "set": "tok", "number": "1", "token": True})
+        untagged.get_uuids(uuid_map)
+        assert c.uuid == untagged.uuid
+
+    def test_correct_language_on_a_single_language_number_does_not_warn(self, caplog):
+        """A number printed in one language carries no by-language entry, so
+        the resolution falls through to the default map. That is the right
+        answer and must not be reported as a missing printing."""
+        uuid_map = _build_uuid_map()
+        expected = uuid_map["prm"]["cards"]["7"][0]
+        c = card({"name": "German Only Promo", "set": "prm", "number": "7", "language": "German"})
+        with caplog.at_level(logging.WARNING, logger="mtgjson5.pipeline.stages.sealed"):
+            c.get_uuids(uuid_map)
+        assert c.uuid == expected
+        assert caplog.records == []
+
+    def test_genuinely_missing_language_still_warns(self, caplog):
+        """The warning must survive for the case it was written for: a number
+        that really does have several languages, just not the requested one."""
+        uuid_map = _build_uuid_map()
+        c = card({"name": "Battlefield Promotion", "set": "war", "number": "5", "language": "Klingon"})
+        with caplog.at_level(logging.WARNING, logger="mtgjson5.pipeline.stages.sealed"):
+            c.get_uuids(uuid_map)
+        assert any("has no Klingon printing" in r.getMessage() for r in caplog.records)
 
     def test_to_json_emits_the_language_field_when_set(self):
         c = card({"name": "Battlefield Promotion", "set": "war", "number": "5", "language": "German"})

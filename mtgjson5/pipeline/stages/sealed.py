@@ -80,38 +80,40 @@ class card:
             fallback = "cards" if self.token else "tokens"
 
             entry = None
-            if self.language:
+            if self.language and not self.token:
                 # Scryfall's all_cards data carries one row per (set, number,
                 # language) -- e.g. WAR:5 "Battlefield Promotion" has a
                 # distinct card object and UUID for every language it was
                 # printed in. build_uuid_map_from_pipeline() indexes those
-                # under "<kind>_by_language" for any (set, number) where more
+                # under "cards_by_language" for any (set, number) where more
                 # than one language exists, so an explicit language picks the
                 # matching printing instead of always falling through to the
-                # single default entry in "cards"/"tokens" (English when
-                # available, otherwise whichever language exists).
-                by_lang = set_map.get(f"{primary}_by_language", {}).get(number, {})
+                # single default entry in "cards" (English when available,
+                # otherwise whichever language exists).
+                #
+                # Tokens are excluded on purpose. A per-language UUID is a
+                # foreignData UUID, and tokens carry no foreignData at all
+                # (CardToken extends CardPrintingBase, while foreign_data is
+                # declared on CardAtomicBase), so there is nothing for one to
+                # resolve to -- the default entry is the only UUID a token
+                # number actually has in the output.
+                by_lang = set_map.get("cards_by_language", {}).get(number, {})
                 if self.language in by_lang:
                     entry = by_lang[self.language]
-                else:
-                    fallback_by_lang = set_map.get(f"{fallback}_by_language", {}).get(number, {})
-                    if self.language in fallback_by_lang:
-                        entry = fallback_by_lang[self.language]
-                        LOGGER.warning(
-                            "Card number %s:%s found in %s, token flag should be %s",
-                            self.set,
-                            self.number,
-                            fallback,
-                            not self.token,
-                        )
-                    else:
-                        LOGGER.warning(
-                            "Card number %s:%s has no %s printing in set %s; using the default-language entry instead",
-                            self.set,
-                            self.number,
-                            self.language,
-                            self.set,
-                        )
+                elif by_lang:
+                    # Only a number that really was printed in several
+                    # languages can be missing the requested one. A number
+                    # printed in a single language carries no index entry at
+                    # all, and a correct language tag on it resolves through
+                    # the default map below -- warning there would fire on
+                    # perfectly valid input.
+                    LOGGER.warning(
+                        "Card number %s:%s has no %s printing in set %s; using the default-language entry instead",
+                        self.set,
+                        self.number,
+                        self.language,
+                        self.set,
+                    )
 
             if entry is None:
                 if number in set_map.get(primary, {}):
@@ -433,8 +435,9 @@ def build_uuid_map_from_pipeline(
             German/Italian/Japanese/Portuguese/Russian/Spanish foreignData
             UUIDs all reproduce exactly from its English printing's Scryfall
             ID this way). Used when a card: entry names a specific language.
-        tokens_by_language: {number_str: {language: (uuid, name)}}  — same,
-            for the token subset.
+            Token layouts are left out: they have no foreignData in the
+            output, so no per-language UUID exists for them and a language-
+            tagged token resolves through "tokens"/"cards" instead.
         booster: set of booster type codes
         decks: set of deck names
         sealedProduct: {product_name: uuid}
@@ -490,7 +493,6 @@ def build_uuid_map_from_pipeline(
                 "cards": {},
                 "tokens": {},
                 "cards_by_language": {},
-                "tokens_by_language": {},
                 "booster": set(),
                 "decks": set(),
                 "sealedProduct": {},
@@ -544,7 +546,8 @@ def build_uuid_map_from_pipeline(
         pl.col("uuid").alias("_default_uuid"),
     )
     by_language_rows = (
-        cards_all_collected.join(multi_language_numbers, on=["set_lower", "number"], how="inner")
+        cards_all_collected.filter(pl.col("layout").ne_missing("token"))
+        .join(multi_language_numbers, on=["set_lower", "number"], how="inner")
         .join(default_lookup, on=["set_lower", "number"], how="left")
         .with_columns(
             pl.concat_str([pl.col("_default_scryfall_id"), pl.lit("a"), pl.lit("_"), pl.col("language")]).alias(
@@ -563,8 +566,6 @@ def build_uuid_map_from_pipeline(
         set_map = _ensure_set(row["set_lower"])
         entry = (row["_language_uuid"], row["name"])
         set_map["cards_by_language"].setdefault(row["number"], {})[row["language"]] = entry
-        if row["layout"] == "token":
-            set_map["tokens_by_language"].setdefault(row["number"], {})[row["language"]] = entry
 
     for set_code, booster_config in boosters_raw.items():
         code = set_code.lower()
