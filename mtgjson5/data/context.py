@@ -944,7 +944,17 @@ class PipelineContext:
                         )
                         .list.join(" // ")
                     )
-                    .otherwise(pl.col("printedName"))
+                    # Scryfall doesn't always transcribe a localized name for a
+                    # given printing (e.g. some Secret Lair non-English print
+                    # runs have no printed_name at all despite genuinely
+                    # existing as a distinct printing). Fall back to the
+                    # card's own (English/oracle) name -- matching the
+                    # multi-face branch above, which already does this per
+                    # face -- so the row still gets a foreignData entry (with
+                    # a correctly computed, distinct UUID; _foreign_uuid never
+                    # depends on this name) instead of being silently dropped
+                    # by the is_not_null() filter below.
+                    .otherwise(pl.coalesce(pl.col("printedName"), pl.col("name")))
                     .alias("_foreign_name"),
                     pl.when(pl.col("cardFaces").list.len() > 1)
                     .then(
