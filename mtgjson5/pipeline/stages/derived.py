@@ -574,13 +574,82 @@ def add_secret_lair_subsets(
     ).drop("_sld_subsets", strict=False)
 
 
+_FOREIGN_DATA_FIELDS = (
+    "faceName",
+    "flavorText",
+    "identifiers",
+    "language",
+    "multiverseId",
+    "name",
+    "text",
+    "type",
+    "uuid",
+)
+
+
+def _add_foreign_data_source_products(
+    lf: pl.LazyFrame,
+    card_to_products_df: pl.LazyFrame | pl.DataFrame | None,
+    source_products_struct: pl.Struct,
+) -> pl.LazyFrame:
+    """Attach sourceProducts to each foreignData[] entry, keyed by its own UUID.
+
+    A foreignData entry's UUID is a distinct printing (see
+    mtgjson5.data.context._build_foreign_data_df), not the parent card's own
+    UUID, so it needs its own lookup against card_to_products rather than
+    inheriting the parent's sourceProducts.
+    """
+    if card_to_products_df is None:
+        return lf.with_columns(
+            pl.col("foreignData").list.eval(
+                pl.element().struct.with_fields(pl.lit(None).cast(source_products_struct).alias("sourceProducts"))
+            )
+        )
+
+    products_lf = card_to_products_df if isinstance(card_to_products_df, pl.LazyFrame) else card_to_products_df.lazy()
+    products_lf = products_lf.rename({"foil": "_fd_foil", "nonfoil": "_fd_nonfoil", "etched": "_fd_etched"})
+
+    lf = lf.with_row_index("_row_idx")
+    exploded = (
+        lf.select(["_row_idx", "foreignData"])
+        .explode("foreignData")
+        .with_columns(pl.col("foreignData").struct.field("uuid").alias("_fd_uuid"))
+        .join(products_lf, left_on="_fd_uuid", right_on="uuid", how="left")
+        .with_columns(
+            pl.when(pl.col("foreignData").is_null())
+            .then(None)
+            .otherwise(
+                pl.struct(
+                    [
+                        *(pl.col("foreignData").struct.field(name) for name in _FOREIGN_DATA_FIELDS),
+                        pl.struct(
+                            [
+                                pl.col("_fd_foil").alias("foil"),
+                                pl.col("_fd_nonfoil").alias("nonfoil"),
+                                pl.col("_fd_etched").alias("etched"),
+                            ]
+                        ).alias("sourceProducts"),
+                    ]
+                )
+            )
+            .alias("foreignData")
+        )
+        .group_by("_row_idx", maintain_order=True)
+        .agg(pl.col("foreignData").drop_nulls().alias("foreignData"))
+    )
+    return lf.drop("foreignData").join(exploded, on="_row_idx", how="left").drop("_row_idx")
+
+
 # 5.6:
 def add_source_products(
     lf: pl.LazyFrame,
     ctx: PipelineContext,
 ) -> pl.LazyFrame:
     """
-    Add sourceProducts field linking cards to sealed products.
+    Add sourceProducts field linking cards to sealed products, on both the
+    card itself and each of its foreignData[] entries (each of which is its
+    own distinct printing with its own UUID -- see
+    _add_foreign_data_source_products).
     """
     card_to_products_df = ctx.card_to_products_lf
 
@@ -593,7 +662,8 @@ def add_source_products(
     )
 
     if card_to_products_df is None:
-        return lf.with_columns(pl.lit(None).cast(source_products_struct).alias("sourceProducts"))
+        lf = lf.with_columns(pl.lit(None).cast(source_products_struct).alias("sourceProducts"))
+        return _add_foreign_data_source_products(lf, None, source_products_struct)
 
     # card_to_products_df can be LazyFrame (from cache) or DataFrame
     products_lf = card_to_products_df if isinstance(card_to_products_df, pl.LazyFrame) else card_to_products_df.lazy()
@@ -607,7 +677,7 @@ def add_source_products(
         }
     )
 
-    return (
+    lf = (
         lf.join(
             products_lf,
             on="uuid",
@@ -624,6 +694,7 @@ def add_source_products(
         )
         .drop(["_sp_foil", "_sp_nonfoil", "_sp_etched"])
     )
+    return _add_foreign_data_source_products(lf, card_to_products_df, source_products_struct)
 
 
 def calculate_duel_deck(lf: pl.LazyFrame) -> pl.LazyFrame:
