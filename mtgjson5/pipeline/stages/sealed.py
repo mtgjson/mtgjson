@@ -277,7 +277,21 @@ class product:
     def toJson(self) -> dict:
         data: dict = {}
         if self.card:
-            data["card"] = [c.toJson() for c in self.card]
+            # An entry whose set/number/name did not resolve carries no UUID,
+            # and the sealed product schema requires one -- emitting it would
+            # fail validation for every product in the set and take the whole
+            # build down with it. get_uuids() has already logged what it could
+            # not find, so drop the entry and keep the rest of the product.
+            resolved = [c for c in self.card if c.uuid]
+            if len(resolved) != len(self.card):
+                LOGGER.warning(
+                    "Product %s - %s: dropping %d unresolved card entries from contents",
+                    self.set_code,
+                    self.name,
+                    len(self.card) - len(resolved),
+                )
+            if resolved:
+                data["card"] = [c.toJson() for c in resolved]
         if self.pack:
             data["pack"] = [p.toJson() for p in self.pack]
         if self.deck:
@@ -406,12 +420,40 @@ def build_uuid_map(allprintings_path: Path) -> dict:
     return uuids
 
 
+def _is_token_expr(cards_lf: pl.LazyFrame) -> pl.Expr:
+    """Mirror filter_out_tokens() over raw Scryfall columns.
+
+    output.filter_out_tokens() is what decides whether a card ends up in a
+    set's cards[] or its tokens[], and a sealed-content card: entry carrying
+    ``token: true`` is looked up in the latter. Checking layout == "token"
+    alone missed everything else that lands in tokens[]: the double-faced
+    tokens (TMID:19 "Day // Night", TCLB:20 "Undercity // The Initiative"),
+    the emblems, the art series, and the AFR dungeons, which Scryfall ships
+    with layout "normal" and only a "Dungeon" type line.
+
+    The MTGJSON rename to "type" has not happened yet at this point, so the
+    type checks run against Scryfall's "type_line" -- absent from some rows
+    (and from lean test frames), hence the fill_null.
+    """
+    from mtgjson5.consts import TOKEN_LAYOUTS
+
+    has_type_line = "type_line" in cards_lf.collect_schema()
+    type_line = pl.col("type_line") if has_type_line else pl.lit(None, dtype=pl.Utf8)
+    return (
+        pl.col("layout").is_in(list(TOKEN_LAYOUTS))
+        | (type_line == "Dungeon")
+        | type_line.str.contains("Token")
+        | (type_line == "Card")
+    ).fill_null(False)
+
+
 def build_uuid_map_from_pipeline(
     cards_lf: pl.LazyFrame,
     uuid_cache_lf: pl.LazyFrame | None,
     boosters_raw: dict,
     decks_raw: list,
     products_dict: dict,
+    sets_lf: pl.LazyFrame | None = None,
 ) -> dict:
     """Build the same UUID lookup map as build_uuid_map(), but from pipeline LazyFrames.
 
@@ -422,7 +464,13 @@ def build_uuid_map_from_pipeline(
             English when a printing at that number exists in English, else
             whichever language does. Used when a card: entry has no explicit
             language.
-        tokens: {number_str: (uuid, name)}  — the subset laid out as tokens
+        tokens: {number_str: (uuid, name)}  — the subset MTGJSON publishes in
+            the set's tokens[] rather than its cards[], identified with the
+            same rule filter_out_tokens() uses. A set that keeps its tokens in
+            a separate Scryfall set (TAFR for AFR, TCLB for CLB, ...) gets
+            those folded in here under the parent code, because that is where
+            assemble.load_set_tokens() puts them in the output and how
+            mtg-sealed-content refers to them.
         cards_by_language: {number_str: {language: (uuid, name)}}  — every
             language a (set, number) was printed in, present only where more
             than one language exists for that number. For the default
@@ -447,6 +495,23 @@ def build_uuid_map_from_pipeline(
 
     uuids: dict[str, dict] = {}
 
+    # Token sets are their own Scryfall sets (TAFR, TCLB, TMID, ...) but
+    # MTGJSON publishes their cards inside the parent set's tokens[], with the
+    # parent's code -- see assemble.load_set_tokens(). mtg-sealed-content
+    # follows the output, so its dungeon entries read "set: afr, number: 20,
+    # token: true" and have to resolve against AFR even though the row lives
+    # in TAFR here.
+    token_set_parents: dict[str, str] = {}
+    if sets_lf is not None:
+        sets_df = sets_lf.collect() if isinstance(sets_lf, pl.LazyFrame) else sets_lf
+        if {"code", "set_type", "parent_set_code"} <= set(sets_df.columns):
+            token_sets = sets_df.filter(
+                (pl.col("set_type") == "token") & pl.col("parent_set_code").is_not_null()
+            ).select("code", "parent_set_code")
+            token_set_parents = {
+                row["code"].lower(): row["parent_set_code"].lower() for row in token_sets.iter_rows(named=True)
+            }
+
     # all_cards.ndjson includes all languages: a (set, collector_number) that
     # was printed in English, German, Japanese, etc. has one row per language,
     # each with its own Scryfall ID (e.g. WAR:5 "Battlefield Promotion" — see
@@ -456,12 +521,13 @@ def build_uuid_map_from_pipeline(
     cards_all_df = cards_lf.with_columns(
         pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("language"),
         pl.when(pl.col("lang") == "en").then(0).otherwise(1).alias("_lang_rank"),
+        _is_token_expr(cards_lf).alias("is_token"),
     ).select(
         pl.col("id").alias("scryfallId"),
         pl.col("set").alias("set_lower"),
         pl.col("collector_number").alias("number"),
         pl.col("name"),
-        pl.col("layout"),
+        pl.col("is_token"),
         pl.col("language"),
         pl.col("_lang_rank"),
     )
@@ -513,8 +579,19 @@ def build_uuid_map_from_pipeline(
         # Tokens printed inside a regular set (e.g. SLD 918 "Food") end up in
         # {set}.tokens rather than {set}.cards, and sealed contents flagged as
         # token are resolved against this map.
-        if row["layout"] == "token":
+        if row["is_token"]:
             set_map["tokens"][row["number"]] = entry
+
+    # Fold each token set's tokens into its parent, which is the only code a
+    # sealed-content entry ever names for them. setdefault, so a token the
+    # parent set printed itself at the same number stays the one that wins.
+    for token_code, parent_code in token_set_parents.items():
+        token_map = uuids.get(token_code, {}).get("tokens")
+        if not token_map:
+            continue
+        parent_tokens = _ensure_set(parent_code)["tokens"]
+        for number, entry in token_map.items():
+            parent_tokens.setdefault(number, entry)
 
     # Per-language index, restricted to (set, number) pairs that were
     # actually printed in more than one language -- the common case (a
@@ -546,7 +623,7 @@ def build_uuid_map_from_pipeline(
         pl.col("uuid").alias("_default_uuid"),
     )
     by_language_rows = (
-        cards_all_collected.filter(pl.col("layout").ne_missing("token"))
+        cards_all_collected.filter(~pl.col("is_token"))
         .join(multi_language_numbers, on=["set_lower", "number"], how="inner")
         .join(default_lookup, on=["set_lower", "number"], how="left")
         .with_columns(
@@ -593,7 +670,7 @@ def build_card_finishes_lookup(
     """Build {mtgjson_uuid: {"finishes": [...], "number": str, "set": str}} from Scryfall.
 
     Used by card_to_products compilation to determine card finish types.
-    Includes both regular cards and tokens (layout == "token").
+    Includes both regular cards and tokens.
 
     Args:
         cards_lf: Scryfall cards LazyFrame (snake_case: id, set, collector_number,

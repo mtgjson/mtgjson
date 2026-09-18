@@ -1120,6 +1120,7 @@ class GlobalCache:
                     boosters_raw=provider.boosters_raw or {},
                     decks_raw=provider.decks_raw or [],
                     products_dict=provider.products_dict,
+                    sets_lf=self.sets_lf,
                 )
 
                 LOGGER.info("Compiling sealed contents from YAML sources...")
