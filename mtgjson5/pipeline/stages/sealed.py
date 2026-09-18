@@ -796,6 +796,7 @@ def build_pipeline_view(
     decks_raw: list,
     card_finishes: dict,
     products_dict: dict,
+    uuid_map: dict | None = None,
 ) -> dict:
     """Build AllPrintings-like dict for card_to_product compilation.
 
@@ -814,22 +815,33 @@ def build_pipeline_view(
             ``{mtgjson_uuid: {finishes, number, set}}``
         products_dict: From compile_products().
             ``{set_code: {product_name: {…}}}``
+        uuid_map: From build_uuid_map_from_pipeline(), keyed by lowercase set
+            code. Only ``cards_by_language``/``tokens_by_language`` are used
+            here, to let a language-tagged sealed product's ``deck:``
+            reference resolve to that language's card UUIDs instead of the
+            deck's own (English-default) ones -- see
+            ``_ctp_get_cards_in_deck``.
 
     Returns:
         ``{SET_CODE: {"sealedProduct": [...], "booster": {...}, "decks": [...],
-                      "cards": [...], "tokens": []}}``
+                      "cards": [...], "tokens": [],
+                      "cards_by_language": {...}, "tokens_by_language": {...}}}``
     """
+    uuid_map = uuid_map or {}
     view: dict[str, dict] = {}
 
     def _ensure_set(code: str) -> dict:
         upper = code.upper()
         if upper not in view:
+            lower_map = uuid_map.get(code.lower(), {})
             view[upper] = {
                 "sealedProduct": [],
                 "booster": {},
                 "decks": [],
                 "cards": [],
                 "tokens": [],
+                "cards_by_language": lower_map.get("cards_by_language", {}),
+                "tokens_by_language": lower_map.get("tokens_by_language", {}),
             }
         return view[upper]
 
@@ -863,11 +875,17 @@ def build_pipeline_view(
                     upper,
                     product_name,
                 )
+            # A product's own products.yaml "language" (e.g. "Japanese") is
+            # separate from its contents; carry it along so deck: references
+            # resolved below can pick that language's cards instead of the
+            # deck's own English-default ones. See _ctp_get_cards_in_deck.
+            product_language = (products_dict.get(set_code, {}).get(product_name) or {}).get("language")
             view[upper]["sealedProduct"].append(
                 {
                     "uuid": puuid,
                     "name": product_name,
                     "contents": product_contents,
+                    "language": product_language,
                 }
             )
 
@@ -882,6 +900,11 @@ def build_pipeline_view(
             "uuid": c["mtgjson_uuid"],
             "isFoil": c.get("foil", False),
             "isEtched": c.get("etched", False),
+            # Carried through (not part of AllPrintings' own deck card shape)
+            # so _ctp_get_cards_in_deck can look up this card's language-
+            # specific UUID when the requesting product has one set.
+            "_set": c.get("set_code", "").upper(),
+            "_number": c.get("number"),
         }
 
     def _map_board(raw_list: list | None) -> list[dict]:
@@ -1025,8 +1048,23 @@ def _ctp_get_cards_in_pack(data: dict, set_code: str, booster_code: str) -> list
     return list(return_value)
 
 
-def _ctp_get_cards_in_deck(data: dict, set_code: str, deck_name: str) -> list[_CTPCard]:
-    """Return cards from a named deck, validating finishes against source sets."""
+def _ctp_get_cards_in_deck(data: dict, set_code: str, deck_name: str, language: str | None = None) -> list[_CTPCard]:
+    """Return cards from a named deck, validating finishes against source sets.
+
+    A deck is shared verbatim by every sealed product that references it
+    (its mainBoard/etc. UUIDs are always the deck's own English-default
+    printings), so a language-tagged product would otherwise be attributed
+    to the same English cards as its English counterpart. When *language* is
+    given, each deck card's UUID is swapped for that language's UUID from
+    the (set, number) it was printed at -- found via cards_by_language /
+    tokens_by_language, built in build_uuid_map_from_pipeline() -- falling
+    back to the deck's own UUID when that language isn't available for this
+    exact card (e.g. Scryfall has no transcription for it yet).
+
+    Finish validation (foil/etched) is still matched against the deck's own
+    UUID: the physical treatment doesn't change between languages, and
+    card_finishes is only indexed by the default-language UUID.
+    """
     try:
         decks_data = data[set_code].get("decks")
     except KeyError:
@@ -1070,7 +1108,25 @@ def _ctp_get_cards_in_deck(data: dict, set_code: str, deck_name: str) -> list[_C
             elif deck_card.get("isFoil", False) and "foil" in finishes:
                 finish = "foil"
 
-            return_value.add(_CTPCard(deck_card["uuid"], finish))
+            uuid = deck_card["uuid"]
+            if language:
+                card_set, number = deck_card.get("_set"), deck_card.get("_number")
+                set_map = data.get(card_set, {}) if card_set else {}
+                by_lang = set_map.get("cards_by_language", {}).get(number, {})
+                entry = by_lang.get(language) or set_map.get("tokens_by_language", {}).get(number, {}).get(language)
+                if entry:
+                    uuid = entry[0]
+                else:
+                    LOGGER.warning(
+                        "Deck %s:%s has no %s printing of %s:%s; using the default-language UUID instead",
+                        set_code,
+                        deck_name,
+                        language,
+                        card_set,
+                        number,
+                    )
+
+            return_value.add(_CTPCard(uuid, finish))
         break
 
     return list(return_value)
@@ -1087,19 +1143,34 @@ def _ctp_get_cards_in_sealed_product(data: dict, set_code: str, sealed_product_u
         if sealed_product_uuid != sealed_product.get("uuid"):
             continue
 
+        # This product's own products.yaml "language" (if any) governs how
+        # its deck: references resolve. A nested "sealed" reference recurses
+        # into a *different* product, which is looked up (and reads its own
+        # "language") independently -- it doesn't inherit this one's.
+        language = sealed_product.get("language")
         for content_key, contents in sealed_product.get("contents", {}).items():
             if not isinstance(contents, list):
                 continue
             for content in contents:
-                cards = _ctp_get_cards_in_content_type(data, content_key, content)
+                cards = _ctp_get_cards_in_content_type(data, content_key, content, language)
                 return_value.update(cards)
         break
 
     return list(return_value)
 
 
-def _ctp_get_cards_in_content_type(data: dict, content_key: str, content: dict[str, Any]) -> list[_CTPCard]:
-    """Dispatch to the appropriate handler for a content type."""
+def _ctp_get_cards_in_content_type(
+    data: dict, content_key: str, content: dict[str, Any], language: str | None = None
+) -> list[_CTPCard]:
+    """Dispatch to the appropriate handler for a content type.
+
+    *language* is the enclosing sealed product's own products.yaml
+    "language" field (e.g. "Japanese"), if any -- see _ctp_get_cards_in_deck
+    for why only "deck" content consults it. A "card" entry already carries
+    its own independent "language" field (set on the entry itself, see
+    card.get_uuids on the sealed-content side) which takes precedence over
+    the product's, so it is deliberately not overridden here.
+    """
     if content_key == "card":
         return _ctp_get_card_obj_from_card(content)
 
@@ -1110,13 +1181,13 @@ def _ctp_get_cards_in_content_type(data: dict, content_key: str, content: dict[s
         return _ctp_get_cards_in_sealed_product(data, content["set"].upper(), content.get("uuid"))
 
     if content_key == "deck":
-        return _ctp_get_cards_in_deck(data, content["set"].upper(), content["name"])
+        return _ctp_get_cards_in_deck(data, content["set"].upper(), content["name"], language)
 
     if content_key == "variable":
         result: set[_CTPCard] = set()
         for config in content["configs"]:
             for dk in config.get("deck", []):
-                result.update(_ctp_get_cards_in_deck(data, dk["set"].upper(), dk["name"]))
+                result.update(_ctp_get_cards_in_deck(data, dk["set"].upper(), dk["name"], language))
             for sl in config.get("sealed", []):
                 result.update(_ctp_get_cards_in_sealed_product(data, sl["set"].upper(), sl.get("uuid")))
             for pk in config.get("pack", []):

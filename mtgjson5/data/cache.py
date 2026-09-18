@@ -1149,6 +1149,7 @@ class GlobalCache:
                     decks_raw=provider.decks_raw or [],
                     card_finishes=card_finishes,
                     products_dict=provider.products_dict,
+                    uuid_map=uuid_map,
                 )
 
                 LOGGER.info("Compiling card_to_products from pipeline view...")
