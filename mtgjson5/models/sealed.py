@@ -150,13 +150,21 @@ class SealedProduct(PolarsMixin, BaseModel):
     @model_validator(mode="before")
     @classmethod
     def populate_finishes_from_foil(cls, data: Any) -> Any:
-        """Populate finishes field from foil boolean for sealed product cards."""
-        if isinstance(data, dict) and "contents" in data:
-            contents = data["contents"]
-            if isinstance(contents, dict) and "card" in contents:
-                for card in contents["card"]:
-                    if isinstance(card, dict) and "finishes" not in card:
-                        card["finishes"] = ["foil"] if card.get("foil") else ["nonfoil"]
+        """Populate direct and variable card finishes from source finish flags."""
+
+        def populate(contents: Any) -> None:
+            if not isinstance(contents, dict):
+                return
+            for card in contents.get("card", []):
+                if isinstance(card, dict) and "finishes" not in card:
+                    finish = "etched" if card.get("etched") else "foil" if card.get("foil") else "nonfoil"
+                    card["finishes"] = [finish]
+            for variable in contents.get("variable", []):
+                for config in variable.get("configs", []):
+                    populate(config)
+
+        if isinstance(data, dict):
+            populate(data.get("contents"))
         return data
 
 
@@ -207,8 +215,11 @@ class SealedProductAssembler:
                         number=r["number"],
                         set=r["set"],
                         foil=r.get("foil"),
-                        finishes=["foil"] if r.get("foil") else ["nonfoil"],
+                        finishes=r.get("finishes")
+                        or ["etched" if r.get("etched") else "foil" if r.get("foil") else "nonfoil"],
                     )
+                    if r.get("etched"):
+                        entry["etched"] = True
                     if r.get("token"):
                         entry["token"] = True
                     card_entries.append(entry)

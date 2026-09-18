@@ -967,9 +967,9 @@ class _CTPCard:
 def _ctp_get_card_obj_from_card(card_content: dict[str, Any]) -> list[_CTPCard]:
     """Extract a :class:`_CTPCard` from a card content dict.
 
-    Finish is ``"foil"`` if the foil flag is set, otherwise ``"nonfoil"``.
+    The etched flag takes precedence over foil, otherwise use nonfoil.
     """
-    finish = "foil" if card_content.get("foil") else "nonfoil"
+    finish = "etched" if card_content.get("etched") else "foil" if card_content.get("foil") else "nonfoil"
     if "uuid" in card_content:
         return [_CTPCard(card_content["uuid"], finish)]
     return []
