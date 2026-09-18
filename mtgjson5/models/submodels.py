@@ -1166,6 +1166,7 @@ class SealedProductCard(TypedDict, total=False):
     }
 
     finishes: list[str]
+    etched: bool
     foil: bool
     name: Required[str]
     number: Required[str]
