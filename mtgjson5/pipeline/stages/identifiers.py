@@ -133,7 +133,11 @@ def add_identifiers_struct(lf: pl.LazyFrame) -> pl.LazyFrame:
             )
             .cast(pl.String),
             tcgplayerProductId=pl.col("tcgplayerId").cast(pl.String),
-            tcgplayerEtchedProductId=pl.col("tcgplayerEtchedId").cast(pl.String),
+            # Only a card sold etched has an etched product: Scryfall gives
+            # a few others one, such as SLD #159 the id of #159★
+            tcgplayerEtchedProductId=pl.when(pl.col("finishes").list.contains("etched"))
+            .then(pl.col("tcgplayerEtchedId").cast(pl.String))
+            .otherwise(None),
             tcgplayerAlternativeFoilProductId=pl.col("tcgplayerAlternativeFoilProductId"),
             cardKingdomId=pl.col("cardKingdomId"),
             cardKingdomFoilId=pl.col("cardKingdomFoilId"),
