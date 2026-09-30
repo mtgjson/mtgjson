@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools as itr
 import logging
 from collections import defaultdict
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +25,11 @@ def compile_products(products_dir: Path) -> dict:
 
     Replicates: mtg-sealed-content/scripts/new_products_compiler.py
 
+    A product's nested ``contents`` (merged layout, see compile_contents) is
+    dropped. Contents are compiled on their own, and everything that reads
+    this dict -- the sealed products frame, the UUID pins,
+    build_pipeline_view -- expects the plain product definition.
+
     Args:
         products_dir: Path to directory containing per-set product YAML files.
 
@@ -35,6 +41,9 @@ def compile_products(products_dir: Path) -> dict:
         data = yaml.safe_load(file.read_bytes())
         code = data["code"]
         products = data["products"]
+        for info in products.values():
+            if isinstance(info, dict):
+                info.pop("contents", None)
         LOGGER.debug("Loaded %d products for %s from %s", len(products), code, file.name)
         result[code] = products
     LOGGER.info("Compiled products for %d sets", len(result))
@@ -735,13 +744,48 @@ def set_to_json(set_content: dict) -> dict:
     return {k: v for k, v in decoded.items() if v}
 
 
-def compile_contents(contents_dir: Path, uuid_map: dict) -> tuple[dict, dict]:
+def _iter_set_contents(products_dir: Path, contents_dir: Path | None) -> Iterator[tuple[str, dict]]:
+    """Yield ``(set_code, {product_name: contents})`` for every set file.
+
+    With a contents_dir (split layout) that is each data/contents/SET.yaml as
+    is. Without one (merged layout) it is the ``contents`` nested under each
+    product in data/products/SET.yaml, read back into the same shape. A
+    product without that key has not been researched yet, which the split
+    layout spells as an empty placeholder, so it maps to None.
+
+    The values are the parsed YAML objects themselves, not copies, so a
+    ``copy`` resolved against this mapping reaches its target's contents in
+    exactly the way it reaches the target's data/contents/ entry.
+    """
+    if contents_dir is not None:
+        for set_file in sorted(contents_dir.glob("*.yaml")):
+            contents = yaml.safe_load(set_file.read_bytes())
+            yield contents["code"], contents["products"]
+        return
+
+    for set_file in sorted(products_dir.glob("*.yaml")):
+        data = yaml.safe_load(set_file.read_bytes())
+        set_contents = {
+            name: info.get("contents") if isinstance(info, dict) else None for name, info in data["products"].items()
+        }
+        yield data["code"], set_contents
+
+
+def compile_contents(products_dir: Path, contents_dir: Path | None, uuid_map: dict) -> tuple[dict, dict]:
     """Compile contents.json and deck_map.json from YAML source files.
 
     Replicates: mtg-sealed-content/scripts/product_contents_compiler.py
 
+    mtg-sealed-content is folding data/contents/SET.yaml into
+    data/products/SET.yaml as a nested ``contents`` key, and both layouts
+    compile to the same result. The caller decides the layout once for the
+    whole tree (merged exactly when it has no data/contents/, see
+    SealedDataProvider._fetch_and_extract_yaml), never per product.
+
     Args:
-        contents_dir: Path to directory containing per-set content YAML files.
+        products_dir: Path to directory containing per-set product YAML files.
+        contents_dir: Path to directory containing per-set content YAML files,
+            or None for the merged layout, where products_dir holds both.
         uuid_map: UUID lookup map from build_uuid_map().
 
     Returns:
@@ -749,17 +793,15 @@ def compile_contents(contents_dir: Path, uuid_map: dict) -> tuple[dict, dict]:
     """
     products_contents: dict = {}
 
-    for set_file in sorted(contents_dir.glob("*.yaml")):
-        contents = yaml.safe_load(set_file.read_bytes())
-        code = contents["code"]
+    for code, set_contents in _iter_set_contents(products_dir, contents_dir):
         products_contents[code] = {}
 
-        for name, p in contents["products"].items():
+        for name, p in set_contents.items():
             if not p:
                 LOGGER.warning("Product %s - %s missing contents", code, name)
                 continue
             if set(p.keys()) == {"copy"}:
-                p = contents["products"][p["copy"]]
+                p = set_contents[p["copy"]]
             compiled_product = product(p, code, name)
             compiled_product.get_uuids(uuid_map)
             products_contents[code][name] = compiled_product

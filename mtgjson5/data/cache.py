@@ -1098,7 +1098,9 @@ class GlobalCache:
             # Phase 2: Inline sealed compilation
             # self.cards_lf and self.uuid_cache_lf were set by the main thread
             # before ThreadPoolExecutor started (happens-before guarantee).
-            if provider.contents_dir is not None and provider.products_dict is not None and self.cards_lf is not None:
+            # provider.contents_dir stays None when contents are nested in the
+            # product files, so products_dir is what shows extraction worked.
+            if provider.products_dir is not None and provider.products_dict is not None and self.cards_lf is not None:
                 from mtgjson5.pipeline.stages.sealed import (
                     build_card_finishes_lookup,
                     build_pipeline_view,
@@ -1124,7 +1126,7 @@ class GlobalCache:
                 )
 
                 LOGGER.info("Compiling sealed contents from YAML sources...")
-                contents_dict, deck_map = compile_contents(provider.contents_dir, uuid_map)
+                contents_dict, deck_map = compile_contents(provider.products_dir, provider.contents_dir, uuid_map)
 
                 # Build sealed_contents_lf from contents_dict
                 contents_records = _build_sealed_contents_records(contents_dict)
@@ -1165,8 +1167,8 @@ class GlobalCache:
                 LOGGER.info("Inline sealed compilation complete")
             else:
                 missing = []
-                if provider.contents_dir is None:
-                    missing.append("contents_dir (YAML tarball extraction failed)")
+                if provider.products_dir is None:
+                    missing.append("products_dir (YAML tarball extraction failed)")
                 if provider.products_dict is None:
                     missing.append("products_dict (products compilation failed)")
                 if self.cards_lf is None:

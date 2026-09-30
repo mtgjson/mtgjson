@@ -26,7 +26,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 REPO = "mtgjson/mtg-sealed-content"
 OUTPUT_FILES = {
     "products": "products.json",
-    "contents": "contents.json",
     "deck_map": "deck_map.json",
     "card_map": "card_map.json",
 }
@@ -51,7 +50,12 @@ def resolve_head_sha() -> str:
 
 
 def fetch_tarball(sha: str, cache_dir: Path) -> Path:
-    """Download the source tarball and extract product/content YAMLs."""
+    """Download the source tarball and extract product/content YAMLs.
+
+    Works for either source layout: data/contents/ is extracted when the
+    tarball has one (split layout) and is simply absent otherwise (merged
+    layout, contents nested in data/products/). See yaml_dirs().
+    """
     import requests
 
     tarball_path = cache_dir / f"{sha}.tar.gz"
@@ -79,7 +83,9 @@ def fetch_tarball(sha: str, cache_dir: Path) -> Path:
             if not member.name.startswith(prefix):
                 continue
             rel = member.name[len(prefix) :]
-            # Only extract data/products/*.yaml and data/contents/*.yaml
+            # Only extract data/products/*.yaml and data/contents/*.yaml. The
+            # directory is empty at this point, so the layout yaml_dirs() reads
+            # off it afterwards is this tarball's alone.
             if rel.startswith(("data/products/", "data/contents/")) and rel.endswith(".yaml"):
                 dest = extract_dir / rel
                 dest.parent.mkdir(parents=True, exist_ok=True)
@@ -87,10 +93,25 @@ def fetch_tarball(sha: str, cache_dir: Path) -> Path:
                 if f is not None:
                     dest.write_bytes(f.read())
 
-    n_products = len(list((extract_dir / "data" / "products").glob("*.yaml")))
-    n_contents = len(list((extract_dir / "data" / "contents").glob("*.yaml")))
-    LOGGER.info("Extracted %d product YAMLs, %d content YAMLs", n_products, n_contents)
+    products_dir, contents_dir = yaml_dirs(extract_dir)
+    n_products = len(list(products_dir.glob("*.yaml")))
+    if contents_dir is None:
+        LOGGER.info("Extracted %d product YAMLs with nested contents (no data/contents/)", n_products)
+    else:
+        n_contents = len(list(contents_dir.glob("*.yaml")))
+        LOGGER.info("Extracted %d product YAMLs, %d content YAMLs", n_products, n_contents)
     return extract_dir
+
+
+def yaml_dirs(source_dir: Path) -> tuple[Path, Path | None]:
+    """Return (products_dir, contents_dir) for an extracted source tree.
+
+    contents_dir is None for the merged layout, where each product's contents
+    are nested in its data/products/ file and there is no data/contents/.
+    The layout holds for the whole tree, as in the GitHub provider.
+    """
+    contents_dir = source_dir / "data" / "contents"
+    return source_dir / "data" / "products", contents_dir if contents_dir.is_dir() else None
 
 
 def fetch_output(sha: str, name: str, cache_dir: Path) -> dict | None:
@@ -223,69 +244,23 @@ def validate_products(source_dir: Path, expected: dict) -> tuple[bool, list[str]
         return False, diffs
 
 
-def validate_contents(
-    source_dir: Path, allprintings_path: Path, expected_contents: dict, expected_deck_map: dict | None
-) -> tuple[bool, dict]:
-    """Validate compile_contents() against fetched contents.json and deck_map.json.
+def validate_deck_map(source_dir: Path, allprintings_path: Path, expected: dict) -> tuple[bool, list[str]]:
+    """Validate the deck_map from compile_contents() against the fetched deck_map.json.
 
-    Returns (all_passed, deck_map_actual) so deck_map can be reused.
+    mtg-sealed-content no longer publishes contents.json, so this is the only
+    parity check left on compile_contents(). The source tree may use either
+    layout.
     """
     from mtgjson5.pipeline.stages.sealed import build_uuid_map, compile_contents
 
     print("Building UUID map from AllPrintings.json ...")
     uuid_map = build_uuid_map(allprintings_path)
 
-    contents_dir = source_dir / "data" / "contents"
-    print("Compiling contents and deck_map from YAML sources ...")
-    contents_actual, deck_map_actual = compile_contents(contents_dir, uuid_map)
+    products_dir, contents_dir = yaml_dirs(source_dir)
+    layout = "merged" if contents_dir is None else "split"
+    print(f"Compiling deck_map from YAML sources ({layout} layout) ...")
+    _, deck_map_actual = compile_contents(products_dir, contents_dir, uuid_map)
 
-    all_passed = True
-
-    # Validate contents.json
-    diffs = deep_diff(expected_contents, contents_actual)
-    type_warnings = [d for d in diffs if d.startswith("TYPE WARNING")]
-    real_diffs = [d for d in diffs if not d.startswith("TYPE WARNING")]
-    n_sets = len(contents_actual)
-
-    if not real_diffs:
-        print(f"[PASS] contents.json: {n_sets} sets, 0 differences")
-        if type_warnings:
-            print(f"       ({len(type_warnings)} int/str type warnings)")
-    else:
-        print(f"[FAIL] contents.json: {n_sets} sets, {len(real_diffs)} differences")
-        for d in real_diffs[:50]:
-            print(f"  - {d}")
-        if len(real_diffs) > 50:
-            print(f"  ... and {len(real_diffs) - 50} more")
-        if type_warnings:
-            print(f"  ({len(type_warnings)} int/str type warnings omitted)")
-        all_passed = False
-
-    # Validate deck_map.json if expected is available
-    if expected_deck_map is not None:
-        diffs = deep_diff(expected_deck_map, deck_map_actual)
-        type_warnings = [d for d in diffs if d.startswith("TYPE WARNING")]
-        real_diffs = [d for d in diffs if not d.startswith("TYPE WARNING")]
-
-        if not real_diffs:
-            print(f"[PASS] deck_map.json: {len(deck_map_actual)} sets, 0 differences")
-            if type_warnings:
-                print(f"       ({len(type_warnings)} int/str type warnings)")
-        else:
-            print(f"[FAIL] deck_map.json: {len(deck_map_actual)} sets, {len(real_diffs)} differences")
-            for d in real_diffs[:50]:
-                print(f"  - {d}")
-            if len(real_diffs) > 50:
-                print(f"  ... and {len(real_diffs) - 50} more")
-            if type_warnings:
-                print(f"  ({len(type_warnings)} int/str type warnings omitted)")
-            all_passed = False
-
-    return all_passed, deck_map_actual
-
-
-def validate_deck_map(deck_map_actual: dict, expected: dict) -> tuple[bool, list[str]]:
-    """Validate a pre-computed deck_map against the fetched deck_map.json."""
     diffs = deep_diff(expected, deck_map_actual)
     type_warnings = [d for d in diffs if d.startswith("TYPE WARNING")]
     real_diffs = [d for d in diffs if not d.startswith("TYPE WARNING")]
@@ -370,7 +345,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Validate sealed content compilation parity")
     parser.add_argument(
         "--stage",
-        choices=["products", "contents", "deck_map", "card_map", "all"],
+        choices=["products", "deck_map", "card_map", "all"],
         default="all",
         help="Which stage to validate (default: all)",
     )
@@ -400,7 +375,7 @@ def main() -> None:
         cache_dir = Path(tempfile.mkdtemp(prefix="sealed-validate-"))
     LOGGER.info("Cache directory: %s", cache_dir)
 
-    stages = [args.stage] if args.stage != "all" else ["products", "contents", "deck_map", "card_map"]
+    stages = [args.stage] if args.stage != "all" else ["products", "deck_map", "card_map"]
 
     if args.skip_fetch:
         sha = "unknown"
@@ -423,7 +398,6 @@ def main() -> None:
             return fetch_output(sha, stage_name, cache_dir)
 
     all_pass = True
-    deck_map_actual: dict | None = None
 
     for stage in stages:
         if stage == "products":
@@ -436,22 +410,6 @@ def main() -> None:
             if not passed:
                 all_pass = False
 
-        elif stage == "contents":
-            expected_contents = _load_expected("contents")
-            if expected_contents is None:
-                LOGGER.error("Could not fetch expected output for contents")
-                all_pass = False
-                continue
-
-            expected_deck_map = _load_expected("deck_map")
-
-            allprintings_path = fetch_allprintings(cache_dir, args.allprintings)
-            passed, deck_map_actual = validate_contents(
-                source_dir, allprintings_path, expected_contents, expected_deck_map
-            )
-            if not passed:
-                all_pass = False
-
         elif stage == "deck_map":
             expected_deck_map = _load_expected("deck_map")
             if expected_deck_map is None:
@@ -459,20 +417,8 @@ def main() -> None:
                 all_pass = False
                 continue
 
-            if deck_map_actual is not None:
-                # Reuse from contents stage
-                passed, _ = validate_deck_map(deck_map_actual, expected_deck_map)
-            else:
-                # Run standalone — need to compile
-                allprintings_path = fetch_allprintings(cache_dir, args.allprintings)
-                sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-                from mtgjson5.pipeline.stages.sealed import build_uuid_map, compile_contents
-
-                uuid_map = build_uuid_map(allprintings_path)
-                contents_dir = source_dir / "data" / "contents"
-                _, deck_map_actual = compile_contents(contents_dir, uuid_map)
-                passed, _ = validate_deck_map(deck_map_actual, expected_deck_map)
-
+            allprintings_path = fetch_allprintings(cache_dir, args.allprintings)
+            passed, _ = validate_deck_map(source_dir, allprintings_path, expected_deck_map)
             if not passed:
                 all_pass = False
 
