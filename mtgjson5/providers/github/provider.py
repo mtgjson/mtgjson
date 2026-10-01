@@ -240,6 +240,7 @@ class SealedDataProvider:
         self._on_complete_callback: Callable[[Any], None] | None = None
         # Inline compilation data (populated by _fetch_and_build)
         self.products_dir: Path | None = None
+        # Also None after loading a tarball that nests contents in the products
         self.contents_dir: Path | None = None
         self.products_dict: dict | None = None
         self.boosters_raw: dict | None = None
@@ -308,13 +309,17 @@ class SealedDataProvider:
         asyncio.run(self._fetch_and_build())
         return self
 
-    async def _fetch_and_extract_yaml(self, session: aiohttp.ClientSession) -> tuple[Path, Path]:
+    async def _fetch_and_extract_yaml(self, session: aiohttp.ClientSession) -> tuple[Path, Path | None]:
         """Fetch YAML tarball and extract products + contents directories.
 
-        Returns (products_dir, contents_dir). Retries 3 times on failure,
-        raises RuntimeError if all attempts fail.
+        Returns (products_dir, contents_dir). contents_dir is None when the
+        tarball has no data/contents/ tree because each product's contents are
+        nested in its products file (merged layout). The layout is decided
+        here, once for the whole tarball. Retries 3 times on failure, raises
+        RuntimeError if all attempts fail.
         """
         import io
+        import shutil
         import tarfile as _tarfile
         import tempfile
 
@@ -327,11 +332,16 @@ class SealedDataProvider:
         products_dir = extract_base / "data" / "products"
         contents_dir = extract_base / "data" / "contents"
 
-        # Skip if already extracted
-        if products_dir.exists() and contents_dir.exists():
-            n_p = len(list(products_dir.glob("*.yaml")))
+        # Skip if already extracted. An extraction only ever holds one whole
+        # tarball (see below), so whether it has a data/contents/ tree still
+        # tells which layout that tarball used.
+        n_p = len(list(products_dir.glob("*.yaml")))
+        if n_p > 0:
+            if not contents_dir.is_dir():
+                LOGGER.info(f"Using cached YAMLs: {n_p} products with nested contents")
+                return products_dir, None
             n_c = len(list(contents_dir.glob("*.yaml")))
-            if n_p > 0 and n_c > 0:
+            if n_c > 0:
                 LOGGER.info(f"Using cached YAMLs: {n_p} products, {n_c} contents")
                 return products_dir, contents_dir
 
@@ -352,6 +362,15 @@ class SealedDataProvider:
 
         LOGGER.info(f"Extracting YAMLs from tarball ({len(tarball_bytes):,} bytes)...")
 
+        # Extract into an empty staging directory and swap it in once complete.
+        # Extracting over an earlier tarball would keep whatever the new one no
+        # longer has -- a retired set file, or the whole data/contents/ tree
+        # once contents move into the product files -- and an interrupted
+        # extraction could later pass for the merged layout.
+        staging = extract_base.with_name(f"{extract_base.name}.partial")
+        shutil.rmtree(staging, ignore_errors=True)
+        staging.mkdir(parents=True)
+
         with _tarfile.open(fileobj=io.BytesIO(tarball_bytes), mode="r:gz") as tf:
             # Find the prefix (mtg-sealed-content-{sha}/)
             prefix = ""
@@ -365,13 +384,19 @@ class SealedDataProvider:
                     continue
                 rel = member.name[len(prefix) :]
                 if rel.startswith(("data/products/", "data/contents/")) and rel.endswith(".yaml"):
-                    dest = extract_base / rel
+                    dest = staging / rel
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     f = tf.extractfile(member)
                     if f is not None:
                         dest.write_bytes(f.read())
 
+        shutil.rmtree(extract_base, ignore_errors=True)
+        staging.rename(extract_base)
+
         n_p = len(list(products_dir.glob("*.yaml")))
+        if not contents_dir.is_dir():
+            LOGGER.info(f"Extracted {n_p} product YAMLs with nested contents (no data/contents/ in tarball)")
+            return products_dir, None
         n_c = len(list(contents_dir.glob("*.yaml")))
         LOGGER.info(f"Extracted {n_p} product YAMLs, {n_c} content YAMLs")
         return products_dir, contents_dir
