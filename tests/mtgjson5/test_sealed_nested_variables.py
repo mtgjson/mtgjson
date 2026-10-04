@@ -118,3 +118,32 @@ def test_battle_pack_published_outcomes(code, expected_count, tmp_path, caplog):
             assert len(set(selected_colors[:2])) == len(set(selected_colors[2:])) == 2
     if code == "M13":
         assert any(row[:2] == row[2:] for row in rows)
+
+
+def test_nested_choices_reach_card_to_products():
+    """Cards in nested alternatives must reach the published reverse index."""
+    from mtgjson5.pipeline.stages.sealed import compile_card_to_products
+
+    contents = {
+        "variable": [
+            {
+                "configs": [
+                    {
+                        "variable": [
+                            {
+                                "configs": [
+                                    {"card": [{"uuid": "first", "foil": True}]},
+                                    {"card": [{"uuid": "second", "etched": True}]},
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    view = {"TST": {"sealedProduct": [{"uuid": "product", "contents": contents}]}}
+    assert compile_card_to_products(view) == {
+        "first": {"foil": ["product"]},
+        "second": {"etched": ["product"]},
+    }
