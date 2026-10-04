@@ -297,6 +297,7 @@ _LEGALITIES_EMPTY: dict[str, Any] = {
     "alchemy": None,
     "brawl": None,
     "commander": None,
+    "competitivebrawl": None,
     "duel": None,
     "explorer": None,
     "future": None,

@@ -287,6 +287,7 @@ STATIC_CATEGORICALS: dict[str, list[str]] = {
         "alchemy",
         "brawl",
         "commander",
+        "competitivebrawl",
         "duel",
         "explorer",
         "future",

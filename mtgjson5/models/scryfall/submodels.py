@@ -55,6 +55,7 @@ class ScryfallLegalities(TypedDict, total=False):
     alchemy: LegalityStatus
     brawl: LegalityStatus
     commander: LegalityStatus
+    competitivebrawl: LegalityStatus
     duel: LegalityStatus
     explorer: LegalityStatus
     future: LegalityStatus
