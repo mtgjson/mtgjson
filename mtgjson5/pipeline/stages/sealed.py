@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import itertools as itr
 import logging
 from collections import defaultdict
 from collections.abc import Iterator
@@ -13,6 +12,7 @@ import ijson
 import polars as pl
 import polars_hash as plh
 import yaml
+from mtg_sealed_choices import ChoiceGroups
 
 from mtgjson5.pipeline.stages.explode import _uuid5_concat_expr
 from mtgjson5.pipeline.stages.sealed_uuids import name_uuid, resolve_sealed_uuids
@@ -248,41 +248,14 @@ class product:
 
         self.card_count: int = contents.get("card_count", 0)
 
-        self.variable_groups: list[list[product]] = []
-        variable: list[product] = []
-        if "variable_mode" in contents:
-            options = dict(contents["variable_mode"])
-            if options.get("replacement", False):
-                for combo in itr.combinations_with_replacement(contents["variable"], options.get("count", 1)):
-                    p_temp = product({})
-                    for c in combo:
-                        p_temp.merge(product(c))
-                    variable.append(p_temp)
-            else:
-                for combo in itr.combinations(contents["variable"], options.get("count", 1)):
-                    p_temp = product({})
-                    for c in combo:
-                        p_temp.merge(product(c))
-                    variable.append(p_temp)
-            if "weight" in options:
-                if sum(v.chance for v in variable) != options["weight"]:
-                    raise ValueError(f"Weight incorrectly assigned for product {self.name}")
-            else:
-                options["weight"] = sum(v.chance for v in variable)
-            for v in variable:
-                v.weight = options["weight"]
-        elif "variable" in contents:
-            variable = [product(p) for p in contents["variable"]]
-        if variable:
-            self.variable_groups.append(variable)
+        self.choices = ChoiceGroups(contents, product, self.name)
 
     def merge(self, target: product) -> None:
         self.card += target.card
         self.pack += target.pack
         self.deck += target.deck
         self.sealed += target.sealed
-        # Each selected component retains its own independent choice group.
-        self.variable_groups.extend(target.variable_groups)
+        self.choices.merge(target.choices)
         self.card_count += target.card_count
         self.other += target.other
         self.chance *= target.chance
@@ -313,8 +286,8 @@ class product:
             data["sealed"] = [s.toJson() for s in self.sealed]
         if self.other:
             data["other"] = [o.toJson() for o in self.other]
-        if self.variable_groups:
-            data["variable"] = [{"configs": [v.toJson() for v in group]} for group in self.variable_groups]
+        if self.choices.groups:
+            data["variable"] = self.choices.serialize(lambda component: component.toJson())
         if self.card_count:
             data["card_count"] = self.card_count
         if self.weight:
@@ -338,7 +311,7 @@ class product:
             d.get_uuids(uuid_map)
         for s in self.sealed:
             s.get_uuids(uuid_map)
-        for group in self.variable_groups:
+        for group in self.choices.groups:
             for v in group:
                 v.get_uuids(uuid_map)
 

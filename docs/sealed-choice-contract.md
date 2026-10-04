@@ -1,36 +1,41 @@
-# Sealed choice compilation contract
+# Shared sealed choice engine
 
-MTGJSON compiles mtg-sealed-content recipes inline. The sealed repository also
-compiles them for validation and status generation. Until their choice engine
-is shared, both implementations must produce identical choice structures.
+Both mtg-sealed-content and MTGJSON use `mtg-sealed-choices`, owned by the sealed
+repository under `compiler/`. Combination selection, replacement, weight totals
+and independent choice groups are implemented there once. Card/deck lookup,
+UUID assignment, language selection, diagnostics and final model validation
+remain consumer-specific.
 
-`Sealed choice parity` checks MTGJSON against the current sealed `main` on pull
-requests, pushes and daily runs. Both commit hashes are logged. It compares the
-live variable-product recipes and small generated cases covering nested choices,
-replacement, counts, weights, rejection of invalid weights and input immutability.
-An empty product scan fails, so a source-layout change cannot silently disable it.
-No copied catalog or golden output is committed.
+MTGJSON pins version 0.1.0 through an immutable upstream source archive in
+`pyproject.toml`; `uv.lock` records its SHA-256. The archive avoids checking out
+Git history or downloading Git LFS data. The sealed repository installs its
+local package through requirements.txt. No package-index publication is needed.
 
-Run against an isolated source checkout:
+## Updating the dependency
+
+1. Change the engine and its compact contract tests in mtg-sealed-content.
+2. Bump its version for behavior/API changes and merge the sealed change.
+3. Update MTGJSON's source-commit pin and run `uv lock`.
+4. Run the sealed tests and the integration check below against that checkout.
+
+The existing CI suites cover the shared package and both adapters. There is no
+separate daily parity workflow: with a pinned shared implementation, an upstream
+change is an explicit dependency update rather than a silent copied-code drift.
+
+## Adapter parity
+
+For a dependency update or adapter change, compare live product recipes without
+committing another copy of the catalog:
 
 ```sh
 SEALED_SOURCE_PATH=/path/to/mtg-sealed-content \
   uv run pytest tests/mtgjson5/test_sealed_choice_parity.py -v
 ```
 
-An ordinary test run skips this integration check when that environment variable
-is absent. CI supplies it explicitly. No AllPrintings file or credentials are
-needed. Card UUIDs are placeholders and language is omitted: UUID resolution,
-missing-card handling and language selection belong to each consumer, not to
-this choice contract. Final JSON serialization remains covered separately by
-`test_sealed_nested_variables.py`.
-
-## Shared-package boundary
-
-The next extraction should own only combination selection, weight calculation,
-independent group merging and the recursive choice structure. It must not own
-card/deck lookup, UUID assignment, language selection, logging or output storage.
-The package should live in mtg-sealed-content, publish versioned releases and be
-pinned by MTGJSON. Retain the contract tests as acceptance tests when switching
-both callers to that package. This change adds drift detection; it does not yet
-remove either compiler or introduce an unpublished dependency.
+This checks the installed engine through each adapter. Use the source checkout
+matching the dependency pin. It covers variable-product recipes plus generated
+nested/weighted cases, invalid weights and input immutability. An empty scan
+fails. Card UUIDs are placeholders and language is omitted, because resolution
+is outside the shared contract. Final JSON serialization is covered separately
+by `test_sealed_nested_variables.py`. The optional source comparison skips when
+SEALED_SOURCE_PATH is absent; the local serialization tests always run.

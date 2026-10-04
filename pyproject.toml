@@ -42,6 +42,7 @@ keywords = [
     "Magic: The Gathering",
 ]
 dependencies = [
+    "mtg-sealed-choices @ https://github.com/mtgjson/mtg-sealed-content/archive/924d75b86f2831e3dd1172eaf800760dfb3e5789.tar.gz#subdirectory=compiler",
     "aiohttp==3.14.3",
     "beautifulsoup4==4.14.3",
     "boto3==1.43.6",
