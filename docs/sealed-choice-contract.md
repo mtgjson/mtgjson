@@ -2,7 +2,7 @@
 
 Both mtg-sealed-content and MTGJSON use `mtg-sealed-choices`, owned by the sealed
 repository under `compiler/`. Combination selection, replacement, weight totals
-and independent choice groups are implemented there once. Version 0.2.0 also
+and independent choice groups are implemented there once. The package also
 owns recipe parsing/merging/serialization, resolution traversal, direct deck
 links, card/finish identity, deck-board enumeration and reverse-index output.
 Both adapters use its recursive variable-membership walker, fixing MTGJSON
@@ -12,7 +12,7 @@ Card/deck lookup,
 UUID assignment, language selection, diagnostics and final model validation
 remain consumer-specific.
 
-MTGJSON pins version 0.2.0 through an immutable upstream source archive in
+MTGJSON pins version 0.3.0 through an immutable upstream source archive in
 `pyproject.toml`; `uv.lock` records its SHA-256. The archive avoids checking out
 Git history or downloading Git LFS data. The sealed repository installs its
 local package through requirements.txt. No package-index publication is needed.
@@ -52,6 +52,13 @@ The shared Product builds adapter-supplied leaf classes and preserves the adapte
 subclass inside every choice. Hooks retain status.txt versus logging, MTGJSON's
 language-aware UUID lookup and omission of unresolved cards from published JSON.
 YAML filesystem handling and the sealed writer's orphan/placeholder preservation
-remain outside the package. Booster/deck catalog resolution also remains local;
-the sealed adapter's legacy etched fallbacks differ from pipeline behavior.
-The extraction preserves those differences instead of changing finish policy.
+remain outside the package. Booster/deck/sealed traversal is shared through CatalogWalker. The sealed
+adapter retains its legacy etched fallback hook, while the pipeline adapter
+retains its language and logging hooks. The extraction preserves those
+differences instead of changing finish policy.
+
+Both AllPrintings readers use the same streaming UUID-index parser. File/network
+I/O stays local, and MTGJSON's Polars index builder stays in the pipeline. The
+shared package does not import ijson, requests or Polars. Catalog traversal skips
+scalar metadata such as card_count; this also avoids the sealed mapper trying
+to iterate a product's card count.

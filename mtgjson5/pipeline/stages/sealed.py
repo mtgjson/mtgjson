@@ -12,20 +12,15 @@ import ijson
 import polars as pl
 import polars_hash as plh
 import yaml
+from mtg_sealed_choices.catalog import CatalogWalker
 from mtg_sealed_choices.links import (
     CardReference as _CTPCard,
-)
-from mtg_sealed_choices.links import (
-    deck_cards,
-    variable_cards,
-)
-from mtg_sealed_choices.links import (
-    explicit_card as _ctp_get_card_obj_from_card,
 )
 from mtg_sealed_choices.links import (
     results_to_json as _ctp_results_to_json,
 )
 from mtg_sealed_choices.model import Card, Deck, Other, Pack, Product, Sealed, deck_links
+from mtg_sealed_choices.uuid_map import uuid_map_from_events
 
 from mtgjson5.pipeline.stages.explode import _uuid5_concat_expr
 from mtgjson5.pipeline.stages.sealed_uuids import name_uuid, resolve_sealed_uuids
@@ -227,81 +222,8 @@ def build_uuid_map(allprintings_path: Path) -> dict:
         tokens: {number_str: (uuid, name)}  — only side "a" tokens
     """
     LOGGER.info("Loading AllPrintings.json from %s ...", allprintings_path)
-    uuids: dict = {}
-    current_set = ""
-    ccode = ""
-    status = ""
-    name = ""
-    number = ""
-    uuid = ""
-    holding = ""
-
     with open(allprintings_path, "rb") as f:
-        parser = ijson.parse(f)
-        for prefix, event, value in parser:
-            if prefix == "data" and event == "map_key":
-                current_set = value
-                ccode = current_set.lower()
-                uuids[ccode] = {
-                    "booster": set(),
-                    "decks": set(),
-                    "sealedProduct": {},
-                    "cards": {},
-                    "tokens": {},
-                }
-                status = ""
-            elif prefix == f"data.{current_set}" and event == "map_key":
-                status = value
-            elif status == "booster" and prefix == f"data.{current_set}.booster" and event == "map_key":
-                uuids[ccode]["booster"].add(value)
-            elif status == "decks" and prefix == f"data.{current_set}.decks.item.name":
-                uuids[ccode]["decks"].add(value)
-            elif status == "sealedProduct":
-                if prefix == f"data.{current_set}.sealedProduct.item" and event == "start_map":
-                    name = ""
-                    uuid = ""
-                elif prefix == f"data.{current_set}.sealedProduct.item.name":
-                    name = value
-                elif prefix == f"data.{current_set}.sealedProduct.item.uuid":
-                    uuid = value
-                elif prefix == f"data.{current_set}.sealedProduct.item" and event == "end_map":
-                    uuids[ccode]["sealedProduct"][name] = uuid
-            elif status == "cards":
-                if prefix == f"data.{current_set}.cards.item.side" and value != "a":
-                    holding = "skip"
-                if prefix == f"data.{current_set}.cards.item" and event == "start_map":
-                    number = ""
-                    name = ""
-                    uuid = ""
-                elif prefix == f"data.{current_set}.cards.item.number":
-                    number = value
-                elif prefix == f"data.{current_set}.cards.item.name":
-                    name = value
-                elif prefix == f"data.{current_set}.cards.item.uuid":
-                    uuid = value
-                elif prefix == f"data.{current_set}.cards.item" and event == "end_map":
-                    if holding != "skip":
-                        uuids[ccode]["cards"][number] = (uuid, name)
-                    holding = ""
-            elif status == "tokens":
-                # Tokens are referenced the same way as cards (by collector
-                # number) by sealed contents carrying the token flag.
-                if prefix == f"data.{current_set}.tokens.item.side" and value != "a":
-                    holding = "skip"
-                if prefix == f"data.{current_set}.tokens.item" and event == "start_map":
-                    number = ""
-                    name = ""
-                    uuid = ""
-                elif prefix == f"data.{current_set}.tokens.item.number":
-                    number = value
-                elif prefix == f"data.{current_set}.tokens.item.name":
-                    name = value
-                elif prefix == f"data.{current_set}.tokens.item.uuid":
-                    uuid = value
-                elif prefix == f"data.{current_set}.tokens.item" and event == "end_map":
-                    if holding != "skip":
-                        uuids[ccode]["tokens"][number] = (uuid, name)
-                    holding = ""
+        uuids = uuid_map_from_events(ijson.parse(f))
 
     LOGGER.info("Built UUID map for %d sets", len(uuids))
     return uuids
@@ -873,188 +795,55 @@ def build_pipeline_view(
     return view
 
 
+class _PipelineCardLinker(CatalogWalker):
+    def missing_deck_source(self, code: str) -> None:
+        LOGGER.debug("Note: %s was NOT found in pipeline view", code)
+
+    def unknown_content(self, key: str) -> None:
+        LOGGER.warning("Unknown content_key in card_to_products: %s", key)
+
+    def product_language(self, product: dict) -> str | None:
+        return product.get("language")
+
+    def deck_card_uuid(self, card: dict, language: str | None, set_code: str, deck_name: str) -> str:
+        # Finish validation uses the deck's default UUID. Only the resulting
+        # membership UUID changes for a product requesting another language.
+        uuid: str = card["uuid"]
+        if language:
+            card_set, number = card.get("_set"), card.get("_number")
+            set_map = self.mtgjson_data.get(card_set, {}) if card_set else {}
+            by_lang = set_map.get("cards_by_language", {}).get(number, {})
+            entry = by_lang.get(language) or set_map.get("tokens_by_language", {}).get(number, {}).get(language)
+            if entry:
+                uuid = entry[0]
+            else:
+                LOGGER.warning(
+                    "Deck %s:%s has no %s printing of %s:%s; using the default-language UUID instead",
+                    set_code,
+                    deck_name,
+                    language,
+                    card_set,
+                    number,
+                )
+        return uuid
+
+
 def _ctp_get_cards_in_pack(data: dict, set_code: str, booster_code: str) -> list[_CTPCard]:
-    """Return cards reachable from a booster pack definition.
-
-    Traverses every sheet referenced by boosters for *booster_code* and assigns
-    each card a finish: "etched" if the sheet name contains "etched" (or the
-    card's only finish is "etched"), "foil" if it's a foil sheet and the card
-    has a foil printing, otherwise "nonfoil".
-    """
-    try:
-        booster_data = data[set_code].get("booster")
-    except KeyError:
-        return []
-    if not booster_data:
-        return []
-
-    sheet_data = booster_data.get(booster_code)
-    if not sheet_data:
-        return []
-
-    sheets_to_poll: set[str] = set()
-    for booster in sheet_data["boosters"]:
-        sheets_to_poll.update(booster["contents"].keys())
-
-    return_value: set[_CTPCard] = set()
-    for sheet in sheets_to_poll:
-        cards_in_sheet = sheet_data["sheets"][sheet]["cards"]
-
-        for card_uuid in cards_in_sheet:
-            finish = "nonfoil"
-            finishes: list[str] = []
-
-            if sheet_data["sheets"][sheet]["foil"]:
-                for source_code in sheet_data["sourceSetCodes"]:
-                    if source_code not in data:
-                        continue
-                    for c in data[source_code]["cards"]:
-                        if card_uuid == c["uuid"]:
-                            finishes = c["finishes"]
-
-                # "etched" in sheet name or single finish "etched" → etched
-                if ("etched" in sheet.lower() or len(finishes) == 1) and "etched" in finishes:
-                    finish = "etched"
-                elif "foil" in finishes:
-                    finish = "foil"
-
-            return_value.add(_CTPCard(card_uuid, finish))
-
-    return list(return_value)
+    return _PipelineCardLinker(data).get_cards_in_pack(set_code, booster_code)
 
 
 def _ctp_get_cards_in_deck(data: dict, set_code: str, deck_name: str, language: str | None = None) -> list[_CTPCard]:
-    """Return cards from a named deck, validating finishes against source sets.
-
-    A deck is shared verbatim by every sealed product that references it
-    (its mainBoard/etc. UUIDs are always the deck's own English-default
-    printings), so a language-tagged product would otherwise be attributed
-    to the same English cards as its English counterpart. When *language* is
-    given, each deck card's UUID is swapped for that language's UUID from
-    the (set, number) it was printed at -- found via cards_by_language /
-    tokens_by_language, built in build_uuid_map_from_pipeline() -- falling
-    back to the deck's own UUID when that language isn't available for this
-    exact card (e.g. Scryfall has no transcription for it yet).
-
-    Finish validation (foil/etched) is still matched against the deck's own
-    UUID: the physical treatment doesn't change between languages, and
-    card_finishes is only indexed by the default-language UUID.
-    """
-    try:
-        decks_data = data[set_code].get("decks")
-    except KeyError:
-        return []
-    if not decks_data:
-        return []
-
-    return_value: set[_CTPCard] = set()
-    for d in decks_data:
-        if d["name"] != deck_name:
-            continue
-
-        cards = deck_cards(d)
-
-        for deck_card in cards:
-            finish = "nonfoil"
-            finishes: list[str] = []
-            for code in d.get("sourceSetCodes", []):
-                if code not in data:
-                    LOGGER.debug("Note: %s was NOT found in pipeline view", code)
-                    continue
-                for c in data[code]["cards"] + data[code]["tokens"]:
-                    if deck_card["uuid"] == c["uuid"]:
-                        finishes = c["finishes"]
-                        break
-
-            # isEtched takes precedence over isFoil
-            if deck_card.get("isEtched", False) and "etched" in finishes:
-                finish = "etched"
-            elif deck_card.get("isFoil", False) and "foil" in finishes:
-                finish = "foil"
-
-            uuid = deck_card["uuid"]
-            if language:
-                card_set, number = deck_card.get("_set"), deck_card.get("_number")
-                set_map = data.get(card_set, {}) if card_set else {}
-                by_lang = set_map.get("cards_by_language", {}).get(number, {})
-                entry = by_lang.get(language) or set_map.get("tokens_by_language", {}).get(number, {}).get(language)
-                if entry:
-                    uuid = entry[0]
-                else:
-                    LOGGER.warning(
-                        "Deck %s:%s has no %s printing of %s:%s; using the default-language UUID instead",
-                        set_code,
-                        deck_name,
-                        language,
-                        card_set,
-                        number,
-                    )
-
-            return_value.add(_CTPCard(uuid, finish))
-        break
-
-    return list(return_value)
+    return _PipelineCardLinker(data).get_cards_in_deck(set_code, deck_name, language)
 
 
 def _ctp_get_cards_in_sealed_product(data: dict, set_code: str, sealed_product_uuid: str | None) -> list[_CTPCard]:
-    """Return all cards reachable from a sealed product, traversing contents."""
-    return_value: set[_CTPCard] = set()
-
-    if set_code not in data:
-        return []
-
-    for sealed_product in data[set_code].get("sealedProduct", []):
-        if sealed_product_uuid != sealed_product.get("uuid"):
-            continue
-
-        # This product's own products.yaml "language" (if any) governs how
-        # its deck: references resolve. A nested "sealed" reference recurses
-        # into a *different* product, which is looked up (and reads its own
-        # "language") independently -- it doesn't inherit this one's.
-        language = sealed_product.get("language")
-        for content_key, contents in sealed_product.get("contents", {}).items():
-            if not isinstance(contents, list):
-                continue
-            for content in contents:
-                cards = _ctp_get_cards_in_content_type(data, content_key, content, language)
-                return_value.update(cards)
-        break
-
-    return list(return_value)
+    return _PipelineCardLinker(data).get_cards_in_sealed_product(set_code, sealed_product_uuid)
 
 
 def _ctp_get_cards_in_content_type(
     data: dict, content_key: str, content: dict[str, Any], language: str | None = None
 ) -> list[_CTPCard]:
-    """Dispatch to the appropriate handler for a content type.
-
-    *language* is the enclosing sealed product's own products.yaml
-    "language" field (e.g. "Japanese"), if any -- see _ctp_get_cards_in_deck
-    for why only "deck" content consults it. A "card" entry already carries
-    its own independent "language" field (set on the entry itself, see
-    card.get_uuids on the sealed-content side) which takes precedence over
-    the product's, so it is deliberately not overridden here.
-    """
-    if content_key == "card":
-        return _ctp_get_card_obj_from_card(content)
-
-    if content_key == "pack":
-        return _ctp_get_cards_in_pack(data, content["set"].upper(), content["code"])
-
-    if content_key == "sealed":
-        return _ctp_get_cards_in_sealed_product(data, content["set"].upper(), content.get("uuid"))
-
-    if content_key == "deck":
-        return _ctp_get_cards_in_deck(data, content["set"].upper(), content["name"], language)
-
-    if content_key == "variable":
-        return variable_cards(content, lambda kind, entry: _ctp_get_cards_in_content_type(data, kind, entry, language))
-
-    if content_key == "other":
-        return []
-
-    LOGGER.warning("Unknown content_key in card_to_products: %s", content_key)
-    return []
+    return _PipelineCardLinker(data).get_cards_in_content_type(content_key, content, language)
 
 
 def compile_card_to_products(pipeline_view: dict) -> dict[str, dict[str, list[str]]]:
@@ -1073,6 +862,7 @@ def compile_card_to_products(pipeline_view: dict) -> dict[str, dict[str, list[st
         ``{card_uuid: {finish: sorted([product_uuid, …])}}``.
     """
     build_data: dict[_CTPCard, set[str]] = defaultdict(set)
+    linker = _PipelineCardLinker(pipeline_view)
 
     for set_code, set_data in pipeline_view.items():
         if not set_data.get("sealedProduct"):
@@ -1080,7 +870,7 @@ def compile_card_to_products(pipeline_view: dict) -> dict[str, dict[str, list[st
 
         LOGGER.debug("card_to_products: processing %s", set_code)
         for sealed_product in set_data["sealedProduct"]:
-            cards_list = _ctp_get_cards_in_sealed_product(pipeline_view, set_code, sealed_product.get("uuid"))
+            cards_list = linker.get_cards_in_sealed_product(set_code, sealed_product.get("uuid"))
             for ctp_card in cards_list:
                 build_data[ctp_card].add(sealed_product.get("uuid"))
 

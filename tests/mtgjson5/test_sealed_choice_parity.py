@@ -1,7 +1,7 @@
 """Choice compilation contract against a separately checked-out sealed repo.
 
-Set SEALED_SOURCE_PATH to run locally. CI checks the current upstream main,
-including its real product recipes, rather than keeping another fixture copy.
+Set SEALED_SOURCE_PATH to the checkout matching the installed dependency pin
+to compare real product recipes without keeping another fixture copy.
 UUID resolution and language selection remain owned by each consumer.
 """
 
