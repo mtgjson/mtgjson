@@ -426,6 +426,11 @@ class Legalities(TypedDict, total=False):
             "introduced": "v4.0.0",
             "optional": True,
         },
+        "competitivebrawl": {
+            "description": "Legality of the card in the [Competitive Brawl](https://mtg.wiki/page/Competitive_Brawl) play format.",
+            "introduced": "v5.3.0",
+            "optional": True,
+        },
         "duel": {
             "description": "Legality of the card in the [Duel Commander](https://magic.wizards.com/en/formats/commander-1v1) play format.",
             "introduced": "v4.0.0",
@@ -531,6 +536,7 @@ class Legalities(TypedDict, total=False):
     alchemy: str
     brawl: str
     commander: str
+    competitivebrawl: str
     duel: str
     explorer: str
     future: str

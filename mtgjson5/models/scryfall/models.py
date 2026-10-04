@@ -324,6 +324,7 @@ class Legalities(BaseModel):
     oathbreaker: Legality = Field(description="Legality in Oathbreaker format.")
     standardbrawl: Legality = Field(description="Legality in Standard Brawl format.")
     brawl: Legality = Field(description="Legality in Brawl format.")
+    competitivebrawl: Legality = Field(description="Legality in Competitive Brawl format (Arena).")
     alchemy: Legality = Field(description="Legality in Alchemy format (Arena).")
     paupercommander: Legality = Field(description="Legality in Pauper Commander format.")
     duel: Legality = Field(description="Legality in Duel Commander format.")

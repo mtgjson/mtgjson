@@ -78,6 +78,12 @@ class TestPolarsMixinToPolarsDict:
         d = card.to_polars_dict()
         assert d["legalities"] == {}
 
+    def test_legalities_keep_competitive_brawl(self):
+        """Scryfall's competitivebrawl key survives model validation."""
+        card = _make_card_set(legalities={"brawl": "Banned", "competitivebrawl": "Legal"})
+        d = card.to_polars_dict()
+        assert d["legalities"] == {"brawl": "Banned", "competitivebrawl": "Legal"}
+
     def test_purchase_urls_none_becomes_empty_dict(self):
         card = _make_card_set()
         d = card.to_polars_dict()
