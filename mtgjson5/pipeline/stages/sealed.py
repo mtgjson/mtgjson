@@ -248,37 +248,41 @@ class product:
 
         self.card_count: int = contents.get("card_count", 0)
 
-        self.variable: list[product] = []
+        self.variable_groups: list[list[product]] = []
+        variable: list[product] = []
         if "variable_mode" in contents:
-            options = contents.pop("variable_mode")
+            options = dict(contents["variable_mode"])
             if options.get("replacement", False):
                 for combo in itr.combinations_with_replacement(contents["variable"], options.get("count", 1)):
                     p_temp = product({})
                     for c in combo:
                         p_temp.merge(product(c))
-                    self.variable.append(p_temp)
+                    variable.append(p_temp)
             else:
                 for combo in itr.combinations(contents["variable"], options.get("count", 1)):
                     p_temp = product({})
                     for c in combo:
                         p_temp.merge(product(c))
-                    self.variable.append(p_temp)
+                    variable.append(p_temp)
             if "weight" in options:
-                if sum(v.chance for v in self.variable) != options["weight"]:
+                if sum(v.chance for v in variable) != options["weight"]:
                     raise ValueError(f"Weight incorrectly assigned for product {self.name}")
             else:
-                options["weight"] = sum(v.chance for v in self.variable)
-            for v in self.variable:
+                options["weight"] = sum(v.chance for v in variable)
+            for v in variable:
                 v.weight = options["weight"]
         elif "variable" in contents:
-            self.variable = [product(p) for p in contents["variable"]]
+            variable = [product(p) for p in contents["variable"]]
+        if variable:
+            self.variable_groups.append(variable)
 
     def merge(self, target: product) -> None:
         self.card += target.card
         self.pack += target.pack
         self.deck += target.deck
         self.sealed += target.sealed
-        self.variable += target.variable
+        # Each selected component retains its own independent choice group.
+        self.variable_groups.extend(target.variable_groups)
         self.card_count += target.card_count
         self.other += target.other
         self.chance *= target.chance
@@ -309,8 +313,8 @@ class product:
             data["sealed"] = [s.toJson() for s in self.sealed]
         if self.other:
             data["other"] = [o.toJson() for o in self.other]
-        if self.variable:
-            data["variable"] = [{"configs": [v.toJson() for v in self.variable]}]
+        if self.variable_groups:
+            data["variable"] = [{"configs": [v.toJson() for v in group]} for group in self.variable_groups]
         if self.card_count:
             data["card_count"] = self.card_count
         if self.weight:
@@ -334,8 +338,9 @@ class product:
             d.get_uuids(uuid_map)
         for s in self.sealed:
             s.get_uuids(uuid_map)
-        for v in self.variable:
-            v.get_uuids(uuid_map)
+        for group in self.variable_groups:
+            for v in group:
+                v.get_uuids(uuid_map)
 
 
 def build_uuid_map(allprintings_path: Path) -> dict:
