@@ -122,6 +122,21 @@ class SealedProduct(PolarsMixin, BaseModel):
 
     @model_validator(mode="before")
     @classmethod
+    def default_null_mappings(cls, data: Any) -> Any:
+        """Treat null identifiers and purchase URLs as empty mappings.
+
+        A product that mtg-sealed-content ships without identifiers arrives here
+        as a Polars row with the key present but set to None, which bypasses the
+        field's default_factory. Without this, one such product fails the build.
+        """
+        if isinstance(data, dict):
+            for key in ("identifiers", "purchaseUrls", "purchase_urls"):
+                if key in data and data[key] is None:
+                    data[key] = {}
+        return data
+
+    @model_validator(mode="before")
+    @classmethod
     def warn_on_dropped_identifiers(cls, data: Any) -> Any:
         """Warn when a source identifier key is not recognised by the model.
 

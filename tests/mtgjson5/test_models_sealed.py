@@ -48,6 +48,15 @@ class TestSealedProductValidator:
         product = SealedProduct(uuid="sp-005", name="Test Product")
         assert product.identifiers == {}
 
+    def test_null_identifiers_become_empty_dict(self):
+        # A sealed product without identifiers upstream reaches the model as a
+        # Polars row with identifiers=None, which must not fail the build.
+        product = SealedProduct.from_polars_row(
+            {"uuid": "sp-011", "name": "Test Product", "identifiers": None, "purchaseUrls": None}
+        )
+        assert product.identifiers == {}
+        assert product.purchase_urls == {}
+
     def test_identifiers_roundtrip(self):
         product = SealedProduct(
             uuid="sp-006",
