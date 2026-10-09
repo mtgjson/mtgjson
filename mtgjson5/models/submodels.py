@@ -1315,10 +1315,11 @@ class SealedProductVariableItem(TypedDict, total=False):
     pack: list[SealedProductPack]
     sealed: list[SealedProductSealed]
     variable_config: list[SealedProductVariableConfig]
+    variable: list[SealedProductVariableEntry]
 
 
 class SealedProductVariableEntry(TypedDict, total=False):
-    """Variable contents entry with configs."""
+    """One independent choice group; select one of its configs."""
 
     configs: list[SealedProductVariableItem]
 
@@ -1361,7 +1362,7 @@ class SealedProductContents(TypedDict, total=False):
             "optional": True,
         },
         "variable": {
-            "description": "The variable configurations for sealed products when the contents are not always pre-determined. This data type can be referenced on this Data Model",
+            "description": "Independent variable choice groups. Select one config from each group; a config may itself contain nested variable groups.",
             "introduced": "v5.2.2",
             "optional": True,
             "type_override": 'Record<"configs", SealedProductContents[]>[]',

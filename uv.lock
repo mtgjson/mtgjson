@@ -1061,6 +1061,12 @@ wheels = [
 ]
 
 [[package]]
+name = "mtg-sealed-choices"
+version = "0.3.0"
+source = { url = "https://github.com/mtgjson/mtg-sealed-content/archive/4b7cd71df0cd08a4f6aaf366a3169c662bea940c.tar.gz", subdirectory = "compiler" }
+sdist = { hash = "sha256:11727a02b9b8003b6a2abf25e0edcf439f95b3e0766badbe0351308730cf8f49" }
+
+[[package]]
 name = "mtgjson5"
 version = "5.3.0"
 source = { editable = "." }
@@ -1074,6 +1080,7 @@ dependencies = [
     { name = "ijson" },
     { name = "mergedeep" },
     { name = "mkmsdk" },
+    { name = "mtg-sealed-choices" },
     { name = "numpy" },
     { name = "orjson" },
     { name = "polars" },
@@ -1122,6 +1129,7 @@ requires-dist = [
     { name = "ijson", specifier = "==3.5.0" },
     { name = "mergedeep", specifier = "==1.3.4" },
     { name = "mkmsdk", specifier = "==0.7.0" },
+    { name = "mtg-sealed-choices", url = "https://github.com/mtgjson/mtg-sealed-content/archive/4b7cd71df0cd08a4f6aaf366a3169c662bea940c.tar.gz", subdirectory = "compiler" },
     { name = "mypy", marker = "extra == 'dev'", specifier = "==2.1.0" },
     { name = "numpy", specifier = "==2.4.4" },
     { name = "orjson", specifier = "==3.11.9" },
