@@ -670,7 +670,7 @@ class TCGProvider:
         try:
             # Scan and combine this run's parts. Listing them explicitly keeps
             # orphans from an earlier interrupted fetch out of the catalog.
-            lf = pl.scan_parquet(source=part_files, rechunk=True)
+            lf = pl.scan_parquet(source=part_files)
 
             # Stream to final output
             lf.sink_parquet(staging_path)

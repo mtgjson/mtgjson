@@ -482,7 +482,7 @@ class DeckAssembler(Assembler):
                 col_uuids = (
                     self.ctx.decks_df.select(col)
                     .filter(pl.col(col).list.len() > 0)
-                    .explode(col)
+                    .explode(col, empty_as_null=True)
                     .select(pl.col(col).struct.field("uuid"))
                     .filter(pl.col("uuid").is_not_null())
                     .to_series()
@@ -846,7 +846,7 @@ class SetListAssembler(Assembler):
             fd_langs = (
                 df.select("foreignData")
                 .filter(pl.col("foreignData").list.len() > 0)
-                .explode("foreignData")
+                .explode("foreignData", empty_as_null=True)
                 .select(pl.col("foreignData").struct.field("language"))
                 .filter(pl.col("language").is_not_null() & (pl.col("language") != ""))
                 .unique()
@@ -950,7 +950,7 @@ class TcgplayerSkusAssembler(Assembler):
             return None
 
         return (
-            self._tcg_skus_lf.explode("skus")
+            self._tcg_skus_lf.explode("skus", empty_as_null=True)
             .unnest("skus")
             .with_columns(
                 [
@@ -1310,7 +1310,7 @@ class TableAssembler:
             foreign_df = (
                 cards_df.select(pl.col("uuid").alias("_card_uuid"), "foreignData")
                 .filter(pl.col("foreignData").list.len() > 0)
-                .explode("foreignData")
+                .explode("foreignData", empty_as_null=True)
                 .unnest("foreignData")
             )
             # Drop struct's uuid if present, keep card's uuid
@@ -1323,7 +1323,7 @@ class TableAssembler:
             tables["cardRulings"] = (
                 cards_df.select("uuid", "rulings")
                 .filter(pl.col("rulings").list.len() > 0)
-                .explode("rulings")
+                .explode("rulings", empty_as_null=True)
                 .unnest("rulings")
                 .drop("source")
                 .rename({"publishedAt": "date", "comment": "text"})
@@ -1388,7 +1388,9 @@ class TableAssembler:
                     pl.col("sealedProduct").list.len() > 0
                 )
                 if len(sealed_filtered) > 0:
-                    sealed_exploded = sealed_filtered.explode("sealedProduct").unnest("sealedProduct")
+                    sealed_exploded = sealed_filtered.explode("sealedProduct", empty_as_null=True).unnest(
+                        "sealedProduct"
+                    )
                     # Drop setCode from struct if present (redundant with parent code)
                     if "setCode" in sealed_exploded.columns:
                         sealed_exploded = sealed_exploded.drop("setCode")
@@ -1400,7 +1402,7 @@ class TableAssembler:
                     pl.col("decks").list.len() > 0
                 )
                 if len(decks_filtered) > 0:
-                    decks_exploded = decks_filtered.explode("decks").unnest("decks")
+                    decks_exploded = decks_filtered.explode("decks", empty_as_null=True).unnest("decks")
                     tables["setDecks"] = serialize_complex_types(decks_exploded.rename({"_set_code": "setCode"}))
 
         return tables

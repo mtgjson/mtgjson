@@ -238,7 +238,7 @@ def _build_languages_by_set(cards_df: pl.DataFrame | None) -> dict[str, list[str
             cards_df.lazy()
             .select("setCode", "foreignData")
             .filter(pl.col("foreignData").list.len() > 0)
-            .explode("foreignData")
+            .explode("foreignData", empty_as_null=True)
             .with_columns(pl.col("foreignData").struct.field("language").alias("language"))
             .filter(pl.col("language").is_not_null() & (pl.col("language") != ""))
             .select("setCode", "language")

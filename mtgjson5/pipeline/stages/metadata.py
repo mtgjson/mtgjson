@@ -43,7 +43,7 @@ def _expand_card_list(
     if col not in decks.columns:
         return decks.select("_deck_id").with_columns(pl.lit([]).alias(col))
 
-    exploded = decks.select(["_deck_id", col]).explode(col).filter(pl.col(col).is_not_null())
+    exploded = decks.select(["_deck_id", col]).explode(col, empty_as_null=True).filter(pl.col(col).is_not_null())
 
     if len(exploded) == 0:
         return decks.select("_deck_id").unique().with_columns(pl.lit([]).alias(col))

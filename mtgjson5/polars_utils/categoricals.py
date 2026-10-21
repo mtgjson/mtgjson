@@ -104,7 +104,9 @@ def discover_categoricals(
     for col, attr in list_col_mappings.items():
         if col in schema.names():
             # Explode, unique, then implode back to single-row list
-            list_agg_exprs.append(pl.col(col).explode().drop_nulls().unique().sort().implode().alias(f"_cat_{attr}"))
+            list_agg_exprs.append(
+                pl.col(col).explode(empty_as_null=True).drop_nulls().unique().sort().implode().alias(f"_cat_{attr}")
+            )
             list_attrs.append(attr)
     scalar_col_mappings = {
         "rarity": "rarities",

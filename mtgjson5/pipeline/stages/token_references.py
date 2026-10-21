@@ -204,7 +204,7 @@ def _token_references_lf(cards_lf: pl.LazyFrame) -> pl.LazyFrame:
 
     return (
         references.select(["id", parts_col])
-        .explode(parts_col)
+        .explode(parts_col, empty_as_null=True)
         .filter(pl.col(parts_col).struct.field("component") == "token")
         .select(
             pl.col("id").alias("_card_sid"),
