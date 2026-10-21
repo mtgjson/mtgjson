@@ -612,7 +612,7 @@ def _add_foreign_data_source_products(
     lf = lf.with_row_index("_row_idx")
     exploded = (
         lf.select(["_row_idx", "foreignData"])
-        .explode("foreignData")
+        .explode("foreignData", empty_as_null=True)
         .with_columns(pl.col("foreignData").struct.field("uuid").alias("_fd_uuid"))
         .join(products_lf, left_on="_fd_uuid", right_on="uuid", how="left")
         .with_columns(

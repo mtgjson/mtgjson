@@ -88,7 +88,7 @@ class TcgPlayerTransformer:
         - language, printing, condition (human-readable)
         """
         return (
-            df.explode("skus")
+            df.explode("skus", empty_as_null=True)
             .unnest("skus")
             .with_columns(
                 [

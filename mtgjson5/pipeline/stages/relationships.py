@@ -36,7 +36,7 @@ def add_other_face_ids(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFrame:
     # Explode, filter out self uuid, reaggregate (preserves side-sorted order)
     face_filtered = (
         lf.select(["_face_row_idx", "uuid", "_face_uuids"])
-        .explode("_face_uuids")
+        .explode("_face_uuids", empty_as_null=True)
         .filter(pl.col("_face_uuids") != pl.col("uuid"))
         .group_by("_face_row_idx")
         .agg(pl.col("_face_uuids").alias("otherFaceIds"))
@@ -134,7 +134,7 @@ def add_variations(lf: pl.LazyFrame) -> pl.LazyFrame:
     variations_sorted = (
         lf.select(["uuid", "variations"])
         .unique(subset=["uuid"])
-        .explode("variations")
+        .explode("variations", empty_as_null=True)
         .filter(pl.col("variations").is_not_null())
         .join(
             uuid_to_number.rename(
@@ -304,7 +304,7 @@ def add_reverse_related(lf: pl.LazyFrame) -> pl.LazyFrame:
     # Explode, filter out self, aggregate names back
     exploded = (
         with_extracted.select(["uuid", "scryfallId", "_part_ids", "_part_names"])
-        .explode(["_part_ids", "_part_names"])
+        .explode(["_part_ids", "_part_names"], empty_as_null=True)
         .filter(pl.col("_part_ids").is_not_null() & (pl.col("_part_ids") != pl.col("scryfallId")))
         .group_by("uuid")
         .agg(pl.col("_part_names").unique().sort().alias("reverseRelated"))
@@ -354,7 +354,7 @@ def add_token_ids(
     # Explode to one row per token scryfall ID, join to resolve uuids, aggregate back
     pairs = (
         with_token_ids.select(["uuid", "scryfallId", "_token_scryfall_ids"])
-        .explode("_token_scryfall_ids")
+        .explode("_token_scryfall_ids", empty_as_null=True)
         .filter(pl.col("_token_scryfall_ids").is_not_null())
     )
 

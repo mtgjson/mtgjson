@@ -469,7 +469,7 @@ def filter_keywords_for_face(lf: pl.LazyFrame) -> pl.LazyFrame:
     # Explode keywords, filter by text match, reaggregate
     kw_filtered = (
         lf.select(["_kw_idx", "text", "_all_keywords"])
-        .explode("_all_keywords")
+        .explode("_all_keywords", empty_as_null=True)
         .filter(
             pl.col("_all_keywords").is_not_null()
             & pl.col("text")

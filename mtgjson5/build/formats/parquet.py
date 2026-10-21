@@ -122,7 +122,7 @@ class ParquetBuilder:
             board_df = (
                 decks_df.select([*meta_cols, board])
                 .filter(pl.col(board).list.len() > 0)
-                .explode(board)
+                .explode(board, empty_as_null=True)
                 .unnest(board)
                 .with_columns(pl.lit(board).alias("board"))
             )

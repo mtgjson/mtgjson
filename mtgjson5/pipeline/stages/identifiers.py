@@ -409,7 +409,7 @@ def fix_foreigndata_for_faces(
                     pl.int_ranges(pl.col("cardFaces").list.len()).alias("_face_idx"),
                 ]
             )
-            .explode(["cardFaces", "_face_idx"])
+            .explode(["cardFaces", "_face_idx"], empty_as_null=True)
             .with_columns(
                 [
                     pl.col("_face_idx").alias("face_index"),
@@ -446,7 +446,7 @@ def fix_foreigndata_for_faces(
                 pl.col("side").fill_null("").alias("_side_key"),
             ]
         )
-        .explode("foreignData")
+        .explode("foreignData", empty_as_null=True)
         .filter(pl.col("foreignData").is_not_null())
         .with_columns(
             [
@@ -727,7 +727,7 @@ def add_sku_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     # Explode foreignData so each entry gets its own row
     fd_exploded = (
         lf.select(["_fuuid_row_id", "uuid", "finishes", "foreignData"])
-        .explode("foreignData")
+        .explode("foreignData", empty_as_null=True)
         .filter(pl.col("foreignData").is_not_null())
         .with_columns(pl.col("foreignData").struct.field("language").alias("_fd_lang"))
     )

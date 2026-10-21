@@ -124,7 +124,7 @@ def explode_card_faces(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     lf = lf.with_columns(pl.int_ranges(pl.col("cardFaces").list.len()).alias("_face_idx"))
 
-    lf = lf.explode(["cardFaces", "_face_idx"])
+    lf = lf.explode(["cardFaces", "_face_idx"], empty_as_null=True)
 
     return lf.with_columns(
         pl.col("cardFaces").alias("_face_data"),

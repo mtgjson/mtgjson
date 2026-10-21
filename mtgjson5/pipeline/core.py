@@ -427,7 +427,7 @@ def _build_global_scryfall_uuid_map(identity_df: pl.DataFrame, ctx: PipelineCont
     multi = (
         narrow.filter(pl.col("_n_faces") > 1)
         .with_columns(pl.int_ranges(pl.col("_n_faces")).alias("_face_idx"))
-        .explode("_face_idx")
+        .explode("_face_idx", empty_as_null=True)
         .with_columns(
             pl.col("_face_idx")
             .replace_strict(
