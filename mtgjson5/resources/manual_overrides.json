@@ -154,5 +154,77 @@
             "f73959fe-4ed2-5a27-b218-d0979d6b1b75",
             "bd42102d-9ec8-5ddc-81cd-f2ee99c9d5e8"
         ]
+    },
+    "f2ace816-28ea-57b5-b17f-58a9861c88c3": {
+        "__metadata": {
+            "name": "Northern Paladin",
+            "setCode": "SUM",
+            "number": "29",
+            "comments": "The printed flavor attribution starts on a separate line. Reference: https://scryfall.com/card/sum/29/northern-paladin"
+        },
+        "flavorText": "\"Look to the north; there you will find aid and comfort.\"\n—The Book of Tal"
+    },
+    "e22ef607-9343-5cde-a85c-9f884b57ce30": {
+        "__metadata": {
+            "name": "Northern Paladin",
+            "setCode": "3ED",
+            "number": "29",
+            "comments": "The printed flavor attribution starts on a separate line. Reference: https://scryfall.com/card/3ed/29/northern-paladin"
+        },
+        "flavorText": "\"Look to the north; there you will find aid and comfort.\"\n—The Book of Tal"
+    },
+    "9df02ffb-f5f1-570d-9b56-f7bfef0f5bb6": {
+        "__metadata": {
+            "name": "Northern Paladin",
+            "setCode": "2ED",
+            "number": "30",
+            "comments": "The printed flavor attribution starts on a separate line. Reference: https://scryfall.com/card/2ed/30/northern-paladin"
+        },
+        "flavorText": "\"Look to the north; there you will find aid and comfort.\"\n—The Book of Tal"
+    },
+    "4210b6bc-31ad-5306-a301-9fc623e7345b": {
+        "__metadata": {
+            "name": "Northern Paladin",
+            "setCode": "LEB",
+            "number": "30",
+            "comments": "The printed flavor attribution starts on a separate line. Reference: https://scryfall.com/card/leb/30/northern-paladin"
+        },
+        "flavorText": "\"Look to the north; there you will find aid and comfort.\"\n—The Book of Tal"
+    },
+    "f2c18dec-8757-5f3a-b65d-a46faec3a127": {
+        "__metadata": {
+            "name": "Northern Paladin",
+            "setCode": "LEA",
+            "number": "29",
+            "comments": "The printed flavor attribution starts on a separate line. Reference: https://scryfall.com/card/lea/29/northern-paladin"
+        },
+        "flavorText": "\"Look to the north; there you will find aid and comfort.\"\n—The Book of Tal"
+    },
+    "73716447-fab0-5c4d-bee2-2d763be98554": {
+        "__metadata": {
+            "name": "Northern Paladin",
+            "setCode": "30A",
+            "number": "326",
+            "comments": "The printed flavor attribution starts on a separate line. Reference: https://scryfall.com/card/30a/326/northern-paladin"
+        },
+        "flavorText": "\"Look to the north; there you will find aid and comfort.\"\n—The Book of Tal"
+    },
+    "cb315582-78fd-545c-88a0-feaa174c7f4f": {
+        "__metadata": {
+            "name": "Northern Paladin",
+            "setCode": "CEI",
+            "number": "30",
+            "comments": "The printed flavor attribution starts on a separate line. Reference: https://scryfall.com/card/cei/30/northern-paladin"
+        },
+        "flavorText": "\"Look to the north; there you will find aid and comfort.\"\n—The Book of Tal"
+    },
+    "48f59c58-22c9-57f7-a228-b59191a7a1cf": {
+        "__metadata": {
+            "name": "Northern Paladin",
+            "setCode": "CED",
+            "number": "30",
+            "comments": "The printed flavor attribution starts on a separate line. Reference: https://scryfall.com/card/ced/30/northern-paladin"
+        },
+        "flavorText": "\"Look to the north; there you will find aid and comfort.\"\n—The Book of Tal"
     }
 }
