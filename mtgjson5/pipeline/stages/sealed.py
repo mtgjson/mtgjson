@@ -87,8 +87,8 @@ class card(Card):
                 # under "cards_by_language" for any (set, number) where more
                 # than one language exists, so an explicit language picks the
                 # matching printing instead of always falling through to the
-                # single default entry in "cards" (English when available,
-                # otherwise whichever language exists).
+                # single default entry in "cards" (the printing MTGJSON
+                # publishes at that number).
                 #
                 # Tokens are excluded on purpose. A per-language UUID is a
                 # foreignData UUID, and tokens carry no foreignData at all
@@ -256,6 +256,39 @@ def _is_token_expr(cards_lf: pl.LazyFrame) -> pl.Expr:
     ).fill_null(False)
 
 
+def _with_published_rank(cards_lf: pl.LazyFrame, languages_lf: pl.LazyFrame | pl.DataFrame | None) -> pl.LazyFrame:
+    """Add ``_lang_rank`` to raw Scryfall rows: lowest for the printing MTGJSON publishes.
+
+    Of a (set, number)'s language rows, the one MTGJSON publishes is the one
+    Scryfall's default_cards carries (``languages_lf``, the rule sink_cards()
+    and _build_default_language_lookup() apply). That is English wherever an
+    English printing exists, but for a set never printed in English it is
+    Scryfall's choice: Spanish for 4BB, French for FBB and REN. Rows
+    default_cards leaves out, and every row when ``languages_lf`` is None,
+    rank English ahead of the other languages.
+    """
+    from mtgjson5.consts import LANGUAGE_MAP
+
+    english_first = pl.when(pl.col("lang") == "en").then(1).otherwise(2)
+    if languages_lf is None:
+        return cards_lf.with_columns(english_first.alias("_lang_rank"))
+
+    published = (
+        languages_lf.lazy()
+        .select(pl.col("scryfallId").alias("id"), pl.col("language").alias("_published_language"))
+        .unique()
+        .with_columns(pl.lit(0).alias("_published_rank"))
+    )
+    return (
+        cards_lf.with_columns(
+            pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("_published_language")
+        )
+        .join(published, on=["id", "_published_language"], how="left")
+        .with_columns(pl.coalesce(pl.col("_published_rank"), english_first).alias("_lang_rank"))
+        .drop("_published_language", "_published_rank")
+    )
+
+
 def build_uuid_map_from_pipeline(
     cards_lf: pl.LazyFrame,
     uuid_cache_lf: pl.LazyFrame | None,
@@ -263,16 +296,21 @@ def build_uuid_map_from_pipeline(
     decks_raw: list,
     products_dict: dict,
     sets_lf: pl.LazyFrame | None = None,
+    languages_lf: pl.LazyFrame | pl.DataFrame | None = None,
 ) -> dict:
     """Build the same UUID lookup map as build_uuid_map(), but from pipeline LazyFrames.
 
     This eliminates the AllPrintings.json dependency for sealed compilation.
 
+    ``languages_lf`` is GlobalCache.languages_lf, the (scryfallId, language)
+    pairs of Scryfall's default_cards, which decides the printing MTGJSON
+    publishes at each number (see _with_published_rank).
+
     Returns a dict keyed by lowercase set code with sub-keys:
         cards: {number_str: (uuid, name)}  — the default pick for a number:
-            English when a printing at that number exists in English, else
-            whichever language does. Used when a card: entry has no explicit
-            language.
+            the printing MTGJSON publishes there, which is English wherever
+            an English printing exists. Used when a card: entry has no
+            explicit language.
         tokens: {number_str: (uuid, name)}  — the subset MTGJSON publishes in
             the set's tokens[] rather than its cards[], identified with the
             same rule filter_out_tokens() uses. A set that keeps its tokens in
@@ -327,18 +365,21 @@ def build_uuid_map_from_pipeline(
     # get_uuids() on the card class for why this matters). Compute every
     # row's UUID and human-readable language up front; the two indices below
     # (single default pick vs. full per-language map) are both built from it.
-    cards_all_df = cards_lf.with_columns(
-        pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("language"),
-        pl.when(pl.col("lang") == "en").then(0).otherwise(1).alias("_lang_rank"),
-        _is_token_expr(cards_lf).alias("is_token"),
-    ).select(
-        pl.col("id").alias("scryfallId"),
-        pl.col("set").alias("set_lower"),
-        pl.col("collector_number").alias("number"),
-        pl.col("name"),
-        pl.col("is_token"),
-        pl.col("language"),
-        pl.col("_lang_rank"),
+    cards_all_df = (
+        _with_published_rank(cards_lf, languages_lf)
+        .with_columns(
+            pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("language"),
+            _is_token_expr(cards_lf).alias("is_token"),
+        )
+        .select(
+            pl.col("id").alias("scryfallId"),
+            pl.col("set").alias("set_lower"),
+            pl.col("collector_number").alias("number"),
+            pl.col("name"),
+            pl.col("is_token"),
+            pl.col("language"),
+            pl.col("_lang_rank"),
+        )
     )
 
     if uuid_cache_lf is not None:
@@ -374,9 +415,8 @@ def build_uuid_map_from_pipeline(
             }
         return uuids[code]
 
-    # Default pick: exactly one entry per (set, collector_number), preferring
-    # English but falling back to whatever language exists for numbers that
-    # only have a non-English printing (e.g. Phyrexian-language cards).
+    # Default pick: exactly one entry per (set, collector_number), the
+    # printing MTGJSON publishes at that number.
     cards_collected = cards_all_collected.sort(["set_lower", "number", "_lang_rank"]).unique(
         subset=["set_lower", "number"], keep="first"
     )
@@ -475,6 +515,7 @@ def build_uuid_map_from_pipeline(
 def build_card_finishes_lookup(
     cards_lf: pl.LazyFrame,
     uuid_cache_lf: pl.LazyFrame | None,
+    languages_lf: pl.LazyFrame | pl.DataFrame | None = None,
 ) -> dict[str, dict]:
     """Build {mtgjson_uuid: {"finishes": [...], "number": str, "set": str}} from Scryfall.
 
@@ -485,14 +526,16 @@ def build_card_finishes_lookup(
         cards_lf: Scryfall cards LazyFrame (snake_case: id, set, collector_number,
                   name, finishes, layout, lang).
         uuid_cache_lf: UUID cache LazyFrame (scryfallId, side, cachedUuid).
+        languages_lf: default_cards (scryfallId, language) pairs, which pick
+                  the printing kept per number (see _with_published_rank).
 
     Returns:
         Dict keyed by MTGJSON UUID with values containing finishes list,
         collector number, and set code.
     """
-    # Deduplicate by (set, collector_number), preferring English
+    # Deduplicate by (set, collector_number), keeping the published printing
     cards_df = (
-        cards_lf.with_columns(pl.when(pl.col("lang") == "en").then(0).otherwise(1).alias("_lang_rank"))
+        _with_published_rank(cards_lf, languages_lf)
         .sort("set", "collector_number", "_lang_rank")
         .unique(subset=["set", "collector_number"], keep="first")
         .select(

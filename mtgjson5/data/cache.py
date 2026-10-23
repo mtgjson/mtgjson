@@ -1123,6 +1123,7 @@ class GlobalCache:
                     decks_raw=provider.decks_raw or [],
                     products_dict=provider.products_dict,
                     sets_lf=self.sets_lf,
+                    languages_lf=self.languages_lf,
                 )
 
                 LOGGER.info("Compiling sealed contents from YAML sources...")
@@ -1142,7 +1143,7 @@ class GlobalCache:
 
                 # Phase 3: Build card_to_products from pipeline data
                 LOGGER.info("Building card finishes lookup from Scryfall...")
-                card_finishes = build_card_finishes_lookup(self.cards_lf, self.uuid_cache_lf)
+                card_finishes = build_card_finishes_lookup(self.cards_lf, self.uuid_cache_lf, self.languages_lf)
 
                 LOGGER.info("Building pipeline view for card_to_products...")
                 pipeline_view = build_pipeline_view(
