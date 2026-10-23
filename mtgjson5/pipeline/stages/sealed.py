@@ -571,6 +571,155 @@ def _iter_set_contents(products_dir: Path, contents_dir: Path | None) -> Iterato
         yield data["code"], set_contents
 
 
+# magic-sealed-data's spelling of the language a booster was sold in
+_BOOSTER_LANGUAGE_CODES = {
+    "Chinese Simplified": "cs",
+    "Chinese Traditional": "ct",
+    "English": "en",
+    "French": "fr",
+    "German": "de",
+    "Italian": "it",
+    "Japanese": "jp",
+    "Korean": "kr",
+    "Portuguese (Brazil)": "pt",
+    "Russian": "ru",
+    "Spanish": "sp",
+}
+
+
+def _packs_opened(node: Any) -> Iterator[dict]:
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "pack" and isinstance(value, list):
+                yield from (p for p in value if isinstance(p, dict) and "set" in p and "code" in p)
+            else:
+                yield from _packs_opened(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _packs_opened(item)
+
+
+def requested_boosters(
+    products_dir: Path, contents_dir: Path | None, products_dict: dict
+) -> dict[tuple[str, str], set[str]]:
+    """Map every ``(set, booster code)`` a sealed product opens, set in
+    lowercase, to the languages of the products opening it."""
+    requested: dict[tuple[str, str], set[str]] = defaultdict(set)
+    for code, set_contents in _iter_set_contents(products_dir, contents_dir):
+        for name, contents in set_contents.items():
+            if isinstance(contents, dict) and set(contents) == {"copy"}:
+                contents = set_contents.get(contents["copy"])
+            language = (products_dict.get(code, {}).get(name) or {}).get("language")
+            for pack in _packs_opened(contents):
+                languages = requested[(str(pack["set"]).lower(), str(pack["code"]))]
+                if language:
+                    languages.add(language)
+    return dict(requested)
+
+
+def set_parents(sets_lf: pl.LazyFrame | pl.DataFrame | None) -> dict[str, str]:
+    """Map each lowercase set code to its lowercase Scryfall parent set code."""
+    if sets_lf is None:
+        return {}
+    sets_df = sets_lf.collect() if isinstance(sets_lf, pl.LazyFrame) else sets_lf
+    if not {"code", "parent_set_code"} <= set(sets_df.columns):
+        return {}
+    rows = sets_df.filter(pl.col("parent_set_code").is_not_null()).select("code", "parent_set_code")
+    return {row["code"].lower(): row["parent_set_code"].lower() for row in rows.iter_rows(named=True)}
+
+
+def derive_reprint_boosters(
+    requested: dict[tuple[str, str], set[str]],
+    boosters_raw: dict,
+    uuid_map: dict,
+    parents: dict[str, str],
+) -> dict[str, dict]:
+    """Build the boosters sealed products open that magic-sealed-data lacks,
+    for a set reprinting its parent's cards in another language.
+
+    The Japanese Chronicles pack opens a BCHR booster, which magic-sealed-data
+    does not carry as a set of its own: it is CHR's booster with every card
+    swapped for the BCHR printing at the same number. A booster is derived
+    only when a product asks for it, the set has none by that code, its parent
+    does, and every card on the parent's sheets has a reprint of the same
+    number and name printed in one language; a number printed in several
+    leaves which of them a pack held unknown, and the published card for it
+    is not necessarily the one this map picks. Otherwise nothing is made and
+    the missing booster is reported as before.
+
+    Returns ``{SET: {booster_code: config}}`` in magic-sealed-data's shape.
+    """
+    derived: dict[str, dict] = {}
+    for (set_code, booster_code), languages in sorted(requested.items()):
+        if booster_code in boosters_raw.get(set_code.upper(), {}):
+            continue
+        parent = parents.get(set_code)
+        parent_config = boosters_raw.get((parent or "").upper(), {}).get(booster_code)
+        if parent is None or parent_config is None:
+            continue
+
+        parent_cards = {
+            uuid: (number, name) for number, (uuid, name) in uuid_map.get(parent, {}).get("cards", {}).items()
+        }
+        reprints = uuid_map.get(set_code, {}).get("cards", {})
+        several_languages = uuid_map.get(set_code, {}).get("cards_by_language", {})
+        sheets: dict[str, dict] = {}
+        problem = None
+        for sheet_name, sheet in parent_config.get("sheets", {}).items():
+            cards: dict[str, Any] = {}
+            for uuid, weight in sheet.get("cards", {}).items():
+                number, name = parent_cards.get(uuid, (None, None))
+                reprint = reprints.get(number) if number is not None else None
+                if reprint is None or reprint[1] != name:
+                    problem = f"{parent.upper()} {number or uuid} {name or ''}".strip() + " has no reprint"
+                    break
+                if number in several_languages:
+                    problem = f"{set_code.upper()} {number} {name} is printed in several languages"
+                    break
+                cards[reprint[0]] = weight
+            if problem:
+                break
+            sheets[sheet_name] = {**sheet, "cards": cards}
+        if problem:
+            LOGGER.warning(
+                "Cannot derive %s booster %s from %s: %s", set_code.upper(), booster_code, parent.upper(), problem
+            )
+            continue
+
+        # The parent's languages are not the reprint's; only a product naming
+        # one says which it is
+        config = {**parent_config, "sheets": sheets, "sourceSetCodes": [set_code.upper()]}
+        config.pop("languages", None)
+        codes = sorted({_BOOSTER_LANGUAGE_CODES[lang] for lang in languages if lang in _BOOSTER_LANGUAGE_CODES})
+        if codes:
+            config["languages"] = codes
+        derived.setdefault(set_code.upper(), {})[booster_code] = config
+        LOGGER.info("Derived %s booster %s from %s", set_code.upper(), booster_code, parent.upper())
+    return derived
+
+
+def add_reprint_boosters(
+    boosters_raw: dict,
+    uuid_map: dict,
+    products_dir: Path,
+    contents_dir: Path | None,
+    products_dict: dict,
+    sets_lf: pl.LazyFrame | pl.DataFrame | None,
+) -> bool:
+    """Add the boosters derive_reprint_boosters builds to boosters_raw and to
+    uuid_map's booster codes, in place. Reports whether any were added."""
+    derived = derive_reprint_boosters(
+        requested_boosters(products_dir, contents_dir, products_dict),
+        boosters_raw,
+        uuid_map,
+        set_parents(sets_lf),
+    )
+    for set_code, configs in derived.items():
+        boosters_raw.setdefault(set_code, {}).update(configs)
+        uuid_map.setdefault(set_code.lower(), {}).setdefault("booster", set()).update(configs)
+    return bool(derived)
+
+
 def compile_contents(products_dir: Path, contents_dir: Path | None, uuid_map: dict) -> tuple[dict, dict]:
     """Compile contents.json and deck_map.json from YAML source files.
 
