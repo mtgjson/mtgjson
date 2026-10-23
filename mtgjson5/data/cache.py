@@ -1102,6 +1102,7 @@ class GlobalCache:
             # product files, so products_dir is what shows extraction worked.
             if provider.products_dir is not None and provider.products_dict is not None and self.cards_lf is not None:
                 from mtgjson5.pipeline.stages.sealed import (
+                    add_reprint_boosters,
                     build_card_finishes_lookup,
                     build_pipeline_view,
                     build_uuid_map_from_pipeline,
@@ -1109,21 +1110,38 @@ class GlobalCache:
                     compile_contents,
                 )
                 from mtgjson5.providers.github.provider import (
+                    _build_boosters_records,
                     _build_card_to_products_records,
                     _build_decks_records,
                     _build_sealed_contents_records,
                     _to_lazyframe,
                 )
 
+                provider.boosters_raw = provider.boosters_raw or {}
+
                 LOGGER.info("Building UUID map from pipeline data...")
                 uuid_map = build_uuid_map_from_pipeline(
                     cards_lf=self.cards_lf,
                     uuid_cache_lf=self.uuid_cache_lf,
-                    boosters_raw=provider.boosters_raw or {},
+                    boosters_raw=provider.boosters_raw,
                     decks_raw=provider.decks_raw or [],
                     products_dict=provider.products_dict,
                     sets_lf=self.sets_lf,
                 )
+
+                # A booster mtgjson derives for a reprint set is published like
+                # the ones magic-sealed-data ships, so the boosters frame is rebuilt
+                if add_reprint_boosters(
+                    provider.boosters_raw,
+                    uuid_map,
+                    provider.products_dir,
+                    provider.contents_dir,
+                    provider.products_dict,
+                    self.sets_lf,
+                ):
+                    boosters_lf = _to_lazyframe(_build_boosters_records(provider.boosters_raw), "boosters", "boosters")
+                    boosters_lf.collect().write_parquet(booster_cache)
+                    provider.boosters_df = self.boosters_lf = boosters_lf
 
                 LOGGER.info("Compiling sealed contents from YAML sources...")
                 contents_dict, deck_map = compile_contents(provider.products_dir, provider.contents_dir, uuid_map)
