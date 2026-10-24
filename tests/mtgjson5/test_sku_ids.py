@@ -6,6 +6,7 @@ import uuid
 
 import polars as pl
 
+from mtgjson5.pipeline.stages.derived import _add_foreign_data_source_products
 from mtgjson5.pipeline.stages.identifiers import add_sku_ids
 
 # ---------------------------------------------------------------------------
@@ -333,6 +334,37 @@ class TestForeignDataSkuIds:
         assert entry["type"] == "순간마법"
         assert entry["uuid"] == "fd-uuid-ko"
         assert entry["skuIds"]["nonfoil"] is not None
+
+    def test_source_products_from_the_earlier_stage_survive(self) -> None:
+        """add_sku_ids runs after add_source_products, which gives each
+        foreignData entry its own sourceProducts; it must come through."""
+        lf = _make_lf(
+            [
+                {
+                    "uuid": "card-fd8",
+                    "finishes": ["nonfoil", "etched"],
+                    "language": "English",
+                    "foreignData": [_fd_entry("Japanese")],
+                }
+            ],
+            with_foreign_data=True,
+        )
+        card_to_products = pl.LazyFrame(
+            {"uuid": ["fd-uuid-ja"], "foil": [[]], "nonfoil": [[]], "etched": [["japanese-product"]]},
+            schema={
+                "uuid": pl.String,
+                "foil": pl.List(pl.String),
+                "nonfoil": pl.List(pl.String),
+                "etched": pl.List(pl.String),
+            },
+        )
+        source_products = pl.Struct([pl.Field(f, pl.List(pl.String)) for f in ("etched", "foil", "nonfoil")])
+        lf = _add_foreign_data_source_products(lf, card_to_products, source_products)
+
+        entry = add_sku_ids(lf).collect()["foreignData"][0][0]
+
+        assert entry["sourceProducts"] == {"etched": ["japanese-product"], "foil": [], "nonfoil": []}
+        assert entry["skuIds"]["etched"] == _expected_sku("card-fd8", "etched", "Japanese")
 
     def test_mixed_cards_with_and_without_foreign_data(self) -> None:
         """Batch with a mix of cards: some with foreignData, some without."""

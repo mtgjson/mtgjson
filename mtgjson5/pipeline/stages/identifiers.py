@@ -737,22 +737,10 @@ def add_sku_ids(lf: pl.LazyFrame) -> pl.LazyFrame:
     fd_exploded = fd_exploded.with_columns(temp_cols)
     fd_exploded = fd_exploded.with_columns(struct_expr.alias("_fd_sku_ids")).drop(temp_names)
 
-    # Rebuild foreignData struct with skuIds inserted (alphabetical field order)
+    # Add skuIds to the existing struct so every field an earlier stage set,
+    # such as sourceProducts, is kept
     fd_exploded = fd_exploded.with_columns(
-        pl.struct(
-            [
-                pl.col("foreignData").struct.field("faceName"),
-                pl.col("_fd_sku_ids").alias("skuIds"),
-                pl.col("foreignData").struct.field("flavorText"),
-                pl.col("foreignData").struct.field("identifiers"),
-                pl.col("foreignData").struct.field("language"),
-                pl.col("foreignData").struct.field("multiverseId"),
-                pl.col("foreignData").struct.field("name"),
-                pl.col("foreignData").struct.field("text"),
-                pl.col("foreignData").struct.field("type"),
-                pl.col("foreignData").struct.field("uuid"),
-            ]
-        ).alias("foreignData")
+        pl.col("foreignData").struct.with_fields(pl.col("_fd_sku_ids").alias("skuIds")).alias("foreignData")
     )
 
     # Re-aggregate by original row, sorted by language
