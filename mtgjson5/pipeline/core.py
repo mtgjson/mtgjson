@@ -529,6 +529,49 @@ def _apply_tdm_name_fix(lf: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+def _apply_tdm_omen_face_fix(lf: pl.LazyFrame) -> pl.LazyFrame:
+    """
+    Fix the omen face of TDM reversible adventure dragons.
+
+    Scryfall copies the creature face's oracle text, power and toughness onto
+    the omen face, so take the omen text from the regular adventure printing.
+    """
+    omen_text_lf = (
+        lf.filter((pl.col("_set_upper") == "TDM") & (pl.col("layout") == "adventure") & (pl.col("lang") == "en"))
+        .select(
+            pl.col("oracleId").alias("_tdm_oracle_id"),
+            pl.col("cardFaces").list.get(1, null_on_oob=True).struct.field("oracle_text").alias("_omen_text"),
+        )
+        .unique(subset="_tdm_oracle_id", keep="first")
+    )
+
+    creature_face = pl.col("cardFaces").list.get(0, null_on_oob=True)
+    omen_face = pl.col("cardFaces").list.get(1, null_on_oob=True)
+    is_reversible_omen = (
+        (pl.col("_set_upper") == "TDM")
+        & (pl.col("layout") == "reversible_card")
+        & (omen_face.struct.field("layout") == "adventure")
+        & pl.col("_omen_text").is_not_null()
+    )
+    fixed_omen_face = omen_face.struct.with_fields(
+        pl.col("_omen_text").alias("oracle_text"),
+        pl.lit(None, dtype=pl.String).alias("power"),
+        pl.lit(None, dtype=pl.String).alias("toughness"),
+    )
+
+    return (
+        lf.with_columns(creature_face.struct.field("oracle_id").alias("_tdm_oracle_id"))
+        .join(omen_text_lf, on="_tdm_oracle_id", how="left", maintain_order="left")
+        .with_columns(
+            pl.when(is_reversible_omen)
+            .then(pl.concat_list([creature_face, fixed_omen_face]))
+            .otherwise(pl.col("cardFaces"))
+            .alias("cardFaces")
+        )
+        .drop(["_tdm_oracle_id", "_omen_text"])
+    )
+
+
 def _prepare_batch_lf(
     ctx: PipelineContext,
     batch_codes: list[str],
@@ -541,6 +584,7 @@ def _prepare_batch_lf(
     base_lf = base_lf.filter(pl.col("_set_upper").is_in(batch_codes))
 
     base_lf = _apply_tdm_name_fix(base_lf)
+    base_lf = _apply_tdm_omen_face_fix(base_lf)
 
     lf = base_lf.with_columns(pl.col("set").str.to_uppercase()).join(
         sets_lf.select(set_select_exprs), on="set", how="left"
