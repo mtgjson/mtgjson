@@ -277,8 +277,16 @@ def fix_manavalue_for_multiface(lf: pl.LazyFrame) -> pl.LazyFrame:
     face_specific_layouts = ["modal_dfc", "reversible_card"]
     use_face_cmc = pl.col("layout").is_in(face_specific_layouts)
 
+    # Reversible cards whose sides are adventures (TDM dragons) carry the
+    # whole card's mana value on each face, so the omen side isn't just its own cost
+    is_adventure_face = pl.col("_face_data").struct.field("layout") == "adventure"
+
     fixed_mana_value = (
-        pl.when(pl.col("_face_data").is_not_null() & use_face_cmc).then(face_cmc).otherwise(pl.col("manaValue"))
+        pl.when(pl.col("_face_data").is_not_null() & use_face_cmc & is_adventure_face)
+        .then(pl.col("_face_data").struct.field("cmc"))
+        .when(pl.col("_face_data").is_not_null() & use_face_cmc)
+        .then(face_cmc)
+        .otherwise(pl.col("manaValue"))
     )
 
     return lf.with_columns(

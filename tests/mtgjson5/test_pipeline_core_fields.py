@@ -26,6 +26,8 @@ def _face_struct(
     mana_cost: str | None = None,
     power: str | None = None,
     toughness: str | None = None,
+    layout: str | None = None,
+    cmc: float | None = None,
 ) -> dict:
     """Build a face_data struct dict with the fields used by core functions."""
     return {
@@ -33,6 +35,8 @@ def _face_struct(
         "mana_cost": mana_cost,
         "power": power,
         "toughness": toughness,
+        "layout": layout,
+        "cmc": cmc,
     }
 
 
@@ -42,6 +46,8 @@ _FACE_SCHEMA = pl.Struct(
         "mana_cost": pl.String,
         "power": pl.String,
         "toughness": pl.String,
+        "layout": pl.String,
+        "cmc": pl.Float64,
     }
 )
 
@@ -196,6 +202,43 @@ class TestFixManavalueForMultiface:
         )
         result = fix_manavalue_for_multiface(lf).collect()
         assert result["manaValue"][0] == 5.0
+
+    def test_reversible_adventure_faces_use_whole_card_cmc(self):
+        """TDM reversible dragons: the omen side keeps the full card's mana value."""
+        lf = pl.LazyFrame(
+            {
+                "layout": ["reversible_card", "reversible_card"],
+                "manaValue": [None, None],
+                "_face_data": [
+                    _face_struct(mana_cost="{3}{G}{G}", layout="adventure", cmc=5.0),
+                    _face_struct(mana_cost="{2}{G}", layout="adventure", cmc=5.0),
+                ],
+            },
+            schema={
+                "layout": pl.String,
+                "manaValue": pl.Float64,
+                "_face_data": _FACE_SCHEMA,
+            },
+        )
+        result = fix_manavalue_for_multiface(lf).collect()
+        assert result["manaValue"].to_list() == [5.0, 5.0]
+        assert result["convertedManaCost"].to_list() == [5.0, 5.0]
+
+    def test_reversible_normal_faces_use_face_mana_cost(self):
+        lf = pl.LazyFrame(
+            {
+                "layout": ["reversible_card"],
+                "manaValue": [None],
+                "_face_data": [_face_struct(mana_cost="{2}{R}{R}", layout="normal", cmc=4.0)],
+            },
+            schema={
+                "layout": pl.String,
+                "manaValue": pl.Float64,
+                "_face_data": _FACE_SCHEMA,
+            },
+        )
+        result = fix_manavalue_for_multiface(lf).collect()
+        assert result["manaValue"][0] == 4.0
 
 
 # ---------------------------------------------------------------------------
