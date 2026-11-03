@@ -207,6 +207,38 @@
           "emeraldwhite"
         ]
       }
+    },
+    "1906": {
+      "name": "Shapeshifter",
+      "enrichment": {
+        "promo_types": [
+          "rainbowfoil"
+        ]
+      }
+    },
+    "1907": {
+      "name": "Shapeshifter",
+      "enrichment": {
+        "promo_types": [
+          "rainbowfoil"
+        ]
+      }
+    },
+    "1908": {
+      "name": "Shapeshifter",
+      "enrichment": {
+        "promo_types": [
+          "rainbowfoil"
+        ]
+      }
+    },
+    "1909": {
+      "name": "Shapeshifter",
+      "enrichment": {
+        "promo_types": [
+          "rainbowfoil"
+        ]
+      }
     }
   },
   "SPG": {
