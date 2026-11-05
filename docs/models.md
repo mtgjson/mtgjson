@@ -398,6 +398,7 @@ class SealedProduct(PolarsMixin, BaseModel):
     category: str | None = None
     subtype: str | None = None
     language: str | None = None
+    is_foil_only: bool | None = Field(None, alias="isFoilOnly")
     release_date: str | None = Field(None, alias="releaseDate")
     card_count: int | None = Field(None, alias="cardCount")
     product_size: int | None = Field(None, alias="productSize")
