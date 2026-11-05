@@ -81,6 +81,12 @@ class SealedProduct(PolarsMixin, BaseModel):
         json_schema_extra={"introduced": "v5.2.1"},
     )
     language: str | None = None
+    is_foil_only: bool | None = Field(
+        default=None,
+        alias="isFoilOnly",
+        description="If every non-token card in this product is foil, where its name does not say so.",
+        json_schema_extra={"introduced": "v5.3.2", "optional": True},
+    )
     release_date: str | None = Field(
         default=None,
         alias="releaseDate",

@@ -391,6 +391,8 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
     has_release_date_snake = "release_date" in result_cols
     has_card_count = "cardCount" in result_cols
     has_language = "language" in result_cols
+    has_foil_only = "isFoilOnly" in result_cols
+    has_foil_only_snake = "is_foil_only" in result_cols
     has_ck_url = "_ck_url" in result_cols
 
     if "identifiers" in result_cols:
@@ -475,6 +477,11 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
     # language (only for non-English products)
     if has_language:
         select_cols.append("language")
+
+    if has_foil_only:
+        select_cols.append("isFoilOnly")
+    elif has_foil_only_snake:
+        select_cols.append(pl.col("is_foil_only").alias("isFoilOnly"))
 
     sealed_products_lf = result.select(select_cols)
 

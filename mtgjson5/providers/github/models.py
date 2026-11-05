@@ -176,6 +176,7 @@ class SealedProductModel(PolarsSchemaModel):
     subtype: str | None = Field(default=None, description="The subtype of the sealed product.")
     release_date: str | None = Field(default=None, description="The release date of the sealed product.")
     language: str | None = Field(default=None, description="The language of the sealed product.")
+    is_foil_only: bool | None = Field(default=None, description="If every non-token card in the product is foil.")
 
 
 class SealedContentModel(PolarsSchemaModel):
