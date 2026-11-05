@@ -1,3 +1,5 @@
+"""Tests that is_foil_only flows from sealed YAML records to the published product."""
+
 import polars as pl
 import pytest
 
