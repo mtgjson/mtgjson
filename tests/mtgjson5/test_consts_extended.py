@@ -126,6 +126,9 @@ class TestLanguageMap:
         assert LANGUAGE_MAP["qya"] == "Quenya"
         assert LANGUAGE_MAP["dw"] == "Dwarvish"
 
+    def test_klingon(self):
+        assert LANGUAGE_MAP["tlh"] == "Klingon"
+
     @pytest.mark.parametrize(
         ("code", "name"),
         [("ja", "Japanese"), ("fr", "French"), ("de", "German"), ("es", "Spanish")],
