@@ -50,7 +50,8 @@ def add_signatures_combined(
     """
     Combine signature logic for art series and memorabilia cards.
     """
-    is_art_series = pl.col("setName").str.ends_with("Art Series") & (pl.col("setCode") != "MH1")
+    # Modern Horizons Art Series (AMH1) predates gold-stamped artist signatures
+    is_art_series = pl.col("setName").str.ends_with("Art Series") & (pl.col("setCode") != "AMH1")
     is_memorabilia = pl.col("setType") == "memorabilia"
 
     # Extract number parts for memorabilia logic
