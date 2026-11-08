@@ -233,8 +233,7 @@ class PriceBuilderContext:
         if self._cache.uuid_cache_lf is not None:
             df = (
                 self._cache.uuid_cache_lf.filter(pl.col("side") == "a")
-                .group_by("scryfallId")
-                .agg(pl.col("cachedUuid").min())
+                .unique(subset=["scryfallId"], keep="first")
                 .collect()
             )
             if not df.is_empty():

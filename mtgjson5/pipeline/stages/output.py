@@ -452,8 +452,11 @@ def _one_uuid_per_scryfall_id(df: pl.DataFrame) -> pl.DataFrame:
     """
     sort_by = [pl.col("uuid")]
     if "side" in df.columns:
+        df = df.select(["uuid", "scryfallId", "side"])
         is_back_face = pl.col("side").is_not_null() & (pl.col("side") != "a")
         sort_by.insert(0, is_back_face)
+    else:
+        LOGGER.warning("No side column for scryfall_to_uuid; multi-face cards fall back to the lowest UUID")
     return (
         df.sort(sort_by).unique(subset=["scryfallId"], keep="first", maintain_order=True).select(["uuid", "scryfallId"])
     )

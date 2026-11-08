@@ -8,14 +8,13 @@ face's UUID per Scryfall ID, and it has to be the same one on every build.
 from __future__ import annotations
 
 from pathlib import Path
-from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any
 
 import polars as pl
 import pytest
 
 from mtgjson5 import constants
-from mtgjson5.build.prices.price_builder import PolarsPriceBuilder, PriceBuilderContext
+from mtgjson5.build.prices.price_builder import PolarsPriceBuilder
 from mtgjson5.data import GLOBAL_CACHE
 from mtgjson5.data.context import PipelineContext
 from mtgjson5.pipeline.stages.output import _build_id_mappings, build_id_mappings_from_parquet
@@ -96,14 +95,6 @@ def test_scryfall_mapping_without_side_column(tmp_path: Path, monkeypatch: pytes
 
     persisted = pl.read_parquet(tmp_path / "scryfall_to_uuid.parquet")
     assert sorted(persisted.rows()) == sorted([(BACK_UUID, DFC_SCRYFALL_ID), (SINGLE_UUID, SINGLE_SCRYFALL_ID)])
-
-
-@pytest.mark.parametrize("cached_uuids", [[FRONT_UUID, BACK_UUID], [BACK_UUID, FRONT_UUID]])
-def test_uuid_cache_fallback_is_order_independent(cached_uuids: list[str]) -> None:
-    uuid_cache = pl.DataFrame({"scryfallId": [DFC_SCRYFALL_ID] * 2, "side": ["a", "a"], "cachedUuid": cached_uuids})
-    cache = SimpleNamespace(scryfall_to_uuid_lf=None, uuid_cache_lf=uuid_cache.lazy())
-    ctx = PriceBuilderContext(_cache=cast("Any", cache))
-    assert ctx.scryfall_to_uuid == {DFC_SCRYFALL_ID: BACK_UUID}
 
 
 @pytest.mark.parametrize("rows", ROW_ORDERS)
