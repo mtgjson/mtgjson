@@ -1357,8 +1357,9 @@ class PipelineContext:
             pl.col("name").str.extract(suffix_pattern, 1).alias("_foilSuffix"),
         )
 
-        # Split: alt-foil products have a suffix, base products do not
-        alt_foil = products.filter(pl.col("_foilSuffix").is_not_null())
+        # Split: alt-foil products have a suffix, base products do not. Pairs
+        # are matched within a group, so a product without a groupId can't pair.
+        alt_foil = products.filter(pl.col("_foilSuffix").is_not_null() & pl.col("groupId").is_not_null())
         base = products.filter(pl.col("_foilSuffix").is_null())
 
         if isinstance(alt_foil, pl.LazyFrame):
@@ -1367,7 +1368,8 @@ class PipelineContext:
             alt_count = len(alt_foil)
         if alt_count == 0:
             # A catalog recovered from the last published TcgplayerSkus.json
-            # carries no product names, so a build that fell back lands here.
+            # carries no group IDs (and, for files that predate productName,
+            # no names), so a build that fell back lands here.
             LOGGER.warning("tcg_alt_foil: No alt-foil products found; alternative foil IDs will be absent")
             return
 

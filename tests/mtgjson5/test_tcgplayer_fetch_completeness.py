@@ -147,12 +147,18 @@ class PublishedSkus:
         monkeypatch.setattr(published_mod, "MIN_PUBLISHED_PRODUCTS", 1)
 
     @staticmethod
-    def payload(products: dict[int, list[int]], uuids_per_product: int = 1) -> bytes:
+    def payload(
+        products: dict[int, list[int]],
+        uuids_per_product: int = 1,
+        names: dict[int, str] | None = None,
+    ) -> bytes:
         """Build a TcgplayerSkus.json body.
 
         The published file is keyed by UUID, so one product appears once per card
-        it maps to.
+        it maps to. Products listed in ``names`` carry a productName; the rest look
+        like a file published before productName existed.
         """
+        names = names or {}
         data = {
             f"uuid-{product_id}-{copy}": [
                 {
@@ -161,6 +167,7 @@ class PublishedSkus:
                     "printing": "NON FOIL",
                     "productId": product_id,
                     "skuId": sku_id,
+                    **({"productName": names[product_id]} if product_id in names else {}),
                 }
                 for sku_id in sku_ids
             ]
@@ -498,9 +505,26 @@ class TestPublishedCatalog:
                 {"skuId": 71, "languageId": 1, "printingId": 1, "conditionId": 1},
             ]
         ]
-        # Names, group IDs, and URLs are not published, so they come back blank.
+        # A file without productName, group IDs, or URLs leaves them blank.
         assert catalog["name"].to_list() == [""]
         assert catalog["groupId"].to_list() == [None]
+
+    def test_published_product_names_are_restored(self, published):
+        payload = published.payload({7: [70, 71], 8: [80]}, uuids_per_product=2, names={7: "Forest (151)", 8: "Opt"})
+
+        catalog = published_mod.catalog_from_skus_json(io.BytesIO(payload))
+
+        assert catalog["productId"].to_list() == [7, 8]
+        assert catalog["name"].to_list() == ["Forest (151)", "Opt"]
+        assert catalog["cleanName"].to_list() == ["", ""]
+        assert catalog["groupId"].to_list() == [None, None]
+
+    def test_products_without_a_published_name_stay_blank(self, published):
+        payload = published.payload({7: [70], 8: [80]}, names={8: "Opt"})
+
+        catalog = published_mod.catalog_from_skus_json(io.BytesIO(payload))
+
+        assert dict(zip(catalog["productId"], catalog["name"], strict=True)) == {7: "", 8: "Opt"}
 
     def test_a_product_shared_by_several_uuids_lands_once(self, published):
         payload = published.payload({7: [70, 71]}, uuids_per_product=3)

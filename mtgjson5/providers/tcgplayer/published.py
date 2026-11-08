@@ -6,10 +6,11 @@ TcgplayerSkus.json is the one copy of yesterday's catalog that the build machine
 can actually reach, so it doubles as the fallback catalog and as the baseline for
 the day-over-day regression check.
 
-What comes back is a partial catalog: TcgplayerSkus.json carries productIds and
-SKUs, but not product names, group IDs, or URLs. Every SKU still lands in
-TcgplayerSkus.json; alternative-foil detection, which matches on product names,
-finds nothing and is skipped for that build.
+What comes back is a partial catalog: TcgplayerSkus.json carries productIds,
+product names, and SKUs, but not group IDs or URLs (files published before
+productName was added carry no names either). Every SKU still lands in
+TcgplayerSkus.json; alternative-foil detection, which pairs products by group ID
+and name, finds nothing and is skipped for that build.
 """
 
 from __future__ import annotations
@@ -71,6 +72,7 @@ def catalog_from_skus_json(stream: IO[bytes]) -> pl.DataFrame:
     seen_products: set[int] = set()
     batches: list[pl.DataFrame] = []
     rows: dict[str, list[int]] = _empty_rows()
+    names: dict[int, str] = {}
     unmapped = 0
 
     for _uuid, skus in ijson.kvitems(stream, "data"):
@@ -97,6 +99,9 @@ def catalog_from_skus_json(stream: IO[bytes]) -> pl.DataFrame:
             rows["languageId"].append(language)
             rows["printingId"].append(printing)
             rows["conditionId"].append(condition)
+            # Older published files have no productName; those products stay unnamed.
+            if isinstance(sku.get("productName"), str):
+                names.setdefault(sku["productId"], sku["productName"])
 
         seen_products |= fresh
 
@@ -113,7 +118,7 @@ def catalog_from_skus_json(stream: IO[bytes]) -> pl.DataFrame:
     if not batches:
         raise PublishedCatalogError("The published TcgplayerSkus.json held no usable SKUs")
 
-    catalog = _group_into_products(pl.concat(batches, rechunk=False))
+    catalog = _group_into_products(pl.concat(batches, rechunk=False), names)
     if catalog.height < MIN_PUBLISHED_PRODUCTS:
         raise PublishedCatalogError(
             f"The published TCGPlayer catalog held only {catalog.height:,} products; refusing to trust it"
@@ -133,19 +138,26 @@ def _to_frame(rows: dict[str, list[int]]) -> pl.DataFrame:
     return pl.DataFrame(rows, schema=dict.fromkeys(rows, pl.Int64))
 
 
-def _group_into_products(flat: pl.DataFrame) -> pl.DataFrame:
+def _group_into_products(flat: pl.DataFrame, names: dict[int, str]) -> pl.DataFrame:
     """Fold flat SKU rows into one row per product, matching PRODUCT_SCHEMA.
 
-    Names, group IDs, and URLs are not published, so they come back empty. Every
-    consumer of those columns treats a blank name as "nothing to match on".
+    Names come from the published productName where there is one. Clean names,
+    group IDs, and URLs are not published, so they come back empty, as does the
+    name of a product the file has no productName for. Every consumer of those
+    columns treats a blank name as "nothing to match on".
     """
+    name_frame = pl.DataFrame(
+        {"productId": list(names), "name": list(names.values())},
+        schema={"productId": pl.Int64, "name": pl.String},
+    )
     return (
         flat.unique(subset=["productId", "skuId"], keep="first")
         .sort(["productId", "skuId"])
         .group_by("productId", maintain_order=True)
         .agg(pl.struct(_SKU_FIELDS).alias("skus"))
+        .join(name_frame, on="productId", how="left", maintain_order="left")
         .with_columns(
-            pl.lit("").alias("name"),
+            pl.col("name").fill_null(""),
             pl.lit("").alias("cleanName"),
             pl.lit(None, dtype=pl.Int64).alias("groupId"),
             pl.lit("").alias("url"),
