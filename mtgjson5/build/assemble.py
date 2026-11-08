@@ -32,6 +32,8 @@ EXTRA_SORT_COLS = ["isOversized", "isPromo", "isOnlineOnly"]
 # Unique per printing; breaks ties between equally preferred printings so the
 # representative printing (and anything derived from it) is the same on every build.
 TIEBREAK_SORT_COLS = ["setCode", "number", "uuid"]
+# Printing-level columns needed to derive firstPrinting
+FIRST_PRINTING_COLS = ["isReprint"]
 
 
 def compute_format_legal_sets(
@@ -359,6 +361,25 @@ class AtomicCardsAssembler(Assembler):
 
         return foreign_lookup, legalities_lookup
 
+    def _build_first_printing_lookup(self, rows: list[dict[str, Any]]) -> dict[tuple[Any, ...], str]:
+        """Map each oracle identity to the set code of its original (non-reprint) printing.
+
+        If several printings are flagged as non-reprints, the one from the earliest
+        released set wins, with set code breaking ties.
+        """
+        best: dict[tuple[Any, ...], tuple[str, str]] = {}
+        for row in rows:
+            set_code = row.get("setCode")
+            if not set_code or row.get("isReprint"):
+                continue
+            # str() so a date-typed releaseDate compares cleanly against the sentinel
+            release_date = str(self.get_set_metadata(set_code).get("releaseDate") or "9999-99-99")
+            candidate = (release_date, set_code)
+            key = _oracle_key(row)
+            if key not in best or candidate < best[key]:
+                best[key] = candidate
+        return {key: set_code for key, (_, set_code) in best.items()}
+
     def iter_atomic(self) -> Iterator[tuple[str, list[dict[str, Any]]]]:
         """Iterate over atomic cards grouped by name."""
 
@@ -373,7 +394,11 @@ class AtomicCardsAssembler(Assembler):
             select_cols.append("name")
 
         # Temporarily include printing-level columns for sort preference
-        extra_cols = [c for c in [*EXTRA_SORT_COLS, *TIEBREAK_SORT_COLS] if c in available and c not in select_cols]
+        extra_cols = [
+            c
+            for c in [*EXTRA_SORT_COLS, *TIEBREAK_SORT_COLS, *FIRST_PRINTING_COLS]
+            if c in available and c not in select_cols
+        ]
         select_with_extras = select_cols + extra_cols
 
         # Build sort expressions: prefer non-oversized, non-funny, non-promo, side="a",
@@ -403,14 +428,17 @@ class AtomicCardsAssembler(Assembler):
         # Collect ALL printings before dedup so we can consolidate foreignData/legalities
         all_rows_df = df.collect()
 
-        # Narrow: only oracle identity + the 2 data columns needed for lookups
+        # Narrow: only oracle identity + the columns needed for the per-oracle lookups
         lookup_cols = [
-            c for c in [*list(ORACLE_IDENTITY_COLS), "foreignData", "legalities"] if c in all_rows_df.columns
+            c
+            for c in [*ORACLE_IDENTITY_COLS, "foreignData", "legalities", "setCode", *FIRST_PRINTING_COLS]
+            if c in all_rows_df.columns
         ]
         lookup_rows = all_rows_df.select(lookup_cols).to_dicts()
 
         # Build consolidated lookups from all printings
         foreign_lookup, legalities_lookup = self._build_oracle_lookups(lookup_rows)
+        first_printing_lookup = self._build_first_printing_lookup(lookup_rows)
         del lookup_rows
 
         # Now dedup on the collected DataFrame
@@ -447,6 +475,10 @@ class AtomicCardsAssembler(Assembler):
             merged_leg = legalities_lookup.get(key)
             if merged_leg:
                 row["legalities"] = merged_leg
+
+            first_printing = first_printing_lookup.get(key)
+            if first_printing:
+                row["firstPrinting"] = first_printing
 
             # Strip printing-specific identifiers
             identifiers = row.get("identifiers")

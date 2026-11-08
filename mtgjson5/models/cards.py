@@ -108,7 +108,12 @@ class CardBase(PolarsMixin, BaseModel):
         description="A list of all the colors in the color indicator. This is the symbol prefixed to a card's [types](#types).",
         json_schema_extra={"introduced": "v4.0.2", "optional": True, "enum_key": "colorIndicator"},
     )
-    produced_mana: list[str] | None = Field(default=None, alias="producedMana")
+    produced_mana: list[str] | None = Field(
+        default=None,
+        alias="producedMana",
+        description="A list of all the colors of mana this card can produce.",
+        json_schema_extra={"introduced": "v5.3.0", "optional": True},
+    )
 
     # Mana
     mana_cost: str | None = Field(

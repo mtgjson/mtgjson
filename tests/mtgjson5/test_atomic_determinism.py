@@ -36,15 +36,15 @@ def _printing(set_code: str, number: str, uuid: str) -> dict:
     }
 
 
-def _write_ctx(base: Path, rows: list[dict]) -> AssemblyContext:
+def _write_ctx(base: Path, rows: list[dict], set_meta: dict | None = None) -> AssemblyContext:
     files = {
         f"setCode={set_code}/0.parquet": [r for r in rows if r["setCode"] == set_code]
         for set_code in sorted({r["setCode"] for r in rows})
     }
-    return _write_files_ctx(base, files)
+    return _write_files_ctx(base, files, set_meta)
 
 
-def _write_files_ctx(base: Path, files: dict[str, list[dict]]) -> AssemblyContext:
+def _write_files_ctx(base: Path, files: dict[str, list[dict]], set_meta: dict | None = None) -> AssemblyContext:
     parquet_dir = base / "_parquet"
     tokens_dir = base / "_parquet_tokens"
     output_dir = base / "output"
@@ -58,7 +58,7 @@ def _write_files_ctx(base: Path, files: dict[str, list[dict]]) -> AssemblyContex
     return AssemblyContext(
         parquet_dir=parquet_dir,
         tokens_dir=tokens_dir,
-        set_meta={},
+        set_meta=set_meta or {},
         meta={"date": "2025-01-01", "version": "5.3.0+test"},
         output_path=output_dir,
     )
@@ -112,3 +112,30 @@ def test_duplicate_uuid_resolves_to_first_file(tmp_path: Path) -> None:
     for _ in range(5):
         cards = dict(ctx.atomic_cards.iter_atomic())["Llanowar Elves"]
         assert cards[0]["purchaseUrls"]["cardKingdom"] == "https://mtgjson.com/links/first"
+
+
+def test_first_printing_is_earliest_non_reprint(tmp_path: Path) -> None:
+    original = _printing("BBB", "1", "uuid-bbb-1")
+    original["isReprint"] = False
+    later_original = _printing("AAA", "1", "uuid-aaa-1")
+    later_original["isReprint"] = False
+    reprint = _printing("CCC", "1", "uuid-ccc-1")
+    reprint["isReprint"] = True
+    set_meta = {
+        "AAA": {"releaseDate": "1994-01-01"},
+        "BBB": {"releaseDate": "1993-08-05"},
+        "CCC": {"releaseDate": "1990-01-01"},
+    }
+    ctx = _write_ctx(tmp_path, [reprint, later_original, original], set_meta)
+
+    cards = dict(ctx.atomic_cards.iter_atomic())["Llanowar Elves"]
+    assert cards[0]["firstPrinting"] == "BBB"
+
+
+def test_first_printing_omitted_without_non_reprint(tmp_path: Path) -> None:
+    reprint = _printing("AAA", "1", "uuid-aaa-1")
+    reprint["isReprint"] = True
+    ctx = _write_ctx(tmp_path, [reprint])
+
+    cards = dict(ctx.atomic_cards.iter_atomic())["Llanowar Elves"]
+    assert "firstPrinting" not in cards[0]
