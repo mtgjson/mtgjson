@@ -125,8 +125,8 @@ def _sample_token_products() -> dict[str, list[dict[str, Any]]]:
 
 class TestTokenProductTables:
     def test_empty(self):
-        assert build_token_product_tables(None) == {}
-        assert build_token_product_tables({}) == {}
+        assert not build_token_product_tables(None)
+        assert not build_token_product_tables({})
 
     def test_token_products_table(self):
         tp = _sample_token_products()
