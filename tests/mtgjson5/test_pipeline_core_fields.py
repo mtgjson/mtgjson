@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import polars as pl
 
 from mtgjson5.pipeline.stages.basic_fields import (
+    add_basic_fields,
     add_booster_types,
     filter_keywords_for_face,
     fix_manavalue_for_multiface,
@@ -239,6 +240,114 @@ class TestFixManavalueForMultiface:
         )
         result = fix_manavalue_for_multiface(lf).collect()
         assert result["manaValue"][0] == 4.0
+
+
+# ---------------------------------------------------------------------------
+# TestAddBasicFieldsColors
+# ---------------------------------------------------------------------------
+
+_BASIC_FACE_FIELDS = {
+    **dict.fromkeys(
+        [
+            "name",
+            "flavor_name",
+            "mana_cost",
+            "type_line",
+            "oracle_text",
+            "flavor_text",
+            "power",
+            "toughness",
+            "loyalty",
+            "defense",
+            "artist",
+            "watermark",
+            "illustration_id",
+            "printed_text",
+            "printed_type_line",
+            "printed_name",
+        ],
+        pl.String,
+    ),
+    "colors": pl.List(pl.String),
+    "color_indicator": pl.List(pl.String),
+}
+
+_BASIC_SCHEMA = {
+    **dict.fromkeys(
+        [
+            "id",
+            "name",
+            "layout",
+            "side",
+            "typeLine",
+            "set",
+            "collectorNumber",
+            "_meld_face_name",
+            "flavorName",
+            "manaCost",
+            "oracleText",
+            "flavorText",
+            "power",
+            "toughness",
+            "loyalty",
+            "defense",
+            "artist",
+            "watermark",
+            "illustrationId",
+            "printedText",
+            "printedTypeLine",
+            "printedName",
+            "borderColor",
+            "frame",
+            "securityStamp",
+            "lang",
+        ],
+        pl.String,
+    ),
+    **dict.fromkeys(
+        ["colors", "colorIndicator", "colorIdentity", "producedMana", "frameEffects", "allParts", "promoTypes"],
+        pl.List(pl.String),
+    ),
+    **dict.fromkeys(
+        ["fullArt", "textless", "oversized", "promo", "reprint", "storySpotlight", "reserved", "digital", "booster"],
+        pl.Boolean,
+    ),
+    "cmc": pl.Float64,
+    "_face_data": pl.Struct(_BASIC_FACE_FIELDS),
+}
+
+
+def _adventure_row(side: str, face_name: str, mana_cost: str, type_line: str, colors: list[str]) -> dict:
+    face = dict.fromkeys(_BASIC_FACE_FIELDS)
+    face.update(name=face_name, mana_cost=mana_cost, type_line=type_line)
+    row = dict.fromkeys(_BASIC_SCHEMA)
+    row.update(id="x", name="x", layout="adventure", side=side, typeLine=type_line, colors=colors, _face_data=face)
+    return row
+
+
+class TestAddBasicFieldsColors:
+    def test_land_adventure_spell_side_gets_colors_from_mana_cost(self):
+        """FIN land adventures: the spell side is colored by its own mana cost (#1335)."""
+        lf = pl.LazyFrame(
+            [
+                _adventure_row("a", "Ishgard, the Holy See", "", "Land — Town", []),
+                _adventure_row("b", "Faith & Grief", "{3}{W}{W}", "Sorcery — Adventure", []),
+            ],
+            schema=_BASIC_SCHEMA,
+        )
+        result = add_basic_fields(lf).collect()
+        assert result["colors"].to_list() == [[], ["W"]]
+
+    def test_creature_adventure_colors(self):
+        lf = pl.LazyFrame(
+            [
+                _adventure_row("a", "Bonecrusher Giant", "{2}{R}", "Creature — Giant", ["R"]),
+                _adventure_row("b", "Stomp", "{1}{R}", "Instant — Adventure", ["R"]),
+            ],
+            schema=_BASIC_SCHEMA,
+        )
+        result = add_basic_fields(lf).collect()
+        assert result["colors"].to_list() == [["R"], ["R"]]
 
 
 # ---------------------------------------------------------------------------
