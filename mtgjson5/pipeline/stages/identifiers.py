@@ -24,6 +24,9 @@ def join_cardmarket_ids(
     MCM data has two cases:
     1. Modern sets: MCM has collector numbers, join on setCode + name + number
     2. Older sets: MCM has empty numbers, join on setCode + name only
+
+    mcmMetaId is then looked up from the product that the final mcmId
+    refers to, with the name/number joins as a fallback.
     """
     mcm_df = ctx.mcm_lookup_lf
 
