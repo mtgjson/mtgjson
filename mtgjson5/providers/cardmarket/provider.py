@@ -100,6 +100,9 @@ class CardMarketProvider:
     # Internal state
     _connection: Mkm | None = field(default=None, repr=False)
     _set_map: dict[str, dict[str, Any]] = field(default_factory=dict, repr=False)
+    # Every expansion as (idExpansion, enName). The name-keyed set map drops
+    # expansions whose names collide (or that a name fix renames onto another).
+    _expansions: list[tuple[int, str]] = field(default_factory=list, repr=False)
     _http: aiohttp.ClientSession | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
@@ -158,7 +161,11 @@ class CardMarketProvider:
             LOGGER.error(f"Failed to parse MKM expansions: {e}")
             return {}
 
+        seen_ids: set[int] = set()
         for exp in data.get("expansion", []):
+            if exp.get("idExpansion") is not None and int(exp["idExpansion"]) not in seen_ids:
+                seen_ids.add(int(exp["idExpansion"]))
+                self._expansions.append((int(exp["idExpansion"]), str(exp["enName"])))
             self._set_map[exp["enName"].lower()] = {
                 "mcmId": exp["idExpansion"],
                 "mcmName": exp["enName"],
@@ -302,41 +309,35 @@ class CardMarketProvider:
         """
         Fetch cards from all expansions sequentially (MCM rate limits aggressively).
 
-        Supports incremental writing and resumption - if output_path exists,
-        skips already-fetched expansions.
+        Every expansion is re-fetched, so products Cardmarket adds to an
+        expansion after its first crawl are picked up. If output_path exists,
+        its rows are kept for any expansion whose fetch comes back empty, and
+        checkpoints merge into it, so an interrupted or partly failed run never
+        loses previously fetched products.
 
         Returns DataFrame with: mcmId, mcmMetaId, name, number, expansionId, expansionName
         """
         await self.load_set_map()
-        if not self._set_map:
+        if not self._expansions:
             return pl.DataFrame()
 
-        expansions = [(name, data["mcmId"], data["mcmName"]) for name, data in self._set_map.items()]
+        expansions = self._expansions
         total = len(expansions)
 
-        # Load existing data for resumption
+        # Load existing data to fall back on for expansions that fail to fetch
         existing_df: pl.DataFrame | None = None
-        fetched_expansion_ids: set[int] = set()
         if output_path and output_path.exists():
             try:
                 existing_df = pl.read_parquet(output_path)
-                fetched_expansion_ids = set(existing_df["expansionId"].unique().to_list())
-                LOGGER.info(f"Resuming: {len(fetched_expansion_ids)} expansions already fetched")
+                LOGGER.info(f"Refreshing {existing_df['expansionId'].n_unique()} previously fetched expansions")
             except Exception as e:
-                LOGGER.warning(f"Could not read existing cache for resumption: {e}")
+                LOGGER.warning(f"Could not read existing cache: {e}")
 
         all_cards: list[dict] = []
-        new_fetched = 0
 
-        for idx, (_, mcm_id, mcm_name) in enumerate(expansions, 1):
-            # Skip already fetched
-            if mcm_id in fetched_expansion_ids:
-                if on_progress:
-                    on_progress(idx, total, f"{mcm_name} (cached)")
-                continue
-
+        for idx, (mcm_id, mcm_name) in enumerate(expansions, 1):
             # Rate limit delay BEFORE each request
-            if new_fetched > 0:
+            if idx > 1:
                 await asyncio.sleep(self.request_delay)
 
             raw = await asyncio.to_thread(self._fetch_expansion_cards_sync, mcm_id)
@@ -352,14 +353,13 @@ class CardMarketProvider:
                 for c in raw
             ]
             all_cards.extend(cards)
-            new_fetched += 1
 
             if on_progress:
                 on_progress(idx, total, mcm_name)
             LOGGER.info(f"[{idx}/{total}] {mcm_name}: {len(cards)} cards")
 
             # Write incrementally every 10 expansions
-            if output_path and new_fetched % 10 == 0:
+            if output_path and idx % 10 == 0:
                 self._write_incremental(output_path, existing_df, all_cards)
 
         # Final write
@@ -367,10 +367,19 @@ class CardMarketProvider:
             self._write_incremental(output_path, existing_df, all_cards)
 
         # Return combined data
-        new_df = pl.DataFrame(all_cards) if all_cards else pl.DataFrame()
-        if existing_df is not None and not existing_df.is_empty():
-            return pl.concat([existing_df, new_df]) if not new_df.is_empty() else existing_df
-        return new_df
+        return self._merge_cards(existing_df, all_cards)
+
+    @staticmethod
+    def _merge_cards(existing_df: pl.DataFrame | None, new_cards: list[dict]) -> pl.DataFrame:
+        """Replace existing rows of every freshly fetched expansion with the new rows."""
+        if not new_cards:
+            return existing_df if existing_df is not None else pl.DataFrame()
+        new_df = pl.DataFrame(new_cards)
+        if existing_df is None or existing_df.is_empty():
+            return new_df
+        refreshed_ids = new_df["expansionId"].unique().to_list()
+        kept = existing_df.filter(~pl.col("expansionId").is_in(refreshed_ids))
+        return pl.concat([kept, new_df], how="vertical_relaxed")
 
     def _write_incremental(
         self,
@@ -379,11 +388,7 @@ class CardMarketProvider:
         new_cards: list[dict],
     ) -> None:
         """Write incremental progress to disk."""
-        new_df = pl.DataFrame(new_cards)
-        if existing_df is not None and not existing_df.is_empty():
-            combined = pl.concat([existing_df, new_df])
-        else:
-            combined = new_df
+        combined = self._merge_cards(existing_df, new_cards)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         combined.write_parquet(output_path)
         LOGGER.info(f"  Saved checkpoint: {len(combined):,} cards")
@@ -587,6 +592,32 @@ async def get_all_cardmarket_cards(
         await provider.close()
 
 
+async def _fetch_expansion_list() -> None:
+    """Fetch the expansion list; load_set_map persists it to the cache."""
+    provider = CardMarketProvider()
+    try:
+        await provider.load_set_map()
+    finally:
+        await provider.close()
+
+
+def _ensure_expansion_list() -> None:
+    """Fetch the expansion list when a cached catalog is reused without one.
+
+    The list is only persisted during a crawl, so a catalog taken from cache
+    (or S3) would otherwise leave CardmarketIdentifiers unable to name the
+    expansions the catalog does not cover.
+    """
+    from mtgjson5 import constants
+
+    if (constants.CACHE_PATH / "mkm_expansions.parquet").exists():
+        return
+    try:
+        asyncio.run(_fetch_expansion_list())
+    except Exception as e:
+        LOGGER.warning(f"Failed to fetch MKM expansion list: {e}")
+
+
 def load_cardmarket_data(
     cache_path: Path,
     cache_max_age_hours: int = 48,
@@ -619,6 +650,7 @@ def load_cardmarket_data(
         age = datetime.datetime.now() - mtime
         if age.total_seconds() < cache_max_age_hours * 3600:
             LOGGER.info(f"Using cached MCM data ({age.total_seconds() / 3600:.1f}h old)")
+            _ensure_expansion_list()
             return pl.read_parquet(cache_path)
         LOGGER.info(f"MCM cache stale ({age.total_seconds() / 3600:.1f}h old), refetching...")
 
