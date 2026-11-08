@@ -58,6 +58,7 @@ LANGUAGE_MAP: dict[str, str] = {
     "he": "Hebrew",
     "it": "Italian",
     "ja": "Japanese",
+    "tlh": "Klingon",
     "ko": "Korean",
     "la": "Latin",
     "ph": "Phyrexian",
