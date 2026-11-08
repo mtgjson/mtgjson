@@ -128,7 +128,9 @@ class Assembler:
             self.ctx.parquet_dir / "**/*.parquet",
             cast_options=pl.ScanCastOptions(missing_struct_fields="insert"),
         )
-        return lf.unique(subset=["uuid"])
+        # keep="first" over the file scan order, so a uuid present in several
+        # files resolves to the same row on every build.
+        return lf.unique(subset=["uuid"], keep="first")
 
     def load_all_tokens(self) -> pl.LazyFrame:
         """Load all tokens as LazyFrame."""
@@ -385,7 +387,7 @@ class AtomicCardsAssembler(Assembler):
         if "legalities" in available:
             sort_exprs.append(pl.col("legalities").struct.field("vintage").is_null())
         if "foreignData" in available:
-            sort_exprs.append(pl.col("foreignData").list.len().cast(pl.Int32).neg())
+            sort_exprs.append(pl.col("foreignData").list.len().fill_null(0).cast(pl.Int32).neg())
         if "side" in available:
             sort_exprs.append(pl.col("side").fill_null(""))
         # Total order: printings that tie on every preference above would otherwise
@@ -396,7 +398,7 @@ class AtomicCardsAssembler(Assembler):
 
         df = lf.select(select_with_extras)
         if sort_exprs:
-            df = df.sort(sort_exprs, nulls_last=True, maintain_order=True)
+            df = df.sort(sort_exprs, maintain_order=True)
 
         # Collect ALL printings before dedup so we can consolidate foreignData/legalities
         all_rows_df = df.collect()
