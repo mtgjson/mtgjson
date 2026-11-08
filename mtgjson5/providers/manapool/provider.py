@@ -24,6 +24,10 @@ LOGGER = logging.getLogger(__name__)
 # Manapool API endpoint
 MANAPOOL_API_URL = "https://manapool.com/api/v1/prices/singles"
 
+# Listings above $5MM are seller placeholders, not real prices (issue #1664).
+# Also keeps cents well under INT32 max (2,147,483,647).
+MANAPOOL_MAX_PRICE_CENTS = 500_000_000
+
 # Price schema for flat storage
 PRICE_SCHEMA = {
     "uuid": pl.String,
@@ -37,6 +41,15 @@ PRICE_SCHEMA = {
 }
 
 ProgressCallback = Callable[[int, int, str], None]
+
+
+def _clean_cents(card: dict[str, Any], key: str) -> int:
+    """Return a listing price in cents, or 0 if missing or above the ceiling."""
+    cents = card.get(key) or 0
+    if cents > MANAPOOL_MAX_PRICE_CENTS:
+        LOGGER.warning(f"Manapool: Dropping {key}={cents} for scryfall_id {card.get('scryfall_id')}")
+        return 0
+    return int(cents)
 
 
 @dataclass
@@ -104,9 +117,9 @@ class ManapoolPriceProvider:
                 records.append(
                     {
                         "scryfallId": scryfall_id,
-                        "price_cents": card.get("price_cents") or 0,
-                        "price_cents_foil": card.get("price_cents_foil") or 0,
-                        "price_cents_etched": card.get("price_cents_etched") or 0,
+                        "price_cents": _clean_cents(card, "price_cents"),
+                        "price_cents_foil": _clean_cents(card, "price_cents_foil"),
+                        "price_cents_etched": _clean_cents(card, "price_cents_etched"),
                     }
                 )
 
@@ -171,9 +184,9 @@ class ManapoolPriceProvider:
                     continue
 
                 # Extract prices (in cents, convert to dollars)
-                normal_cents = card.get("price_cents")
-                foil_cents = card.get("price_cents_foil")
-                etched_cents = card.get("price_cents_etched")
+                normal_cents = _clean_cents(card, "price_cents")
+                foil_cents = _clean_cents(card, "price_cents_foil")
+                etched_cents = _clean_cents(card, "price_cents_etched")
 
                 if normal_cents:
                     records.append(
