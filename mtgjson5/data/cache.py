@@ -1397,13 +1397,19 @@ class GlobalCache:
         """
         Load raw MCM data from CardMarket provider.
         """
-        from mtgjson5.providers.cardmarket.provider import load_cardmarket_data
+        from mtgjson5.providers.cardmarket.provider import (
+            CardMarketConfig,
+            ensure_expansion_list,
+            load_cardmarket_data,
+        )
 
         cache_path = self.cache_path / "mcm_lookup.parquet"
 
         if _cache_fresh(cache_path):
             cached = pl.scan_parquet(cache_path)
             if "expansionId" in cached.collect_schema().names():
+                if CardMarketConfig.from_mtgjson_config() is not None:
+                    ensure_expansion_list()
                 self.mcm_lookup_lf = cached
                 return
             LOGGER.info("MCM lookup cache lacks expansionId; rebuilding")
