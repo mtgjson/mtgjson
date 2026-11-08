@@ -1,8 +1,8 @@
 """Regression tests for picking one UUID per Scryfall ID (issue #1703).
 
 Faces of a multi-face card share a Scryfall ID. Card Kingdom and Manapool
-prices are keyed by Scryfall ID, so the price builder has to pick one face's
-UUID, and it has to pick the same one on every build.
+prices are keyed by Scryfall ID, so the scryfall_to_uuid mapping keeps one
+face's UUID per Scryfall ID, and it has to be the same one on every build.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ FRONT_UUID = "ffff0000-0000-0000-0000-00000000000a"
 BACK_UUID = "0000ffff-0000-0000-0000-00000000000b"
 SINGLE_UUID = "5151e000-0000-0000-0000-000000000000"
 
-ROWS = [
+ROWS: list[dict[str, Any]] = [
     {"uuid": BACK_UUID, "scryfallId": DFC_SCRYFALL_ID, "side": "b"},
     {"uuid": FRONT_UUID, "scryfallId": DFC_SCRYFALL_ID, "side": "a"},
     {"uuid": SINGLE_UUID, "scryfallId": SINGLE_SCRYFALL_ID, "side": None},
@@ -46,31 +46,56 @@ NO_IDS: dict[str, str | None] = dict.fromkeys(
 )
 
 
-def _mapping(rows: list[dict[str, Any]], *, with_side: bool = True) -> pl.DataFrame:
-    df = pl.DataFrame(rows, schema={"uuid": pl.String, "scryfallId": pl.String, "side": pl.String})
-    return df if with_side else df.drop("side")
-
-
-def _context(mapping: pl.DataFrame) -> PriceBuilderContext:
-    cache = SimpleNamespace(scryfall_to_uuid_lf=mapping.lazy(), uuid_cache_lf=None)
-    return PriceBuilderContext(_cache=cast("Any", cache))
-
-
-@pytest.mark.parametrize("rows", ROW_ORDERS)
-def test_scryfall_to_uuid_prefers_front_face(rows: list[dict[str, Any]]) -> None:
-    assert _context(_mapping(rows)).scryfall_to_uuid == {
-        DFC_SCRYFALL_ID: FRONT_UUID,
-        SINGLE_SCRYFALL_ID: SINGLE_UUID,
-    }
+def _cards(rows: list[dict[str, Any]]) -> pl.DataFrame:
+    return pl.DataFrame(
+        {
+            "uuid": [row["uuid"] for row in rows],
+            "side": pl.Series([row["side"] for row in rows], dtype=pl.String),
+            "identifiers": [{**NO_IDS, "scryfallId": row["scryfallId"]} for row in rows],
+        }
+    )
 
 
 @pytest.mark.parametrize("rows", ROW_ORDERS)
-def test_scryfall_to_uuid_without_side_is_order_independent(rows: list[dict[str, Any]]) -> None:
-    # Mapping files written before the side column existed still get a stable pick.
-    assert _context(_mapping(rows, with_side=False)).scryfall_to_uuid == {
-        DFC_SCRYFALL_ID: BACK_UUID,
-        SINGLE_SCRYFALL_ID: SINGLE_UUID,
-    }
+def test_scryfall_mapping_keeps_front_face(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, rows: list[dict[str, Any]]
+) -> None:
+    monkeypatch.setattr(constants, "CACHE_PATH", tmp_path)
+    monkeypatch.setattr(GLOBAL_CACHE, "scryfall_to_uuid_lf", None)
+
+    _build_id_mappings(PipelineContext(_cache=GLOBAL_CACHE), _cards(rows).lazy())
+
+    persisted = pl.read_parquet(tmp_path / "scryfall_to_uuid.parquet")
+    assert persisted.columns == ["uuid", "scryfallId"]
+    assert sorted(persisted.rows()) == sorted([(FRONT_UUID, DFC_SCRYFALL_ID), (SINGLE_UUID, SINGLE_SCRYFALL_ID)])
+
+
+@pytest.mark.parametrize("sides", [("a", None), (None, "a")])
+def test_scryfall_mapping_breaks_front_face_ties_by_uuid(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, sides: tuple[str | None, str | None]
+) -> None:
+    # A row with no side counts as a front face, so it neither beats nor loses to side "a".
+    monkeypatch.setattr(constants, "CACHE_PATH", tmp_path)
+    monkeypatch.setattr(GLOBAL_CACHE, "scryfall_to_uuid_lf", None)
+    rows = [
+        {"uuid": FRONT_UUID, "scryfallId": DFC_SCRYFALL_ID, "side": sides[0]},
+        {"uuid": SINGLE_UUID, "scryfallId": DFC_SCRYFALL_ID, "side": sides[1]},
+    ]
+
+    _build_id_mappings(PipelineContext(_cache=GLOBAL_CACHE), _cards(rows).lazy())
+
+    persisted = pl.read_parquet(tmp_path / "scryfall_to_uuid.parquet")
+    assert persisted.rows() == [(SINGLE_UUID, DFC_SCRYFALL_ID)]
+
+
+def test_scryfall_mapping_without_side_column(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(constants, "CACHE_PATH", tmp_path)
+    monkeypatch.setattr(GLOBAL_CACHE, "scryfall_to_uuid_lf", None)
+
+    _build_id_mappings(PipelineContext(_cache=GLOBAL_CACHE), _cards(ROWS).drop("side").lazy())
+
+    persisted = pl.read_parquet(tmp_path / "scryfall_to_uuid.parquet")
+    assert sorted(persisted.rows()) == sorted([(BACK_UUID, DFC_SCRYFALL_ID), (SINGLE_UUID, SINGLE_SCRYFALL_ID)])
 
 
 @pytest.mark.parametrize("cached_uuids", [[FRONT_UUID, BACK_UUID], [BACK_UUID, FRONT_UUID]])
@@ -82,9 +107,12 @@ def test_uuid_cache_fallback_is_order_independent(cached_uuids: list[str]) -> No
 
 
 @pytest.mark.parametrize("rows", ROW_ORDERS)
-def test_manapool_prices_land_on_front_face(tmp_path: Path, rows: list[dict[str, Any]]) -> None:
-    uuid_path = tmp_path / "scryfall_to_uuid.parquet"
-    _mapping(rows).write_parquet(uuid_path)
+def test_manapool_prices_land_on_front_face(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, rows: list[dict[str, Any]]
+) -> None:
+    monkeypatch.setattr(constants, "CACHE_PATH", tmp_path)
+    monkeypatch.setattr(GLOBAL_CACHE, "scryfall_to_uuid_lf", None)
+    _build_id_mappings(PipelineContext(_cache=GLOBAL_CACHE), _cards(rows).lazy())
     raw_path = tmp_path / "manapool_raw.parquet"
     pl.DataFrame(
         {
@@ -95,14 +123,14 @@ def test_manapool_prices_land_on_front_face(tmp_path: Path, rows: list[dict[str,
         }
     ).write_parquet(raw_path)
 
-    result = PolarsPriceBuilder()._map_manapool_raw(raw_path, uuid_path)
+    result = PolarsPriceBuilder()._map_manapool_raw(raw_path, tmp_path / "scryfall_to_uuid.parquet")
 
     assert sorted(zip(result["uuid"].to_list(), result["price"].to_list(), strict=True)) == sorted(
         [(FRONT_UUID, 1.5), (SINGLE_UUID, 2.5)]
     )
 
 
-def test_build_id_mappings_persists_side_for_scryfall_mapping(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_other_mappings_keep_all_rows(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(constants, "CACHE_PATH", tmp_path)
     monkeypatch.setattr(GLOBAL_CACHE, "scryfall_to_uuid_lf", None)
     monkeypatch.setattr(GLOBAL_CACHE, "mtgo_to_uuid_lf", None)
@@ -116,23 +144,21 @@ def test_build_id_mappings_persists_side_for_scryfall_mapping(tmp_path: Path, mo
 
     _build_id_mappings(PipelineContext(_cache=GLOBAL_CACHE), cards.lazy())
 
-    persisted = pl.read_parquet(tmp_path / "scryfall_to_uuid.parquet")
-    assert sorted(persisted.columns) == ["scryfallId", "side", "uuid"]
-    assert sorted(persisted.rows()) == sorted([(FRONT_UUID, DFC_SCRYFALL_ID, "a"), (BACK_UUID, DFC_SCRYFALL_ID, "b")])
-    # Other mappings keep their two-column shape.
-    assert pl.read_parquet(tmp_path / "mtgo_to_uuid.parquet").columns == ["uuid", "mtgoId"]
+    mtgo = pl.read_parquet(tmp_path / "mtgo_to_uuid.parquet")
+    assert mtgo.columns == ["uuid", "mtgoId"]
+    assert sorted(mtgo.rows()) == sorted([(FRONT_UUID, "1"), (BACK_UUID, "2")])
 
 
-def test_build_id_mappings_from_parquet_keeps_side(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_id_mappings_from_parquet_uses_side(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(constants, "CACHE_PATH", tmp_path)
     monkeypatch.setattr(GLOBAL_CACHE, "scryfall_to_uuid_lf", None)
 
-    def write_partition(subdir: str, uuid: str, side: str | None) -> None:
-        part = tmp_path / subdir / "setCode=TST"
+    def write_partition(subdir: str, set_code: str, uuid: str, side: str | None) -> None:
+        part = tmp_path / subdir / f"setCode={set_code}"
         part.mkdir(parents=True)
         data: dict[str, Any] = {
             "uuid": [uuid],
-            "setCode": ["TST"],
+            "setCode": [set_code],
             "name": ["Card"],
             "number": ["1"],
             "identifiers": [{**NO_IDS, "scryfallId": DFC_SCRYFALL_ID if side else SINGLE_SCRYFALL_ID}],
@@ -142,13 +168,12 @@ def test_build_id_mappings_from_parquet_keeps_side(tmp_path: Path, monkeypatch: 
             data["side"] = [side]
         pl.DataFrame(data).write_parquet(part / "0.parquet")
 
-    write_partition("_parquet", FRONT_UUID, "a")
-    # A partition without a side column (e.g. tokens) still maps, with a null side.
-    write_partition("_parquet_tokens", SINGLE_UUID, None)
+    write_partition("_parquet", "TS1", BACK_UUID, "b")
+    write_partition("_parquet", "TS2", FRONT_UUID, "a")
+    # A partition without a side column (e.g. tokens) still maps.
+    write_partition("_parquet_tokens", "TST", SINGLE_UUID, None)
 
     build_id_mappings_from_parquet(PipelineContext(_cache=GLOBAL_CACHE))
 
     persisted = pl.read_parquet(tmp_path / "scryfall_to_uuid.parquet")
-    assert sorted(persisted.rows(), key=str) == sorted(
-        [(FRONT_UUID, DFC_SCRYFALL_ID, "a"), (SINGLE_UUID, SINGLE_SCRYFALL_ID, None)], key=str
-    )
+    assert sorted(persisted.rows()) == sorted([(FRONT_UUID, DFC_SCRYFALL_ID), (SINGLE_UUID, SINGLE_SCRYFALL_ID)])
