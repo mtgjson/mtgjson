@@ -84,19 +84,34 @@ def join_cardmarket_ids(
     # and its serialized counterpart). Use the Cardmarket lookup as a fallback
     # for cards that do not have a Scryfall Cardmarket ID.
     lf = lf.with_columns(
-        [
-            pl.coalesce(
-                pl.col("cardmarketId").cast(pl.String),
-                pl.col("mcmId"),
-                pl.col("_mcmId2"),
-            ).alias("mcmId"),
-            pl.coalesce(
-                pl.col("mcmMetaId"),
-                pl.col("_mcmMetaId2"),
-            ).alias("mcmMetaId"),
-        ]
+        pl.coalesce(
+            pl.col("cardmarketId").cast(pl.String),
+            pl.col("mcmId"),
+            pl.col("_mcmId2"),
+        ).alias("mcmId"),
     )
-    lf = lf.drop(["_join_name", "_join_number", "_mcmId2", "_mcmMetaId2"])
+
+    # Take mcmMetaId from the product mcmId points to. The name/number joins
+    # miss cards whose number Cardmarket doesn't use, such as RVR #404z, which
+    # Scryfall maps to a product Cardmarket numbers 404.
+    all_products = ctx.mcm_price_lookup_lf
+    if all_products is None:
+        all_products = mcm_df.lazy()
+    meta_by_id = (
+        all_products.select(["mcmId", "mcmMetaId"])
+        .filter(pl.col("mcmMetaId").is_not_null())
+        .unique(subset=["mcmId"], keep="first")
+        .rename({"mcmMetaId": "_mcmMetaIdById"})
+    )
+    lf = lf.join(meta_by_id, on="mcmId", how="left")
+    lf = lf.with_columns(
+        pl.coalesce(
+            pl.col("_mcmMetaIdById"),
+            pl.col("mcmMetaId"),
+            pl.col("_mcmMetaId2"),
+        ).alias("mcmMetaId"),
+    )
+    lf = lf.drop(["_join_name", "_join_number", "_mcmId2", "_mcmMetaId2", "_mcmMetaIdById"])
 
     return lf
 
