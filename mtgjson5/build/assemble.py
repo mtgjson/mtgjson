@@ -29,6 +29,9 @@ if TYPE_CHECKING:
     from .context import AssemblyContext
 
 EXTRA_SORT_COLS = ["isOversized", "isPromo", "isOnlineOnly"]
+# Unique per printing; breaks ties between equally preferred printings so the
+# representative printing (and anything derived from it) is the same on every build.
+TIEBREAK_SORT_COLS = ["setCode", "number", "uuid"]
 
 
 def compute_format_legal_sets(
@@ -125,7 +128,9 @@ class Assembler:
             self.ctx.parquet_dir / "**/*.parquet",
             cast_options=pl.ScanCastOptions(missing_struct_fields="insert"),
         )
-        return lf.unique(subset=["uuid"])
+        # keep="first" over the file scan order, so a uuid present in several
+        # files resolves to the same row on every build.
+        return lf.unique(subset=["uuid"], keep="first")
 
     def load_all_tokens(self) -> pl.LazyFrame:
         """Load all tokens as LazyFrame."""
@@ -368,7 +373,7 @@ class AtomicCardsAssembler(Assembler):
             select_cols.append("name")
 
         # Temporarily include printing-level columns for sort preference
-        extra_cols = [c for c in EXTRA_SORT_COLS if c in available and c not in select_cols]
+        extra_cols = [c for c in [*EXTRA_SORT_COLS, *TIEBREAK_SORT_COLS] if c in available and c not in select_cols]
         select_with_extras = select_cols + extra_cols
 
         # Build sort expressions: prefer non-oversized, non-funny, non-promo, side="a",
@@ -382,13 +387,18 @@ class AtomicCardsAssembler(Assembler):
         if "legalities" in available:
             sort_exprs.append(pl.col("legalities").struct.field("vintage").is_null())
         if "foreignData" in available:
-            sort_exprs.append(pl.col("foreignData").list.len().cast(pl.Int32).neg())
+            sort_exprs.append(pl.col("foreignData").list.len().fill_null(0).cast(pl.Int32).neg())
         if "side" in available:
             sort_exprs.append(pl.col("side").fill_null(""))
+        # Total order: printings that tie on every preference above would otherwise
+        # come out in scan order, which is not stable between builds.
+        for col_name in TIEBREAK_SORT_COLS:
+            if col_name in available:
+                sort_exprs.append(pl.col(col_name))
 
         df = lf.select(select_with_extras)
         if sort_exprs:
-            df = df.sort(sort_exprs)
+            df = df.sort(sort_exprs, maintain_order=True)
 
         # Collect ALL printings before dedup so we can consolidate foreignData/legalities
         all_rows_df = df.collect()
@@ -407,7 +417,8 @@ class AtomicCardsAssembler(Assembler):
         deduped = all_rows_df.unique(
             subset=list(ORACLE_IDENTITY_COLS),
             keep="first",
-        ).sort(["name", "side"])
+            maintain_order=True,
+        ).sort(["name", "side"], maintain_order=True)
         if extra_cols:
             deduped = deduped.drop(extra_cols)
 
