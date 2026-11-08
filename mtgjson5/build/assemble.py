@@ -971,7 +971,7 @@ class TcgplayerSkusAssembler(Assembler):
                     .str.replace("_", " ")
                     .alias("printing"),
                     pl.col("conditionId").replace_strict(CONDITION_MAP, default="UNKNOWN").alias("condition"),
-                    pl.col("name").alias("productName"),
+                    pl.col("name").fill_null("").alias("productName"),
                 ]
             )
             .with_columns(
