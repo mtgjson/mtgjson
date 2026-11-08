@@ -87,7 +87,7 @@ class PostgresBuilder:
 
         Creates all normalized tables matching the SQLite/MySQL exports:
         - cards, cardIdentifiers, cardLegalities, cardForeignData, cardRulings, cardPurchaseUrls
-        - tokens, tokenIdentifiers
+        - tokens, tokenIdentifiers, tokenProducts, tokenProductParts, tokenProductIdentifiers
         - sets, setTranslations
         - setBoosterSheets, setBoosterSheetCards, setBoosterContents, setBoosterContentWeights
         - meta

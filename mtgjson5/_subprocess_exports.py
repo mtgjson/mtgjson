@@ -106,9 +106,7 @@ def run_exports(
 
         from mtgjson5.build.writer import UnifiedOutputWriter
 
-        writer = UnifiedOutputWriter.from_cache(
-            skip=frozenset({"token_products"}),
-        )
+        writer = UnifiedOutputWriter.from_cache()
         sp.checkpoint("cache_loaded")
         if writer is None:
             _log.warning("Subprocess: no assembly cache found, skipping exports")

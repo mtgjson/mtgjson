@@ -408,7 +408,7 @@ class AssemblyContext:
         cards_df = self.all_cards_df
         if cards_df is None:
             return {}
-        return TableAssembler.build_all(cards_df, self.all_tokens_df, self.sets_df)
+        return TableAssembler.build_all(cards_df, self.all_tokens_df, self.sets_df, self.token_products)
 
     @cached_property
     def normalized_boosters(self) -> dict[str, pl.DataFrame]:
@@ -467,6 +467,9 @@ class AssemblyContext:
                 token_products = {
                     uuid: json.loads(raw) for uuid, raw in zip(uuids, raw_products, strict=False) if uuid and raw
                 }
+                from .token_products import add_token_product_uuids
+
+                add_token_product_uuids(token_products)
 
         meta_obj = MtgjsonMeta()
         meta_dict = {"date": meta_obj.date, "version": meta_obj.version}

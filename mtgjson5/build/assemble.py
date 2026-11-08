@@ -1277,6 +1277,7 @@ class TableAssembler:
         cards_df: pl.DataFrame,
         tokens_df: pl.DataFrame | None = None,
         sets_df: pl.DataFrame | None = None,
+        token_products: dict[str, list[dict[str, Any]]] | None = None,
     ) -> dict[str, pl.DataFrame]:
         """
         Build all normalized tables for SQL/CSV export.
@@ -1285,6 +1286,7 @@ class TableAssembler:
             Dict mapping table name to DataFrame
         """
         from .serializers import normalize_optional_fields, serialize_complex_types
+        from .token_products import build_token_product_tables
 
         tables: dict[str, pl.DataFrame] = {}
 
@@ -1365,6 +1367,10 @@ class TableAssembler:
                     .filter(pl.col("identifiers").is_not_null())
                     .unnest("identifiers")
                 )
+
+        # tokenProducts, tokenProductParts, tokenProductIdentifiers
+        for name, df in build_token_product_tables(token_products).items():
+            tables[name] = serialize_complex_types(df)
 
         # sets - serialize list columns as JSON strings, exclude translations (normalized)
         if sets_df is not None and len(sets_df) > 0:

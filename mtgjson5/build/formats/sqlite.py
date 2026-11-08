@@ -29,6 +29,9 @@ TABLE_INDEXES = {
     "cardRulings": [("uuid", "uuid")],
     "cardPurchaseUrls": [("uuid", "uuid")],
     "tokenIdentifiers": [("uuid", "uuid")],
+    "tokenProducts": [("uuid", "uuid")],
+    "tokenProductParts": [("tokenProductUuid", "tokenProductUuid"), ("uuid", "uuid")],
+    "tokenProductIdentifiers": [("tokenProductUuid", "tokenProductUuid")],
     "setTranslations": [("code", "code")],
     "setBoosterSheets": [("setCode", "setCode")],
     "setBoosterSheetCards": [("setCode", "setCode"), ("cardUuid", "cardUuid")],
@@ -105,7 +108,7 @@ class SQLiteBuilder:
 
         Creates all normalized tables matching the CDN reference:
         - cards, cardIdentifiers, cardLegalities, cardForeignData, cardRulings, cardPurchaseUrls
-        - tokens, tokenIdentifiers
+        - tokens, tokenIdentifiers, tokenProducts, tokenProductParts, tokenProductIdentifiers
         - sets, setTranslations
         - setBoosterSheets, setBoosterSheetCards, setBoosterContents, setBoosterContentWeights
         - meta
