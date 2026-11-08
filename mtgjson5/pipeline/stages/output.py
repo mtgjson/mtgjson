@@ -391,7 +391,8 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
     - tcg_to_uuid: TCGPlayer product ID -> UUID
     - tcg_etched_to_uuid: TCGPlayer etched product ID -> UUID
     - mtgo_to_uuid: MTGO ID -> UUID
-    - scryfall_to_uuid: Scryfall ID -> UUID
+    - scryfall_to_uuid: Scryfall ID -> UUID, one row per Scryfall ID (see
+      _one_uuid_per_scryfall_id)
     - cardmarket_to_uuid: CardMarket ID -> UUID
 
     Uses a single .collect() to extract all ID fields at once,
@@ -412,6 +413,8 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
         combined_df = lf.select(
             [
                 pl.col("uuid"),
+                # Regex select so frames without a side column still work
+                pl.col("^side$"),
                 *[pl.col("identifiers").struct.field(cfg[0]).alias(cfg[0]) for cfg in mapping_configs],
             ]
         ).collect()
@@ -421,7 +424,10 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
 
     for id_col, parquet_name, cache_attr in mapping_configs:
         try:
-            mapping_df = combined_df.select(["uuid", id_col]).filter(pl.col(id_col).is_not_null()).unique()
+            if id_col == "scryfallId":
+                mapping_df = _one_uuid_per_scryfall_id(combined_df.filter(pl.col(id_col).is_not_null()))
+            else:
+                mapping_df = combined_df.select(["uuid", id_col]).filter(pl.col(id_col).is_not_null()).unique()
             if len(mapping_df) > 0:
                 path = cache_path / f"{parquet_name}.parquet"
                 mapping_df.write_parquet(path)
@@ -434,6 +440,26 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
     del combined_df
 
     _build_mcm_price_mapping_cache(ctx, lf)
+
+
+def _one_uuid_per_scryfall_id(df: pl.DataFrame) -> pl.DataFrame:
+    """Keep one UUID per Scryfall ID, choosing the same one on every build.
+
+    The faces of a multi-face card share a Scryfall ID, and Card Kingdom and
+    Manapool prices are keyed by Scryfall ID, so prices must land on a single
+    face. Prefer a front face (side "a", or no side for single-faced cards),
+    then the lowest UUID, so the pick never depends on row order.
+    """
+    sort_by = [pl.col("uuid")]
+    if "side" in df.columns:
+        df = df.select(["uuid", "scryfallId", "side"])
+        is_back_face = pl.col("side").is_not_null() & (pl.col("side") != "a")
+        sort_by.insert(0, is_back_face)
+    else:
+        LOGGER.warning("No side column for scryfall_to_uuid; multi-face cards fall back to the lowest UUID")
+    return (
+        df.sort(sort_by).unique(subset=["scryfallId"], keep="first", maintain_order=True).select(["uuid", "scryfallId"])
+    )
 
 
 def _build_mcm_price_mapping_cache(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
@@ -579,6 +605,8 @@ def build_id_mappings_from_parquet(ctx: PipelineContext) -> None:
         return pl.scan_parquet(pq_file).select(
             [
                 pl.col("uuid").cast(pl.String),
+                # Token partitions may lack side; diagonal concat fills it with null
+                pl.col("^side$").cast(pl.String),
                 pl.col("setCode").cast(pl.String),
                 pl.col("name").cast(pl.String),
                 pl.col("number").cast(pl.String),
@@ -603,7 +631,7 @@ def build_id_mappings_from_parquet(ctx: PipelineContext) -> None:
         LOGGER.warning("No parquet partitions found for ID mapping build")
         return
 
-    combined_lf = pl.concat(frames)
+    combined_lf = pl.concat(frames, how="diagonal_relaxed")
     _build_id_mappings(ctx, combined_lf)
     LOGGER.info("Post-batch ID mappings built from parquet partitions")
 
