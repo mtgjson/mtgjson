@@ -911,6 +911,10 @@ const tcgplayerSkus: TcgplayerSkus = data["00010d56-fe38-5e35-8aed-518019aa36a5"
             "introduced": "v5.1.0",
             "type_override": "string",
         },
+        "productName": {
+            "description": "The name of the product on TCGplayer, including any suffix it uses to tell printings apart, such as `(Borderless)`.",
+            "introduced": "v5.3.2",
+        },
         "skuId": {
             "description": "The SKU identifier of the card.",
             "introduced": "v5.1.0",
@@ -923,6 +927,7 @@ const tcgplayerSkus: TcgplayerSkus = data["00010d56-fe38-5e35-8aed-518019aa36a5"
     language: Required[str]
     printing: Required[str]
     productId: Required[int]
+    productName: Required[str]
     skuId: Required[int]
 
 

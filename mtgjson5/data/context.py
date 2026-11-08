@@ -1366,8 +1366,10 @@ class PipelineContext:
         else:
             alt_count = len(alt_foil)
         if alt_count == 0:
-            # A catalog recovered from the last published TcgplayerSkus.json
-            # carries no product names, so a build that fell back lands here.
+            # A catalog recovered from a published TcgplayerSkus.json that
+            # predates productName carries no product names, so a build that
+            # fell back to one lands here. Newer files restore the names but
+            # not group IDs, so such a build finds no pairs further down.
             LOGGER.warning("tcg_alt_foil: No alt-foil products found; alternative foil IDs will be absent")
             return
 

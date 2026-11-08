@@ -944,8 +944,8 @@ class TcgplayerSkusAssembler(Assembler):
         """Build lazy flattened SKU pipeline (no materialization).
 
         Returns:
-            LazyFrame with columns: productId, skuId, condition, language, printing.
-            None if data is unavailable.
+            LazyFrame with columns: productId, productName, skuId, condition,
+            language, printing. None if data is unavailable.
         """
         from mtgjson5.providers.tcgplayer.models import (
             CONDITION_MAP,
@@ -971,6 +971,7 @@ class TcgplayerSkusAssembler(Assembler):
                     .str.replace("_", " ")
                     .alias("printing"),
                     pl.col("conditionId").replace_strict(CONDITION_MAP, default="UNKNOWN").alias("condition"),
+                    pl.col("name").alias("productName"),
                 ]
             )
             .with_columns(
@@ -986,9 +987,9 @@ class TcgplayerSkusAssembler(Assembler):
 
         Returns:
             List of LazyFrames, each with columns: uuid, condition, language,
-            printing, productId, skuId, finish.
+            printing, productId, productName, skuId, finish.
         """
-        sku_fields = ["condition", "language", "printing", "productId", "skuId"]
+        sku_fields = ["condition", "language", "printing", "productId", "productName", "skuId"]
         parts: list[pl.LazyFrame] = []
 
         def _lazy_join(
@@ -1100,7 +1101,7 @@ class TcgplayerSkusAssembler(Assembler):
         flat_df.write_parquet(cache_path, compression="zstd", compression_level=3)
         LOGGER.info(f"TcgplayerSkus: cached flat result to {cache_path.name}")
 
-        sku_fields = ["condition", "language", "printing", "productId", "skuId", "finish"]
+        sku_fields = ["condition", "language", "printing", "productId", "productName", "skuId", "finish"]
         count = 0
         for prefix in "0123456789abcdef":
             chunk = flat_df.filter(pl.col("uuid").str.starts_with(prefix))
