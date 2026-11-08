@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import polars as pl
 
+from mtgjson5.build.assemble import _clean_row
+from mtgjson5.consts import WUBRG_COLOR_LAYOUTS
 from mtgjson5.models.cards import CardSet
 from mtgjson5.pipeline.expressions import order_finishes_expr, sort_colors_wubrg_expr
 
@@ -100,6 +102,21 @@ class TestColorsWubrgForSplitLayout:
         card = _make_card_set(layout="adventure", colors=["R", "W"])
         d = card.to_polars_dict()
         assert d["colors"] == ["W", "R"]
+
+    def test_prepare_preserves_wubrg(self):
+        card = _make_card_set(layout="prepare", colors=["G", "U"])
+        d = card.to_output_dict()
+        assert d["colors"] == ["U", "G"]
+
+    def test_clean_row_matches_model_ordering(self):
+        """build.assemble._clean_row and the card models share WUBRG_COLOR_LAYOUTS."""
+        for layout in WUBRG_COLOR_LAYOUTS:
+            row = {"layout": layout, "colors": ["G", "R", "B", "U", "W"]}
+            assert _clean_row(row)["colors"] == ["W", "U", "B", "R", "G"]
+
+    def test_clean_row_leaves_other_layouts_alpha(self):
+        row = {"layout": "normal", "colors": ["W", "R", "G"]}
+        assert _clean_row(row)["colors"] == ["G", "R", "W"]
 
 
 # =============================================================================

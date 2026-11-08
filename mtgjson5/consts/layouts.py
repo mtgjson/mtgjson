@@ -111,6 +111,17 @@ SPLIT_COLOR_LAYOUTS: Final[frozenset[str]] = frozenset(
     }
 )
 
+# Layouts whose colors are emitted in WUBRG order instead of alphabetical
+WUBRG_COLOR_LAYOUTS: Final[frozenset[str]] = frozenset(
+    {
+        LayoutVariant.SPLIT.value,
+        LayoutVariant.ADVENTURE.value,
+        LayoutVariant.PREPARE.value,
+    }
+)
+
+WUBRG_ORDER: Final[dict[str, int]] = {"W": 0, "U": 1, "B": 2, "R": 3, "G": 4}
+
 
 def is_multiface(layout: str) -> bool:
     """Check if layout has multiple faces."""
