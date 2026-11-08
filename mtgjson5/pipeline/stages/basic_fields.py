@@ -137,12 +137,6 @@ def add_basic_fields(lf: pl.LazyFrame, _set_release_date: str = "") -> pl.LazyFr
                 .then(extract_colors_from_mana_expr(pl.col("_face_data").struct.field("mana_cost")))
                 .when((pl.col("layout").is_in(["adventure", "prepare"])) & (pl.col("side") == "a"))
                 .then(sort_colors_wubrg_expr(face_field("colors")))
-                .when(
-                    (pl.col("layout").is_in(["adventure", "prepare"]))
-                    & (pl.col("side") == "b")
-                    & (pl.col("typeLine").str.contains(r"(?i)\bLand\b").max().over("scryfallId"))
-                )
-                .then(pl.lit([]).cast(pl.List(pl.String)))
                 .when((pl.col("layout").is_in(["adventure", "prepare"])) & (pl.col("side") == "b"))
                 .then(extract_colors_from_mana_expr(pl.col("_face_data").struct.field("mana_cost")))
                 .otherwise(sort_colors_wubrg_expr(face_field("colors")))
