@@ -372,7 +372,8 @@ class AtomicCardsAssembler(Assembler):
             set_code = row.get("setCode")
             if not set_code or row.get("isReprint"):
                 continue
-            release_date = self.get_set_metadata(set_code).get("releaseDate") or "9999-99-99"
+            # str() so a date-typed releaseDate compares cleanly against the sentinel
+            release_date = str(self.get_set_metadata(set_code).get("releaseDate") or "9999-99-99")
             candidate = (release_date, set_code)
             key = _oracle_key(row)
             if key not in best or candidate < best[key]:
@@ -427,20 +428,18 @@ class AtomicCardsAssembler(Assembler):
         # Collect ALL printings before dedup so we can consolidate foreignData/legalities
         all_rows_df = df.collect()
 
-        # Narrow: only oracle identity + the 2 data columns needed for lookups
+        # Narrow: only oracle identity + the columns needed for the per-oracle lookups
         lookup_cols = [
-            c for c in [*list(ORACLE_IDENTITY_COLS), "foreignData", "legalities"] if c in all_rows_df.columns
+            c
+            for c in [*ORACLE_IDENTITY_COLS, "foreignData", "legalities", "setCode", *FIRST_PRINTING_COLS]
+            if c in all_rows_df.columns
         ]
         lookup_rows = all_rows_df.select(lookup_cols).to_dicts()
 
         # Build consolidated lookups from all printings
         foreign_lookup, legalities_lookup = self._build_oracle_lookups(lookup_rows)
+        first_printing_lookup = self._build_first_printing_lookup(lookup_rows)
         del lookup_rows
-
-        first_printing_cols = [
-            c for c in [*ORACLE_IDENTITY_COLS, "setCode", *FIRST_PRINTING_COLS] if c in all_rows_df.columns
-        ]
-        first_printing_lookup = self._build_first_printing_lookup(all_rows_df.select(first_printing_cols).to_dicts())
 
         # Now dedup on the collected DataFrame
         deduped = all_rows_df.unique(
