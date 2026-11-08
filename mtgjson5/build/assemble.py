@@ -1261,6 +1261,14 @@ class CardmarketIdentifiersAssembler(Assembler):
         return {"expansions": expansions, "products": products}
 
 
+def _sort_rows(df: pl.DataFrame, keys: list[str]) -> pl.DataFrame:
+    """Sort by whichever of ``keys`` exist, so table row order is reproducible."""
+    present = [k for k in keys if k in df.columns]
+    if not present:
+        return df
+    return df.sort(present, nulls_last=True, maintain_order=True)
+
+
 class TableAssembler:
     """Build normalized relational tables from card data."""
 
@@ -1280,8 +1288,10 @@ class TableAssembler:
 
         tables: dict[str, pl.DataFrame] = {}
 
-        # Deduplicate by UUID upfront so all normalized tables are consistent
-        cards_df = cards_df.unique(subset=["uuid"])
+        # Deduplicate by UUID upfront so all normalized tables are consistent,
+        # then fix the row order so SQL/CSV/Parquet output is reproducible.
+        # Tables derived from cards_df below inherit this order.
+        cards_df = _sort_rows(cards_df.unique(subset=["uuid"], keep="first", maintain_order=True), ["setCode", "uuid"])
         schema = cards_df.schema
 
         # Select card columns, excluding normalized and non-CDN fields
@@ -1313,6 +1323,7 @@ class TableAssembler:
                 .explode("foreignData", empty_as_null=True)
                 .unnest("foreignData")
             )
+            foreign_df = _sort_rows(foreign_df, ["_card_uuid", "language", "uuid"])
             # Drop struct's uuid if present, keep card's uuid
             if "uuid" in foreign_df.columns:
                 foreign_df = foreign_df.drop("uuid")
@@ -1328,6 +1339,7 @@ class TableAssembler:
                 .drop("source")
                 .rename({"publishedAt": "date", "comment": "text"})
                 .with_columns(pl.col("date").str.to_date("%Y-%m-%d"))
+                .sort("uuid", "date", "text", maintain_order=True)
             )
 
         # cardPurchaseUrls - unnest struct
@@ -1340,6 +1352,7 @@ class TableAssembler:
 
         # tokens - serialize list columns as JSON strings (like cards)
         if tokens_df is not None and len(tokens_df) > 0:
+            tokens_df = _sort_rows(tokens_df, ["setCode", "uuid"])
             token_schema = tokens_df.schema
             token_cols = [c for c in tokens_df.columns if c not in TOKENS_TABLE_EXCLUDE and not c.startswith("_")]
             tokens_for_export = tokens_df.select(token_cols)
@@ -1355,6 +1368,7 @@ class TableAssembler:
 
         # sets - serialize list columns as JSON strings, exclude translations (normalized)
         if sets_df is not None and len(sets_df) > 0:
+            sets_df = _sort_rows(sets_df, ["code"])
             sets_schema = sets_df.schema
             sets_cols = [c for c in sets_df.columns if c not in SETS_TABLE_EXCLUDE and not c.startswith("_")]
             sets_for_export = sets_df.select(sets_cols)
@@ -1394,6 +1408,7 @@ class TableAssembler:
                     # Drop setCode from struct if present (redundant with parent code)
                     if "setCode" in sealed_exploded.columns:
                         sealed_exploded = sealed_exploded.drop("setCode")
+                    sealed_exploded = _sort_rows(sealed_exploded, ["_set_code", "uuid"])
                     tables["sealedProducts"] = serialize_complex_types(sealed_exploded.rename({"_set_code": "setCode"}))
 
             # setDecks - explode list of structs

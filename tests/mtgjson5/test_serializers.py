@@ -136,6 +136,24 @@ class TestSerializeComplexTypes:
         assert vals[0] is not None
         assert vals[1] is None
 
+    def test_sorted_list_fields_are_sorted(self):
+        """SORTED_LIST_FIELDS are sorted before joining, like the JSON output (#1705)."""
+        df = pl.DataFrame(
+            {
+                "promoTypes": [["neoninkblue", "neonink"], ["neonink", "neoninkblue"]],
+                "attractionLights": [[6, 2, 4], [2, 4, 6]],
+            },
+            schema={"promoTypes": pl.List(pl.String), "attractionLights": pl.List(pl.Int64)},
+        )
+        result = serialize_complex_types(df)
+        assert result["promoTypes"].to_list() == ["neonink, neoninkblue", "neonink, neoninkblue"]
+        assert result["attractionLights"].to_list() == ["2, 4, 6", "2, 4, 6"]
+
+    def test_unsorted_list_fields_keep_order(self):
+        df = pl.DataFrame({"subtypes": [["Human", "Cleric"]]})
+        result = serialize_complex_types(df)
+        assert result["subtypes"].to_list() == ["Human, Cleric"]
+
 
 # =============================================================================
 # _drop_nulls
@@ -273,11 +291,11 @@ class TestListOfStructSerialization:
     def test_list_of_string_still_uses_csv(self):
         """List[String] columns should still use comma-separated format."""
         df = pl.DataFrame(
-            [{"colors": ["R", "G"]}],
+            [{"colors": ["G", "R"]}],
             schema={"colors": pl.List(pl.String)},
         )
         result = serialize_complex_types(df)
-        assert result["colors"][0] == "R, G"
+        assert result["colors"][0] == "G, R"
 
     def test_struct_still_uses_json(self):
         """Struct columns should still use JSON serialization."""

@@ -262,6 +262,61 @@ class TestBuildAllCards:
         assert "_debug" not in tables["cards"].columns
 
 
+class TestBuildAllReproducibleOrder:
+    """Row order must not depend on input order, so SQL exports are byte-reproducible (#1705)."""
+
+    @staticmethod
+    def _rows() -> list[dict[str, Any]]:
+        def card(uuid: str, set_code: str, foreign: list[dict[str, Any]], rulings: list[dict[str, Any]]):
+            return {
+                "uuid": uuid,
+                "name": f"Card {uuid}",
+                "setCode": set_code,
+                "number": "1",
+                "type": "Instant",
+                "colors": ["R"],
+                "identifiers": {"scryfallId": f"sf-{uuid}", "multiverseId": None},
+                "legalities": {"vintage": "Legal", "modern": None},
+                "rulings": rulings,
+                "foreignData": foreign,
+                "purchaseUrls": {"tcgplayer": None},
+            }
+
+        return [
+            card("uuid-c", "BBB", [], []),
+            card(
+                "uuid-b",
+                "AAA",
+                [
+                    {"language": "Spanish", "name": "Es", "uuid": "f-2"},
+                    {"language": "German", "name": "De", "uuid": "f-1"},
+                ],
+                [
+                    {"publishedAt": "2021-01-01", "comment": "Later.", "source": "wotc"},
+                    {"publishedAt": "2020-01-01", "comment": "Earlier.", "source": "wotc"},
+                ],
+            ),
+            card("uuid-a", "BBB", [], []),
+        ]
+
+    def test_tables_independent_of_input_order(self):
+        rows = self._rows()
+        forward = TableAssembler.build_all(_make_cards_df(rows))
+        backward = TableAssembler.build_all(_make_cards_df(list(reversed(rows))))
+        assert forward.keys() == backward.keys()
+        for name, table in forward.items():
+            assert table.equals(backward[name]), name
+
+    def test_cards_sorted_by_set_then_uuid(self):
+        tables = TableAssembler.build_all(_make_cards_df(self._rows()))
+        assert tables["cards"]["uuid"].to_list() == ["uuid-b", "uuid-a", "uuid-c"]
+
+    def test_child_rows_sorted(self):
+        tables = TableAssembler.build_all(_make_cards_df(self._rows()))
+        assert tables["cardForeignData"]["language"].to_list() == ["German", "Spanish"]
+        assert tables["cardRulings"]["text"].to_list() == ["Earlier.", "Later."]
+
+
 # =============================================================================
 # TestBuildAllCardIdentifiers
 # =============================================================================

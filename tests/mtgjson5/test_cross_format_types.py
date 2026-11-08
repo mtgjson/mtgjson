@@ -82,10 +82,10 @@ def _write_table_direct(
 
 class TestSerializeComplexTypesListToCsv:
     def test_list_to_csv_string(self):
-        df = pl.DataFrame({"colors": [["W", "U"]]}, schema={"colors": pl.List(pl.String)})
+        df = pl.DataFrame({"colors": [["U", "W"]]}, schema={"colors": pl.List(pl.String)})
         result = serialize_complex_types(df)
         assert result["colors"].dtype == pl.String
-        assert result["colors"][0] == "W, U"
+        assert result["colors"][0] == "U, W"
 
     def test_struct_to_json(self):
         df = pl.DataFrame(
@@ -121,13 +121,13 @@ class TestSqliteTypeStorage:
 
     def test_list_to_text(self, db):
         df = pl.DataFrame(
-            {"colors": [["W", "U"]]},
+            {"colors": [["U", "W"]]},
             schema={"colors": pl.List(pl.String)},
         )
         _write_table_direct(db.cursor(), "test", df)
         db.commit()
         val = db.execute("SELECT colors FROM test").fetchone()[0]
-        assert val == "W, U"
+        assert val == "U, W"
 
     def test_struct_to_json_text(self, db):
         df = pl.DataFrame(
