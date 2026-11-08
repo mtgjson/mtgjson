@@ -51,8 +51,11 @@ def serialize_complex_types(df: pl.DataFrame) -> pl.DataFrame:
     """Convert List and Struct columns to SQL-compatible strings.
 
     Lists are converted to comma-separated strings (e.g., "Defender, Flying").
+    Lists named in SORTED_LIST_FIELDS are sorted first, matching the JSON output.
     Structs are converted to JSON strings with null values removed.
     """
+    from mtgjson5.consts import SORTED_LIST_FIELDS
+
     schema = df.schema
     struct_cols = [c for c in df.columns if isinstance(schema[c], pl.Struct)]
     list_cols = [c for c in df.columns if isinstance(schema[c], pl.List)]
@@ -72,11 +75,14 @@ def serialize_complex_types(df: pl.DataFrame) -> pl.DataFrame:
         for col_name in list_cols:
             col_dtype = schema[col_name]
             inner = col_dtype.inner if isinstance(col_dtype, pl.List) else None
+            col_expr = pl.col(col_name)
             if isinstance(inner, pl.Struct):
                 batch_fn = _list_of_struct_to_json_batch
             else:
                 batch_fn = _list_to_csv_batch
-            result = result.with_columns(pl.col(col_name).map_batches(batch_fn, return_dtype=pl.String).alias(col_name))
+                if col_name in SORTED_LIST_FIELDS:
+                    col_expr = col_expr.list.sort()
+            result = result.with_columns(col_expr.map_batches(batch_fn, return_dtype=pl.String).alias(col_name))
 
     return result
 
