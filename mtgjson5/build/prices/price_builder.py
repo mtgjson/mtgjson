@@ -58,6 +58,20 @@ if TYPE_CHECKING:
 LOGGER = logging.getLogger(__name__)
 
 
+def one_uuid_per_scryfall_id(lf: pl.LazyFrame, uuid_col: str = "uuid") -> pl.LazyFrame:
+    """Keep one UUID per Scryfall ID, choosing the same one on every build.
+
+    The faces of a multi-face card share a Scryfall ID. Prefer the front face
+    (side "a"; single-faced cards have no side) when a ``side`` column is
+    present, then the lowest UUID, so the pick never depends on row order.
+    """
+    sort_cols = ["scryfallId"]
+    if "side" in lf.collect_schema().names():
+        sort_cols.append("side")
+    sort_cols.append(uuid_col)
+    return lf.sort(sort_cols, nulls_last=False).unique(subset=["scryfallId"], keep="first", maintain_order=True)
+
+
 @dataclass
 class PriceBuilderContext:
     """
@@ -220,7 +234,7 @@ class PriceBuilderContext:
             return {}
 
         if self._cache.scryfall_to_uuid_lf is not None:
-            df = self._cache.scryfall_to_uuid_lf.unique(subset=["scryfallId"], keep="first").collect()
+            df = one_uuid_per_scryfall_id(self._cache.scryfall_to_uuid_lf).collect()
             if not df.is_empty():
                 return dict(
                     zip(
@@ -231,11 +245,9 @@ class PriceBuilderContext:
                 )
 
         if self._cache.uuid_cache_lf is not None:
-            df = (
-                self._cache.uuid_cache_lf.filter(pl.col("side") == "a")
-                .unique(subset=["scryfallId"], keep="first")
-                .collect()
-            )
+            df = one_uuid_per_scryfall_id(
+                self._cache.uuid_cache_lf.filter(pl.col("side") == "a"), uuid_col="cachedUuid"
+            ).collect()
             if not df.is_empty():
                 return dict(
                     zip(
@@ -626,7 +638,7 @@ class PolarsPriceBuilder:
     def _map_manapool_raw(self, raw_path: Path, uuid_path: Path) -> pl.DataFrame:
         """Join Manapool raw data with UUID mappings, unpivot finishes."""
         raw = pl.scan_parquet(raw_path)
-        sf_uuid = pl.scan_parquet(uuid_path).unique(subset=["scryfallId"], keep="first")
+        sf_uuid = one_uuid_per_scryfall_id(pl.scan_parquet(uuid_path)).select("scryfallId", "uuid")
 
         joined = raw.join(sf_uuid, on="scryfallId", how="inner").collect()
 
@@ -714,7 +726,7 @@ class PolarsPriceBuilder:
         raw_df = pl.read_parquet(raw_path)
         ck_pricing = CardKingdomTransformer.to_pricing_df(raw_df)
 
-        sf_uuid = pl.scan_parquet(uuid_path).unique(subset=["scryfallId"], keep="first").collect()
+        sf_uuid = one_uuid_per_scryfall_id(pl.scan_parquet(uuid_path)).collect()
         scryfall_to_uuid = dict(zip(sf_uuid["scryfallId"].to_list(), sf_uuid["uuid"].to_list(), strict=False))
 
         return self._convert_ck_pricing(ck_pricing, scryfall_to_uuid)

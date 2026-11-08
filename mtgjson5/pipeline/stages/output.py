@@ -391,7 +391,8 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
     - tcg_to_uuid: TCGPlayer product ID -> UUID
     - tcg_etched_to_uuid: TCGPlayer etched product ID -> UUID
     - mtgo_to_uuid: MTGO ID -> UUID
-    - scryfall_to_uuid: Scryfall ID -> UUID
+    - scryfall_to_uuid: Scryfall ID -> UUID (plus the card face ``side``, so
+      the price builder can put prices for multi-face cards on the front face)
     - cardmarket_to_uuid: CardMarket ID -> UUID
 
     Uses a single .collect() to extract all ID fields at once,
@@ -409,9 +410,11 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
     ]
 
     try:
+        has_side = "side" in lf.collect_schema().names()
         combined_df = lf.select(
             [
                 pl.col("uuid"),
+                *([pl.col("side")] if has_side else []),
                 *[pl.col("identifiers").struct.field(cfg[0]).alias(cfg[0]) for cfg in mapping_configs],
             ]
         ).collect()
@@ -421,7 +424,10 @@ def _build_id_mappings(ctx: PipelineContext, lf: pl.LazyFrame) -> None:
 
     for id_col, parquet_name, cache_attr in mapping_configs:
         try:
-            mapping_df = combined_df.select(["uuid", id_col]).filter(pl.col(id_col).is_not_null()).unique()
+            columns = ["uuid", id_col]
+            if id_col == "scryfallId" and has_side:
+                columns.append("side")
+            mapping_df = combined_df.select(columns).filter(pl.col(id_col).is_not_null()).unique()
             if len(mapping_df) > 0:
                 path = cache_path / f"{parquet_name}.parquet"
                 mapping_df.write_parquet(path)
@@ -576,9 +582,12 @@ def build_id_mappings_from_parquet(ctx: PipelineContext) -> None:
     ]
 
     def _normalized(pq_file: Path) -> pl.LazyFrame:
-        return pl.scan_parquet(pq_file).select(
+        lf = pl.scan_parquet(pq_file)
+        side = pl.col("side") if "side" in lf.collect_schema().names() else pl.lit(None)
+        return lf.select(
             [
                 pl.col("uuid").cast(pl.String),
+                side.cast(pl.String).alias("side"),
                 pl.col("setCode").cast(pl.String),
                 pl.col("name").cast(pl.String),
                 pl.col("number").cast(pl.String),
