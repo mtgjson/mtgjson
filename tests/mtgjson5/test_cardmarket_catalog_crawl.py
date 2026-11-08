@@ -139,3 +139,34 @@ class TestLoadCardmarketData:
         monkeypatch.setattr(mcm_provider, "_fetch_expansion_list", fake_fetch)
 
         mcm_provider.load_cardmarket_data(catalog)
+
+    def test_fresh_cache_refetches_stale_expansion_list(self, cache_dir, monkeypatch):
+        import os
+
+        catalog = cache_dir / "mkm_cards.parquet"
+        _write_catalog(catalog, [])
+        exp_path = cache_dir / "mkm_expansions.parquet"
+        pl.DataFrame({"expansionId": [1], "expansionName": ["X"]}).write_parquet(exp_path)
+        old = exp_path.stat().st_mtime - 72 * 3600
+        os.utime(exp_path, (old, old))
+        calls: list[bool] = []
+
+        async def fake_fetch() -> None:
+            calls.append(True)
+
+        monkeypatch.setattr(mcm_provider, "_fetch_expansion_list", fake_fetch)
+
+        mcm_provider.load_cardmarket_data(catalog)
+
+        assert calls == [True]
+
+
+class TestLegacyCache:
+    def test_cache_without_expansion_id_is_ignored(self, tmp_path):
+        out = tmp_path / "mkm_cards.parquet"
+        pl.DataFrame({"mcmId": [1], "name": ["Old"]}).write_parquet(out)
+        provider = _make_provider([(100, "Set")], {100: [_product(2, "New")]})
+
+        df = asyncio.run(provider.get_all_cards(output_path=out))
+
+        assert df["mcmId"].to_list() == [2]

@@ -162,17 +162,20 @@ class CardMarketProvider:
             return {}
 
         seen_ids: set[int] = set()
+        self._expansions = []
         for exp in data.get("expansion", []):
-            if exp.get("idExpansion") is not None and int(exp["idExpansion"]) not in seen_ids:
-                seen_ids.add(int(exp["idExpansion"]))
-                self._expansions.append((int(exp["idExpansion"]), str(exp["enName"])))
+            if exp.get("idExpansion") is not None:
+                exp_id = int(exp["idExpansion"])
+                if exp_id not in seen_ids:
+                    seen_ids.add(exp_id)
+                    self._expansions.append((exp_id, str(exp["enName"])))
             self._set_map[exp["enName"].lower()] = {
                 "mcmId": exp["idExpansion"],
                 "mcmName": exp["enName"],
             }
 
         # Persist the complete expansion list so CardmarketIdentifiers can name expansions the crawl has not covered
-        self._persist_expansion_list(data.get("expansion", []))
+        self._persist_expansion_list(self._expansions)
 
         # Apply manual fixes
         fixes_path = RESOURCE_PATH / "mkm_set_name_fixes.json"
@@ -189,18 +192,11 @@ class CardMarketProvider:
         LOGGER.info(f"Loaded {len(self._set_map)} MKM expansions")
         return self._set_map
 
-    def _persist_expansion_list(self, expansions: list[dict[str, Any]]) -> None:
-        """Write the raw expansion id/name list to the pipeline cache."""
+    def _persist_expansion_list(self, expansions: list[tuple[int, str]]) -> None:
+        """Write the expansion id/name list to the pipeline cache."""
         from mtgjson5 import constants
 
-        rows = [
-            {
-                "expansionId": int(exp["idExpansion"]),
-                "expansionName": str(exp["enName"]),
-            }
-            for exp in expansions
-            if exp.get("idExpansion") is not None
-        ]
+        rows = [{"expansionId": exp_id, "expansionName": name} for exp_id, name in expansions]
         if not rows:
             return
         try:
@@ -328,8 +324,9 @@ class CardMarketProvider:
         existing_df: pl.DataFrame | None = None
         if output_path and output_path.exists():
             try:
-                existing_df = pl.read_parquet(output_path)
-                LOGGER.info(f"Refreshing {existing_df['expansionId'].n_unique()} previously fetched expansions")
+                cached_df = pl.read_parquet(output_path)
+                LOGGER.info(f"Refreshing {cached_df['expansionId'].n_unique()} previously fetched expansions")
+                existing_df = cached_df
             except Exception as e:
                 LOGGER.warning(f"Could not read existing cache: {e}")
 
@@ -601,16 +598,20 @@ async def _fetch_expansion_list() -> None:
         await provider.close()
 
 
-def _ensure_expansion_list() -> None:
-    """Fetch the expansion list when a cached catalog is reused without one.
+def ensure_expansion_list(max_age_hours: float = 48) -> None:
+    """Fetch the expansion list when a cached catalog is reused without a fresh one.
 
     The list is only persisted during a crawl, so a catalog taken from cache
     (or S3) would otherwise leave CardmarketIdentifiers unable to name the
-    expansions the catalog does not cover.
+    expansions the catalog does not cover, or stuck on an old list missing
+    expansions Cardmarket has added since.
     """
+    import time
+
     from mtgjson5 import constants
 
-    if (constants.CACHE_PATH / "mkm_expansions.parquet").exists():
+    path = constants.CACHE_PATH / "mkm_expansions.parquet"
+    if path.exists() and time.time() - path.stat().st_mtime < max_age_hours * 3600:
         return
     try:
         asyncio.run(_fetch_expansion_list())
@@ -650,7 +651,7 @@ def load_cardmarket_data(
         age = datetime.datetime.now() - mtime
         if age.total_seconds() < cache_max_age_hours * 3600:
             LOGGER.info(f"Using cached MCM data ({age.total_seconds() / 3600:.1f}h old)")
-            _ensure_expansion_list()
+            ensure_expansion_list(cache_max_age_hours)
             return pl.read_parquet(cache_path)
         LOGGER.info(f"MCM cache stale ({age.total_seconds() / 3600:.1f}h old), refetching...")
 
