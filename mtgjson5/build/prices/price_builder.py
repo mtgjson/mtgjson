@@ -46,6 +46,7 @@ from mtgjson5.providers import (
     TCGPlayerPriceProvider,
 )
 from mtgjson5.providers.cardmarket.provider import MCM_COLUMN_PRIORITY
+from mtgjson5.providers.manapool.provider import MANAPOOL_MAX_PRICE_CENTS
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -637,7 +638,7 @@ class PolarsPriceBuilder:
             ("price_cents_foil", "foil"),
             ("price_cents_etched", "etched"),
         ]:
-            sub = joined.filter(pl.col(col) > 0).select(
+            sub = joined.filter(pl.col(col).is_between(1, MANAPOOL_MAX_PRICE_CENTS)).select(
                 pl.col("uuid"),
                 pl.lit(self.today_date).alias("date"),
                 pl.lit("paper").alias("source"),
