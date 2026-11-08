@@ -19,6 +19,8 @@ from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field
 
+from mtgjson5.consts import WUBRG_COLOR_LAYOUTS, WUBRG_ORDER
+
 from .base import PolarsMixin
 from .submodels import (
     ForeignData,
@@ -31,10 +33,6 @@ from .submodels import (
     SkuIds,
     SourceProducts,
 )
-
-# Layouts that use WUBRG color order instead of alphabetical
-_WUBRG_COLOR_LAYOUTS = frozenset({"split", "adventure", "prepare"})
-_WUBRG_ORDER = {"W": 0, "U": 1, "B": 2, "R": 3, "G": 4}
 
 
 class CardBase(PolarsMixin, BaseModel):
@@ -206,16 +204,16 @@ class CardBase(PolarsMixin, BaseModel):
         """Convert to dict, preserving WUBRG color order for split/adventure layouts."""
         result = super().to_polars_dict(use_alias, sort_keys, sort_lists, exclude_none, keep_empty_lists)
 
-        if self.layout in _WUBRG_COLOR_LAYOUTS and "colors" in result and result["colors"]:
-            result["colors"] = sorted(result["colors"], key=lambda c: _WUBRG_ORDER.get(c, 99))
+        if self.layout in WUBRG_COLOR_LAYOUTS and "colors" in result and result["colors"]:
+            result["colors"] = sorted(result["colors"], key=lambda c: WUBRG_ORDER.get(c, 99))
 
         return result
 
     def to_output_dict(self) -> dict[str, Any]:
         """Fast dict conversion, preserving WUBRG color order for split/adventure layouts."""
         result = super().to_output_dict()
-        if self.layout in _WUBRG_COLOR_LAYOUTS and "colors" in result and result["colors"]:
-            result["colors"] = sorted(result["colors"], key=lambda c: _WUBRG_ORDER.get(c, 99))
+        if self.layout in WUBRG_COLOR_LAYOUTS and "colors" in result and result["colors"]:
+            result["colors"] = sorted(result["colors"], key=lambda c: WUBRG_ORDER.get(c, 99))
         return result
 
 

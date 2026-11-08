@@ -15,6 +15,7 @@ from mtgjson5.consts.fields import (
     ORACLE_IDENTITY_COLS,
     SORTED_LIST_FIELDS,
 )
+from mtgjson5.consts.layouts import WUBRG_COLOR_LAYOUTS, WUBRG_ORDER
 from mtgjson5.models.cards import CardAtomic, CardDeck, CardSet, CardToken
 from mtgjson5.models.schemas import (
     CARDS_TABLE_EXCLUDE,
@@ -1672,10 +1673,6 @@ class AllIdentifiersAssembler(Assembler):
         LOGGER.info(f"Built AllIdentifiers with {count} entries")
 
 
-_WUBRG_ORDER = {"W": 0, "U": 1, "B": 2, "R": 3, "G": 4}
-_WUBRG_COLOR_LAYOUTS = frozenset({"split", "adventure", "prepare"})
-
-
 def _clean_row(row: dict[str, Any]) -> dict[str, Any]:
     """Clean a parquet row dict for JSON output.
 
@@ -1743,8 +1740,8 @@ def _clean_row(row: dict[str, Any]) -> dict[str, Any]:
 
     # Preserve WUBRG color order for split/adventure layouts
     layout = result.get("layout")
-    if layout in _WUBRG_COLOR_LAYOUTS and "colors" in result and result["colors"]:
-        result["colors"] = sorted(result["colors"], key=lambda c: _WUBRG_ORDER.get(c, 99))
+    if layout in WUBRG_COLOR_LAYOUTS and "colors" in result and result["colors"]:
+        result["colors"] = sorted(result["colors"], key=lambda c: WUBRG_ORDER.get(c, 99))
 
     return result
 
