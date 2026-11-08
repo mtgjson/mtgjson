@@ -19,5 +19,13 @@
     "SCG": ["Chinese Simplified", "Chinese Traditional"],
     "MRD": ["Chinese Simplified", "Chinese Traditional"],
     "8ED": ["Chinese Simplified", "Chinese Traditional"],
-    "10E": ["Chinese Traditional"]
+    "10E": ["Chinese Traditional"],
+    "Q01": ["Japanese"],
+    "Q02": ["Japanese"],
+    "Q03": ["Japanese"],
+    "Q04": ["Japanese"],
+    "Q05": ["Japanese"],
+    "Q06": ["French", "German", "Japanese"],
+    "Q07": ["French", "German", "Japanese"],
+    "Q08": ["French", "German", "Japanese"]
 }

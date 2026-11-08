@@ -4,7 +4,10 @@ A set's ``languages`` list is derived from the languages present in its cards'
 ``foreignData``. That data only covers printings our upstream providers track,
 so pre-2004 Asian-language printings (and Italian 7th Edition) are absent even
 though Wizards of the Coast documented them on the Card Set Archive product
-information pages. ``set_language_additions.json`` records those printings so
+information pages. Sets with no cards of their own, such as the Challenger
+Decks (Q01-Q08), whose contents live only in their decks, have no
+``foreignData`` at all and fall back to English even when Wizards announced
+other languages. ``set_language_additions.json`` records those printings so
 the per-set list matches the official one.
 """
 
