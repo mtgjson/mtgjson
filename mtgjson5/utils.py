@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import pathlib
+import re
 import time
 from collections.abc import Iterator
 from functools import lru_cache
@@ -181,11 +182,82 @@ def generate_output_file_hashes(directory: pathlib.Path) -> None:
             hash_file.write(generated_hash)
 
 
+# Every JSON output wraps its payload as {"meta": {...}, "data": ...}. Writers put
+# meta first; deck files sort keys and put it last. Meta is flat strings, so a
+# brace-free match finds its end without parsing the (up to ~700MB) file.
+_META_FIRST = re.compile(rb'^\{\s*"meta"\s*:\s*\{[^{}]*\}')
+_META_LAST = re.compile(rb',\s*"meta"\s*:\s*\{[^{}]*\}\s*\}\s*$')
+_COMPRESSED_SUFFIXES = (".bz2", ".gz", ".xz", ".zip")
+
+
+def get_content_hash(file_to_hash: pathlib.Path, block_size: int = 1 << 20) -> str | None:
+    """Hash a JSON output file's payload, leaving out its daily-changing meta block.
+
+    Two builds with the same data produce the same content hash even though
+    their bytes (and full-file sha256) differ by the build date in meta.
+    :param file_to_hash: JSON file to hash
+    :param block_size: Read size
+    :return content hash, or None if the file isn't a meta-wrapped JSON file
+    """
+    if file_to_hash.suffix != ".json":
+        return None
+
+    size = file_to_hash.stat().st_size
+    with file_to_hash.open("rb") as file:
+        head = file.read(4096)
+        if match := _META_FIRST.match(head):
+            start, end = match.end(), size
+        else:
+            file.seek(max(0, size - 4096))
+            tail_offset = file.tell()
+            match = _META_LAST.search(file.read())
+            if not match:
+                return None
+            start, end = 0, tail_offset + match.start()
+
+        hash_operation = constants.HASH_TO_GENERATE.copy()
+        file.seek(start)
+        remaining = end - start
+        while remaining > 0:
+            data = file.read(min(block_size, remaining))
+            if not data:
+                break
+            hash_operation.update(data)
+            remaining -= len(data)
+
+    return hash_operation.hexdigest()
+
+
+def _load_previous_manifest(location: str) -> dict[str, Any]:
+    """Read the previous build's manifest from a path or URL; empty if unavailable."""
+    if not location:
+        return {}
+    try:
+        if location.startswith(("http://", "https://")):
+            response = requests.get(location, timeout=30)
+            response.raise_for_status()
+            return dict(response.json())
+        return dict(json.loads(pathlib.Path(location).read_text(encoding="utf-8")))
+    except Exception as e:
+        LOGGER.warning(f"Previous manifest unavailable at {location}, all content dates reset: {e}")
+        return {}
+
+
 def generate_build_manifest(
     directory: pathlib.Path,
     assembly_results: dict[str, int],
 ) -> None:
-    """Generate BuildManifest.json cataloging all output files with sizes.
+    """Generate BuildManifest.json cataloging all output files with sizes and hashes.
+
+    Each file gets its full-file ``sha256`` (from the sidecar written by
+    generate_output_file_hashes). Meta-wrapped JSON files, and the compressed
+    copies of them, also get ``content_sha256``, which ignores the build date,
+    and ``content_changed_on``, the build date that content first appeared.
+    Clients can poll this one file and fetch only what actually changed.
+
+    ``content_changed_on`` is carried forward from the manifest at
+    [MTGJSON] previous_manifest (path or URL); without it, every date resets
+    to today.
 
     Args:
         directory: Build output directory to scan.
@@ -194,11 +266,13 @@ def generate_build_manifest(
     import contextlib
     import datetime
     import subprocess
+    from concurrent.futures import ThreadPoolExecutor
 
     excluded_dirs = {"data-models", "types"}
     excluded_names = {"AllMTGJSONTypes.ts", "BuildManifest.json"}
 
-    files: dict[str, dict[str, int]] = {}
+    files: dict[str, dict[str, Any]] = {}
+    paths: dict[str, pathlib.Path] = {}
     total_size = 0
 
     for file in sorted(directory.rglob("*")):
@@ -225,8 +299,38 @@ def generate_build_manifest(
             continue
 
         size = file.stat().st_size
-        files[relative_str] = {"size_bytes": size}
+        entry: dict[str, Any] = {"size_bytes": size}
+        sidecar = file.with_name(f"{file.name}.{constants.HASH_TO_GENERATE.name}")
+        if sidecar.is_file():
+            entry[constants.HASH_TO_GENERATE.name] = sidecar.read_text(encoding="utf-8").strip()
+        files[relative_str] = entry
+        paths[relative_str] = file
         total_size += size
+
+    # hashlib releases the GIL on large reads, so threads parallelize this
+    json_files = [name for name in files if name.endswith(".json")]
+    with ThreadPoolExecutor(max_workers=os.cpu_count() or 4) as executor:
+        content_hashes = dict(
+            zip(json_files, executor.map(lambda n: get_content_hash(paths[n]), json_files), strict=True)
+        )
+
+    previous_files = _load_previous_manifest(MtgjsonConfig().get("MTGJSON", "previous_manifest")).get("files", {})
+    for name, entry in files.items():
+        base = name
+        for suffix in _COMPRESSED_SUFFIXES:
+            if name.endswith(suffix):
+                base = name[: -len(suffix)]
+                break
+        content_hash = content_hashes.get(base)
+        if content_hash is None:
+            continue
+
+        entry["content_sha256"] = content_hash
+        previous = previous_files.get(name, {})
+        if previous.get("content_sha256") == content_hash and previous.get("content_changed_on"):
+            entry["content_changed_on"] = previous["content_changed_on"]
+        else:
+            entry["content_changed_on"] = constants.MTGJSON_BUILD_DATE
 
     # Get git commit hash
     git_commit = ""

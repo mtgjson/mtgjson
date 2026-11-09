@@ -11,6 +11,10 @@ mkm_access_token_secret=
 
 [EDHRec]
 api_url=
+# Where the Monday edhrecRank snapshot is archived so fresh containers reuse it.
+# Without a bucket, ranks come straight from Scryfall every build (daily churn).
+rank_snapshot_bucket_name=
+rank_snapshot_object_path=
 
 [GitHub]
 api_token=
@@ -22,6 +26,9 @@ api_key=
 version=
 date=
 use_cache=
+# Previous BuildManifest.json (path or URL), used to carry each file's
+# content_changed_on forward when its content_sha256 hasn't changed.
+previous_manifest=
 
 [Prices]
 bucket_name=
