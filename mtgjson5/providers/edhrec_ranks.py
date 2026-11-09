@@ -5,9 +5,11 @@ that one field touches roughly 80% of set files on a night when nothing else
 changed. Consumers who sync by file hash end up re-downloading nearly
 everything for rank noise (#1322).
 
-Instead, the ranks are snapshotted by oracle id and reused until the snapshot
-is ``rank_refresh_days`` old. Cards whose oracle id isn't in the snapshot (new
-cards) take Scryfall's live rank, so new spoilers aren't left without one.
+Instead, the ranks are snapshotted by oracle id each Monday and reused through
+Sunday. A snapshot older than the latest Monday is replaced by the next build,
+so a failed Monday build refreshes on Tuesday. Cards whose oracle id isn't in
+the snapshot (new cards) take Scryfall's live rank, so new spoilers aren't
+left without one.
 
 Production builds start from a fresh container, so the snapshot only survives
 between builds if it's archived in S3: set ``rank_snapshot_bucket_name`` under
@@ -29,7 +31,7 @@ from mtgjson5.mtgjson_s3_handler import MtgjsonS3Handler
 LOGGER = logging.getLogger(__name__)
 
 SNAPSHOT_OBJECT_PATH = "edhrec/edhrec_rank_snapshot.parquet"
-DEFAULT_REFRESH_DAYS = 7
+REFRESH_WEEKDAY = 0  # Monday
 
 _KEY = "_rank_oracle_id"
 
@@ -47,14 +49,9 @@ def rank_snapshot_location() -> tuple[str, str] | None:
     return bucket_name, config.get("EDHRec", "rank_snapshot_object_path", fallback=SNAPSHOT_OBJECT_PATH)
 
 
-def rank_refresh_days() -> int:
-    """Days a snapshot is reused before ranks are taken from Scryfall again."""
-    raw = MtgjsonConfig().get("EDHRec", "rank_refresh_days")
-    try:
-        return int(raw) if raw else DEFAULT_REFRESH_DAYS
-    except ValueError:
-        LOGGER.warning(f"Ignoring rank_refresh_days={raw!r}, using {DEFAULT_REFRESH_DAYS}")
-        return DEFAULT_REFRESH_DAYS
+def last_refresh_day(today: datetime.date) -> datetime.date:
+    """The most recent refresh weekday on or before ``today``."""
+    return today - datetime.timedelta(days=(today.weekday() - REFRESH_WEEKDAY) % 7)
 
 
 def _oracle_key(schema: pl.Schema) -> pl.Expr:
@@ -89,11 +86,11 @@ def _read_snapshot(path: Path) -> pl.DataFrame | None:
         return None
 
 
-def _snapshot_age_days(snapshot: pl.DataFrame, today: datetime.date) -> int | None:
+def _taken_on(snapshot: pl.DataFrame) -> datetime.date | None:
     if snapshot.height == 0 or "takenOn" not in snapshot.columns:
         return None
     taken_on = snapshot["takenOn"][0]
-    return (today - taken_on).days if isinstance(taken_on, datetime.date) else None
+    return taken_on if isinstance(taken_on, datetime.date) else None
 
 
 def resolve_snapshot(
@@ -106,7 +103,6 @@ def resolve_snapshot(
     Never raises: a build without a usable snapshot falls back to live ranks.
     """
     today = today or datetime.date.today()
-    refresh_days = rank_refresh_days()
     location = rank_snapshot_location()
 
     try:
@@ -115,9 +111,9 @@ def resolve_snapshot(
             MtgjsonS3Handler().download_file(bucket_name, object_path, str(local_path))
 
         snapshot = _read_snapshot(local_path)
-        age = _snapshot_age_days(snapshot, today) if snapshot is not None else None
-        if snapshot is not None and age is not None and 0 <= age < refresh_days:
-            LOGGER.info(f"Reusing EDHREC rank snapshot from {age}d ago ({snapshot.height:,} oracle ids)")
+        taken_on = _taken_on(snapshot) if snapshot is not None else None
+        if snapshot is not None and taken_on is not None and last_refresh_day(today) <= taken_on <= today:
+            LOGGER.info(f"Reusing EDHREC rank snapshot taken {taken_on} ({snapshot.height:,} oracle ids)")
             return snapshot
 
         if live.height == 0:

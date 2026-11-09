@@ -5,14 +5,13 @@ from __future__ import annotations
 import datetime
 import shutil
 from pathlib import Path
-from types import SimpleNamespace
 
 import polars as pl
 import pytest
 
 from mtgjson5.providers import edhrec_ranks
 
-TODAY = datetime.date(2026, 11, 8)
+TODAY = datetime.date(2026, 11, 9)  # a Monday, when snapshots refresh
 
 
 def _cards(ranks: dict[str, int | None]) -> pl.LazyFrame:
@@ -68,11 +67,6 @@ class FakeBucket:
         )
 
 
-@pytest.fixture(autouse=True)
-def _default_refresh(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(edhrec_ranks, "rank_refresh_days", lambda: 7)
-
-
 def _build(cards: pl.LazyFrame, container: Path, today: datetime.date) -> dict[str, int | None]:
     """One build in a fresh container: resolve the snapshot and apply it."""
     container.mkdir(exist_ok=True)
@@ -82,21 +76,39 @@ def _build(cards: pl.LazyFrame, container: Path, today: datetime.date) -> dict[s
 
 
 class TestWeeklyRanks:
-    def test_ranks_hold_steady_inside_the_refresh_window(self, tmp_path, monkeypatch):
+    def test_ranks_hold_steady_through_sunday(self, tmp_path, monkeypatch):
         bucket = FakeBucket(tmp_path, monkeypatch)
-        first = _build(_cards({"sol": 1, "bolt": 158}), tmp_path / "day0", TODAY)
-        later = _build(_cards({"sol": 2, "bolt": 160}), tmp_path / "day3", TODAY + datetime.timedelta(days=3))
+        monday = _build(_cards({"sol": 1, "bolt": 158}), tmp_path / "mon", TODAY)
+        sunday = _build(_cards({"sol": 2, "bolt": 160}), tmp_path / "sun", TODAY + datetime.timedelta(days=6))
 
-        assert first == later == {"sol-a": 1, "sol-b": 1, "bolt-a": 158, "bolt-b": 158}
+        assert monday == sunday == {"sol-a": 1, "sol-b": 1, "bolt-a": 158, "bolt-b": 158}
         assert bucket.uploads == 1
 
-    def test_ranks_refresh_once_the_snapshot_is_a_week_old(self, tmp_path, monkeypatch):
+    def test_ranks_refresh_on_the_next_monday(self, tmp_path, monkeypatch):
         bucket = FakeBucket(tmp_path, monkeypatch)
-        _build(_cards({"sol": 1}), tmp_path / "day0", TODAY)
-        refreshed = _build(_cards({"sol": 2}), tmp_path / "day7", TODAY + datetime.timedelta(days=7))
+        _build(_cards({"sol": 1}), tmp_path / "mon", TODAY)
+        refreshed = _build(_cards({"sol": 2}), tmp_path / "next-mon", TODAY + datetime.timedelta(days=7))
 
         assert refreshed == {"sol-a": 2, "sol-b": 2}
         assert bucket.uploads == 2
+
+    def test_a_missed_monday_refreshes_on_the_next_build(self, tmp_path, monkeypatch):
+        """Last week's Sunday snapshot is stale by Tuesday, and Tuesday's holds until the next Monday."""
+        FakeBucket(tmp_path, monkeypatch)
+        _build(_cards({"sol": 1}), tmp_path / "sun", TODAY - datetime.timedelta(days=1))
+        tuesday = _build(_cards({"sol": 2}), tmp_path / "tue", TODAY + datetime.timedelta(days=1))
+        wednesday = _build(_cards({"sol": 3}), tmp_path / "wed", TODAY + datetime.timedelta(days=2))
+
+        assert tuesday == wednesday == {"sol-a": 2, "sol-b": 2}
+
+    def test_first_snapshot_mid_week_holds_until_monday(self, tmp_path, monkeypatch):
+        FakeBucket(tmp_path, monkeypatch)
+        _build(_cards({"sol": 1}), tmp_path / "thu", TODAY + datetime.timedelta(days=3))
+        sunday = _build(_cards({"sol": 2}), tmp_path / "sun", TODAY + datetime.timedelta(days=6))
+        monday = _build(_cards({"sol": 3}), tmp_path / "mon", TODAY + datetime.timedelta(days=7))
+
+        assert sunday == {"sol-a": 1, "sol-b": 1}
+        assert monday == {"sol-a": 3, "sol-b": 3}
 
     def test_new_cards_take_the_live_rank(self, tmp_path, monkeypatch):
         FakeBucket(tmp_path, monkeypatch)
@@ -163,13 +175,14 @@ class TestWeeklyRanks:
         assert applied.collect_schema() == cards.collect_schema()
 
 
-class TestRefreshDaysConfig:
-    @pytest.mark.parametrize(("raw", "expected"), [("", 7), ("3", 3), ("weekly", 7)])
-    def test_reads_refresh_days(self, monkeypatch, raw, expected):
-        monkeypatch.undo()
-        monkeypatch.setattr(
-            edhrec_ranks,
-            "MtgjsonConfig",
-            lambda: SimpleNamespace(get=lambda section, option, fallback="": raw or fallback),
-        )
-        assert edhrec_ranks.rank_refresh_days() == expected
+@pytest.mark.parametrize(
+    ("today", "expected"),
+    [
+        (datetime.date(2026, 11, 9), datetime.date(2026, 11, 9)),
+        (datetime.date(2026, 11, 10), datetime.date(2026, 11, 9)),
+        (datetime.date(2026, 11, 15), datetime.date(2026, 11, 9)),
+        (datetime.date(2026, 11, 8), datetime.date(2026, 11, 2)),
+    ],
+)
+def test_last_refresh_day_is_the_latest_monday(today, expected):
+    assert edhrec_ranks.last_refresh_day(today) == expected
