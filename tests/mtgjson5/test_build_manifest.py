@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 import pathlib
 
-from mtgjson5.utils import generate_build_manifest
+import pytest
+
+from mtgjson5.utils import generate_build_manifest, get_content_hash
 
 
 class TestGenerateBuildManifest:
@@ -113,3 +115,94 @@ class TestGenerateBuildManifest:
         manifest = json.loads((tmp_path / "BuildManifest.json").read_text())
         keys = list(manifest["files"].keys())
         assert keys == sorted(keys)
+
+
+def _envelope(data: object, date: str, meta_last: bool = False, pretty: bool = False) -> bytes:
+    """Write a file the way MTGJSON's writers do: meta first, or sorted keys (meta last)."""
+    import orjson
+
+    meta = {"date": date, "version": f"5.3.0+{date.replace('-', '')}"}
+    opts = orjson.OPT_SORT_KEYS | (orjson.OPT_INDENT_2 if pretty else 0)
+    if meta_last:
+        return orjson.dumps({"meta": meta, "data": data}, option=opts)
+    return b'{"meta":' + orjson.dumps(meta, option=opts) + b',"data":' + orjson.dumps(data, option=opts) + b"}"
+
+
+class TestContentHashes:
+    @pytest.mark.parametrize(("meta_last", "pretty"), [(False, False), (True, False), (True, True)])
+    def test_content_hash_ignores_build_date(self, tmp_path: pathlib.Path, meta_last: bool, pretty: bool):
+        a, b = tmp_path / "a.json", tmp_path / "b.json"
+        a.write_bytes(_envelope({"cards": [1, 2]}, "2026-11-07", meta_last, pretty))
+        b.write_bytes(_envelope({"cards": [1, 2]}, "2026-11-08", meta_last, pretty))
+
+        assert a.read_bytes() != b.read_bytes()
+        assert get_content_hash(a) is not None
+        assert get_content_hash(a) == get_content_hash(b)
+
+    @pytest.mark.parametrize("meta_last", [False, True])
+    def test_content_hash_tracks_data(self, tmp_path: pathlib.Path, meta_last: bool):
+        a, b = tmp_path / "a.json", tmp_path / "b.json"
+        a.write_bytes(_envelope({"cards": [1, 2]}, "2026-11-08", meta_last))
+        b.write_bytes(_envelope({"cards": [1, 3]}, "2026-11-08", meta_last))
+
+        assert get_content_hash(a) != get_content_hash(b)
+
+    def test_files_without_a_meta_envelope_have_no_content_hash(self, tmp_path: pathlib.Path):
+        (tmp_path / "plain.json").write_text('{"data": {}}')
+        (tmp_path / "AllPrintings.csv").write_text("a,b\n")
+
+        assert get_content_hash(tmp_path / "plain.json") is None
+        assert get_content_hash(tmp_path / "AllPrintings.csv") is None
+
+    def test_manifest_records_hashes_and_compressed_copies(self, tmp_path: pathlib.Path):
+        (tmp_path / "10E.json").write_bytes(_envelope({"code": "10E"}, "2026-11-08"))
+        (tmp_path / "10E.json.sha256").write_text("fullfilehash\n")
+        (tmp_path / "10E.json.xz").write_bytes(b"compressed")
+        (tmp_path / "AllPrintings.sql").write_text("CREATE TABLE")
+
+        generate_build_manifest(tmp_path, assembly_results={})
+
+        files = json.loads((tmp_path / "BuildManifest.json").read_text())["files"]
+        assert files["10E.json"]["sha256"] == "fullfilehash"
+        assert files["10E.json"]["content_sha256"] == get_content_hash(tmp_path / "10E.json")
+        assert files["10E.json.xz"]["content_sha256"] == files["10E.json"]["content_sha256"]
+        assert "content_sha256" not in files["AllPrintings.sql"]
+
+    def test_content_changed_on_carries_forward_only_when_content_matches(
+        self, tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        from types import SimpleNamespace
+
+        from mtgjson5 import constants, utils
+
+        (tmp_path / "10E.json").write_bytes(_envelope({"code": "10E"}, "2026-11-08"))
+        (tmp_path / "BRO.json").write_bytes(_envelope({"code": "BRO", "new": True}, "2026-11-08"))
+        previous = tmp_path.parent / "previous_manifest.json"
+        previous.write_text(
+            json.dumps(
+                {
+                    "files": {
+                        "10E.json": {
+                            "content_sha256": get_content_hash(tmp_path / "10E.json"),
+                            "content_changed_on": "2026-10-01",
+                        },
+                        "BRO.json": {"content_sha256": "stale", "content_changed_on": "2026-10-01"},
+                    }
+                }
+            )
+        )
+        monkeypatch.setattr(constants, "MTGJSON_BUILD_DATE", "2026-11-08")
+        monkeypatch.setattr(
+            utils,
+            "MtgjsonConfig",
+            lambda: SimpleNamespace(
+                get=lambda section, option, fallback="": str(previous) if option == "previous_manifest" else fallback,
+                mtgjson_version="5.3.0",
+            ),
+        )
+
+        generate_build_manifest(tmp_path, assembly_results={})
+
+        files = json.loads((tmp_path / "BuildManifest.json").read_text())["files"]
+        assert files["10E.json"]["content_changed_on"] == "2026-10-01"
+        assert files["BRO.json"]["content_changed_on"] == "2026-11-08"

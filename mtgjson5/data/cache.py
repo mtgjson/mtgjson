@@ -346,6 +346,7 @@ class GlobalCache:
         self._download_bulk_data(force_refresh=refresh_bulk)
         prof.checkpoint("bulk_download")
         self._load_bulk_data()
+        self._freeze_edhrec_ranks()
         prof.checkpoint("bulk_load")
         self._load_resources()
         self._load_sets_metadata()
@@ -962,6 +963,22 @@ class GlobalCache:
 
         except Exception as e:
             LOGGER.warning(f"Failed to fetch Card Kingdom data: {e}")
+
+    def _freeze_edhrec_ranks(self) -> None:
+        """Swap Scryfall's daily edhrec_rank for the current weekly snapshot."""
+        from mtgjson5.providers import edhrec_ranks
+
+        if self.cards_lf is None:
+            return
+
+        try:
+            live = edhrec_ranks.live_ranks(self.cards_lf)
+        except Exception as e:
+            LOGGER.error(f"Could not read live EDHREC ranks, leaving them as-is: {e}")
+            return
+
+        snapshot = edhrec_ranks.resolve_snapshot(live, self.cache_path / "edhrec_rank_snapshot.parquet")
+        self.cards_lf = edhrec_ranks.apply_snapshot(self.cards_lf, snapshot)
 
     def _load_edhrec_salt(self) -> None:
         """Load EDHREC saltiness data."""
