@@ -39,6 +39,37 @@ from mtgjson5.pipeline.stages.relationships import add_variations
 from mtgjson5.utils import LOGGER, to_camel_case
 
 
+def drop_duplicate_card_numbers(df: pl.DataFrame, label: str) -> pl.DataFrame:
+    """
+    Keep one row for each collector number a set would publish more than once.
+
+    Within a set, (number, side) identifies one card: the faces of a card share
+    a number and differ by side. Two rows with the same key mean an upstream
+    source handed the pipeline the same printing twice. Such duplicates tend to
+    clear up upstream within a build or two, so the build goes on with the row
+    of the lowest uuid, which is the same row every time, and logs the rest.
+    """
+    key = ["setCode", "number", "side"]
+    indexed = df.with_row_index("_row")
+    kept = indexed.sort("uuid", "_row").unique(subset=key, keep="first", maintain_order=True)
+    if kept.height == df.height:
+        return df
+
+    dropped = (
+        indexed.join(kept.select("_row"), on="_row", how="anti")
+        .join(kept.select(*key, pl.col("uuid").alias("_kept_uuid")), on=key, how="left", nulls_equal=True)
+        .sort("setCode", "number", "side", "uuid", nulls_last=False)
+    )
+    LOGGER.error(f"Dropped {dropped.height} duplicated {label} sharing a collector number with another card:")
+    for row in dropped.iter_rows(named=True):
+        side = f" side {row['side']}" if row["side"] else ""
+        LOGGER.error(
+            f"  {row['setCode']} #{row['number']}{side} {row['name']}: dropped {row['uuid']}, kept {row['_kept_uuid']}"
+        )
+
+    return kept.sort("_row").drop("_row")
+
+
 def prepare_cards_for_json(df: pl.DataFrame) -> pl.DataFrame:
     """
     Clean DataFrame for JSON serialization.
@@ -685,6 +716,8 @@ def sink_cards(ctx: PipelineContext, skip_id_mappings: bool = False) -> None:
         if df.height == 0:
             LOGGER.info(f"  No {label} to write")
             continue
+
+        df = drop_duplicate_card_numbers(df, label)
 
         # Partition by setCode and write each partition
         LOGGER.info(f"  Partitioning and writing {label}...")

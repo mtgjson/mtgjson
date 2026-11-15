@@ -59,6 +59,52 @@ def _cache_fresh(path: pathlib.Path, max_age_hours: float = 290.0) -> bool:
     return age_hours < max_age_hours
 
 
+def select_default_languages(default_cards: pl.LazyFrame) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """
+    Pick the (scryfallId, language) pairs MTGJSON publishes from default_cards.
+
+    Scryfall's default_cards normally carries one language per collector
+    number, but a newly added translation can sit in it next to the English
+    record until Scryfall reconciles the two. Publishing both gives a set two
+    cards with the same number, so each (set, collector number) keeps a single
+    language: English when present, otherwise the first by name.
+
+    Returns:
+        The kept (scryfallId, language) pairs, and the printings left out as
+        (setCode, number, language, scryfallId). A printing left out here is
+        still published through the kept card's foreignData.
+    """
+    from mtgjson5.consts import LANGUAGE_MAP
+
+    number_key = ["setCode", "number"]
+    rows = (
+        default_cards.select(
+            pl.col("id").alias("scryfallId"),
+            pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("language"),
+            pl.col("set").str.to_uppercase().alias("setCode"),
+            pl.col("collector_number").alias("number"),
+        )
+        .unique(["scryfallId", "language"])
+        .collect()
+        .with_columns(
+            pl.col("language")
+            .sort_by(pl.col("language") != "English", pl.col("language"))
+            .first()
+            .over(number_key)
+            .alias("_kept_language")
+        )
+    )
+    is_kept = pl.col("language") == pl.col("_kept_language")
+
+    languages = rows.filter(is_kept).select("scryfallId", "language")
+    dropped = (
+        rows.filter(~is_kept)
+        .select("setCode", "number", "language", "scryfallId")
+        .sort("setCode", "number", "language", "scryfallId")
+    )
+    return languages, dropped
+
+
 def _snake_to_camel(name: str) -> str:
     """Convert snake_case to camelCase."""
     if "_" not in name:
@@ -685,16 +731,21 @@ class GlobalCache:
 
         default_lf = pl.scan_ndjson(default_cards_path, infer_schema_length=1000)
 
-        from mtgjson5.consts import LANGUAGE_MAP
+        languages, dropped = select_default_languages(default_lf)
+        self.languages_lf = languages.lazy()
 
-        self.languages_lf = default_lf.select(
-            [
-                pl.col("id").alias("scryfallId"),
-                pl.col("lang").replace_strict(LANGUAGE_MAP, default=pl.col("lang")).alias("language"),
-            ]
-        ).unique(["scryfallId", "language"])
+        if not dropped.is_empty():
+            LOGGER.warning(
+                f"default_cards lists {dropped.height} printing(s) under a collector number "
+                "that is already published in another language; keeping them as foreignData only"
+            )
+            for row in dropped.iter_rows(named=True):
+                LOGGER.warning(
+                    f"  {row['setCode']} #{row['number']}: not publishing the "
+                    f"{row['language']} printing {row['scryfallId']} as its own card"
+                )
 
-        LOGGER.info("Built languages mapping")
+        LOGGER.info(f"Built languages mapping ({languages.height:,} printings)")
 
     def load_id_mappings(self) -> None:
         """
