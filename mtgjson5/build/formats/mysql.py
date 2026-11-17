@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 _MYSQL_VARCHAR_OVERRIDES: dict[str, str] = {
     "uuid": "VARCHAR(36) NOT NULL",
     "cardUuid": "VARCHAR(36) NOT NULL",
+    "tokenProductUuid": "VARCHAR(36) NOT NULL",
     "name": "VARCHAR(255) NOT NULL",
     "setCode": "VARCHAR(6) NOT NULL",
     "code": "VARCHAR(6) NOT NULL",

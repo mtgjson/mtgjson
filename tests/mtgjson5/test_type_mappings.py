@@ -6,7 +6,7 @@ import polars as pl
 import pytest
 
 from mtgjson5.build.formats.mysql import _polars_to_mysql_type
-from mtgjson5.build.formats.sqlite import _polars_to_sqlite_type
+from mtgjson5.build.formats.sqlite import TABLE_INDEXES, _polars_to_sqlite_type
 
 # =============================================================================
 # _polars_to_sqlite_type
@@ -76,6 +76,14 @@ class TestPolarsToMysqlType:
 
     def test_contents_in_other_tables_stays_text(self):
         assert _polars_to_mysql_type(pl.String, "cards", "contents") == "TEXT"
+
+    @pytest.mark.parametrize(
+        ("table", "col"),
+        [(table, col) for table, indexes in TABLE_INDEXES.items() for _, col in indexes],
+    )
+    def test_indexed_string_columns_are_not_text(self, table, col):
+        # MySQL rejects an index on a TEXT column without a key length (#1788)
+        assert _polars_to_mysql_type(pl.String, table, col) != "TEXT"
 
 
 # =============================================================================
