@@ -290,6 +290,14 @@ def _oracle_key(row: dict[str, Any], cols: tuple[str, ...] = ORACLE_IDENTITY_COL
     return tuple(parts)
 
 
+def _first_printing_key(row: dict[str, Any]) -> Any:
+    """Key first printings by oracle id so renamed faces share the lookup."""
+    identifiers = row.get("identifiers")
+    if isinstance(identifiers, dict) and identifiers.get("scryfallOracleId"):
+        return identifiers["scryfallOracleId"]
+    return _oracle_key(row)
+
+
 class AtomicCardsAssembler(Assembler):
     """Assembles AtomicCards grouped by name."""
 
@@ -376,7 +384,7 @@ class AtomicCardsAssembler(Assembler):
             # str() so a date-typed releaseDate compares cleanly against the sentinel
             release_date = str(self.get_set_metadata(set_code).get("releaseDate") or "9999-99-99")
             candidate = (release_date, set_code)
-            key = _oracle_key(row)
+            key = _first_printing_key(row)
             if key not in best or candidate < best[key]:
                 best[key] = candidate
         return {key: set_code for key, (_, set_code) in best.items()}
@@ -432,7 +440,14 @@ class AtomicCardsAssembler(Assembler):
         # Narrow: only oracle identity + the columns needed for the per-oracle lookups
         lookup_cols = [
             c
-            for c in [*ORACLE_IDENTITY_COLS, "foreignData", "legalities", "setCode", *FIRST_PRINTING_COLS]
+            for c in [
+                *ORACLE_IDENTITY_COLS,
+                "foreignData",
+                "legalities",
+                "identifiers",
+                "setCode",
+                *FIRST_PRINTING_COLS,
+            ]
             if c in all_rows_df.columns
         ]
         lookup_rows = all_rows_df.select(lookup_cols).to_dicts()
@@ -477,7 +492,7 @@ class AtomicCardsAssembler(Assembler):
             if merged_leg:
                 row["legalities"] = merged_leg
 
-            first_printing = first_printing_lookup.get(key)
+            first_printing = first_printing_lookup.get(_first_printing_key(row))
             if first_printing:
                 row["firstPrinting"] = first_printing
 
