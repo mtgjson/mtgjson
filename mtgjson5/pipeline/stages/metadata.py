@@ -416,7 +416,6 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
                     .alias("_ck_hash")
                 )
                 hash_cols_added.append("_ck_hash")
-                hash_cols_added.append("_ck_url")
                 purchase_url_fields.append(
                     pl.when(
                         pl.col("identifiers").struct.field("cardKingdomId").is_not_null()
@@ -482,6 +481,10 @@ def build_sealed_products_lf(ctx: PipelineContext, _set_code: str | None = None)
         select_cols.append("isFoilOnly")
     elif has_foil_only_snake:
         select_cols.append(pl.col("is_foil_only").alias("isFoilOnly"))
+
+    # The referral map rebuilds the Card Kingdom redirect from the URL path.
+    if has_ck_url:
+        select_cols.append("_ck_url")
 
     sealed_products_lf = result.select(select_cols)
 
