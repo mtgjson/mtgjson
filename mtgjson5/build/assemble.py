@@ -799,6 +799,7 @@ class SetAssembler(Assembler):
             "isForeignOnly",
             "isNonFoilOnly",
             "isPartialPreview",
+            "isUniversesBeyond",
         ]:
             val = meta.get(fld)
             # Exclude None and False (MTGJSON convention: only include True booleans)
@@ -878,6 +879,7 @@ class SetListAssembler(Assembler):
                     "isForeignOnly",
                     "isNonFoilOnly",
                     "isPartialPreview",
+                    "isUniversesBeyond",
                 ]
                 # Exclude None and False (MTGJSON convention: only include True booleans)
                 if (v := meta.get(k)) is not None and v is not False

@@ -306,6 +306,7 @@ Set metadata without cards:
 | `isPaperOnly` | bool? | Paper only |
 | `isForeignOnly` | bool? | Foreign only |
 | `isPartialPreview` | bool? | Partial preview |
+| `isUniversesBeyond` | bool? | Every card is Universes Beyond |
 | `languages` | list[str]? | Available languages |
 
 ### MtgSet
