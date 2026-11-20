@@ -5,6 +5,7 @@ GitHub data provider for MTGJSON supplemental data.
 import asyncio
 import json
 import logging
+import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -149,18 +150,35 @@ def _build_sealed_contents_records(data: dict) -> list[dict]:
     return records
 
 
+def _is_uuid(value: Any) -> bool:
+    """Whether value is a UUID string, as opposed to a placeholder like "not_in_mtgjson"."""
+    if not isinstance(value, str):
+        return False
+    try:
+        uuid.UUID(value)
+    except ValueError:
+        return False
+    return True
+
+
 def _extract_card_list(cards: list[dict]) -> list[dict]:
-    """Extract card entries from raw deck card list."""
-    return [
-        {
-            "uuid": c.get("mtgjson_uuid"),
-            "count": c.get("count", 1),
-            "isFoil": c.get("foil", False),
-            "isEtched": c.get("etched", False),
-        }
-        for c in cards
-        if c.get("mtgjson_uuid")
-    ]
+    """Extract card entries from raw deck card list, skipping entries without a valid UUID."""
+    extracted = []
+    for c in cards:
+        card_uuid = c.get("mtgjson_uuid")
+        if not _is_uuid(card_uuid):
+            if card_uuid:
+                LOGGER.debug(f"Skipping deck card {c.get('name')!r} with invalid mtgjson_uuid {card_uuid!r}")
+            continue
+        extracted.append(
+            {
+                "uuid": card_uuid,
+                "count": c.get("count", 1),
+                "isFoil": c.get("foil", False),
+                "isEtched": c.get("etched", False),
+            }
+        )
+    return extracted
 
 
 def _build_decks_records(decks_raw: list, deck_map: dict) -> list[dict]:

@@ -17,7 +17,7 @@ from mtgjson5.providers.github.models import (
     VariableConfig,
     _python_type_to_polars,
 )
-from mtgjson5.providers.github.provider import _build_decks_records
+from mtgjson5.providers.github.provider import _build_decks_records, _extract_card_list
 
 # ---------------------------------------------------------------------------
 # TestPythonTypeToPolars
@@ -124,7 +124,7 @@ class TestBuildDeckRecords:
                     "release_date": "2025-01-01",
                     "source": "https://example.com/deck-a",
                     "sourceSetCodes": ["tst"],
-                    "cards": [{"mtgjson_uuid": "uuid-001", "count": 1, "foil": False}],
+                    "cards": [{"mtgjson_uuid": "00000000-0000-0000-0000-000000000001", "count": 1, "foil": False}],
                     "sideboard": [],
                     "commander": [],
                     "displayCommander": [],
@@ -140,3 +140,37 @@ class TestBuildDeckRecords:
         assert records[0]["source"] == "https://example.com/deck-a"
         assert records[0]["setCode"] == "TST"
         assert records[0]["sealedProductUuids"] == ["sealed-001"]
+
+
+class TestExtractCardList:
+    def test_skips_entries_without_a_valid_uuid(self):
+        valid = "3c0ee4a0-0554-5751-9425-fdcd54ec07fb"
+        cards = _extract_card_list(
+            [
+                {"name": "Real Card", "mtgjson_uuid": valid, "count": 2, "foil": True},
+                {"name": "Bertrand Lestree Bio Card", "mtgjson_uuid": "not_in_mtgjson", "count": 1},
+                {"name": "No Uuid Key", "count": 1},
+                {"name": "Null Uuid", "mtgjson_uuid": None, "count": 1},
+            ]
+        )
+
+        assert cards == [{"uuid": valid, "count": 2, "isFoil": True, "isEtched": False}]
+
+    def test_build_decks_records_drops_placeholder_tokens(self):
+        valid = "3c0ee4a0-0554-5751-9425-fdcd54ec07fb"
+        records = _build_decks_records(
+            [
+                {
+                    "name": "Deck A",
+                    "set_code": "tst",
+                    "cards": [{"mtgjson_uuid": valid}],
+                    "tokens": [
+                        {"mtgjson_uuid": valid},
+                        {"mtgjson_uuid": "not_in_mtgjson"},
+                    ],
+                }
+            ],
+            {},
+        )
+
+        assert [t["uuid"] for t in records[0]["tokens"]] == [valid]
