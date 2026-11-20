@@ -270,6 +270,15 @@ class SetList(PolarsMixin, BaseModel):
         description="If the set is still in preview (spoiled). Preview sets do not have complete data.",
         json_schema_extra={"introduced": "v4.4.2", "optional": True},
     )
+    is_universes_beyond: bool | None = Field(
+        default=None,
+        alias="isUniversesBeyond",
+        description=(
+            "If every card in the set is a Universes Beyond card (carries the `universesbeyond` promo type). "
+            "Sets that mix Universes Beyond and other cards are not flagged."
+        ),
+        json_schema_extra={"introduced": "v5.3.2", "optional": True},
+    )
 
     # Languages
     languages: list[str] | None = Field(

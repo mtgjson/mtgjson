@@ -41,6 +41,40 @@ CACHE_SEALED = "_assembly_sealed.parquet"
 CACHE_TOKEN_PRODUCTS = "_assembly_token_products.json"
 
 
+def _universes_beyond_set_codes(parquet_dir: pathlib.Path, tokens_dir: pathlib.Path) -> set[str]:
+    """Codes of sets in which every card row carries the ``universesbeyond`` promo type.
+
+    A set's own rows are its partition in the card parquet plus its partition in
+    the token parquet, so a token-only set (e.g. BOT) is judged on its tokens
+    and a mixed set (e.g. SLD) is never flagged. Tokens that live in a linked
+    token set (T-prefixed) belong to that set, not to this one.
+    """
+    frames: list[pl.LazyFrame] = []
+    for directory in (parquet_dir, tokens_dir):
+        if not directory.exists() or not any(directory.iterdir()):
+            continue
+        lf = pl.scan_parquet(
+            directory / "**/*.parquet",
+            cast_options=pl.ScanCastOptions(missing_struct_fields="insert"),
+        )
+        if "promoTypes" not in lf.collect_schema().names():
+            continue
+        frames.append(lf.select("setCode", pl.col("promoTypes").cast(pl.List(pl.String))))
+    if not frames:
+        return set()
+
+    return set(
+        pl.concat(frames)
+        .group_by("setCode")
+        .agg(pl.col("promoTypes").fill_null([]).list.contains("universesbeyond").all().alias("isUniversesBeyond"))
+        .filter(pl.col("isUniversesBeyond"))
+        .select("setCode")
+        .collect()
+        .to_series()
+        .to_list()
+    )
+
+
 def _enrich_set_metadata(
     ctx: PipelineContext,
     set_meta: dict[str, dict[str, Any]],
@@ -114,6 +148,15 @@ def _enrich_set_metadata(
                         meta["totalSetSize"] = card_df["number"].n_unique()
                     else:
                         meta["totalSetSize"] = card_df.height
+
+    try:
+        universes_beyond_codes = _universes_beyond_set_codes(parquet_dir, tokens_dir)
+    except Exception as e:
+        LOGGER.warning(f"Universes Beyond set flag computation failed, no sets will be flagged: {e}")
+        universes_beyond_codes = set()
+    for code, meta in set_meta.items():
+        if code.upper() in universes_beyond_codes:
+            meta["isUniversesBeyond"] = True
 
     for code, meta in set_meta.items():
         set_type = meta.get("type", "")
@@ -383,6 +426,7 @@ class AssemblyContext:
             "isForeignOnly": pl.Boolean,
             "isPaperOnly": pl.Boolean,
             "isPartialPreview": pl.Boolean,
+            "isUniversesBeyond": pl.Boolean,
         }
         # Ensure sparse boolean keys exist in every dict — Polars drops
         # schema_overrides columns when the key is absent from most rows.
