@@ -556,6 +556,15 @@ class CardPrintingBase(CardBase):
         description="A list of promotional types for a card.",
         json_schema_extra={"introduced": "v5.0.0", "optional": True, "enum_key": "promoTypes"},
     )
+    print_run_size: int | None = Field(
+        default=None,
+        alias="printRunSize",
+        description=(
+            "The total number of copies printed of a card with the `serialized` promo type, "
+            "such as `500` for a card stamped as one of 500."
+        ),
+        json_schema_extra={"introduced": "v5.3.2", "optional": True},
+    )
 
     # Un-sets
     attraction_lights: list[int] | None = Field(

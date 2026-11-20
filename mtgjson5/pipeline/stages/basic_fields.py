@@ -353,32 +353,41 @@ def apply_card_enrichment(lf: pl.LazyFrame, ctx: PipelineContext) -> pl.LazyFram
     """
     Apply card enrichment from card_enrichment.json.
 
-    Enrichment data adds promo_types (e.g., neon ink colors) based on
-    set code and collector number.
+    Enrichment data is keyed by set code and collector number, and can:
+    - add promo_types (e.g., neon ink colors)
+    - set print_run_size (the number of copies printed of a serialized card)
     """
     enrichment_data = ctx.card_enrichment
-    if not enrichment_data:
-        return lf
 
-    # Flatten enrichment data into rows: (setCode, number, promo_types_to_add)
+    # Flatten enrichment data into rows: (setCode, number, promo_types_to_add, print_run_size)
     rows: list[dict[str, Any]] = []
     for set_code, cards in enrichment_data.items():
         for number, data in cards.items():
             enrichment = data.get("enrichment", {})
-            promo_types = enrichment.get("promo_types", [])
-            if promo_types:
+            promo_types = enrichment.get("promo_types") or None
+            print_run_size = enrichment.get("print_run_size")
+            if promo_types or print_run_size is not None:
                 rows.append(
                     {
                         "setCode": set_code.upper(),
                         "number": str(number),
                         "enrichmentPromoTypes": promo_types,
+                        "printRunSize": print_run_size,
                     }
                 )
 
     if not rows:
-        return lf
+        return lf.with_columns(pl.lit(None, dtype=pl.Int64).alias("printRunSize"))
 
-    enrichment_df = pl.DataFrame(rows).lazy()
+    enrichment_df = pl.LazyFrame(
+        rows,
+        schema={
+            "setCode": pl.String,
+            "number": pl.String,
+            "enrichmentPromoTypes": pl.List(pl.String),
+            "printRunSize": pl.Int64,
+        },
+    )
 
     # Left join enrichment data
     lf = lf.join(

@@ -206,6 +206,7 @@ Extends CardBase with printing-specific properties:
 | `hasFoil` | bool? | Has foil printing |
 | `hasNonFoil` | bool? | Has nonfoil printing |
 | `promoTypes` | list[str]? | Promo types |
+| `printRunSize` | int? | Print run of a serialized card |
 | `isFullArt` | bool? | Full art |
 | `isOnlineOnly` | bool? | Online only |
 | `isOversized` | bool? | Oversized |

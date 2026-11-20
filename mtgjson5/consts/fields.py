@@ -124,6 +124,7 @@ OTHER_OPTIONAL_FIELDS: Final[frozenset[str]] = frozenset(
         "loyalty",
         "manaCost",
         "power",
+        "printRunSize",
         "printedName",
         "printedType",
         "relatedCards",
