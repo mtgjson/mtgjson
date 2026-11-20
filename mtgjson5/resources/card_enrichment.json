@@ -1,4 +1,426 @@
 {
+  "ACR": {
+    "118z": {
+      "name": "Leonardo da Vinci",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "120z": {
+      "name": "Mary Read and Anne Bonny",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "272": {
+      "name": "Cleopatra, Exiled Pharaoh",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "273": {
+      "name": "Sokrates, Athenian Teacher",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    }
+  },
+  "BRR": {
+    "64z": {
+      "name": "Adaptive Automaton",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "65z": {
+      "name": "Aetherflux Reservoir",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "66z": {
+      "name": "Altar of Dementia",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "67z": {
+      "name": "Ashnod's Altar",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "68z": {
+      "name": "Astral Cornucopia",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "69z": {
+      "name": "Blackblade Reforged",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "70z": {
+      "name": "Bone Saw",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "71z": {
+      "name": "Burnished Hart",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "72z": {
+      "name": "Caged Sun",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "73z": {
+      "name": "Chromatic Lantern",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "74z": {
+      "name": "Chromatic Star",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "75z": {
+      "name": "Cloud Key",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "76z": {
+      "name": "Defense Grid",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "77z": {
+      "name": "Door to Nothingness",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "78z": {
+      "name": "Elsewhere Flask",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "79z": {
+      "name": "Foundry Inspector",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "80z": {
+      "name": "Gilded Lotus",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "81z": {
+      "name": "Goblin Charbelcher",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "82z": {
+      "name": "Helm of the Host",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "83z": {
+      "name": "Howling Mine",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "84z": {
+      "name": "Ichor Wellspring",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "85z": {
+      "name": "Inspiring Statuary",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "86z": {
+      "name": "Ivory Tower",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "87z": {
+      "name": "Jalum Tome",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "88z": {
+      "name": "Journeyer's Kite",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "89z": {
+      "name": "Keening Stone",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "90z": {
+      "name": "Key to the City",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "91z": {
+      "name": "Liquimetal Coating",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "92z": {
+      "name": "Lodestone Golem",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "93z": {
+      "name": "Mazemind Tome",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "94z": {
+      "name": "Mesmeric Orb",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "95z": {
+      "name": "Millstone",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "96z": {
+      "name": "Mind's Eye",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "97z": {
+      "name": "Mishra's Bauble",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "98z": {
+      "name": "Mox Amber",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "99z": {
+      "name": "Mystic Forge",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "100z": {
+      "name": "Ornithopter",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "101z": {
+      "name": "Perilous Vault",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "102z": {
+      "name": "Phyrexian Processor",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "103z": {
+      "name": "Phyrexian Revoker",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "104z": {
+      "name": "Platinum Angel",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "105z": {
+      "name": "Precursor Golem",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "106z": {
+      "name": "Pristine Talisman",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "107z": {
+      "name": "Psychosis Crawler",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "108z": {
+      "name": "Quicksilver Amulet",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "109z": {
+      "name": "Quietus Spike",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "110z": {
+      "name": "Ramos, Dragon Engine",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "111z": {
+      "name": "Runechanter's Pike",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "112z": {
+      "name": "Scrap Trawler",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "113z": {
+      "name": "Sculpting Steel",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "114z": {
+      "name": "Self-Assembler",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "115z": {
+      "name": "Semblance Anvil",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "116z": {
+      "name": "Sigil of Valor",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "117z": {
+      "name": "Soul-Guide Lantern",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "118z": {
+      "name": "Springleaf Drum",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "119z": {
+      "name": "Staff of Domination",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "120z": {
+      "name": "Sundering Titan",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "121z": {
+      "name": "Swiftfoot Boots",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "122z": {
+      "name": "Sword of the Meek",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "123z": {
+      "name": "Thorn of Amethyst",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "124z": {
+      "name": "Unwinding Clock",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "125z": {
+      "name": "Well of Lost Dreams",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "126z": {
+      "name": "Wurmcoil Engine",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    }
+  },
+  "DFT": {
+    "376": {
+      "name": "The Aetherspark",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    }
+  },
+  "ECL": {
+    "352": {
+      "name": "Bitterbloom Bearer",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    }
+  },
   "FIN": {
     "551a": {
       "name": "Traveling Chocobo",
@@ -30,6 +452,36 @@
         "promo_types": [
           "neoninkgreen"
         ]
+      }
+    },
+    "551f": {
+      "name": "Traveling Chocobo",
+      "enrichment": {
+        "print_run_size": 77
+      }
+    }
+  },
+  "FRA": {
+    "402": {
+      "name": "Bloodline Recollector // Ancestral Craving",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    }
+  },
+  "HHO": {
+    "21★": {
+      "name": "Treasure",
+      "enrichment": {
+        "print_run_size": 150
+      }
+    }
+  },
+  "INR": {
+    "491": {
+      "name": "Edgar Markov",
+      "enrichment": {
+        "print_run_size": 500
       }
     }
   },
@@ -85,6 +537,822 @@
       }
     }
   },
+  "LTC": {
+    "378z": {
+      "name": "The Great Henge",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "379z": {
+      "name": "Cloudstone Curio",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "380z": {
+      "name": "Ensnaring Bridge",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "381z": {
+      "name": "The Ozolith",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "382z": {
+      "name": "Rings of Brighthearth",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "383z": {
+      "name": "Shadowspear",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "384z": {
+      "name": "Sword of Hearth and Home",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "385z": {
+      "name": "Sword of the Animist",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "386z": {
+      "name": "Thorn of Amethyst",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "387z": {
+      "name": "Ancient Tomb",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "388z": {
+      "name": "Bojuka Bog",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "389z": {
+      "name": "Boseiju, Who Shelters All",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "390z": {
+      "name": "Cabal Coffers",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "391z": {
+      "name": "Castle Ardenvale",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "392z": {
+      "name": "Cavern of Souls",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "393z": {
+      "name": "Deserted Temple",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "394z": {
+      "name": "Gemstone Caverns",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "395z": {
+      "name": "Homeward Path",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "396z": {
+      "name": "Horizon Canopy",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "397z": {
+      "name": "Karakas",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "398z": {
+      "name": "Kor Haven",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "399z": {
+      "name": "Minamo, School at Water's Edge",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "400z": {
+      "name": "Mouth of Ronom",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "401z": {
+      "name": "Oboro, Palace in the Clouds",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "402z": {
+      "name": "Pillar of the Paruns",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "403z": {
+      "name": "Reflecting Pool",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "404z": {
+      "name": "Shinka, the Bloodsoaked Keep",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "405z": {
+      "name": "Urborg, Tomb of Yawgmoth",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "406z": {
+      "name": "Wasteland",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "407z": {
+      "name": "Yavimaya, Cradle of Growth",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "408z": {
+      "name": "Sol Ring",
+      "enrichment": {
+        "print_run_size": 300
+      }
+    },
+    "409z": {
+      "name": "Sol Ring",
+      "enrichment": {
+        "print_run_size": 700
+      }
+    },
+    "410z": {
+      "name": "Sol Ring",
+      "enrichment": {
+        "print_run_size": 900
+      }
+    }
+  },
+  "LTR": {
+    "0": {
+      "name": "The One Ring",
+      "enrichment": {
+        "print_run_size": 1
+      }
+    },
+    "731z": {
+      "name": "Dawn of a New Age",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "732z": {
+      "name": "Gandalf the White",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "733z": {
+      "name": "Storm of Saruman",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "734z": {
+      "name": "The Watcher in the Water",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "735z": {
+      "name": "Shadow of the Enemy",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "736z": {
+      "name": "Witch-king of Angmar",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "737z": {
+      "name": "Hew the Entwood",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "738z": {
+      "name": "Spiteful Banditry",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "739z": {
+      "name": "Last March of the Ents",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "740z": {
+      "name": "Radagast the Brown",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "741z": {
+      "name": "Aragorn, the Uniter",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "742z": {
+      "name": "Arwen, Mortal Queen",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "743z": {
+      "name": "Saruman of Many Colors",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "744z": {
+      "name": "Sauron, the Dark Lord",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "745z": {
+      "name": "Tom Bombadil",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "746z": {
+      "name": "Andúril, Flame of the West",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "747z": {
+      "name": "Glamdring",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "748z": {
+      "name": "The One Ring",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "749z": {
+      "name": "Palantír of Orthanc",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "750z": {
+      "name": "Mount Doom",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    }
+  },
+  "MH3": {
+    "381z": {
+      "name": "Emrakul, the World Anew",
+      "enrichment": {
+        "print_run_size": 250
+      }
+    },
+    "382z": {
+      "name": "Kozilek, the Broken Reality",
+      "enrichment": {
+        "print_run_size": 250
+      }
+    },
+    "383z": {
+      "name": "Ulamog, the Defiler",
+      "enrichment": {
+        "print_run_size": 250
+      }
+    }
+  },
+  "MKM": {
+    "317z": {
+      "name": "Aurelia, the Law Above",
+      "enrichment": {
+        "print_run_size": 250
+      }
+    },
+    "318z": {
+      "name": "Lazav, Wearer of Faces",
+      "enrichment": {
+        "print_run_size": 250
+      }
+    },
+    "319z": {
+      "name": "Niv-Mizzet, Guildpact",
+      "enrichment": {
+        "print_run_size": 250
+      }
+    },
+    "320z": {
+      "name": "Rakdos, Patron of Chaos",
+      "enrichment": {
+        "print_run_size": 250
+      }
+    },
+    "321z": {
+      "name": "Teysa, Opulent Oligarch",
+      "enrichment": {
+        "print_run_size": 250
+      }
+    },
+    "322z": {
+      "name": "Trostani, Three Whispers",
+      "enrichment": {
+        "print_run_size": 250
+      }
+    },
+    "323z": {
+      "name": "Vannifar, Evolved Enigma",
+      "enrichment": {
+        "print_run_size": 250
+      }
+    }
+  },
+  "MOM": {
+    "338": {
+      "name": "Elesh Norn // The Argent Etchings",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "339": {
+      "name": "Jin-Gitaxias // The Great Synthesis",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "340": {
+      "name": "Sheoldred // The True Scriptures",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "341": {
+      "name": "Urabrask // The Great Work",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "342": {
+      "name": "Vorinclex // The Grand Evolution",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    }
+  },
+  "MUL": {
+    "131z": {
+      "name": "Anafenza, Kin-Tree Spirit",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "132z": {
+      "name": "Daxos, Blessed by the Sun",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "133z": {
+      "name": "Elesh Norn, Grand Cenobite",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "134z": {
+      "name": "Kenrith, the Returned King",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "135z": {
+      "name": "Kwende, Pride of Femeref",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "136z": {
+      "name": "Sram, Senior Edificer",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "137z": {
+      "name": "Thalia, Guardian of Thraben",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "138z": {
+      "name": "Baral, Chief of Compliance",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "139z": {
+      "name": "Emry, Lurker of the Loch",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "140z": {
+      "name": "Inga Rune-Eyes",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "141z": {
+      "name": "Jin-Gitaxias, Core Augur",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "142z": {
+      "name": "Tetsuko Umezawa, Fugitive",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "143z": {
+      "name": "Ayara, First of Locthwain",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "144z": {
+      "name": "Horobi, Death's Wail",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "145z": {
+      "name": "Seizan, Perverter of Truth",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "146z": {
+      "name": "Sheoldred, Whispering One",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "147z": {
+      "name": "Skithiryx, the Blight Dragon",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "148z": {
+      "name": "Tymaret, Chosen from Death",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "149z": {
+      "name": "Yargle, Glutton of Urborg",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "150z": {
+      "name": "Captain Lannery Storm",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "151z": {
+      "name": "Ragavan, Nimble Pilferer",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "152z": {
+      "name": "Squee, the Immortal",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "153z": {
+      "name": "Urabrask the Hidden",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "154z": {
+      "name": "Valduk, Keeper of the Flame",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "155z": {
+      "name": "Zada, Hedron Grinder",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "156z": {
+      "name": "Fynn, the Fangbearer",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "157z": {
+      "name": "Goreclaw, Terror of Qal Sisma",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "158z": {
+      "name": "Renata, Called to the Hunt",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "159z": {
+      "name": "Vorinclex, Voice of Hunger",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "160z": {
+      "name": "Yedora, Grave Gardener",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "161z": {
+      "name": "Aegar, the Freezing Flame",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "162z": {
+      "name": "Arixmethes, Slumbering Isle",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "163z": {
+      "name": "Atraxa, Praetors' Voice",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "164z": {
+      "name": "Atris, Oracle of Half-Truths",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "165z": {
+      "name": "Aurelia, the Warleader",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "166z": {
+      "name": "Brudiclad, Telchor Engineer",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "167z": {
+      "name": "Dina, Soul Steeper",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "168z": {
+      "name": "Ezuri, Claw of Progress",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "169z": {
+      "name": "Firesong and Sunspeaker",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "170z": {
+      "name": "Firja, Judge of Valor",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "171z": {
+      "name": "Grimgrin, Corpse-Born",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "172z": {
+      "name": "Gyruda, Doom of Depths",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "173z": {
+      "name": "Imoti, Celebrant of Bounty",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "174z": {
+      "name": "Jegantha, the Wellspring",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "175z": {
+      "name": "Judith, the Scourge Diva",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "176z": {
+      "name": "Juri, Master of the Revue",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "177z": {
+      "name": "Kaheera, the Orphanguard",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "178z": {
+      "name": "Keruga, the Macrosage",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "179z": {
+      "name": "Kroxa, Titan of Death's Hunger",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "180z": {
+      "name": "Lathiel, the Bounteous Dawn",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "181z": {
+      "name": "Lurrus of the Dream-Den",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "182z": {
+      "name": "Lutri, the Spellchaser",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "183z": {
+      "name": "Niv-Mizzet Reborn",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "184z": {
+      "name": "Obosh, the Preypiercer",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "185z": {
+      "name": "Radha, Coalition Warlord",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "186z": {
+      "name": "Raff, Weatherlight Stalwart",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "187z": {
+      "name": "Reyav, Master Smith",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "188z": {
+      "name": "Rona, Sheoldred's Faithful",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "189z": {
+      "name": "Shanna, Sisay's Legacy",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "190z": {
+      "name": "Taigam, Ojutai Master",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "191z": {
+      "name": "Teysa Karlov",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "192z": {
+      "name": "Umori, the Collector",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "193z": {
+      "name": "Yarok, the Desecrated",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "194z": {
+      "name": "Yorion, Sky Nomad",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "195z": {
+      "name": "Zirda, the Dawnwaker",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    }
+  },
   "NEO": {
     "429": {
       "name": "Hidetsugu, Devouring Chaos",
@@ -116,6 +1384,436 @@
         "promo_types": [
           "neoninkyellow"
         ]
+      }
+    }
+  },
+  "PIP": {
+    "1057": {
+      "name": "Strength Bobblehead",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "1058": {
+      "name": "Perception Bobblehead",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "1059": {
+      "name": "Endurance Bobblehead",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "1060": {
+      "name": "Charisma Bobblehead",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "1061": {
+      "name": "Intelligence Bobblehead",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "1062": {
+      "name": "Agility Bobblehead",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "1063": {
+      "name": "Luck Bobblehead",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    }
+  },
+  "RVR": {
+    "302z": {
+      "name": "Blazing Archon",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "303z": {
+      "name": "Blind Obedience",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "306z": {
+      "name": "Divine Visitation",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "308z": {
+      "name": "Ghostway",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "309z": {
+      "name": "Bruvac the Grandiloquent",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "312z": {
+      "name": "Copy Enchantment",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "313z": {
+      "name": "Cyclonic Rift",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "319z": {
+      "name": "Spark Double",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "320z": {
+      "name": "Tidespout Tyrant",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "322z": {
+      "name": "Crypt Ghast",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "323z": {
+      "name": "Dark Confidant",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "326z": {
+      "name": "Infernal Tutor",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "327z": {
+      "name": "Lord of the Void",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "328z": {
+      "name": "Massacre Girl",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "331z": {
+      "name": "Arclight Phoenix",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "333z": {
+      "name": "Hellkite Tyrant",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "334z": {
+      "name": "Ilharg, the Raze-Boar",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "335z": {
+      "name": "Krenko, Mob Boss",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "337z": {
+      "name": "Legion Warboss",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "339z": {
+      "name": "Mizzix's Mastery",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "342z": {
+      "name": "Utvara Hellkite",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "344z": {
+      "name": "Birds of Paradise",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "345z": {
+      "name": "Chord of Calling",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "348z": {
+      "name": "Golgari Grave-Troll",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "349z": {
+      "name": "Guardian Project",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "350z": {
+      "name": "Life from the Loam",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "353z": {
+      "name": "Protean Hulk",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "356z": {
+      "name": "Aurelia, Exemplar of Justice",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "357z": {
+      "name": "Borborygmos Enraged",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "360z": {
+      "name": "Cindervines",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "363z": {
+      "name": "Deathrite Shaman",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "365z": {
+      "name": "Dreadbore",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "369z": {
+      "name": "Karlov of the Ghost Council",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "370z": {
+      "name": "Lavinia, Azorius Renegade",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "371z": {
+      "name": "Lazav, the Multifarious",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "373z": {
+      "name": "Master of Cruelties",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "375z": {
+      "name": "Mindleech Mass",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "376z": {
+      "name": "Niv-Mizzet, Parun",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "377z": {
+      "name": "Prime Speaker Zegana",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "379z": {
+      "name": "Rakdos, Lord of Riots",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "381z": {
+      "name": "Savra, Queen of the Golgari",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "383z": {
+      "name": "Sphinx's Revelation",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "384z": {
+      "name": "Stitch in Time",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "385z": {
+      "name": "Tajic, Legion's Edge",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "386z": {
+      "name": "Teysa, Orzhov Scion",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "387z": {
+      "name": "Tolsimir Wolfblood",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "388z": {
+      "name": "Voidslime",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "389z": {
+      "name": "Bottled Cloister",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "390z": {
+      "name": "Chromatic Lantern",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "391z": {
+      "name": "Cloudstone Curio",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "392z": {
+      "name": "Illusionist's Bracers",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "393z": {
+      "name": "Pariah's Shield",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "394z": {
+      "name": "Seal of the Guildpact",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "395z": {
+      "name": "Sword of the Paruns",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "397z": {
+      "name": "Blood Crypt",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "399z": {
+      "name": "Breeding Pool",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "401z": {
+      "name": "Godless Shrine",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "404z": {
+      "name": "Hallowed Fountain",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "407z": {
+      "name": "Overgrown Tomb",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "409z": {
+      "name": "Sacred Foundry",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "412z": {
+      "name": "Steam Vents",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "413z": {
+      "name": "Stomping Ground",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "414z": {
+      "name": "Temple Garden",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    },
+    "415z": {
+      "name": "Watery Grave",
+      "enrichment": {
+        "print_run_size": 500
       }
     }
   },
@@ -239,6 +1937,50 @@
           "rainbowfoil"
         ]
       }
+    },
+    "VS": {
+      "name": "Viscera Seer",
+      "enrichment": {
+        "print_run_size": 100
+      }
+    },
+    "713": {
+      "name": "Swords to Plowshares",
+      "enrichment": {
+        "print_run_size": 295
+      }
+    },
+    "714": {
+      "name": "Merfolk of the Pearl Trident",
+      "enrichment": {
+        "print_run_size": 295
+      }
+    },
+    "715": {
+      "name": "Lord of the Pit",
+      "enrichment": {
+        "print_run_size": 295
+      }
+    },
+    "716": {
+      "name": "Shivan Dragon",
+      "enrichment": {
+        "print_run_size": 295
+      }
+    },
+    "717": {
+      "name": "Giant Growth",
+      "enrichment": {
+        "print_run_size": 295
+      }
+    }
+  },
+  "SOS": {
+    "306": {
+      "name": "Emeritus of Ideation // Ancestral Recall",
+      "enrichment": {
+        "print_run_size": 500
+      }
     }
   },
   "SPG": {
@@ -293,6 +2035,14 @@
       }
     }
   },
+  "TDM": {
+    "419": {
+      "name": "Mox Jasper",
+      "enrichment": {
+        "print_run_size": 500
+      }
+    }
+  },
   "TLA": {
     "359": {
       "name": "Aang, Swift Savior // Aang and La, Ocean's Fury",
@@ -324,6 +2074,86 @@
         "promo_types": [
           "neoninkgreen"
         ]
+      }
+    }
+  },
+  "WHO": {
+    "552z": {
+      "name": "The First Doctor",
+      "enrichment": {
+        "print_run_size": 501
+      }
+    },
+    "553z": {
+      "name": "The Second Doctor",
+      "enrichment": {
+        "print_run_size": 502
+      }
+    },
+    "554z": {
+      "name": "The Third Doctor",
+      "enrichment": {
+        "print_run_size": 503
+      }
+    },
+    "555z": {
+      "name": "The Fourth Doctor",
+      "enrichment": {
+        "print_run_size": 504
+      }
+    },
+    "556z": {
+      "name": "The Fifth Doctor",
+      "enrichment": {
+        "print_run_size": 505
+      }
+    },
+    "557z": {
+      "name": "The Sixth Doctor",
+      "enrichment": {
+        "print_run_size": 506
+      }
+    },
+    "558z": {
+      "name": "The Seventh Doctor",
+      "enrichment": {
+        "print_run_size": 507
+      }
+    },
+    "559z": {
+      "name": "The Eighth Doctor",
+      "enrichment": {
+        "print_run_size": 508
+      }
+    },
+    "560z": {
+      "name": "The Ninth Doctor",
+      "enrichment": {
+        "print_run_size": 509
+      }
+    },
+    "561z": {
+      "name": "The Tenth Doctor",
+      "enrichment": {
+        "print_run_size": 510
+      }
+    },
+    "562z": {
+      "name": "The Eleventh Doctor",
+      "enrichment": {
+        "print_run_size": 511
+      }
+    },
+    "563z": {
+      "name": "The Twelfth Doctor",
+      "enrichment": {
+        "print_run_size": 512
+      }
+    },
+    "564z": {
+      "name": "The Thirteenth Doctor",
+      "enrichment": {
+        "print_run_size": 513
       }
     }
   }

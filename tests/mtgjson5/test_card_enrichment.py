@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import polars as pl
 
+from mtgjson5.data.cache import load_resource_json
 from mtgjson5.data.context import PipelineContext
 from mtgjson5.models.cards import CardSet
 from mtgjson5.pipeline.stages.basic_fields import apply_card_enrichment
@@ -99,3 +100,36 @@ class TestPrintRunSize:
     def test_model_field_uses_camel_case_alias(self) -> None:
         assert CardSet.model_fields["print_run_size"].alias == "printRunSize"
 
+
+class TestShippedEnrichmentData:
+    """Sanity checks on the real card_enrichment.json."""
+
+    def test_print_run_sizes_are_positive_integers(self) -> None:
+        data = load_resource_json("card_enrichment.json")
+        assert isinstance(data, dict)
+
+        sizes = {
+            (set_code, number): entry["enrichment"]["print_run_size"]
+            for set_code, cards in data.items()
+            for number, entry in cards.items()
+            if "print_run_size" in entry["enrichment"]
+        }
+
+        assert sizes
+        for key, size in sizes.items():
+            assert isinstance(size, int)
+            assert not isinstance(size, bool), key
+            assert size > 0, key
+
+    def test_printings_with_different_run_sizes_are_keyed_separately(self) -> None:
+        data = load_resource_json("card_enrichment.json")
+        assert isinstance(data, dict)
+
+        # Three serialized Sol Rings in LTC, each with its own run size
+        ltc = {n: data["LTC"][n]["enrichment"]["print_run_size"] for n in ("408z", "409z", "410z")}
+        assert ltc == {"408z": 300, "409z": 700, "410z": 900}
+        # The unique One Ring (LTR 0) is a run of one
+        assert data["LTR"]["0"]["enrichment"]["print_run_size"] == 1
+        # Doctor Who counts up with the Doctor number
+        assert data["WHO"]["552z"]["enrichment"]["print_run_size"] == 501
+        assert data["WHO"]["564z"]["enrichment"]["print_run_size"] == 513
