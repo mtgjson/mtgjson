@@ -1408,8 +1408,8 @@ wheels = [
 [[package]]
 name = "mtg-sealed-choices"
 version = "0.4.0"
-source = { url = "https://github.com/mtgjson/mtg-sealed-content/archive/0d9ad4bdca067a9a5d51d0ce5a70af5eb9241be0.tar.gz", subdirectory = "compiler" }
-sdist = { hash = "sha256:25ce0b5ef5ea930b98208ad6af07933039a0f92b7a35972441f1536fd140a2ce" }
+source = { url = "https://github.com/mtgjson/mtg-sealed-content/archive/e19c9b59047ad04afe07cfcf605e586f3fb01f6b.tar.gz", subdirectory = "compiler" }
+sdist = { hash = "sha256:6d9f3c0683c3708f73957801fd03b3c69825bc5d602ce0c6e95ced5ac913ceef" }
 
 [[package]]
 name = "mtgjson5"
@@ -1474,7 +1474,7 @@ requires-dist = [
     { name = "ijson", specifier = ">=3.6.0" },
     { name = "mergedeep", specifier = ">=1.3.4" },
     { name = "mkmsdk", specifier = ">=0.7.0" },
-    { name = "mtg-sealed-choices", url = "https://github.com/mtgjson/mtg-sealed-content/archive/0d9ad4bdca067a9a5d51d0ce5a70af5eb9241be0.tar.gz", subdirectory = "compiler" },
+    { name = "mtg-sealed-choices", url = "https://github.com/mtgjson/mtg-sealed-content/archive/e19c9b59047ad04afe07cfcf605e586f3fb01f6b.tar.gz", subdirectory = "compiler" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=2.4.0" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "orjson", specifier = ">=3.13.0" },
