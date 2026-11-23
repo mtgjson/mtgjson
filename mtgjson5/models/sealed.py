@@ -100,7 +100,10 @@ class SealedProduct(PolarsMixin, BaseModel):
     card_count: int | None = Field(
         default=None,
         alias="cardCount",
-        description="The number of cards in this product.",
+        description=(
+            "The number of cards in this product, counted from its contents: each card, pack and deck. "
+            "A sealed product it contains is counted on its own."
+        ),
         json_schema_extra={"introduced": "v5.2.2", "optional": True},
     )
     product_size: int | None = Field(
