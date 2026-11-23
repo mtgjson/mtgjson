@@ -172,3 +172,20 @@ class TestApplyScryfallOverrides:
         row_a = result.filter(pl.col("scryfallId") == "aaa-111")
         assert row_a["name"].item() == "New Name"
         assert row_a["tcgplayerAlternativeFoilProductId"].item() == 999
+
+    def test_tcgplayer_id_override_fills_missing_link(self) -> None:
+        """A tcgplayerId override links a printing Scryfall hasn't mapped to TCGplayer yet.
+
+        apply_scryfall_overrides runs before add_identifiers_struct, which copies
+        tcgplayerId into identifiers.tcgplayerProductId.
+        """
+        lf = pl.LazyFrame(
+            {"scryfallId": ["aaa-111", "bbb-222"], "tcgplayerId": [None, 555]},
+            schema={"scryfallId": pl.String, "tcgplayerId": pl.Int64},
+        )
+        ctx = PipelineContext.for_testing(scryfall_overrides={"aaa-111": {"tcgplayerId": 733563}})
+        result = apply_scryfall_overrides(lf, ctx).collect()
+
+        assert result.schema["tcgplayerId"] == pl.Int64
+        assert result.filter(pl.col("scryfallId") == "aaa-111")["tcgplayerId"].item() == 733563
+        assert result.filter(pl.col("scryfallId") == "bbb-222")["tcgplayerId"].item() == 555
