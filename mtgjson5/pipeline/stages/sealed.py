@@ -13,6 +13,7 @@ import polars as pl
 import polars_hash as plh
 import yaml
 from mtg_sealed_choices.catalog import CatalogWalker
+from mtg_sealed_choices.counts import booster_card_count, deck_card_count
 from mtg_sealed_choices.links import (
     CardReference as _CTPCard,
 )
@@ -152,6 +153,7 @@ class pack(Pack):
             umap = False
         if not umap or (self.code not in umap):
             LOGGER.warning("Booster code %s not found in set %s", self.code, self.set)
+        self.card_count = uuid_map.get(self.set.lower(), {}).get("boosterCardCount", {}).get(self.code)
 
 
 class deck(Deck):
@@ -162,6 +164,7 @@ class deck(Deck):
             umap = False
         if not umap or (self.name not in umap):
             LOGGER.warning("Deck named %s not found in set %s", self.name, self.set)
+        self.card_count = uuid_map.get(self.set.lower(), {}).get("deckCardCount", {}).get(self.name)
 
 
 class sealed(Sealed):
@@ -334,7 +337,9 @@ def build_uuid_map_from_pipeline(
             output, so no per-language UUID exists for them and a language-
             tagged token resolves through "tokens"/"cards" instead.
         booster: set of booster type codes
+        boosterCardCount: {booster_code: cards in one booster}
         decks: set of deck names
+        deckCardCount: {deck_name: cards in the deck}
         sealedProduct: {product_name: uuid}
     """
     from mtgjson5.consts import LANGUAGE_MAP
@@ -410,7 +415,9 @@ def build_uuid_map_from_pipeline(
                 "tokens": {},
                 "cards_by_language": {},
                 "booster": set(),
+                "boosterCardCount": {},
                 "decks": set(),
+                "deckCardCount": {},
                 "sealedProduct": {},
             }
         return uuids[code]
@@ -497,11 +504,13 @@ def build_uuid_map_from_pipeline(
         code = set_code.lower()
         _ensure_set(code)
         uuids[code]["booster"] = set(booster_config.keys())
+        uuids[code]["boosterCardCount"] = {name: booster_card_count(config) for name, config in booster_config.items()}
 
     for deck_entry in decks_raw:
         code = deck_entry["set_code"].lower()
         _ensure_set(code)
         uuids[code]["decks"].add(deck_entry["name"])
+        uuids[code]["deckCardCount"][deck_entry["name"]] = deck_card_count(deck_entry)
 
     for (set_code, product_name), puuid in resolve_sealed_uuids(products_dict).items():
         set_lower = set_code.lower()
@@ -759,7 +768,11 @@ def add_reprint_boosters(
     )
     for set_code, configs in derived.items():
         boosters_raw.setdefault(set_code, {}).update(configs)
-        uuid_map.setdefault(set_code.lower(), {}).setdefault("booster", set()).update(configs)
+        set_map = uuid_map.setdefault(set_code.lower(), {})
+        set_map.setdefault("booster", set()).update(configs)
+        set_map.setdefault("boosterCardCount", {}).update(
+            {name: booster_card_count(config) for name, config in configs.items()}
+        )
     return bool(derived)
 
 

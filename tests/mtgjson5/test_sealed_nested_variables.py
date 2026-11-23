@@ -61,15 +61,14 @@ def test_battle_pack_published_outcomes(code, expected_count, tmp_path, caplog):
     selection = {"variable": choices, "variable_mode": {"count": 4 if code == "M12" else 2}}
     if code == "M13":
         selection = {"variable": [selection], "variable_mode": {"count": 2, "replacement": True}}
-    definition = {
-        "contents": {"card_count": 70, "sealed": [{"set": code.lower(), "name": "Booster", "count": 2}], **selection}
-    }
+    definition = {"contents": {"sealed": [{"set": code.lower(), "name": "Booster", "count": 2}], **selection}}
     products_dir = tmp_path / "products"
     products_dir.mkdir()
     (products_dir / f"{code}.yaml").write_text(yaml.safe_dump({"code": code.lower(), "products": {name: definition}}))
     uuid_map = {
         code.lower(): {
             "decks": {name: {} for name in deck_names},
+            "deckCardCount": dict.fromkeys(deck_names, 10),
             "sealedProduct": {name: "product-id", definition["contents"]["sealed"][0]["name"]: "booster-id"},
         }
     }
@@ -107,7 +106,8 @@ def test_battle_pack_published_outcomes(code, expected_count, tmp_path, caplog):
     rows = outcomes(contents)
     assert len(rows) == expected_count
     assert rows == outcomes(compiled[code.lower()][name])
-    assert published["cardCount"] == 70
+    # Four ten-card decks; the two boosters count as their own product.
+    assert published["cardCount"] == 40
     assert contents["sealed"][0]["count"] == 2
     for row in rows:
         assert len(row) == 4
