@@ -694,10 +694,9 @@ def derive_reprint_boosters(
     swapped for the BCHR printing at the same number. A booster is derived
     only when a product asks for it, the set has none by that code, its parent
     does, and every card on the parent's sheets has a reprint of the same
-    number and name printed in one language; a number printed in several
-    leaves which of them a pack held unknown, and the published card for it
-    is not necessarily the one this map picks. Otherwise nothing is made and
-    the missing booster is reported as before.
+    number and name. A number printed in several languages, as in FBB and 4BB,
+    stands for the printing published there, which is the one the map keeps.
+    Otherwise nothing is made and the missing booster is reported as before.
 
     Returns ``{SET: {booster_code: config}}`` in magic-sealed-data's shape.
     """
@@ -714,7 +713,6 @@ def derive_reprint_boosters(
             uuid: (number, name) for number, (uuid, name) in uuid_map.get(parent, {}).get("cards", {}).items()
         }
         reprints = uuid_map.get(set_code, {}).get("cards", {})
-        several_languages = uuid_map.get(set_code, {}).get("cards_by_language", {})
         sheets: dict[str, dict] = {}
         problem = None
         for sheet_name, sheet in parent_config.get("sheets", {}).items():
@@ -724,9 +722,6 @@ def derive_reprint_boosters(
                 reprint = reprints.get(number) if number is not None else None
                 if reprint is None or reprint[1] != name:
                     problem = f"{parent.upper()} {number or uuid} {name or ''}".strip() + " has no reprint"
-                    break
-                if number in several_languages:
-                    problem = f"{set_code.upper()} {number} {name} is printed in several languages"
                     break
                 cards[reprint[0]] = weight
             if problem:
