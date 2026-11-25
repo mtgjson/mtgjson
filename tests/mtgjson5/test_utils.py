@@ -5,10 +5,14 @@ from __future__ import annotations
 import hashlib
 import pathlib
 
+import polars as pl
+import pytest
+
 from mtgjson5.utils import (
     deep_sort_keys,
     generate_output_file_hashes,
     get_all_entities_from_content,
+    get_expanded_set_codes,
     get_file_hash,
     get_str_or_none,
     parse_magic_rules_subset,
@@ -324,3 +328,18 @@ class TestDeepSortKeys:
     def test_list_order_preserved(self):
         result = deep_sort_keys([3, 1, 2])
         assert result == [3, 1, 2]
+
+
+class TestGetExpandedSetCodes:
+    @pytest.mark.parametrize("requested_code", ["ABC", "abc"])
+    def test_set_code_case_matches_scryfall_codes(self, monkeypatch: pytest.MonkeyPatch, requested_code: str):
+        sets = pl.LazyFrame(
+            {
+                "code": ["abc", "tabc", "xyz"],
+                "released_at": ["2024-01-01", "2024-01-01", "2024-01-01"],
+                "parent_set_code": [None, "abc", None],
+            }
+        )
+        monkeypatch.setattr("mtgjson5.utils._fetch_scryfall_sets", lambda: sets)
+
+        assert set(get_expanded_set_codes(requested_code)) == {"ABC", "TABC"}

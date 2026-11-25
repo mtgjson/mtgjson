@@ -560,14 +560,18 @@ def get_expanded_set_codes(
     Returns:
         List of uppercase set codes (original + expanded by release date).
     """
-    sets_lf = _fetch_scryfall_sets()
+    sets_lf = _fetch_scryfall_sets().with_columns(
+        pl.col("code").str.to_uppercase().alias("code"),
+        pl.col("parent_set_code").str.to_uppercase().alias("parent_set_code"),
+    )
 
     # return all sets if None
     if set_codes is None:
         return sets_lf.select("code").collect().to_series().to_list()
 
-    # Normalize to list
-    codes_list: list[str] = [set_codes] if isinstance(set_codes, str) else set_codes
+    # Normalize to uppercase Scryfall-independent set codes
+    raw_codes: list[str] = [set_codes] if isinstance(set_codes, str) else set_codes
+    codes_list = [code.upper() for code in raw_codes]
 
     # Get release dates for requested sets
     release_dates = (
