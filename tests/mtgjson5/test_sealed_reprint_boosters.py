@@ -99,20 +99,19 @@ class TestDeriveReprintBoosters:
         assert not derived
         assert any("CHR 3 Arcades has no reprint" in r.getMessage() for r in caplog.records)
 
-    def test_a_reprint_printed_in_several_languages_is_not_guessed(self, caplog):
+    def test_a_reprint_printed_in_several_languages_is_its_published_printing(self):
         """4BB is printed in Japanese, Korean, Chinese, Spanish and Portuguese:
-        which of them a pack held is unknown, and the map's pick for a number
-        is not necessarily the card MTGJSON publishes for it."""
+        the booster draws the card MTGJSON publishes, the map's pick."""
         uuid_map = _uuid_map()
         uuid_map["bchr"]["cards_by_language"] = {
             "2": {"Japanese": ("ja-2", "Akron Legionnaire"), "Korean": ("ko-2", "Akron Legionnaire")}
         }
 
-        with caplog.at_level(logging.WARNING, logger="mtgjson5.pipeline.stages.sealed"):
-            derived = derive_reprint_boosters(REQUESTED, {"CHR": PARENT_BOOSTER}, uuid_map, PARENTS)
+        derived = derive_reprint_boosters({("bchr", "default"): set()}, {"CHR": PARENT_BOOSTER}, uuid_map, PARENTS)
 
-        assert not derived
-        assert any("BCHR 2 Akron Legionnaire is printed in several languages" in r.getMessage() for r in caplog.records)
+        booster = derived["BCHR"]["default"]
+        assert booster["sheets"]["common"]["cards"] == {"ja-1": 3, "ja-2": 1}
+        assert "languages" not in booster
 
     def test_a_different_card_at_the_same_number_is_not_a_reprint(self):
         reprints = {"1": ("ja-1", "Abu Ja'far"), "2": ("ja-2", "Akron Legionnaire"), "3": ("ja-3", "Something Else")}
