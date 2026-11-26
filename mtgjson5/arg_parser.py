@@ -10,6 +10,16 @@ import sys
 LOGGER = logging.getLogger(__name__)
 
 
+def _env_flag(name: str) -> bool:
+    """
+    Read a boolean flag from the environment.
+
+    Unset, empty, "0", "false", "no" and "off" (any case) are False;
+    plain bool() of the raw string would treat "false" and "0" as True.
+    """
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
 def set_build_all_flags(parsed_args: argparse.Namespace) -> None:
     """
     Expand the macro "--build-all" into the full set of flags.
@@ -251,23 +261,23 @@ def parse_args() -> argparse.Namespace:
     if parsed_args.use_envvars:
         LOGGER.info("Using environment variables over parser flags")
         parsed_args.sets = list(filter(None, os.environ.get("SETS", "").split(",")))
-        parsed_args.all_sets = bool(os.environ.get("ALL_SETS", False))
-        parsed_args.full_build = bool(os.environ.get("FULL_BUILD", False))
-        parsed_args.resume_build = bool(os.environ.get("RESUME_BUILD", False))
-        parsed_args.compress = bool(os.environ.get("COMPRESS", False))
-        parsed_args.parallel = bool(os.environ.get("PARALLEL", False))
-        parsed_args.pretty = bool(os.environ.get("PRETTY", False))
-        parsed_args.bulk_files = bool(os.environ.get("USE_BULK", False))
-        parsed_args.refresh_bulk = bool(os.environ.get("REFRESH_BULK", False))
+        parsed_args.all_sets = _env_flag("ALL_SETS")
+        parsed_args.full_build = _env_flag("FULL_BUILD")
+        parsed_args.resume_build = _env_flag("RESUME_BUILD")
+        parsed_args.compress = _env_flag("COMPRESS")
+        parsed_args.parallel = _env_flag("PARALLEL")
+        parsed_args.pretty = _env_flag("PRETTY")
+        parsed_args.bulk_files = _env_flag("USE_BULK")
+        parsed_args.refresh_bulk = _env_flag("REFRESH_BULK")
         parsed_args.skip_sets = list(filter(None, os.environ.get("SKIP_SETS", "").split(",")))
-        parsed_args.price_build = bool(os.environ.get("PRICE_BUILD", False))
-        parsed_args.referrals = bool(os.environ.get("REFERRALS", False))
-        parsed_args.no_alerts = bool(os.environ.get("NO_ALERTS", False))
+        parsed_args.price_build = _env_flag("PRICE_BUILD")
+        parsed_args.referrals = _env_flag("REFERRALS")
+        parsed_args.no_alerts = _env_flag("NO_ALERTS")
         parsed_args.aws_ssm_download_config = os.environ.get("AWS_SSM_DOWNLOAD_CONFIG")
         parsed_args.aws_s3_upload_bucket = os.environ.get("AWS_S3_UPLOAD_BUCKET")
         parsed_args.outputs = list(filter(None, os.environ.get("OUTPUTS", "").split(","))) or None
         parsed_args.export_formats = list(filter(None, os.environ.get("EXPORT_FORMATS", "").lower().split(","))) or None
-        parsed_args.build_all = bool(os.environ.get("MTGJSON_BUILD_ALL", False))
+        parsed_args.build_all = _env_flag("MTGJSON_BUILD_ALL")
         batch_env = os.environ.get("MTGJSON_BATCH_SIZE", "auto")
         parsed_args.batch_size = (batch_env if batch_env.lower() == "auto" else int(batch_env)) if batch_env else "auto"
         set_build_all_flags(parsed_args)
